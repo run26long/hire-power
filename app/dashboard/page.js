@@ -182,9 +182,10 @@ export default function DashboardPage() {
                     Coaching Session:
                   </h3>
                   <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                    <p className="text-sm text-gray-800">
-                      <strong>Coach:</strong> {coachingMessages[0].content}
-                    </p>
+                    <p className="text-sm font-semibold text-gray-900 mb-2">Coach:</p>
+                    <div className="text-sm text-gray-800 whitespace-pre-line">
+                      {coachingMessages[0].content}
+                    </div>
                   </div>
                 </div>
               )}
