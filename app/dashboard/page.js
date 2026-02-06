@@ -9,6 +9,8 @@ export default function DashboardPage() {
   const [parsing, setParsing] = useState(false)
   const [message, setMessage] = useState('')
   const [extractedText, setExtractedText] = useState('')
+  const [coaching, setCoaching] = useState(false)
+  const [coachingMessages, setCoachingMessages] = useState([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -65,6 +67,31 @@ export default function DashboardPage() {
     } finally {
       setUploading(false)
       setParsing(false)
+    }
+  }
+
+  const startCoaching = async () => {
+    setCoaching(true)
+    
+    const systemPrompt = {
+      role: 'user',
+      content: `I'm a resume coach. Here's the user's current resume:\n\n${extractedText}\n\nAsk them ONE specific question to help extract quantifiable achievements from their experience. Focus on numbers, metrics, improvements, or results they achieved.`
+    }
+    
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeText: extractedText,
+          conversation: [systemPrompt]
+        })
+      })
+      
+      const data = await response.json()
+      setCoachingMessages([{ role: 'assistant', content: data.response }])
+    } catch (error) {
+      console.error('Coaching error:', error)
     }
   }
 
@@ -133,13 +160,34 @@ export default function DashboardPage() {
           {extractedText && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Extracted Resume Text:
+                Resume Text Extracted Successfully!
               </h3>
-              <div className="bg-gray-50 border border-gray-200 rounded p-4 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700">
-                  {extractedText}
-                </pre>
+              <div className="bg-gray-50 border border-gray-200 rounded p-4 mb-4">
+                <p className="text-sm text-gray-700">
+                  {extractedText.substring(0, 200)}... 
+                  <span className="text-gray-500">(showing first 200 characters)</span>
+                </p>
               </div>
+              
+              <button
+                onClick={startCoaching}
+                className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              >
+                🚀 Start Achievement Coaching
+              </button>
+
+              {coachingMessages.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Coaching Session:
+                  </h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                    <p className="text-sm text-gray-800">
+                      <strong>Coach:</strong> {coachingMessages[0].content}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
