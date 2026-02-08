@@ -1,103 +1,87 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
 export default function DashboardPage() {
-  const [uploading, setUploading] = useState(false)
-  const [parsing, setParsing] = useState(false)
-  const [message, setMessage] = useState('')
-  const [extractedText, setExtractedText] = useState('')
-  const [coaching, setCoaching] = useState(false)
-  const [coachingMessages, setCoachingMessages] = useState([])
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [loading, setLoading] = useState(true)
+  const [resumeData, setResumeData] = useState(null)
+  const [showSavedMessage, setShowSavedMessage] = useState(false)
   const supabase = createClient()
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+  useEffect(() => {
+    checkForResume()
+    
+    // Show success message if coming from saved coaching
+    if (searchParams.get('saved') === 'true') {
+      setShowSavedMessage(true)
+      setTimeout(() => setShowSavedMessage(false), 5000) // Hide after 5 seconds
+    }
+  }, [])
 
-    setUploading(true)
-    setMessage('')
-    setExtractedText('')
-
+  const checkForResume = async () => {
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
-        setMessage('Please log in to upload')
-        setUploading(false)
+        router.push('/login')
         return
       }
 
-      // Create unique filename
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`
-
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      // Get full resume data
+      const { data, error } = await supabase
         .from('resumes')
-        .upload(fileName, file)
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
 
-      if (error) throw error
+      if (error && error.code !== 'PGRST116') throw error
 
-      setMessage('✅ Resume uploaded! Extracting text...')
-      setParsing(true)
+      if (!data) {
+        router.push('/resume-start')
+        return
+      }
 
-      // Parse the PDF
-      const response = await fetch('/api/parse-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: fileName })
-      })
-
-      const parseResult = await response.json()
-
-      if (!response.ok) throw new Error(parseResult.error)
-
-      setExtractedText(parseResult.text)
-      setMessage('✅ Resume uploaded and parsed successfully!')
-      console.log('Extracted text:', parseResult.text)
-      
+      setResumeData(data)
+      setLoading(false)
     } catch (error) {
-      setMessage('❌ Error: ' + error.message)
-      console.error('Error:', error)
-    } finally {
-      setUploading(false)
-      setParsing(false)
-    }
-  }
-
-  const startCoaching = async () => {
-    setCoaching(true)
-    
-    const systemPrompt = {
-      role: 'user',
-      content: `I'm a resume coach. Here's the user's current resume:\n\n${extractedText}\n\nAsk them ONE specific question to help extract quantifiable achievements from their experience. Focus on numbers, metrics, improvements, or results they achieved.`
-    }
-    
-    try {
-      const response = await fetch('/api/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resumeText: extractedText,
-          conversation: [systemPrompt]
-        })
-      })
-      
-      const data = await response.json()
-      setCoachingMessages([{ role: 'assistant', content: data.response }])
-    } catch (error) {
-      console.error('Coaching error:', error)
+      console.error('Error checking resume:', error)
+      setLoading(false)
     }
   }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  // Calculate progress
+  const getProgress = () => {
+    if (!resumeData) return { step: 0, percent: 0, label: 'Not started' }
+    
+    const hasResume = resumeData.parsed_text || resumeData.resume_data
+    const hasCoaching = resumeData.coaching_conversation && resumeData.coaching_conversation.length > 0
+    const isComplete = false // Will add template selection later
+    
+    if (isComplete) return { step: 3, percent: 100, label: 'Complete!' }
+    if (hasCoaching) return { step: 2, percent: 66, label: 'Coaching in progress' }
+    if (hasResume) return { step: 1, percent: 33, label: 'Resume uploaded' }
+    return { step: 0, percent: 0, label: 'Not started' }
+  }
+
+  const progress = resumeData ? getProgress() : { step: 0, percent: 0, label: 'Not started' }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    )
   }
 
   return (
@@ -116,81 +100,88 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Welcome to Your Dashboard
-          </h2>
-          <p className="text-gray-600 mb-8">
-            Upload your resume to get started with AI-powered coaching
-          </p>
-
-          {message && (
-            <div className={`mb-4 p-4 rounded ${
-              message.includes('✅') 
-                ? 'bg-green-50 text-green-700' 
-                : 'bg-red-50 text-red-700'
-            }`}>
-              {message}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Success Message */}
+        {showSavedMessage && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <span className="text-2xl mr-3">✅</span>
+              <div>
+                <h3 className="font-semibold text-green-900">Progress Saved!</h3>
+                <p className="text-sm text-green-700 mt-1">
+  Your coaching session has been saved. Click "Work with Your Resume Coach" below to pick up where you left off.
+</p>
+              </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6">
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileUpload}
-              disabled={uploading || parsing}
-              className="hidden"
-              id="resume-upload"
-            />
-            <label
-              htmlFor="resume-upload"
-              className={`cursor-pointer inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 ${
-                (uploading || parsing) ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              {uploading ? '📤 Uploading...' : parsing ? '⚙️ Extracting text...' : '📄 Upload Resume (PDF)'}
-            </label>
-            <p className="mt-2 text-sm text-gray-500">
-              PDF files up to 10MB
-            </p>
+        <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
+        <p className="text-gray-600 mb-8">Welcome back! Here's your progress:</p>
+
+        {/* Progress Bar */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border">
+          <div className="flex justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Resume Progress</span>
+            <span className="text-sm font-medium text-purple-600">{progress.label}</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div 
+              className="bg-purple-600 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${progress.percent}%` }}
+            ></div>
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>Start</span>
+            <span>Coaching</span>
+            <span>Complete</span>
+          </div>
+        </div>
+        
+        <div className="grid gap-6">
+          {/* Resume Coaching Card */}
+          <div 
+            onClick={() => router.push('/resume-coaching')}
+            className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white"
+          >
+           <div className="flex justify-between items-start mb-2">
+  <h2 className="text-xl font-semibold">🚀 Work with Your Resume Coach</h2>
+  {progress.step >= 2 && (
+    <span className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full font-medium">
+      In Progress
+    </span>
+  )}
+</div>
+<p className="text-gray-600">
+  Begin your coaching journey or pick up where you left off - extract quantifiable achievements from your experience
+</p>
           </div>
 
-          {extractedText && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Resume Text Extracted Successfully!
-              </h3>
-              <div className="bg-gray-50 border border-gray-200 rounded p-4 mb-4">
-                <p className="text-sm text-gray-700">
-                  {extractedText.substring(0, 200)}... 
-                  <span className="text-gray-500">(showing first 200 characters)</span>
-                </p>
-              </div>
-              
-              <button
-                onClick={startCoaching}
-                className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-              >
-                🚀 Start Achievement Coaching
-              </button>
+          {/* Interview Practice */}
+          <div className="border rounded-lg p-6 bg-white opacity-50 cursor-not-allowed">
+           <h2 className="text-xl font-semibold mb-2">🎤 Work with Your Interview Coach</h2>
+            <p className="text-gray-600">Coming soon - Practice with AI-spoken questions</p>
+          </div>
 
-              {coachingMessages.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Coaching Session:
-                  </h3>
-                  <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                    <p className="text-sm font-semibold text-gray-900 mb-2">Coach:</p>
-                    <div className="text-sm text-gray-800 whitespace-pre-line">
-                      {coachingMessages[0].content}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* My Resumes */}
+          <div 
+            onClick={() => {
+              if (resumeData) {
+                // Will add resume viewer page later
+                alert('Resume viewer coming soon! For now, continue coaching to finalize your resume.')
+              } else {
+                router.push('/resume-start')
+              }
+            }}
+            className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white"
+          >
+            <h2 className="text-xl font-semibold mb-2">📄 My Resumes</h2>
+            <p className="text-gray-600">
+              {resumeData 
+                ? 'View your resume (finalize coaching first to download)' 
+                : 'Create your first resume'}
+            </p>
+          </div>
         </div>
       </div>
     </div>
