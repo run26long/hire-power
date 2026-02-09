@@ -62,17 +62,17 @@ export default function DashboardPage() {
 
   // Calculate progress
   const getProgress = () => {
-    if (!resumeData) return { step: 0, percent: 0, label: 'Not started' }
-    
-    const hasResume = resumeData.parsed_text || resumeData.resume_data
-    const hasCoaching = resumeData.coaching_conversation && resumeData.coaching_conversation.length > 0
-    const isComplete = false // Will add template selection later
-    
-    if (isComplete) return { step: 3, percent: 100, label: 'Complete!' }
-    if (hasCoaching) return { step: 2, percent: 66, label: 'Coaching in progress' }
-    if (hasResume) return { step: 1, percent: 33, label: 'Resume uploaded' }
-    return { step: 0, percent: 0, label: 'Not started' }
-  }
+  if (!resumeData) return { step: 0, percent: 0, label: 'Not started' }
+  
+  const hasResume = resumeData.parsed_text || resumeData.resume_data
+  const hasCoaching = resumeData.coaching_conversation && resumeData.coaching_conversation.length > 0
+  const isComplete = resumeData.coaching_complete === true
+  
+  if (isComplete) return { step: 3, percent: 100, label: 'Coaching complete!' }
+  if (hasCoaching) return { step: 2, percent: 66, label: 'Coaching in progress' }
+  if (hasResume) return { step: 1, percent: 33, label: 'Resume uploaded' }
+  return { step: 0, percent: 0, label: 'Not started' }
+}
 
   const progress = resumeData ? getProgress() : { step: 0, percent: 0, label: 'Not started' }
 
@@ -165,14 +165,7 @@ export default function DashboardPage() {
 
           {/* My Resumes */}
           <div 
-            onClick={() => {
-              if (resumeData) {
-                // Will add resume viewer page later
-                alert('Resume viewer coming soon! For now, continue coaching to finalize your resume.')
-              } else {
-                router.push('/resume-start')
-              }
-            }}
+            onClick={() => router.push('/my-resumes')}
             className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white"
           >
             <h2 className="text-xl font-semibold mb-2">📄 My Resumes</h2>

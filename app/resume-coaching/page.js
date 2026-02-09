@@ -16,9 +16,9 @@ export default function ResumeCoaching() {
   const inputRef = useRef(null)
 
   const isCoachingComplete = messages.some(msg => 
-    msg.role === 'assistant' && 
-    msg.content.toLowerCase().includes('ready to finalize your improved resume')
-  )
+  msg.role === 'assistant' && 
+  msg.content.toLowerCase().includes('click the finish coaching button below')
+)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -305,22 +305,75 @@ export default function ResumeCoaching() {
           </button>
         </div>
         
-        {/* Only Finalize button (when ready) */}
-        {isCoachingComplete && (
-          <div className="mb-4 flex justify-center">
-            <button
-              onClick={finishCoaching}
-              className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
-            >
-              ✅ Finish Coaching
-            </button>
-          </div>
-        )}
-        {!isCoachingComplete && (
-          <div className="mb-4 flex justify-center">
-            <p className="text-xs text-gray-500 italic">Finalize button will appear when coaching is complete</p>
-          </div>
-        )}
+        {/* Finalize or Continue Coaching button */}
+<div className="mb-4 flex justify-center">
+  {resumeData?.coaching_complete ? (
+  <button
+    onClick={async () => {
+      try {
+        setSending(true)
+        
+        // Get Claude's "welcome back" message
+        const response = await fetch('/api/coach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeText: resumeData.parsed_text,
+            conversation: [
+              ...messages,
+              { role: 'user', content: 'I want to add more to my resume.' }
+            ]
+          })
+        })
+        
+        const data = await response.json()
+        
+        // Update with new message and reopen
+        const updatedMessages = [
+          ...messages,
+          { role: 'user', content: 'I want to add more to my resume.' },
+          { role: 'assistant', content: data.response }
+        ]
+        
+        const { error } = await supabase
+          .from('resumes')
+          .update({ 
+            coaching_complete: false,
+            coaching_conversation: updatedMessages
+          })
+          .eq('id', resumeData.id)
+        
+        if (error) throw error
+        
+        // Refresh page
+        window.location.reload()
+      } catch (error) {
+        console.error('Error continuing coaching:', error)
+        alert('Failed to reopen coaching. Please try again.')
+        setSending(false)
+      }
+    }}
+    disabled={sending}
+    className="border-2 border-purple-600 text-purple-600 px-6 py-2.5 rounded-lg hover:bg-purple-50 transition-colors font-medium text-sm disabled:opacity-50"
+  >
+    {sending ? '⏳ Reopening...' : '💬 Continue Coaching'}
+  </button>
+  ) : isCoachingComplete ? (
+    <button
+      onClick={finishCoaching}
+      disabled={sending}
+      className={`px-6 py-2.5 rounded-lg transition-colors font-medium text-sm ${
+        sending 
+          ? 'bg-gray-400 cursor-not-allowed' 
+          : 'bg-green-600 hover:bg-green-700'
+      } text-white`}
+    >
+      {sending ? '⏳ Processing...' : '✅ Finish Coaching'}
+    </button>
+  ) : (
+    <p className="text-xs text-gray-500 italic">Finalize button will appear when coaching is complete</p>
+  )}
+</div>
       </div>
     </div>
   )
