@@ -1,31 +1,43 @@
 import puppeteer from 'puppeteer'
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 export async function POST(request) {
   try {
-    const { resumeId, template, fontSize } = await request.json()
-    
-    // Get user and verify authentication
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      return new Response('Unauthorized', { status: 401 })
+    const { resumeData, templateName, fontSize, action, versionId, isJobVersion, userId } = await request.json()
+
+    // Check download limits for free users (only for actual downloads, not previews)
+    if (action === 'download' && userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, pdf_downloads_remaining')
+        .eq('id', userId)
+        .single()
+
+      // Free users have download limits
+      if (profile?.subscription_tier === 'free') {
+        if (profile.pdf_downloads_remaining <= 0) {
+          return Response.json({
+            error: 'Download limit reached',
+            message: 'You have used all 3 free downloads. Upgrade to Full Access for unlimited downloads.',
+            requiresUpgrade: true
+          }, { status: 403 })
+        }
+
+        // Decrement download counter
+        await supabase
+          .from('profiles')
+          .update({ 
+            pdf_downloads_remaining: profile.pdf_downloads_remaining - 1 
+          })
+          .eq('id', userId)
+      }
     }
-
-    // Get resume data
-    const { data: resume, error } = await supabase
-      .from('resumes')
-      .select('*')
-      .eq('id', resumeId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (error || !resume) {
-      return new Response('Resume not found', { status: 404 })
-    }
-
-    // Launch Puppeteer
+    // Generate the PDF using Puppeteer
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -33,162 +45,102 @@ export async function POST(request) {
 
     const page = await browser.newPage()
     
-    // Set viewport to letter size
-    await page.setViewport({ width: 816, height: 1056 }) // 8.5x11 at 96 DPI
-
-    // Generate HTML for the template
-    const html = generateTemplateHTML(resume.resume_data, template, fontSize)
+   // Import the template component and render it
+    const templateModule = await import(`../../templates/${templateName}Template.js`)
+    const TemplateComponent = templateModule.default
     
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-
-    // Generate PDF
-    const pdf = await page.pdf({
+    // Render template to HTML string
+    const { renderToString } = await import('react-dom/server')
+    const htmlContent = renderToString(TemplateComponent({ resume: resumeData, fontSize }))    
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+            @page { margin: 0; }
+          </style>
+        </head>
+        <body>${htmlContent}</body>
+      </html>
+    `
+    
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0' })
+    
+    const pdfBuffer = await page.pdf({
       format: 'Letter',
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 }
     })
-
+    
     await browser.close()
 
-    // Return PDF
-    return new Response(pdf, {
+    // If action is 'download', save to Supabase Storage
+    if (action === 'download') {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const fileName = `${userId}/${versionId || 'core'}/${templateName}-${timestamp}.pdf`
+      
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('resume-pdfs')
+        .upload(fileName, pdfBuffer, {
+          contentType: 'application/pdf',
+          upsert: false
+        })
+
+      if (uploadError) throw uploadError
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('resume-pdfs')
+        .getPublicUrl(fileName)
+
+      // Update formatted_versions in database
+      const tableName = isJobVersion ? 'resume_versions' : 'resumes'
+      const recordId = versionId || resumeData.id
+
+      // Get current formatted_versions
+      const { data: currentRecord } = await supabase
+        .from(tableName)
+        .select('formatted_versions')
+        .eq('id', recordId)
+        .single()
+
+      const formattedVersions = currentRecord?.formatted_versions || {}
+      formattedVersions[templateName] = {
+        created_at: new Date().toISOString(),
+        pdf_url: publicUrl,
+        file_path: fileName
+      }
+
+      // Update database
+      await supabase
+        .from(tableName)
+        .update({ formatted_versions: formattedVersions })
+        .eq('id', recordId)
+
+      return Response.json({ 
+        success: true, 
+        pdfUrl: publicUrl,
+        action: 'download'
+      })
+    }
+
+    // If action is 'preview', return PDF directly
+    return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${resume.resume_data.contact.fullName.replace(/\s+/g, '_')}_Resume.pdf"`
+        'Content-Disposition': 'inline; filename=resume-preview.pdf'
       }
     })
 
   } catch (error) {
-    console.error('PDF generation error:', error)
-    return new Response('PDF generation failed', { status: 500 })
+    console.error('Error generating PDF:', error)
+    return Response.json(
+      { error: 'Failed to generate PDF', details: error.message },
+      { status: 500 }
+    )
   }
-}
-
-function generateTemplateHTML(resumeData, template, fontSize) {
-  // This function will render the template as static HTML
-  // For now, we'll create a simple version - we'll enhance this next
-  
-  const baseSizes = {
-    small: { name: 16, contact: 8, sectionHeader: 9, jobTitle: 9, body: 9, micro: 8 },
-    medium: { name: 18, contact: 9, sectionHeader: 10, jobTitle: 10, body: 10, micro: 9 },
-    large: { name: 20, contact: 10, sectionHeader: 11, jobTitle: 11, body: 11, micro: 10 }
-  }
-  
-  const sizes = baseSizes[fontSize] || baseSizes.medium
-
-  if (template === 'Jessica') {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; }
-          @page { size: letter; margin: 0; }
-        </style>
-      </head>
-      <body>
-        <div style="width: 8.5in; height: 11in; padding: 0.6in 0.5in; display: flex;">
-          <!-- Left column -->
-          <div style="flex: 1; padding-right: 0.3in; border-right: 1px solid #ddd;">
-            <div style="margin-bottom: 0.2in;">
-              <h1 style="font-size: ${sizes.name}px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 1px;">
-                ${resumeData.contact.fullName}
-              </h1>
-              <p style="font-size: ${sizes.body + 3}px; margin: 0 0 12px 0; color: #333;">
-                ${resumeData.contact.title || 'Professional'}
-              </p>
-            </div>
-            
-            ${resumeData.summary ? `
-              <div style="margin-bottom: 0.2in;">
-                <p style="font-size: ${sizes.body}px; line-height: 1.4; text-align: justify;">
-                  ${resumeData.summary}
-                </p>
-              </div>
-            ` : ''}
-            
-            ${resumeData.experience ? `
-              <div>
-                <h3 style="font-size: ${sizes.sectionHeader}px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Professional Experience
-                </h3>
-                ${resumeData.experience.map(job => `
-                  <div style="margin-bottom: 0.15in;">
-                    <p style="font-size: ${sizes.body}px; font-weight: bold; margin: 0 0 2px 0;">
-                      ${job.title} | ${job.company} | ${job.startDate} - ${job.endDate}
-                    </p>
-                    ${job.summary ? `
-                      <p style="font-size: ${sizes.micro}px; font-style: italic; margin: 0 0 6px 0; line-height: 1.3;">
-                        ${job.summary}
-                      </p>
-                    ` : ''}
-                    ${job.achievements && job.achievements.length > 0 ? `
-                      <ul style="margin: 0; padding-left: 14px; list-style-type: disc;">
-                        ${job.achievements.map(achievement => `
-                          <li style="font-size: ${sizes.micro}px; margin-bottom: 3px; line-height: 1.3;">
-                            ${achievement}
-                          </li>
-                        `).join('')}
-                      </ul>
-                    ` : ''}
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-          
-          <!-- Right sidebar -->
-          <div style="width: 2.75in; padding-left: 0.3in;">
-            ${resumeData.skills && resumeData.skills.length > 0 ? `
-              <div style="margin-bottom: 0.25in;">
-                <h3 style="font-size: ${sizes.sectionHeader}px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Core Competencies:
-                </h3>
-                <ul style="margin: 0; padding-left: 14px; list-style-type: disc;">
-                  ${resumeData.skills.slice(0, 16).map(skill => `
-                    <li style="font-size: ${sizes.micro}px; margin-bottom: 3px; line-height: 1.3;">
-                      ${skill}
-                    </li>
-                  `).join('')}
-                </ul>
-              </div>
-            ` : ''}
-            
-            ${resumeData.education && resumeData.education.length > 0 ? `
-              <div style="margin-bottom: 0.25in;">
-                <h3 style="font-size: ${sizes.sectionHeader}px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Education:
-                </h3>
-                ${resumeData.education.map(edu => `
-                  <div style="font-size: ${sizes.micro}px; margin-bottom: 8px; line-height: 1.3;">
-                    <p style="font-weight: bold; margin: 0;">${edu.school}</p>
-                    <p style="margin: 0;">${edu.degree}</p>
-                    ${edu.graduationDate ? `<p style="margin: 0;">${edu.graduationDate}</p>` : ''}
-                    ${edu.gpa ? `<p style="margin: 0;">GPA: ${edu.gpa}</p>` : ''}
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-            
-            ${resumeData.contact ? `
-              <div>
-                <h3 style="font-size: ${sizes.sectionHeader}px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  Contact:
-                </h3>
-                <div style="font-size: ${sizes.micro}px; line-height: 1.4;">
-                  <p style="margin: 0 0 3px 0;">${resumeData.contact.phone}</p>
-                  <p style="margin: 0 0 3px 0; word-break: break-word;">${resumeData.contact.email}</p>
-                </div>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      </body>
-      </html>
-    `
-  }
-  
-  // Add Jim template HTML here later
-  return '<html><body><h1>Template not found</h1></body></html>'
 }

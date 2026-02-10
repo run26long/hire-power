@@ -21,12 +21,21 @@ export default function ChooseTemplate() {
   const templateRef = useRef(null)
   const supabase = createClient()
 
+  const [versionId, setVersionId] = useState(null)
+  const [isJobVersion, setIsJobVersion] = useState(false)
+
   useEffect(() => {
-    loadResume()
+    // Get versionId from URL query params
+    const params = new URLSearchParams(window.location.search)
+    const vId = params.get('versionId')
+    if (vId) {
+      setVersionId(vId)
+      setIsJobVersion(true)
+    }
+    loadResume(vId)
   }, [])
 
   useEffect(() => {
-    // Count actual page divs instead of measuring height
     if (templateRef.current && selectedTemplate) {
       setTimeout(() => {
         const pages = templateRef.current.querySelectorAll('[data-page]')
@@ -35,7 +44,7 @@ export default function ChooseTemplate() {
     }
   }, [selectedTemplate, fontSize])
 
-  async function loadResume() {
+  async function loadResume(vId) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -44,18 +53,38 @@ export default function ChooseTemplate() {
         return
       }
 
-      const { data, error } = await supabase
-        .from('resumes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      if (vId) {
+        // Load job-specific version
+        const { data, error } = await supabase
+          .from('resume_versions')
+          .select('*')
+          .eq('id', vId)
+          .eq('user_id', user.id)
+          .single()
 
-      if (error) throw error
+        if (error) throw error
 
-      setResumeData(data.resume_data)
-      setResumeId(data.id)
+        setResumeData(data.customized_resume_data)
+        setResumeId(data.resume_id)
+        setVersionId(vId)
+        setIsJobVersion(true)
+      } else {
+        // Load core resume
+        const { data, error } = await supabase
+          .from('resumes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (error) throw error
+
+        setResumeData(data.resume_data)
+        setResumeId(data.id)
+        setIsJobVersion(false)
+      }
+
       setLoading(false)
     } catch (error) {
       console.error('Error loading resume:', error)
@@ -63,21 +92,27 @@ export default function ChooseTemplate() {
     }
   }
 
-  async function downloadPDF() {
-    if (!resumeId || !selectedTemplate) return
+ async function downloadPDF() {
+    if (!selectedTemplate) return
 
     setDownloading(true)
     
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          resumeId,
-          template: selectedTemplate,
-          fontSize
+          resumeData,
+          templateName: selectedTemplate,
+          fontSize,
+          action: 'download',
+          versionId: isJobVersion ? versionId : null,
+          isJobVersion,
+          userId: user.id
         })
       })
 
@@ -85,15 +120,21 @@ export default function ChooseTemplate() {
         throw new Error('PDF generation failed')
       }
 
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
+      const result = await response.json()
+      
+     // Trigger download only (no new tab)
       const a = document.createElement('a')
-      a.href = url
+      a.href = result.pdfUrl
       a.download = `${resumeData.contact.fullName.replace(/\s+/g, '_')}_Resume.pdf`
+      a.target = '_blank'
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      // Small delay then redirect
+      setTimeout(() => {
+        router.push('/my-resumes')
+      }, 500)
 
     } catch (error) {
       console.error('Error downloading PDF:', error)
@@ -102,7 +143,6 @@ export default function ChooseTemplate() {
       setDownloading(false)
     }
   }
-
   const templates = [
     {
       name: 'Modern',

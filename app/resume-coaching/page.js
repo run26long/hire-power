@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
+import { TIERS } from '@/lib/subscription'
 
 export default function ResumeCoaching() {
   const router = useRouter()
@@ -99,15 +100,21 @@ export default function ResumeCoaching() {
         router.push('/login')
         return
       }
-// Load user profile for photo
+// Load user profile and check subscription
 const { data: profile } = await supabase
   .from('profiles')
-  .select('photo_url, display_name')
+  .select('photo_url, display_name, subscription_tier')
   .eq('id', user.id)
   .single()
 
 if (profile) {
   setUserProfile(profile)
+  
+  // Block free users from professional coaching
+if (profile.subscription_tier === TIERS.FREE) {
+  router.push('/pricing')
+  return
+}
 }
       const { data, error } = await supabase
         .from('resumes')

@@ -2,16 +2,15 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import Header from '@/app/components/Header'
+import Header from '../components/Header'
 
-// Helper to format dates from YYYY-MM to M/YY (no leading zeros)
 function formatDate(dateStr) {
   if (!dateStr) return ''
   if (dateStr.toLowerCase() === 'present') return 'Present'
   
   const [year, month] = dateStr.split('-')
-  const monthNum = parseInt(month, 10) // Removes leading zero
-  const yearShort = year.slice(-2) // Gets last 2 digits of year
+  const monthNum = parseInt(month, 10)
+  const yearShort = year.slice(-2)
   return `${monthNum}/${yearShort}`
 }
 
@@ -19,6 +18,8 @@ export default function MyResumes() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [resumeData, setResumeData] = useState(null)
+  const [versions, setVersions] = useState([])
+  const [selectedVersion, setSelectedVersion] = useState(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -45,10 +46,56 @@ export default function MyResumes() {
       if (error) throw error
 
       setResumeData(data)
+
+      const { data: versionsData, error: versionsError } = await supabase
+        .from('resume_versions')
+        .select('*')
+        .eq('resume_id', data.id)
+        .order('created_at', { ascending: false })
+
+      if (versionsError) throw versionsError
+
+      setVersions(versionsData || [])
       setLoading(false)
     } catch (error) {
       console.error('Error loading resume:', error)
       setLoading(false)
+    }
+  }
+
+  async function deleteFormattedVersion(templateName, versionId = null) {
+    if (!confirm('Delete this formatted version?')) return
+
+    try {
+      const tableName = versionId ? 'resume_versions' : 'resumes'
+      const recordId = versionId || resumeData.id
+
+      const { data: currentRecord } = await supabase
+        .from(tableName)
+        .select('formatted_versions')
+        .eq('id', recordId)
+        .single()
+
+      const formattedVersions = currentRecord?.formatted_versions || {}
+      const versionData = formattedVersions[templateName]
+
+      if (versionData?.file_path) {
+        await supabase.storage
+          .from('resume-pdfs')
+          .remove([versionData.file_path])
+      }
+
+      delete formattedVersions[templateName]
+
+      await supabase
+        .from(tableName)
+        .update({ formatted_versions: formattedVersions })
+        .eq('id', recordId)
+
+      loadResume()
+    } catch (error) {
+      console.error('Error deleting version:', error)
+      alert('Failed to delete. Please try again.')
     }
   }
 
@@ -62,136 +109,277 @@ export default function MyResumes() {
 
   if (!resumeData || !resumeData.resume_data) {
     return (
-      <div className="max-w-4xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-4">My Resumes</h1>
-        <p className="text-gray-600">Complete coaching first to see your improved resume here.</p>
-        <button
-          onClick={() => router.push('/resume-coaching')}
-          className="mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
-        >
-          Start Coaching
-        </button>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto p-8">
+          <h1 className="text-3xl font-bold mb-4">My Resumes</h1>
+          <p className="text-gray-600">Complete coaching first to see your improved resume here.</p>
+          <button
+            onClick={() => router.push('/resume-coaching')}
+            className="mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+          >
+            Start Coaching
+          </button>
+        </div>
       </div>
     )
   }
 
-  const resume = resumeData.resume_data
+  const displayResume = selectedVersion ? selectedVersion.customized_resume_data : resumeData.resume_data
+  const isViewingVersion = !!selectedVersion
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <Header />
 
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="mb-6">
-  <h1 className="text-3xl font-bold mb-2">My Resume</h1>
-  <p className="text-gray-600">Your improved resume with quantifiable achievements</p>
-</div>
-
-{/* Info Banner */}
-<div className="bg-gradient-to-r from-purple-50 to-purple-100 border-l-4 border-purple-600 rounded-lg p-5 mb-6 shadow-sm">
-  <div className="flex items-center gap-3">
-    <div className="flex-shrink-0 w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-      <span className="text-white text-xl">✓</span>
-    </div>
-    <div className="flex-1">
-      <h3 className="font-semibold text-purple-900 text-sm mb-0.5">Content Extracted</h3>
-      <p className="text-xs text-purple-700 leading-relaxed">
-        Your achievements are ready. Choose a template below to format your professional resume.
-      </p>
-    </div>
-  </div>
-</div>
-
-{/* Action Buttons */}
-<div className="flex gap-4 mb-6">
-         <button
-  onClick={() => router.push('/choose-template')}
-  className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 font-medium"
->
-  Choose Template & Download
-</button>
-          <button
-            onClick={() => router.push('/resume-coaching')}
-            className="border-2 border-purple-600 text-purple-600 px-6 py-2 rounded-lg hover:bg-purple-50 font-medium"
-          >
-            Edit Resume
-          </button>
+      <div className="max-w-5xl mx-auto p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">My Resumes</h1>
+          <p className="text-gray-600">Your core resume content is ready to be put to work!</p>
         </div>
 
-        {/* Resume Preview */}
-        <div className="bg-white rounded-lg shadow-lg p-8 border">
-         {/* Contact Info */}
-{resume.contact && (
-  <div className="mb-6 text-center border-b pb-6">
-    <h2 className="text-2xl font-bold mb-2">{resume.contact.fullName}</h2>
-    <div className="text-sm text-gray-600">
-      {resume.contact.email} | {resume.contact.phone}
-    </div>
-  </div>
-)}
+        {!isViewingVersion && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-purple-600">
+            <h3 className="font-bold text-lg mb-4">What would you like to do?</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                <div>
+                  <p className="font-semibold text-gray-900">Choose Template & Download</p>
+                  <p className="text-gray-600">Format your core resume and download a print-ready PDF</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                <div>
+                  <p className="font-semibold text-gray-900">Customize for Job</p>
+                  <p className="text-gray-600">Tailor your resume to a specific job posting with AI optimization</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                <div>
+                  <p className="font-semibold text-gray-900">Edit Resume</p>
+                  <p className="text-gray-600">Update your core resume content with new achievements or experience</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-{/* Professional Summary */}
-{resume.summary && (
-  <div className="mb-6">
-    <h3 className="text-xl font-bold mb-3 text-purple-600">PROFESSIONAL SUMMARY</h3>
-    <p className="text-sm text-gray-700 leading-relaxed">{resume.summary}</p>
-  </div>
-)}
-
-{/* Experience */}
-
-          {/* Experience */}
-          {resume.experience && resume.experience.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-purple-600">EXPERIENCE</h3>
-              {resume.experience.map((job, index) => (
-  <div key={index} className="mb-4">
-    <div className="mb-2">
-      <h4 className="font-bold">
-  {job.title} | {job.company} | {formatDate(job.startDate)} - {formatDate(job.endDate)}
-</h4>
-      {job.summary && (
-        <p className="text-sm text-gray-600 italic mt-1">{job.summary}</p>
-      )}
-    </div>
-                  {job.achievements && job.achievements.length > 0 && (
-                    <ul className="list-disc ml-5 space-y-1">
-                      {job.achievements.map((achievement, i) => (
-                        <li key={i} className="text-sm text-gray-700">{achievement}</li>
-                      ))}
-                    </ul>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
+              <h3 className="font-bold text-lg mb-4">Resume Versions</h3>
+              
+              <button
+                onClick={() => setSelectedVersion(null)}
+                className={`w-full text-left p-4 rounded-lg border-2 mb-3 transition-all ${
+                  !selectedVersion 
+                    ? 'border-purple-600 bg-purple-50' 
+                    : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-purple-600">Core Resume</p>
+                    <p className="text-xs text-gray-500 mt-1">Your improved base content</p>
+                  </div>
+                  {!selectedVersion && (
+                    <span className="text-purple-600 font-bold text-lg">✓</span>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
+                {Object.keys(resumeData.formatted_versions || {}).length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {Object.keys(resumeData.formatted_versions).map(templateName => (
+                      <span key={templateName} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                        {templateName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </button>
 
-         {/* Education */}
-{resume.education && resume.education.length > 0 && (
-  <div className="mb-6">
-    <h3 className="text-xl font-bold mb-4 text-purple-600">EDUCATION</h3>
-    {resume.education.map((edu, index) => (
-      <div key={index} className="mb-3">
-        <h4 className="font-bold">
-          {edu.degree} | {edu.school} | {formatDate(edu.graduationDate)}
-        </h4>
-        <div className="text-sm text-gray-600 mt-1">
-          {edu.gpa && <p>GPA: {edu.gpa}</p>}
-          {edu.activities && <p>{edu.activities}</p>}
-          {edu.honors && <p>{edu.honors}</p>}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
-          {/* Skills */}
-          {resume.skills && resume.skills.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-purple-600">SKILLS</h3>
-              <p className="text-sm text-gray-700">{resume.skills.join(' • ')}</p>
+              {versions.length > 0 && (
+                <>
+                  <div className="border-t pt-4 mt-4 mb-3">
+                    <p className="text-sm font-semibold text-gray-600 mb-3">Job-Specific Versions</p>
+                  </div>
+                  <div className="space-y-3">
+                    {versions.map((version) => (
+                      <button
+                        key={version.id}
+                        onClick={() => setSelectedVersion(version)}
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                          selectedVersion?.id === version.id 
+                            ? 'border-purple-600 bg-purple-50' 
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">{version.job_company}</p>
+                            <p className="text-xs text-gray-600 mt-1">{version.job_title}</p>
+                          </div>
+                          {selectedVersion?.id === version.id && (
+                            <span className="text-purple-600 font-bold text-lg ml-2">✓</span>
+                          )}
+                        </div>
+                        {version.match_score && (
+                          <div className="mt-2">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                              version.match_score >= 85 ? 'bg-green-100 text-green-700' :
+                              version.match_score >= 70 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-orange-100 text-orange-700'
+                            }`}>
+                              {version.match_score}% Match
+                            </span>
+                          </div>
+                        )}
+                        {Object.keys(version.formatted_versions || {}).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {Object.keys(version.formatted_versions).map(templateName => (
+                              <span key={templateName} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                {templateName}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          )}
+          </div>
+
+          <div className="lg:col-span-2">
+            
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              {isViewingVersion ? (
+                <>
+                  <h3 className="font-bold text-lg mb-4">
+                    {selectedVersion.job_company} - {selectedVersion.job_title}
+                  </h3>
+                  <div className="flex gap-3 mb-4">
+  <button
+    onClick={() => router.push(`/job-analysis/${selectedVersion.id}`)}
+    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+  >
+    View Match Analysis
+  </button>
+  <button
+    onClick={() => router.push(`/choose-template?versionId=${selectedVersion.id}`)}
+    className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 text-sm font-medium shadow-sm transition-all"
+  >
+    Format & Download
+  </button>
+</div>
+                </>
+              ) : (
+                <>
+                 <h3 className="font-bold text-lg mb-4">Core Resume Actions</h3>
+<div className="flex gap-3 mb-4">
+  <button
+    onClick={() => router.push('/choose-template')}
+    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+  >
+    Format & Download
+  </button>
+  <button
+    onClick={() => router.push(`/customize-resume/${resumeData.id}`)}
+    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+  >
+    Customize for Job
+  </button>
+  <button
+    onClick={() => router.push('/resume-coaching')}
+    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+  >
+    Edit Resume
+  </button>
+</div>
+                </>
+              )}
+            </div>
+
+        <div className="bg-white rounded-lg shadow-md p-8 border">
+              <div className="mb-4 pb-4 border-b">
+                <p className="text-sm text-gray-500">
+                  {isViewingVersion 
+                    ? `${displayResume.contact?.fullName || 'Resume'} - ${selectedVersion.job_title}` 
+                    : 'Core Resume Content Preview'
+                  }
+                </p>
+              </div>
+              {displayResume.contact && (
+                <div className="mb-6 text-center border-b pb-6">
+                  <h2 className="text-2xl font-bold mb-2">{displayResume.contact.fullName}</h2>
+                  <div className="text-sm text-gray-600">
+                    {displayResume.contact.email} | {displayResume.contact.phone}
+                  </div>
+                </div>
+              )}
+
+              {displayResume.summary && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-3 text-purple-600">PROFESSIONAL SUMMARY</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">{displayResume.summary}</p>
+                </div>
+              )}
+
+              {displayResume.experience && displayResume.experience.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">EXPERIENCE</h3>
+                  {displayResume.experience.map((job, index) => (
+                    <div key={index} className="mb-4">
+                      <div className="mb-2">
+                        <h4 className="font-bold">
+                          {job.title} | {job.company} | {formatDate(job.startDate)} - {formatDate(job.endDate)}
+                        </h4>
+                        {job.summary && (
+                          <p className="text-sm text-gray-600 italic mt-1">{job.summary}</p>
+                        )}
+                      </div>
+                      {job.achievements && job.achievements.length > 0 && (
+                        <ul className="list-disc ml-5 space-y-1">
+                          {job.achievements.map((achievement, i) => (
+                            <li key={i} className="text-sm text-gray-700">{achievement}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {displayResume.education && displayResume.education.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">EDUCATION</h3>
+                  {displayResume.education.map((edu, index) => (
+                    <div key={index} className="mb-3">
+                      <h4 className="font-bold">
+                        {edu.degree} | {edu.school} | {formatDate(edu.graduationDate)}
+                      </h4>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {edu.gpa && <p>GPA: {edu.gpa}</p>}
+                        {edu.activities && <p>{edu.activities}</p>}
+                        {edu.honors && <p>{edu.honors}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {displayResume.skills && displayResume.skills.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">SKILLS</h3>
+                  <p className="text-sm text-gray-700">{displayResume.skills.join(' • ')}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
