@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Header from '@/app/components/Header'
 
 // Helper to format dates from YYYY-MM to M/YY (no leading zeros)
 function formatDate(dateStr) {
@@ -79,19 +80,7 @@ export default function MyResumes() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-purple-600">Hire Power</h1>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <div className="max-w-4xl mx-auto p-8">
         <div className="mb-6">

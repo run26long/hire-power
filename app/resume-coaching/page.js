@@ -2,12 +2,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Header from '../components/Header'
 
 export default function ResumeCoaching() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [resumeData, setResumeData] = useState(null)
   const [messages, setMessages] = useState([])
+  const [userProfile, setUserProfile] = useState(null)
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const supabase = createClient()
@@ -23,7 +25,6 @@ export default function ResumeCoaching() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
-
   useEffect(() => {
     scrollToBottom()
     inputRef.current?.focus()
@@ -98,7 +99,16 @@ export default function ResumeCoaching() {
         router.push('/login')
         return
       }
+// Load user profile for photo
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('photo_url, display_name')
+  .eq('id', user.id)
+  .single()
 
+if (profile) {
+  setUserProfile(profile)
+}
       const { data, error } = await supabase
         .from('resumes')
         .select('*')
@@ -190,39 +200,24 @@ export default function ResumeCoaching() {
   }
 
   return (
-    <div className="h-screen flex flex-col max-w-5xl mx-auto px-8 py-3">
-      {/* Compact Header */}
-      <div className="flex-shrink-0 mb-3 bg-white rounded-lg shadow-sm p-3">
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-purple-600">Hire Power</h1>
-            <span className="text-gray-400 text-sm">|</span>
-            <p className="text-gray-600 text-xs">Resume Coaching Session</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <p className="font-medium text-gray-700 text-xs">
-                {(() => {
-                  if (resumeData.resume_data?.fullName) {
-                    return `${resumeData.resume_data.fullName.split(' ')[0]}'s Resume`
-                  }
-                  const firstLine = resumeData.parsed_text?.split('\n').slice(0, 5).join(' ').trim()
-                  const nameMatch = firstLine?.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/)?.[1]
-                  return nameMatch ? `${nameMatch.split(' ')[0]}'s Resume` : 'Your Resume'
-                })()}
-              </p>
-              <span className="text-gray-400 text-xs">|</span>
-              <p className="text-xs text-gray-500">In Progress</p>
-            </div>
-            {/* Save button in header */}
-            <button
-              onClick={saveConversation}
-              className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded transition-colors font-medium"
-            >
-              💾 Save
-            </button>
-          </div>
-        </div>
+  <div className="h-screen flex flex-col">
+    <Header />
+    <div className="flex-1 flex flex-col max-w-5xl mx-auto px-8 py-3 overflow-hidden">
+      {/* Session Status Bar */}
+<div className="flex-shrink-0 mb-3 bg-white rounded-lg shadow-sm p-3">
+  <div className="flex justify-between items-center mb-2">
+    <div className="flex items-center gap-3">
+      <p className="text-gray-600 text-sm font-medium">Resume Coaching Session</p>
+      <span className="text-gray-400 text-xs">•</span>
+      <p className="text-xs text-gray-500">In Progress</p>
+    </div>
+    <button
+      onClick={saveConversation}
+      className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white px-3 py-1.5 rounded transition-colors font-medium"
+    >
+      💾 Save
+    </button>
+  </div>
         
         {/* Thinner Progress Bar */}
         <div className="w-full bg-gray-200 rounded-full h-1">
@@ -233,32 +228,48 @@ export default function ResumeCoaching() {
         </div>
       </div>
 
-      {/* Messages - More Space */}
-      <div className="flex-1 overflow-y-auto space-y-3 mb-3">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-3 rounded-lg ${
-              msg.role === 'assistant'
-                ? 'bg-purple-50 border border-purple-200'
-                : 'bg-gray-50 border border-gray-200 ml-12'
-            }`}
-          >
-            <div className="flex items-start">
-              <span className="text-xl mr-2">
-                {msg.role === 'assistant' ? '🎓' : '👤'}
-              </span>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-700 mb-1">
-                  {msg.role === 'assistant' ? 'Coach' : 'You'}
-                </p>
-                <div className="text-gray-800 whitespace-pre-line text-sm">
-                  {msg.content}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+     {/* Messages - More Space */}
+<div className="flex-1 overflow-y-auto space-y-3 mb-3">
+  {messages.map((msg, index) => (
+    <div
+      key={index}
+      className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
+    >
+      {msg.role === 'assistant' && (
+        <span className="text-2xl flex-shrink-0">🎓</span>
+      )}
+      
+      <div
+        className={`p-3 rounded-lg ${
+          msg.role === 'assistant'
+            ? 'bg-purple-50 border border-purple-200 flex-1'
+            : 'bg-gray-50 border border-gray-200 max-w-md'
+        }`}
+      >
+        <p className="text-xs font-semibold text-gray-700 mb-1">
+  {msg.role === 'assistant' ? 'Coach' : userProfile?.display_name || 'You'}
+</p>
+        <div className="text-gray-800 whitespace-pre-line text-sm">
+          {msg.content}
+        </div>
+      </div>
+      
+      {msg.role === 'user' && userProfile?.photo_url && (
+        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-purple-200 flex-shrink-0">
+          <img
+            src={userProfile.photo_url}
+            alt="You"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      {msg.role === 'user' && !userProfile?.photo_url && (
+        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-sm font-bold flex-shrink-0">
+          {userProfile?.display_name?.charAt(0).toUpperCase() || 'U'}
+        </div>
+      )}
+    </div>
+  ))}
         
         {sending && (
           <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
@@ -375,6 +386,7 @@ export default function ResumeCoaching() {
   )}
 </div>
       </div>
+    </div>
     </div>
   )
 }

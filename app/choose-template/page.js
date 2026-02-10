@@ -5,14 +5,19 @@ import { useRouter } from 'next/navigation'
 import ModernTemplate from '@/app/templates/ModernTemplate'
 import ClassicTemplate from '@/app/templates/ClassicTemplate'
 import ProfessionalTemplate from '@/app/templates/ProfessionalTemplate'
+import JessicaTemplate from '@/app/templates/JessicaTemplate'
+import JimTemplate from '@/app/templates/JimTemplate'
+import Header from '../components/Header'
 
 export default function ChooseTemplate() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [resumeData, setResumeData] = useState(null)
+  const [resumeId, setResumeId] = useState(null)
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [fontSize, setFontSize] = useState('medium') // small=9pt, medium=10pt, large=11pt
   const [pageCount, setPageCount] = useState(1)
+  const [downloading, setDownloading] = useState(false)
   const templateRef = useRef(null)
   const supabase = createClient()
 
@@ -50,10 +55,51 @@ export default function ChooseTemplate() {
       if (error) throw error
 
       setResumeData(data.resume_data)
+      setResumeId(data.id)
       setLoading(false)
     } catch (error) {
       console.error('Error loading resume:', error)
       setLoading(false)
+    }
+  }
+
+  async function downloadPDF() {
+    if (!resumeId || !selectedTemplate) return
+
+    setDownloading(true)
+    
+    try {
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeId,
+          template: selectedTemplate,
+          fontSize
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('PDF generation failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${resumeData.contact.fullName.replace(/\s+/g, '_')}_Resume.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+      alert('Failed to generate PDF. Please try again.')
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -75,6 +121,18 @@ export default function ChooseTemplate() {
       component: ProfessionalTemplate,
       description: 'Two-column, elegant border - great for established professionals',
       preview: '💼'
+    },
+    {
+      name: 'Jessica',
+      component: JessicaTemplate,
+      description: 'Clean two-column, professional - perfect for technical and corporate roles',
+      preview: '📋'
+    },
+    {
+      name: 'Jim',
+      component: JimTemplate,
+      description: 'Traditional single-column, multi-page - perfect for experienced professionals',
+      preview: '📑'
     }
   ]
 
@@ -98,19 +156,7 @@ export default function ChooseTemplate() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-purple-600">Hire Power</h1>
-            <button
-              onClick={() => router.push('/my-resumes')}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              ← Back to Resume
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <div className="max-w-7xl mx-auto p-8">
         {!selectedTemplate ? (
@@ -222,14 +268,21 @@ export default function ChooseTemplate() {
               {selectedTemplate === 'Modern' && <ModernTemplate resume={resumeData} fontSize={fontSize} />}
               {selectedTemplate === 'Classic' && <ClassicTemplate resume={resumeData} fontSize={fontSize} />}
               {selectedTemplate === 'Professional' && <ProfessionalTemplate resume={resumeData} fontSize={fontSize} />}
+              {selectedTemplate === 'Jessica' && <JessicaTemplate resume={resumeData} fontSize={fontSize} />}
+              {selectedTemplate === 'Jim' && <JimTemplate resume={resumeData} fontSize={fontSize} />}
             </div>
 
             <div className="flex justify-center">
               <button
-                onClick={() => alert('PDF download coming next!')}
-                className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 font-medium text-lg shadow-md hover:shadow-lg transition-all"
+                onClick={downloadPDF}
+                disabled={downloading}
+                className={`px-8 py-3 rounded-lg font-medium text-lg shadow-md hover:shadow-lg transition-all ${
+                  downloading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
               >
-                📥 Download as PDF
+                {downloading ? '⏳ Generating PDF...' : '📥 Download as PDF'}
               </button>
             </div>
           </>
