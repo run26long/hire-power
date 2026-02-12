@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import Header from '../components/Header'
 
 export default function ResumeUploadPage() {
   const [uploading, setUploading] = useState(false)
@@ -53,8 +54,8 @@ export default function ResumeUploadPage() {
 
       if (!response.ok) throw new Error(parseResult.error)
 
-      // Save to database
-      const { error: dbError } = await supabase
+     // Save to database
+      const { data: resumeData, error: dbError } = await supabase
         .from('resumes')
         .insert({
           user_id: user.id,
@@ -62,14 +63,16 @@ export default function ResumeUploadPage() {
           file_path: fileName,
           created_via: 'upload'
         })
+        .select()
+        .single()
 
       if (dbError) throw dbError
 
       setMessage('✅ Resume uploaded and saved!')
       
-      // Navigate to pre-coaching confirmation
+      // Navigate to AI analysis
       setTimeout(() => {
-        router.push('/pre-coaching-confirmation')
+        router.push(`/resume-analysis/${resumeData.id}`)
       }, 1500)
       
     } catch (error) {
@@ -86,7 +89,9 @@ export default function ResumeUploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
       <div className="max-w-2xl w-full bg-white rounded-lg shadow p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
           📤 Upload Your Resume
@@ -127,15 +132,9 @@ export default function ResumeUploadPage() {
           </p>
         </div>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => router.push('/resume-start')}
-            className="text-gray-500 hover:text-gray-700 text-sm"
-          >
-            ← Back to options
-          </button>
-        </div>
+        
       </div>
     </div>
+    </>
   )
 }

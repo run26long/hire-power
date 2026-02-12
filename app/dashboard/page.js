@@ -191,13 +191,7 @@ export default function DashboardPage() {
         <div className="grid gap-6">
           {/* Resume Coaching Card */}
           <div 
-            onClick={() => {
-              if (userProfile?.subscription_tier === TIERS.FREE) {
-                router.push('/pricing')
-              } else {
-                router.push('/resume-coaching')
-              }
-            }}
+            onClick={() => router.push('/resume-start')}
             className={`border rounded-lg p-6 transition-shadow ${
               userProfile?.subscription_tier === TIERS.FREE 
                 ? 'cursor-pointer hover:shadow-md bg-gray-50' 
