@@ -16,6 +16,10 @@ export default function DashboardPage() {
   const supabase = createClient()
 
   useEffect(() => {
+    checkTierSelected()
+  }, [])
+
+  useEffect(() => {
     checkForResume()
     
     // Show success message if coming from saved coaching
@@ -25,7 +29,7 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const checkForResume = async () => {
+const checkForResume = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -56,16 +60,30 @@ export default function DashboardPage() {
 
       if (error && error.code !== 'PGRST116') throw error
 
-      if (!data) {
-        router.push('/resume-start')
-        return
-      }
-
-      setResumeData(data)
+           setResumeData(data)
       setLoading(false)
     } catch (error) {
       console.error('Error checking resume:', error)
       setLoading(false)
+    }
+  }
+
+  const checkTierSelected = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tier_selected')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.tier_selected) {
+      router.push('/choose-plan')
+      return
     }
   }
 

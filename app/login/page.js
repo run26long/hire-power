@@ -38,14 +38,33 @@ export default function LoginPage() {
 
     setLoading(false)
 
-    if (signInError) {
-      setError(signInError.message)
-      return
-    }
+setLoading(false)
 
-    if (data.user) {
-      router.push('/dashboard')
-    }
+if (signInError) {
+  // Check if it's an invalid credentials error (account doesn't exist)
+  if (signInError.message.includes('Invalid login credentials') || 
+      signInError.message.includes('Email not confirmed')) {
+    setError('account_not_found')
+  } else {
+    setError(signInError.message)
+  }
+  return
+}
+
+if (data.user) {
+  // Check if they've selected a tier yet
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tier_selected')
+    .eq('id', data.user.id)
+    .single()
+
+  if (profile?.tier_selected) {
+    router.push('/dashboard')
+  } else {
+    router.push('/choose-plan')
+  }
+}
   }
 
   return (
@@ -62,16 +81,20 @@ export default function LoginPage() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
+  {error && (
+  <div className={error === 'account_not_found' ? 'bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded' : 'bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded'}>
+    {error === 'account_not_found' ? (
+      <div>
+        <p className="mb-2">👋 Looks like you don't have an account yet!</p>
+        <Link href="/signup" className="font-semibold underline hover:text-blue-800">
+          Click here to get started →
+        </Link>
+      </div>
+    ) : (
+      error
+    )}
+  </div>
+)}
 
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div>

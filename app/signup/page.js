@@ -78,12 +78,11 @@ if (signUpError) {
       return
     }
 
-    if (data.user) {
-      setSuccess(true)
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 2000)
-    }
+  if (data.user) {
+  setSuccess(true)
+  // Don't auto-redirect - they need to confirm email first
+  // Message tells them to check email
+}
   }
 
   return (
@@ -123,11 +122,17 @@ if (signUpError) {
           </div>
         </div>
 
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-            ✓ Account created! Redirecting to dashboard...
-          </div>
-        )}
+    {success && (
+  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+    <p className="font-semibold mb-2">✓ Account created!</p>
+    <p className="text-sm">
+      📧 Please check your email and click the confirmation link to activate your account.
+    </p>
+    <p className="text-xs text-green-600 mt-2">
+      Then come back here to log in.
+    </p>
+  </div>
+)}
 
         {accountExists && (
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
