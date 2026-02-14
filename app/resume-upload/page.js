@@ -70,9 +70,9 @@ export default function ResumeUploadPage() {
 
       setMessage('✅ Resume uploaded and saved!')
       
-      // Navigate to AI analysis
+    // Navigate to My Resumes
       setTimeout(() => {
-        router.push(`/resume-analysis/${resumeData.id}`)
+        router.push('/my-resumes')
       }, 1500)
       
     } catch (error) {
@@ -127,8 +127,8 @@ export default function ResumeUploadPage() {
           >
             {uploading ? '📤 Uploading...' : parsing ? '⚙️ Processing...' : '📄 Choose File'}
           </label>
-          <p className="mt-4 text-sm text-gray-500">
-            PDF or DOCX files up to 10MB
+         <p className="mt-4 text-sm font-medium text-gray-700">
+            Accepts: PDF or DOCX files (up to 10MB)
           </p>
         </div>
 

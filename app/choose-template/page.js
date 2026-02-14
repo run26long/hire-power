@@ -25,14 +25,20 @@ export default function ChooseTemplate() {
   const [isJobVersion, setIsJobVersion] = useState(false)
 
   useEffect(() => {
-    // Get versionId from URL query params
+    // Get versionId or resumeId from URL query params
     const params = new URLSearchParams(window.location.search)
     const vId = params.get('versionId')
+    const rId = params.get('resumeId')
+    
     if (vId) {
       setVersionId(vId)
       setIsJobVersion(true)
+      loadResume(vId, null)
+    } else if (rId) {
+      loadResume(null, rId)
+    } else {
+      loadResume(null, null)
     }
-    loadResume(vId)
   }, [])
 
   useEffect(() => {
@@ -44,7 +50,7 @@ export default function ChooseTemplate() {
     }
   }, [selectedTemplate, fontSize])
 
-  async function loadResume(vId) {
+  async function loadResume(vId, rId) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -68,8 +74,22 @@ export default function ChooseTemplate() {
         setResumeId(data.resume_id)
         setVersionId(vId)
         setIsJobVersion(true)
+      } else if (rId) {
+        // Load specific core resume by ID
+        const { data, error } = await supabase
+          .from('resumes')
+          .select('*')
+          .eq('id', rId)
+          .eq('user_id', user.id)
+          .single()
+
+        if (error) throw error
+
+        setResumeData(data.resume_data)
+        setResumeId(data.id)
+        setIsJobVersion(false)
       } else {
-        // Load core resume
+        // Load most recent core resume
         const { data, error } = await supabase
           .from('resumes')
           .select('*')
@@ -91,7 +111,62 @@ export default function ChooseTemplate() {
       setLoading(false)
     }
   }
-
+// Transform builder format to template format
+  function transformResumeData(builderData) {
+    console.log('Transforming resume data:', builderData)
+    
+    const transformed = {
+      contact: {
+        fullName: builderData.fullName || '',
+        phone: builderData.phone || '',
+        email: builderData.email || '',
+        location: builderData.location || '',
+        linkedin: builderData.linkedin || ''
+      },
+      summary: builderData.summary || null,
+      experience: (builderData.experience || []).map(job => {
+        // Parse description into achievements (lines starting with •)
+        const descriptionLines = (job.description || '').split('\n')
+        const achievements = descriptionLines
+          .filter(line => line.trim().startsWith('•'))
+          .map(line => line.trim().substring(1).trim())
+        
+        // If no bullet points, use the whole description as first achievement
+        if (achievements.length === 0 && job.description) {
+          achievements.push(job.description.trim())
+        }
+        
+        return {
+          title: job.title || '',
+          company: job.company || '',
+          startDate: job.startDate || '',
+          endDate: job.endDate || (job.current ? 'Present' : ''),
+          summary: null,
+          achievements: achievements
+        }
+      }),
+      education: (builderData.education || []).map(edu => ({
+        school: edu.school || '',
+        degree: edu.degree || '',
+        major: edu.major || '',
+        minor: edu.minor || '',
+        graduationDate: edu.graduationDate || '',
+        gpa: edu.gpa || '',
+        activities: edu.activities || '',
+        honors: edu.honors || ''
+      })),
+      skills: Array.isArray(builderData.skills) ? builderData.skills : [],
+      certifications: builderData.certifications || [],
+      volunteer: builderData.volunteer || [],
+      projects: builderData.projects || [],
+      languages: builderData.languages || []
+    }
+    
+    console.log('Transformed resume:', transformed)
+    console.log('Skills array:', transformed.skills)
+    
+    return transformed
+  }
  async function downloadPDF() {
     if (!selectedTemplate) return
 
@@ -125,7 +200,7 @@ export default function ChooseTemplate() {
      // Trigger download only (no new tab)
       const a = document.createElement('a')
       a.href = result.pdfUrl
-      a.download = `${resumeData.contact.fullName.replace(/\s+/g, '_')}_Resume.pdf`
+    a.download = `${(resumeData.fullName || resumeData.contact?.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`
       a.target = '_blank'
       document.body.appendChild(a)
       a.click()
@@ -303,13 +378,13 @@ export default function ChooseTemplate() {
               </div>
             )}
 
-            {/* Template Container */}
+           {/* Template Container */}
             <div ref={templateRef} className="mb-6 flex justify-center flex-col items-center gap-6">
-              {selectedTemplate === 'Modern' && <ModernTemplate resume={resumeData} fontSize={fontSize} />}
-              {selectedTemplate === 'Classic' && <ClassicTemplate resume={resumeData} fontSize={fontSize} />}
-              {selectedTemplate === 'Professional' && <ProfessionalTemplate resume={resumeData} fontSize={fontSize} />}
-              {selectedTemplate === 'Jessica' && <JessicaTemplate resume={resumeData} fontSize={fontSize} />}
-              {selectedTemplate === 'Jim' && <JimTemplate resume={resumeData} fontSize={fontSize} />}
+              {selectedTemplate === 'Modern' && <ModernTemplate resume={transformResumeData(resumeData)} fontSize={fontSize} />}
+              {selectedTemplate === 'Classic' && <ClassicTemplate resume={transformResumeData(resumeData)} fontSize={fontSize} />}
+              {selectedTemplate === 'Professional' && <ProfessionalTemplate resume={transformResumeData(resumeData)} fontSize={fontSize} />}
+              {selectedTemplate === 'Jessica' && <JessicaTemplate resume={transformResumeData(resumeData)} fontSize={fontSize} />}
+              {selectedTemplate === 'Jim' && <JimTemplate resume={transformResumeData(resumeData)} fontSize={fontSize} />}
             </div>
 
             <div className="flex justify-center">

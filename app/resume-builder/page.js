@@ -15,6 +15,7 @@ export default function ResumeBuilder() {
     phone: '',
     location: '',
     linkedin: '',
+    summary: '',
     experience: [],
     education: [],
     certifications: [],
@@ -141,6 +142,8 @@ ${formData.fullName}
 ${formData.email} | ${formData.phone} | ${formData.location}
 ${formData.linkedin ? `LinkedIn: ${formData.linkedin}` : ''}
 
+${formData.summary ? `PROFESSIONAL SUMMARY\n${formData.summary}\n` : ''}
+
 WORK EXPERIENCE
 ${formData.experience.map(job => `
 ${job.title} at ${job.company}
@@ -208,8 +211,8 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
       // Clear localStorage backup
       localStorage.removeItem('resumeBuilderProgress')
 
-      // Route to AI analysis
-      router.push(`/resume-analysis/${resumeData.id}`)
+      // Route to My Resumes to review before analysis
+      router.push('/my-resumes')
       
     } catch (error) {
       console.error('Error saving resume:', error)
@@ -225,11 +228,11 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
       <div className="max-w-2xl mx-auto p-8 min-h-screen">
         <div className="mb-6">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-600 font-medium">Step 1 of 6</span>
+            <span className="text-sm text-purple-600 font-medium">Step 1 of 7</span>
             <span className="text-sm text-gray-500">Personal Info</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '16.6%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '14.3%' }}></div>
           </div>
         </div>
 
@@ -357,11 +360,11 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
         <div className="max-w-2xl mx-auto p-8 min-h-screen">
         <div className="mb-6">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-600 font-medium">Step 2 of 6</span>
+            <span className="text-sm text-purple-600 font-medium">Step 2 of 7</span>
             <span className="text-sm text-gray-500">Work Experience</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '33.3%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '28.6%' }}></div>
           </div>
         </div>
 
@@ -673,11 +676,11 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
         <div className="max-w-2xl mx-auto p-8 min-h-screen">
         <div className="mb-6">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-600 font-medium">Step 3 of 6</span>
+            <span className="text-sm text-purple-600 font-medium">Step 3 of 7</span>
             <span className="text-sm text-gray-500">Education</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '42.9%' }}></div>
           </div>
         </div>
 
@@ -982,11 +985,11 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
         <div className="max-w-2xl mx-auto p-8 min-h-screen">
         <div className="mb-6">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-600 font-medium">Step 4 of 6</span>
+            <span className="text-sm text-purple-600 font-medium">Step 4 of 7</span>
             <span className="text-sm text-gray-500">Certifications & Licenses</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '66.6%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '57.1%' }}></div>
           </div>
         </div>
 
@@ -1269,11 +1272,11 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
         <div className="max-w-2xl mx-auto p-8 min-h-screen">
         <div className="mb-6">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-600 font-medium">Step 5 of 6</span>
+            <span className="text-sm text-purple-600 font-medium">Step 5 of 7</span>
             <span className="text-sm text-gray-500">Volunteer & Projects</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '83.3%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '71.4%' }}></div>
           </div>
         </div>
 
@@ -1536,11 +1539,11 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
         <div className="max-w-2xl mx-auto p-8 min-h-screen">
         <div className="mb-6">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-600 font-medium">Step 6 of 6</span>
+            <span className="text-sm text-purple-600 font-medium">Step 6 of 7</span>
             <span className="text-sm text-gray-500">Skills & Languages</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '85.7%' }}></div>
           </div>
         </div>
 
@@ -1688,15 +1691,127 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
               {saving ? 'Saving...' : 'Save & Continue Later'}
             </button>
             <button
-              onClick={handleFinish}
+              onClick={() => setStep(7)}
               disabled={formData.skills.length === 0}
               className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              Finish & Analyze Resume 🚀
+              Next: Professional Summary →
             </button>
           </div>
         </div>
       </div>
+      </>
+    )
+  }
+
+  // ============= STEP 7: PROFESSIONAL SUMMARY =============
+  if (step === 7) {
+    return (
+      <>
+        <Header />
+        <div className="max-w-2xl mx-auto p-8 min-h-screen">
+          <div className="mb-6">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm text-purple-600 font-medium">Step 7 of 7</span>
+              <span className="text-sm text-gray-500">Professional Summary</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-purple-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold mb-2">✨ Professional Summary</h2>
+          <p className="text-gray-600 mb-6">A brief statement that captures your professional identity and value (optional but recommended)</p>
+
+          {/* Coaching Tips */}
+          <div className="bg-purple-50 border-l-4 border-purple-500 p-4 mb-6">
+            <p className="font-semibold text-purple-900 mb-2">💡 How to write a strong professional summary</p>
+            <ul className="text-sm text-purple-800 space-y-2 mb-3">
+              <li>✓ <strong>Keep it brief:</strong> 2-4 sentences maximum</li>
+              <li>✓ <strong>Lead with your value:</strong> What do you bring to employers?</li>
+              <li>✓ <strong>Include keywords:</strong> Use terms from your target jobs</li>
+              <li>✓ <strong>Highlight achievements:</strong> Mention 1-2 impressive accomplishments</li>
+              <li>✓ <strong>Show personality:</strong> Let your professional voice shine through</li>
+            </ul>
+            
+            <div className="bg-white rounded p-3 text-sm">
+              <p className="text-purple-900 font-medium mb-1">Example:</p>
+              <p className="text-gray-700 italic">
+                "Hospitality professional with 5+ years of experience managing guest services at luxury resorts. Track record of increasing satisfaction scores by 40% through process improvements and team training. Passionate about creating memorable experiences that turn first-time guests into loyal customers."
+              </p>
+            </div>
+          </div>
+
+          {/* Upsell Message */}
+          <div className="bg-gradient-to-r from-purple-100 to-purple-200 border-2 border-purple-300 rounded-lg p-5 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 text-2xl">💎</div>
+              <div>
+                <p className="font-bold text-purple-900 mb-2">Upgrade to Full Resume for AI Coaching</p>
+                <p className="text-sm text-purple-800 mb-3">
+                  Full Resume users get AI coaching that writes this summary FOR you—extracting your unique value proposition from a conversation. No more staring at a blank page!
+                </p>
+                <button
+                  onClick={() => router.push('/pricing')}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
+                >
+                  Upgrade to Full Resume →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Input */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">
+              Your Professional Summary <span className="text-gray-400">(optional)</span>
+            </label>
+            <textarea
+              value={formData.summary}
+              onChange={(e) => updateFormData({ summary: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-purple-500"
+              rows="4"
+              placeholder="Example: Experienced hospitality professional with a passion for creating exceptional guest experiences. Proven track record of improving team performance and guest satisfaction through innovative service strategies and staff development."
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              💡 <strong>Pro tip:</strong> Focus on what makes you unique and the specific value you bring to employers. Avoid generic statements like "hard worker" or "team player."
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mt-8 flex justify-between items-center">
+            <button
+              onClick={() => setStep(6)}
+              className="text-gray-600 hover:text-gray-800 font-medium"
+            >
+              ← Back
+            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleSaveProgress}
+                disabled={saving}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                {saving ? 'Saving...' : 'Save & Continue Later'}
+              </button>
+              <button
+                onClick={handleFinish}
+                className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
+              >
+                {formData.summary ? 'Complete Resume →' : 'Skip & Complete Resume →'}
+              </button>
+            </div>
+          </div>
+
+          {/* Optional Skip Note */}
+          {!formData.summary && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-500">
+                You can always add a professional summary later by editing your resume
+              </p>
+            </div>
+          )}
+        </div>
       </>
     )
   }

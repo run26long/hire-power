@@ -8,35 +8,56 @@ const supabase = createClient(
 
 export async function POST(request) {
   try {
-    const { resumeData, templateName, fontSize, action, versionId, isJobVersion, userId } = await request.json()
-
-    // Check download limits for free users (only for actual downloads, not previews)
-    if (action === 'download' && userId) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier, pdf_downloads_remaining')
-        .eq('id', userId)
-        .single()
-
-      // Free users have download limits
-      if (profile?.subscription_tier === 'free') {
-        if (profile.pdf_downloads_remaining <= 0) {
-          return Response.json({
-            error: 'Download limit reached',
-            message: 'You have used all 3 free downloads. Upgrade to Full Access for unlimited downloads.',
-            requiresUpgrade: true
-          }, { status: 403 })
-        }
-
-        // Decrement download counter
-        await supabase
-          .from('profiles')
-          .update({ 
-            pdf_downloads_remaining: profile.pdf_downloads_remaining - 1 
-          })
-          .eq('id', userId)
+    const { resumeData, resumeId, templateName, fontSize, action, versionId, isJobVersion, userId } = await request.json()
+    
+    // Transform builder format to template format
+    function transformResumeData(builderData) {
+      return {
+        contact: {
+          fullName: builderData.fullName || '',
+          phone: builderData.phone || '',
+          email: builderData.email || '',
+          location: builderData.location || '',
+          linkedin: builderData.linkedin || ''
+        },
+        summary: builderData.summary || null,
+        experience: (builderData.experience || []).map(job => {
+          const descriptionLines = (job.description || '').split('\n')
+          const achievements = descriptionLines
+            .filter(line => line.trim().startsWith('•'))
+            .map(line => line.trim().substring(1).trim())
+          
+          if (achievements.length === 0 && job.description) {
+            achievements.push(job.description.trim())
+          }
+          
+          return {
+            title: job.title || '',
+            company: job.company || '',
+            startDate: job.startDate || '',
+            endDate: job.endDate || (job.current ? 'Present' : ''),
+            summary: null,
+            achievements: achievements
+          }
+        }),
+        education: (builderData.education || []).map(edu => ({
+          school: edu.school || '',
+          degree: edu.degree || '',
+          major: edu.major || '',
+          minor: edu.minor || '',
+          graduationDate: edu.graduationDate || '',
+          gpa: edu.gpa || '',
+          activities: edu.activities || '',
+          honors: edu.honors || ''
+        })),
+        skills: Array.isArray(builderData.skills) ? builderData.skills : [],
+        certifications: builderData.certifications || [],
+        volunteer: builderData.volunteer || [],
+        projects: builderData.projects || [],
+        languages: builderData.languages || []
       }
     }
+    
     // Generate the PDF using Puppeteer
     const browser = await puppeteer.launch({
       headless: true,
@@ -45,13 +66,14 @@ export async function POST(request) {
 
     const page = await browser.newPage()
     
-   // Import the template component and render it
+    // Import the template component and render it
     const templateModule = await import(`../../templates/${templateName}Template.js`)
     const TemplateComponent = templateModule.default
     
     // Render template to HTML string
     const { renderToString } = await import('react-dom/server')
-    const htmlContent = renderToString(TemplateComponent({ resume: resumeData, fontSize }))    
+    const transformedData = transformResumeData(resumeData)
+    const htmlContent = renderToString(TemplateComponent({ resume: transformedData, fontSize }))    
     const fullHtml = `
       <!DOCTYPE html>
       <html>
@@ -99,7 +121,7 @@ export async function POST(request) {
 
       // Update formatted_versions in database
       const tableName = isJobVersion ? 'resume_versions' : 'resumes'
-      const recordId = versionId || resumeData.id
+      const recordId = versionId || resumeId
 
       // Get current formatted_versions
       const { data: currentRecord } = await supabase

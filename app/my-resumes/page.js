@@ -9,6 +9,8 @@ function formatDate(dateStr) {
   if (dateStr.toLowerCase() === 'present') return 'Present'
   
   const [year, month] = dateStr.split('-')
+  if (!year || !month) return dateStr
+  
   const monthNum = parseInt(month, 10)
   const yearShort = year.slice(-2)
   return `${monthNum}/${yearShort}`
@@ -107,7 +109,7 @@ export default function MyResumes() {
     )
   }
 
-  if (!resumeData || !resumeData.resume_data) {
+  if (!resumeData || (!resumeData.resume_data && !resumeData.parsed_text)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -127,6 +129,7 @@ export default function MyResumes() {
 
   const displayResume = selectedVersion ? selectedVersion.customized_resume_data : resumeData.resume_data
   const isViewingVersion = !!selectedVersion
+  const isUploadedResume = resumeData.created_via === 'upload'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -263,72 +266,105 @@ export default function MyResumes() {
                     {selectedVersion.job_company} - {selectedVersion.job_title}
                   </h3>
                   <div className="flex gap-3 mb-4">
-  <button
-    onClick={() => router.push(`/job-analysis/${selectedVersion.id}`)}
-    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
-  >
-    View Match Analysis
-  </button>
-  <button
-    onClick={() => router.push(`/choose-template?versionId=${selectedVersion.id}`)}
-    className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 text-sm font-medium shadow-sm transition-all"
-  >
-    Format & Download
-  </button>
-</div>
+                    <button
+                      onClick={() => router.push(`/job-analysis/${selectedVersion.id}`)}
+                      className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+                    >
+                      View Match Analysis
+                    </button>
+                    <button
+                      onClick={() => router.push(`/choose-template?versionId=${selectedVersion.id}`)}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 text-sm font-medium shadow-sm transition-all"
+                    >
+                      Format & Download
+                    </button>
+                  </div>
                 </>
-              ) : (
+) : (
                 <>
-                 <h3 className="font-bold text-lg mb-4">Core Resume Actions</h3>
-<div className="flex gap-3 mb-4">
-  <button
-    onClick={() => router.push('/choose-template')}
-    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
-  >
-    Format & Download
-  </button>
-  <button
-    onClick={() => router.push(`/customize-resume/${resumeData.id}`)}
-    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
-  >
-    Customize for Job
-  </button>
-  <button
-    onClick={() => router.push('/resume-coaching')}
-    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
-  >
-    Edit Resume
-  </button>
-</div>
+                  {!resumeData.ai_analysis ? (
+                    /* NEW RESUME - NEEDS ANALYSIS */
+                    <>
+                      <h3 className="font-bold text-lg mb-4">Next Step: AI Analysis</h3>
+                      <p className="text-gray-600 mb-4 text-sm">
+                        Your resume has been created! Now let's analyze it to identify strengths and areas for improvement.
+                      </p>
+                      <button
+                        onClick={() => router.push(`/resume-analysis/${resumeData.id}`)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 font-semibold shadow-lg transition-all"
+                      >
+                        Continue to AI Analysis →
+                      </button>
+                    </>
+                  ) : (
+                    /* ANALYZED RESUME - SHOW ALL OPTIONS */
+                    <>
+                      <h3 className="font-bold text-lg mb-4">Core Resume Actions</h3>
+                    <div className="flex gap-3 mb-4">
+                        <button
+                          onClick={() => router.push(`/resume-analysis/${resumeData.id}`)}
+                          className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+                        >
+                          View Analysis
+                        </button>
+                        <button
+                          onClick={() => router.push(`/resume-editor/${resumeData.id}`)}
+                          className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+                        >
+                          Edit Resume
+                        </button>
+                        <button
+                          onClick={() => router.push('/choose-template')}
+                          className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
+                        >
+                          Format & Download
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8 border">
+            <div className="bg-white rounded-lg shadow-md p-8 border">
               <div className="mb-4 pb-4 border-b">
                 <p className="text-sm text-gray-500">
                   {isViewingVersion 
-                    ? `${displayResume.contact?.fullName || 'Resume'} - ${selectedVersion.job_title}` 
+                    ? `${displayResume?.fullName || 'Resume'} - ${selectedVersion.job_title}` 
                     : 'Core Resume Content Preview'
                   }
                 </p>
               </div>
-              {displayResume.contact && (
+
+              {/* UPLOADED RESUME - Show plain text */}
+              {isUploadedResume && !isViewingVersion && (
+                <div className="prose max-w-none">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed">
+                    {resumeData.parsed_text}
+                  </pre>
+                </div>
+              )}
+
+              {/* BUILDER RESUME - Show structured data */}
+              {!isUploadedResume && displayResume && (
+                <>
+              {/* Personal Info - Builder format */}
+              {displayResume.fullName && (
                 <div className="mb-6 text-center border-b pb-6">
-                  <h2 className="text-2xl font-bold mb-2">{displayResume.contact.fullName}</h2>
+                  <h2 className="text-2xl font-bold mb-2">{displayResume.fullName}</h2>
                   <div className="text-sm text-gray-600">
-                    {displayResume.contact.email} | {displayResume.contact.phone}
+                    {displayResume.email} {displayResume.phone && `| ${displayResume.phone}`}
                   </div>
+                  {displayResume.location && (
+                    <div className="text-sm text-gray-600">{displayResume.location}</div>
+                  )}
+                  {displayResume.linkedin && (
+                    <div className="text-sm text-gray-600">{displayResume.linkedin}</div>
+                  )}
                 </div>
               )}
 
-              {displayResume.summary && (
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold mb-3 text-purple-600">PROFESSIONAL SUMMARY</h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">{displayResume.summary}</p>
-                </div>
-              )}
-
+              {/* Work Experience - Builder format */}
               {displayResume.experience && displayResume.experience.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-xl font-bold mb-4 text-purple-600">EXPERIENCE</h3>
@@ -336,47 +372,104 @@ export default function MyResumes() {
                     <div key={index} className="mb-4">
                       <div className="mb-2">
                         <h4 className="font-bold">
-                          {job.title} | {job.company} | {formatDate(job.startDate)} - {formatDate(job.endDate)}
+                          {job.title} | {job.company} | {formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}
                         </h4>
-                        {job.summary && (
-                          <p className="text-sm text-gray-600 italic mt-1">{job.summary}</p>
-                        )}
                       </div>
-                      {job.achievements && job.achievements.length > 0 && (
-                        <ul className="list-disc ml-5 space-y-1">
-                          {job.achievements.map((achievement, i) => (
-                            <li key={i} className="text-sm text-gray-700">{achievement}</li>
-                          ))}
-                        </ul>
+                      {job.description && (
+                        <div className="text-sm text-gray-700 whitespace-pre-line">
+                          {job.description}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* Education - Builder format */}
               {displayResume.education && displayResume.education.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-xl font-bold mb-4 text-purple-600">EDUCATION</h3>
                   {displayResume.education.map((edu, index) => (
                     <div key={index} className="mb-3">
                       <h4 className="font-bold">
-                        {edu.degree} | {edu.school} | {formatDate(edu.graduationDate)}
+                        {edu.degree}{edu.major && ` in ${edu.major}`} | {edu.school} | {formatDate(edu.graduationDate)}
                       </h4>
                       <div className="text-sm text-gray-600 mt-1">
+                        {edu.minor && <p>Minor: {edu.minor}</p>}
                         {edu.gpa && <p>GPA: {edu.gpa}</p>}
-                        {edu.activities && <p>{edu.activities}</p>}
-                        {edu.honors && <p>{edu.honors}</p>}
+                        {edu.activities && <p>Activities: {edu.activities}</p>}
+                        {edu.honors && <p>Honors: {edu.honors}</p>}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* Skills - Builder format (array of strings) */}
               {displayResume.skills && displayResume.skills.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-xl font-bold mb-4 text-purple-600">SKILLS</h3>
                   <p className="text-sm text-gray-700">{displayResume.skills.join(' • ')}</p>
                 </div>
+              )}
+
+              {/* Certifications - Builder format */}
+              {displayResume.certifications && displayResume.certifications.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">CERTIFICATIONS & LICENSES</h3>
+                  {displayResume.certifications.map((cert, index) => (
+                    <div key={index} className="mb-2 text-sm text-gray-700">
+                      <strong>{cert.name}</strong> - {cert.issuer}, {formatDate(cert.date)}
+                      {cert.expires && cert.expirationDate && ` • Expires: ${formatDate(cert.expirationDate)}`}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Volunteer - Builder format */}
+              {displayResume.volunteer && displayResume.volunteer.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">VOLUNTEER & LEADERSHIP</h3>
+                  {displayResume.volunteer.map((vol, index) => (
+                    <div key={index} className="mb-3">
+                      <h4 className="font-bold">{vol.role} - {vol.organization}</h4>
+                      <p className="text-sm text-gray-700 mt-1">{vol.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Projects - Builder format */}
+              {displayResume.projects && displayResume.projects.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">PROJECTS</h3>
+                  {displayResume.projects.map((proj, index) => (
+                    <div key={index} className="mb-3">
+                      <h4 className="font-bold">{proj.name}</h4>
+                      <p className="text-sm text-gray-700 mt-1">{proj.description}</p>
+                      {proj.technologies && (
+                        <p className="text-xs text-gray-600 mt-1">Technologies: {proj.technologies}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+             {/* Languages - Builder format */}
+              {displayResume.languages && displayResume.languages.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-purple-600">LANGUAGES</h3>
+                  <p className="text-sm text-gray-700">
+                    {displayResume.languages.map((lang, index) => (
+                      <span key={index}>
+                        {lang.language} ({lang.proficiency})
+                        {index < displayResume.languages.length - 1 && ' • '}
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              )}
+                </>
               )}
             </div>
           </div>
