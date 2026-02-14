@@ -1,9 +1,30 @@
 'use client'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
 
 export default function ResumeStart() {
   const router = useRouter()
+
+  // Check for in-progress builder and auto-redirect
+  useEffect(() => {
+    const saved = localStorage.getItem('resumeBuilderProgress')
+    if (saved) {
+      try {
+        const { formData } = JSON.parse(saved)
+        // Check if there's actual data (not just empty fields)
+        const hasData = formData.fullName || formData.email || 
+                       formData.experience.length > 0 || 
+                       formData.education.length > 0
+        if (hasData) {
+          router.push('/resume-builder')
+          return
+        }
+      } catch (error) {
+        // Continue to show choices if localStorage is corrupted
+      }
+    }
+  }, [router])
 
   return (
     <>

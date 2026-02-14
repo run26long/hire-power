@@ -68,12 +68,12 @@ export default function ResumeUploadPage() {
 
       if (dbError) throw dbError
 
-      setMessage('✅ Resume uploaded and saved!')
+      setMessage('✅ Resume uploaded! Next: Structure your resume...')
       
-    // Navigate to My Resumes
-      setTimeout(() => {
-        router.push('/my-resumes')
-      }, 1500)
+  // Navigate to structure page
+setTimeout(() => {
+  router.push(`/structure-resume/${resumeData.id}`)
+}, 1500)
       
     } catch (error) {
   console.error('=== UPLOAD ERROR ===')

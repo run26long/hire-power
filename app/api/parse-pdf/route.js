@@ -21,12 +21,28 @@ export async function POST(request) {
     // Check file type
     const isDocx = filePath.toLowerCase().endsWith('.docx')
     
-    if (isDocx) {
+   if (isDocx) {
       // Parse DOCX - mammoth needs a Buffer
       const buffer = Buffer.from(arrayBuffer)
-      const result = await mammoth.extractRawText({ buffer })
+      
+      // Extract main body text
+      const textResult = await mammoth.extractRawText({ buffer })
+      
+      // Also convert to HTML to try capturing headers/footers
+      const htmlResult = await mammoth.convertToHtml({ 
+        buffer,
+        includeDefaultStyleMap: false,
+        includeEmbeddedStyleMap: false
+      })
+      
+      // Strip HTML tags to get plain text (may include some header/footer content)
+      const htmlText = htmlResult.value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      
+      // Use the longer/more complete text
+      const finalText = htmlText.length > textResult.value.length ? htmlText : textResult.value
+      
       return NextResponse.json({
-        text: result.value,
+        text: finalText,
         pages: 1
       })
     } else {

@@ -9,6 +9,7 @@ export default function ResumeBuilder() {
   const supabase = createClient()
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -97,12 +98,15 @@ export default function ResumeBuilder() {
         console.error('Error loading saved data:', error)
       }
     }
+    setHasLoaded(true)
   }, [])
 
-  // Auto-save on every change
+  // Auto-save on every change (but only after initial load)
   useEffect(() => {
-    localStorage.setItem('resumeBuilderProgress', JSON.stringify({ formData, step }))
-  }, [formData, step])
+    if (hasLoaded) {
+      localStorage.setItem('resumeBuilderProgress', JSON.stringify({ formData, step }))
+    }
+  }, [formData, step, hasLoaded])
 
   // Helper functions
   const updateFormData = (updates) => {

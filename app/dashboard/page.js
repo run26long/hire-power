@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [showSavedMessage, setShowSavedMessage] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const supabase = createClient()
+  const [hasBuilderProgress, setHasBuilderProgress] = useState(false)
 
   useEffect(() => {
     checkTierSelected()
@@ -28,7 +29,25 @@ export default function DashboardPage() {
     }
   }, [])
 
+  // Check for in-progress builder data
+  useEffect(() => {
+    const saved = localStorage.getItem('resumeBuilderProgress')
+    if (saved) {
+      try {
+        const { formData } = JSON.parse(saved)
+        // Check if there's actual data (not just empty fields)
+        const hasData = formData.fullName || formData.email || 
+                       formData.experience.length > 0 || 
+                       formData.education.length > 0
+        setHasBuilderProgress(hasData)
+      } catch (error) {
+        setHasBuilderProgress(false)
+      }
+    }
+  }, [])
+
   const checkForResume = async () => {
+  
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -189,11 +208,17 @@ export default function DashboardPage() {
                   <li>• Basic templates</li>
                 </ul>
 
-                <button
-                  onClick={() => router.push(access.hasResumeData ? '/my-resumes' : '/resume-start')}
+              <button
+                  onClick={() => router.push(
+                    access.hasResumeData ? '/my-resumes' : 
+                    hasBuilderProgress ? '/resume-builder' : 
+                    '/resume-start'
+                  )}
                   className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors mb-3"
                 >
-                  {access.hasResumeData ? 'View My Resume' : 'Start Resume'}
+                  {access.hasResumeData ? 'View My Resume' : 
+                   hasBuilderProgress ? 'Continue Your Resume →' : 
+                   'Start Resume'}
                 </button>
 
                 <div className="border-t border-gray-200 pt-3 mt-3">
@@ -226,11 +251,17 @@ export default function DashboardPage() {
                   <li>• Premium templates</li>
                 </ul>
 
-                <button
-                  onClick={() => router.push(access.hasResumeData ? '/my-resumes' : '/resume-start')}
+               <button
+                  onClick={() => router.push(
+                    access.hasResumeData ? '/my-resumes' : 
+                    hasBuilderProgress ? '/resume-builder' : 
+                    '/resume-start'
+                  )}
                   className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
                 >
-                  {access.hasResumeData ? 'View My Resume' : 'Start Resume Coaching'}
+                  {access.hasResumeData ? 'View My Resume' : 
+                   hasBuilderProgress ? 'Continue Your Resume →' : 
+                   'Start Resume Coaching'}
                 </button>
               </>
             )}

@@ -59,8 +59,8 @@ export default function MyResumes() {
 
       setVersions(versionsData || [])
       setLoading(false)
-    } catch (error) {
-      console.error('Error loading resume:', error)
+   } catch (error) {
+      // No resume found - this is expected, don't log as error
       setLoading(false)
     }
   }
@@ -109,19 +109,22 @@ export default function MyResumes() {
     )
   }
 
-  if (!resumeData || (!resumeData.resume_data && !resumeData.parsed_text)) {
+ if (!resumeData || (!resumeData.resume_data && !resumeData.parsed_text)) {
+    // No resume exists - redirect to dashboard
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-4xl mx-auto p-8">
-          <h1 className="text-3xl font-bold mb-4">My Resumes</h1>
-          <p className="text-gray-600">Complete coaching first to see your improved resume here.</p>
-          <button
-            onClick={() => router.push('/resume-coaching')}
-            className="mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
-          >
-            Start Coaching
-          </button>
+        <div className="max-w-4xl mx-auto p-8 flex items-center justify-center">
+          <div className="text-center">
+  <h2 className="text-2xl font-bold text-gray-900 mb-2">Ready to build your resume?</h2>
+  <p className="text-gray-600 mb-4">Head to your dashboard to get started.</p>
+  <button 
+    onClick={() => router.push('/dashboard')} 
+    className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium"
+  >
+    Go to Dashboard →
+  </button>
+</div>
         </div>
       </div>
     )
@@ -282,8 +285,22 @@ export default function MyResumes() {
                 </>
 ) : (
                 <>
-                  {!resumeData.ai_analysis ? (
-                    /* NEW RESUME - NEEDS ANALYSIS */
+                 {!resumeData.resume_data ? (
+                    /* UPLOADED BUT NOT STRUCTURED */
+                    <>
+                      <h3 className="font-bold text-lg mb-4">Next Step: Structure Your Resume</h3>
+                      <p className="text-gray-600 mb-4 text-sm">
+                        Fill in the structured fields so we can format and analyze your resume.
+                      </p>
+                      <button
+                        onClick={() => router.push(`/structure-resume/${resumeData.id}`)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 font-semibold shadow-lg transition-all"
+                      >
+                        Structure Your Resume →
+                      </button>
+                    </>
+                  ) : !resumeData.ai_analysis ? (
+                    /* STRUCTURED BUT NOT ANALYZED */
                     <>
                       <h3 className="font-bold text-lg mb-4">Next Step: AI Analysis</h3>
                       <p className="text-gray-600 mb-4 text-sm">
