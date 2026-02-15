@@ -172,12 +172,23 @@ export default function StructureResumePage() {
     }
   }
 
-  if (loading) {
+ if (loading) {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-gray-600">Loading resume...</div>
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+          {/* Animated spinner */}
+          <div className="relative mb-6">
+            <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+          </div>
+          
+          {/* Loading message */}
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Analyzing Your Resume
+          </h2>
+          <p className="text-gray-600 text-center max-w-md">
+            Our AI is extracting your experience, education, and skills to help you structure your resume...
+          </p>
         </div>
       </>
     )
@@ -186,9 +197,9 @@ export default function StructureResumePage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50">
-        {/* STICKY HEADER */}
-        <div className="sticky top-0 z-10 bg-white shadow p-6 mx-8 mt-8 mb-4 rounded-lg">
+      <div className="min-h-screen bg-gray-50 pb-8">
+        {/* STICKY HEADER - Stays at top */}
+        <div className="sticky top-0 z-10 bg-white shadow p-6 mx-8 mb-4 rounded-lg mt-0 pt-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             📝 Structure Your Resume
           </h1>
@@ -197,16 +208,16 @@ export default function StructureResumePage() {
           </p>
         </div>
 
-        <div className="px-8 pb-8">
+        <div className="px-8">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-2 gap-6">
               
-              {/* LEFT: Original Text - STICKY, TEXT SCROLLS */}
-              <div className="bg-white rounded-lg shadow p-6 sticky top-32 self-start max-h-[calc(100vh-150px)] flex flex-col">
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex-shrink-0">
+              {/* LEFT: Original Text - STICKY BOX, TEXT SCROLLS INSIDE */}
+              <div className="bg-white rounded-lg shadow p-6 sticky top-32 self-start">
+                <h2 className="text-lg font-bold text-gray-900 mb-4">
                   📄 Your Original Resume
                 </h2>
-                <div className="bg-gray-50 p-4 rounded border border-gray-200 flex-1 overflow-y-auto">
+                <div className="bg-gray-50 p-4 rounded border border-gray-200 max-h-[calc(100vh-250px)] overflow-y-auto">
                   <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
                     {resume.parsed_text}
                   </pre>

@@ -10,6 +10,7 @@ export default function ResumeBuilder() {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
+  const [checkingLimit, setCheckingLimit] = useState(true)
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -100,6 +101,42 @@ export default function ResumeBuilder() {
     }
     setHasLoaded(true)
   }, [])
+
+  // Free tier enforcement - check resume count
+  useEffect(() => {
+    async function checkResumeLimit() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .single()
+
+      const tier = profile?.subscription_tier || 'free'
+
+      // Only check for free users
+      if (tier === 'free') {
+        const { count } = await supabase
+          .from('resumes')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+
+        if (count >= 1) {
+          router.push('/resume-start')
+          return
+        }
+      }
+
+      setCheckingLimit(false)
+    }
+
+    checkResumeLimit()
+  }, [router, supabase])
 
   // Auto-save on every change (but only after initial load)
   useEffect(() => {
@@ -224,7 +261,19 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
     }
   }
 
-  // ============= STEP 1: PERSONAL INFO =============
+// Check access before showing any step
+  if (checkingLimit) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-gray-600">Checking access...</div>
+        </div>
+      </>
+    )
+  }
+
+// ============= STEP 1: PERSONAL INFO =============
   if (step === 1) {
     return (
       <>

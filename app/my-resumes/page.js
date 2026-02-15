@@ -22,6 +22,8 @@ export default function MyResumes() {
   const [resumeData, setResumeData] = useState(null)
   const [versions, setVersions] = useState([])
   const [selectedVersion, setSelectedVersion] = useState(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -98,6 +100,38 @@ export default function MyResumes() {
     } catch (error) {
       console.error('Error deleting version:', error)
       alert('Failed to delete. Please try again.')
+  }
+  }
+
+  const handleDeleteResume = async () => {
+    setDeleting(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Delete from database
+      const { error } = await supabase
+        .from('resumes')
+        .delete()
+        .eq('id', resumeData.id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // Delete file from storage if exists
+      if (resumeData.file_path) {
+        await supabase.storage
+          .from('resumes')
+          .remove([resumeData.file_path])
+      }
+
+      // Refresh page to show "no resume" state
+      setShowDeleteModal(false)
+      window.location.reload()
+    } catch (error) {
+      console.error('Error deleting resume:', error)
+      alert('Failed to delete resume. Please try again.')
+      setDeleting(false)
     }
   }
 
@@ -263,6 +297,7 @@ export default function MyResumes() {
           <div className="lg:col-span-2">
             
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+
               {isViewingVersion ? (
                 <>
                   <h3 className="font-bold text-lg mb-4">
@@ -316,7 +351,18 @@ export default function MyResumes() {
                   ) : (
                     /* ANALYZED RESUME - SHOW ALL OPTIONS */
                     <>
-                      <h3 className="font-bold text-lg mb-4">Core Resume Actions</h3>
+<div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-lg">Core Resume Actions</h3>
+                        <button
+                          onClick={() => setShowDeleteModal(true)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-all"
+                          title="Delete Resume"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     <div className="flex gap-3 mb-4">
                         <button
                           onClick={() => router.push(`/resume-analysis/${resumeData.id}`)}
@@ -333,10 +379,11 @@ export default function MyResumes() {
                         <button
                           onClick={() => router.push('/choose-template')}
                           className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium shadow-sm transition-all"
-                        >
+                       >
                           Format & Download
                         </button>
                       </div>
+
                     </>
                   )}
                 </>
@@ -490,8 +537,37 @@ export default function MyResumes() {
               )}
             </div>
           </div>
-        </div>
+       </div>
       </div>
+
+     {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 p-4">
+          <div className="bg-purple-100 rounded-lg p-6 max-w-md w-full border-2 border-purple-300">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Resume?</h3>
+            <p className="text-gray-700 mb-6">
+              This will permanently delete your resume and all associated data. You'll be able to create a new resume after deleting.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteResume}
+                disabled={deleting}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete Resume'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

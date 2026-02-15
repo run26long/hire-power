@@ -195,18 +195,25 @@ export default function ChooseTemplate() {
         throw new Error('PDF generation failed')
       }
 
-      const result = await response.json()
+     const result = await response.json()
       
-     // Trigger download only (no new tab)
+      // Fetch PDF as blob to force download
+      const pdfResponse = await fetch(result.pdfUrl)
+      const blob = await pdfResponse.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      
+      // Trigger download
       const a = document.createElement('a')
-      a.href = result.pdfUrl
-    a.download = `${(resumeData.fullName || resumeData.contact?.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`
-      a.target = '_blank'
+      a.href = blobUrl
+      a.download = `${(resumeData.fullName || resumeData.contact?.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
+      
+      // Clean up blob URL
+      window.URL.revokeObjectURL(blobUrl)
 
-      // Small delay then redirect
+      // Redirect to My Resumes after download starts
       setTimeout(() => {
         router.push('/my-resumes')
       }, 500)
