@@ -20,6 +20,11 @@ export default function ResumeAnalysis() {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [forceReanalyze, setForceReanalyze] = useState(false)
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
+  const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [showFlagModal, setShowFlagModal] = useState(false)
+  const [flagComment, setFlagComment] = useState('')
+  const [flagSubmitting, setFlagSubmitting] = useState(false)
 
   useEffect(() => {
     loadResumeAndAnalyze()
@@ -135,6 +140,61 @@ export default function ResumeAnalysis() {
     }, 300)
   }
 
+  const handleFeedback = async (feedbackType) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      const { error } = await supabase
+        .from('ai_feedback')
+        .insert({
+          user_id: user.id,
+          resume_id: resumeId,
+          feedback_type: feedbackType,
+          feedback_context: 'ai_analysis'
+        })
+      
+      if (error) throw error
+      
+      setFeedbackSubmitted(true)
+    } catch (err) {
+      console.error('Error submitting feedback:', err)
+    }
+  }
+
+  const handleFlag = async () => {
+    if (!flagComment.trim()) {
+      alert('Please describe what\'s wrong')
+      return
+    }
+
+    setFlagSubmitting(true)
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      const { error } = await supabase
+        .from('flagged_content')
+        .insert({
+          user_id: user.id,
+          resume_id: resumeId,
+          content_type: 'ai_analysis',
+          flagged_content: analysis,
+          user_comment: flagComment
+        })
+      
+      if (error) throw error
+      
+      setShowFlagModal(false)
+      setFlagComment('')
+      setReportSubmitted(true)
+    } catch (err) {
+      console.error('Error flagging content:', err)
+      alert('Failed to submit. Please try again.')
+    } finally {
+      setFlagSubmitting(false)
+    }
+  }
+
   if (loading || analyzing) {
     return (
       <>
@@ -243,7 +303,88 @@ export default function ResumeAnalysis() {
                 ))}
               </ul>
             </div>
+
+        {/* Feedback Section */}
+           <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                {feedbackSubmitted ? (
+                  <p className="text-sm text-green-600">✓ Thanks for your feedback!</p>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-medium text-gray-700">Was this helpful?</p>
+                    <button
+                      onClick={() => handleFeedback('helpful')}
+                      className="px-3 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded text-sm font-medium transition-colors"
+                    >
+                      👍 Helpful
+                    </button>
+                    <button
+                      onClick={() => handleFeedback('okay')}
+                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-sm font-medium transition-colors"
+                    >
+                      😐 Okay
+                    </button>
+                    <button
+                      onClick={() => handleFeedback('not_useful')}
+                      className="px-3 py-1 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded text-sm font-medium transition-colors"
+                    >
+                      👎 Not useful
+                    </button>
+                  </div>
+                )}
+                {reportSubmitted ? (
+                  <p className="text-sm text-green-600">✓ Report submitted. We'll review this analysis.</p>
+                ) : (
+                  <button
+                    onClick={() => setShowFlagModal(true)}
+                    className="text-sm text-red-600 hover:text-red-700 underline"
+                  >
+                    ⚠️ Report a Problem
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
+
+         {/* Flag Modal */}
+          {showFlagModal && (
+            <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">                <h3 className="text-2xl font-bold text-gray-900 mb-3">Report an Issue</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  Please describe what's wrong with this analysis. We'll review it and improve our AI.
+                </p>
+                <textarea
+                  value={flagComment}
+                  onChange={(e) => setFlagComment(e.target.value)}
+                  placeholder="What's inaccurate or unhelpful?"
+                  className="w-full border border-gray-300 rounded-lg p-3 h-32 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent mb-4"
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowFlagModal(false)
+                      setFlagComment('')
+                    }}
+                    disabled={flagSubmitting}
+                    className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleFlag}
+                    disabled={flagSubmitting || !flagComment.trim()}
+                    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {flagSubmitting && (
+                      <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                    )}
+                    {flagSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Next Steps - Different for Free vs Paid */}
           {userTier === TIERS.FREE ? (

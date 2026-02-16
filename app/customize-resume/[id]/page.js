@@ -80,6 +80,20 @@ setUserTier(profile?.subscription_tier)
 
       const result = await response.json()
 
+      // ATS SCORE TRACKING - Step 1: Save initial score if first time
+      const isFirstAnalysis = resumeData.initial_ats_score === null
+      
+      if (isFirstAnalysis) {
+        const { error: scoreError } = await supabase
+          .from('resumes')
+          .update({ initial_ats_score: result.matchScore })
+          .eq('id', resumeId)
+        
+        if (scoreError) {
+          console.error('Failed to save initial ATS score:', scoreError)
+        }
+      }
+
       // Save to resume_versions table
       const { data: version, error } = await supabase
         .from('resume_versions')
@@ -98,6 +112,26 @@ setUserTier(profile?.subscription_tier)
         .single()
 
       if (error) throw error
+
+ // ATS SCORE TRACKING - Step 2: Track improvement if not first analysis AND user is paid
+      if (!isFirstAnalysis && userTier !== TIERS.FREE) {
+        const initialScore = resumeData.initial_ats_score
+        const improvement = result.matchScore - initialScore
+        
+        // Track improvements for paid users only (they have tools to actually improve)
+        await supabase
+          .from('ats_improvements')
+          .insert({
+            user_id: user.id,
+            resume_id: resumeId,
+            version_id: version.id,
+            job_company: formData.company,
+            job_title: formData.jobTitle,
+            initial_score: initialScore,
+            improved_score: result.matchScore,
+            improvement_percentage: improvement
+          })
+      }
 
       // Redirect to the analysis page
       router.push(`/job-analysis/${version.id}`)

@@ -574,7 +574,8 @@ export default function MyResumes() {
 
       {/* AI Analysis First-Time Modal */}
     {showAnalysisModal && (
-        <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">          <div className="bg-white rounded-lg p-8 max-w-lg w-full shadow-2xl">
+        <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">         
+        <div className="bg-white rounded-lg p-8 max-w-lg w-full shadow-2xl border-2 border-purple-300">
             <div className="text-center mb-6">
               <div className="text-5xl mb-4">🎉</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Your Resume is Ready!</h3>
@@ -620,8 +621,7 @@ export default function MyResumes() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-purple-100 rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Delete Resume?</h3>
+      <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">            <h3 className="text-2xl font-bold text-gray-900 mb-4">Delete Resume?</h3>
             <p className="text-gray-700 mb-6">
               This will permanently delete your resume and all associated data. This action cannot be undone.
             </p>
