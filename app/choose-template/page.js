@@ -398,13 +398,16 @@ export default function ChooseTemplate() {
               <button
                 onClick={downloadPDF}
                 disabled={downloading}
-                className={`px-8 py-3 rounded-lg font-medium text-lg shadow-md hover:shadow-lg transition-all ${
+                className={`px-8 py-3 rounded-lg font-medium text-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 ${
                   downloading
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
-                {downloading ? '⏳ Generating PDF...' : '📥 Download as PDF'}
+                {downloading && (
+                  <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                )}
+                {downloading ? 'Generating PDF...' : '📥 Download as PDF'}
               </button>
             </div>
           </>

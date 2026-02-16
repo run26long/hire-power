@@ -19,10 +19,11 @@ export default function ResumeAnalysis() {
   const [userTier, setUserTier] = useState(null)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [forceReanalyze, setForceReanalyze] = useState(false)
 
   useEffect(() => {
     loadResumeAndAnalyze()
-  }, [resumeId])
+  }, [resumeId, forceReanalyze])
 
   const loadResumeAndAnalyze = async () => {
     try {
@@ -57,13 +58,15 @@ export default function ResumeAnalysis() {
 
      setResumeData(resume)
 
-      // Check if analysis already exists
-      if (resume.ai_analysis) {
+      // Check if analysis already exists and if we're forcing reanalysis
+      const shouldRunNewAnalysis = !resume.ai_analysis || forceReanalyze
+      
+      if (!shouldRunNewAnalysis) {
         console.log('Using existing AI analysis from database')
         setAnalysis(resume.ai_analysis)
         setAnalyzing(false)
       } else {
-        console.log('No existing analysis, running new analysis')
+        console.log(forceReanalyze ? 'Running forced re-analysis' : 'No existing analysis, running new analysis')
         // Analyze with AI
         const analysisResult = await analyzeResume(resume.parsed_text)
         setAnalysis(analysisResult)
@@ -71,20 +74,21 @@ export default function ResumeAnalysis() {
         // SAVE ANALYSIS TO DATABASE for editor to use later
         const { error: saveError } = await supabase
           .from('resumes')
-          .update({ ai_analysis: analysisResult })
+          .update({ 
+            ai_analysis: analysisResult,
+            ai_analysis_date: new Date().toISOString()
+          })
           .eq('id', resumeId)
         
         if (saveError) {
           console.error('Failed to save AI analysis:', saveError)
-          console.error('Error message:', saveError.message)
-          console.error('Error details:', saveError.details)
-          console.error('Error hint:', saveError.hint)
           // Still continue - user can still see analysis on screen
         } else {
           console.log('AI analysis saved successfully!')
         }
         
         setAnalyzing(false)
+        setForceReanalyze(false) // Reset flag
       }
 
     } catch (err) {
@@ -175,9 +179,22 @@ export default function ResumeAnalysis() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">📊 Resume Analysis Complete</h1>
-            <p className="text-gray-600 mt-2">Here's what we found</p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">📊 Resume Analysis Complete</h1>
+              <p className="text-gray-600 mt-2">Here's what we found</p>
+            </div>
+            {userTier !== TIERS.FREE && resumeData?.ai_analysis && (
+              <button
+                onClick={() => {
+                  setForceReanalyze(true)
+                  loadResumeAndAnalyze()
+                }}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium text-sm flex items-center gap-2"
+              >
+                🔄 Re-analyze
+              </button>
+            )}
           </div>
 
           {/* Analysis Results */}
@@ -252,7 +269,14 @@ export default function ResumeAnalysis() {
                   Upgrade to Full Coaching
                 </button>
               </div>
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center flex gap-4 justify-center">
+                <button
+                  onClick={() => router.push('/my-resumes')}
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  Return to My Resumes
+                </button>
+                <span className="text-gray-400">•</span>
                 <button
                   onClick={handleSaveProgress}
                   disabled={saving}
@@ -278,7 +302,14 @@ export default function ResumeAnalysis() {
                   Start Professional Coaching →
                 </button>
               </div>
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center flex gap-4 justify-center">
+                <button
+                  onClick={() => router.push('/my-resumes')}
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  Return to My Resumes
+                </button>
+                <span className="text-gray-400">•</span>
                 <button
                   onClick={handleSaveProgress}
                   disabled={saving}

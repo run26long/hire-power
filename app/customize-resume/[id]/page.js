@@ -10,7 +10,7 @@ export default function CustomizeResume() {
   const params = useParams()
   const resumeId = params.id
   const supabase = createClient()
-
+const [userTier, setUserTier] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [resumeData, setResumeData] = useState(null)
@@ -39,14 +39,8 @@ export default function CustomizeResume() {
         .select('subscription_tier')
         .eq('id', user.id)
         .single()
-
-      // Block free users from professional coaching
-if (profile.subscription_tier === TIERS.FREE) {
-  router.push('/pricing')
-  return
-}
-
-      const { data, error } = await supabase
+setUserTier(profile?.subscription_tier)
+            const { data, error } = await supabase
         .from('resumes')
         .select('*')
         .eq('id', resumeId)
@@ -184,9 +178,17 @@ if (profile.subscription_tier === TIERS.FREE) {
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {submitting ? 'Analyzing...' : 'Analyze Match & Customize'}
+              {submitting && (
+                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+              )}
+              {submitting 
+                ? 'Analyzing...' 
+                : userTier === TIERS.FREE 
+                  ? 'Analyze Match' 
+                  : 'Analyze Match & Customize'
+              }
             </button>
             <button
               type="button"

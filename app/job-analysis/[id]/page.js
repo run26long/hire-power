@@ -21,7 +21,7 @@ export default function JobAnalysis() {
   const [optimizationCount, setOptimizationCount] = useState(0)
   const [updateCoreResume, setUpdateCoreResume] = useState(false)
   const [optimizationComplete, setOptimizationComplete] = useState(false)
-  
+  const [userTier, setUserTier] = useState(null)
   const chatEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -58,6 +58,15 @@ export default function JobAnalysis() {
       if (error) throw error
 
       setVersionData(data)
+      
+      // Load user tier
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .single()
+      
+      setUserTier(profile?.subscription_tier)
       setOptimizationCount(data.optimization_count || 0)
       setOptimizationComplete(data.optimization_count > 0)
       setLoading(false)
@@ -253,75 +262,116 @@ export default function JobAnalysis() {
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-8">
-            <div 
-              className={`h-3 rounded-full transition-all ${matchScore >= 85 ? 'bg-green-600' : matchScore >= 70 ? 'bg-yellow-600' : 'bg-orange-600'}`}
-              style={{ width: `${matchScore}%` }}
-            ></div>
-          </div>
-
-          {/* Strengths */}
-          {analysis.strengths && analysis.strengths.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-bold text-lg mb-3 text-green-600">✓ Strengths</h3>
-              <ul className="space-y-2">
-                {analysis.strengths.map((strength, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-green-600 mt-1">•</span>
-                    <span className="text-gray-700">{strength}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Gaps */}
-          {analysis.gaps && analysis.gaps.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-bold text-lg mb-3 text-orange-600">⚠ Gaps</h3>
-              <ul className="space-y-2">
-                {analysis.gaps.map((gap, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-orange-600 mt-1">•</span>
-                    <span className="text-gray-700">{gap}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Keyword Coverage */}
-          {analysis.keywordCoverage && (
-            <div className="border-t pt-6">
-              <h3 className="font-bold text-lg mb-3">Keyword Coverage</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-green-600 mb-2">Present ({analysis.keywordCoverage.present?.length || 0})</p>
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.keywordCoverage.present?.map((keyword, i) => (
-                      <span key={i} className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">
-                        {keyword}
-                      </span>
-                    ))}
+         {/* FREE TIER - Limited View */}
+          {userTier === 'free' && (
+            <>
+              {/* Keyword Coverage Teaser */}
+              {analysis.keywordCoverage && (
+                <div className="mb-8">
+                  <h3 className="font-bold text-lg mb-3">Keyword Coverage</h3>
+                  <p className="text-gray-700 mb-3">
+                    Keywords Matched: <span className="font-semibold">{analysis.keywordCoverage.present?.length || 0} of {(analysis.keywordCoverage.present?.length || 0) + (analysis.keywordCoverage.missing?.length || 0)}</span>
+                  </p>
+                  <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                    <div 
+                      className="h-3 rounded-full bg-purple-600 transition-all"
+                      style={{ width: `${((analysis.keywordCoverage.present?.length || 0) / ((analysis.keywordCoverage.present?.length || 0) + (analysis.keywordCoverage.missing?.length || 0))) * 100}%` }}
+                    ></div>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-orange-600 mb-2">Missing ({analysis.keywordCoverage.missing?.length || 0})</p>
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.keywordCoverage.missing?.map((keyword, i) => (
-                      <span key={i} className="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs">
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              )}
+
+             <div className="flex gap-3">
+                        <button
+                          onClick={() => router.push('/my-resumes')}
+                          className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-semibold transition-all"
+                        >
+                          Return to My Resumes
+                        </button>
+                        <button
+                          onClick={() => router.push('/pricing')}
+                          className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold transition-all shadow-md"
+                        >
+                          Upgrade to Customize →
+                        </button>
+                      </div>
+            </>
+          )}
+
+          {/* PAID TIER - Full View */}
+          {userTier !== 'free' && (
+            <>
+              {/* Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-8">
+                <div 
+                  className={`h-3 rounded-full transition-all ${matchScore >= 85 ? 'bg-green-600' : matchScore >= 70 ? 'bg-yellow-600' : 'bg-orange-600'}`}
+                  style={{ width: `${matchScore}%` }}
+                ></div>
               </div>
-            </div>
+
+              {/* Strengths */}
+              {analysis.strengths && analysis.strengths.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-bold text-lg mb-3 text-green-600">✓ Strengths</h3>
+                  <ul className="space-y-2">
+                    {analysis.strengths.map((strength, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-green-600 mt-1">•</span>
+                        <span className="text-gray-700">{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Gaps */}
+              {analysis.gaps && analysis.gaps.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-bold text-lg mb-3 text-orange-600">⚠ Gaps</h3>
+                  <ul className="space-y-2">
+                    {analysis.gaps.map((gap, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-orange-600 mt-1">•</span>
+                        <span className="text-gray-700">{gap}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Keyword Coverage */}
+              {analysis.keywordCoverage && (
+                <div className="border-t pt-6">
+                  <h3 className="font-bold text-lg mb-3">Keyword Coverage</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-green-600 mb-2">Present ({analysis.keywordCoverage.present?.length || 0})</p>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.keywordCoverage.present?.map((keyword, i) => (
+                          <span key={i} className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-orange-600 mb-2">Missing ({analysis.keywordCoverage.missing?.length || 0})</p>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.keywordCoverage.missing?.map((keyword, i) => (
+                          <span key={i} className="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs">
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Strong Match Message */}
+        {/* Strong Match Message - Both Tiers */}
         {matchScore >= 85 && (
           <div className="bg-green-50 border-l-4 border-green-600 rounded-lg p-5 mb-6">
             <p className="text-green-800 font-medium">
@@ -330,8 +380,8 @@ export default function JobAnalysis() {
           </div>
         )}
 
-        {/* Coaching Prompt - Only show if score < 85% and < 2 optimizations */}
-        {showOptimizationPrompt && !showCoaching && !optimizationComplete && (
+        {/* Paid Tier - Coaching Prompt */}
+        {userTier !== 'free' && showOptimizationPrompt && !showCoaching && !optimizationComplete && (
           <div className="bg-purple-50 border-l-4 border-purple-600 rounded-lg p-5 mb-6">
             <h3 className="font-semibold text-purple-900 mb-2">Want to strengthen your match?</h3>
             <p className="text-purple-700 text-sm mb-4">
@@ -345,7 +395,6 @@ export default function JobAnalysis() {
             </button>
           </div>
         )}
-
         {/* Coaching Interface */}
         {showCoaching && !optimizing && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -431,7 +480,7 @@ export default function JobAnalysis() {
         )}
 
         {/* Action Buttons - Show when not in active coaching/optimizing */}
-        {!showCoaching && !optimizing && (
+        {!showCoaching && !optimizing && userTier !== 'free' && (
           <div className="flex flex-col items-center gap-4">
             <button
               onClick={handleFormatAndDownload}

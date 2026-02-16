@@ -184,7 +184,7 @@ export default function StructureResumePage() {
           
           {/* Loading message */}
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Analyzing Your Resume
+            Building Your Resume
           </h2>
           <p className="text-gray-600 text-center max-w-md">
             Our AI is extracting your experience, education, and skills to help you structure your resume...

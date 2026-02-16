@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import Header from '../../components/Header'
@@ -9,6 +9,16 @@ export default function ResumeEditorPage() {
   const [resumeData, setResumeData] = useState(null)
   const [aiSuggestions, setAiSuggestions] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showTrialCoach, setShowTrialCoach] = useState(false)
+  const [trialCoachMessages, setTrialCoachMessages] = useState([])
+  const [trialCoachInput, setTrialCoachInput] = useState('')
+  const [coachingSending, setCoachingSending] = useState(false)
+  const [selectedJob, setSelectedJob] = useState(null)
+  const [coachingComplete, setCoachingComplete] = useState(false)
+  const [improvedBullet, setImprovedBullet] = useState(null)
+  const trialCoachEndRef = useRef(null)
+  const [canUseTrialCoach, setCanUseTrialCoach] = useState(false)
+  const [userTier, setUserTier] = useState(null)
   const [saving, setSaving] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const router = useRouter()
@@ -27,13 +37,23 @@ export default function ResumeEditorPage() {
     }
 
     // Load user profile
-    const { data: profile } = await supabase
+   const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier')
+      .select('subscription_tier, coaching_samples_used')
       .eq('id', user.id)
       .single()
     
     setUserProfile(profile)
+    
+    // Check trial coach eligibility
+    setUserTier(profile?.subscription_tier)
+    if (profile?.subscription_tier === 'free' && profile?.coaching_samples_used === 0) {
+      setCanUseTrialCoach(true)
+      // Show button after 90 seconds
+      setTimeout(() => {
+        setShowTrialCoach(true)
+      }, 45000)
+    }
 
     // Load resume
     const { data: resume, error } = await supabase
@@ -58,7 +78,30 @@ export default function ResumeEditorPage() {
     
     setLoading(false)
   }
+// Auto-scroll trial coach messages
+  useEffect(() => {
+    trialCoachEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [trialCoachMessages])
+  // Prevent back button from navigating when modal is open
+  useEffect(() => {
+    if (!showTrialCoach) return
 
+    const handleBackButton = (e) => {
+      e.preventDefault()
+      setShowTrialCoach(false)
+      setSelectedJob(null)
+      setTrialCoachMessages([])
+      setCoachingComplete(false)
+      setImprovedBullet(null)
+    }
+
+    window.history.pushState(null, '', window.location.href)
+    window.addEventListener('popstate', handleBackButton)
+
+    return () => {
+      window.removeEventListener('popstate', handleBackButton)
+    }
+  }, [showTrialCoach])
  const handleSave = async () => {
     setSaving(true)
 
@@ -769,6 +812,420 @@ export default function ResumeEditorPage() {
 
         </div> {/* Close container */}
       </div> {/* Close bg-gray-50 */}
+      {/* Floating Trial Coach Button - Free Users Only */}
+      {canUseTrialCoach && (
+        <button
+          onClick={() => {
+            // Open job selection modal
+            setShowTrialCoach(true)
+          }}
+          className="fixed bottom-6 right-6 bg-purple-600 text-white px-6 py-4 rounded-full shadow-lg hover:bg-purple-700 transition-all flex items-center gap-2 z-50 animate-pulse"
+        >
+          <span className="text-2xl">🎓</span>
+          <span className="font-semibold">Free AI Coaching</span>
+        </button>
+      )}
+
+   {/* Trial Coach Modal */}
+      {showTrialCoach && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            
+            {/* Job Selection (before coaching starts) */}
+            {trialCoachMessages.length === 0 && (
+              <>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">✨ Get Free AI Coaching Sample</h3>
+                <p className="text-gray-700 mb-4">
+                  Experience our professional resume coaching on one of your jobs.
+                </p>
+                <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 mb-6">
+                  <p className="font-semibold text-purple-900 mb-2">Our AI coach will:</p>
+                  <ul className="text-purple-800 space-y-1 text-sm">
+                    <li>• Ask strategic questions to extract your achievements</li>
+                    <li>• Identify quantifiable metrics you may have missed</li>
+                    <li>• Transform your strongest bullet with professional phrasing</li>
+                  </ul>
+                  <p className="text-xs text-purple-700 mt-3 italic">
+                    Free tier: One coaching session per account
+                  </p>
+                </div>
+
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Which job would you like coaching on?
+                </label>
+                <select
+                  onChange={(e) => {
+                    const jobIndex = parseInt(e.target.value)
+                    if (!isNaN(jobIndex)) {
+                      setSelectedJob(resumeData.experience[jobIndex])
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-lg p-3 mb-6"
+                >
+                  <option value="">Select a job...</option>
+                  {resumeData.experience?.map((job, idx) => (
+                    <option key={idx} value={idx}>
+                      {job.title} at {job.company}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowTrialCoach(false)}
+                    className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 font-medium"
+                  >
+                    Maybe Later
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!selectedJob) return
+                      
+                      // Start coaching conversation
+                      setCoachingSending(true)
+                      
+                      try {
+                        const response = await fetch('/api/trial-coach', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            jobData: selectedJob,
+                            conversation: [
+                              { role: 'user', content: "Hi! I'm ready for coaching on this job." }
+                            ]
+                          })
+                        })
+                        
+                        const data = await response.json()
+                        setTrialCoachMessages([
+                          { role: 'assistant', content: data.response }
+                        ])
+                      } catch (error) {
+                        console.error('Error starting trial coach:', error)
+                      } finally {
+                        setCoachingSending(false)
+                      }
+                    }}
+                    disabled={!selectedJob}
+                    className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold disabled:opacity-50"
+                  >
+                    Start Coaching Session
+                  </button>
+                </div>
+              </>
+            )}
+            {/* Coaching Chat Interface */}
+            {trialCoachMessages.length > 0 && (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Coaching: {selectedJob.title}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTrialCoach(false)
+                      setSelectedJob(null)
+                      setTrialCoachMessages([])
+                    }}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Messages */}
+                <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                  {trialCoachMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg ${
+                        msg.role === 'assistant'
+                          ? 'bg-purple-50 border border-purple-200'
+                          : 'bg-gray-100 border border-gray-200 ml-8'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold text-gray-700 mb-1">
+                        {msg.role === 'assistant' ? '🎓 Coach' : 'You'}
+                      </p>
+                      <p className="text-sm text-gray-800 whitespace-pre-line">
+                        {msg.content}
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {coachingSending && (
+                    <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-1">🎓 Coach</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      </div>
+                    </div>
+                  )}
+                     <div ref={trialCoachEndRef} />
+                </div>
+
+            {/* Input */}
+                {!coachingComplete && (
+                  <div className="flex gap-2">
+                    <textarea
+                      value={trialCoachInput}
+                      onChange={(e) => setTrialCoachInput(e.target.value)}
+                      onKeyPress={async (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !coachingSending && trialCoachInput.trim()) {
+                          e.preventDefault()
+                          const userMessage = { role: 'user', content: trialCoachInput }
+                          const updatedMessages = [...trialCoachMessages, userMessage]
+                          setTrialCoachMessages(updatedMessages)
+                          setTrialCoachInput('')
+                          setCoachingSending(true)
+
+                          try {
+                            const response = await fetch('/api/trial-coach', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                jobData: selectedJob,
+                                conversation: updatedMessages
+                              })
+                            })
+
+                            const data = await response.json()
+                            setTrialCoachMessages([
+                              ...updatedMessages,
+                              { role: 'assistant', content: data.response }
+                            ])
+
+                            if (data.response.toLowerCase().includes('click \'finish coaching\'')) {
+                              setCoachingComplete(true)
+                            }
+                          } catch (error) {
+                            console.error('Error:', error)
+                          } finally {
+                            setCoachingSending(false)
+                          }
+                        }
+                      }}
+                      placeholder="Type your response..."
+                      disabled={coachingSending}
+                      className="flex-1 border border-gray-300 rounded-lg p-3 text-sm resize-none"
+                      rows="3"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!trialCoachInput.trim() || coachingSending) return
+                        
+                        const userMessage = { role: 'user', content: trialCoachInput }
+                        const updatedMessages = [...trialCoachMessages, userMessage]
+                        setTrialCoachMessages(updatedMessages)
+                        setTrialCoachInput('')
+                        setCoachingSending(true)
+
+                        try {
+                          const response = await fetch('/api/trial-coach', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              jobData: selectedJob,
+                              conversation: updatedMessages
+                            })
+                          })
+
+                          const data = await response.json()
+                          setTrialCoachMessages([
+                            ...updatedMessages,
+                            { role: 'assistant', content: data.response }
+                          ])
+
+                          if (data.response.toLowerCase().includes('click \'finish coaching\'')) {
+                            setCoachingComplete(true)
+                          }
+                        } catch (error) {
+                          console.error('Error:', error)
+                        } finally {
+                          setCoachingSending(false)
+                        }
+                      }}
+         disabled={!trialCoachInput.trim() || coachingSending}
+                      className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
+                    >
+                      Send
+                    </button>
+                  </div>
+                )}
+
+                {/* Finish Coaching Button */}
+                {coachingComplete && !improvedBullet && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setCoachingSending(true)
+                        
+                        const response = await fetch('/api/trial-coach-finish', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            jobData: selectedJob,
+                            conversation: trialCoachMessages
+                          })
+                        })
+
+                        const result = await response.json()
+                        setImprovedBullet(result)
+                        
+                        // Mark coaching sample as used
+                        const { data: { user } } = await supabase.auth.getUser()
+                        await supabase
+                          .from('profiles')
+                          .update({ coaching_samples_used: 1 })
+                          .eq('id', user.id)
+                          
+                      } catch (error) {
+                        console.error('Error:', error)
+                        alert('Failed to generate improved bullet. Please try again.')
+                      } finally {
+                        setCoachingSending(false)
+                      }
+                    }}
+                    disabled={coachingSending}
+                    className="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50"
+                  >
+                    {coachingSending ? '⏳ Analyzing...' : '✅ Finish Coaching'}
+                  </button>
+                )}
+
+          {/* Finish Coaching Button */}
+                {coachingComplete && !improvedBullet && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setCoachingSending(true)
+                        
+                        const response = await fetch('/api/trial-coach-finish', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            jobData: selectedJob,
+                            conversation: trialCoachMessages
+                          })
+                        })
+
+                        const result = await response.json()
+                        setImprovedBullet(result)
+                        
+                        // Mark coaching sample as used
+                        const { data: { user } } = await supabase.auth.getUser()
+                        await supabase
+                          .from('profiles')
+                          .update({ coaching_samples_used: 1 })
+                          .eq('id', user.id)
+                          
+                      } catch (error) {
+                        console.error('Error:', error)
+                        alert('Failed to generate improved bullet. Please try again.')
+                      } finally {
+                        setCoachingSending(false)
+                      }
+                    }}
+                    disabled={coachingSending}
+                    className="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {coachingSending && (
+                      <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                    )}
+                    {coachingSending ? 'Analyzing...' : '✅ Finish Coaching'}
+                  </button>
+                )}
+
+                {/* Results - Before/After Comparison */}
+                {improvedBullet && (
+                  <div className="mt-4 space-y-4">
+                    <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                      <h4 className="font-bold text-purple-900 mb-2">✨ Your Free Coaching Sample</h4>
+                      <p className="text-sm text-purple-800 mb-4">{improvedBullet.reasoning}</p>
+                      
+                      <div className="space-y-3">
+                        <div className="bg-red-50 border border-red-200 rounded p-3">
+                          <p className="text-xs font-semibold text-red-700 mb-1">BEFORE:</p>
+                          <p className="text-sm text-gray-800">{improvedBullet.originalBullet}</p>
+                        </div>
+                        
+                        <div className="bg-green-50 border-2 border-green-300 rounded p-3">
+                          <p className="text-xs font-semibold text-green-700 mb-1">AFTER:</p>
+                          <p className="text-sm text-gray-900 font-medium">{improvedBullet.improvedBullet}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Apply the improved bullet to the resume
+                          const updatedDescription = selectedJob.description.replace(
+                            improvedBullet.originalBullet,
+                            improvedBullet.improvedBullet
+                          )
+                          
+                          const jobIndex = resumeData.experience.findIndex(
+                            job => job.title === selectedJob.title && job.company === selectedJob.company
+                          )
+                          
+                          if (jobIndex !== -1) {
+                            updateArrayItem('experience', jobIndex, 'description', updatedDescription)
+                          }
+                          
+                          // Close modal
+                          setShowTrialCoach(false)
+                          setSelectedJob(null)
+                          setTrialCoachMessages([])
+                          setCoachingComplete(false)
+                          setImprovedBullet(null)
+                          setCanUseTrialCoach(false)
+                        }}
+                        className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold text-sm"
+                      >
+                        Apply This Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Close modal without applying
+                          setShowTrialCoach(false)
+                          setSelectedJob(null)
+                          setTrialCoachMessages([])
+                          setCoachingComplete(false)
+                          setImprovedBullet(null)
+                          setCanUseTrialCoach(false)
+                        }}
+                        className="bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium text-sm"
+                      >
+                        No Thanks
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push('/pricing')}
+                        className="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-semibold text-sm"
+                      >
+                        Upgrade for Help with All Bullets →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
     </>
   )
 }

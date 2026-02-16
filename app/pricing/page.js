@@ -10,12 +10,6 @@ export default function PricingPage() {
       <Header />
       
 <div className="max-w-4xl mx-auto px-4 py-16">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-        >
-          ← Back
-        </button>
         
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Upgrade to Full Access</h1>
