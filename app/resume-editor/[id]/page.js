@@ -17,6 +17,7 @@ export default function ResumeEditorPage() {
   const [coachingComplete, setCoachingComplete] = useState(false)
   const [improvedBullet, setImprovedBullet] = useState(null)
   const trialCoachEndRef = useRef(null)
+  const trialCoachInputRef = useRef(null)
   const [canUseTrialCoach, setCanUseTrialCoach] = useState(false)
   const [userTier, setUserTier] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -78,10 +79,20 @@ export default function ResumeEditorPage() {
     
     setLoading(false)
   }
-// Auto-scroll trial coach messages
+// Auto-scroll trial coach messages and auto-focus input
   useEffect(() => {
-    trialCoachEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [trialCoachMessages])
+    if (trialCoachMessages.length > 0) {
+      // Scroll to bottom first
+      trialCoachEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      // Then focus input after a brief delay
+      setTimeout(() => {
+        if (!coachingComplete && trialCoachInputRef.current) {
+          trialCoachInputRef.current.focus()
+        }
+      }, 100)
+    }
+  }, [trialCoachMessages, coachingComplete])
+ 
   // Prevent back button from navigating when modal is open
   useEffect(() => {
     if (!showTrialCoach) return
@@ -828,8 +839,8 @@ export default function ResumeEditorPage() {
 
    {/* Trial Coach Modal */}
       {showTrialCoach && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+   <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">          
+ <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-2xl border-2 border-purple-300 max-h-[85vh] overflow-y-auto">
             
             {/* Job Selection (before coaching starts) */}
             {trialCoachMessages.length === 0 && (
@@ -916,28 +927,13 @@ export default function ResumeEditorPage() {
                 </div>
               </>
             )}
-            {/* Coaching Chat Interface */}
+       {/* Coaching Chat Interface */}
             {trialCoachMessages.length > 0 && (
               <>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Coaching: {selectedJob.title}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTrialCoach(false)
-                      setSelectedJob(null)
-                      setTrialCoachMessages([])
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    ✕
-                  </button>
-                </div>
 
-                {/* Messages */}
-                <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+             {/* Messages */}
+                {!improvedBullet && (
+                  <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
                   {trialCoachMessages.map((msg, idx) => (
                     <div
                       key={idx}
@@ -968,13 +964,14 @@ export default function ResumeEditorPage() {
                   )}
                      <div ref={trialCoachEndRef} />
                 </div>
-
+)}
             {/* Input */}
                 {!coachingComplete && (
                   <div className="flex gap-2">
-                    <textarea
-                      value={trialCoachInput}
-                      onChange={(e) => setTrialCoachInput(e.target.value)}
+                   <textarea
+  ref={trialCoachInputRef}
+  value={trialCoachInput}
+  onChange={(e) => setTrialCoachInput(e.target.value)}
                       onKeyPress={async (e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !coachingSending && trialCoachInput.trim()) {
                           e.preventDefault()
@@ -1073,48 +1070,8 @@ export default function ResumeEditorPage() {
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             jobData: selectedJob,
-                            conversation: trialCoachMessages
-                          })
-                        })
-
-                        const result = await response.json()
-                        setImprovedBullet(result)
-                        
-                        // Mark coaching sample as used
-                        const { data: { user } } = await supabase.auth.getUser()
-                        await supabase
-                          .from('profiles')
-                          .update({ coaching_samples_used: 1 })
-                          .eq('id', user.id)
-                          
-                      } catch (error) {
-                        console.error('Error:', error)
-                        alert('Failed to generate improved bullet. Please try again.')
-                      } finally {
-                        setCoachingSending(false)
-                      }
-                    }}
-                    disabled={coachingSending}
-                    className="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50"
-                  >
-                    {coachingSending ? '⏳ Analyzing...' : '✅ Finish Coaching'}
-                  </button>
-                )}
-
-          {/* Finish Coaching Button */}
-                {coachingComplete && !improvedBullet && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        setCoachingSending(true)
-                        
-                        const response = await fetch('/api/trial-coach-finish', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            jobData: selectedJob,
-                            conversation: trialCoachMessages
+                            conversation: trialCoachMessages,
+                            existingSkills: resumeData?.skills || []
                           })
                         })
 
@@ -1145,27 +1102,46 @@ export default function ResumeEditorPage() {
                   </button>
                 )}
 
-                {/* Results - Before/After Comparison */}
+{/* Results - Before/After Comparison */}
                 {improvedBullet && (
-                  <div className="mt-4 space-y-4">
+                  <div className="mt-4 space-y-3">
+                    {/* Before/After/Skills in one container */}
                     <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                      <h4 className="font-bold text-purple-900 mb-2">✨ Your Free Coaching Sample</h4>
-                      <p className="text-sm text-purple-800 mb-4">{improvedBullet.reasoning}</p>
+                      <h4 className="font-bold text-purple-900 mb-3">✨ Your Free Coaching Sample</h4>
                       
-                      <div className="space-y-3">
-                        <div className="bg-red-50 border border-red-200 rounded p-3">
+                      <div className="space-y-2">
+                        <div className="bg-red-50 border border-red-200 rounded p-2">
                           <p className="text-xs font-semibold text-red-700 mb-1">BEFORE:</p>
                           <p className="text-sm text-gray-800">{improvedBullet.originalBullet}</p>
                         </div>
                         
-                        <div className="bg-green-50 border-2 border-green-300 rounded p-3">
+                        <div className="bg-green-50 border-2 border-green-300 rounded p-2">
                           <p className="text-xs font-semibold text-green-700 mb-1">AFTER:</p>
                           <p className="text-sm text-gray-900 font-medium">{improvedBullet.improvedBullet}</p>
                         </div>
+
+                        {/* Skills box - same style */}
+                        {improvedBullet.skillsCount > 0 && (
+                         <div className="bg-white border-2 border-purple-300 rounded p-2">
+                            <p className="text-xs font-semibold text-purple-700 mb-1">✨ SKILLS DISCOVERED:</p>
+                            <p className="text-sm text-gray-800">
+                              I found <span className="font-bold text-purple-900">{improvedBullet.skillsCount} new skill{improvedBullet.skillsCount !== 1 ? 's' : ''}</span> during our conversation that aren't on your resume yet.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    {/* Upgrade Button - separate, one line */}
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-medium text-sm"
+                    >
+                      Upgrade to Full Coaching to reveal skills and improve all bullets →
+                    </button>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
                         onClick={() => {
@@ -1193,7 +1169,7 @@ export default function ResumeEditorPage() {
                         }}
                         className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold text-sm"
                       >
-                        Apply This Change
+                        Apply New Bullet to My Resume
                       </button>
                       <button
                         type="button"
@@ -1208,21 +1184,13 @@ export default function ResumeEditorPage() {
                         }}
                         className="bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium text-sm"
                       >
-                        No Thanks
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => router.push('/pricing')}
-                        className="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-semibold text-sm"
-                      >
-                        Upgrade for Help with All Bullets →
+                        Return to Resume Without Applying
                       </button>
                     </div>
                   </div>
                 )}
               </>
             )}
-
           </div>
         </div>
       )}

@@ -1,53 +1,22 @@
 'use client'
-
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
-import { getTierDisplayName, getTierBadgeColor, TIERS } from '@/lib/subscription'
+import { TIERS } from '@/lib/subscription'
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
-  const [resumeData, setResumeData] = useState(null)
-  const [showSavedMessage, setShowSavedMessage] = useState(false)
-  const [userProfile, setUserProfile] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [resumes, setResumes] = useState([])
   const supabase = createClient()
-  const [hasBuilderProgress, setHasBuilderProgress] = useState(false)
 
   useEffect(() => {
-    checkTierSelected()
+    loadDashboard()
   }, [])
 
-  useEffect(() => {
-    checkForResume()
-    
-    if (searchParams.get('saved') === 'true') {
-      setShowSavedMessage(true)
-      setTimeout(() => setShowSavedMessage(false), 5000)
-    }
-  }, [])
-
-  // Check for in-progress builder data
-  useEffect(() => {
-    const saved = localStorage.getItem('resumeBuilderProgress')
-    if (saved) {
-      try {
-        const { formData } = JSON.parse(saved)
-        // Check if there's actual data (not just empty fields)
-        const hasData = formData.fullName || formData.email || 
-                       formData.experience.length > 0 || 
-                       formData.education.length > 0
-        setHasBuilderProgress(hasData)
-      } catch (error) {
-        setHasBuilderProgress(false)
-      }
-    }
-  }, [])
-
-  const checkForResume = async () => {
-  
+  async function loadDashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -58,48 +27,43 @@ export default function DashboardPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('photo_url, display_name, subscription_tier, pdf_downloads_remaining, is_pilot_user, interview_access')
+        .select('*')
         .eq('id', user.id)
         .single()
 
-      if (profile) {
-        setUserProfile(profile)
-      }
-
-      const { data, error } = await supabase
+      const { data: resumes } = await supabase
         .from('resumes')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
 
-      if (error && error.code !== 'PGRST116') throw error
-
-      setResumeData(data)
+      setProfile(profile)
+      setResumes(resumes || [])
       setLoading(false)
     } catch (error) {
-      console.error('Error checking resume:', error)
+      console.error('Error loading dashboard:', error)
       setLoading(false)
     }
   }
 
-  const checkTierSelected = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
+  const handleUpgrade = async (tier) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier_selected')
-      .eq('id', user.id)
-      .single()
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_tier: tier,
+          subscription_start_date: new Date().toISOString()
+        })
+        .eq('id', user.id)
 
-    if (!profile?.tier_selected) {
-      router.push('/choose-plan')
-      return
+      if (error) throw error
+
+      await loadDashboard()
+    } catch (error) {
+      console.error('Upgrade error:', error)
     }
   }
 
@@ -111,358 +75,408 @@ export default function DashboardPage() {
     )
   }
 
-// ==================== TIER DETECTION ====================
-  const tier = userProfile?.subscription_tier || 'free'
-  const hasInterview = userProfile?.interview_access || false
-  
-  const access = {
-    // Resume - everyone has at least free
-    hasFreeResume: tier === 'free',
-    hasFullResume: tier === 'full',
-    
-    // Interview - everyone has at least free
-    hasFreeInterview: !hasInterview, // Free when NOT paid
-    hasFullInterview: hasInterview,  // Full when paid
-    
-    // Bundle
-    hasBundle: tier === 'full' && hasInterview,
-    
-    // Data
-    hasResumeData: !!resumeData
-  }
-
-  // ==================== HERO COPY ====================
-  const isNewUser = !resumeData
-  const heroHeadline = isNewUser 
-    ? "Start Your Career Conversation" 
-    : "Continue Your Career Conversation"
-  
-  const heroSubhead = isNewUser
-    ? (access.hasFullResume || access.hasFullInterview || access.hasBundle)
-      ? "One conversation extracts achievements you didn't know you had—then we help you bulletproof your resume, level up your interviews, and build your career with Hire Power."
-      : "Build your resume with AI-powered analysis or practice interviews with voice-based coaching. Upgrade anytime for professional coaching that extracts achievements you didn't know you had."
-    : "Pick up where you left off—customize your resume, practice interviews, or add new achievements to your archive."
+  const currentTier = profile?.subscription_tier || TIERS.FREE
+  const hasResume = resumes.length > 0
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Success Message */}
-        {showSavedMessage && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
-            <div className="flex items-start">
-              <span className="text-xl mr-2">✅</span>
-              <div>
-                <p className="text-sm text-green-800 font-medium">Progress Saved!</p>
-                <p className="text-xs text-green-700 mt-1">
-                  Your progress has been saved.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Hero Section */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {heroHeadline}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Welcome back, {profile?.display_name || 'there'}!
           </h1>
-          <p className="text-base text-gray-600 max-w-3xl mx-auto">
-            {heroSubhead}
+          <p className="text-xl text-gray-600">
+            Pick up where you left off—customize your resume, practice interviews, or add new achievements to your archive.
           </p>
         </div>
 
-        {/* Three Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-8">
           
-          {/* ==================== RESUME COACH CARD ==================== */}
-          <div className={`rounded-lg p-6 border-2 transition-all ${
-            access.hasFreeResume || access.hasFullResume
-              ? 'bg-white border-purple-300 shadow-md'
-              : 'bg-gray-50 border-gray-200 opacity-60'
-          }`}>
-            <div className="flex items-start justify-between mb-4">
-              <div className="text-3xl">📄</div>
-              {(access.hasFreeResume || access.hasFullResume) && (
-                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                  access.hasFullResume 
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}>
-                  {access.hasFullResume ? 'Full Access' : 'Free Access'}
+          {/* CARD 1: RESUME COACH */}
+          {currentTier === TIERS.FREE && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">📄</div>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-bold">
+                  UPGRADE
                 </span>
-              )}
-            </div>
-
-            <h3 className="text-xl font-bold mb-3">Resume Coach</h3>
-
-            {/* FREE RESUME */}
-            {access.hasFreeResume && !access.hasFullResume && (
-              <>
-                <p className="text-sm text-gray-700 mb-3 font-medium">Free tier includes:</p>
-                <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                  <li>• Build 1 resume</li>
-                  <li>• AI-powered analysis</li>
-                  <li>• Unlimited downloads</li>
-                  <li>• Basic templates</li>
-                </ul>
-
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Resume Coach</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Free tier includes: 1 resume, AI analysis, basic templates, unlimited downloads
+              </p>
               <button
-                  onClick={() => router.push(
-                    access.hasResumeData ? '/my-resumes' : 
-                    hasBuilderProgress ? '/resume-builder' : 
-                    '/resume-start'
-                  )}
-                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors mb-3"
-                >
-                  {access.hasResumeData ? 'View My Resume' : 
-                   hasBuilderProgress ? 'Continue Your Resume →' : 
-                   'Start Resume'}
-                </button>
-
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <p className="text-xs text-gray-700 font-semibold mb-2">Upgrade to Full Resume ($19.99/mo):</p>
-                  <ul className="text-xs text-gray-600 space-y-1 mb-2">
-                    <li>• Professional coaching conversation</li>
-                    <li>• Unlimited job customization (83% higher success)</li>
-                    <li>• Unlimited downloads</li>
-                    <li>• Premium templates</li>
-                  </ul>
-                  <button
-                    onClick={() => router.push('/pricing')}
-                    className="text-xs text-purple-600 font-semibold hover:underline"
-                  >
-                    Upgrade to Full Resume →
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* FULL RESUME */}
-            {access.hasFullResume && (
-              <>
-                <p className="text-sm text-gray-700 mb-3 font-medium">Full access includes:</p>
-                <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                  <li>• Professional coaching conversation</li>
-                  <li>• Unlimited job customization</li>
-                  <li>• ATS match scoring</li>
-                  <li>• Unlimited downloads</li>
-                  <li>• Premium templates</li>
-                </ul>
-
-               <button
-                  onClick={() => router.push(
-                    access.hasResumeData ? '/my-resumes' : 
-                    hasBuilderProgress ? '/resume-builder' : 
-                    '/resume-start'
-                  )}
-                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                >
-                  {access.hasResumeData ? 'View My Resume' : 
-                   hasBuilderProgress ? 'Continue Your Resume →' : 
-                   'Start Resume Coaching'}
-                </button>
-              </>
-            )}
-
-            {/* LOCKED (no resume access) */}
-            {!access.hasFreeResume && !access.hasFullResume && (
-              <>
-                <p className="text-sm text-gray-600 mb-4">
-                  Professional coaching that extracts achievements you didn't know you had.
-                </p>
-                
-                <button
-                  onClick={() => router.push('/pricing')}
-                  className="w-full bg-gray-300 text-gray-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
-                >
-                  Unlock Resume Coach
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* ==================== INTERVIEW COACH CARD ==================== */}
-          <div className={`rounded-lg p-6 border-2 transition-all ${
-            access.hasFreeInterview || access.hasFullInterview
-              ? 'bg-white border-purple-300 shadow-md'
-              : 'bg-gray-50 border-gray-200 opacity-60'
-          }`}>
-            <div className="flex items-start justify-between mb-4">
-              <div className="text-3xl">🎤</div>
-              {(access.hasFreeInterview || access.hasFullInterview) && (
-                <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                  access.hasFullInterview 
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}>
-                  {access.hasFullInterview ? 'Full Access' : 'Free Access'}
-                </span>
-              )}
+                onClick={() => router.push(hasResume ? '/my-resumes' : '/resume-builder')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium mb-4"
+              >
+                {hasResume ? 'View My Resume' : 'Build My First Resume'}
+              </button>
+              <button
+                onClick={() => router.push('/pricing')}
+                className="w-full text-purple-600 text-sm hover:underline"
+              >
+                Upgrade to Full Resume ($19.99/mo) →
+              </button>
             </div>
+          )}
 
-            <h3 className="text-xl font-bold mb-3">Interview Coach</h3>
+          {currentTier === TIERS.MAINTENANCE && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">📄</div>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-bold">
+                  UPGRADE TO GENERATE
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Resume Coach</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                View your archived achievements. Upgrade to generate new resumes.
+              </p>
+              <button
+                onClick={() => router.push('/my-resumes')}
+                className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-medium mb-4"
+              >
+                View Career Archive
+              </button>
+              <button
+                onClick={() => router.push('/pricing')}
+                className="w-full text-purple-600 text-sm hover:underline"
+              >
+                Upgrade to Full Resume ($19.99/mo) →
+              </button>
+            </div>
+          )}
 
-            {/* FREE INTERVIEW */}
-            {access.hasFreeInterview && !access.hasFullInterview && (
-              <>
-               <p className="text-sm text-gray-700 mb-3 font-medium">Free tier includes:</p>
-                <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                  <li>• Basic interview questions</li>
-                  <li>• Self-guided practice</li>
-                  <li>• Text-based feedback</li>
-                  <li>• Record practice sessions</li>
-                </ul>
+          {currentTier === TIERS.FULL_RESUME && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-green-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">📄</div>
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                  Full Access
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Resume Coach</h2>
+              <p className="text-sm text-gray-600 mb-4">Full access includes:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-6">
+                <li>• Professional coaching conversation</li>
+                <li>• Unlimited job customization</li>
+                <li>• ATS match scoring</li>
+                <li>• Unlimited downloads</li>
+                <li>• Premium templates</li>
+              </ul>
+              <button
+                onClick={() => router.push('/my-resumes')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium"
+              >
+                View My Resume
+              </button>
+            </div>
+          )}
 
-                <button
-                  onClick={() => router.push('/interview-start')}
-                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors mb-3"
-                >
-                  Start Interview Practice
-                </button>
-
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <p className="text-xs text-gray-700 font-semibold mb-2">Upgrade to Full Interview ($19.99/mo):</p>
-                  <ul className="text-xs text-gray-600 space-y-1 mb-2">
-                    <li>• Voice-based practice sessions</li>
-                    <li>• Resume-integrated questions</li>
-                    <li>• Company-specific prep</li>
-                    <li>• Real-time AI feedback</li>
-                  </ul>
-                  <button
-                    onClick={() => router.push('/pricing')}
-                    className="text-xs text-purple-600 font-semibold hover:underline"
-                  >
-                    Upgrade to Full Interview →
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* FULL INTERVIEW */}
-            {access.hasFullInterview && (
-              <>
-                <p className="text-sm text-gray-700 mb-3 font-medium">Full access includes:</p>
-                <ul className="text-sm text-gray-600 space-y-1 mb-4">
+          {currentTier === TIERS.FULL_INTERVIEW && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">📄</div>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-bold">
+                  Free Access
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Resume Coach</h2>
+              <p className="text-sm text-gray-600 mb-4">Free tier includes:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-4">
+                <li>• Basic interview questions</li>
+                <li>• Self-guided practice</li>
+                <li>• Text-based feedback</li>
+                <li>• Record practice sessions</li>
+              </ul>
+              <button
+                onClick={() => router.push(hasResume ? '/my-resumes' : '/resume-builder')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium mb-4"
+              >
+                {hasResume ? 'View My Resume' : 'Build My First Resume'}
+              </button>
+              <div className="border-t pt-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">
+                  Upgrade to Full Resume ($19.99/mo):
+                </p>
+                <ul className="text-xs text-gray-600 space-y-1 mb-3">
                   <li>• Voice-based practice sessions</li>
                   <li>• Resume-integrated questions</li>
                   <li>• Company-specific prep</li>
                   <li>• Real-time AI feedback</li>
                 </ul>
-
                 <button
-                  onClick={() => router.push('/my-interviews')}
-                  className="w-full text-purple-600 font-semibold text-sm mb-3 text-left hover:underline"
+                  onClick={() => handleUpgrade(TIERS.FULL_INTEGRATED)}
+                  className="w-full text-purple-600 text-sm hover:underline font-medium"
                 >
-                  → View My Interviews
+                  Upgrade to Full Resume →
                 </button>
-
-                <button
-                  onClick={() => router.push('/interview-start')}
-                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                >
-                  Start Interview Practice
-                </button>
-              </>
-            )}
-
-            {/* LOCKED (no interview access) */}
-            {!access.hasFreeInterview && !access.hasFullInterview && (
-              <>
-                <p className="text-sm text-gray-600 mb-4">
-                  AI-powered interview practice with voice-based questions.
-                </p>
-                
-                <button
-                  onClick={() => router.push('/pricing')}
-                  className="w-full bg-gray-300 text-gray-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-colors"
-                >
-                  Unlock Interview Coach
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* ==================== INTEGRATED CAREER COACH (BUNDLE) ==================== */}
-       {!access.hasBundle ? (
-            // BUNDLE UPGRADE CARD
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 border-2 border-purple-300 rounded-lg p-6 shadow-md">
-              <div className="flex items-start justify-between mb-4">
-                <div className="text-3xl">⭐</div>
-                <span className="text-xs px-3 py-1 rounded-full font-semibold bg-purple-600 text-white">
-                  BEST VALUE
-                </span>
-              </div>
-              
-              <div className="text-center mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Integrated Career Coach</h3>
-                <p className="text-sm text-purple-800 font-semibold">Save $10/month</p>
-              </div>
-
-              <p className="text-sm text-gray-700 mb-4">
-                One achievement database feeds both resume customization AND interview prep. 
-                True integration no competitor offers.
-              </p>
-
-              <div className="bg-white bg-opacity-60 rounded-lg p-3 mb-4">
-                <p className="text-xs text-gray-700 font-semibold mb-2">Bundle includes:</p>
-                <ul className="text-xs text-gray-600 space-y-1">
-                  <li>• Resume coaching + unlimited customization</li>
-                  <li>• Interview practice with AI</li>
-                  <li>• Career archive for life</li>
-                  <li>• All premium features</li>
-                </ul>
-              </div>
-
-              <div className="text-center mb-3">
-                <div className="text-2xl font-bold text-purple-700">$29.99<span className="text-sm">/mo</span></div>
-                <p className="text-xs text-gray-600">vs $39.98 separate</p>
-              </div>
-
-              <button
-                onClick={() => router.push('/pricing')}
-                className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-purple-700 transition-colors"
-              >
-                Upgrade to Bundle →
-              </button>
-
-              {(access.hasFullResume || access.hasFullInterview) && (
-                <p className="text-xs text-center text-purple-700 mt-3">
-                  Add {access.hasFullResume ? 'Interview' : 'Resume'} access for just $10 more
-                </p>
-              )}
-            </div>
-          ) : (
-            // MAINTENANCE MODE CARD (Bundle users)
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 border-2 border-purple-300 rounded-lg p-6 shadow-md">
-              <div className="flex items-start justify-between mb-4">
-                <div className="text-3xl">⭐</div>
-                <span className="text-xs px-3 py-1 rounded-full font-semibold bg-green-100 text-green-700">
-                  Full Bundle
-                </span>
-              </div>
-
-              <h3 className="text-xl font-bold mb-3">Career Archive</h3>
-
-              <p className="text-sm text-gray-700 mb-4">
-                Log achievements as they happen. Keep your career conversation alive between job searches.
-              </p>
-
-              <button
-                onClick={() => router.push('/career-archive')}
-                className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors mb-3"
-              >
-                Add New Achievement
-              </button>
-
-              <div className="border-t border-purple-300 pt-3">
-                <p className="text-xs text-gray-600">
-                  Between jobs? Switch to Maintenance Mode ($4.99/mo) to keep your archive alive.
-                </p>
               </div>
             </div>
           )}
+
+          {currentTier === TIERS.FULL_INTEGRATED && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-green-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">📄</div>
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                  Full Access
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Resume Coach</h2>
+              <p className="text-sm text-gray-600 mb-4">Full access includes:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-6">
+                <li>• Professional coaching conversation</li>
+                <li>• Unlimited job customization</li>
+                <li>• ATS match scoring</li>
+                <li>• Unlimited downloads</li>
+                <li>• Premium templates</li>
+              </ul>
+              <button
+                onClick={() => router.push('/my-resumes')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium"
+              >
+                View My Resume
+              </button>
+            </div>
+          )}
+
+          {/* CARD 2: INTERVIEW COACH */}
+          {currentTier === TIERS.FREE && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">🎤</div>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-bold">
+                  UPGRADE
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Interview Coach</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Free tier includes: Basic interview questions, self-guided practice, text-based feedback
+              </p>
+              <button
+                onClick={() => router.push('/interview-practice')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium mb-4"
+              >
+                Start Interview Practice
+              </button>
+              <button
+                onClick={() => router.push('/pricing')}
+                className="w-full text-purple-600 text-sm hover:underline"
+              >
+                Upgrade to Full Interview ($19.99/mo) →
+              </button>
+            </div>
+          )}
+
+          {currentTier === TIERS.MAINTENANCE && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">🎤</div>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-bold">
+                  UPGRADE
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Interview Coach</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Upgrade to practice with AI-spoken questions and personalized feedback.
+              </p>
+              <button
+                onClick={() => router.push('/pricing')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium"
+              >
+                Upgrade to Full Interview ($19.99/mo)
+              </button>
+            </div>
+          )}
+
+          {currentTier === TIERS.FULL_RESUME && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">🎤</div>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-bold">
+                  Free Access
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Interview Coach</h2>
+              <p className="text-sm text-gray-600 mb-4">Free tier includes:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-4">
+                <li>• Basic interview questions</li>
+                <li>• Self-guided practice</li>
+                <li>• Text-based feedback</li>
+                <li>• Record practice sessions</li>
+              </ul>
+              <button
+                onClick={() => router.push('/interview-practice')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium mb-4"
+              >
+                Start Interview Practice
+              </button>
+              <div className="border-t pt-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">
+                  Upgrade to Full Interview ($19.99/mo):
+                </p>
+                <ul className="text-xs text-gray-600 space-y-1 mb-3">
+                  <li>• Voice-based practice sessions</li>
+                  <li>• Resume-integrated questions</li>
+                  <li>• Company-specific prep</li>
+                  <li>• Real-time AI feedback</li>
+                </ul>
+                <button
+                  onClick={() => handleUpgrade(TIERS.FULL_INTEGRATED)}
+                  className="w-full text-purple-600 text-sm hover:underline font-medium"
+                >
+                  Upgrade to Full Interview →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {currentTier === TIERS.FULL_INTERVIEW && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-purple-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">🎤</div>
+                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold">
+                  Full Access
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Interview Coach</h2>
+              <p className="text-sm text-gray-600 mb-4">Full access includes:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-6">
+                <li>• AI-spoken personalized questions</li>
+                <li>• Power Skill Analysis</li>
+                <li>• Company research integration</li>
+                <li>• Video recording & feedback</li>
+                <li>• Gamified progression</li>
+              </ul>
+              <button
+                onClick={() => router.push('/interview-practice')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium"
+              >
+                Start Interview Practice
+              </button>
+            </div>
+          )}
+
+          {currentTier === TIERS.FULL_INTEGRATED && (
+            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-purple-300">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-4xl">🎤</div>
+                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold">
+                  Full Access
+                </span>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Interview Coach</h2>
+              <p className="text-sm text-gray-600 mb-4">Full access includes:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-6">
+                <li>• AI-spoken personalized questions</li>
+                <li>• Power Skill Analysis</li>
+                <li>• Company research integration</li>
+                <li>• Video recording & feedback</li>
+                <li>• Gamified progression</li>
+              </ul>
+              <button
+                onClick={() => router.push('/interview-practice')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium"
+              >
+                Start Interview Practice
+              </button>
+            </div>
+          )}
+
+          {/* CARD 3: BUNDLE OR MAINTENANCE */}
+          {(currentTier === TIERS.FREE || currentTier === TIERS.MAINTENANCE) && (
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-2xl p-8 text-white relative">
+              <div className="absolute top-4 right-4 bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full text-xs font-bold">
+                BEST VALUE
+              </div>
+              <div className="text-4xl mb-4">⭐</div>
+              <h2 className="text-2xl font-bold mb-2">Integrated Career Coach</h2>
+              <p className="text-lg font-bold text-indigo-100 mb-4">Save $10/month</p>
+              <p className="text-sm text-indigo-100 mb-6">
+                One achievement database feeds both resume customization AND interview prep. True integration no competitor offers.
+              </p>
+              <p className="text-sm text-indigo-100 mb-4">Bundle includes:</p>
+              <ul className="text-sm space-y-1 mb-6">
+                <li>• Resume coaching + unlimited customization</li>
+                <li>• Interview practice with AI</li>
+                <li>• Career archive for life</li>
+                <li>• All premium features</li>
+              </ul>
+              <div className="text-4xl font-bold mb-2">$29.99/mo</div>
+              <p className="text-sm text-indigo-100 mb-6">vs $39.98 separate</p>
+              <button
+                onClick={() => handleUpgrade(TIERS.FULL_INTEGRATED)}
+                className="w-full bg-white text-indigo-600 py-3 rounded-lg hover:bg-indigo-50 font-bold"
+              >
+                Upgrade to Bundle →
+              </button>
+              <p className="text-xs text-indigo-100 mt-4 text-center">
+                Add Interview access for just $10 more
+              </p>
+            </div>
+          )}
+
+          {(currentTier === TIERS.FULL_RESUME || currentTier === TIERS.FULL_INTERVIEW) && (
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-2xl p-8 text-white relative">
+              <div className="absolute top-4 right-4 bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full text-xs font-bold">
+                BEST VALUE
+              </div>
+              <div className="text-4xl mb-4">⭐</div>
+              <h2 className="text-2xl font-bold mb-2">Integrated Career Coach</h2>
+              <p className="text-lg font-bold text-indigo-100 mb-4">Save $10/month</p>
+              <p className="text-sm text-indigo-100 mb-6">
+                One achievement database feeds both resume customization AND interview prep. True integration no competitor offers.
+              </p>
+              <p className="text-sm text-indigo-100 mb-4">Bundle includes:</p>
+              <ul className="text-sm space-y-1 mb-6">
+                <li>• Resume coaching + unlimited customization</li>
+                <li>• Interview practice with AI</li>
+                <li>• Career archive for life</li>
+                <li>• All premium features</li>
+              </ul>
+              <div className="text-4xl font-bold mb-2">$29.99/mo</div>
+              <p className="text-sm text-indigo-100 mb-6">vs $39.98 separate</p>
+              <button
+                onClick={() => handleUpgrade(TIERS.FULL_INTEGRATED)}
+                className="w-full bg-white text-indigo-600 py-3 rounded-lg hover:bg-indigo-50 font-bold"
+              >
+                Upgrade to Bundle →
+              </button>
+              <p className="text-xs text-indigo-100 mt-4 text-center">
+                Add {currentTier === TIERS.FULL_RESUME ? 'Interview' : 'Resume'} access for just $10 more
+              </p>
+            </div>
+          )}
+
+          {currentTier === TIERS.FULL_INTEGRATED && (
+            <div className="bg-blue-50 rounded-xl shadow-lg p-8 border-2 border-blue-200">
+              <div className="text-4xl mb-4">💼</div>
+              <h2 className="text-2xl font-bold mb-4 text-gray-900">Maintenance Mode</h2>
+              <p className="text-sm text-gray-700 mb-4">
+                Between job searches? Switch to Maintenance to keep your work safe for just $4.99/month.
+              </p>
+              <p className="text-sm text-gray-700 mb-4">You'll keep:</p>
+              <ul className="text-sm text-gray-700 space-y-2 mb-4">
+                <li>✓ Career archive access</li>
+                <li>✓ Track new achievements</li>
+                <li>✓ Unlimited downloads</li>
+                <li>✓ Premium templates</li>
+              </ul>
+              <p className="text-sm text-gray-600 mb-6">
+                You'll lose coaching and new resume generation, but all your work stays safe.
+              </p>
+              <button
+                onClick={() => router.push('/profile')}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Learn More About Maintenance →
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

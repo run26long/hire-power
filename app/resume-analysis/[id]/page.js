@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { TIERS, hasFeatureAccess, FEATURES } from '@/lib/subscription'
 import Header from '../../components/Header'
+import BatteryScore from '../../components/BatteryScore'
 
 export default function ResumeAnalysis() {
   const router = useRouter()
@@ -25,6 +26,7 @@ export default function ResumeAnalysis() {
   const [showFlagModal, setShowFlagModal] = useState(false)
   const [flagComment, setFlagComment] = useState('')
   const [flagSubmitting, setFlagSubmitting] = useState(false)
+  const [score, setScore] = useState(null)
 
   useEffect(() => {
     loadResumeAndAnalyze()
@@ -69,20 +71,30 @@ export default function ResumeAnalysis() {
       if (!shouldRunNewAnalysis) {
         console.log('Using existing AI analysis from database')
         setAnalysis(resume.ai_analysis)
+        setScore(resume.resume_power_score || 0) // Load existing score
         setAnalyzing(false)
       } else {
         console.log(forceReanalyze ? 'Running forced re-analysis' : 'No existing analysis, running new analysis')
         // Analyze with AI
-        const analysisResult = await analyzeResume(resume.parsed_text)
-        setAnalysis(analysisResult)
+       const result = await analyzeResume(resume.parsed_text)
+        setAnalysis(result.analysis)
+        const resumeScore = result.score
         
         // SAVE ANALYSIS TO DATABASE for editor to use later
+       const updateData = { 
+          ai_analysis: result.analysis,
+          ai_analysis_date: new Date().toISOString(),
+          resume_power_score: resumeScore
+        }
+        
+        // If no initial score exists, set it (first time only)
+        if (!resume.initial_resume_power_score) {
+          updateData.initial_resume_power_score = resumeScore
+        }
+        
         const { error: saveError } = await supabase
           .from('resumes')
-          .update({ 
-            ai_analysis: analysisResult,
-            ai_analysis_date: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', resumeId)
         
         if (saveError) {
@@ -104,7 +116,7 @@ export default function ResumeAnalysis() {
     }
   }
 
-  const analyzeResume = async (resumeText) => {
+ const analyzeResume = async (resumeText) => {
     try {
       const response = await fetch('/api/analyze-resume', {
         method: 'POST',
@@ -115,7 +127,8 @@ export default function ResumeAnalysis() {
       if (!response.ok) throw new Error('Analysis failed')
 
       const data = await response.json()
-      return data.analysis
+      setScore(data.score)
+      return { analysis: data.analysis, score: data.score } // Return both
     } catch (err) {
       console.error('Analysis error:', err)
       throw err
@@ -238,23 +251,41 @@ export default function ResumeAnalysis() {
       <Header />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">📊 Resume Analysis Complete</h1>
-              <p className="text-gray-600 mt-2">Here's what we found</p>
+        {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-3xl font-bold text-gray-900">Resume Power Score</h1>
+              {userTier !== TIERS.FREE && resumeData?.ai_analysis && (
+                <button
+                  onClick={() => {
+                    setForceReanalyze(true)
+                    loadResumeAndAnalyze()
+                  }}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium text-sm flex items-center gap-2"
+                >
+                  🔄 Re-analyze
+                </button>
+              )}
             </div>
-            {userTier !== TIERS.FREE && resumeData?.ai_analysis && (
-              <button
-                onClick={() => {
-                  setForceReanalyze(true)
-                  loadResumeAndAnalyze()
-                }}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium text-sm flex items-center gap-2"
-              >
-                🔄 Re-analyze
-              </button>
-            )}
+            
+            {/* Score Display */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <BatteryScore score={score || 0} size="large" />
+                  {resumeData?.initial_resume_power_score && score > resumeData.initial_resume_power_score && (
+                    <p className="text-green-700 font-semibold mt-3 text-lg">
+                      🎉 You raised your Resume Power Score from {resumeData.initial_resume_power_score} → {score} with Hire Power!
+                    </p>
+                  )}
+                </div>
+                <div className="flex-1 pl-8">
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Your Resume Power Score reflects what <strong>ATS systems and recruiters</strong> look for: strong action verbs, quantifiable achievements, professional language, and clear skills. This score helps you understand your resume's competitive strength before you apply.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Analysis Results */}

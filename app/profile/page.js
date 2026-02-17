@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
-
+import { TIERS } from '@/lib/subscription'
 
 export default function Profile() {
   const router = useRouter()
@@ -15,6 +15,10 @@ export default function Profile() {
   const [photoUrl, setPhotoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const supabase = createClient()
+  const [showDowngradeModal, setShowDowngradeModal] = useState(null) // null or tier name
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelFeedback, setCancelFeedback] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -64,12 +68,10 @@ export default function Profile() {
       if (!file) return
 
       if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file')
         return
       }
 
       if (file.size > 2 * 1024 * 1024) {
-        alert('Image must be less than 2MB')
         return
       }
 
@@ -91,7 +93,6 @@ export default function Profile() {
 
     } catch (error) {
       console.error('Error uploading photo:', error)
-      alert('Failed to upload photo')
     } finally {
       setUploading(false)
     }
@@ -108,7 +109,7 @@ export default function Profile() {
         updated_at: new Date().toISOString(),
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .upsert(updates)
         .select()
@@ -119,9 +120,58 @@ export default function Profile() {
       
     } catch (error) {
       console.error('Error saving profile:', error)
-      alert(`Failed to save profile: ${error.message || 'Unknown error'}`)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDowngrade(targetTier) {
+    try {
+      setProcessing(true)
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_tier: targetTier,
+          downgrade_scheduled_date: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      setShowDowngradeModal(null)
+      await loadProfile()
+      
+    } catch (error) {
+      console.error('Downgrade error:', error)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  async function handleCancel() {
+    try {
+      setProcessing(true)
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_tier: TIERS.FREE,
+          cancelled_at: new Date().toISOString(),
+          cancellation_feedback: cancelFeedback
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      setShowCancelModal(false)
+      setCancelFeedback('')
+      await loadProfile()
+      
+    } catch (error) {
+      console.error('Cancel error:', error)
+    } finally {
+      setProcessing(false)
     }
   }
 
@@ -135,7 +185,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-     <Header />
+      <Header />
 
       <div className="max-w-2xl mx-auto p-8">
         <div className="bg-white rounded-lg shadow-sm p-8">
@@ -203,6 +253,121 @@ export default function Profile() {
             <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
           </div>
 
+          {/* Subscription Management */}
+          <div className="mb-8 border-t pt-8">
+            <h2 className="text-xl font-semibold mb-4">Subscription</h2>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {profile?.subscription_tier === TIERS.FREE && 'Free Plan'}
+                    {profile?.subscription_tier === TIERS.MAINTENANCE && 'Maintenance'}
+                    {profile?.subscription_tier === TIERS.FULL_RESUME && 'Full Resume'}
+                    {profile?.subscription_tier === TIERS.FULL_INTERVIEW && 'Full Interview'}
+                    {profile?.subscription_tier === TIERS.FULL_INTEGRATED && 'Full Platform'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {profile?.subscription_tier === TIERS.FREE && 'Limited features - Upgrade for full access'}
+                    {profile?.subscription_tier === TIERS.MAINTENANCE && '$4.99/month - Career archive access'}
+                    {profile?.subscription_tier === TIERS.FULL_RESUME && '$19.99/month - Resume features + basic interview'}
+                    {profile?.subscription_tier === TIERS.FULL_INTERVIEW && '$19.99/month - Interview features + basic resume'}
+                    {profile?.subscription_tier === TIERS.FULL_INTEGRATED && '$29.99/month - All features unlocked'}
+                  </p>
+                  {profile?.subscription_start_date && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Subscribed since {new Date(profile.subscription_start_date).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                {profile?.subscription_tier === TIERS.FREE && (
+                  <button
+                    onClick={() => router.push('/pricing')}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium"
+                  >
+                    Upgrade
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Downgrade Options by Tier */}
+            {profile?.subscription_tier === TIERS.FULL_INTEGRATED && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600 mb-3">Downgrade to:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setShowDowngradeModal(TIERS.FULL_RESUME)}
+                    className="border-2 border-green-300 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 font-medium text-sm"
+                  >
+                    Full Resume ($19.99)
+                  </button>
+                  <button
+                    onClick={() => setShowDowngradeModal(TIERS.FULL_INTERVIEW)}
+                    className="border-2 border-purple-300 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-50 font-medium text-sm"
+                  >
+                    Full Interview ($19.99)
+                  </button>
+                  <button
+                    onClick={() => setShowDowngradeModal(TIERS.MAINTENANCE)}
+                    className="border-2 border-blue-300 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium text-sm"
+                  >
+                    Maintenance ($4.99)
+                  </button>
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="border-2 border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium text-sm"
+                  >
+                    Free Plan
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {profile?.subscription_tier === TIERS.FULL_RESUME && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600 mb-3">Downgrade to:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setShowDowngradeModal(TIERS.MAINTENANCE)}
+                    className="border-2 border-blue-300 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium text-sm"
+                  >
+                    Maintenance ($4.99)
+                  </button>
+                  <button
+                    onClick={() => setShowDowngradeModal('free_warning')}
+                    className="border-2 border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium text-sm"
+                  >
+                    Free Plan
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {profile?.subscription_tier === TIERS.FULL_INTERVIEW && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600 mb-3">Downgrade to:</p>
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="w-full border-2 border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium text-sm"
+                >
+                  Free Plan
+                </button>
+              </div>
+            )}
+
+            {profile?.subscription_tier === TIERS.MAINTENANCE && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600 mb-3">Downgrade to:</p>
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="w-full border-2 border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium text-sm"
+                >
+                  Free Plan
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end">
             <button
               onClick={saveProfile}
@@ -217,6 +382,188 @@ export default function Profile() {
             </button>
           </div>
         </div>
+
+        {/* Downgrade to Full Resume Modal */}
+        {showDowngradeModal === TIERS.FULL_RESUME && (
+          <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Downgrade to Full Resume?</h3>
+              <p className="text-gray-700 mb-4">You'll lose:</p>
+              <ul className="text-sm text-gray-600 space-y-2 mb-6">
+                <li>• AI-spoken interview practice</li>
+                <li>• Power Skill Analysis</li>
+                <li>• Company research integration</li>
+              </ul>
+              <p className="text-sm text-gray-600 mb-6">
+                You'll keep all resume features and get basic interview practice.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDowngradeModal(null)}
+                  disabled={processing}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+                >
+                  Keep Full Platform
+                </button>
+                <button
+                  onClick={() => handleDowngrade(TIERS.FULL_RESUME)}
+                  disabled={processing}
+                  className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Downgrade to Full Interview Modal */}
+        {showDowngradeModal === TIERS.FULL_INTERVIEW && (
+          <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Downgrade to Full Interview?</h3>
+              <p className="text-gray-700 mb-4">You'll lose:</p>
+              <ul className="text-sm text-gray-600 space-y-2 mb-6">
+                <li>• Resume coaching</li>
+                <li>• Job customization</li>
+                <li>• Premium templates</li>
+              </ul>
+              <p className="text-sm text-gray-600 mb-6">
+                You'll keep all interview features and get basic resume access.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDowngradeModal(null)}
+                  disabled={processing}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+                >
+                  Keep Full Platform
+                </button>
+                <button
+                  onClick={() => handleDowngrade(TIERS.FULL_INTERVIEW)}
+                  disabled={processing}
+                  className="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Downgrade to Maintenance Modal */}
+        {showDowngradeModal === TIERS.MAINTENANCE && (
+          <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Switch to Maintenance Mode?</h3>
+              <p className="text-gray-700 mb-4">You'll lose:</p>
+              <ul className="text-sm text-gray-600 space-y-2 mb-6">
+                <li>• Resume coaching</li>
+                <li>• Interview practice</li>
+                <li>• New resume generation</li>
+              </ul>
+              <p className="text-sm text-gray-600 mb-6">
+                You'll keep: Career archive, downloads, and premium templates. Perfect for between job searches.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDowngradeModal(null)}
+                  disabled={processing}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDowngrade(TIERS.MAINTENANCE)}
+                  disabled={processing}
+                  className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Downgrade from Full Resume to Free (WARNING) */}
+        {showDowngradeModal === 'free_warning' && (
+          <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-red-400">
+              <h3 className="text-2xl font-bold text-red-900 mb-4">⚠️ Warning: You'll Lose Your Work</h3>
+              <p className="text-gray-700 mb-4 font-semibold">
+                You'll lose ALL job-specific resumes. Only your core resume will be saved.
+              </p>
+              <p className="text-sm text-gray-600 mb-4">
+                Consider <strong>Maintenance Mode ($4.99/month)</strong> instead—it keeps all your customized resumes safe.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setShowDowngradeModal(TIERS.MAINTENANCE)}
+                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Switch to Maintenance ($4.99) - Recommended
+                </button>
+                <button
+                  onClick={() => handleDowngrade(TIERS.FREE)}
+                  disabled={processing}
+                  className="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'I Understand - Downgrade to Free'}
+                </button>
+                <button
+                  onClick={() => setShowDowngradeModal(null)}
+                  disabled={processing}
+                  className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Modal */}
+        {showCancelModal && (
+          <div className="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl border-2 border-purple-300">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Cancel Subscription?</h3>
+              <p className="text-gray-700 mb-4">
+                We're sorry to see you go! Help us improve by telling us why you're cancelling.
+              </p>
+              <textarea
+                value={cancelFeedback}
+                onChange={(e) => setCancelFeedback(e.target.value)}
+                placeholder="What could we have done better? (optional)"
+                className="w-full border border-gray-300 rounded-lg p-3 h-24 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent mb-4"
+              />
+              <p className="text-sm text-red-600 mb-6">
+                Your subscription will be cancelled immediately and you'll lose access to paid features.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false)
+                    setCancelFeedback('')
+                  }}
+                  disabled={processing}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={processing}
+                  className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {processing && (
+                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                  )}
+                  {processing ? 'Cancelling...' : 'Cancel Subscription'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

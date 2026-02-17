@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
+import BatteryScore from '../components/BatteryScore'
 import { TIERS } from '@/lib/subscription'
 
 function formatDate(dateStr) {
@@ -253,52 +254,59 @@ export default function MyResumes() {
                   )}
                 </div>
 
-                {/* AI Analysis Button */}
+        {/* Resume Power Score */}
                 <div className="mb-6">
                   <button
                     onClick={() => router.push(`/resume-analysis/${resumeData.id}`)}
                     className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                      resumeData.ai_analysis
+                      resumeData.resume_power_score
                         ? 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
                         : 'border-purple-600 bg-purple-50 hover:bg-purple-100'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`text-2xl ${resumeData.ai_analysis ? '' : 'animate-pulse'}`}>
-                        {resumeData.ai_analysis ? '📊' : '🔍'}
-                      </div>
+                      {resumeData.resume_power_score ? (
+                        <BatteryScore score={resumeData.resume_power_score} size="small" />
+                      ) : (
+                        <div className="text-2xl animate-pulse">🔍</div>
+                      )}
                       <div className="flex-1">
-                        <p className={`font-semibold ${resumeData.ai_analysis ? 'text-gray-700' : 'text-purple-900'}`}>
-                          {resumeData.ai_analysis 
-                            ? (isFree ? 'View AI Analysis' : 'AI Analysis')
-                            : 'Run AI Analysis'
+                        <p className={`font-semibold ${resumeData.resume_power_score ? 'text-gray-700' : 'text-purple-900'}`}>
+                          {resumeData.resume_power_score 
+                            ? 'Resume Power Score'
+                            : 'Get Resume Power Score'
                           }
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {resumeData.ai_analysis 
-                            ? 'See strengths & suggestions'
-                            : 'Identify improvements'
+                          {resumeData.resume_power_score 
+                            ? 'View analysis & suggestions'
+                            : 'See how your resume ranks'
                           }
                         </p>
+                        {resumeData.initial_resume_power_score && resumeData.resume_power_score > resumeData.initial_resume_power_score && (
+                          <p className="text-[10px] text-green-600 font-semibold mt-1">
+                            🎉 Improved from {resumeData.initial_resume_power_score} → {resumeData.resume_power_score}!
+                          </p>
+                        )}
                       </div>
-                      {!resumeData.ai_analysis && (
+                      {!resumeData.resume_power_score && (
                         <span className="text-purple-600 font-bold">→</span>
                       )}
                     </div>
                   </button>
                 </div>
 
-                {/* Job-Specific Versions */}
+               {/* Job-Specific Versions */}
                 {versions.length > 0 && (
                   <div>
                     <h3 className="font-bold text-sm text-gray-500 uppercase mb-3">
-                      {isFree ? 'ATS Match Scores' : 'Job-Customized Versions'}
+                      {isFree ? 'Job Match Scores' : 'Job-Specific Resumes'}
                     </h3>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
                       {versions.map((version) => (
                         <div
                           key={version.id}
-                          className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-all flex flex-col h-full ${
                             selectedVersion?.id === version.id 
                               ? 'border-purple-600 bg-purple-50' 
                               : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
@@ -309,10 +317,10 @@ export default function MyResumes() {
                               onClick={() => router.push(`/job-analysis/${version.id}`)}
                               className="flex-1 text-left"
                             >
-                              <p className="font-semibold text-sm hover:text-purple-600">{version.job_company}</p>
-                              <p className="text-xs text-gray-600 mt-1">{version.job_title}</p>
+                              <p className="font-semibold text-xs hover:text-purple-600">{version.job_company}</p>
+                              <p className="text-[10px] text-gray-600 mt-0.5 leading-tight">{version.job_title}</p>
                             </button>
-                            <button
+                           <button
                               onClick={async (e) => {
                                 e.stopPropagation()
                                 if (!confirm(`Delete ${version.job_company} - ${version.job_title}?`)) return
@@ -334,23 +342,17 @@ export default function MyResumes() {
                                   alert('Failed to delete. Please try again.')
                                 }
                               }}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-all ml-2"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-all flex-shrink-0"
                               title="Delete this job version"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
                           </div>
-                          {version.match_score && (
-                            <div className="mt-2">
-                              <span className={`text-xs font-semibold px-2 py-1 rounded ${
-                                version.match_score >= 85 ? 'bg-green-100 text-green-700' :
-                                version.match_score >= 70 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-orange-100 text-orange-700'
-                              }`}>
-                                {version.match_score}% Match
-                              </span>
+                        {version.match_score && (
+                            <div className="mt-auto pt-3 flex items-center gap-2">
+                              <BatteryScore score={version.match_score} size="small" />
                             </div>
                           )}
                           {!isFree && Object.keys(version.formatted_versions || {}).length > 0 && (
@@ -363,8 +365,23 @@ export default function MyResumes() {
                             </div>
                           )}
                         </div>
-                      ))}
+                  ))}
                     </div>
+                    
+                    {/* Free Tier Upsell */}
+                    {isFree && (
+                      <div className="mt-4 bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                        <p className="text-sm text-purple-900">
+                          💡 <strong>Upgrade to Full Resume</strong> to customize your resume for these specific jobs and raise your match score before you apply.
+                        </p>
+                        <button
+                          onClick={() => router.push('/pricing')}
+                          className="mt-3 w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium text-sm"
+                        >
+                          Upgrade to Customize Resumes →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
