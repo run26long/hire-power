@@ -5,6 +5,64 @@ import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
 import { TIERS } from '@/lib/subscription'
 
+// Convert structured resume data to plain text for analysis
+function convertResumeToText(resumeData) {
+  let text = ''
+  
+  // Contact
+  if (resumeData.contact) {
+    text += `${resumeData.contact.fullName}\n`
+    text += `${resumeData.contact.email} | ${resumeData.contact.phone}\n`
+    if (resumeData.contact.location) text += `${resumeData.contact.location}\n`
+    text += '\n'
+  } else if (resumeData.fullName) {
+    text += `${resumeData.fullName}\n`
+    text += `${resumeData.email} | ${resumeData.phone}\n`
+    if (resumeData.location) text += `${resumeData.location}\n`
+    text += '\n'
+  }
+  
+  // Summary
+  if (resumeData.summary) {
+    text += `PROFESSIONAL SUMMARY\n${resumeData.summary}\n\n`
+  }
+  
+  // Experience
+  if (resumeData.experience && resumeData.experience.length > 0) {
+    text += 'EXPERIENCE\n\n'
+    resumeData.experience.forEach(job => {
+      text += `${job.title} | ${job.company}\n`
+      text += `${job.startDate} - ${job.endDate || 'Present'}\n`
+      if (job.summary) text += `${job.summary}\n`
+      if (job.achievements && job.achievements.length > 0) {
+        job.achievements.forEach(achievement => {
+          text += `• ${achievement}\n`
+        })
+      }
+      text += '\n'
+    })
+  }
+  
+  // Education
+  if (resumeData.education && resumeData.education.length > 0) {
+    text += 'EDUCATION\n\n'
+    resumeData.education.forEach(edu => {
+      text += `${edu.degree} | ${edu.school}\n`
+      if (edu.graduationDate) text += `Graduated: ${edu.graduationDate}\n`
+      if (edu.gpa) text += `GPA: ${edu.gpa}\n`
+      if (edu.honors) text += `${edu.honors}\n`
+      text += '\n'
+    })
+  }
+  
+  // Skills
+  if (resumeData.skills && resumeData.skills.length > 0) {
+    text += `SKILLS\n${resumeData.skills.join(', ')}\n\n`
+  }
+  
+  return text
+}
+
 export default function ResumeCoaching() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -49,11 +107,12 @@ export default function ResumeCoaching() {
     }
   }
 
-  async function finishCoaching() {
+ async function finishCoaching() {
     try {
       setSending(true)
       
-      const response = await fetch('/api/extract-achievements', {
+      // Extract achievements from conversation
+      const extractResponse = await fetch('/api/extract-achievements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -62,24 +121,47 @@ export default function ResumeCoaching() {
         })
       })
       
-      const data = await response.json()
+      const extractData = await extractResponse.json()
       
-      if (!data.achievements) {
+      if (!extractData.achievements) {
         throw new Error('Failed to extract achievements')
       }
       
-      const { error } = await supabase
+      // Update resume with extracted achievements
+      await supabase
         .from('resumes')
         .update({ 
           coaching_conversation: messages,
-          resume_data: data.achievements,
+          resume_data: extractData.achievements,
           coaching_complete: true
         })
         .eq('id', resumeData.id)
+      
+     // Convert structured resume to text for analysis
+      const resumeAsText = convertResumeToText(extractData.achievements)
+      
+      // Recalculate resume power score with new achievements
+      const scoreResponse = await fetch('/api/analyze-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeText: resumeAsText
+        })
+      })
+      
+      const scoreData = await scoreResponse.json()
+      
+      // Save new score
+      await supabase
+        .from('resumes')
+        .update({ 
+          resume_power_score: scoreData.score,
+          ai_analysis: scoreData.analysis
+        })
+        .eq('id', resumeData.id)
 
-      if (error) throw error
-
-      router.push('/dashboard?coaching-complete=true')
+      // Route to resume review page
+      router.push(`/resume-review/${resumeData.id}`)
     } catch (error) {
       console.error('Error finishing coaching:', error)
       alert('Failed to finalize coaching. Please try again.')
@@ -111,7 +193,7 @@ if (profile) {
   setUserProfile(profile)
   
   // Block free users from professional coaching
-if (profile.subscription_tier === TIERS.FREE) {
+if (profile.subscription_tier === TIERS.FREE || profile.subscription_tier === TIERS.VAULT) {
   router.push('/pricing')
   return
 }
@@ -135,10 +217,18 @@ if (profile.subscription_tier === TIERS.FREE) {
     }
   }
 
-  async function startCoaching(resumeData) {
+ async function startCoaching(resumeData) {
     if (resumeData.coaching_conversation && resumeData.coaching_conversation.length > 0) {
       setMessages(resumeData.coaching_conversation)
       return
+    }
+
+    // Save initial score before coaching starts (if not already saved)
+    if (!resumeData.initial_resume_power_score && resumeData.resume_power_score) {
+      await supabase
+        .from('resumes')
+        .update({ initial_resume_power_score: resumeData.resume_power_score })
+        .eq('id', resumeData.id)
     }
 
     try {
@@ -147,6 +237,8 @@ if (profile.subscription_tier === TIERS.FREE) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resumeText: resumeData.parsed_text,
+          displayName: userProfile?.display_name,
+          resumeFullName: resumeData.resume_data?.fullName,
           conversation: [
             { role: 'user', content: 'Hi! I\'m ready to work on my resume.' }
           ]
@@ -173,11 +265,13 @@ if (profile.subscription_tier === TIERS.FREE) {
     setSending(true)
 
     try {
-      const response = await fetch('/api/coach', {
+     const response = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resumeText: resumeData.parsed_text,
+          displayName: userProfile?.display_name,
+          resumeFullName: resumeData.resume_data?.fullName,
           conversation: updatedMessages
         })
       })
@@ -299,28 +393,32 @@ if (profile.subscription_tier === TIERS.FREE) {
       {/* Compact Input Footer */}
       <div className="flex-shrink-0 bg-white border-t pt-3">
         <div className="flex gap-2 items-end mb-2">
-          <textarea
-            ref={inputRef}
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                sendMessage()
-              }
-            }}
-            placeholder="Type your response..."
-            disabled={sending}
-            rows="2"
-            className="flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!userInput.trim() || sending}
-            className="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-          >
-            Send
-          </button>
+          {!isCoachingComplete && (
+            <textarea
+              ref={inputRef}
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  sendMessage()
+                }
+              }}
+              placeholder="Type your response..."
+              disabled={sending}
+              rows="2"
+              className="flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+            />
+          )}
+         {!isCoachingComplete && (
+            <button
+              onClick={sendMessage}
+              disabled={!userInput.trim() || sending}
+              className="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+            >
+              Send
+            </button>
+          )}
         </div>
         
         {/* Finalize or Continue Coaching button */}
@@ -380,13 +478,16 @@ if (profile.subscription_tier === TIERS.FREE) {
     <button
       onClick={finishCoaching}
       disabled={sending}
-      className={`px-6 py-2.5 rounded-lg transition-colors font-medium text-sm ${
+      className={`px-6 py-2.5 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2 ${
         sending 
           ? 'bg-gray-400 cursor-not-allowed' 
           : 'bg-green-600 hover:bg-green-700'
       } text-white`}
     >
-      {sending ? '⏳ Processing...' : '✅ Finish Coaching'}
+      {sending && (
+        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+      )}
+      {sending ? 'Processing...' : '✅ Finish Coaching'}
     </button>
   ) : (
     <p className="text-xs text-gray-500 italic">Finalize button will appear when coaching is complete</p>

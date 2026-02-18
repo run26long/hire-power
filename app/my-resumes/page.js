@@ -372,7 +372,7 @@ export default function MyResumes() {
                     {isFree && (
                       <div className="mt-4 bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
                         <p className="text-sm text-purple-900">
-                          💡 <strong>Upgrade to Full Resume</strong> to customize your resume for these specific jobs and raise your match score before you apply.
+                          💡 <strong>Upgrade</strong> to customize your resume for these specific jobs and raise your match score before you apply.
                         </p>
                         <button
                           onClick={() => router.push('/pricing')}

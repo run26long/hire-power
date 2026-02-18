@@ -102,7 +102,7 @@ export default function ResumeBuilder() {
     setHasLoaded(true)
   }, [])
 
-  // Free tier enforcement - check resume count
+// Tier enforcement - block Vault, check resume count for Free
   useEffect(() => {
     async function checkResumeLimit() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -119,7 +119,13 @@ export default function ResumeBuilder() {
 
       const tier = profile?.subscription_tier || 'free'
 
-      // Only check for free users
+      // Block Vault users - they can't create new resumes
+      if (tier === 'vault') {
+        router.push('/pricing')
+        return
+      }
+
+      // Check resume limit for free users
       if (tier === 'free') {
         const { count } = await supabase
           .from('resumes')
@@ -235,7 +241,7 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
 ` : ''}
       `.trim()
 
-      // Save to database
+    // Save to database
       const { data: resumeData, error } = await supabase
         .from('resumes')
         .insert({
@@ -252,8 +258,8 @@ ${formData.languages.map(l => `${l.language} (${l.proficiency})`).join(', ')}
       // Clear localStorage backup
       localStorage.removeItem('resumeBuilderProgress')
 
-      // Route to My Resumes to review before analysis
-      router.push('/my-resumes')
+      // Route directly to analysis
+      router.push(`/resume-analysis/${resumeData.id}`)
       
     } catch (error) {
       console.error('Error saving resume:', error)

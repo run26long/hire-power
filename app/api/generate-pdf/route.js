@@ -99,10 +99,18 @@ export async function POST(request) {
     
     await browser.close()
 
-    // If action is 'download', save to Supabase Storage
+   // If action is 'download', save to Supabase Storage
     if (action === 'download') {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      const fileName = `${userId}/${versionId || 'core'}/${templateName}-${timestamp}.pdf`
+      
+      // Create ATS-friendly filename
+      const fullName = transformedData.contact?.fullName || 'Resume'
+      const nameParts = fullName.split(' ')
+      const firstName = nameParts[0] || 'Resume'
+      const lastName = nameParts[nameParts.length - 1] || ''
+      const atsName = lastName ? `${firstName}_${lastName}` : firstName
+      
+      const fileName = `${userId}/${versionId || 'core'}/${atsName}_Resume_${templateName}_${timestamp}.pdf`
       
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -150,11 +158,17 @@ export async function POST(request) {
       })
     }
 
-    // If action is 'preview', return PDF directly
+   // If action is 'preview', return PDF directly
+    const fullName = transformedData.contact?.fullName || 'Resume'
+    const nameParts = fullName.split(' ')
+    const firstName = nameParts[0] || 'Resume'
+    const lastName = nameParts[nameParts.length - 1] || ''
+    const atsName = lastName ? `${firstName}_${lastName}` : firstName
+    
     return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename=resume-preview.pdf'
+        'Content-Disposition': `inline; filename=${atsName}_Resume_Preview.pdf`
       }
     })
 

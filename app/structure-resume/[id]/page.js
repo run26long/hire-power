@@ -161,11 +161,11 @@ export default function StructureResumePage() {
         .update({ resume_data: formData })
         .eq('id', params.id)
 
-      if (error) throw error
+     if (error) throw error
 
-      // Route to My Resumes
-      router.push('/my-resumes')
-    } catch (error) {
+    // Route directly to analysis
+    router.push(`/resume-analysis/${params.id}`)
+  } catch (error) {
       console.error('Error saving:', error)
       alert('Error saving resume structure')
       setSaving(false)
@@ -184,7 +184,7 @@ export default function StructureResumePage() {
           
           {/* Loading message */}
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Building Your Resume
+            Structuring Your Resume
           </h2>
           <p className="text-gray-600 text-center max-w-md">
             Our AI is extracting your experience, education, and skills to help you structure your resume...
@@ -760,7 +760,7 @@ export default function StructureResumePage() {
                     disabled={saving || !formData.fullName || !formData.email}
                     className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {saving ? 'Saving...' : 'Save & Continue to My Resumes →'}
+                    {saving ? 'Saving...' : 'Save & Continue to AI Analysis →'}
                   </button>
                   
                   {(!formData.fullName || !formData.email) && (

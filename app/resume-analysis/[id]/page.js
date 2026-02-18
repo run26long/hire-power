@@ -458,6 +458,37 @@ export default function ResumeAnalysis() {
                 </button>
               </div>
             </div>
+         ) : resumeData?.coaching_complete ? (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                ✅ Coaching Complete!
+              </h3>
+              <p className="text-gray-700 mb-4">
+                Your resume has been professionally coached. You can view your improved resume, edit it, or select a template to download.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => router.push(`/resume-review/${resumeId}`)}
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium"
+                >
+                  View Improved Resume
+                </button>
+                <button
+                  onClick={() => router.push(`/resume-editor/${resumeId}?splitView=true`)}
+                  className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-medium"
+                >
+                  Edit Resume
+                </button>
+              </div>
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => router.push('/my-resumes')}
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  Return to My Resumes
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">

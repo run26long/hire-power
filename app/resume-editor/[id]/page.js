@@ -1,9 +1,36 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import Header from '../../components/Header'
+
+// Transform structured resume data to editor format
+function transformResumeForEditor(data) {
+  if (!data.experience) return data
+  
+  return {
+    ...data,
+    experience: data.experience.map(job => {
+      // If already has description format, keep it
+      if (job.description) return job
+      
+      // Transform summary + achievements to description
+      const parts = []
+      if (job.summary) parts.push(job.summary)
+      if (job.achievements && job.achievements.length > 0) {
+        job.achievements.forEach(achievement => {
+          parts.push(`• ${achievement}`)
+        })
+      }
+      
+      return {
+        ...job,
+        description: parts.join('\n')
+      }
+    })
+  }
+}
 
 export default function ResumeEditorPage() {
   const [resumeData, setResumeData] = useState(null)
@@ -24,8 +51,10 @@ export default function ResumeEditorPage() {
   const [userProfile, setUserProfile] = useState(null)
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const supabase = createClient()
-
+  const reviewChanges = searchParams.get('reviewChanges') === 'true'
+const splitView = searchParams.get('splitView') === 'true'
   useEffect(() => {
     loadResumeAndProfile()
   }, [])
@@ -70,7 +99,9 @@ export default function ResumeEditorPage() {
       return
     }
 
-    setResumeData(resume.resume_data || {})
+    // Transform resume data to editor format
+    const transformedData = transformResumeForEditor(resume.resume_data || {})
+    setResumeData(transformedData)
     
     // Load AI suggestions (for free users)
     if (profile?.subscription_tier === 'free' && resume.ai_analysis) {
@@ -203,6 +234,28 @@ export default function ResumeEditorPage() {
       <div className="sticky top-0 z-50 bg-white shadow-sm">
         <Header />
       </div>
+      
+      {/* Review Changes Banner */}
+      {reviewChanges && (
+        <div className="bg-green-50 border-b-2 border-green-200 py-3">
+          <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="text-green-900 font-semibold">AI coaching complete!</p>
+                <p className="text-green-700 text-sm">Review the improvements below, make any edits you'd like, then save.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push(`/resume-editor/${params.id}`)}
+              className="text-green-700 hover:text-green-900 text-sm font-medium"
+            >
+              Dismiss ✕
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
      <div className="container mx-auto px-4 max-w-7xl h-full flex flex-col">
           
@@ -216,11 +269,73 @@ export default function ResumeEditorPage() {
             </p>
           </div>
 
-         {/* Two-column layout - LOCKED HEIGHT */}
-         <div className={`grid gap-6 ${isFree ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} flex-1 overflow-hidden`}>
+        {/* Two-column layout - LOCKED HEIGHT */}
+         <div className={`grid gap-6 ${splitView ? 'lg:grid-cols-2' : isFree ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} flex-1 overflow-hidden`}>
+{/* RESUME PREVIEW (Split View only) - SCROLLABLE */}
+            {splitView && (
+              <div className="lg:col-span-1 h-full overflow-y-auto">
+                <div className="bg-white rounded-lg shadow-md p-6 sticky top-0">
+                  <h3 className="text-lg font-bold mb-4 text-purple-600">Preview</h3>
+                  
+                  {/* Contact */}
+                  {resumeData.fullName && (
+                    <div className="mb-4 text-center border-b pb-4">
+                      <h4 className="text-xl font-bold">{resumeData.fullName}</h4>
+                      <p className="text-sm text-gray-600">
+                        {resumeData.email}
+                        {resumeData.phone && ` | ${resumeData.phone}`}
+                        {resumeData.location && ` | ${resumeData.location}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Experience */}
+                  {resumeData.experience && resumeData.experience.length > 0 && (
+                    <div className="mb-4">
+                      <h5 className="text-sm font-bold mb-2 text-purple-600">EXPERIENCE</h5>
+                      {resumeData.experience.map((job, idx) => (
+                        <div key={idx} className="mb-3 text-xs">
+                          <p className="font-bold">
+                            {job.title} | {job.company}
+                          </p>
+                          <p className="text-gray-700 whitespace-pre-line mt-1">
+                            {job.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {resumeData.education && resumeData.education.length > 0 && (
+                    <div className="mb-4">
+                      <h5 className="text-sm font-bold mb-2 text-purple-600">EDUCATION</h5>
+                      {resumeData.education.map((edu, idx) => (
+                        <div key={idx} className="mb-2 text-xs">
+                          <p className="font-bold">
+                            {edu.degree} | {edu.school}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {resumeData.skills && resumeData.skills.length > 0 && (
+                    <div className="mb-4">
+                      <h5 className="text-sm font-bold mb-2 text-purple-600">SKILLS</h5>
+                      <p className="text-xs text-gray-700">
+                        {resumeData.skills.join(' • ')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* AI SUGGESTIONS PANEL (Free tier only) - STATIC, NO SCROLL */}
-            {isFree && (
+            {isFree && !splitView && (
+           
               <div className="lg:col-span-1 h-full overflow-hidden">
                 <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4 h-full flex flex-col">                  <h3 className="text-base font-bold text-purple-900 mb-2 flex items-center gap-2">
                     <span>💡</span> AI Suggestions
@@ -283,7 +398,7 @@ export default function ResumeEditorPage() {
             )}
 
           {/* EDITOR COLUMN - SCROLLABLE ONLY */}
-            <div className={`${isFree ? 'lg:col-span-2' : 'lg:col-span-1'} overflow-y-auto`}>
+            <div className={`${splitView ? 'lg:col-span-1' : isFree ? 'lg:col-span-2' : 'lg:col-span-1'} overflow-y-auto`}>
               <div className="pb-20">
               
               {/* Personal Info */}

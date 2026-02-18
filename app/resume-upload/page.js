@@ -104,9 +104,9 @@ export default function ResumeUploadPage() {
         .select()
         .single()
 
-      if (dbError) throw dbError
+ if (dbError) throw dbError
 
- // Navigate immediately to structure page
+      // Navigate to structure page to review extraction
       router.push(`/structure-resume/${resumeData.id}`)
       
     } catch (error) {

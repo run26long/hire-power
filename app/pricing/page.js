@@ -61,14 +61,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-          <p className="text-xl text-gray-600">
-            Professional career coaching that grows with you
-          </p>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 py-16">
 
         {error && (
           <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-lg p-4 max-w-2xl mx-auto">
@@ -76,211 +69,139 @@ export default function PricingPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
-          
-          {/* Maintenance */}
-          <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-            <h3 className="text-2xl font-bold mb-2">Maintenance</h3>
-            <div className="text-4xl font-bold text-blue-600 mb-2">$4.99</div>
-            <div className="text-gray-600 mb-6">per month</div>
+        {/* Pro Plan - Featured */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-2xl p-8 text-white relative">
+            <div className="absolute top-4 right-4 bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full text-xs font-bold">
+              BEST VALUE
+            </div>
             
-            <div className="space-y-3 mb-8 text-sm">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold mb-2">Hire Power Pro</h2>
+              <div className="text-5xl font-bold mb-2">$29.99</div>
+              <div className="text-indigo-100">per month</div>
+            </div>
+            
+            <p className="text-center text-indigo-100 mb-8 text-lg">
+              Your complete career operating system - resume coaching, interview practice, and lifetime achievement tracking in one integrated platform.
+            </p>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div>
+                <p className="font-bold mb-3 text-lg">Resume Features:</p>
+                <ul className="space-y-2 text-sm">
+                  <li>✓ Professional coaching conversations</li>
+                  <li>✓ Unlimited job customization</li>
+                  <li>✓ ATS optimization & match scoring</li>
+                  <li>✓ Premium templates</li>
+                  <li>✓ Unlimited re-analysis</li>
+                </ul>
+              </div>
+              
+              <div>
+                <p className="font-bold mb-3 text-lg">Interview Features:</p>
+                <ul className="space-y-2 text-sm">
+                  <li>✓ AI-spoken personalized questions</li>
+                  <li>✓ Power Skill Analysis</li>
+                  <li>✓ Company research integration</li>
+                  <li>✓ Video recording & feedback</li>
+                  <li>✓ Gamified progression</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-4 mb-6">
+              <p className="text-sm text-center">
+                <strong>True Integration:</strong> One achievement database feeds both resume customization AND interview prep. No competitor offers this.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => handleUpgrade(TIERS.PRO)}
+              disabled={upgrading || currentTier === TIERS.PRO}
+              className="w-full bg-white text-indigo-600 py-4 rounded-lg hover:bg-indigo-50 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              {upgrading && (
+                <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+              )}
+              {currentTier === TIERS.PRO ? 'Current Plan' : upgrading ? 'Processing...' : 'Upgrade to Pro →'}
+            </button>
+          </div>
+        </div>
+
+        {/* Vault Plan */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-blue-200">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2">Hire Power Vault</h2>
+              <div className="text-4xl font-bold text-blue-600 mb-2">$4.99</div>
+              <div className="text-gray-600">per month</div>
+            </div>
+            
+            <p className="text-center text-gray-700 mb-6">
+              Between job searches? Keep your career archive safe and track achievements as they happen.
+            </p>
+            
+            <div className="space-y-3 mb-6">
               <div className="flex items-start gap-2">
                 <span className="text-green-600">✓</span>
-                <span>Track achievements as they happen</span>
+                <span className="text-gray-700">Track achievements in real-time</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600">✓</span>
-                <span>View complete career archive</span>
+                <span className="text-gray-700">View complete career archive</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600">✓</span>
-                <span>Unlimited downloads</span>
+                <span className="text-gray-700">Unlimited downloads</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600">✓</span>
-                <span>Premium templates</span>
+                <span className="text-gray-700">Premium templates</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-red-600">✗</span>
+                <span className="text-gray-400">✗</span>
                 <span className="text-gray-500">No new resume generation</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-red-600">✗</span>
+                <span className="text-gray-400">✗</span>
                 <span className="text-gray-500">No interview coaching</span>
               </div>
             </div>
 
             <button
-              onClick={() => handleUpgrade(TIERS.MAINTENANCE)}
-              disabled={upgrading || currentTier === TIERS.MAINTENANCE}
+              onClick={() => handleUpgrade(TIERS.VAULT)}
+              disabled={upgrading || currentTier === TIERS.VAULT}
               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {currentTier === TIERS.MAINTENANCE ? 'Current Plan' : 'Select Plan'}
+              {currentTier === TIERS.VAULT ? 'Current Plan' : 'Select Vault'}
             </button>
             
             <p className="text-xs text-gray-500 mt-4 text-center">
-              Perfect between job searches
-            </p>
-          </div>
-
-          {/* Full Resume */}
-          <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-green-300">
-            <h3 className="text-2xl font-bold mb-2">Full Resume</h3>
-            <div className="text-4xl font-bold text-green-600 mb-2">$19.99</div>
-            <div className="text-gray-600 mb-6">per month</div>
-            
-            <div className="space-y-3 mb-8 text-sm">
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span><strong>Interactive achievement extraction</strong></span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span><strong>Unlimited job customization</strong></span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span><strong>ATS optimization</strong></span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span>Premium templates</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span>Unlimited re-analysis</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-600">+</span>
-                <span className="text-blue-600"><em>Free basic interview practice</em></span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleUpgrade(TIERS.FULL_RESUME)}
-              disabled={upgrading || currentTier === TIERS.FULL_RESUME}
-              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {currentTier === TIERS.FULL_RESUME ? 'Current Plan' : 'Select Plan'}
-            </button>
-            
-            <p className="text-xs text-gray-500 mt-4 text-center">
-              Bulletproof your resume
-            </p>
-          </div>
-
-          {/* Full Interview */}
-          <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-purple-300">
-            <h3 className="text-2xl font-bold mb-2">Full Interview</h3>
-            <div className="text-4xl font-bold text-purple-600 mb-2">$19.99</div>
-            <div className="text-gray-600 mb-6">per month</div>
-            
-            <div className="space-y-3 mb-8 text-sm">
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span><strong>AI-spoken personalized questions</strong></span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span><strong>Power Skill Analysis</strong></span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span><strong>Company research integration</strong></span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span>Video recording & feedback</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-600">✓</span>
-                <span>Gamified progression</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-600">+</span>
-                <span className="text-blue-600"><em>Free basic resume builder</em></span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleUpgrade(TIERS.FULL_INTERVIEW)}
-              disabled={upgrading || currentTier === TIERS.FULL_INTERVIEW}
-              className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {currentTier === TIERS.FULL_INTERVIEW ? 'Current Plan' : 'Select Plan'}
-            </button>
-            
-            <p className="text-xs text-gray-500 mt-4 text-center">
-              Level up your interviews
+              Perfect for staying interview-ready between job searches
             </p>
           </div>
         </div>
 
-        {/* Full Integrated - Featured */}
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-2xl p-8 text-white relative overflow-hidden">
-            <div className="absolute top-4 right-4 bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full text-xs font-bold">
-              BEST VALUE - SAVE $10/mo
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-3xl font-bold mb-2">Full Platform</h3>
-                <div className="text-5xl font-bold mb-2">$29.99</div>
-                <div className="text-indigo-100 mb-6">per month</div>
-                
-                <p className="text-indigo-100 mb-4">
-                  Get everything in Resume + Interview for less than buying separately
-                </p>
-                
-                <button
-                  onClick={() => handleUpgrade(TIERS.FULL_INTEGRATED)}
-                  disabled={upgrading || currentTier === TIERS.FULL_INTEGRATED}
-                  className="bg-white text-indigo-600 px-8 py-4 rounded-lg hover:bg-indigo-50 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {upgrading && (
-                    <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                  )}
-                  {currentTier === TIERS.FULL_INTEGRATED ? 'Current Plan' : upgrading ? 'Processing...' : 'Get Full Platform →'}
-                </button>
-              </div>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>Professional resume coaching</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>Unlimited job customization</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>AI-spoken interview practice</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>Power Skill Analysis (Core/Hidden/Gap)</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>Company research integration</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>Premium templates</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span>Career archive (lifetime tracking)</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span>✓</span>
-                  <span><strong>True integration - single achievement database</strong></span>
-                </div>
-              </div>
-            </div>
+        {/* Free Plan Info */}
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-gray-100 rounded-lg p-6 border border-gray-300">
+            <h3 className="font-bold text-gray-900 mb-3">Free Plan</h3>
+            <p className="text-sm text-gray-700 mb-3">
+              Try Hire Power with limited features:
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1 mb-4">
+              <li>• 1 resume with AI analysis</li>
+              <li>• Resume editor with basic templates</li>
+              <li>• Job match scores</li>
+              <li>• Basic interview practice</li>
+            </ul>
+            <p className="text-xs text-gray-500">
+              Already have an account? {' '}
+              <button onClick={() => router.push('/login')} className="text-purple-600 hover:underline">
+                Sign in
+              </button>
+            </p>
           </div>
         </div>
 

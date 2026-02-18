@@ -3,7 +3,10 @@ import Anthropic from '@anthropic-ai/sdk'
 
 export async function POST(request) {
   try {
-    const { resumeText, conversation } = await request.json()
+    const { resumeText, conversation, displayName, resumeFullName } = await request.json()
+    
+    // Determine name to use: displayName → resumeFullName → "there"
+    const userName = displayName || resumeFullName || "there"
     
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -36,7 +39,7 @@ YOUR COACHING PROCESS:
 
 PHASE 1: UPDATE CHECK - Ask ALL 5 questions in this exact order. Do NOT add extra questions or skip ahead. Keep questions simple and focused on what's NEW only.
 
-Question 1 - CONTACT INFO: "First, let me confirm your contact information is still current. Is [their email and phone from resume] the best way to reach you?"
+Question 1 - GREETING & CONTACT: "Hi ${userName}! First, let me confirm your contact information is still current. Is [their email and phone from resume] the best way to reach you?"
 
 Question 2 - NEW EXPERIENCE: "Have you taken on any new jobs, internships, or significant roles that aren't on your resume yet?"
 
