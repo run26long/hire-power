@@ -140,7 +140,7 @@ export default function ResumeReviewPage() {
               </div>
             )}
 
-            {/* Experience */}
+           {/* Experience */}
             {displayResume.experience && displayResume.experience.length > 0 && (
               <div className="mb-6">
                 <h4 className="text-lg font-bold mb-4 text-purple-600">EXPERIENCE</h4>
@@ -151,7 +151,26 @@ export default function ResumeReviewPage() {
                         {job.title} | {job.company} | {formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}
                       </p>
                     </div>
-                    {job.description && (
+                    
+                    {/* Handle structured format (summary + achievements) */}
+                    {job.summary && (
+                      <p className="text-sm text-gray-700 mb-2 italic">
+                        {job.summary}
+                      </p>
+                    )}
+                    {job.achievements && job.achievements.length > 0 && (
+                      <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                        {job.achievements.map((achievement, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span>•</span>
+                            <span>{achievement}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    
+                    {/* Handle flat format (description with bullets) */}
+                    {job.description && !job.achievements && (
                       <p className="text-sm text-gray-700 mb-2 whitespace-pre-line">
                         {job.description}
                       </p>

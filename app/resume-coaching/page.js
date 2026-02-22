@@ -5,64 +5,6 @@ import { useRouter } from 'next/navigation'
 import Header from '../components/Header'
 import { TIERS } from '@/lib/subscription'
 
-// Convert structured resume data to plain text for analysis
-function convertResumeToText(resumeData) {
-  let text = ''
-  
-  // Contact
-  if (resumeData.contact) {
-    text += `${resumeData.contact.fullName}\n`
-    text += `${resumeData.contact.email} | ${resumeData.contact.phone}\n`
-    if (resumeData.contact.location) text += `${resumeData.contact.location}\n`
-    text += '\n'
-  } else if (resumeData.fullName) {
-    text += `${resumeData.fullName}\n`
-    text += `${resumeData.email} | ${resumeData.phone}\n`
-    if (resumeData.location) text += `${resumeData.location}\n`
-    text += '\n'
-  }
-  
-  // Summary
-  if (resumeData.summary) {
-    text += `PROFESSIONAL SUMMARY\n${resumeData.summary}\n\n`
-  }
-  
-  // Experience
-  if (resumeData.experience && resumeData.experience.length > 0) {
-    text += 'EXPERIENCE\n\n'
-    resumeData.experience.forEach(job => {
-      text += `${job.title} | ${job.company}\n`
-      text += `${job.startDate} - ${job.endDate || 'Present'}\n`
-      if (job.summary) text += `${job.summary}\n`
-      if (job.achievements && job.achievements.length > 0) {
-        job.achievements.forEach(achievement => {
-          text += `• ${achievement}\n`
-        })
-      }
-      text += '\n'
-    })
-  }
-  
-  // Education
-  if (resumeData.education && resumeData.education.length > 0) {
-    text += 'EDUCATION\n\n'
-    resumeData.education.forEach(edu => {
-      text += `${edu.degree} | ${edu.school}\n`
-      if (edu.graduationDate) text += `Graduated: ${edu.graduationDate}\n`
-      if (edu.gpa) text += `GPA: ${edu.gpa}\n`
-      if (edu.honors) text += `${edu.honors}\n`
-      text += '\n'
-    })
-  }
-  
-  // Skills
-  if (resumeData.skills && resumeData.skills.length > 0) {
-    text += `SKILLS\n${resumeData.skills.join(', ')}\n\n`
-  }
-  
-  return text
-}
-
 export default function ResumeCoaching() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -137,15 +79,12 @@ export default function ResumeCoaching() {
         })
         .eq('id', resumeData.id)
       
-     // Convert structured resume to text for analysis
-      const resumeAsText = convertResumeToText(extractData.achievements)
-      
-      // Recalculate resume power score with new achievements
+   // Recalculate resume power score with new achievements
       const scoreResponse = await fetch('/api/analyze-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resumeText: resumeAsText
+          resumeData: extractData.achievements  // Pass structured data
         })
       })
       

@@ -7,14 +7,13 @@ import Header from '../components/Header'
 
 export default function ResumeUploadPage() {
   const [uploading, setUploading] = useState(false)
-  const [parsing, setParsing] = useState(false)
+  const [extracting, setExtracting] = useState(false)
   const [message, setMessage] = useState('')
   const [checkingLimit, setCheckingLimit] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
-  // === INSERT THIS ENTIRE BLOCK ===
-  // Free tier enforcement - check resume count
+  // Check resume limit on mount
   useEffect(() => {
     async function checkResumeLimit() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -31,6 +30,13 @@ export default function ResumeUploadPage() {
 
       const tier = profile?.subscription_tier || 'free'
 
+      // Block Vault users - they can't create new resumes
+      if (tier === 'vault') {
+        router.push('/pricing')
+        return
+      }
+
+      // Check resume limit for free users
       if (tier === 'free') {
         const { count } = await supabase
           .from('resumes')
@@ -48,7 +54,6 @@ export default function ResumeUploadPage() {
 
     checkResumeLimit()
   }, [router, supabase])
-  // === END INSERT ===
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0]
@@ -67,62 +72,73 @@ export default function ResumeUploadPage() {
         return
       }
 
-      // Create unique filename
+      // Step 1: Upload to Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(fileName, file)
 
-      if (error) throw error
+      if (uploadError) throw uploadError
 
       setMessage('✅ Resume uploaded! Extracting text...')
-      setParsing(true)
 
-      // Parse the PDF
-      const response = await fetch('/api/parse-pdf', {
+      // Step 2: Parse PDF/DOCX
+      const parseResponse = await fetch('/api/parse-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: fileName })
       })
 
-      const parseResult = await response.json()
+      const parseResult = await parseResponse.json()
+      if (!parseResponse.ok) throw new Error(parseResult.error)
 
-      if (!response.ok) throw new Error(parseResult.error)
+      setMessage('✅ Text extracted! Structuring your resume...')
+      setUploading(false)
+      setExtracting(true)
 
-     // Save to database
+      // Step 3: Extract Structure with AI
+      const extractResponse = await fetch('/api/extract-resume-structure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parsedText: parseResult.text })
+      })
+
+      const extractResult = await extractResponse.json()
+      if (!extractResponse.ok) throw new Error(extractResult.error)
+
+      setMessage('✅ Resume structured! Saving...')
+
+      // Step 4: Save to Database with BOTH parsed_text AND resume_data
       const { data: resumeData, error: dbError } = await supabase
         .from('resumes')
         .insert({
           user_id: user.id,
           parsed_text: parseResult.text,
+          resume_data: extractResult.data,
           file_path: fileName,
-          created_via: 'upload'
+          created_via: 'upload',
+          journey_step: 'review',  // Start at review step
+          display_name: 'Core Resume'
         })
         .select()
         .single()
 
- if (dbError) throw dbError
+      if (dbError) throw dbError
 
-      // Navigate to structure page to review extraction
-      router.push(`/structure-resume/${resumeData.id}`)
+      // Step 5: Navigate to Resume Detail Page
+      router.push(`/resume/${resumeData.id}`)
       
     } catch (error) {
-  console.error('=== UPLOAD ERROR ===')
-  console.error('Error type:', typeof error)
-  console.error('Error message:', error?.message)
-  console.error('Error details:', error?.details)
-  console.error('Full error:', JSON.stringify(error, null, 2))
-  setMessage('❌ Error: ' + (error?.message || 'Unknown error'))
-} finally {
+      console.error('Upload error:', error)
+      setMessage('❌ Error: ' + (error?.message || 'Unknown error'))
       setUploading(false)
-      // Don't clear parsing here - let it stay visible during navigation
-      // setParsing(false) - removed so spinner stays until next page loads
+      setExtracting(false)
     }
   }
-if (checkingLimit) {
+
+  if (checkingLimit) {
     return (
       <>
         <Header />
@@ -132,7 +148,8 @@ if (checkingLimit) {
       </>
     )
   }
-return (
+
+  return (
     <>
       <Header />
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
@@ -146,35 +163,33 @@ return (
 
           {message && (
             <div className={`mb-6 p-4 rounded ${
-              message.includes('✅') 
-                ? 'bg-green-50 text-green-700' 
-                : 'bg-red-50 text-red-700'
+              message.includes('❌') 
+                ? 'bg-red-50 text-red-700'
+                : 'bg-green-50 text-green-700'
             }`}>
               {message}
             </div>
           )}
 
-          {/* LOADING STATE - Show when uploading or parsing */}
-          {(uploading || parsing) && (
+          {/* Loading State */}
+          {(uploading || extracting) && (
             <div className="border-2 border-purple-200 bg-purple-50 rounded-lg p-12 text-center mb-6">
-              {/* Animated spinner */}
               <div className="flex justify-center mb-4">
                 <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
               </div>
               
               <p className="text-lg font-semibold text-gray-900 mb-2">
-                {uploading && !parsing && '📤 Uploading your resume...'}
-                {parsing && '⚙️ Extracting text from your resume...'}
+                {uploading && '📤 Uploading and parsing your resume...'}
+                {extracting && '🤖 AI is structuring your resume...'}
               </p>
               <p className="text-sm text-gray-600">
-                {uploading && !parsing && 'This will just take a moment'}
-                {parsing && 'Analyzing your document...'}
+                This takes about 10-15 seconds
               </p>
             </div>
           )}
 
-          {/* UPLOAD BUTTON - Show when NOT loading */}
-          {!uploading && !parsing && (
+          {/* Upload Button */}
+          {!uploading && !extracting && (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-purple-400 transition-colors">
               <input
                 type="file"
@@ -190,7 +205,7 @@ return (
                 📄 Choose File
               </label>
               <p className="mt-4 text-sm font-medium text-gray-700">
-                Accepts: PDF or DOCX files (up to 10MB)
+                Accepts: PDF or DOCX (up to 10MB)
               </p>
             </div>
           )}

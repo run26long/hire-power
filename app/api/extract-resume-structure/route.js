@@ -18,64 +18,47 @@ export async function POST(request) {
 Resume text:
 ${parsedText}
 
-Return this exact JSON structure (use empty arrays/strings if sections don't exist):
+Return this exact JSON structure (use empty arrays/strings/null if sections don't exist):
 {
   "fullName": "",
   "email": "",
   "phone": "",
   "location": "",
   "linkedin": "",
-  "portfolio": "",
-  "summary": "",
+  "summary": null,
   "experience": [
     {
       "title": "",
       "company": "",
+      "location": null,
       "startDate": "",
-      "endDate": "",
+      "endDate": null,
       "current": false,
-      "description": ""
+      "summary": null,
+      "bullets": ["achievement 1", "achievement 2"]
     }
   ],
   "education": [
     {
-      "degree": "",
       "school": "",
-      "graduationDate": "",
-      "major": "",
-      "minor": "",
-      "gpa": "",
-      "activities": "",
-      "honors": ""
+      "lines": ["Bachelor of Science in Major", "GPA: 3.8 | May 2027"]
     }
   ],
-  "certifications": [
-    {
-      "name": "",
-      "organization": "",
-      "dateObtained": "",
-      "expirationDate": "",
-      "expires": false
-    }
-  ],
-  "volunteer": [
-    {
-      "organization": "",
-      "role": "",
-      "dates": "",
-      "description": ""
-    }
-  ],
-  "projects": [
-    {
-      "title": "",
-      "dates": "",
-      "description": ""
-    }
-  ],
-  "skills": [],
-  "languages": []
-}`
+  "skillsCategories": {
+    "Technical Skills": ["skill1", "skill2"],
+    "Professional Skills": ["skill3", "skill4"]
+  }
+}
+
+CRITICAL INSTRUCTIONS:
+- experience.bullets: Break job descriptions into array of achievement bullets (NOT a text paragraph)
+- experience.summary: Optional paragraph before bullets (only if resume has one)
+- education.lines: Flexible array of lines (degree on line 1, dates/GPA on line 2, honors on line 3, etc.)
+- skillsCategories: Group skills by category if possible, otherwise use "Skills" as single category
+- Dates: Use YYYY-MM format (e.g., "2023-09" for September 2023)
+- current: Set true if job description says "Present" or "Current"
+- If resume has a professional summary paragraph at top, put it in summary field
+- Each bullet should be a complete sentence about an achievement or responsibility`
       }]
     })
 

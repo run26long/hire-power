@@ -1,5 +1,74 @@
 import Anthropic from '@anthropic-ai/sdk'
 
+// Convert structured resume data to plain text for analysis
+function convertStructuredToText(data) {
+  let text = ''
+  
+  // Contact
+  if (data.contact) {
+    text += `${data.contact.fullName}\n`
+    text += `${data.contact.email}`
+    if (data.contact.phone) text += ` | ${data.contact.phone}`
+    if (data.contact.location) text += ` | ${data.contact.location}`
+    text += '\n\n'
+  } else if (data.fullName) {
+    text += `${data.fullName}\n`
+    text += `${data.email}`
+    if (data.phone) text += ` | ${data.phone}`
+    if (data.location) text += ` | ${data.location}`
+    text += '\n\n'
+  }
+  
+  // Summary
+  if (data.summary) {
+    text += `PROFESSIONAL SUMMARY\n${data.summary}\n\n`
+  }
+  
+  // Experience
+  if (data.experience && data.experience.length > 0) {
+    text += 'EXPERIENCE\n\n'
+    data.experience.forEach(job => {
+      text += `${job.title} | ${job.company}\n`
+      text += `${job.startDate} - ${job.endDate || job.current ? 'Present' : job.endDate}\n`
+      
+      // Handle both summary + achievements format AND description format
+      if (job.summary) text += `${job.summary}\n`
+      
+      if (job.achievements && job.achievements.length > 0) {
+        job.achievements.forEach(achievement => {
+          text += `• ${achievement}\n`
+        })
+      } else if (job.description) {
+        // Already has description format
+        text += `${job.description}\n`
+      }
+      
+      text += '\n'
+    })
+  }
+  
+  // Education
+  if (data.education && data.education.length > 0) {
+    text += 'EDUCATION\n\n'
+    data.education.forEach(edu => {
+      text += `${edu.degree} | ${edu.school}`
+      if (edu.graduationDate) text += ` | ${edu.graduationDate}`
+      text += '\n'
+      if (edu.gpa) text += `GPA: ${edu.gpa}\n`
+      if (edu.honors) text += `${edu.honors}\n`
+      if (edu.activities) text += `${edu.activities}\n`
+      text += '\n'
+    })
+  }
+  
+  // Skills
+  if (data.skills && data.skills.length > 0) {
+    text += `SKILLS\n${data.skills.join(', ')}\n\n`
+  }
+  
+  return text
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
@@ -7,8 +76,22 @@ const anthropic = new Anthropic({
 export async function POST(request) {
   try {
     console.log('=== ANALYZE RESUME API CALLED ===')
-    const { resumeText } = await request.json()
-    console.log('Resume text length:', resumeText.length)
+    const { resumeText, resumeData } = await request.json()
+    
+    // Handle both formats: plain text OR structured data
+    let textToAnalyze = resumeText
+    
+    if (!textToAnalyze && resumeData) {
+      // Convert structured data to text
+      textToAnalyze = convertStructuredToText(resumeData)
+      console.log('Converted structured data to text')
+    }
+    
+    console.log('Resume text length:', textToAnalyze?.length || 0)
+    
+    if (!textToAnalyze) {
+      throw new Error('No resume data provided')
+    }
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -37,7 +120,7 @@ export async function POST(request) {
 Be specific and constructive. Focus on content quality, NOT formatting (they haven't formatted yet).
 
 Resume to analyze:
-${resumeText}
+${textToAnalyze}
 
 CRITICAL: Respond with ONLY a JSON object, no markdown formatting, no code blocks, no preamble. Just the raw JSON.
 
