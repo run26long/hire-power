@@ -435,7 +435,7 @@ export default function MyResumes() {
                   
                   {/* Edit Resume */}
                   <button
-                    onClick={() => router.push(`/resume-editor/${resumeData.id}`)}
+                    onClick={() => router.push(`/resume/${resumeData.id}`)}
                     className="bg-white border-2 border-purple-200 rounded-lg p-6 hover:border-purple-400 hover:shadow-lg transition-all text-left group"
                   >
                     <div className="flex justify-center mb-4">

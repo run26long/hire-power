@@ -26,6 +26,8 @@ Return this exact JSON structure (use empty arrays/strings/null if sections don'
   "location": "",
   "linkedin": "",
   "summary": null,
+  "hideSummary": false,
+  "sectionOrder": ["experience", "education", "skills", "projects", "certifications", "volunteer", "languages"],
   "experience": [
     {
       "title": "",
@@ -47,14 +49,44 @@ Return this exact JSON structure (use empty arrays/strings/null if sections don'
   "skillsCategories": {
     "Technical Skills": ["skill1", "skill2"],
     "Professional Skills": ["skill3", "skill4"]
-  }
+  },
+  "projects": [
+    {
+      "name": "",
+      "description": "",
+      "link": ""
+    }
+  ],
+  "certifications": [
+    {
+      "name": "",
+      "details": "Issuing organization | Date"
+    }
+  ],
+  "volunteer": [
+    {
+      "organization": "",
+      "description": ""
+    }
+  ],
+  "languages": [
+    {
+      "language": "",
+      "proficiency": "Professional"
+    }
+  ]
 }
 
 CRITICAL INSTRUCTIONS:
 - experience.bullets: Break job descriptions into array of achievement bullets (NOT a text paragraph)
 - experience.summary: Optional paragraph before bullets (only if resume has one)
 - education.lines: Flexible array of lines (degree on line 1, dates/GPA on line 2, honors on line 3, etc.)
-- skillsCategories: Group skills by category if possible, otherwise use "Skills" as single category
+- skillsCategories: ALWAYS categorize skills into "Technical Skills" and "Professional Skills". Technical = programming languages, software, tools, technical abilities. Professional = soft skills, leadership, communication, management. If you can't categorize, use "Skills" as single category.
+- projects: Extract any personal projects, side projects, or portfolio work. Include project name, brief description, and link if available.
+- certifications: Extract professional certifications, licenses, or credentials. Format as "name" and "details" (organization | date).
+- volunteer: Extract volunteer work or community service. Include organization name and description of role/activities.
+- languages: Extract spoken/written languages. Proficiency options: "Native", "Fluent", "Professional", "Conversational", "Basic"
+- sectionOrder: Only include sections that have actual data in this resume (e.g., if no certifications, don't include "certifications" in array)
 - Dates: Use YYYY-MM format (e.g., "2023-09" for September 2023)
 - current: Set true if job description says "Present" or "Current"
 - If resume has a professional summary paragraph at top, put it in summary field
@@ -74,6 +106,24 @@ CRITICAL INSTRUCTIONS:
     }
 
     const extractedData = JSON.parse(cleanedResponse)
+    
+    // Ensure section order exists (backwards compatibility)
+    if (!extractedData.sectionOrder) {
+      const sections = []
+      if (extractedData.experience?.length) sections.push('experience')
+      if (extractedData.education?.length) sections.push('education')
+      if (extractedData.skillsCategories && Object.keys(extractedData.skillsCategories).length) sections.push('skills')
+      if (extractedData.projects?.length) sections.push('projects')
+      if (extractedData.certifications?.length) sections.push('certifications')
+      if (extractedData.volunteer?.length) sections.push('volunteer')
+      if (extractedData.languages?.length) sections.push('languages')
+      extractedData.sectionOrder = sections
+    }
+    
+    // Ensure hideSummary exists
+    if (extractedData.hideSummary === undefined) {
+      extractedData.hideSummary = false
+    }
 
     return Response.json({ data: extractedData })
   } catch (error) {
