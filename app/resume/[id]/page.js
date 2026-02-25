@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import ReactDOM from 'react-dom/client'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -24,8 +25,14 @@ export default function ResumePage() {
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  
+ const [showPreview, setShowPreview] = useState(false)
+ const [isDownloading, setIsDownloading] = useState(false)
+
+  // Analysis state
+  const [analysisResults, setAnalysisResults] = useState(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [selectedRoleLevel, setSelectedRoleLevel] = useState(null)
+
   // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
   
@@ -35,6 +42,130 @@ export default function ResumePage() {
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
 const [dateFormat, setDateFormat] = useState('short')
+
+const handleDownload = async () => {
+  setIsDownloading(true)
+  try {
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    // Convert font size number to API format
+    let fontSizeForApi = 'medium'
+    if (selectedSize <= 10) fontSizeForApi = 'small'
+    else if (selectedSize === 11) fontSizeForApi = 'medium'
+    else if (selectedSize >= 12) fontSizeForApi = 'large'
+    
+    // Capitalize template name for API
+    const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+    
+    const response = await fetch('/api/generate-pdf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        resumeData: resume,
+        templateName: templateForApi,
+        fontSize: fontSizeForApi,
+        action: 'download',
+        versionId: null,
+        isJobVersion: false,
+        userId: user.id
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('API Error:', errorData)
+      throw new Error('PDF generation failed')
+    }
+
+    const result = await response.json()
+    
+    // Fetch PDF as blob to force download
+    const pdfResponse = await fetch(result.pdfUrl)
+    const blob = await pdfResponse.blob()
+    const blobUrl = window.URL.createObjectURL(blob)
+    
+    // Trigger download
+    const a = document.createElement('a')
+    a.href = blobUrl
+   // Set filename and trigger download
+a.download = `${(resume.resume_data?.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`
+document.body.appendChild(a)
+a.click()
+document.body.removeChild(a)
+// Clean up blob URL
+    window.URL.revokeObjectURL(blobUrl)
+    
+ } catch (error) {
+    console.error('Error downloading PDF:', error)
+    alert('Failed to generate PDF. Please try again.')
+  } finally {
+    setIsDownloading(false)
+  }
+}
+
+const handleReassess = async () => {
+  setIsAnalyzing(true)
+  try {
+    const response = await fetch('/api/analyze-resume', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+     body: JSON.stringify({
+        resumeData: resume.resume_data,
+        roleLevel: selectedRoleLevel
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Analysis failed')
+    }
+
+    const result = await response.json()
+ 
+    // Store analysis results
+    setAnalysisResults(result)
+
+    
+    // Update resume score in database
+    // Update database with score and journey step if first assessment
+    const updateData = {
+      current_score: result.score,
+      last_assessed_at: new Date().toISOString(),
+      role_level: selectedRoleLevel
+    }
+    
+    // If coming from review, also update journey_step
+    if (resume.journey_step === 'review') {
+      updateData.journey_step = 'assess'
+    }
+    
+    const { error } = await supabase
+      .from('resumes')
+      .update(updateData)
+      .eq('id', params.id)
+
+  if (error) {
+      console.error('Error saving score:', error.message)
+    }
+    
+  // Update local resume state and journey step if this is first assessment
+    setResume(prev => ({
+      ...prev,
+      current_score: result.score,
+      journey_step: prev.journey_step === 'review' ? 'assess' : prev.journey_step
+    }))
+    
+  } catch (error) {
+    console.error('Error analyzing resume:', error)
+    alert('Failed to analyze resume. Please try again.')
+  } finally {
+    setIsAnalyzing(false)
+  }
+}
 function formatDate(dateString, format = dateFormat) {
     if (!dateString) return ''
     
@@ -82,6 +213,12 @@ function formatDate(dateString, format = dateFormat) {
     }
 
     setResume(data)
+    
+    // Load role level if previously saved
+    if (data.role_level) {
+      setSelectedRoleLevel(data.role_level)
+    }
+    
     setSelectedTemplate(data.template_id || 'modern')
     setSelectedFont(data.font_family || 'Calibri')
     setSelectedSize(data.font_size || 11)
@@ -397,8 +534,18 @@ function formatDate(dateString, format = dateFormat) {
             </div>
           )}
 
-          <button className="px-3 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50">
-            Re-assess
+     <button 
+            onClick={handleReassess}
+            disabled={isAnalyzing || journeyStep === 'review'}
+            className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center gap-1 ${
+              isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+            }`}
+            title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
+          >
+            {isAnalyzing && journeyStep !== 'review' && (
+              <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+            )}
+            {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : 'Re-assess'}
           </button>
 
          <button 
@@ -408,9 +555,20 @@ function formatDate(dateString, format = dateFormat) {
               Preview
             </button>
 
-          <button className="px-3 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 font-medium">
-            Download
-          </button>
+          <button 
+  onClick={handleDownload}
+  disabled={isDownloading}
+  className={`px-3 py-1 rounded text-xs font-medium flex items-center gap-1 ${
+    isDownloading 
+      ? 'bg-gray-400 cursor-not-allowed' 
+      : 'bg-purple-600 hover:bg-purple-700 text-white'
+  }`}
+>
+  {isDownloading && (
+    <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+  )}
+  {isDownloading ? 'Generating...' : 'Download'}
+</button>
         </div>
       </div>
 
@@ -437,12 +595,20 @@ function formatDate(dateString, format = dateFormat) {
           </div>
 
           <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-y-auto">
-            <RightPanel 
+       <RightPanel 
               journeyStep={journeyStep}
               score={score}
+              analysisResults={analysisResults}
               userTier={userProfile?.subscription_tier || 'free'}
               resumeName={resume.display_name || 'Core Resume'}
               userName={userProfile?.display_name || resumeData.fullName}
+              supabase={supabase}
+              params={params}
+              setResume={setResume}
+              handleReassess={handleReassess}
+              isAnalyzing={isAnalyzing}
+              selectedRoleLevel={selectedRoleLevel}
+              setSelectedRoleLevel={setSelectedRoleLevel}
             />
           </div>
         </div>
@@ -1590,12 +1756,22 @@ function toggleSummary() {
   )
 }
 // Right Panel Component
-function RightPanel({ journeyStep, score, userTier, resumeName, userName }) {
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, supabase, params, setResume, handleReassess, isAnalyzing, selectedRoleLevel, setSelectedRoleLevel }) {
   const steps = ['review', 'assess', 'coach', 'improve', 'polish', 'save']
   const currentIndex = steps.indexOf(journeyStep)
+  const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
+  const panelRef = useRef(null)
 
-  return (
-    <div>
+  // Scroll to top when journey step changes to 'assess'
+  useEffect(() => {
+    if (journeyStep === 'assess' && panelRef.current) {
+      panelRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [journeyStep])
+
+ return (
+    <div ref={panelRef} className="overflow-y-auto h-full">
+      
       <div className="mb-6 pb-4 border-b border-gray-200">
         <h3 className="text-center font-semibold text-sm mb-3">
           {userName ? `${userName.split(' ')[0]}'s ` : ''}{resumeName} Progress
@@ -1633,29 +1809,84 @@ function RightPanel({ journeyStep, score, userTier, resumeName, userName }) {
         </div>
       </div>
 
-      {journeyStep === 'review' && (
+  {journeyStep === 'review' && (
         <>
           <h3 className="font-semibold text-lg mb-3">📝 Review Your Resume</h3>
+          
           <p className="text-sm text-gray-700 mb-4">
-            We've structured your uploaded resume. Please review for accuracy:
+            AI parsing isn't perfect, so things occasionally land in the wrong spot. Take a quick look at your resume, and make sure everything's where it should be. Click any section to edit or move content around.
           </p>
-          <div className="bg-purple-50 border-l-4 border-purple-500 p-3 mb-4">
-            <p className="text-xs text-purple-900 space-y-1">
-              <strong>✓ Check contact info</strong><br/>
-              <strong>✓ Verify job titles and dates</strong><br/>
-              <strong>✓ Review bullet points</strong><br/>
-              <strong>✓ Confirm education details</strong>
+
+          {/* Role Level Selection */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                 <p className="text-sm font-bold text-center text-gray-900 mb-2">Almost Ready to Analyze!</p>
+
+            <p className="text-xs text-gray-900 mb-3">
+              Before we analyze your resume, tell us what level best describes your current or target role. This ensures we're scoring you against others at your stage—not holding a student to executive standards or vice versa.
             </p>
+            
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="roleLevel"
+                  value="entry"
+                  checked={selectedRoleLevel === 'entry'}
+                  onChange={(e) => setSelectedRoleLevel(e.target.value)}
+                  className="mt-0.5 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-gray-900">Entry-Level</div>
+                  <div className="text-xs text-gray-600">Coordinator, Student, Intern</div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="roleLevel"
+                  value="mid"
+                  checked={selectedRoleLevel === 'mid'}
+                  onChange={(e) => setSelectedRoleLevel(e.target.value)}
+                  className="mt-0.5 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-gray-900">Mid-Level</div>
+                  <div className="text-xs text-gray-600">Manager, Specialist, Professional</div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="roleLevel"
+                  value="senior"
+                  checked={selectedRoleLevel === 'senior'}
+                  onChange={(e) => setSelectedRoleLevel(e.target.value)}
+                  className="mt-0.5 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-gray-900">Senior-Level</div>
+                  <div className="text-xs text-gray-600">Sr. Manager, Director, VP, Executive</div>
+                </div>
+              </label>
+            </div>
           </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Click any text to edit. Use + buttons to add bullets or sections. When everything looks good, we'll assess your resume.
-          </p>
-          <button className="w-full bg-purple-600 text-white rounded py-2 font-medium hover:bg-purple-700">
-            Looks Good → Assess Resume
+
+          <button 
+            onClick={handleReassess}
+            disabled={isAnalyzing || !selectedRoleLevel}
+            className={`w-full bg-purple-600 text-white rounded-lg py-3 font-semibold transition-colors flex items-center justify-center gap-2 ${
+              isAnalyzing || !selectedRoleLevel ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+            }`}
+          >
+            {isAnalyzing && (
+              <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+            )}
+            {isAnalyzing ? 'Analyzing...' : 'Looks Good → Assess Resume'}
           </button>
         </>
       )}
-
       {(journeyStep === 'start' || currentIndex < 0) && (
         <>
           <h3 className="font-semibold text-lg mb-3">✅ Resume Loaded!</h3>
@@ -1671,26 +1902,227 @@ function RightPanel({ journeyStep, score, userTier, resumeName, userName }) {
         </>
       )}
 
-      {journeyStep === 'assess' && (
-        <>
-          <h3 className="font-semibold text-lg mb-3">Assessment Complete</h3>
-          <div className="bg-gray-100 rounded p-4 mb-4">
-            <p className="text-3xl font-bold text-center">{score || 62}/100</p>
+     {journeyStep === 'assess' && (
+        <div className="space-y-5">
+          {/* Header */}
+        <div className="flex items-center justify-center gap-6 -mt-1">
+              <div className="text-center">
+                <div className="text-sm text-gray-600 leading-tight">Assessment Complete!</div>
+                <div className="text-base text-gray-900 font-semibold leading-tight">Resume Power Score:</div>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-gray-900">{score || 62}</span>
+                <span className="text-lg text-gray-600">/100</span>
+              </div>
+            </div>
+          
+          {/* Progress Bar */}
+          <div>
+            <div className="relative mb-4">
+             <div className="h-8 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-500 ${
+                    (score || 62) >= 85 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                    (score || 62) >= 70 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                    'bg-gradient-to-r from-red-400 to-red-500'
+                  }`}
+                  style={{ width: `${score || 62}%` }}
+                />
+              </div>
+            </div>
+            
+            <div className="relative h-12 mb-2">
+              <div className="flex h-2">
+                <div className="bg-red-500 rounded-l-full" style={{ width: '70%' }}></div>
+                <div className="bg-yellow-500" style={{ width: '14%' }}></div>
+                <div className="bg-green-500 rounded-r-full" style={{ width: '16%' }}></div>
+              </div>
+              
+              <div className="absolute top-0 left-[70%] -translate-x-1/2 -translate-y-px">
+                <div className="w-3 h-3 rounded-full bg-white border-2 border-red-500"></div>
+              </div>
+              <div className="absolute top-0 left-[84%] -translate-x-1/2 -translate-y-px">
+                <div className="w-3 h-3 rounded-full bg-white border-2 border-yellow-500"></div>
+              </div>
+              
+              <div className="flex mt-2">
+                <div className="text-center text-xs text-gray-700" style={{ width: '70%' }}>
+                  <div className="font-medium">Needs Improvement</div>
+                  <div className="text-gray-500">(0-70)</div>
+                </div>
+                <div className="text-center text-xs text-gray-700" style={{ width: '14%' }}>
+                  <div className="font-medium">Strong</div>
+                  <div className="text-gray-500">(71-84)</div>
+                </div>
+                <div className="text-center text-xs text-gray-700" style={{ width: '16%' }}>
+                  <div className="font-medium">Excellent</div>
+                  <div className="text-gray-500">(85-100)</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-gray-700 mb-4">Breakdown:</p>
-          <ul className="text-sm text-gray-600 space-y-1 mb-6">
-            <li>• Impact: 20/40</li>
-            <li>• Clarity: 28/40</li>
-            <li>• Keywords: 14/20</li>
-          </ul>
-          <p className="text-sm font-medium mb-4">Let's improve this!</p>
-          <button className="w-full bg-purple-600 text-white rounded py-2 font-medium hover:bg-purple-700">
-            Start Coaching →
-          </button>
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500">💡 Baseline: {score || 62}/100</p>
+          
+         {/* Breakdown - RESTRUCTURED */}
+            <div className="bg-white rounded-lg p-4">
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1.5">Breakdown</h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <span className="font-semibold text-gray-900 text-sm">Impact</span>
+                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 20}/40</span>
+                  </div>
+                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Quantified achievements, results, scope</div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${
+                        (analysisResults?.analysis?.breakdown?.impact || 20)/40 >= 0.8 ? 'bg-green-500' : 
+                        (analysisResults?.analysis?.breakdown?.impact || 20)/40 >= 0.6 ? 'bg-yellow-500' : 
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${((analysisResults?.analysis?.breakdown?.impact || 20)/40)*100}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <span className="font-semibold text-gray-900 text-sm">Clarity</span>
+                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 28}/40</span>
+                  </div>
+                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Strong verbs, grammar, professional language</div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${
+                        (analysisResults?.analysis?.breakdown?.clarity || 28)/40 >= 0.8 ? 'bg-green-500' : 
+                        (analysisResults?.analysis?.breakdown?.clarity || 28)/40 >= 0.6 ? 'bg-yellow-500' : 
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${((analysisResults?.analysis?.breakdown?.clarity || 28)/40)*100}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <span className="font-semibold text-gray-900 text-sm">Keywords</span>
+                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 14}/20</span>
+                  </div>
+                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Industry terms, relevant skills</div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${
+                        (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.8 ? 'bg-green-500' : 
+                        (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.6 ? 'bg-yellow-500' : 
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${((analysisResults?.analysis?.breakdown?.keywords || 14)/20)*100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          
+         {/* Strengths */}
+          <div className="pt-3 border-t border-gray-300">
+            <h3 className="text-sm font-bold text-green-700 uppercase tracking-wide mb-1.5">✅ What's Working</h3>
+            <ul className="space-y-1">
+              {(analysisResults?.analysis?.strengths || [
+                "Strong quantification throughout with specific numbers demonstrating scope and impact.",
+                "Action verbs consistently demonstrate ownership and leadership.",
+                "Professional formatting maintains clear, readable structure.",
+                "Skills section includes relevant technical and soft skills."
+              ]).map((strength, i) => (
+                <li key={i} className="text-sm text-gray-700 flex gap-2 leading-snug">
+                  <span className="text-green-600 flex-shrink-0">•</span>
+                  <span>{strength}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </>
+          
+          {/* Weaknesses */}
+          <div className="pt-3 border-t border-gray-300">
+            <h3 className="text-sm font-bold text-red-700 uppercase tracking-wide mb-1.5">⚠️ What's Missing</h3>
+            <ul className="space-y-1">
+              {(analysisResults?.analysis?.weaknesses || [
+                "Three experience bullets lack quantifiable metrics or measurable outcomes.",
+                "Vague language such as 'managed team' without specifying team size or budget.",
+                "Generic claim of 'improved efficiency' requires percentage or specific timeframe.",
+                "Missing keywords from target job description in technical skills section.",
+                "Education section could benefit from relevant coursework or academic honors.",
+                "Event coordination lacks scope indicators such as event count or budget details."
+              ]).map((weakness, i) => (
+                <li key={i} className="text-sm text-gray-700 flex gap-2 leading-snug">
+                  <span className="text-red-600 flex-shrink-0">•</span>
+                  <span>{weakness}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          {/* Suggestions */}
+          <div className="pt-3 border-t border-gray-300">
+            <h3 className="text-sm font-bold text-yellow-700 uppercase tracking-wide mb-1.5">🎯 Action Plan</h3>
+            <ul className="space-y-1">
+              {(analysisResults?.analysis?.suggestions || [
+                "Add team size (e.g., 'Led team of 8') and budget amounts to management role descriptions.",
+                "Quantify efficiency improvement with specific metrics: '30% faster turnaround' or 'saved 10 hours weekly'.",
+                "Include 2-3 technical skills from job description, such as Salesforce, Tableau, or Asana.",
+                "Add specific event metrics: '60+ annual events with 200-500 attendees, $50K average budget'.",
+                "Strengthen education section: include GPA if above 3.5, relevant coursework, or academic honors.",
+                "Replace weak verbs like 'helped' and 'responsible for' with action verbs showing direct impact."
+              ]).map((suggestion, i) => (
+                <li key={i} className="text-sm text-gray-700 flex gap-2 leading-snug">
+                  <span className="text-yellow-600 flex-shrink-0">•</span>
+                  <span>{suggestion}</span>
+                </li>
+              ))}
+            </ul>
+          </div>          
+          {/* CTA */}
+          <div className="pt-3 border-t border-gray-300">
+         <button 
+              onClick={async () => {
+                console.log('Start Coaching clicked!')
+                setIsUpdatingJourney(true)
+                try {
+                  console.log('Updating journey step to coach...')
+                  const { error } = await supabase
+                    .from('resumes')
+                    .update({ 
+                      journey_step: 'coach',
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('id', params.id)
+
+                  if (error) {
+                    console.error('Error updating journey:', error)
+                    alert('Failed to start coaching. Please try again.')
+                  } else {
+                    console.log('Journey step updated successfully!')
+                    setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                  }
+                } catch (err) {
+                  console.error('Unexpected error:', err)
+                  alert('Something went wrong. Please try again.')
+                } finally {
+                  setIsUpdatingJourney(false)
+                }
+              }}
+              disabled={isUpdatingJourney}
+              className={`w-full bg-purple-600 text-white rounded-lg py-3 font-semibold transition-colors flex items-center justify-center gap-2 ${
+                isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+              }`}
+            >
+              {isUpdatingJourney && (
+                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+              )}
+              {isUpdatingJourney ? 'Starting...' : 'Start Coaching →'}
+            </button>
+            <p className="text-xs text-gray-500 text-center mt-3">Baseline: {score || 62}/100</p>
+          </div>
+        </div>
       )}
 
       {journeyStep !== 'start' && journeyStep !== 'review' && journeyStep !== 'assess' && currentIndex >= 0 && (

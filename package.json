@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.73.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.94.1",
+    "html2pdf.js": "^0.14.0",
     "mammoth": "^1.11.0",
     "next": "16.1.6",
     "puppeteer": "^24.37.2",
