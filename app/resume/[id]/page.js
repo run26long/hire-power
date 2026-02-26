@@ -31,7 +31,7 @@ export default function ResumePage() {
   // Analysis state
   const [analysisResults, setAnalysisResults] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [selectedRoleLevel, setSelectedRoleLevel] = useState(null)
+const [detectedLevel, setDetectedLevel] = useState('entry')
 
   // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
@@ -116,8 +116,7 @@ const handleReassess = async () => {
       },
      body: JSON.stringify({
         resumeData: resume.resume_data,
-        roleLevel: selectedRoleLevel
-      })
+             })
     })
 
     if (!response.ok) {
@@ -128,14 +127,13 @@ const handleReassess = async () => {
  
     // Store analysis results
     setAnalysisResults(result)
-
+setDetectedLevel(result.detectedLevel || 'entry')
     
     // Update resume score in database
     // Update database with score and journey step if first assessment
     const updateData = {
       current_score: result.score,
       last_assessed_at: new Date().toISOString(),
-      role_level: selectedRoleLevel
     }
     
     // If coming from review, also update journey_step
@@ -212,13 +210,8 @@ function formatDate(dateString, format = dateFormat) {
       return
     }
 
-    setResume(data)
-    
-    // Load role level if previously saved
-    if (data.role_level) {
-      setSelectedRoleLevel(data.role_level)
-    }
-    
+    setResume(data)    
+    setAnalysisResults(null)  // Clear stale analysis results
     setSelectedTemplate(data.template_id || 'modern')
     setSelectedFont(data.font_family || 'Calibri')
     setSelectedSize(data.font_size || 11)
@@ -418,7 +411,7 @@ function formatDate(dateString, format = dateFormat) {
             My Resumes
           </button>
           <span className="mx-2 text-gray-400">|</span>
-          <span className="text-purple-600 font-semibold">
+          <span className="text-purple-600 font-semibold border-b-2 border-purple-600 pb-0.5">
             {resume.display_name || 'Core Resume'}
           </span>
         </div>
@@ -607,8 +600,7 @@ function formatDate(dateString, format = dateFormat) {
               setResume={setResume}
               handleReassess={handleReassess}
               isAnalyzing={isAnalyzing}
-              selectedRoleLevel={selectedRoleLevel}
-              setSelectedRoleLevel={setSelectedRoleLevel}
+              detectedLevel={detectedLevel}
             />
           </div>
         </div>
@@ -1756,8 +1748,7 @@ function toggleSummary() {
   )
 }
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, supabase, params, setResume, handleReassess, isAnalyzing, selectedRoleLevel, setSelectedRoleLevel }) {
-  const steps = ['review', 'assess', 'coach', 'improve', 'polish', 'save']
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel }) {  const steps = ['review', 'assess', 'coach', 'improve', 'polish', 'save']
   const currentIndex = steps.indexOf(journeyStep)
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
   const panelRef = useRef(null)
@@ -1770,7 +1761,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   }, [journeyStep])
 
  return (
-    <div ref={panelRef} className="overflow-y-auto h-full">
+    <div ref={panelRef} className="overflow-y-auto overflow-x-hidden h-full pr-3">
       
       <div className="mb-6 pb-4 border-b border-gray-200">
         <h3 className="text-center font-semibold text-sm mb-3">
@@ -1809,75 +1800,28 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </div>
       </div>
 
-  {journeyStep === 'review' && (
+ {journeyStep === 'review' && (
         <>
           <h3 className="font-semibold text-lg mb-3">📝 Review Your Resume</h3>
           
-          <p className="text-sm text-gray-700 mb-4">
+          <p className="text-xs text-gray-700 mb-4">
             AI parsing isn't perfect, so things occasionally land in the wrong spot. Take a quick look at your resume, and make sure everything's where it should be. Click any section to edit or move content around.
           </p>
 
-          {/* Role Level Selection */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                 <p className="text-sm font-bold text-center text-gray-900 mb-2">Almost Ready to Analyze!</p>
-
-            <p className="text-xs text-gray-900 mb-3">
-              Before we analyze your resume, tell us what level best describes your current or target role. This ensures we're scoring you against others at your stage—not holding a student to executive standards or vice versa.
-            </p>
-            
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="roleLevel"
-                  value="entry"
-                  checked={selectedRoleLevel === 'entry'}
-                  onChange={(e) => setSelectedRoleLevel(e.target.value)}
-                  className="mt-0.5 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500"
-                />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-gray-900">Entry-Level</div>
-                  <div className="text-xs text-gray-600">Coordinator, Student, Intern</div>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="roleLevel"
-                  value="mid"
-                  checked={selectedRoleLevel === 'mid'}
-                  onChange={(e) => setSelectedRoleLevel(e.target.value)}
-                  className="mt-0.5 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500"
-                />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-gray-900">Mid-Level</div>
-                  <div className="text-xs text-gray-600">Manager, Specialist, Professional</div>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="roleLevel"
-                  value="senior"
-                  checked={selectedRoleLevel === 'senior'}
-                  onChange={(e) => setSelectedRoleLevel(e.target.value)}
-                  className="mt-0.5 h-4 w-4 text-purple-600 border-gray-300 focus:ring-purple-500"
-                />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-gray-900">Senior-Level</div>
-                  <div className="text-xs text-gray-600">Sr. Manager, Director, VP, Executive</div>
-                </div>
-              </label>
+          <div className="bg-purple-50 border-l-4 border-purple-500 p-3 mb-4">
+            <div className="text-xs text-purple-900 space-y-2">
+              <div><strong>✓ Check contact info</strong></div>
+              <div><strong>✓ Verify job titles and dates</strong></div>
+              <div><strong>✓ Review bullet points</strong></div>
+              <div><strong>✓ Confirm education details</strong></div>
             </div>
           </div>
 
           <button 
             onClick={handleReassess}
-            disabled={isAnalyzing || !selectedRoleLevel}
+            disabled={isAnalyzing}
             className={`w-full bg-purple-600 text-white rounded-lg py-3 font-semibold transition-colors flex items-center justify-center gap-2 ${
-              isAnalyzing || !selectedRoleLevel ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+              isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
             }`}
           >
             {isAnalyzing && (
@@ -1904,7 +1848,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 
      {journeyStep === 'assess' && (
         <div className="space-y-5">
-          {/* Header */}
+       {/* Header */}
         <div className="flex items-center justify-center gap-6 -mt-1">
               <div className="text-center">
                 <div className="text-sm text-gray-600 leading-tight">Assessment Complete!</div>
@@ -1972,7 +1916,11 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="font-semibold text-gray-900 text-sm">Impact</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 20}/40</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Quantified achievements, results, scope</div>
+                 <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                    {detectedLevel === 'entry' && 'Relevant experience, skills, work ethic'}
+                    {detectedLevel === 'mid' && 'Growth, leadership, quantified results'}
+                    {detectedLevel === 'senior' && 'Strategic impact, organizational influence'}
+                  </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       className={`h-full ${
@@ -2008,7 +1956,11 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="font-semibold text-gray-900 text-sm">Keywords</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 14}/20</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Industry terms, relevant skills</div>
+                 <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                    {detectedLevel === 'entry' && 'Industry-relevant skills and terminology'}
+                    {detectedLevel === 'mid' && 'Comprehensive professional vocabulary'}
+                    {detectedLevel === 'senior' && 'Strategic and executive-level terminology'}
+                  </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       className={`h-full ${
@@ -2080,51 +2032,119 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               ))}
             </ul>
           </div>          
-          {/* CTA */}
+{/* CTA */}
           <div className="pt-3 border-t border-gray-300">
-         <button 
-              onClick={async () => {
-                console.log('Start Coaching clicked!')
-                setIsUpdatingJourney(true)
-                try {
-                  console.log('Updating journey step to coach...')
-                  const { error } = await supabase
-                    .from('resumes')
-                    .update({ 
-                      journey_step: 'coach',
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('id', params.id)
+        {userTier === 'free' ? (
+              // FREE TIER - Two options
+             <div className="space-y-4">
+                <div className="text-center mb-2">
+                  <h4 className="font-semibold text-gray-900 mb-1">What's Next?</h4>
+                  <p className="text-xs text-gray-600">Time to apply edits and boost that score!</p>
+                </div>
 
-                  if (error) {
-                    console.error('Error updating journey:', error)
-                    alert('Failed to start coaching. Please try again.')
-                  } else {
-                    console.log('Journey step updated successfully!')
-                    setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                <button
+                  onClick={async () => {
+                    setIsUpdatingJourney(true)
+                    try {
+                      const { error } = await supabase
+                        .from('resumes')
+                        .update({ 
+                          journey_step: 'improve',
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('id', params.id)
+
+                      if (error) {
+                        console.error('Error updating journey:', error)
+                        alert('Failed to move to Improve. Please try again.')
+                      } else {
+                        setResume(prev => ({ ...prev, journey_step: 'improve' }))
+                      }
+                    } catch (err) {
+                      console.error('Unexpected error:', err)
+                      alert('Something went wrong. Please try again.')
+                    } finally {
+                      setIsUpdatingJourney(false)
+                    }
+                  }}
+                  disabled={isUpdatingJourney}
+                  className={`w-full bg-purple-600 text-white rounded-lg py-2 px-3 transition-colors ${
+                    isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+                  }`}
+                >
+                  <div className="font-semibold text-sm leading-tight">Improve It Yourself</div>
+                  <div className="text-xs text-purple-100 leading-tight">Edit your resume using our AI suggestions</div>
+                </button>
+                
+                <div className="relative my-.5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-white px-2 text-gray-500">or</span>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    window.location.href = '/upgrade'
+                  }}
+                  className="w-full bg-white text-purple-600 border-2 border-purple-600 rounded-lg py-2 px-3 hover:bg-purple-50 transition-colors"
+                >
+                  <div className="font-semibold text-sm leading-tight">Upgrade to Pro</div>
+                  <div className="text-xs text-purple-500 leading-tight">Let our Resume Coach make the changes</div>
+                </button>
+                
+                <p className="text-xs text-gray-600 text-center mt-.5 mb-4">
+                  Pro users see an average <strong className="text-purple-600">16-point improvement</strong> after coaching!
+                </p>
+              </div>
+            ) : (
+              // PRO TIER - Start coaching
+              <button 
+                onClick={async () => {
+                  console.log('Start Coaching clicked!')
+                  setIsUpdatingJourney(true)
+                  try {
+                    console.log('Updating journey step to coach...')
+                    const { error } = await supabase
+                      .from('resumes')
+                      .update({ 
+                        journey_step: 'coach',
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq('id', params.id)
+
+                    if (error) {
+                      console.error('Error updating journey:', error)
+                      alert('Failed to start coaching. Please try again.')
+                    } else {
+                      console.log('Journey step updated successfully!')
+                      setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                    }
+                  } catch (err) {
+                    console.error('Unexpected error:', err)
+                    alert('Something went wrong. Please try again.')
+                  } finally {
+                    setIsUpdatingJourney(false)
                   }
-                } catch (err) {
-                  console.error('Unexpected error:', err)
-                  alert('Something went wrong. Please try again.')
-                } finally {
-                  setIsUpdatingJourney(false)
-                }
-              }}
-              disabled={isUpdatingJourney}
-              className={`w-full bg-purple-600 text-white rounded-lg py-3 font-semibold transition-colors flex items-center justify-center gap-2 ${
-                isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
-              }`}
-            >
-              {isUpdatingJourney && (
-                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-              )}
-              {isUpdatingJourney ? 'Starting...' : 'Start Coaching →'}
-            </button>
-            <p className="text-xs text-gray-500 text-center mt-3">Baseline: {score || 62}/100</p>
-          </div>
+                }}
+                disabled={isUpdatingJourney}
+                className={`w-full bg-purple-600 text-white rounded-lg py-3 font-semibold transition-colors flex items-center justify-center gap-2 ${
+                  isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+                }`}
+              >
+                {isUpdatingJourney && (
+                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                )}
+                {isUpdatingJourney ? 'Starting...' : 'Start Coaching →'}
+              </button>
+            )}
+            
+                </div>
         </div>
       )}
-
+       
       {journeyStep !== 'start' && journeyStep !== 'review' && journeyStep !== 'assess' && currentIndex >= 0 && (
         <>
           <h3 className="font-semibold text-lg mb-3">Resume Coach</h3>

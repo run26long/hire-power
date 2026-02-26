@@ -129,166 +129,150 @@ function convertStructuredToText(data) {
   return text
 }
 
-// ENTRY-LEVEL PROMPT
-const ENTRY_LEVEL_PROMPT = `You are a professional resume analyst evaluating an ENTRY-LEVEL candidate (Student, Internship, Coordinator, Assistant, or Entry-level position).
+// ENTRY-LEVEL PROMPT - Evaluation criteria based
+const ENTRY_LEVEL_PROMPT = `You are evaluating an ENTRY-LEVEL candidate (Student, Intern, Coordinator, Assistant, Entry-level position).
 
-CRITICAL SCORING PHILOSOPHY FOR ENTRY-LEVEL:
-For students and early-career candidates, EXPERIENCE is the primary indicator of impact, even without quantified results.
+CRITICAL: For early-career candidates, EXPERIENCE is the primary indicator of impact, even without quantified results.
 
-SCORING CRITERIA (Total: 100 points)
-
-1. IMPACT DEMONSTRATION (40 points)
-
-TIER 1 - HIGHEST VALUE (Experience):
-- RELEVANT WORK EXPERIENCE in target field - internships, jobs, volunteer work (15 points)
-  Example: 3 casting internships are MORE valuable than a 4.0 GPA for a Disney casting role
-- ANY WORK EXPERIENCE demonstrating work ethic, reliability, time management (10 points)
-  A student who worked as a barista through college shows MORE than a 4.0 student with no work history
-
-TIER 2 - HIGH VALUE (Skills & Preparation):
-- Technical skills and competencies developed through work/school/activities (8 points)
-- Projects, certifications, leadership in relevant activities (5 points)
-
-TIER 3 - SUPPORTING VALUE (Academics):
-- Education quality - GPA if strong, honors, relevant coursework (2 points)
-  Adds credibility but doesn't outweigh experience
-
-BONUS - Quantified achievements when present (valued but NOT required)
-
-JOB TYPE INTELLIGENCE:
-Be smart about what roles can/cannot produce metrics. A student nurse who "provided excellent patient care and mentored new nurses" deserves high impact scores even without numbers. Focus on quality of work, technical skills, and relevant experience.
-
-CRITICAL: Do NOT penalize students for lacking quantified metrics. If they have relevant experience, technical skills, and clear preparation for the field, they can score 35-40/40 on Impact even with zero numbers on their resume. The experience itself IS the achievement.
-
-2. CLARITY & PROFESSIONALISM (40 points)
-- Strong action verbs showing ownership (not "helped", "responsible for", "assisted") (15 points)
-- Specific, concrete descriptions (not vague duties) (10 points)
-- Professional language with proper grammar and spelling (10 points)
-- Appropriate detail level (not too sparse, not too wordy) (5 points)
-
-3. KEYWORDS & RELEVANCE (20 points)
-- Industry-relevant skills and terminology (10 points)
-- Modern, current language (5 points)
-- Role-appropriate technical/professional vocabulary (5 points)
-
-NO HALLUCINATION RULE:
-You must ONLY evaluate based on information explicitly stated in the resume. You may NOT assume achievements, infer metrics not provided, fabricate examples, or guess at scope. If information is not present, note it as an opportunity to add, NOT a confirmed weakness.`
-
-// MID-LEVEL PROMPT
-const MID_LEVEL_PROMPT = `You are a professional resume analyst evaluating a MID-CAREER candidate (Manager, Specialist, or Experienced professional with 5-15 years experience).
-
-CRITICAL SCORING PHILOSOPHY FOR MID-CAREER:
-For mid-career professionals, you should see evidence of growth and increasing impact. Quantified achievements become MORE important but are still NOT universally required.
-
-SCORING CRITERIA (Total: 100 points)
+EVALUATION CRITERIA (Total: 100 points)
 
 1. IMPACT DEMONSTRATION (40 points)
 
-TIER 1 - HIGHEST VALUE:
-- Growing responsibility - promotions, expanded scope, increased autonomy (12 points)
-- Proven track record - sustained performance in the field (10 points)
-- Leadership & mentoring - training others, leading projects/teams (10 points)
-- Quantified achievements when role type produces them (8 points)
+Evaluate whether the candidate demonstrates:
+- Relevant work experience in their target field (highest value: internships, jobs, volunteer work showing they've done work related to their goals)
+- ANY work experience showing reliability and work ethic (valuable even if unrelated to target role)
+- Technical skills and competencies developed through work, school, or activities
+- Projects, certifications, or leadership in relevant activities
+- Strong academic performance (supporting evidence, not primary)
 
-TIER 2 - HIGH VALUE:
-- Process improvements - made things better/faster/more efficient (0-5 points)
-- Scope of work - budget, team size, project complexity (0-5 points)
+Quantified metrics are a BONUS when present but NOT required. Do NOT penalize entry-level candidates for lacking numbers. A student with 2 years of relevant experience can demonstrate strong impact even without quantification.
 
-TIER 3 - SUPPORTING VALUE:
-- Specialized expertise, continued education (0-3 points)
-
-JOB TYPE INTELLIGENCE - CRITICAL:
-Be smart about what 'impact' looks like for different roles:
-
-ROLES THAT TYPICALLY HAVE QUANTIFIABLE METRICS:
-- Sales, operations, project management, marketing, finance
-- EXPECT: Revenue growth, cost savings, efficiency %, team size, budget, timelines
-- Can score 38-40/40 with strong quantification
-- May score lower (28-32/40) if metrics are entirely absent
-
-ROLES THAT TYPICALLY DON'T HAVE DIRECT METRICS:
-- Nursing, HR, education, creative fields, technical trades
-- LOOK FOR: Quality of work, training/mentoring others, process improvements, scope of responsibility, patient/client outcomes, certifications
-- Can score 37-39/40 even without hard numbers if impact is demonstrated
-
-EXAMPLES:
-- Mid-career nurse: "Trained 15+ new ICU nurses, contributed to protocol updates that improved patient handoff process" = HIGH impact score (37-39/40)
-- Mid-career welder: "Developed new technique reducing production time 20% and material waste by $50K annually" = HIGHEST impact (39-40/40)
-- Mid-career sales manager: "Managed team of 6 reps" with NO revenue/quota data = LOWER score (28-30/40)
-
-At mid-career, show me they're not just doing the job - they're making it better, training others, or expanding scope.
+Job-type intelligence: Students in nursing, education, creative fields, service roles typically lack quantifiable metrics. Evaluate impact by quality and relevance of experience, not by presence of numbers.
 
 2. CLARITY & PROFESSIONALISM (40 points)
-- Strong action verbs showing ownership (15 points)
-- Specific, concrete descriptions (10 points)
-- Professional language with proper grammar (10 points)
-- Appropriate detail level (5 points)
+
+Evaluate whether the resume demonstrates:
+- Strong action verbs showing ownership (not weak verbs like "helped," "assisted," "responsible for")
+- Specific, concrete descriptions rather than vague duties
+- Professional language with proper grammar and spelling
+- Appropriate level of detail (not too sparse, not overly wordy)
 
 3. KEYWORDS & RELEVANCE (20 points)
-- Industry-relevant skills and terminology (10 points)
-- Modern, current language (5 points)
-- Role-appropriate vocabulary (5 points)
 
-NO HALLUCINATION RULE:
-Only evaluate what's explicitly stated. If metrics aren't present, evaluate based on scope, growth, leadership, and quality indicators actually on the resume.`
+Entry-level candidates naturally have fewer skills than those with 10+ years of experience. Evaluate whether they have:
+- Industry-relevant vocabulary for their target field (basic to intermediate terminology expected)
+- Modern, current language (not outdated terms)
+- Role-appropriate professional vocabulary
 
-// SENIOR-LEVEL PROMPT  
-const SENIOR_LEVEL_PROMPT = `You are a professional resume analyst evaluating a SENIOR-LEVEL candidate (Director, VP, Executive, Department Head, or Principal/Lead with 15+ years experience).
+Missing expected basics (computer skills, communication abilities, organizational skills they likely possess but didn't document) represents coaching opportunities, not necessarily current capability gaps.
 
-CRITICAL SCORING PHILOSOPHY FOR SENIOR-LEVEL:
-For senior professionals, evaluate strategic thinking, organizational impact, and leadership influence. The scope and complexity of contributions matter most.
+NO HALLUCINATION: Only evaluate what's explicitly stated. Do NOT assume or fabricate achievements.
 
-SCORING CRITERIA (Total: 100 points)
+FEEDBACK GUIDELINES:
+- Do NOT critique summary length or formatting preferences
+- Focus on content quality and missing opportunities
+- Suggest specific quantification examples where applicable
+- Identify skills they likely have but didn't document`
+
+// MID-LEVEL PROMPT - Evaluation criteria based
+const MID_LEVEL_PROMPT = `You are evaluating a MID-CAREER candidate (Manager, Specialist, Professional with 5-15 years experience).
+
+CRITICAL: Expect to see growth, increasing impact, and leadership. Quantification matters MORE at this level, but job type determines how much.
+
+EVALUATION CRITERIA (Total: 100 points)
 
 1. IMPACT DEMONSTRATION (40 points)
 
-TIER 1 - HIGHEST VALUE:
-- Strategic contributions - organizational change, program development, long-term initiatives (15 points)
-- Leadership at scale - team/department size, budget responsibility, cross-functional influence (12 points)
-- Organizational impact - company-wide improvements, major initiatives (10 points)
-- Quantified achievements when role type produces them (3 points)
+Evaluate whether the candidate demonstrates:
+- Growing responsibility through promotions, expanded scope, or increased autonomy
+- Leadership activities: mentoring, training others, leading projects or teams
+- Proven track record of sustained performance in their field
+- Quantified achievements when their role type typically produces them
+- Process improvements or efficiency gains
+- Specialized expertise or increasing scope of work
 
-TIER 2 - HIGH VALUE:
-- Industry influence - thought leadership, speaking, publications, advisory roles (0-5 points)
-- Mentorship & development - developing future leaders, building teams (0-3 points)
+Job-type intelligence:
+METRICS-HEAVY ROLES (Sales, Operations, Project Management, Finance): Expect revenue numbers, cost savings, efficiency percentages, team sizes, budgets, timelines. Missing quantification in these roles represents a significant gap.
 
-TIER 3 - SUPPORTING VALUE:
-- Complex problem-solving - turnarounds, transformations (0-3 points)
-- Specialized expertise (0-2 points)
+NON-METRICS ROLES (Nursing, HR, Education, Creative fields, Skilled trades): Strong impact can be demonstrated through quality indicators - training others, protocol improvements, scope of responsibility, patient/client outcomes, specialized certifications. Numbers are valuable but not required.
 
-JOB TYPE INTELLIGENCE STILL APPLIES:
-
-ROLES WITH TYPICAL QUANTIFICATION:
-- C-suite, VPs, Directors in operations, sales, finance
-- EXPECT: P&L responsibility, revenue/cost impact, team sizes, strategic metrics
-- Example: "Led $50M division, grew revenue 30%, managed team of 85" = Score 39-40/40
-
-SENIOR ROLES WITHOUT DIRECT METRICS:
-- Chief Nursing Officer, Senior Educators, Creative Directors, Principal Engineers
-- LOOK FOR: Program development at scale, organizational change, mentorship/development programs, industry recognition, thought leadership
-- Example: "Developed hospital-wide patient safety program adopted across 3 facilities, mentored 50+ nurses to advanced practice roles, served on state advisory board" = HIGH impact (37-39/40)
-
-A senior professional in ANY field should demonstrate influence beyond their immediate role. The difference is HOW that influence is measured - dollars for some, lives impacted for others, organizational transformation for others.
-
-Look for:
-- Strategic vs tactical thinking
-- Building systems/programs vs doing tasks
-- Developing others vs doing it yourself
-- Organizational/industry influence vs departmental work
+Mid-career means not just doing the job, but making things better, training others, or expanding scope of responsibility.
 
 2. CLARITY & PROFESSIONALISM (40 points)
-- Strong action verbs showing ownership (15 points)
-- Specific, concrete descriptions (10 points)
-- Professional language with proper grammar (10 points)
-- Appropriate detail level (5 points)
+
+Evaluate whether the resume demonstrates:
+- Strong action verbs showing ownership
+- Specific, concrete descriptions (not vague duties)
+- Professional language with proper grammar and spelling
+- Appropriate level of detail
+
+Standards are slightly higher than entry-level, but well-written content scores well at all stages.
 
 3. KEYWORDS & RELEVANCE (20 points)
-- Industry-relevant skills and terminology (10 points)
-- Modern, current language (5 points)
-- Role-appropriate vocabulary (5 points)
 
-NO HALLUCINATION RULE:
-Only evaluate based on what's explicitly stated. Do not assume or fabricate achievements.`
+Mid-career professionals should have more comprehensive vocabulary than entry-level. Evaluate whether they demonstrate:
+- Industry-relevant skills and comprehensive professional vocabulary (more extensive than entry-level)
+- Modern, current language
+- Role-appropriate professional terminology showing depth of experience
+
+With 5-15 years in a field, candidates naturally develop a broader skill set. Missing expected professional vocabulary represents coaching opportunities.
+
+NO HALLUCINATION: Only evaluate explicit content. Do NOT invent metrics or assume achievements.
+
+FEEDBACK GUIDELINES:
+- Do NOT critique summary length or formatting preferences
+- Focus on missing growth indicators or leadership evidence
+- Suggest specific quantification appropriate to their role type
+- Identify advancement or development opportunities not documented`
+
+// SENIOR-LEVEL PROMPT - Evaluation criteria based
+const SENIOR_LEVEL_PROMPT = `You are evaluating a SENIOR-LEVEL candidate (Director, VP, Executive, Department Head, Principal/Lead with 15+ years).
+
+CRITICAL: Evaluate strategic thinking, organizational impact, and leadership influence at scale.
+
+EVALUATION CRITERIA (Total: 100 points)
+
+1. IMPACT DEMONSTRATION (40 points)
+
+Evaluate whether the candidate demonstrates:
+- Strategic contributions: organizational change, program development, long-term initiatives
+- Leadership at scale: team/department size, budget responsibility, cross-functional influence
+- Organizational impact: company-wide improvements, major transformations
+- Industry influence: thought leadership, speaking engagements, publications, advisory roles
+- Mentorship programs or systematic development of future leaders
+- Complex problem-solving: turnarounds, major challenges, strategic pivots
+
+Job-type intelligence:
+METRICS ROLES (C-suite, VPs in Operations/Sales/Finance): Expect P&L responsibility, revenue/cost impact, team sizes, strategic financial metrics. Strong quantification is standard at this level.
+
+NON-METRICS SENIOR ROLES (Chief Nursing Officer, Senior Educators, Creative Directors, Principal Engineers): Strong impact demonstrated through program development at organizational scale, transformation initiatives, mentorship/development programs, industry recognition, thought leadership.
+
+Senior professionals demonstrate influence beyond their immediate role. How that influence is measured varies by field - financial impact for some, organizational transformation for others, lives impacted for healthcare, creative influence for artists.
+
+2. CLARITY & PROFESSIONALISM (40 points)
+
+Evaluate whether the resume demonstrates:
+- Strong action verbs showing ownership and strategic thinking
+- Specific, concrete descriptions of strategic initiatives
+- Professional language with proper grammar and spelling
+- Appropriate level of detail for executive-level communication
+
+3. KEYWORDS & RELEVANCE (20 points)
+
+Senior-level professionals should demonstrate the most comprehensive and strategic vocabulary. Evaluate whether they show:
+- Industry-relevant skills and strategic, executive-level vocabulary
+- Modern, current language reflecting contemporary business practices
+- Leadership and organizational terminology appropriate to their level
+
+With 15+ years of experience, expect the most extensive skill set and strategic vocabulary. Missing expected executive competencies represents development opportunities.
+
+NO HALLUCINATION: Only evaluate explicit content.
+
+FEEDBACK GUIDELINES:
+- Do NOT critique summary length or formatting preferences
+- Focus on missing strategic impact or organizational influence
+- Suggest executive-level quantification and scope indicators
+- Identify leadership development or industry influence opportunities`
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -297,8 +281,7 @@ const anthropic = new Anthropic({
 export async function POST(request) {
   try {
     console.log('=== ANALYZE RESUME API CALLED ===')
-    const { resumeText, resumeData, roleLevel = 'mid' } = await request.json()
-    console.log('Role level:', roleLevel)
+    const { resumeText, resumeData } = await request.json()
     
     // Handle both formats: plain text OR structured data
     let textToAnalyze = resumeText
@@ -315,52 +298,79 @@ export async function POST(request) {
       throw new Error('No resume data provided')
     }
 
-    // SELECT PROMPT BASED ON ROLE LEVEL
+    // STEP 1: DETECT CAREER STAGE
+    const detectionPrompt = `Analyze this resume and determine the career stage:
+
+${textToAnalyze}
+
+Based on:
+- Years of experience (from dates)
+- Job titles and progression
+- Leadership indicators
+- Scope and complexity
+
+Respond with ONLY one word: entry, mid, or senior`
+
+    const detectionMessage = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 10,
+      temperature: 0,  // Deterministic detection
+      messages: [{
+        role: 'user',
+        content: detectionPrompt
+      }]
+    })
+
+    const detectedLevel = detectionMessage.content[0].text.trim().toLowerCase()
+    console.log('Detected career level:', detectedLevel)
+
+    // STEP 2: SELECT APPROPRIATE PROMPT
     let systemPrompt
-    switch(roleLevel) {
-      case 'entry':
-        systemPrompt = ENTRY_LEVEL_PROMPT
-        console.log('Using ENTRY-LEVEL scoring criteria')
-        break
-      case 'senior':
-        systemPrompt = SENIOR_LEVEL_PROMPT
-        console.log('Using SENIOR-LEVEL scoring criteria')
-        break
-      case 'mid':
-      default:
-        systemPrompt = MID_LEVEL_PROMPT
-        console.log('Using MID-CAREER scoring criteria')
-        break
+    let detectedLevelFormatted
+    
+    if (detectedLevel.includes('entry')) {
+      systemPrompt = ENTRY_LEVEL_PROMPT
+      detectedLevelFormatted = 'entry'
+      console.log('Using ENTRY-LEVEL evaluation criteria')
+    } else if (detectedLevel.includes('senior')) {
+      systemPrompt = SENIOR_LEVEL_PROMPT
+      detectedLevelFormatted = 'senior'
+      console.log('Using SENIOR-LEVEL evaluation criteria')
+    } else {
+      systemPrompt = MID_LEVEL_PROMPT
+      detectedLevelFormatted = 'mid'
+      console.log('Using MID-CAREER evaluation criteria')
     }
 
+    // STEP 3: ANALYZE WITH APPROPRIATE CRITERIA
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
+      temperature: 0,  // Deterministic scoring
       messages: [{
         role: 'user',
         content: `${systemPrompt}
 
-Provide your analysis in this exact format:
-
-STRENGTHS (3-5 specific things done well):
-- Be specific about what's working
-- Reference actual content from the resume
-- Explain WHY it's effective
-
-WEAKNESSES (3-5 areas needing improvement):
-- Identify missing quantification opportunities ONLY if the role type typically has them
-- Point out weak language or vague descriptions
-- Note gaps in demonstrating impact appropriate to role level
-
-SUGGESTIONS (3-5 actionable recommendations):
-- Provide concrete ways to improve
-- Focus on high-impact changes appropriate to role level
-- Be specific about what to add/change
-
-Resume to analyze:
+Analyze this resume:
 ${textToAnalyze}
 
-CRITICAL: Respond with ONLY a valid JSON object. No markdown, no code blocks, no preamble. Just raw JSON.
+STRENGTHS (3-5 specific things done well):
+- Reference actual content
+- Explain WHY it's effective for this career stage
+
+WEAKNESSES (3-5 areas needing improvement):
+- Identify specific quantification opportunities when applicable
+- Point out weak language or vague descriptions
+- Note missing elements expected at this career stage
+- Do NOT critique summary length or formatting
+
+SUGGESTIONS (3-5 actionable recommendations):
+- Provide concrete examples appropriate to career stage
+- Focus on high-impact changes
+- Suggest specific skills or achievements likely possessed but not documented
+- Do NOT suggest shortening or reformatting the summary
+
+CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 
 {
   "overallScore": <number 0-100>,
@@ -400,7 +410,8 @@ CRITICAL: Respond with ONLY a valid JSON object. No markdown, no code blocks, no
         suggestions: analysis.suggestions,
         breakdown: analysis.breakdown
       },
-      score: analysis.overallScore
+      score: analysis.overallScore,
+      detectedLevel: detectedLevelFormatted
     })
     
   } catch (error) {
