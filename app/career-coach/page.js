@@ -3,16 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import MainNav from '../../components/MainNav';
-import Breadcrumb from '../../components/Breadcrumb';
+import MainNav from '../components/MainNav';
+import Breadcrumb from '../components/Breadcrumb';
 
 export default function MyCareerPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [user, setUser] = useState(null);
+const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [careerContext, setCareerContext] = useState(null);
+  const [existingResume, setExistingResume] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -30,17 +33,108 @@ export default function MyCareerPage() {
         .single();
       setUserProfile(profile);
 
-      const { data: context } = await supabase
+   const { data: context } = await supabase
         .from('career_context')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
       setCareerContext(context);
+      
+      // Check if user has any resumes (uploaded or built)
+      const { data: resumes } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      
+      if (resumes && resumes.length > 0) {
+        setExistingResume(resumes[0]);
+      }
+      
+     // Only show returning view if they have actual career context
+      // Having a resume alone should show new user screen with resume detection
+      if (context) {
+        setCareerContext(context);
+      }
+      
       setLoading(false);
     }
     loadData();
   }, [supabase, router]);
+
+  // Handle file upload
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // 1. Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Parse the file (extract text)
+      const parseResponse = await fetch('/api/parse-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath })
+      });
+
+      if (!parseResponse.ok) {
+        throw new Error('Failed to parse resume');
+      }
+
+      const { text } = await parseResponse.json();
+
+      // 3. Extract structured data
+      const extractResponse = await fetch('/api/extract-resume-structure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parsedText: text })
+      });
+
+      if (!extractResponse.ok) {
+        throw new Error('Failed to extract resume structure');
+      }
+
+      const { data: resumeData } = await extractResponse.json();
+
+      // 4. Save to database (resumes table)
+      const { data: savedResume, error: saveError } = await supabase
+        .from('resumes')
+        .insert({
+          user_id: user.id,
+          resume_type: 'core',
+          display_name: 'Core Resume',
+          resume_data: resumeData,
+          journey_step: 'review',
+          file_path: filePath
+        })
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
+      // 5. Redirect to Career Detail with resume ID
+      router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(error.message || 'Failed to upload resume. Please try again.');
+      setUploading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -50,8 +144,7 @@ export default function MyCareerPage() {
     );
   }
 
-  const breadcrumbItems = [
-    { label: 'Dashboard', path: '/dashboard' },
+const breadcrumbItems = [
     { label: 'My Career' }
   ];
 
@@ -60,37 +153,46 @@ export default function MyCareerPage() {
       <MainNav currentPage="career-coach" userProfile={userProfile} />
       <Breadcrumb items={breadcrumbItems} />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-6">
         {!careerContext ? (
           // NEW USER - Enhanced Welcome
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              {/* Header Section */}
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-8 py-6 border-b border-purple-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">💼</span>
+              {/* Header Section - FREE BADGE ON RIGHT */}
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-8 py-4 border-b border-purple-200">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-2xl">💼</span>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 leading-tight">Welcome to Career Coach</h2>
+                      <p className="text-sm text-gray-600 leading-tight">Your first step to a stronger career strategy</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Welcome to Career Coach</h2>
-                    <p className="text-sm text-gray-600">Your first step to a stronger career strategy</p>
+                  {/* FREE BADGE - RIGHT SIDE */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-shrink-0">
+                    <span className="text-green-600 text-lg">✨</span>
+                    <div>
+                      <p className="font-semibold text-green-900 text-xs leading-tight">Free for Everyone</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="px-8 py-6">
-                <p className="text-gray-700 mb-6">
+              {/* Content - COMPACT */}
+              <div className="px-8 py-5">
+                <p className="text-gray-700 mb-5">
                   Before we build your resume, let's have a quick 5-minute conversation about your career direction. This helps us tailor everything to your specific goals.
                 </p>
 
-                {/* What We'll Cover Checklist */}
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-5 mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                {/* What We'll Cover Checklist - NARROWER */}
+                <div className="max-w-lg mx-auto bg-purple-50 border border-purple-200 rounded-lg p-4 mb-5">
+                  <h3 className="font-semibold text-gray-900 mb-2.5 flex items-center gap-2">
                     <span className="text-purple-600">📋</span>
                     What We'll Cover:
                   </h3>
-                  <div className="space-y-2.5">
+                  <div className="space-y-1.5">
                     <div className="flex items-start gap-2.5">
                       <span className="text-purple-600 text-lg flex-shrink-0">✓</span>
                       <span className="text-sm text-gray-700"><strong>Current Background:</strong> Your experience and role</span>
@@ -114,38 +216,75 @@ export default function MyCareerPage() {
                   </div>
                 </div>
 
-                {/* Free Badge */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-green-600 text-xl">✨</span>
-                    <div>
-                      <p className="font-semibold text-green-900 text-sm">Free for Everyone</p>
-                      <p className="text-xs text-green-700">This conversation is completely free and helps everything work better.</p>
+{/* Existing Resume Detected */}
+                {existingResume && !careerContext && (
+                  <div className="flex items-center gap-4 mb-4">
+                    {/* Left: Green message box */}
+                    <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      <p className="text-sm font-semibold text-green-800 mb-1">✓ Resume Found!</p>
+                      <p className="text-sm text-green-800">
+                        We'll use your {existingResume.display_name || 'Core Resume'} for our career conversation.
+                      </p>
+                    </div>
+                    
+                    {/* Right: Button and link stack */}
+                    <div className="flex flex-col items-center space-y-2">
+                      <button
+                        onClick={() => router.push(`/career-coach/detail?resumeId=${existingResume.id}`)}
+                        className="bg-purple-600 text-white px-6 py-2.5 rounded-lg hover:bg-purple-700 transition-all font-semibold whitespace-nowrap"
+                      >
+                        Continue with Existing Resume →
+                      </button>
+                      <p className="text-xs text-gray-500 text-center">
+                        Need to use a different resume?{' '}
+                        <button
+                          onClick={() => setExistingResume(null)}
+                          className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+                        >
+                          Upload here
+                        </button>
+                      </p>
                     </div>
                   </div>
-                </div>
+                )}
+                {/* Upload Section - Only show if no existing resume */}
+                {!existingResume && (
+                  <div className="flex flex-col items-center space-y-3">
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="resume-upload"
+                      disabled={uploading}
+                    />
+                    <div className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all font-semibold shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap flex items-center gap-2">
+                      {uploading && (
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      )}
+                      {uploading ? 'Uploading...' : 'Upload Resume to Get Started'}
+                    </div>
+                  </label>
 
-                {/* CTA */}
-                <button
-                  onClick={() => router.push('/career-coach/detail')}
-                  className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all font-semibold shadow-sm hover:shadow-md"
-                >
-                  Start Career Conversation →
-                </button>
-
-                {/* Skip Option */}
-                <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-                  <p className="text-xs text-gray-500 mb-3">Want to skip this for now?</p>
-                  <button
-                    onClick={() => router.push('/resume-coach')}
-                    className="text-sm text-purple-600 hover:text-purple-700 font-medium hover:underline"
-                  >
-                    Go directly to Resume Coach →
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    (You can always come back to complete Career Coach later)
-                  </p>
+                  <p className="text-xs text-gray-500">
+                    No resume?{' '}
+                    <button
+                      onClick={() => router.push('/career-coach/build')}
+                      className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+                    >
+                      Create one from scratch →
+                    </button>
+                 </p>
                 </div>
+                )}
+
+                {/* Error Display */}
+                {uploadError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">{uploadError}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -217,8 +356,19 @@ export default function MyCareerPage() {
 
                 {/* Update Button */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <button
-                    onClick={() => router.push('/career-coach/detail')}
+               <button
+                    onClick={async () => {
+                      const { data: resume } = await supabase
+                        .from('resumes')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .limit(1)
+                        .single();
+                      
+                      if (resume?.id) {
+                        router.push(`/career-coach/detail?resumeId=${resume.id}`);
+                      }
+                    }}
                     className="w-full bg-white text-purple-600 border-2 border-purple-600 px-4 py-2.5 rounded-lg hover:bg-purple-50 transition-all text-sm font-semibold"
                   >
                     Update Career Goals

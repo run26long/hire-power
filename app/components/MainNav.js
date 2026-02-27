@@ -6,9 +6,10 @@ export default function MainNav({ currentPage, userProfile }) {
   const router = useRouter();
 
   const navItems = [
+    { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
     { id: 'career-coach', label: 'Career Coach', path: '/career-coach' },
     { id: 'resume-coach', label: 'Resume Coach', path: '/resume-coach' },
-    { id: 'interview-coach', label: 'Interview Coach', path: '#', disabled: true },
+    { id: 'interview-coach', label: 'Interview Coach', path: '/interview-coach', disabled: true }
   ];
 
   return (

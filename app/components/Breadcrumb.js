@@ -6,7 +6,7 @@ export default function Breadcrumb({ items }) {
   const router = useRouter();
 
   return (
-    <div className="bg-white border-b border-gray-200 sticky top-[52px] z-40">
+    <div className="bg-gray-50 border-b border-gray-200 sticky top-[57px] z-40">
       <div className="px-6 py-1.5 flex items-center text-xs">
         {items.map((item, index) => (
           <span key={index} className="flex items-center">

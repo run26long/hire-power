@@ -37,7 +37,6 @@ export default function BatteryScore({ score, label, size = 'medium' }) {
         {/* Battery Terminal */}
         <div className="w-1 h-6 bg-gray-700 rounded-r"></div>
         
-      
       </div>
       
       {/* Label */}
