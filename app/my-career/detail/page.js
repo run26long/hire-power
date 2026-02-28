@@ -105,7 +105,7 @@ export default function CareerDetailPage() {
         }
       } else {
         // No resume ID - redirect back to My Career
-        router.push('/career-coach');
+        router.push('/my-career');
         return;
       }
 
@@ -166,6 +166,8 @@ export default function CareerDetailPage() {
     ]);
   };
  // Handle conversation message
+ const [isConversationComplete, setIsConversationComplete] = useState(false);
+
   const handleSendMessage = async (message) => {
     // Add user message
     const newMessages = [...messages, { role: 'user', content: message }];
@@ -173,7 +175,7 @@ export default function CareerDetailPage() {
     setIsAIThinking(true);
 
     try {
-      const response = await fetch('/api/career-coach', {
+      const response = await fetch('/api/my-career', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -192,6 +194,12 @@ export default function CareerDetailPage() {
           content: data.response
         }
       ]);
+      
+      // Check if conversation is complete
+      if (data.isComplete) {
+        setIsConversationComplete(true);
+      }
+      
       setIsAIThinking(false);
     } catch (error) {
       console.error('Error:', error);
@@ -199,10 +207,10 @@ export default function CareerDetailPage() {
     }
   };
   // Handle career conversation completion
-  const handleConversationComplete = async () => {
-    // TODO: Save to career_context table
-    // TODO: Redirect to Resume Coach or Dashboard
-    router.push('/dashboard');
+ const handleConversationComplete = async () => {
+    // Career context already saved by API
+    // Redirect to My Resumes
+    router.push('/my-resumes');
   };
 
   if (loading) {
@@ -214,13 +222,13 @@ export default function CareerDetailPage() {
   }
 
   const breadcrumbItems = [
-    { label: 'My Career', path: '/career-coach' },
+    { label: 'My Career', path: '/my-career' },
     { label: 'Career Conversation' }
   ];
 
  return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <MainNav currentPage="career-coach" userProfile={userProfile} />
+      <MainNav currentPage="my-career" userProfile={userProfile} />
       <Breadcrumb items={breadcrumbItems} />
 
 {/* Conversation Mode */}
@@ -347,7 +355,7 @@ export default function CareerDetailPage() {
                 {messages.some(m => m.role === 'user') && <div ref={messagesEndRef} />}
               </div>
               {/* Input & Button */}
-              {messages.length > 10 ? (
+            {isConversationComplete ? (
                 <button
                   onClick={handleConversationComplete}
                   className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-all font-semibold text-sm"

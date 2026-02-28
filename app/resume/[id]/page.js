@@ -358,7 +358,7 @@ function formatDate(dateString, format = dateFormat) {
             </span>
           </div>
 
-      <div className="flex items-center gap-6">
+     <div className="flex items-center gap-6">
             <nav className="flex items-center gap-6">
               <button
                 onClick={() => router.push('/dashboard')}
@@ -367,15 +367,21 @@ function formatDate(dateString, format = dateFormat) {
                 Dashboard
               </button>
               <button
-                onClick={() => router.push('/career-coach')}
+                onClick={() => router.push('/my-career')}
                 className="text-sm text-gray-600 hover:text-purple-600"
               >
                 Career Coach
               </button>
-              <span className="text-sm text-purple-600 font-semibold border-b-2 border-purple-600 pb-1">
+              <button
+                onClick={() => router.push('/my-resumes')}
+                className="text-sm text-purple-600 font-semibold border-b-2 border-purple-600 pb-1 hover:text-purple-700"
+              >
                 Resume Coach
-              </span>
-              <button className="text-sm text-gray-400 cursor-not-allowed">
+              </button>
+              <button
+                onClick={() => router.push('/my-interviewsS')}
+                className="text-sm text-gray-600 hover:text-purple-600"
+              >
                 Interview Coach
               </button>
             </nav>
@@ -404,7 +410,7 @@ function formatDate(dateString, format = dateFormat) {
       <div className="bg-white border-b border-gray-200 sticky top-[52px] z-40">
         <div className="px-6 py-1.5 flex items-center text-xs">
           <button
-            onClick={() => router.push('/resume-coach')}
+            onClick={() => router.push('/my-resumes')}
             className="text-gray-600 hover:text-purple-600"
           >
             My Resumes

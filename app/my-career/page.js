@@ -127,7 +127,7 @@ const [user, setUser] = useState(null);
       if (saveError) throw saveError;
 
       // 5. Redirect to Career Detail with resume ID
-      router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
+      router.push(`/my-career/detail?resumeId=${savedResume.id}`);
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -150,7 +150,7 @@ const breadcrumbItems = [
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainNav currentPage="career-coach" userProfile={userProfile} />
+      <MainNav currentPage="my-career" userProfile={userProfile} />
       <Breadcrumb items={breadcrumbItems} />
 
       <div className="max-w-7xl mx-auto px-6 py-6">
@@ -230,7 +230,7 @@ const breadcrumbItems = [
                     {/* Right: Button and link stack */}
                     <div className="flex flex-col items-center space-y-2">
                       <button
-                        onClick={() => router.push(`/career-coach/detail?resumeId=${existingResume.id}`)}
+                        onClick={() => router.push(`/my-career/detail?resumeId=${existingResume.id}`)}
                         className="bg-purple-600 text-white px-6 py-2.5 rounded-lg hover:bg-purple-700 transition-all font-semibold whitespace-nowrap"
                       >
                         Continue with Existing Resume →
@@ -270,7 +270,7 @@ const breadcrumbItems = [
                   <p className="text-xs text-gray-500">
                     No resume?{' '}
                     <button
-                      onClick={() => router.push('/career-coach/build')}
+                      onClick={() => router.push('/my-career/build')}
                       className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
                     >
                       Create one from scratch →
@@ -366,7 +366,7 @@ const breadcrumbItems = [
                         .single();
                       
                       if (resume?.id) {
-                        router.push(`/career-coach/detail?resumeId=${resume.id}`);
+                        router.push(`/my-career/detail?resumeId=${resume.id}`);
                       }
                     }}
                     className="w-full bg-white text-purple-600 border-2 border-purple-600 px-4 py-2.5 rounded-lg hover:bg-purple-50 transition-all text-sm font-semibold"
@@ -430,7 +430,7 @@ const breadcrumbItems = [
               <div className="px-8 py-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button
-                    onClick={() => router.push('/resume-coach')}
+                    onClick={() => router.push('/my-resumes')}
                     className="bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 transition-all font-semibold shadow-sm hover:shadow-md flex items-center justify-between group"
                   >
                     <span>Build Your Resume</span>

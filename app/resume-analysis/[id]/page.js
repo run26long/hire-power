@@ -141,7 +141,7 @@ export default function ResumeAnalysis() {
       router.push(`/resume-editor/${resumeId}`)
     } else {
       // Route to coaching conversation
-      router.push(`/resume-coaching?resumeId=${resumeId}`)
+      router.push(`/my-resumesing?resumeId=${resumeId}`)
     }
   }
 

@@ -332,7 +332,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => {
                       setShowUpgradeModal(false)
-                      router.push('/resume-coaching')
+                      router.push('/my-resumesing')
                     }}
                     className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-semibold transition-colors"
                   >

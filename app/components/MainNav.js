@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 export default function MainNav({ currentPage, userProfile }) {
   const router = useRouter();
 
-  const navItems = [
+ const navItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
-    { id: 'career-coach', label: 'Career Coach', path: '/career-coach' },
-    { id: 'resume-coach', label: 'Resume Coach', path: '/resume-coach' },
-    { id: 'interview-coach', label: 'Interview Coach', path: '/interview-coach', disabled: true }
+    { id: 'my-career', label: 'Career Coach', path: '/my-career' },
+    { id: 'my-resumes', label: 'Resume Coach', path: '/my-resumes' },
+    { id: 'my-interviews', label: 'Interview Coach', path: '/my-interviews' },
   ];
 
   return (

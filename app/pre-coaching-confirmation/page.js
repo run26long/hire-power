@@ -123,7 +123,7 @@ return (
           ← Go Back
         </button>
         <button
-          onClick={() => router.push('/resume-coaching')}
+          onClick={() => router.push('/my-resumesing')}
           className="flex-1 bg-purple-600 text-white py-4 rounded-lg hover:bg-purple-700 transition-colors font-medium text-lg"
         >
           Start Coaching! 🚀
