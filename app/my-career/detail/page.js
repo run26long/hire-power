@@ -10,6 +10,28 @@ import ResumeContent from '../../components/ResumeContent';
 import BuilderGuide from '../../components/BuilderGuide';
 import ConversationPanel from '../../components/ConversationPanel';
 
+// Format date function (REQUIRED for ResumeContent)
+function formatDate(dateString, format = 'short') {
+  if (!dateString) return '';
+  
+  const [year, month] = dateString.split('-');
+  if (!year || !month) return dateString;
+  
+  const monthNum = parseInt(month);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  switch(format) {
+    case 'short':
+      return `${monthNum}/${year}`;
+    case 'full':
+      return `${monthNames[monthNum - 1]} ${year}`;
+    case 'year':
+      return year;
+    default:
+      return `${monthNum}/${year}`;
+  }
+}
 export default function CareerDetailPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -42,6 +64,30 @@ export default function CareerDetailPage() {
     sectionOrder: ["experience", "education", "skills"]
   });
   
+const handleResumeUpdate = async (updatedData) => {
+  // Update local state immediately
+  setResumeData(updatedData);
+  
+  // Save to database
+  if (resume?.id) {
+    try {
+      const { error } = await supabase
+        .from('resumes')
+        .update({ 
+          resume_data: updatedData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', resume.id);
+      
+      if (error) {
+        console.error('Error saving resume:', error);
+      }
+    } catch (err) {
+      console.error('Error updating resume:', err);
+    }
+  }
+};
+
 // Career conversation state
   const [messages, setMessages] = useState([]);
   const [isAIThinking, setIsAIThinking] = useState(false);
@@ -239,9 +285,10 @@ export default function CareerDetailPage() {
             <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
               <div className="p-8">
                 <ResumeContent 
-                  resumeData={resumeData}
-                  onUpdate={setResumeData}
-                  readOnly={true}
+                 resumeData={resumeData}
+  onUpdate={handleResumeUpdate}
+  formatDate={formatDate}
+  readOnly={false}
                 />
               </div>
             </div>

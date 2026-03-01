@@ -72,7 +72,8 @@ export default function BuildPage() {
     { id: 'projects', title: 'Projects', required: false, askFirst: true },
     { id: 'certifications', title: 'Certifications', required: false, askFirst: true },
     { id: 'volunteer', title: 'Volunteer Experience', required: false, askFirst: true },
-    { id: 'languages', title: 'Languages', required: false, askFirst: true }
+    { id: 'languages', title: 'Languages', required: false, askFirst: true },
+    { id: 'complete', title: 'Complete', required: true }
   ];
 
  useEffect(() => {
@@ -103,7 +104,7 @@ export default function BuildPage() {
 
 // Auto-scroll right panel to top when step changes
 useEffect(() => {
-  const rightPanel = document.querySelector('.overflow-y-auto.p-6');
+  const rightPanel = document.querySelector('.overflow-y-auto.px-6');
   if (rightPanel) {
     rightPanel.scrollTop = 0;
   }
@@ -185,76 +186,76 @@ useEffect(() => {
           </div>
 
           {/* Right Column - Builder Guide (25-30% width) */}
-          <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto p-6">
-            
-{/* Journey Bar - Sticky */}
-<div className="sticky top-0 bg-white px-6 py-4 -mx-6 -mt-6 mb-6 z-10 border-b border-gray-200">
-  <h2 className="text-lg font-bold text-gray-900 mb-4">
-    Core Resume Progress
-  </h2>
-  
-  <div className="relative mb-2">
-    <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-200">
-      <div 
-        className="h-full bg-purple-600 transition-all duration-300"
-        style={{ width: `${(currentStep / 5) * 100}%` }}
-      />
-    </div>
-    <div className="relative flex justify-between">
-      {['Contact', 'Summary', 'Experience', 'Education', 'Skills', 'Additional'].map((step, index) => (
-        <div key={step} className="flex flex-col items-center">
-          <div className={`w-6 h-6 rounded-full transition-colors ${
-            index < currentStep ? 'bg-purple-600' :
-            index === currentStep ? 'bg-purple-600 ring-4 ring-purple-100' :
-            'bg-gray-200'
-          }`} />
-          <span className={`text-xs mt-2 font-medium ${
-            index === currentStep ? 'text-purple-600' : 'text-gray-500'
-          }`}>
-            {step}
-          </span>
+          <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto px-6 pb-6">
+
+            {/* Progress Bar - Sticky */}
+            <div className="sticky top-0 bg-white -mx-6 px-6 pt-6 mb-6 pb-4 border-b border-gray-200 z-10">
+              <h3 className="text-center font-semibold text-sm mb-3">
+                Resume Build Progress
+              </h3>
+              
+              <div className="text-right text-xs font-bold text-gray-700 mb-2">
+                {['Contact', 'Summary', 'Experience', 'Education', 'Skills', 'Projects', 'Certifications', 'Volunteer', 'Languages'][currentStep]} (step {currentStep + 1} of 9)
+              </div>
+              
+              <div className="relative">
+                <div className="absolute top-2.5 left-0 right-0 h-0.5 bg-gray-300">
+                  <div 
+                    className="h-full bg-purple-600 transition-all duration-300"
+                    style={{ width: `${currentStep >= 0 ? (currentStep / 8) * 100 : 0}%` }}
+                  />
+                </div>
+                
+                <div className="relative flex justify-between">
+                  {Array.from({ length: 9 }).map((_, index) => (
+                    <div key={index} className="flex flex-col items-center">
+                      <div className={`
+                        w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold z-10
+                        ${index < currentStep ? 'bg-purple-600 text-white' : 
+                          index === currentStep ? 'bg-purple-600 text-white' : 
+                          'bg-white border-2 border-gray-300 text-gray-400'}
+                      `}>
+                        {index < currentStep ? '✓' : index === currentStep ? '●' : '○'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Step Content Header */}
+            <h3 className="font-semibold text-lg mb-3">📝 {currentStepConfig.title}</h3>
+
+            <p className="text-xs text-gray-700 mb-4">
+              {currentStep === 0 && "Let's start with your contact information. This appears at the top of your resume."}
+              {currentStep === 1 && "A professional summary is a 2-3 sentence overview of your background and goals. It's optional but recommended."}
+              {currentStep === 2 && "Add your work experience. Start with your most recent position."}
+              {currentStep === 3 && "Add your education. Use the 'lines' field for GPA, honors, or relevant coursework."}
+              {currentStep === 4 && "Add your key skills. You can organize them into categories (Technical Skills, Professional Skills, etc.) by selecting the Add Category option under your skills list."}
+              {currentStep >= 5 && "Add any additional sections like projects, certifications, volunteer work, or languages."}
+            </p>
+
+            {/* Step Content */}
+            <div className="space-y-4">
+              {currentStep === 0 && <ContactStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} />}
+              {currentStep === 1 && <SummaryStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
+              {currentStep === 2 && <ExperienceStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} />}
+              {currentStep === 3 && <EducationStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} />}
+              {currentStep === 4 && <SkillsStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} />}
+              {currentStep === 5 && <ProjectsStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
+              {currentStep === 6 && <CertificationsStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
+              {currentStep === 7 && <VolunteerStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
+              {currentStep === 8 && <LanguagesStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
+              {currentStep === 9 && <CompleteStep onComplete={handleComplete} onBack={handleBack} />}
+            </div>
+          </div>
+
         </div>
-      ))}
+      </div>
     </div>
-  </div>
-</div>
-
-{/* Step Section */}
-<div className="mb-6">
-  <h3 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
-    📝 {currentStepConfig.title}
-  </h3>
-  <p className="text-sm text-gray-600 leading-relaxed">
-    {currentStep === 0 && "Let's start with your contact information. This appears at the top of your resume."}
-    {currentStep === 1 && "A professional summary is a 2-3 sentence overview of your background and goals. It's optional but recommended."}
-    {currentStep === 2 && "Add your work experience. Start with your most recent position."}
-    {currentStep === 3 && "Add your education. Use the 'lines' field for GPA, honors, or relevant coursework."}
-    {currentStep === 4 && "Add your key skills. You can organize them into categories (Technical, Soft Skills, etc.) or keep them in one list."}
-    {currentStep === 5 && "Add any additional sections like projects, certifications, volunteer work, or languages."}
-  </p>
-</div>
-
-{/* Step Content */}
-<div className="space-y-4">
-
-  {currentStep === 0 && <ContactStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} />}
-  {currentStep === 1 && <SummaryStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
-  {currentStep === 2 && <ExperienceStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} />}
-  {currentStep === 3 && <EducationStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} />}
-  {currentStep === 4 && <SkillsStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} />}
-  {currentStep === 5 && <ProjectsStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
-  {currentStep === 6 && <CertificationsStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
-  {currentStep === 7 && <VolunteerStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
-  {currentStep === 8 && <LanguagesStep resumeData={resumeData} setResumeData={setResumeData} onNext={handleNext} onBack={handleBack} onSkip={handleSkip} />}
-  {currentStep === 9 && <CompleteStep onComplete={handleComplete} onBack={handleBack} />}
-</div>
-</div>
-
-</div>
-</div>
-</div>
-);
+  );
 }
+
 // Contact Step Component
 function ContactStep({ resumeData, setResumeData, onNext }) {
   const handleChange = (field, value) => {
@@ -265,10 +266,6 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
 
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Let's start with your contact information. This appears at the top of your resume.
-      </p>
-
       <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -352,7 +349,7 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
       <button
         onClick={onNext}
         disabled={!isValid}
-        className="w-full mt-6 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+        className="w-full mt-6 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
       >
         Next Step →
       </button>
@@ -364,10 +361,6 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
 function SummaryStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        A professional summary is a 2-3 sentence overview of your background and goals. It's optional but recommended.
-      </p>
-
       <textarea
         value={resumeData.summary}
         onChange={(e) => setResumeData({ ...resumeData, summary: e.target.value })}
@@ -376,23 +369,22 @@ function SummaryStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         className="w-full border border-gray-300 rounded-lg p-3 text-sm resize-none"
       />
 
-      <div className="flex gap-2 mt-6">
+      <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onSkip}
-          className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           Skip
         </button>
         <button
           onClick={onNext}
-          disabled={!resumeData.summary}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+          className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
         >
           Next Step →
         </button>
@@ -480,14 +472,8 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
     setCurrentJob({ ...currentJob, bullets: newBullets.length > 0 ? newBullets : [""] });
   };
 
-  const isValid = resumeData.experience.length > 0;
-
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add your work experience. Start with your most recent position.
-      </p>
-
       {/* Added Jobs List */}
       {resumeData.experience.length > 0 && (
         <div className="mb-4">
@@ -507,26 +493,26 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
       {/* Show form or "Add Another" button */}
       {!showForm && resumeData.experience.length > 0 ? (
         <div className="space-y-3">
-        <button
-  onClick={() => setShowForm(true)}
-  className="w-full bg-white border-2 border-dashed border-purple-300 text-purple-600 px-4 py-3 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-sm font-semibold"
->
-  + Add Another Job
-</button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full bg-white border-2 border-dashed border-purple-300 text-purple-600 px-4 py-3 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-xs font-semibold"
+          >
+            + Add Another Job
+          </button>
           
           <div className="flex gap-2">
             <button
               onClick={onBack}
-              className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-sm"
+              className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
             >
               ← Back
             </button>
-          <button
-  onClick={onNext}
-  className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold shadow-sm"
->
-  Continue to Education →
-</button>
+            <button
+              onClick={onNext}
+              className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
+            >
+              Continue to Education →
+            </button>
           </div>
         </div>
       ) : (
@@ -572,71 +558,71 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
               />
             </div>
 
-     <div className="space-y-3">
-  <div>
-    <label className="block text-xs font-medium text-gray-700 mb-1">
-      Start Date *
-    </label>
-    <div className="grid grid-cols-2 gap-2">
-      <select
-        value={startMonth}
-        onChange={(e) => setStartMonth(e.target.value)}
-        className="border border-gray-300 rounded p-2 text-sm w-full"
-      >
-        <option value="">Select Month</option>
-        {months.map((m, i) => (
-          <option key={m} value={m}>{monthNames[i]}</option>
-        ))}
-      </select>
-      <select
-        value={startYear}
-        onChange={(e) => setStartYear(e.target.value)}
-        className="border border-gray-300 rounded p-2 text-sm w-full"
-      >
-        <option value="">Select Year</option>
-        {years.map(y => (
-          <option key={y} value={y}>{y}</option>
-        ))}
-      </select>
-    </div>
-  </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Start Date *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={startMonth}
+                    onChange={(e) => setStartMonth(e.target.value)}
+                    className="border border-gray-300 rounded p-2 text-sm w-full"
+                  >
+                    <option value="">Select Month</option>
+                    {months.map((m, i) => (
+                      <option key={m} value={m}>{monthNames[i]}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={startYear}
+                    onChange={(e) => setStartYear(e.target.value)}
+                    className="border border-gray-300 rounded p-2 text-sm w-full"
+                  >
+                    <option value="">Select Year</option>
+                    {years.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-  <div>
-    <label className="block text-xs font-medium text-gray-700 mb-1">
-      End Date
-    </label>
-    <div className="grid grid-cols-2 gap-2">
-      <select
-        value={endMonth}
-        onChange={(e) => {
-          setEndMonth(e.target.value);
-          setCurrentJob({ ...currentJob, current: false });
-        }}
-        disabled={currentJob.current}
-        className="border border-gray-300 rounded p-2 text-sm w-full disabled:bg-gray-100"
-      >
-        <option value="">Select Month</option>
-        {months.map((m, i) => (
-          <option key={m} value={m}>{monthNames[i]}</option>
-        ))}
-      </select>
-      <select
-        value={endYear}
-        onChange={(e) => {
-          setEndYear(e.target.value);
-          setCurrentJob({ ...currentJob, current: false });
-        }}
-        disabled={currentJob.current}
-        className="border border-gray-300 rounded p-2 text-sm w-full disabled:bg-gray-100"
-      >
-        <option value="">Select Year</option>
-        {years.map(y => (
-          <option key={y} value={y}>{y}</option>
-        ))}
-      </select>
-    </div>
-  </div>
-</div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  End Date
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={endMonth}
+                    onChange={(e) => {
+                      setEndMonth(e.target.value);
+                      setCurrentJob({ ...currentJob, current: false });
+                    }}
+                    disabled={currentJob.current}
+                    className="border border-gray-300 rounded p-2 text-sm w-full disabled:bg-gray-100"
+                  >
+                    <option value="">Select Month</option>
+                    {months.map((m, i) => (
+                      <option key={m} value={m}>{monthNames[i]}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={endYear}
+                    onChange={(e) => {
+                      setEndYear(e.target.value);
+                      setCurrentJob({ ...currentJob, current: false });
+                    }}
+                    disabled={currentJob.current}
+                    className="border border-gray-300 rounded p-2 text-sm w-full disabled:bg-gray-100"
+                  >
+                    <option value="">Select Year</option>
+                    {years.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -698,29 +684,29 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
               </button>
             </div>
 
-{/* Two-button layout - stacked */}
-<div className="space-y-2 pt-2">
-   <button
-    onClick={() => addJob(false)}
-    disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
-    className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
-  >
-    Save Job & Add Another
-  </button>
-   <button
-    onClick={() => addJob(true)}
-    disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
-    className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
-  >
-    Save Job & Continue to Education
-  </button>
-</div>
+            {/* Two-button layout - stacked */}
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => addJob(false)}
+                disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
+                className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
+              >
+                Save Job & Add Another
+              </button>
+              <button
+                onClick={() => addJob(true)}
+                disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
+                className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
+              >
+                Save Job & Continue to Education
+              </button>
+            </div>
           </div>
 
           {resumeData.experience.length > 0 && (
             <button
               onClick={() => setShowForm(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-xs text-gray-500 hover:text-gray-700"
             >
               Cancel
             </button>
@@ -733,7 +719,7 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
         <div className="flex gap-2">
           <button
             onClick={onBack}
-            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-sm"
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             ← Back
           </button>
@@ -762,6 +748,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
   const [gradMonth, setGradMonth] = useState('');
   const [gradYear, setGradYear] = useState('');
   const [currentLine, setCurrentLine] = useState('');
+  const [showForm, setShowForm] = useState(resumeData.education.length === 0);
 
   const addLine = () => {
     if (currentLine.trim()) {
@@ -780,7 +767,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
     });
   };
 
-  const addEducation = () => {
+  const addEducation = (andContinue = false) => {
     if (currentEdu.school) {
       const eduToAdd = {
         ...currentEdu,
@@ -804,149 +791,17 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
       setGradMonth('');
       setGradYear('');
       setCurrentLine('');
+      
+      if (andContinue) {
+        onNext();
+      } else {
+        setShowForm(false);
+      }
     }
   };
 
-  const isValid = resumeData.education.length > 0;
-
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add your education. Use the "lines" field for GPA, honors, or relevant coursework.
-      </p>
-
-      {/* Education Entry Form */}
-      <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            School/University *
-          </label>
-          <input
-            type="text"
-            value={currentEdu.school}
-            onChange={(e) => setCurrentEdu({ ...currentEdu, school: e.target.value })}
-            placeholder="University of Central Florida"
-            className="w-full border border-gray-300 rounded p-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Degree
-          </label>
-          <input
-            type="text"
-            value={currentEdu.degree}
-            onChange={(e) => setCurrentEdu({ ...currentEdu, degree: e.target.value })}
-            placeholder="Bachelor of Science"
-            className="w-full border border-gray-300 rounded p-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Field of Study
-          </label>
-          <input
-            type="text"
-            value={currentEdu.field}
-            onChange={(e) => setCurrentEdu({ ...currentEdu, field: e.target.value })}
-            placeholder="Entertainment Management"
-            className="w-full border border-gray-300 rounded p-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Graduation Date
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={gradMonth}
-              onChange={(e) => setGradMonth(e.target.value)}
-              className="border border-gray-300 rounded p-2 text-sm"
-            >
-              <option value="">Month</option>
-              {months.map((m, i) => (
-                <option key={m} value={m}>{monthNames[i]}</option>
-              ))}
-            </select>
-            <select
-              value={gradYear}
-              onChange={(e) => setGradYear(e.target.value)}
-              className="border border-gray-300 rounded p-2 text-sm"
-            >
-              <option value="">Year</option>
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Location
-          </label>
-          <input
-            type="text"
-            value={currentEdu.location}
-            onChange={(e) => setCurrentEdu({ ...currentEdu, location: e.target.value })}
-            placeholder="Orlando, FL"
-            className="w-full border border-gray-300 rounded p-2 text-sm"
-          />
-        </div>
-
-        {/* Lines (GPA, honors, etc.) */}
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Additional Details (GPA, honors, coursework)
-          </label>
-          {currentEdu.lines.map((line, index) => (
-            <div key={index} className="flex gap-2 mb-2 items-center">
-              <span className="text-xs text-gray-600 flex-1 bg-white p-2 rounded border">
-                {line}
-              </span>
-              <button
-                onClick={() => removeLine(index)}
-                className="text-red-600 hover:text-red-700 px-2"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={currentLine}
-              onChange={(e) => setCurrentLine(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addLine();
-                }
-              }}
-              placeholder="e.g., GPA: 3.8/4.0"
-              className="flex-1 border border-gray-300 rounded p-2 text-sm"
-            />
-            <button
-              onClick={addLine}
-              className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-sm hover:bg-purple-200"
-            >
-              Add
-            </button>
-          </div>
-        </div>
-
-        <button
-          onClick={addEducation}
-          disabled={!currentEdu.school}
-          className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-sm font-medium shadow-sm"
-        >
-          Add This Education
-        </button>
-      </div>
-
       {/* Added Education List */}
       {resumeData.education.length > 0 && (
         <div className="mb-4">
@@ -963,22 +818,197 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
         </div>
       )}
 
-      {/* Navigation */}
-      <div className="flex gap-2">
-        <button
-          onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
-        >
-          ← Back
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!isValid}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
-        >
-          Next Step →
-        </button>
-      </div>
+      {/* Show form or "Add Another" button */}
+      {!showForm && resumeData.education.length > 0 ? (
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full bg-white border-2 border-dashed border-purple-300 text-purple-600 px-4 py-3 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-xs font-semibold"
+          >
+            + Add Another Education
+          </button>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={onBack}
+              className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={onNext}
+              className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
+            >
+              Continue to Skills →
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Education Entry Form */}
+          <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                School/University *
+              </label>
+              <input
+                type="text"
+                value={currentEdu.school}
+                onChange={(e) => setCurrentEdu({ ...currentEdu, school: e.target.value })}
+                placeholder="University of Central Florida"
+                className="w-full border border-gray-300 rounded p-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Degree
+              </label>
+              <input
+                type="text"
+                value={currentEdu.degree}
+                onChange={(e) => setCurrentEdu({ ...currentEdu, degree: e.target.value })}
+                placeholder="Bachelor of Science"
+                className="w-full border border-gray-300 rounded p-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Field of Study
+              </label>
+              <input
+                type="text"
+                value={currentEdu.field}
+                onChange={(e) => setCurrentEdu({ ...currentEdu, field: e.target.value })}
+                placeholder="Entertainment Management"
+                className="w-full border border-gray-300 rounded p-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Graduation Date
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={gradMonth}
+                  onChange={(e) => setGradMonth(e.target.value)}
+                  className="border border-gray-300 rounded p-2 text-sm"
+                >
+                  <option value="">Month</option>
+                  {months.map((m, i) => (
+                    <option key={m} value={m}>{monthNames[i]}</option>
+                  ))}
+                </select>
+                <select
+                  value={gradYear}
+                  onChange={(e) => setGradYear(e.target.value)}
+                  className="border border-gray-300 rounded p-2 text-sm"
+                >
+                  <option value="">Year</option>
+                  {years.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Location
+              </label>
+              <input
+                type="text"
+                value={currentEdu.location}
+                onChange={(e) => setCurrentEdu({ ...currentEdu, location: e.target.value })}
+                placeholder="Orlando, FL"
+                className="w-full border border-gray-300 rounded p-2 text-sm"
+              />
+            </div>
+
+            {/* Lines (GPA, honors, etc.) */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Additional Details (GPA, honors, coursework)
+              </label>
+              {currentEdu.lines.map((line, index) => (
+                <div key={index} className="flex gap-2 mb-2 items-center">
+                  <span className="text-xs text-gray-600 flex-1 bg-white p-2 rounded border">
+                    {line}
+                  </span>
+                  <button
+                    onClick={() => removeLine(index)}
+                    className="text-red-600 hover:text-red-700 px-2"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentLine}
+                  onChange={(e) => setCurrentLine(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addLine();
+                    }
+                  }}
+                  placeholder="e.g., GPA: 3.8/4.0"
+                  className="flex-1 border border-gray-300 rounded p-2 text-sm"
+                />
+                <button
+                  onClick={addLine}
+                  className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs hover:bg-purple-200"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Two-button layout - stacked */}
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => addEducation(false)}
+                disabled={!currentEdu.school}
+                className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
+              >
+                Save Education & Add Another
+              </button>
+              <button
+                onClick={() => addEducation(true)}
+                disabled={!currentEdu.school}
+                className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
+              >
+                Save Education & Continue to Skills
+              </button>
+            </div>
+          </div>
+
+          {resumeData.education.length > 0 && (
+            <button
+              onClick={() => setShowForm(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Navigation - only show if no education added yet */}
+      {resumeData.education.length === 0 && (
+        <div className="flex gap-2">
+          <button
+            onClick={onBack}
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
+          >
+            ← Back
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -1022,10 +1052,6 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
 
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add your key skills. You can organize them into categories (Technical, Soft Skills, etc.) or keep them in one list.
-      </p>
-
       <div className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1056,7 +1082,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
           />
           <button
             onClick={addSkill}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            className="bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
           >
             Add
           </button>
@@ -1069,7 +1095,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
                 <p className="text-xs font-semibold text-gray-700 mb-1">{category}:</p>
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill, index) => (
-                    <div key={index} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <div key={index} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs flex items-center gap-2">
                       {skill}
                       <button
                         onClick={() => removeSkill(category, index)}
@@ -1089,14 +1115,14 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
       <div className="flex gap-2 mt-6">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
           disabled={!isValid}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+          className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
         >
           Next Step →
         </button>
@@ -1137,19 +1163,19 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         <div className="flex gap-2">
           <button
             onClick={onBack}
-            className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             ← Back
           </button>
           <button
             onClick={onSkip}
-            className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 border border-gray-300 text-gray-700 px-4 py-1.5 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             No, Skip
           </button>
           <button
             onClick={() => setShowFields(true)}
-            className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
           >
             Yes, Add
           </button>
@@ -1160,10 +1186,6 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add your projects.
-      </p>
-
       <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1207,7 +1229,7 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         <button
           onClick={addProject}
           disabled={!currentProject.name || !currentProject.description}
-          className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-sm font-medium shadow-sm"
+          className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
           Add This Project
         </button>
@@ -1231,13 +1253,13 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
       <div className="flex gap-2">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+          className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
         >
           Next Step →
         </button>
@@ -1277,19 +1299,19 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
         <div className="flex gap-2">
           <button
             onClick={onBack}
-            className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             ← Back
           </button>
           <button
             onClick={onSkip}
-            className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 border border-gray-300 text-gray-700 px-4 py-1.5 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             No, Skip
           </button>
           <button
             onClick={() => setShowFields(true)}
-            className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
           >
             Yes, Add
           </button>
@@ -1300,10 +1322,6 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
 
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add your certifications.
-      </p>
-
       <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1334,7 +1352,7 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
         <button
           onClick={addCertification}
           disabled={!currentCert.name || !currentCert.details}
-          className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-sm font-medium shadow-sm"
+          className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
           Add This Certification
         </button>
@@ -1358,13 +1376,13 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
       <div className="flex gap-2">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+          className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
         >
           Next Step →
         </button>
@@ -1404,19 +1422,19 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         <div className="flex gap-2">
           <button
             onClick={onBack}
-            className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             ← Back
           </button>
           <button
             onClick={onSkip}
-            className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 border border-gray-300 text-gray-700 px-4 py-1.5 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             No, Skip
           </button>
           <button
             onClick={() => setShowFields(true)}
-            className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
           >
             Yes, Add
           </button>
@@ -1427,10 +1445,6 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add your volunteer experience.
-      </p>
-
       <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1461,7 +1475,7 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         <button
           onClick={addVolunteer}
           disabled={!currentVol.organization || !currentVol.description}
-          className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-sm font-medium shadow-sm"
+          className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
           Add This Experience
         </button>
@@ -1485,13 +1499,13 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
       <div className="flex gap-2">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+          className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
         >
           Next Step →
         </button>
@@ -1531,19 +1545,19 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         <div className="flex gap-2">
           <button
             onClick={onBack}
-            className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             ← Back
           </button>
           <button
             onClick={onSkip}
-            className="flex-1 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 border border-gray-300 text-gray-700 px-4 py-1.5 rounded hover:bg-gray-50 transition-colors text-xs"
           >
             No, Skip
           </button>
           <button
             onClick={() => setShowFields(true)}
-            className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
           >
             Yes, Add
           </button>
@@ -1554,10 +1568,6 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   return (
     <>
-      <p className="text-sm text-gray-600 mb-4">
-        Add languages you speak.
-      </p>
-
       <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1592,7 +1602,7 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
         <button
           onClick={addLanguage}
           disabled={!currentLang.language}
-          className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-sm font-medium shadow-sm"
+          className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
           Add This Language
         </button>
@@ -1616,13 +1626,13 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
       <div className="flex gap-2">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onNext}
-          className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+          className="flex-1 bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 transition-colors text-xs font-semibold shadow-sm"
         >
           Next Step →
         </button>
@@ -1645,13 +1655,13 @@ function CompleteStep({ onComplete, onBack }) {
       <div className="flex gap-2">
         <button
           onClick={onBack}
-          className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-xs"
         >
           ← Back
         </button>
         <button
           onClick={onComplete}
-          className="flex-1 bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-semibold text-base shadow-sm"
+          className="flex-1 bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors text-xs font-semibold shadow-sm"
         >
           Save & Continue →
         </button>
