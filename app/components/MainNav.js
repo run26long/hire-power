@@ -27,7 +27,7 @@ export default function MainNav({ currentPage, userProfile }) {
             />
           </button>
           <span className="text-xs text-gray-500 border-l border-gray-300 pl-3">
-            AI-powered career coaching for people seeking more than their next job
+            The operating system for your career
           </span>
         </div>
 

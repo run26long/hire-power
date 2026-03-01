@@ -110,9 +110,7 @@ Once you have covered all 4 steps, provide:
    - Key strength you'll emphasize (1 sentence)
 
 2. **Transition to Resume Coach:**
-   "This gives me everything I need to help you build a resume that reflects where you want to go - not just where you've been.
-
-   Ready to move to Resume Coach? We'll start with a free AI analysis of your resume, then you can decide if you want professional coaching to improve it.
+   "This gives me everything I need to help you build a resume that reflects where you want to go - not just where you've been. Ready to move to Resume Coach? In the next step we'll start with a free AI analysis of your resume, then you can decide if you want professional coaching to improve it.
    
    [Button will appear below to continue]"
 

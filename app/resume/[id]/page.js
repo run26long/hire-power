@@ -354,7 +354,7 @@ function formatDate(dateString, format = dateFormat) {
               />
             </button>
             <span className="text-xs text-gray-500 border-l border-gray-300 pl-3">
-              AI-powered career coaching for people seeking more than their next job
+              The operating system for your career
             </span>
           </div>
 
@@ -592,7 +592,7 @@ function formatDate(dateString, format = dateFormat) {
             </div>
           </div>
 
-          <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-y-auto">
+   <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto px-6 pb-6">
        <RightPanel 
               journeyStep={journeyStep}
               score={score}
@@ -1768,8 +1768,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
  return (
     <div ref={panelRef} className="overflow-y-auto overflow-x-hidden h-full pr-3">
       
-      <div className="mb-6 pb-4 border-b border-gray-200">
-        <h3 className="text-center font-semibold text-sm mb-3">
+    <div className="sticky top-0 bg-white -mx-6 px-6 pt-6 mb-6 pb-4 border-b border-gray-200 z-10">
+  <h3 className="text-center font-semibold text-sm mb-3">
           {userName ? `${userName.split(' ')[0]}'s ` : ''}{resumeName} Progress
         </h3>
         
