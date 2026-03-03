@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
-import Breadcrumb from '../components/Breadcrumb';
 import { TIERS } from '@/lib/subscription';
 
 export default function MyResumesPage() {
@@ -67,43 +66,9 @@ export default function MyResumesPage() {
   }
 
   function getCircleColor(score) {
-    if (score >= 85) return '#10b981';
-    if (score >= 71) return '#f59e0b';
-    return '#ef4444';
-  }
-
-  function getNextStep() {
-    if (!data?.stats.hasCoreResume) {
-      return { label: 'Build Core Resume', action: () => router.push('/my-career') };
-    }
-    
-    if (!data?.coreResume) {
-      return { label: 'Build Core Resume', action: () => router.push('/my-career') };
-    }
-
-    const journeyStep = data.coreResume.journey_step;
-    
-    if (journeyStep === 'save' || journeyStep === 'completed') {
-      if (data.stats.versionCount === 0) {
-        return { 
-          label: 'Tailor for Job', 
-          action: () => router.push(`/resume/${data.coreResume.id}`) 
-        };
-      } else {
-        return { 
-          label: 'Practice Interview or Create Tailored Resume',
-          actions: [
-            { label: 'Practice Interview', action: () => router.push('/my-interviews') },
-            { label: 'Create Tailored Resume', action: () => router.push(`/resume/${data.coreResume.id}`) }
-          ]
-        };
-      }
-    }
-    
-    return { 
-      label: 'Continue Core Resume', 
-      action: () => router.push(`/resume/${data.coreResume.id}`) 
-    };
+    if (score >= 85) return '#81c784';
+    if (score >= 71) return '#ffc870';
+    return '#e57373';
   }
 
   function formatDate(dateString) {
@@ -120,11 +85,6 @@ export default function MyResumesPage() {
     );
   }
 
-  const breadcrumbItems = [
-    { label: 'My Resumes' }
-  ];
-
-  const nextStep = getNextStep();
   const isPro = data?.userTier === TIERS.PRO;
   const score = data?.coreResume?.current_score || null;
 
@@ -133,418 +93,375 @@ export default function MyResumesPage() {
   const currentIndex = data?.coreResume?.journey_step ? steps.indexOf(data.coreResume.journey_step) : -1;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <MainNav currentPage="my-resumes" userProfile={userProfile} />
-      <Breadcrumb items={breadcrumbItems} description="" />
-
-      <div className="flex-1 px-8 py-4 max-w-[1400px] mx-auto w-full">
+    <div className="h-screen bg-gray-50 flex">
+      
+      {/* Left Sidebar */}
+      <div 
+        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        style={{ 
+          background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
+          height: '100vh',
+          overflowY: 'hidden'
+        }}
+      >
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 flex-shrink-0">
+          <h1 className="text-[27px] font-semibold mb-2 whitespace-nowrap">Resume Coach</h1>
+          <p className="text-sm text-white text-opacity-95 leading-snug">
+            We don't invent experience. We extract and strengthen what's already yours.
+          </p>
+          <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
+        </div>
         
-        {/* 5-Step Hero Bar */}
-        {data?.coreResume && (
-          <div className="mb-5">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <div className="grid grid-cols-5 gap-6">
-                {/* 1. Core Resume Status */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
-                    data.coreResume.current_score >= 85 ? 'bg-green-50 border border-green-200' : 'bg-purple-50 border border-purple-200'
-                  }`}>
-                    <svg className={`w-6 h-6 ${
-                      data.coreResume.current_score >= 85 ? 'text-green-600' : 'text-purple-600'
-                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 font-medium mb-0.5">Core Resume</div>
-                    <div className={`text-sm font-bold flex items-center gap-1 ${getScoreColor(data.coreResume.current_score)}`}>
-                      <div className={`w-2 h-2 rounded-full ${data.coreResume.current_score >= 85 ? 'bg-green-600' : 'bg-purple-600'}`}></div>
-                      {data.coreResume.current_score >= 85 ? 'Optimized' : getScoreTier(data.coreResume.current_score)}
-                    </div>
-                  </div>
+        {/* Main Content - NO SCROLL */}
+        <div className="flex-1 p-6 flex flex-col justify-between">
+          <div>
+            {/* Core Resume Section */}
+            <div className="mb-6">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">CORE RESUME</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Power Score</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>AI Assessment</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>AI Coaching <span className="font-semibold text-xs">(Pro)</span></span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Achievement Discovery <span className="font-semibold text-xs">(Pro)</span></span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Skill Identification <span className="font-semibold text-xs">(Pro)</span></span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Auto Improvements <span className="font-semibold text-xs">(Pro)</span></span>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Job-Specific Section */}
+            <div>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">JOB-SPECIFIC</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Match Score</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>AI Coaching <span className="font-semibold text-xs">(Pro)</span></span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Custom Versions <span className="font-semibold text-xs">(Pro)</span></span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Bottom guidance - Fixed */}
+          <div className="px-6 pb-6 mt-auto">
+            <div className="bg-purple-800 bg-opacity-30 rounded-lg px-3 py-3 border border-purple-400 border-opacity-20">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
                 </div>
-
-                {/* 2. Resume Strength */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center shadow-sm border border-purple-200">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 font-medium mb-0.5">Resume Strength</div>
-                    <div className={`text-sm font-bold ${getScoreColor(data.coreResume.current_score)}`}>
-                      {getScoreTier(data.coreResume.current_score)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Tailored Versions */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center shadow-sm border border-purple-200">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 font-medium mb-0.5">Tailored Versions</div>
-                    <div className="text-sm font-bold text-gray-900">
-                      <span className="text-purple-600">{data.stats.versionCount} Active</span>
-                      {isPro && <span className="text-xs font-normal text-gray-500 ml-1">Unlimited</span>}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Last Updated */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center shadow-sm border border-gray-200">
-                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 font-medium mb-0.5">Last Updated</div>
-                    <div className="text-sm font-bold text-gray-900">{formatDate(data.coreResume.updated_at)}</div>
-                  </div>
-                </div>
-
-                {/* 5. Next Step */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center shadow-sm border border-purple-200">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-gray-500 font-medium mb-0.5">Next Step</div>
-                    <button
-                      onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                      className="text-sm font-bold text-purple-600 hover:text-purple-700 truncate block text-left"
-                    >
-                      {nextStep.actions ? 'Tailor for a Job →' : `${nextStep.label} →`}
-                    </button>
-                  </div>
-                </div>
+                <p className="text-[11px] text-white leading-snug font-medium">
+                  Select any resume in your workspace to start the conversation.
+                </p>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Main Content: 3-Column Layout */}
-        {data?.coreResume && (
-          <div className="grid grid-cols-12 gap-5">
+      {/* Main Content Area */}
+      <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+        <MainNav currentPage="my-resumes" userProfile={userProfile} />
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
             
-            {/* Column 1: Core Resume Thumbnail (33%) */}
-            <div className="col-span-4">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Core Resume</h2>
+            {/* Clean 2-Column Layout - NO OLD BANNER */}
+            {data?.coreResume && (
+              <div className="grid grid-cols-12 gap-6">
                 
-                <button
-                  onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                  className="w-full group"
-                >
-                  <div className="relative bg-white rounded-xl overflow-hidden shadow-md border-2 border-gray-200 group-hover:border-purple-400 transition-all" style={{ aspectRatio: '8.5/11' }}>
-                    {data.coreResume.thumbnail_url ? (
-                      <img 
-                        src={data.coreResume.thumbnail_url} 
-                        alt="Resume preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                        <div className="text-center">
-                          <div className="text-4xl mb-2">📄</div>
-                          <div className="text-xs text-gray-500">Resume Preview</div>
-                        </div>
-                      </div>
-                    )}
+                {/* Core Resume Card (8 cols) */}
+                <div className="col-span-8">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-3">Core Resume</h2>
                     
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-purple-900/95 via-purple-800/70 to-transparent px-4 py-3">
-                      <div className="text-white text-xs font-bold uppercase tracking-wider mb-1">CORE RESUME</div>
-                      <div className="text-white/90 text-xs">Last Updated: <span className="font-medium">{formatDate(data.coreResume.updated_at)}</span></div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Column 2: Score + Ready to Apply (33%) */}
-            <div className="col-span-4">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
-                
-                {/* 4-Step Journey Progress */}
-                <div>
-                  <h3 className="text-center font-semibold text-sm mb-3">
-                    {userProfile?.display_name ? `${userProfile.display_name.split(' ')[0]}'s ` : ''}{data.coreResume.display_name || 'Core Resume'} Progress
-                  </h3>
-                  
-                  <div className="relative">
-                    <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
-                      <div 
-                        className="h-full bg-purple-600 transition-all duration-300"
-                        style={{ width: `${currentIndex >= 0 ? (currentIndex / 3) * 100 : 0}%` }}
-                      />
-                    </div>
-                    
-                    <div className="relative flex justify-between">
-                      {['Build', 'Assess', 'Improve', 'Complete'].map((step, index) => {
-                        const journeyStepMap = {
-                          0: currentIndex < 0, // Build
-                          1: currentIndex >= 1 && currentIndex < 2, // Assess (assess step)
-                          2: currentIndex >= 2 && currentIndex < 5, // Improve (coach/improve/polish)
-                          3: currentIndex >= 5 // Complete (save)
-                        };
-                        const isActive = journeyStepMap[index];
-                        const isPast = index < (currentIndex < 0 ? 0 : currentIndex >= 5 ? 4 : currentIndex >= 2 ? 3 : currentIndex >= 1 ? 2 : 1);
-                        
-                        return (
-                          <div key={step} className="flex flex-col items-center">
-                            <div className={`
-                              w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10
-                              ${isPast ? 'bg-purple-600 text-white' : 
-                                isActive ? 'bg-purple-600 text-white' : 
-                                'bg-white border-2 border-gray-300 text-gray-400'}
-                            `}>
-                              {isPast ? '✓' : isActive ? '●' : '○'}
-                            </div>
-                            <span className={`text-xs mt-1 ${
-                              isActive ? 'text-purple-600 font-semibold' :
-                              isPast ? 'text-purple-600' :
-                              'text-gray-400'
-                            }`}>
-                              {step}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Score Section */}
-                <div>
-                  <div className="text-center mb-2">
-                    <div className="text-sm text-gray-600 font-medium">Resume Power Score</div>
-                  </div>
-                  
-                  <div className="flex items-baseline justify-center gap-1 mb-3">
-                    <span className="text-4xl font-bold text-gray-900">{score || 62}</span>
-                    <span className="text-lg text-gray-600">/100</span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="relative mb-4">
-                    <div className="h-8 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-500 ${
-                          (score || 62) >= 85 ? 'bg-gradient-to-r from-green-400 to-green-500' :
-                          (score || 62) >= 70 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
-                          'bg-gradient-to-r from-red-400 to-red-500'
-                        }`}
-                        style={{ width: `${score || 62}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="relative h-16 mb-2">
-                    <div className="flex h-2">
-                      <div className="bg-red-500 rounded-l-full" style={{ width: '70%' }}></div>
-                      <div className="bg-yellow-500" style={{ width: '14%' }}></div>
-                      <div className="bg-green-500 rounded-r-full" style={{ width: '16%' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-0 left-[70%] -translate-x-1/2 -translate-y-px">
-                      <div className="w-3 h-3 rounded-full bg-white border-2 border-red-500"></div>
-                    </div>
-                    <div className="absolute top-0 left-[84%] -translate-x-1/2 -translate-y-px">
-                      <div className="w-3 h-3 rounded-full bg-white border-2 border-yellow-500"></div>
-                    </div>
-                    
-                    <div className="flex mt-2">
-                      <div className="text-center text-[10px] text-gray-700 leading-tight" style={{ width: '70%' }}>
-                        <div className="font-medium">Needs Improvement</div>
-                        <div className="text-gray-500">(0-70)</div>
-                      </div>
-                      <div className="text-center text-[10px] text-gray-700 leading-tight" style={{ width: '14%' }}>
-                        <div className="font-medium">Strong</div>
-                        <div className="text-gray-500">(71-84)</div>
-                      </div>
-                      <div className="text-center text-[10px] text-gray-700 leading-tight" style={{ width: '16%' }}>
-                        <div className="font-medium">Excellent</div>
-                        <div className="text-gray-500">(85-100)</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ready to Apply Card - Match mockup exactly */}
-                <div className="bg-gradient-to-br from-purple-100 via-pink-100 to-purple-50 border-2 border-purple-300 rounded-2xl p-6 relative shadow-sm">
-                  {/* Bullseye Icon - styled like mockup */}
-                  <div className="absolute top-5 right-5 opacity-20">
-                    <div className="relative w-16 h-16">
-                      <svg className="w-16 h-16 text-purple-400" fill="none" viewBox="0 0 64 64">
-                        <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="2"/>
-                        <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="2"/>
-                        <circle cx="32" cy="32" r="12" stroke="currentColor" strokeWidth="2"/>
-                        <circle cx="32" cy="32" r="4" fill="currentColor"/>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="relative z-10">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to apply?</h3>
-                    <p className="text-sm text-gray-600 mb-4">Create a job-specific version in minutes.</p>
-                    
-                    <ul className="space-y-2.5 mb-5">
-                      <li className="flex items-center gap-2.5 text-sm text-gray-800">
-                        <div className="w-2 h-2 rounded-full bg-purple-600 flex-shrink-0"></div>
-                        <span>Target key skills</span>
-                      </li>
-                      <li className="flex items-center gap-2.5 text-sm text-gray-800">
-                        <div className="w-2 h-2 rounded-full bg-purple-600 flex-shrink-0"></div>
-                        <span>Match job keywords</span>
-                      </li>
-                      <li className="flex items-center gap-2.5 text-sm text-gray-800">
-                        <div className="w-2 h-2 rounded-full bg-purple-600 flex-shrink-0"></div>
-                        <span>Stand out to hiring teams</span>
-                      </li>
-                    </ul>
-
-                    <button
-                      onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                      className="w-full bg-purple-600 text-white px-5 py-3.5 rounded-xl hover:bg-purple-700 transition-all font-bold text-base shadow-lg hover:shadow-xl"
-                    >
-                      Tailor for Job →
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 3: Job-Specific Resumes (33%) */}
-            <div className="col-span-4">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-5">Job-Specific Resumes</h2>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Create New Card - FIRST */}
-                  <button
-                    onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                    className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-purple-400 hover:bg-purple-50 transition-all flex flex-col items-center justify-center aspect-square group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2 group-hover:bg-purple-200 transition-all">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-sm text-gray-900 mb-0.5">Create New</div>
-                      <div className="text-[10px] text-gray-600 leading-tight">Tailor for a job</div>
-                    </div>
-                  </button>
-
-                  {/* Job Version Cards - More compact */}
-                  {data.resumeVersions.slice(0, 7).map((version) => (
-                    <div
-                      key={version.id}
-                      onClick={() => {
-                        if (isPro) {
-                          router.push(`/resume/${data.coreResume.id}?version=${version.id}`);
-                        } else {
-                          router.push(`/match-score/${version.id}`);
-                        }
-                      }}
-                      className="border-2 border-gray-200 rounded-xl p-3 hover:border-purple-400 hover:shadow-lg transition-all cursor-pointer bg-white group relative aspect-square flex flex-col"
-                    >
-                      {/* Edit Icon */}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/resume/${data.coreResume.id}?version=${version.id}`);
-                        }}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 hover:border-purple-400 transition-all shadow-sm opacity-0 group-hover:opacity-100 z-10"
-                      >
-                        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-
-                      <div className="flex-1 flex flex-col">
-                        <div className="mb-2">
-                          <div className="text-xs font-bold text-gray-900 mb-0.5 line-clamp-1 pr-6">
-                            {version.job_title}
-                          </div>
-                          <div className="text-[10px] text-gray-600 truncate">
-                            {version.job_company}
-                          </div>
-                        </div>
-                        
-                        {/* Circular Badge - Smaller */}
-                        <div className="flex justify-center my-2">
-                          <div className="relative">
-                            <svg className="w-12 h-12 transform -rotate-90">
-                              <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
-                              <circle
-                                cx="24" cy="24" r="20"
-                                stroke={getCircleColor(version.match_score)}
-                                strokeWidth="3" fill="none"
-                                strokeDasharray={`${2 * Math.PI * 20}`}
-                                strokeDashoffset={`${2 * Math.PI * 20 * (1 - version.match_score / 100)}`}
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="text-center">
-                                <div className={`text-xs font-bold ${getScoreColor(version.match_score)}`}>
-                                  {version.match_score}%
+                    {/* Thumbnail LEFT | Score RIGHT */}
+                    <div className="grid grid-cols-12 gap-4 mb-4">
+                      
+                      {/* Left: Thumbnail (35%) */}
+                      <div className="col-span-4">
+                        <div className="relative">
+                          <div
+                            onClick={() => router.push(`/resume/${data.coreResume.id}`)}
+                            className="w-full group cursor-pointer"
+                          >
+                            <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200" style={{ aspectRatio: '8.5/11' }}>
+                              {data.coreResume.thumbnail_url ? (
+                                <img 
+                                  src={data.coreResume.thumbnail_url} 
+                                  alt="Resume preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                                  <div className="text-center">
+                                    <div className="text-3xl mb-1">📄</div>
+                                    <div className="text-sm text-gray-500">Ava Long</div>
+                                  </div>
                                 </div>
-                                <div className="text-[8px] text-gray-500 uppercase font-semibold">Match</div>
+                              )}
+                              
+                              {/* Hover Overlay */}
+                              <div className="absolute inset-0 bg-gray-900 bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                </button>
+                                <button className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                                <button className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Single-line footer - subtle */}
+                          <div className="mt-2 text-center text-xs text-gray-500">
+                            Ava Long • Edited {formatDate(data.coreResume.updated_at).split(',')[0]}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Right: Score Section (65%) */}
+                      <div className="col-span-8 flex flex-col justify-between py-3">
+                        {/* Giant Score */}
+                        <div className="text-center">
+                          <div className="mb-3">
+                            <span className="text-7xl font-bold text-gray-900">{score || 85}</span>
+                            <span className="text-3xl text-gray-400">/100</span>
+                          </div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">Resume Power Score</div>
+                          
+                          {/* Score Bar - Improved */}
+                          <div className="max-w-md mx-auto">
+                            <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-3 shadow-inner">
+                              <div 
+                                className="h-full transition-all duration-500"
+                                style={{ 
+                                  width: `${score || 85}%`,
+                                  background: (score || 85) >= 85 ? '#81c784' : (score || 85) >= 71 ? '#ffc870' : '#e57373'
+                                }}
+                              />
+                            </div>
+                            
+                            {/* Simple text labels with dots */}
+                            <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: '#e57373' }}></div>
+                                <span>Needs Work<span className="text-gray-400 ml-1">(0-70)</span></span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: '#ffc870' }}></div>
+                                <span>Strong<span className="text-gray-400 ml-1">(71-84)</span></span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: '#81c784' }}></div>
+                                <span>Excellent<span className="text-gray-400 ml-1">(85+)</span></span>
                               </div>
                             </div>
                           </div>
                         </div>
-
-                        <button 
-                          className="w-full bg-purple-600 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 transition-all shadow-sm mt-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/resume/${data.coreResume.id}?version=${version.id}`);
-                          }}
-                        >
-                          Open
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-center gap-1 text-[9px] text-gray-500 mt-2 pt-2 border-t border-gray-200">
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{formatDate(version.updated_at)}</span>
+                        
+                        {/* Breakdown Grid - Bigger Text */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold text-gray-900 mb-0.5">35<span className="text-sm text-gray-400">/40</span></div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                              <span className="text-[10px] text-green-600 font-medium">Strong</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold text-gray-900 mb-0.5">32<span className="text-sm text-gray-400">/40</span></div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                              <span className="text-[10px] text-green-600 font-medium">Strong</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold text-gray-900 mb-0.5">18<span className="text-sm text-gray-400">/20</span></div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                              <span className="text-[10px] text-green-600 font-medium">Excellent</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">Progress</div>
+                      <div className="relative max-w-2xl mx-auto">
+                        <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200">
+                          <div 
+                            className="h-full bg-purple-600 transition-all" 
+                            style={{ width: `${currentIndex >= 0 ? ((currentIndex + 1) / 6) * 100 : 33}%` }}
+                          />
+                        </div>
+                        <div className="relative flex justify-between">
+                          {['Build', 'Assess', 'Coach', 'Improve', 'Polish', 'Save'].map((step, index) => {
+                            const isPast = currentIndex > index;
+                            const isActive = currentIndex === index || (currentIndex < 0 && index <= 1);
+                            
+                            return (
+                              <div key={step} className="flex flex-col items-center">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 ${
+                                  isPast ? 'bg-purple-600 text-white' : 
+                                  isActive ? 'bg-purple-600 text-white' : 
+                                  'bg-white border border-gray-300 text-gray-400'
+                                }`}>
+                                  {isPast ? '✓' : isActive ? '●' : '○'}
+                                </div>
+                                <span className={`text-xs mt-1 ${
+                                  isActive ? 'text-purple-600 font-semibold' :
+                                  isPast ? 'text-purple-600' :
+                                  'text-gray-400'
+                                }`}>
+                                  {step}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* What This Means */}
+                    <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
+                        <p className="text-xs text-gray-700 leading-relaxed">
+                          Your resume has solid structure. Coaching can help extract quantifiable achievements to maximize your Impact score.
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => router.push(`/resume/${data.coreResume.id}`)}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex-shrink-0"
+                      >
+                        Start Coaching →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Job-Specific Resumes (4 cols) */}
+                <div className="col-span-4">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Job-Specific Resumes</h2>
+
+                    <div className="space-y-3">
+                      {/* Create New Card */}
+                      <button
+                        onClick={() => router.push(`/resume/${data.coreResume.id}`)}
+                        className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">Create New</div>
+                      </button>
+
+                      {/* Job Cards */}
+                      {data.resumeVersions?.slice(0, 2).map((version) => (
+                        <div
+                          key={version.id}
+                          onClick={() => router.push(`/resume/${data.coreResume.id}?version=${version.id}`)}
+                          className="bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-gray-900 mb-0.5">{version.job_title}</div>
+                              <div className="text-xs text-gray-500">{version.job_company}</div>
+                            </div>
+                            <div className="flex items-center justify-center ml-3">
+                              <div className="relative">
+                                <svg className="w-12 h-12 transform -rotate-90">
+                                  <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
+                                  <circle
+                                    cx="24" cy="24" r="20"
+                                    stroke={getCircleColor(version.match_score)}
+                                    strokeWidth="3" fill="none"
+                                    strokeDasharray={`${2 * Math.PI * 20}`}
+                                    strokeDashoffset={`${2 * Math.PI * 20 * (1 - version.match_score / 100)}`}
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="text-sm font-bold" style={{ color: getCircleColor(version.match_score) }}>
+                                    {version.match_score}%
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Empty State */}
-        {!data?.coreResume && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="text-6xl mb-4">📄</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Build Your Core Resume</h2>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Start by having a career conversation with our AI coach. We'll help you build a resume targeted to where you want to go.
-            </p>
-            <button
-              onClick={() => router.push('/my-career')}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
-            >
-              Start Career Conversation
-            </button>
+            {/* Empty State */}
+            {!data?.coreResume && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="text-6xl mb-4">📄</div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Build Your Core Resume</h2>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Start by having a career conversation with our AI coach.
+                </p>
+                <button
+                  onClick={() => router.push('/my-career')}
+                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  Start Career Conversation
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
