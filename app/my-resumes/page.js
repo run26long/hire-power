@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import Modal from '../components/Modal';
 import { TIERS } from '@/lib/subscription';
 
 export default function MyResumesPage() {
@@ -14,6 +15,18 @@ export default function MyResumesPage() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingResumeId, setDownloadingResumeId] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
+  
+  // Tour modal state
+  const [showTourModal, setShowTourModal] = useState(false);
+  const [tourScreen, setTourScreen] = useState(1);
+  const [hasSeenTour, setHasSeenTour] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -21,6 +34,7 @@ export default function MyResumesPage() {
 
   async function loadData() {
     try {
+      setLoadError(null);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
@@ -43,9 +57,36 @@ export default function MyResumesPage() {
       const resData = await response.json();
       setData(resData);
       setUserProfile(resData.userProfile);
+      setRetryCount(0); // Reset retry count on success
+      
+      // Check if we should show tour (only if no resume)
+      // Small delay to let page render before showing modal
+      if (!resData.coreResume) {
+        setTimeout(() => {
+          const tourSeen = localStorage.getItem('hp_tour_seen');
+          if (!tourSeen) {
+            setHasSeenTour(false);
+            setShowTourModal(true);
+            setTourScreen(1);
+          } else {
+            setHasSeenTour(true);
+            setShowTourModal(true);
+            setTourScreen(3);
+          }
+        }, 300); // 300ms delay
+      }
       
     } catch (error) {
       console.error('Error loading data:', error);
+      
+      // Auto-retry once
+      if (retryCount === 0) {
+        setRetryCount(1);
+        setTimeout(() => loadData(), 1000); // Retry after 1 second
+      } else {
+        // Show error after retry fails
+        setLoadError('Couldn\'t load your resumes. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,6 +118,306 @@ export default function MyResumesPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  // Modal state and handlers
+  const [showStubModal, setShowStubModal] = useState(false);
+  const [stubModalContent, setStubModalContent] = useState({ title: '', message: '' });
+
+  const showStubMessage = (title, message) => {
+    setStubModalContent({ title, message });
+    setShowStubModal(true);
+  };
+
+  // Tour handlers
+  const handleNextTourScreen = () => {
+    setTourScreen(tourScreen + 1);
+  };
+
+  const handleSkipTour = () => {
+    localStorage.setItem('hp_tour_seen', 'true');
+    setShowTourModal(false);
+  };
+
+  const handleCompleteTour = () => {
+    localStorage.setItem('hp_tour_seen', 'true');
+    setShowTourModal(false);
+  };
+
+  // Handle file upload (from empty state)
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Clear previous errors
+    setUploadError(null);
+    setUploading(true);
+
+    try {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('INVALID_TYPE');
+      }
+
+      // Validate file size (10MB max)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > maxSize) {
+        throw new Error('FILE_TOO_LARGE');
+      }
+
+      // 1. Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, file);
+
+      if (uploadError) throw new Error('UPLOAD_FAILED');
+
+      // 2. Parse the file (extract text)
+      const parseResponse = await fetch('/api/parse-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath })
+      });
+
+      if (!parseResponse.ok) {
+        throw new Error('PARSE_FAILED');
+      }
+
+      const { text } = await parseResponse.json();
+
+      // 3. Extract structured data
+      const extractResponse = await fetch('/api/extract-resume-structure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parsedText: text })
+      });
+
+      if (!extractResponse.ok) {
+        throw new Error('EXTRACT_FAILED');
+      }
+
+      const { data: resumeData } = await extractResponse.json();
+
+      // 4. Save to database (resumes table)
+      const { data: savedResume, error: saveError } = await supabase
+        .from('resumes')
+        .insert({
+          user_id: user.id,
+          resume_type: 'core',
+          display_name: 'Core Resume',
+          resume_data: resumeData,
+          journey_step: 'review',
+          file_path: filePath
+        })
+        .select()
+        .single();
+
+      if (saveError) throw new Error('SAVE_FAILED');
+
+      // 5. Redirect to resume detail page
+      router.push(`/resume/${savedResume.id}`);
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      
+      // Set specific error messages
+      let errorMessage = 'Upload failed. Please try again.';
+      
+      if (error.message === 'INVALID_TYPE') {
+        errorMessage = 'Please upload a PDF or DOCX file.';
+      } else if (error.message === 'FILE_TOO_LARGE') {
+        errorMessage = 'File is too large. Maximum size is 10MB.';
+      } else if (error.message === 'PARSE_FAILED') {
+        errorMessage = 'Couldn\'t read file. Try a different format.';
+      } else if (error.message === 'UPLOAD_FAILED' || error.message === 'EXTRACT_FAILED' || error.message === 'SAVE_FAILED') {
+        errorMessage = 'Upload failed. Please try again.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Connection lost. Check your internet.';
+      }
+      
+      setUploadError(errorMessage);
+      setUploading(false);
+    }
+  };
+
+  // Button handlers
+  const handleOpenResume = (resumeId) => {
+    router.push(`/resume/${resumeId}`);
+  };
+
+  const handleDownloadResume = async (resumeId) => {
+    try {
+      setDownloadingResumeId(resumeId); // Mark this resume as downloading
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      // Fetch the resume DIRECTLY from Supabase (same as resume detail page)
+      // This ensures we get the complete resume_data field
+      const { data: resume, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('id', resumeId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !resume) {
+        throw new Error('Resume not found');
+      }
+
+      // Now resume has resume_data just like in the detail page!
+      // Convert font size to API format
+      let fontSizeForApi = 'medium';
+      const resumeFontSize = resume.font_size || 11;
+      if (resumeFontSize <= 10) fontSizeForApi = 'small';
+      else if (resumeFontSize === 11) fontSizeForApi = 'medium';
+      else if (resumeFontSize >= 12) fontSizeForApi = 'large';
+      
+      // Capitalize template name
+      const templateName = resume.template_id || 'modern';
+      const templateForApi = templateName.charAt(0).toUpperCase() + templateName.slice(1);
+
+      // Call PDF generation API
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeData: resume,
+          templateName: templateForApi,
+          fontSize: fontSizeForApi,
+          action: 'download',
+          versionId: null,
+          isJobVersion: false,
+          userId: user.id
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        throw new Error('PDF generation failed');
+      }
+
+      const result = await response.json();
+      
+      // Fetch PDF as blob
+      const pdfResponse = await fetch(result.pdfUrl);
+      const blob = await pdfResponse.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Download with proper filename - EXACT same logic as resume detail page
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${(resume.resume_data?.fullName || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      showStubMessage(
+        "Download Error",
+        "There was a problem downloading your resume. Please try again."
+      );
+    } finally {
+      setDownloadingResumeId(null); // Clear downloading state
+    }
+  };
+
+  const handleCopyToJobSpecific = (resumeId) => {
+    const isProUser = data?.userTier === TIERS.PRO;
+    if (isProUser) {
+      showStubMessage(
+        "Coming Soon!",
+        "Job-specific resume creation is coming soon. We're putting the finishing touches on this feature."
+      );
+    } else {
+      showStubMessage(
+        "Upgrade to Pro",
+        "Create unlimited job-specific resumes with Pro. Customize your resume for each application."
+      );
+    }
+  };
+
+  const handleCreateNew = () => {
+    const isProUser = data?.userTier === TIERS.PRO;
+    if (isProUser) {
+      showStubMessage(
+        "Coming Soon!",
+        "Job-specific resume creation is coming soon. We're putting the finishing touches on this feature."
+      );
+    } else {
+      showStubMessage(
+        "Upgrade to Pro",
+        "Upgrade to Pro to create customized resumes for specific jobs."
+      );
+    }
+  };
+
+  const handleStartCoaching = async () => {
+    if (!data?.coreResume) return;
+    
+    const journeyStep = data.coreResume.journey_step || 'review';
+    const resumeId = data.coreResume.id;
+    
+    // Special case: If journey is "save", trigger download instead of navigating
+    if (journeyStep === 'save') {
+      setIsDownloading(true);
+      await handleDownloadResume(resumeId);
+      setIsDownloading(false);
+      return;
+    }
+    
+    // Navigate to appropriate step for all other journey steps
+    const nextSteps = {
+      review: `/resume/${resumeId}?step=assess`,
+      assess: `/resume/${resumeId}?step=coach`,
+      coach: `/resume/${resumeId}?step=improve`,
+      improve: `/resume/${resumeId}?step=polish`,
+      polish: `/resume/${resumeId}?step=save`
+    };
+    
+    router.push(nextSteps[journeyStep] || `/resume/${resumeId}`);
+  };
+
+  // Journey step messages (tier-specific)
+  const getJourneyMessage = (step) => {
+    const isFree = !isPro; // Free tier check
+    
+    const messages = {
+      review: "Your resume is in! Now make sure everything landed in the right place - AI parsing is good, not perfect. Give it a quick review, then we'll assess.",
+      assess: "Time for your baseline. Get your Resume Power Score and a breakdown of what's working and what's not - specific to your experience, not generic advice.",
+      coach: "Your coach can't improve what's not on the page. Through conversation, we'll uncover quantifiable achievements, transferable skills, and results you forgot were impressive.",
+      improve: isFree 
+        ? "Use your Action Plan to improve your resume, then reassess to see your new score. Want help? Try a free coaching session - pick any job and see what our AI uncovers. One bullet is all it takes to see the difference."
+        : "The big reveal! See your updated Resume Power Score, review each improvement your coach made, then keep, edit, or reject each change.",
+      polish: "Last chance for tweaks. Make any final edits before locking it in.",
+      save: isFree
+        ? "Your core resume is complete! Download it for immediate use, and when you're ready, upload a job description to see how well your resume matches that role."
+        : "Your core resume is bulletproof. Download it for immediate use, and when you're ready, create a job-specific version that builds on this foundation."
+    };
+    return messages[step] || messages.review;
+  };
+
+  // Get button text based on journey step
+  const getButtonText = (step) => {
+    const buttonText = {
+      review: "Start Review",
+      assess: "Start Assessment",
+      coach: "Start Coaching",
+      improve: "Improve Resume",
+      polish: "Polish Resume",
+      save: "Download Resume"
+    };
+    return buttonText[step] || "Continue";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -85,12 +426,62 @@ export default function MyResumesPage() {
     );
   }
 
+  // Show error state if loading failed
+  if (loadError) {
+    return (
+      <div className="h-screen bg-gray-50 flex">
+        {/* Left Sidebar */}
+        <div className="w-64 bg-gradient-to-br from-purple-600 to-blue-600 text-white p-6 flex flex-col h-screen overflow-hidden flex-shrink-0">
+          <h1 className="text-2xl font-bold mb-8">HIRE POWER</h1>
+        </div>
+
+        {/* Main Content */}
+        <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+          <MainNav currentPage="my-resumes" userProfile={userProfile} />
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
+              {/* Error State - Centered */}
+              <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                <div className="bg-white rounded-lg shadow-sm border-2 border-amber-200 p-8 max-w-md text-center">
+                  <svg className="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Resumes</h2>
+                  <p className="text-sm text-gray-600 mb-6">{loadError}</p>
+                  <button
+                    onClick={() => {
+                      setLoadError(null);
+                      setRetryCount(0);
+                      setLoading(true);
+                      loadData();
+                    }}
+                    className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isPro = data?.userTier === TIERS.PRO;
   const score = data?.coreResume?.current_score || null;
+  const journeyStep = data?.coreResume?.journey_step || 'review';
+  
+  // Show placeholder scores in review OR assess steps (before assessment runs) OR when no score exists
+  const showPlaceholder = journeyStep === 'review' || journeyStep === 'assess' || !score;
 
-  // Journey steps for progress bar
-  const steps = ['review', 'assess', 'coach', 'improve', 'polish', 'save'];
+  // Journey steps for progress bar (tier-specific)
+  const steps = isPro 
+    ? ['review', 'assess', 'coach', 'improve', 'polish', 'save']
+    : ['review', 'assess', 'improve', 'save'];
   const currentIndex = data?.coreResume?.journey_step ? steps.indexOf(data.coreResume.journey_step) : -1;
+  const totalSteps = steps.length;
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -106,31 +497,38 @@ export default function MyResumesPage() {
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
-          <h1 className="text-[27px] font-semibold mb-2 whitespace-nowrap">Resume Coach</h1>
-          <p className="text-sm text-white text-opacity-95 leading-snug">
-            We don't invent experience. We extract and strengthen what's already yours.
+          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Resume Coach</h1>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
+            Job hunting is small talk.
+          </p>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
+            Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
         
         {/* Main Content - NO SCROLL */}
-        <div className="flex-1 p-6 flex flex-col justify-between">
+        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
           <div>
             {/* Core Resume Section */}
-            <div className="mb-6">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">CORE RESUME</h4>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Power Score</span>
-                </li>
+            <div className="mb-5">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">CORE RESUME</h4>
+              <ul className="space-y-1.5 text-sm">
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
                   <span>AI Assessment</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>AI Coaching <span className="font-semibold text-xs">(Pro)</span></span>
+                  <span>Resume Power Score</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Detailed Action Plan</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Coaching Conversation <span className="font-semibold text-xs">(Pro)</span></span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
@@ -148,36 +546,42 @@ export default function MyResumesPage() {
             </div>
             
             {/* Job-Specific Section */}
-            <div>
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-3">JOB-SPECIFIC</h4>
-              <ul className="space-y-2 text-sm">
+            <div className="mb-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">JOB-SPECIFIC</h4>
+              <ul className="space-y-1.5 text-sm">
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
                   <span>Match Score</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>AI Coaching <span className="font-semibold text-xs">(Pro)</span></span>
+                  <span>Coaching Conversation <span className="font-semibold text-xs">(Pro)</span></span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Custom Versions <span className="font-semibold text-xs">(Pro)</span></span>
+                  <span>Job-Specific Resumes <span className="font-semibold text-xs">(Pro)</span></span>
                 </li>
               </ul>
             </div>
           </div>
           
-          {/* Bottom guidance - Fixed */}
-          <div className="px-6 pb-6 mt-auto">
-            <div className="bg-purple-800 bg-opacity-30 rounded-lg px-3 py-3 border border-purple-400 border-opacity-20">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 mt-0.5">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <p className="text-[11px] text-white leading-snug font-medium">
-                  Select any resume in your workspace to start the conversation.
+          {/* Bottom section - pushed to bottom */}
+          <div className="mt-auto">
+            {/* Bottom divider - matches top spacing */}
+            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
+            
+            <div>
+              <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
+                We don't invent experience. We extract and strengthen what's already yours.
+              </p>
+              <div className="flex items-center gap-2.5 text-white">
+                <img 
+                  src="/images/Hire_Power_icon.png" 
+                  alt="Lightning" 
+                  className="h-5 w-auto flex-shrink-0"
+                />
+                <p className="text-sm font-medium leading-tight">
+                  Select any resume to start the conversation
                 </p>
               </div>
             </div>
@@ -199,7 +603,8 @@ export default function MyResumesPage() {
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-8">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-3">Core Resume</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
+                    <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
                     {/* Thumbnail LEFT | Score RIGHT */}
                     <div className="grid grid-cols-12 gap-4 mb-4">
@@ -229,21 +634,53 @@ export default function MyResumesPage() {
                               
                               {/* Hover Overlay */}
                               <div className="absolute inset-0 bg-gray-900 bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <button className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white">
+                                {/* Gear/Settings - Opens resume */}
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenResume(data.coreResume.id);
+                                  }}
+                                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
+                                  title="Open resume"
+                                >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                   </svg>
                                 </button>
-                                <button className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white">
+                                {/* Copy - Create job-specific */}
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyToJobSpecific(data.coreResume.id);
+                                  }}
+                                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
+                                  title="Create job-specific resume"
+                                >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                   </svg>
                                 </button>
-                                <button className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                  </svg>
+                                {/* Download */}
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadResume(data.coreResume.id);
+                                  }}
+                                  disabled={downloadingResumeId === data.coreResume.id}
+                                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Download PDF"
+                                >
+                                  {downloadingResumeId === data.coreResume.id ? (
+                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -261,10 +698,21 @@ export default function MyResumesPage() {
                         {/* Giant Score */}
                         <div className="text-center">
                           <div className="mb-3">
-                            <span className="text-7xl font-bold text-gray-900">{score || 85}</span>
-                            <span className="text-3xl text-gray-400">/100</span>
+                            {!showPlaceholder ? (
+                              <>
+                                <span className="text-7xl font-bold text-gray-900">{score}</span>
+                                <span className="text-3xl text-gray-400">/100</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-7xl font-bold text-gray-300">--</span>
+                                <span className="text-3xl text-gray-300">/100</span>
+                              </>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">Resume Power Score</div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">
+                            {!showPlaceholder ? 'Resume Power Score' : 'Not Yet Assessed'}
+                          </div>
                           
                           {/* Score Bar - Improved */}
                           <div className="max-w-md mx-auto">
@@ -272,8 +720,8 @@ export default function MyResumesPage() {
                               <div 
                                 className="h-full transition-all duration-500"
                                 style={{ 
-                                  width: `${score || 85}%`,
-                                  background: (score || 85) >= 85 ? '#81c784' : (score || 85) >= 71 ? '#ffc870' : '#e57373'
+                                  width: !showPlaceholder ? `${score}%` : '0%',
+                                  background: !showPlaceholder ? (score >= 85 ? '#81c784' : score >= 71 ? '#ffc870' : '#e57373') : '#d1d5db'
                                 }}
                               />
                             </div>
@@ -299,30 +747,84 @@ export default function MyResumesPage() {
                         {/* Breakdown Grid - Bigger Text */}
                         <div className="grid grid-cols-3 gap-1.5">
                           <div className="text-center p-1.5 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold text-gray-900 mb-0.5">35<span className="text-sm text-gray-400">/40</span></div>
+                            <div className="text-2xl font-bold mb-0.5">
+                              {!showPlaceholder ? (
+                                <>
+                                  <span className="text-gray-900">35</span>
+                                  <span className="text-sm text-gray-400">/40</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-gray-300">--</span>
+                                  <span className="text-sm text-gray-300">/40</span>
+                                </>
+                              )}
+                            </div>
                             <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
-                            <div className="flex items-center justify-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                              <span className="text-[10px] text-green-600 font-medium">Strong</span>
-                            </div>
+                            {!showPlaceholder ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                <span className="text-[10px] text-green-600 font-medium">Strong</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="text-[10px] text-gray-400">—</span>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="text-center p-1.5 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold text-gray-900 mb-0.5">32<span className="text-sm text-gray-400">/40</span></div>
+                            <div className="text-2xl font-bold mb-0.5">
+                              {!showPlaceholder ? (
+                                <>
+                                  <span className="text-gray-900">32</span>
+                                  <span className="text-sm text-gray-400">/40</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-gray-300">--</span>
+                                  <span className="text-sm text-gray-300">/40</span>
+                                </>
+                              )}
+                            </div>
                             <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
-                            <div className="flex items-center justify-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                              <span className="text-[10px] text-green-600 font-medium">Strong</span>
-                            </div>
+                            {!showPlaceholder ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                <span className="text-[10px] text-green-600 font-medium">Strong</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="text-[10px] text-gray-400">—</span>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="text-center p-1.5 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold text-gray-900 mb-0.5">18<span className="text-sm text-gray-400">/20</span></div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
-                            <div className="flex items-center justify-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                              <span className="text-[10px] text-green-600 font-medium">Excellent</span>
+                            <div className="text-2xl font-bold mb-0.5">
+                              {!showPlaceholder ? (
+                                <>
+                                  <span className="text-gray-900">18</span>
+                                  <span className="text-sm text-gray-400">/20</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-gray-300">--</span>
+                                  <span className="text-sm text-gray-300">/20</span>
+                                </>
+                              )}
                             </div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
+                            {!showPlaceholder ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                <span className="text-[10px] text-green-600 font-medium">Excellent</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="text-[10px] text-gray-400">—</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -335,11 +837,14 @@ export default function MyResumesPage() {
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200">
                           <div 
                             className="h-full bg-purple-600 transition-all" 
-                            style={{ width: `${currentIndex >= 0 ? ((currentIndex + 1) / 6) * 100 : 33}%` }}
+                            style={{ width: `${currentIndex >= 0 ? ((currentIndex + 1) / totalSteps) * 100 : 33}%` }}
                           />
                         </div>
                         <div className="relative flex justify-between">
-                          {['Build', 'Assess', 'Coach', 'Improve', 'Polish', 'Save'].map((step, index) => {
+                          {(isPro 
+                            ? ['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save']
+                            : ['Review', 'Assess', 'Improve', 'Save']
+                          ).map((step, index) => {
                             const isPast = currentIndex > index;
                             const isActive = currentIndex === index || (currentIndex < 0 && index <= 1);
                             
@@ -370,99 +875,630 @@ export default function MyResumesPage() {
                     <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between gap-3">
                       <div className="flex-1">
                         <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
-                        <p className="text-xs text-gray-700 leading-relaxed">
-                          Your resume has solid structure. Coaching can help extract quantifiable achievements to maximize your Impact score.
+                        <p className="text-xs text-gray-700 leading-snug">
+                          {getJourneyMessage(data.coreResume.journey_step || 'review')}
                         </p>
                       </div>
                       <button 
-                        onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex-shrink-0"
+                        onClick={handleStartCoaching}
+                        disabled={isDownloading && (data.coreResume.journey_step === 'save')}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
-                        Start Coaching →
+                        {isDownloading && (data.coreResume.journey_step === 'save') ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            {getButtonText(data.coreResume.journey_step || 'review')} {(data.coreResume.journey_step || 'review') !== 'save' && '→'}
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Job-Specific Resumes (4 cols) */}
+                {/* Right Section: Job-Specific Resumes (Pro) OR Job Match Scores (Free) - 4 cols */}
                 <div className="col-span-4">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Job-Specific Resumes</h2>
+                    {isPro ? (
+                      <>
+                        <h2 className="text-lg font-semibold text-gray-900">Job-Specific Resumes</h2>
+                        <p className="text-xs text-gray-500 mb-4">Tailored versions optimized for specific applications</p>
 
-                    <div className="space-y-3">
-                      {/* Create New Card */}
-                      <button
-                        onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                        className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
-                          <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900">Create New</div>
-                      </button>
-
-                      {/* Job Cards */}
-                      {data.resumeVersions?.slice(0, 2).map((version) => (
-                        <div
-                          key={version.id}
-                          onClick={() => router.push(`/resume/${data.coreResume.id}?version=${version.id}`)}
-                          className="bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="text-sm font-semibold text-gray-900 mb-0.5">{version.job_title}</div>
-                              <div className="text-xs text-gray-500">{version.job_company}</div>
+                        <div className="space-y-3">
+                          {/* Create New Card */}
+                          <button
+                            onClick={handleCreateNew}
+                            className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
                             </div>
-                            <div className="flex items-center justify-center ml-3">
-                              <div className="relative">
-                                <svg className="w-12 h-12 transform -rotate-90">
-                                  <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
-                                  <circle
-                                    cx="24" cy="24" r="20"
-                                    stroke={getCircleColor(version.match_score)}
-                                    strokeWidth="3" fill="none"
-                                    strokeDasharray={`${2 * Math.PI * 20}`}
-                                    strokeDashoffset={`${2 * Math.PI * 20 * (1 - version.match_score / 100)}`}
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="text-sm font-bold" style={{ color: getCircleColor(version.match_score) }}>
-                                    {version.match_score}%
+                            <div className="text-sm font-semibold text-gray-900">Create New</div>
+                          </button>
+
+                          {/* Job Cards */}
+                          {data.resumeVersions && data.resumeVersions.length > 0 ? (
+                            data.resumeVersions.slice(0, 2).map((version) => (
+                              <div
+                                key={version.id}
+                                onClick={() => router.push(`/resume/${data.coreResume.id}?version=${version.id}`)}
+                                className="bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="text-sm font-semibold text-gray-900 mb-0.5">{version.job_title}</div>
+                                    <div className="text-xs text-gray-500">{version.job_company}</div>
+                                  </div>
+                                  <div className="flex items-center justify-center ml-3">
+                                    <div className="relative">
+                                      <svg className="w-12 h-12 transform -rotate-90">
+                                        <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
+                                        <circle
+                                          cx="24" cy="24" r="20"
+                                          stroke={getCircleColor(version.match_score)}
+                                          strokeWidth="3" fill="none"
+                                          strokeDasharray={`${2 * Math.PI * 20}`}
+                                          strokeDashoffset={`${2 * Math.PI * 20 * (1 - version.match_score / 100)}`}
+                                          strokeLinecap="round"
+                                        />
+                                      </svg>
+                                      <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="text-sm font-bold" style={{ color: getCircleColor(version.match_score) }}>
+                                          {version.match_score}%
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-6 text-gray-500">
+                              <div className="text-3xl mb-2">🎯</div>
+                              <p className="text-xs">No job-specific resumes yet.<br/>Click "Create New" when you're ready.</p>
                             </div>
-                          </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* FREE TIER: Job Match Scores */}
+                        <h2 className="text-lg font-semibold text-gray-900">Job Match Scores</h2>
+                        <p className="text-xs text-gray-500 mb-4">Upload a job description to see how well you match</p>
+
+                        <div className="space-y-3">
+                          {/* Upload JD Card */}
+                          <button
+                            onClick={() => showStubMessage("Coming Soon", "Job matching feature is coming soon!")}
+                            className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                            </div>
+                            <div className="text-sm font-semibold text-gray-900">Upload Job Description</div>
+                          </button>
+
+                          {/* Improve Step: Free Coaching Trial CTA */}
+                          {(data.coreResume.journey_step === 'improve') && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <div className="text-sm font-semibold text-gray-900 mb-1">Pro users don't type - they talk. AI does the rest.</div>
+                              <p className="text-xs text-gray-600 mb-3">
+                                Try coaching free on 1 job →
+                              </p>
+                              <button
+                                onClick={() => showStubMessage("Free Coaching Trial", "Free coaching trial coming soon!")}
+                                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                              >
+                                Try Free Coaching
+                              </button>
+                            </div>
+                          )}
+
+                          {/* General Upgrade CTA (shown when NOT in Improve step) */}
+                          {(data.coreResume.journey_step !== 'improve') && (
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mt-4">
+                              <div className="text-sm font-semibold text-gray-900 mb-1">Stop matching. Start customizing.</div>
+                              <p className="text-xs text-gray-600 mb-3">
+                                Pro users create unlimited job-specific resumes optimized for each role.
+                              </p>
+                              <button
+                                onClick={() => showStubMessage("Upgrade to Pro", "Pro tier coming soon!")}
+                                className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+                              >
+                                Upgrade to Pro
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State - EXACT Same Layout, Just Empty */}
             {!data?.coreResume && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                <div className="text-6xl mb-4">📄</div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Build Your Core Resume</h2>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Start by having a career conversation with our AI coach.
-                </p>
-                <button
-                  onClick={() => router.push('/my-career')}
-                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
-                >
-                  Start Career Conversation
-                </button>
+              <div className="grid grid-cols-12 gap-6">
+                {/* Core Resume Card (8 cols) */}
+                <div className="col-span-8">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                    <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
+                    <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
+                    
+                    {/* Thumbnail LEFT | Score RIGHT - EXACT same grid */}
+                    <div className="grid grid-cols-12 gap-4 mb-4">
+                      
+                      {/* Left: Empty Thumbnail (Upload Box) - col-span-4 */}
+                      <div className="col-span-4">
+                        <label className="block cursor-pointer">
+                          <input
+                            type="file"
+                            accept=".pdf,.docx"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            disabled={uploading}
+                          />
+                          <div className={`relative bg-gray-50 rounded-lg overflow-hidden shadow-sm border-2 border-dashed transition-all flex items-center justify-center ${
+                            uploadError 
+                              ? 'border-amber-400 bg-amber-50' 
+                              : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                          }`} style={{ aspectRatio: '8.5/11' }}>
+                            {uploading ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="animate-spin h-6 w-6 border-3 border-purple-600 border-t-transparent rounded-full"></div>
+                                <p className="text-xs font-medium text-gray-700">Uploading...</p>
+                              </div>
+                            ) : uploadError ? (
+                              <div className="flex flex-col items-center gap-2 px-4">
+                                <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div className="text-center">
+                                  <p className="text-xs font-semibold text-amber-900">Upload Failed</p>
+                                  <p className="text-[10px] text-amber-700 mt-1">{uploadError}</p>
+                                  <button
+                                    onClick={() => setUploadError(null)}
+                                    className="text-[10px] text-purple-600 hover:text-purple-700 font-medium mt-2"
+                                  >
+                                    Try Again
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2 px-4">
+                                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <div className="text-center">
+                                  <p className="text-xs font-semibold text-gray-900">Upload Resume</p>
+                                  <p className="text-[10px] text-gray-500 mt-0.5">PDF or DOCX</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                        <p className="text-[10px] text-gray-500 text-center mt-1.5">
+                          No resume?{' '}
+                          <button
+                            onClick={() => router.push('/build?from=my-resumes')}
+                            className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+                          >
+                            Build from scratch →
+                          </button>
+                        </p>
+                      </div>
+                      
+                      {/* Right: Empty Score Section - col-span-8 */}
+                      <div className="col-span-8 flex flex-col justify-between py-3">
+                        {/* Giant Score */}
+                        <div className="text-center">
+                          <div className="mb-3">
+                            <span className="text-7xl font-bold text-gray-300">--</span>
+                            <span className="text-3xl text-gray-300">/100</span>
+                          </div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">
+                            Not Yet Assessed
+                          </div>
+                          
+                          {/* Empty Score Bar */}
+                          <div className="max-w-md mx-auto">
+                            <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-3 shadow-inner">
+                              <div className="h-full w-0 bg-gray-300" />
+                            </div>
+                            
+                            {/* Simple text labels with dots */}
+                            <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: '#e57373' }}></div>
+                                <span>Needs Work<span className="text-gray-400 ml-1">(0-70)</span></span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: '#ffc870' }}></div>
+                                <span>Strong<span className="text-gray-400 ml-1">(71-84)</span></span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: '#81c784' }}></div>
+                                <span>Excellent<span className="text-gray-400 ml-1">(85+)</span></span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Empty Breakdown Grid */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold mb-0.5">
+                              <span className="text-gray-300">--</span>
+                              <span className="text-sm text-gray-300">/40</span>
+                            </div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-[10px] text-gray-400">—</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold mb-0.5">
+                              <span className="text-gray-300">--</span>
+                              <span className="text-sm text-gray-300">/40</span>
+                            </div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-[10px] text-gray-400">—</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
+                            <div className="text-2xl font-bold mb-0.5">
+                              <span className="text-gray-300">--</span>
+                              <span className="text-sm text-gray-300">/20</span>
+                            </div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-[10px] text-gray-400">—</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Journey Progress - All Gray */}
+                    <div className="mb-4">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Journey Progress</div>
+                      <div className="relative max-w-2xl mx-auto">
+                        <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200"></div>
+                        <div className="relative flex justify-between">
+                          {(isPro 
+                            ? ['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save']
+                            : ['Review', 'Assess', 'Improve', 'Save']
+                          ).map((step) => (
+                            <div key={step} className="flex flex-col items-center">
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
+                                ○
+                              </div>
+                              <span className="text-xs mt-1 text-gray-400">
+                                {step}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* What This Means - WITH Upload Button */}
+                    <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
+                        <p className="text-xs text-gray-700 leading-snug">
+                          You haven't started yet. Upload your resume to begin.
+                        </p>
+                      </div>
+                      <label className="flex-shrink-0 cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".pdf,.docx"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                        <button
+                          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={uploading}
+                          onClick={(e) => {
+                            if (!uploading) {
+                              e.currentTarget.previousElementSibling.click();
+                            }
+                          }}
+                        >
+                          {uploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            'Upload Resume'
+                          )}
+                        </button>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Don't have a resume yet?{' '}
+                      <button
+                        onClick={() => router.push('/build?from=my-resumes')}
+                        className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+                      >
+                        Click here to build one
+                      </button>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Job-Specific or Job Match - 4 cols */}
+                <div className="col-span-4">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                    {isPro ? (
+                      <>
+                        <h2 className="text-lg font-semibold text-gray-900">Job-Specific Resumes</h2>
+                        <p className="text-xs text-gray-500 mb-4">Tailored versions optimized for specific applications</p>
+                        <div className="text-center py-8 text-gray-400">
+                          <div className="text-4xl mb-2">📋</div>
+                          <p className="text-xs">Complete your core resume first</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-lg font-semibold text-gray-900">Job Match Scores</h2>
+                        <p className="text-xs text-gray-500 mb-4">Upload a job description to see how well you match</p>
+                        <div className="text-center py-8 text-gray-400">
+                          <div className="text-4xl mb-2">🎯</div>
+                          <p className="text-xs">Complete your core resume first</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Tour Modal */}
+      {showTourModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+          onClick={handleSkipTour}
+        >
+          <div 
+            className="bg-white shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              borderRadius: '8px',
+              height: '520px',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Purple header - EXACT sidebar gradient */}
+            <div 
+              style={{ background: 'linear-gradient(to bottom right, rgb(147 51 234), rgb(37 99 235))' }} 
+              className="px-6 py-5 relative flex-shrink-0"
+            >
+              {tourScreen < 3 && (
+                <button
+                  onClick={handleSkipTour}
+                  className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+                >
+                  ×
+                </button>
+              )}
+              
+              {tourScreen === 1 && (
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
+                    <span className="text-purple-600 font-bold text-lg">⚡</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Welcome to Resume Coach</h2>
+                    <p className="text-purple-100 text-xs">Coaching conversations that ask the right questions</p>
+                  </div>
+                </div>
+              )}
+              
+              {tourScreen === 2 && (
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
+                    <span className="text-purple-600 font-bold text-lg">⚡</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Six Steps to a Stronger Resume</h2>
+                    <p className="text-purple-100 text-xs">We'll guide you through—one clear step at a time</p>
+                  </div>
+                </div>
+              )}
+              
+              {tourScreen === 3 && (
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
+                    <span className="text-purple-600 font-bold text-lg">⚡</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">A Stronger Resume Starts Here</h2>
+                    <p className="text-purple-100 text-xs">Upload your resume—we'll show you what's missing</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-5 flex-1 flex flex-col" style={{ minHeight: '320px', maxHeight: '320px' }}>
+              {/* Screen 1 */}
+              {tourScreen === 1 && (
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <p className="font-bold text-gray-900 mb-3 text-base">The problem using most AI resume tools:</p>
+                      <div className="space-y-2 text-gray-700 text-sm">
+                        <p><span className="font-bold text-purple-600">→</span> You don't know what mades the strongest possible resume</p>
+                        <p><span className="font-bold text-purple-600">→</span> AI does - but it doesn't know YOU beyond what you've already written</p>
+                           <p><span className="font-bold text-purple-600">→</span> As a result, AI invents specifics instead of extracting the truth</p>   </div>
+                    </div>
+                    
+                    <div>
+                      <p className="font-bold text-gray-900 mb-2 text-base">Resume Coach uncovers missing elements through conversation.</p>
+                      <p className="text-gray-700 leading-relaxed text-sm">
+                        We ask the questions a professional resume writer would ask. You share what you've done. Together we discover achievements you forgot were impressive—and turn them into bullets that get interviews.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
+                      <p className="text-sm text-gray-800 font-medium">
+                        No generic tips. No made-up experience. Just your story - the best version of it - told the way hiring managers want to hear it.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center mt-5">
+                    <button
+                      onClick={handleNextTourScreen}
+                      className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Screen 2 */}
+              {tourScreen === 2 && (
+                <div className="flex flex-col h-full">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 mb-4">
+                      Ever felt lost in a resume tool? We won't let that happen. The next step is always clear.
+                    </p>
+                    
+                    <div className="space-y-2.5 mb-5">
+                      {[
+                        { title: 'Review', desc: 'Upload or build your resume' },
+                        { title: 'Assess', desc: 'See your baseline Resume Power Score' },
+                        { title: 'Coach', desc: 'AI conversation extracts achievements', pro: true },
+                        { title: 'Improve', desc: 'Review and accept changes' },
+                        { title: 'Polish', desc: 'Final edits and formatting', pro: true },
+                        { title: 'Save', desc: 'Download your stronger resume' }
+                      ].map((step, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-900">
+                              <span className="font-bold">{step.title}</span> 
+                              {step.pro && <sup className="text-purple-600" style={{ fontSize: '7px' }}>PRO</sup>} — {step.desc}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mt-4">
+                      <p className="text-sm text-gray-800 font-medium">
+                        Your achievements, not AI fiction. Your skills, your experience, your bulletproof resume.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center mt-5">
+                    <button
+                      onClick={handleNextTourScreen}
+                      className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Screen 3 */}
+              {tourScreen === 3 && (
+                <div className="flex flex-col h-full justify-between py-3">
+                  <div className="space-y-4 mb-6">
+                    <p className="text-gray-800 text-sm leading-relaxed font-semibold">
+                      A stronger resume starts with the right questions.
+                    </p>
+                    
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      Hire Power builds and tailors your resume through coaching conversations that uncover real accomplishments, metrics, and transferable skills you didn't think to include—so your resume gets stronger without made-up details.
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col items-center">
+                    <label className="block cursor-pointer mb-3">
+                      <input
+                        type="file"
+                        accept=".pdf,.docx"
+                        onChange={(e) => {
+                          handleFileUpload(e);
+                          handleCompleteTour();
+                        }}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                      <div className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm cursor-pointer">
+                        {uploading ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                            Uploading...
+                          </div>
+                        ) : (
+                          'Upload Resume'
+                        )}
+                      </div>
+                    </label>
+
+                    <p className="text-sm text-gray-600 text-center">
+                      Don't have one yet?{' '}
+                      <button
+                        onClick={() => {
+                          handleCompleteTour();
+                          router.push('/build?from=my-resumes');
+                        }}
+                        className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
+                      >
+                        Build from scratch
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal */}
+      <Modal
+        isOpen={showStubModal}
+        onClose={() => setShowStubModal(false)}
+        title={stubModalContent.title}
+        message={stubModalContent.message}
+        icon="⚡"
+        buttonText="Got it"
+      />
     </div>
   );
 }

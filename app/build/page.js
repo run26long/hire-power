@@ -141,7 +141,7 @@ useEffect(() => {
       if (fromPage === 'my-career') {
         router.push(`/my-career/detail?resumeId=${savedResume.id}`);
       } else if (fromPage === 'my-resumes') {
-        router.push(`/my-resumes`);
+       router.push(`/resume/${savedResume.id}`);
       } else {
         router.push('/dashboard');
       }
