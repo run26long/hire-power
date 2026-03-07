@@ -1,81 +1,114 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+const WRITING_CONSTITUTION = `
+RESUME WRITING STANDARDS — APPLY TO EVERY WORD YOU WRITE:
+
+VOICE & AUTHENTICITY:
+- Match language to the candidate's career stage. Students sound like exceptional students. 
+  Mid-career professionals sound like confident experts. Executives sound like strategic leaders.
+- Never use executive language for early-career or service roles.
+- Keep responsibility claims believable for the actual job title and experience level.
+- Preserve the candidate's natural voice while improving clarity and professionalism.
+- Elevate the description of the work — never inflate the responsibility.
+
+BULLET WRITING RULES:
+- Start every bullet with a strong action verb appropriate to the role's actual scope.
+- Focus on impact and outcomes, not just tasks.
+- One bullet = one achievement, project, responsibility, or skill area.
+- NEVER combine two distinct responsibilities into one bullet.
+- Keep each bullet focused on one idea. Active voice, direct language.
+- Avoid: "responsible for," "helped with," "assisted with," "worked on."
+- Use metrics when provided in coaching. NEVER invent them.
+- When no metrics exist, use trust signals, complexity, scope, and impact language instead.
+
+ACTION VERB CALIBRATION BY LEVEL:
+Entry-level: Assisted, Coordinated, Supported, Prepared, Maintained, Tracked, Organized, Contributed
+Mid-career: Managed, Developed, Led, Implemented, Improved, Trained, Streamlined, Delivered
+Senior: Directed, Established, Transformed, Drove, Oversaw, Championed, Architected, Scaled
+
+NO HALLUCINATION — ABSOLUTE RULE:
+You may ONLY use information explicitly in the resume or extracted during coaching.
+NEVER invent metrics, company details, project names, dates, awards, or responsibilities.
+If coaching didn't surface a number, write around it with qualitative strength.
+`
+
+const LEVEL_INSTRUCTIONS = {
+  entry: `This is an entry-level candidate. Write their bullet in the voice of a strong early-career professional. Do not use executive language. Authentic, specific, and impressive for their stage.`,
+  mid: `This is a mid-career professional. Write with confidence. Ground claims in specifics. Metrics expected where the role produces them.`,
+  senior: `This is a senior professional. Focus on organizational scope, strategic impact, and leadership at scale.`
+}
+
 export async function POST(request) {
   try {
-const { jobData, conversation, existingSkills } = await request.json()
+    const { resumeData, conversation, detectedLevel, careerContext } = await request.json()
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     })
 
-    const systemPrompt = `You are a professional resume writer. Based on the coaching conversation, you need to:
+    // Use first job — same job trial-coach coached on
+    const job = resumeData?.experience?.[0]
+    if (!job) {
+      return NextResponse.json({ error: 'No experience found' }, { status: 400 })
+    }
 
-1. Analyze all the bullet points in the job description
-2. Pick the WEAKEST bullet point (most generic, least impactful) that you think you can improve the most based on the coaching conversation.
-3. Rewrite that bullet using insights from the coaching conversation
+    const existingSkills = Object.values(resumeData?.skillsCategories || {}).flat()
+    const level = detectedLevel || 'entry'
+    const levelNote = LEVEL_INSTRUCTIONS[level] || LEVEL_INSTRUCTIONS.entry
 
-CRITICAL BULLET WRITING RULE: One bullet = one achievement, project, responsibility, or skill area.
-DO NOT combine multiple unrelated topics into a single bullet.
+    const careerContextBlock = careerContext ? `
+CAREER CONTEXT:
+- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
+- Career changer: ${careerContext.is_career_changer ? `YES — from ${careerContext.previous_field}` : 'No'}
+- Transferable skills to emphasize: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
+` : ''
 
-WRONG: "Managed inventory system for 200+ SKUs while training 5 new employees and coordinating with vendors to reduce costs by 15%"
-(3 separate achievements crammed together)
+    const systemPrompt = `${WRITING_CONSTITUTION}
 
-RIGHT: Break into separate bullets:
-- "Managed inventory system tracking 200+ SKUs with 98% accuracy"
-- "Trained and onboarded 5 new employees on POS systems and protocols"
-- "Negotiated with vendors to reduce supply costs by 15% ($12K savings)"
+${levelNote}
 
-If the conversation reveals multiple achievements, pick the SINGLE weakest bullet and improve it with ONE focused topic. Don't try to cram everything into one mega-bullet.
+${careerContextBlock}
 
-CRITICAL: Use ONLY the exact information the user provided. Do not reinterpret or restructure their statements.
-- If they say "I built 2 classes from 0 to full capacity, increasing total capacity from 90 to 110", that means they added 2 classes (20 spots) to EXISTING offerings, not that they built 110 spots from zero
-- If they say "I managed a team of 5", don't change it to "I led 5 people" 
-- Copy their numbers, timeframes, and descriptions EXACTLY as stated
-- If unclear, default to being conservative - don't inflate their achievements
-- When they give you context (like "capacity increased from 90 to 110"), that's background information, not necessarily what THEY alone accomplished
+JOB BEING COACHED:
+Title: ${job.title}
+Company: ${job.company}
+Current bullets:
+${(job.bullets || []).map(b => `• ${b}`).join('\n') || 'No bullets'}
 
-4. SKILL EXTRACTION: Based on the coaching conversation AND the user's existing Skills section, identify 3-7 NEW skills this person demonstrated that are NOT already on their resume.
-User's existing skills: ${existingSkills && existingSkills.length > 0 ? existingSkills.join(', ') : 'None listed'}
-Only count skills that should be added. Do not count skills they already have listed.
-Count them and return ONLY the number in skillsCount. DO NOT return the actual skill names for free users.
-Examples of skills to identify: "project management", "event planning", "budget forecasting", "stakeholder communication", "Python", "SQL", "Agile methodology", "vendor negotiation"
-
-JOB DATA:
-Title: ${jobData.title}
-Company: ${jobData.company}
-Current Description/Bullets:
-${jobData.description}
+EXISTING SKILLS ON RESUME: ${existingSkills.length > 0 ? existingSkills.join(', ') : 'None listed'}
 
 COACHING CONVERSATION:
-${conversation.map(msg => `${msg.role === 'user' ? 'User' : 'Coach'}: ${msg.content}`).join('\n\n')}
+${conversation.map(msg => `${msg.role === 'user' ? 'Candidate' : 'Coach'}: ${msg.content}`).join('\n\n')}
 
-Return ONLY a JSON object with this structure (no markdown, no explanation):
+YOUR TASK:
+1. Pick the WEAKEST bullet from the current job — the one most generic, vague, or task-focused that the coaching conversation gives you the most material to improve.
+2. Rewrite it using ONLY information from the coaching conversation. Do not invent anything.
+3. Count NEW skills demonstrated in the conversation that are NOT already in the existing skills list. Return only the count, not the names.
+
+Return ONLY a valid JSON object. No markdown. No explanation. No backticks.
+
 {
-  "originalBullet": "the exact text of the weakest bullet from the description",
-  "improvedBullet": "the professionally rewritten version using coaching insights",
-  "skillsCount": <number of NEW skills discovered, 0-7>,
-  "reasoning": "1-2 sentence explanation of why you chose this bullet and what you improved"
+  "before": "exact original bullet text",
+  "after": "improved bullet using coaching insights",
+  "reason": "1-2 sentences explaining what changed and why it's stronger",
+  "skillsCount": <number of NEW skills discovered, 0-7>
 }`
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: systemPrompt,
-      messages: [
-        { role: 'user', content: 'Please analyze the job and provide the improved bullet.' }
-      ]
+      messages: [{ role: 'user', content: systemPrompt }]
     })
-    
+
     const responseText = message.content[0].text
-    // Remove markdown code blocks if present
     const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const result = JSON.parse(cleanedText)
-    
+
     return NextResponse.json(result)
-    
+
   } catch (error) {
-    console.error('Trial coach finish API error:', error)
+    console.error('Trial coach finish error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

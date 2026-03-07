@@ -375,12 +375,17 @@ export default function MyResumesPage() {
     }
     
     // Navigate to appropriate step for all other journey steps
-    const nextSteps = {
+   const nextSteps = isPro ? {
       review: `/resume/${resumeId}?step=assess`,
       assess: `/resume/${resumeId}?step=coach`,
       coach: `/resume/${resumeId}?step=improve`,
       improve: `/resume/${resumeId}?step=polish`,
       polish: `/resume/${resumeId}?step=save`
+    } : {
+      review: `/resume/${resumeId}?step=assess`,
+      assess: `/resume/${resumeId}?step=coach`,
+      coach: `/resume/${resumeId}?step=improve`,
+      improve: `/resume/${resumeId}?step=save`
     };
     
     router.push(nextSteps[journeyStep] || `/resume/${resumeId}`);
@@ -393,9 +398,11 @@ export default function MyResumesPage() {
     const messages = {
       review: "Your resume is in! Now make sure everything landed in the right place - AI parsing is good, not perfect. Give it a quick review, then we'll assess.",
       assess: "Time for your baseline. Get your Resume Power Score and a breakdown of what's working and what's not - specific to your experience, not generic advice.",
-      coach: "Your coach can't improve what's not on the page. Through conversation, we'll uncover quantifiable achievements, transferable skills, and results you forgot were impressive.",
-      improve: isFree 
-        ? "Use your Action Plan to improve your resume, then reassess to see your new score. Want help? Try a free coaching session - pick any job and see what our AI uncovers. One bullet is all it takes to see the difference."
+      coach: isFree
+        ? "Get a taste of what coaching can do. We'll have a real conversation about one of your jobs and surface an achievement worth adding — then you decide if you want the full session."
+        : "Your coach can't improve what's not on the page. Through conversation, we'll uncover quantifiable achievements, transferable skills, and results you forgot were impressive.",
+     improve: isFree 
+        ? "Review the suggestions from your assessment and make changes directly to your resume. When you're done, save and download."
         : "The big reveal! See your updated Resume Power Score, review each improvement your coach made, then keep, edit, or reject each change.",
       polish: "Last chance for tweaks. Make any final edits before locking it in.",
       save: isFree
@@ -477,9 +484,9 @@ export default function MyResumesPage() {
   const showPlaceholder = journeyStep === 'review' || journeyStep === 'assess' || !score;
 
   // Journey steps for progress bar (tier-specific)
-  const steps = isPro 
+ const steps = isPro 
     ? ['review', 'assess', 'coach', 'improve', 'polish', 'save']
-    : ['review', 'assess', 'improve', 'save'];
+    : ['review', 'assess', 'coach', 'improve', 'save'];
   const currentIndex = data?.coreResume?.journey_step ? steps.indexOf(data.coreResume.journey_step) : -1;
   const totalSteps = steps.length;
 
@@ -528,11 +535,11 @@ export default function MyResumesPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Coaching Conversation <span className="font-semibold text-xs">(Pro)</span></span>
+                  <span>Coaching Conversation <span className="font-semibold text-xs">(1 free / Pro)</span></span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Achievement Discovery <span className="font-semibold text-xs">(Pro)</span></span>
+                  <span>Achievement Discovery <span className="font-semibold text-xs">(1 free / Pro)</span></span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
@@ -843,7 +850,7 @@ export default function MyResumesPage() {
                         <div className="relative flex justify-between">
                           {(isPro 
                             ? ['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save']
-                            : ['Review', 'Assess', 'Improve', 'Save']
+                            : ['Review', 'Assess', 'Coach', 'Improve', 'Save']
                           ).map((step, index) => {
                             const isPast = currentIndex > index;
                             const isActive = currentIndex === index || (currentIndex < 0 && index <= 1);
@@ -1179,9 +1186,9 @@ export default function MyResumesPage() {
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200"></div>
                         <div className="relative flex justify-between">
-                          {(isPro 
+                         {(isPro 
                             ? ['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save']
-                            : ['Review', 'Assess', 'Improve', 'Save']
+                            : ['Review', 'Assess', 'Coach', 'Improve', 'Save']
                           ).map((step) => (
                             <div key={step} className="flex flex-col items-center">
                               <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
@@ -1313,7 +1320,7 @@ export default function MyResumesPage() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white">Welcome to Resume Coach</h2>
-                    <p className="text-purple-100 text-xs">Coaching conversations that ask the right questions</p>
+                    <p className="text-purple-100 text-xs">The AI that asks the right questions.</p>
                   </div>
                 </div>
               )}
@@ -1324,8 +1331,8 @@ export default function MyResumesPage() {
                     <span className="text-purple-600 font-bold text-lg">⚡</span>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Six Steps to a Stronger Resume</h2>
-                    <p className="text-purple-100 text-xs">We'll guide you through—one clear step at a time</p>
+                    <h2 className="text-xl font-bold text-white">A Clear Path to a Stronger Resume</h2>
+                    <p className="text-purple-100 text-xs">No guesswork—just a clear process so you always know what to do next.</p>
                   </div>
                 </div>
               )}
@@ -1336,8 +1343,8 @@ export default function MyResumesPage() {
                     <span className="text-purple-600 font-bold text-lg">⚡</span>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">A Stronger Resume Starts Here</h2>
-                    <p className="text-purple-100 text-xs">Upload your resume—we'll show you what's missing</p>
+                    <h2 className="text-xl font-bold text-white">A Stronger Resume Starts Now</h2>
+                    <p className="text-purple-100 text-xs">Upload your resume and start improving it today.</p>
                   </div>
                 </div>
               )}
@@ -1350,23 +1357,24 @@ export default function MyResumesPage() {
                 <div className="flex flex-col h-full">
                   <div className="flex-1 space-y-4">
                     <div>
-                      <p className="font-bold text-gray-900 mb-3 text-base">The problem using most AI resume tools:</p>
+                      <p className="font-bold text-gray-900 mb-3 text-base">The problem with most AI resume tools:</p>
                       <div className="space-y-2 text-gray-700 text-sm">
-                        <p><span className="font-bold text-purple-600">→</span> You don't know what mades the strongest possible resume</p>
-                        <p><span className="font-bold text-purple-600">→</span> AI does - but it doesn't know YOU beyond what you've already written</p>
-                           <p><span className="font-bold text-purple-600">→</span> As a result, AI invents specifics instead of extracting the truth</p>   </div>
+                        <p><span className="font-bold text-purple-600">→</span> You may not know what makes a resume strong.</p>
+                        <p><span className="font-bold text-purple-600">→</span> And AI can only work with what’s already on the page.</p>
+                         <p>That’s why most tools give generic tips or rewrite what’s already there.</p>  </div>
                     </div>
                     
                     <div>
-                      <p className="font-bold text-gray-900 mb-2 text-base">Resume Coach uncovers missing elements through conversation.</p>
-                      <p className="text-gray-700 leading-relaxed text-sm">
-                        We ask the questions a professional resume writer would ask. You share what you've done. Together we discover achievements you forgot were impressive—and turn them into bullets that get interviews.
+                      <p className="font-bold text-gray-900 mb-2 text-base">Resume Coach works differently.</p>
+                      <p className="text-gray-700 leading-relaxed text-sm mb-2">
+                        We guide you through the same questions a professional resume writer would ask - uncovering achievements, metrics, and impact you might not think to include. </p>
+                       <p className="text-gray-700 leading-relaxed text-sm">So your resume gets stronger without AI making things up.
                       </p>
                     </div>
                     
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
                       <p className="text-sm text-gray-800 font-medium">
-                        No generic tips. No made-up experience. Just your story - the best version of it - told the way hiring managers want to hear it.
+                        No generic tips. No AI fiction. Just your real achievements, turned into a resume that gets interviews.
                       </p>
                     </div>
                   </div>
@@ -1382,47 +1390,72 @@ export default function MyResumesPage() {
                 </div>
               )}
 
-              {/* Screen 2 */}
+  {/* Screen 2 */}
               {tourScreen === 2 && (
                 <div className="flex flex-col h-full">
                   <div className="flex-1">
-                    <p className="text-sm text-gray-700 mb-4">
-                      Ever felt lost in a resume tool? We won't let that happen. The next step is always clear.
+                    <p className="font-bold text-sm text-gray-700 mb-2">
+                      Most resume tools leave you guessing.
+                    </p>
+
+                    <p className="text-sm text-gray-700 mb-2">
+                      Resume Coach walks you through a structured process that professional resume writers use to uncover stronger experience.
+                    </p>
+                    <p className="text-sm text-gray-700 mb-3">
+                      One clear step at a time.
                     </p>
                     
-                    <div className="space-y-2.5 mb-5">
-                      {[
-                        { title: 'Review', desc: 'Upload or build your resume' },
-                        { title: 'Assess', desc: 'See your baseline Resume Power Score' },
-                        { title: 'Coach', desc: 'AI conversation extracts achievements', pro: true },
-                        { title: 'Improve', desc: 'Review and accept changes' },
-                        { title: 'Polish', desc: 'Final edits and formatting', pro: true },
-                        { title: 'Save', desc: 'Download your stronger resume' }
-                      ].map((step, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <div className="flex-shrink-0 mt-0.5">
-                            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-900">
+                    {/* Vertical Progress Bar */}
+                    <div className="flex gap-3 mb-3">
+                      {/* Left: Vertical line with circles */}
+                      <div className="relative flex-shrink-0" style={{ width: '16px' }}>
+                        <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200">
+                          <div 
+                            className="w-full bg-gray-200 transition-all" 
+                            style={{ height: '100%' }}
+                          />
+                        </div>
+                        
+                        {/* Circles - w-4 h-4 with empty circle character */}
+                        <div className="relative flex flex-col justify-between" style={{ height: '160px', marginTop: '-2px' }}>
+                          {['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save'].map((step, index) => (
+                            <div key={step} className="flex items-center justify-center" style={{ height: '16px' }}>
+                              <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
+                                ○
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Right: Step labels - aligned with dot centers */}
+                      <div className="flex-1 flex flex-col justify-between" style={{ height: '160px' }}>
+                        {[
+                          { title: 'Review', desc: 'Upload or build your resume' },
+                          { title: 'Assess', desc: 'See your Resume Power Score' },
+                          { title: 'Coach', desc: 'Conversation reveals missing achievements', pro: true },
+                          { title: 'Improve', desc: 'Accept targeted improvements' },
+                          { title: 'Polish', desc: 'Final edits and formatting', pro: true },
+                          { title: 'Save', desc: 'Download your stronger resume' }
+                        ].map((step, i) => (
+                          <div key={i} style={{ height: '16px', display: 'flex', alignItems: 'center' }}>
+                            <p className="text-sm text-gray-900 leading-none">
                               <span className="font-bold">{step.title}</span> 
                               {step.pro && <sup className="text-purple-600" style={{ fontSize: '7px' }}>PRO</sup>} — {step.desc}
                             </p>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                     
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mt-4">
                       <p className="text-sm text-gray-800 font-medium">
-                        Your achievements, not AI fiction. Your skills, your experience, your bulletproof resume.
+                        No guessing what comes next. No getting confused by endless tips. Just clear next steps toward an interview-winning resume.
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex justify-center mt-5">
+                  <div className="flex justify-center mt-3">
                     <button
                       onClick={handleNextTourScreen}
                       className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
@@ -1433,55 +1466,56 @@ export default function MyResumesPage() {
                 </div>
               )}
 
-              {/* Screen 3 */}
+            {/* Screen 3 */}
               {tourScreen === 3 && (
-                <div className="flex flex-col h-full justify-between py-3">
-                  <div className="space-y-4 mb-6">
-                    <p className="text-gray-800 text-sm leading-relaxed font-semibold">
-                      A stronger resume starts with the right questions.
+                <div className="flex flex-col py-3">
+                  <div className="space-y-2">
+                    {/* Bold line - centered */}
+                    <p className="text-gray-800 text-sm leading-relaxed font-semibold text-center">
+                      Most resumes improve in minutes!
                     </p>
+                   <div className="text-gray-700 text-sm leading-relaxed text-center">
+                    <p className="mt-1">Start for free and go Pro at any time.</p>
+                    </div>
                     
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      Hire Power builds and tailors your resume through coaching conversations that uncover real accomplishments, metrics, and transferable skills you didn't think to include—so your resume gets stronger without made-up details.
-                    </p>
-                  </div>
-                  
-                  <div className="flex flex-col items-center">
-                    <label className="block cursor-pointer mb-3">
-                      <input
-                        type="file"
-                        accept=".pdf,.docx"
-                        onChange={(e) => {
-                          handleFileUpload(e);
-                          handleCompleteTour();
-                        }}
-                        className="hidden"
-                        disabled={uploading}
-                      />
-                      <div className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm cursor-pointer">
-                        {uploading ? (
-                          <div className="flex items-center gap-2">
-                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                            Uploading...
-                          </div>
-                        ) : (
-                          'Upload Resume'
-                        )}
-                      </div>
-                    </label>
+                    {/* Upload button + build link - at bottom */}
+                    <div className="flex flex-col items-center mt-8">
+                      <label className="block cursor-pointer mb-3">
+                        <input
+                          type="file"
+                          accept=".pdf,.docx"
+                          onChange={(e) => {
+                            handleFileUpload(e);
+                            handleCompleteTour();
+                          }}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                        <div className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm cursor-pointer">
+                          {uploading ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                              Uploading...
+                            </div>
+                          ) : (
+                            'Upload Resume'
+                          )}
+                        </div>
+                      </label>
 
-                    <p className="text-sm text-gray-600 text-center">
-                      Don't have one yet?{' '}
-                      <button
-                        onClick={() => {
-                          handleCompleteTour();
-                          router.push('/build?from=my-resumes');
-                        }}
-                        className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
-                      >
-                        Build from scratch
-                      </button>
-                    </p>
+                      <p className="text-sm text-gray-600 text-center">
+                        Don't have one yet?{' '}
+                        <button
+                          onClick={() => {
+                            handleCompleteTour();
+                            router.push('/build?from=my-resumes');
+                          }}
+                          className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
+                        >
+                          Build from scratch
+                        </button>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

@@ -1,104 +1,443 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-export async function POST(request) {
-  try {
-    const { resumeText, conversation, displayName, resumeFullName } = await request.json()
-    
-    // Determine name to use: displayName → resumeFullName → "there"
-    const userName = displayName || resumeFullName || "there"
-    
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+// ─────────────────────────────────────────────
+// Convert structured resume_data → plain text
+// ─────────────────────────────────────────────
+function convertStructuredToText(data) {
+  let text = ''
+
+  const fullName = data.fullName || ''
+  const email = data.email || ''
+  const phone = data.phone || ''
+  const location = data.location || ''
+  const linkedin = data.linkedin || ''
+  const portfolio = data.portfolio || ''
+
+  if (fullName) {
+    text += `${fullName}\n`
+    const contactParts = [email, phone, location, linkedin, portfolio].filter(Boolean)
+    if (contactParts.length > 0) text += contactParts.join(' | ') + '\n\n'
+  }
+
+  if (data.summary && !data.hideSummary) {
+    text += `PROFESSIONAL SUMMARY\n${data.summary}\n\n`
+  }
+
+  if (data.experience && data.experience.length > 0) {
+    text += 'EXPERIENCE\n\n'
+    data.experience.forEach(job => {
+      text += `${job.title || 'Position'} | ${job.company || 'Company'}\n`
+      const startDate = job.startDate || ''
+      const endDate = job.current ? 'Present' : (job.endDate || '')
+      if (startDate || endDate) text += `${startDate} - ${endDate}\n`
+      if (job.summary) text += `${job.summary}\n`
+      if (job.bullets && job.bullets.length > 0) {
+        job.bullets.forEach(bullet => { text += `• ${bullet}\n` })
+      }
+      text += '\n'
     })
-    
-    // Build system prompt with resume data
-   const today = new Date().toLocaleDateString('en-US', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})
+  }
 
-const systemPrompt = `IMPORTANT: Today's date is ${today}.
+  if (data.education && data.education.length > 0) {
+    text += 'EDUCATION\n\n'
+    data.education.forEach(edu => {
+      text += `${edu.school || 'Institution'}\n`
+      if (edu.lines && edu.lines.length > 0) {
+        edu.lines.forEach(line => { text += `${line}\n` })
+      }
+      text += '\n'
+    })
+  }
 
-You are a professional resume coach. The user has provided their resume. 
+  if (data.skillsCategories && Object.keys(data.skillsCategories).length > 0) {
+    text += 'SKILLS\n\n'
+    Object.entries(data.skillsCategories).forEach(([category, skills]) => {
+      const isSingle = Object.keys(data.skillsCategories).length === 1 && category === 'Skills'
+      if (!isSingle) text += `${category}:\n`
+      const arr = Array.isArray(skills) ? skills : [skills]
+      text += arr.join(', ') + '\n\n'
+    })
+  } else if (data.skills && data.skills.length > 0) {
+    text += `SKILLS\n${data.skills.join(', ')}\n\n`
+  }
 
-CRITICAL RULE - ABSOLUTELY NO HALLUCINATIONS:
-- You MUST ONLY reference information that is EXPLICITLY in the user's resume below
-- NEVER invent company names, job titles, schools, dates, or any other details
-- When mentioning their experience, copy EXACTLY what their resume says
-- If you need to reference a job, copy the exact company name and title from their resume
-- If you're unsure about something, ask them to clarify rather than guessing
+  if (data.projects && data.projects.length > 0) {
+    text += 'PROJECTS\n\n'
+    data.projects.forEach(p => {
+      text += `${p.name || 'Project'}\n`
+      if (p.description) text += `${p.description}\n`
+      if (p.link) text += `${p.link}\n`
+      text += '\n'
+    })
+  }
 
-Here is their current resume:
+  if (data.certifications && data.certifications.length > 0) {
+    text += 'CERTIFICATIONS\n\n'
+    data.certifications.forEach(c => {
+      text += `${c.name || 'Certification'}\n`
+      if (c.details) text += `${c.details}\n`
+      text += '\n'
+    })
+  }
 
+  if (data.volunteer && data.volunteer.length > 0) {
+    text += 'VOLUNTEER EXPERIENCE\n\n'
+    data.volunteer.forEach(v => {
+      text += `${v.organization || 'Organization'}\n`
+      if (v.description) text += `${v.description}\n`
+      text += '\n'
+    })
+  }
+
+  if (data.languages && data.languages.length > 0) {
+    text += 'LANGUAGES\n'
+    data.languages.forEach(l => {
+      text += `${l.language || 'Language'} - ${l.proficiency || 'Professional'}\n`
+    })
+    text += '\n'
+  }
+
+  return text
+}
+
+// ─────────────────────────────────────────────
+// COACHING SYSTEM PROMPTS BY CAREER LEVEL
+// ─────────────────────────────────────────────
+function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData) {
+
+  const contextBlock = careerContext ? `
+CAREER COACH CONTEXT (from earlier conversation):
+- Current role: ${careerContext.current_role || 'not specified'}
+- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
+- Career goal type: ${careerContext.career_goal || 'not specified'}
+- Is career changer: ${careerContext.is_career_changer ? 'YES — emphasize transferable skills' : 'No'}
+- Previous field: ${careerContext.previous_field || 'n/a'}
+- Skills not yet on resume: ${careerContext.skills_not_on_resume?.join(', ') || 'none noted'}
+- Timeline: ${careerContext.timeline || 'not specified'}
+
+Use this context to guide every coaching question. For career changers, actively look for 
+transferable skills. If skills_not_on_resume has entries, probe those specifically.
+` : ''
+
+  const extractionPhilosophy = `
+CORE COACHING PHILOSOPHY — READ THIS FIRST:
+
+Your job is extraction, not rewriting.
+Other tools rewrite what already exists. You extract what hasn't been written yet.
+
+Most people describe TASKS. Your job is to find IMPACT, TRUST, and RESPONSIBILITY hiding inside those task descriptions.
+
+The language pattern to listen for:
+
+What they say → What it reveals:
+"People came to me with questions" → trusted expert, go-to resource
+"I handled the difficult ones" → complex judgment, reliability under pressure
+"I trained people" → leadership, mentorship, knowledge transfer
+"I kept things organized" → operational ownership, systems thinking
+"I fixed problems" → initiative, problem-solving
+"My manager trusted me to..." → elevated responsibility
+"I was the one who..." → unique contribution, differentiated value
+"Things got better when..." → measurable impact (even without numbers)
+
+Your extraction questions (use naturally, not as a script):
+- What problems did people come to you to solve?
+- What part of your job were you especially good at?
+- What would your manager say you were known for?
+- When things went wrong, what role did you play?
+- Did you ever train, mentor, or help others?
+- What decisions were you trusted to make?
+- What made your job difficult or complex?
+- Did anything improve because of your work?
+- What tasks required the most judgment or experience?
+- What would break if your role disappeared?
+- What did you bring to this role that others in the same position didn't?
+- How did the company benefit from having you specifically?
+
+METRICS: Pursue them, but don't demand them.
+When someone CAN give numbers, push gently: "Any idea how many?" / "Even roughly?"
+When someone CANNOT give numbers (nurse, teacher, coordinator), shift to:
+- Trust signals: who relied on them and for what
+- Complexity signals: what made the work hard
+- Responsibility signals: what decisions they owned
+- Improvement signals: what got better because of their presence
+
+Never tell someone their answer isn't good enough. Every answer contains something. Your job is to find it.
+
+NO HALLUCINATION RULE — ABSOLUTE:
+You may ONLY reference information explicitly stated in the resume or told to you in this conversation.
+NEVER invent numbers, company details, dates, or achievements.
+If you need a metric and they can't provide one, document their qualitative answer exactly as given.
+When in doubt, ask — never assume.
+`
+
+  const levelInstructions = {
+    entry: `
+CAREER LEVEL: Entry-Level / Student / Early Career
+
+Voice calibration: This person is building their professional identity.
+Write and coach at a level that's impressive for someone early in their career — not a miniaturized executive.
+A student who sounds like a VP is an obvious AI rewrite and will hurt them.
+Their resume should sound like the best version of THEM, not a template.
+
+What matters most at this level:
+- Relevant experience (even part-time, volunteer, or academic)
+- ANY work experience (shows work ethic, reliability, time management)
+- Technical skills and certifications
+- Academic projects and campus involvement
+- Signs of initiative and growth
+
+Metrics are a bonus, not a requirement. Focus on quality of work, what they were trusted with,
+and what made them stand out. When coaching, be encouraging — many early-career candidates 
+think they have nothing impressive. Your job is to show them they're wrong.
+`,
+    mid: `
+CAREER LEVEL: Mid-Career (approximately 5–15 years experience)
+
+Voice calibration: This person has earned their expertise.
+Their resume should sound like a confident professional who knows their field —
+not an entry-level worker and not an executive making strategy speeches.
+Specific, grounded, professional.
+
+What matters most at this level:
+- Evidence of growth (promotions, expanded scope, increased trust)
+- Leadership activities (mentoring, training, project ownership)
+- Proven track record over time
+- Process improvements and operational contributions
+
+Metrics: Apply job-type intelligence.
+METRICS-HEAVY ROLES (sales, ops, PM, finance): Push hard for numbers. Missing metrics is a real gap.
+NON-METRICS ROLES (nursing, HR, education, trades, creative): Shift to trust signals, complexity,
+mentorship, scope of responsibility. These are equally valid impact indicators.
+
+Mid-career means not just doing the job — making things better, training others, or expanding 
+what the role can do. Find that.
+`,
+    senior: `
+CAREER LEVEL: Senior / Executive / Director+
+
+Voice calibration: This person operates at organizational scale.
+Their resume should reflect strategic scope and leadership influence —
+not task descriptions and not inflated language that sounds hollow.
+Specific, authoritative, outcome-focused.
+
+What matters most at this level:
+- Organizational impact (programs built, transformations led, company-wide change)
+- Leadership at scale (team size, budget responsibility, cross-functional influence)
+- Strategic thinking (long-term initiatives, not just execution)
+- Industry influence (thought leadership, advisory roles, speaking)
+- Developing other leaders
+
+Metrics: Expected for roles that produce them. For others (CNO, Senior Educators, Creative Directors),
+focus on organizational transformation, program development at scale, and influence through outcomes.
+
+Senior professionals show influence BEYOND their immediate team. Find that.
+`
+  }
+
+  // ── FREE TIER: single job, thorough extraction, then finish ──
+  if (tier === 'free') {
+    const job = resumeData?.experience?.[0]
+    const existingSkills = Object.values(resumeData?.skillsCategories || {}).flat()
+
+    const jobBlock = job ? `
+THE JOB YOU ARE COACHING:
+Title: ${job.title}
+Company: ${job.company}
+Dates: ${job.startDate} - ${job.current ? 'Present' : job.endDate}
+Current bullets:
+${(job.bullets || []).map(b => `• ${b}`).join('\n') || 'No bullets yet'}
+${job.summary ? `Job summary: ${job.summary}` : ''}
+` : ''
+
+    return `${extractionPhilosophy}
+
+${levelInstructions[level] || levelInstructions.mid}
+
+${contextBlock}
+
+${jobBlock}
+
+EXISTING SKILLS ON RESUME: ${existingSkills.length > 0 ? existingSkills.join(', ') : 'None listed'}
+
+YOUR OPENING MESSAGE (first response only):
+Greet ${userName} by name. In 2-3 sentences, explain what's about to happen:
+- Most people undersell themselves on their resume — coaching fixes that
+- You'll ask questions about their work at ${job?.company || 'their current job'} to surface achievements and impact they probably haven't captured yet
+- All they have to do is answer honestly — you'll handle the rest
+Then ask your first question. Keep the whole opening under 5 sentences total.
+Be warm and direct — not performative. No "I'm so excited!" energy. No "compelling" or "impressive" — you haven't learned anything yet.
+
+YOUR GOAL FOR THIS SESSION:
+Coach one job thoroughly. Ask as many questions as it takes to fully surface scope, scale, 
+impact, challenges, measurable results, and tools used. There is no question limit.
+
+A role with many bullets or responsibilities requires many questions. Work through it completely.
+If someone gives a short or vague answer, follow up before moving on — never skip past something 
+that sounds significant. You decide when the role has been fully explored.
+
+CRITICAL RULES:
+- Ask ONE question at a time — never combine two questions in one message
+- Keep your responses to 2-3 sentences maximum per turn
+- If an answer is vague or short, follow up before moving on
+- NEVER invent details — only use what they tell you
+- NEVER mention that you're tracking skills or counting anything
+- Match your tone and language to their career stage (see level instructions above)
+- Do NOT open with excessive enthusiasm — be warm and direct, not performative
+
+COMPLETION: When you have thoroughly covered the role and have enough material to improve it,
+end your final message with this exact phrase:
+"click the finish coaching button below"
+No punctuation after it, no capitalization changes, nothing following it. It must appear exactly as written.`
+  }
+
+  // ── PRO TIER: full resume, all phases, no limits ──
+  const phaseStructure = `
+COACHING PHASES:
+
+CRITICAL CONVERSATION RULES:
+- Ask ONE question at a time. Never combine two questions in one message.
+- Keep responses short — aim for 2-3 sentences maximum per turn.
+- If an answer is vague or short, follow up before moving on. Never skip past something interesting.
+- Do not summarize what they said back to them at length — just move forward.
+- The goal is a natural back-and-forth, not a lecture.
+- There is no limit on the number of exchanges — cover everything thoroughly.
+- Do NOT open with excessive enthusiasm — be warm and direct, not performative.
+
+PHASE 1 — CONTACT & UPDATES (ask all 5, one at a time)
+
+Q1: Greeting + confirm contact info
+Greet ${userName} by name. Confirm their email and phone from the resume are still current.
+
+Q2: New experience
+"Have you taken on any new jobs, internships, or significant roles that aren't on your resume yet?"
+
+Q3: New education
+"Have you completed any new degrees, certifications, or courses since this resume was last updated?"
+
+Q4: New skills
+"Have you picked up any new skills, tools, or technologies recently?"
+
+Q5: New recognition
+"Have you received any awards, honors, or recognition recently that we should add?"
+
+Only proceed to Phase 2 after all 5 are answered.
+
+PHASE 2 — DEEP EXTRACTION (most important phase)
+
+Work through each role ONE AT A TIME, most recent first.
+For each role:
+1. Acknowledge what's already on the resume for that role
+2. Ask extraction questions to find what's MISSING
+3. Focus on trust signals, complexity, responsibility, and impact
+4. Spend as many exchanges as needed — complex roles require many questions
+5. Only when fully exhausted: "Great, let's move to [next role]"
+
+NEVER jump between roles. Finish one completely before moving on.
+NEVER rush through a role because it already has bullets — there is always more underneath.
+
+After all experience: move to education.
+After education: move to skills (extract skills they have but didn't list).
+After skills: move to recognition (awards, achievements, anything impressive not yet captured).
+
+${careerContext?.skills_not_on_resume?.length > 0 ?
+  `IMPORTANT: Career Coach identified these skills not yet on resume: ${careerContext.skills_not_on_resume.join(', ')}. Probe for these specifically in the skills phase.`
+  : ''}
+
+${careerContext?.is_career_changer ?
+  `CAREER CHANGER NOTE: This person is transitioning from ${careerContext.previous_field || 'a previous field'} to ${careerContext.target_roles?.join(' or ') || 'a new field'}.
+  Actively reframe experience in terms of transferable skills. Help them see that what they've been doing already maps to their target field.
+  Example: "What you just described — coordinating vendors, managing timelines, keeping stakeholders aligned — those are project management skills. You've been doing PM work. You just haven't been calling it that."`
+  : ''}
+
+PHASE 3 — COMPLETION
+
+After all phases are done:
+"We've covered your experience, education, skills, and recognition. Is there anything else you'd like to add, or are you ready to see your improved resume?"
+
+If ready, respond with EXACTLY this (triggers the Finish button):
+"Excellent work, ${userName}! We've uncovered a lot of great material that's going to make your resume significantly stronger. Click the finish coaching button below — your improved resume is about to be revealed."
+`
+
+  return `${extractionPhilosophy}
+
+${levelInstructions[level] || levelInstructions.mid}
+
+${contextBlock}
+
+RESUME CONTENT (reference this, never invent beyond it):
 ${resumeText}
 
-YOUR COACHING PROCESS:
+${phaseStructure}
 
-PHASE 1: UPDATE CHECK - Ask ALL 5 questions in this exact order. Do NOT add extra questions or skip ahead. Keep questions simple and focused on what's NEW only.
+Be warm, direct, and genuinely curious. You are a professional resume coach who has helped thousands of people discover the value they didn't know they had. You know that everyone — including the person who thinks they have nothing impressive — has something worth putting on the page. Your job is to find it.`
+}
 
-Question 1 - GREETING & CONTACT: "Hi ${userName}! First, let me confirm your contact information is still current. Is [their email and phone from resume] the best way to reach you?"
+// ─────────────────────────────────────────────
+// MAIN HANDLER
+// ─────────────────────────────────────────────
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
-Question 2 - NEW EXPERIENCE: "Have you taken on any new jobs, internships, or significant roles that aren't on your resume yet?"
+export async function POST(request) {
+  try {
+    const {
+      resumeData,
+      resumeText,
+      conversation,
+      displayName,
+      careerContext,
+      detectedLevel,
+      tier           // 'free' | 'pro' — defaults to 'pro' if not passed
+    } = await request.json()
 
-Question 3 - NEW EDUCATION: "Have you completed any new degrees, certifications, or courses since your resume was last updated?"
+    const userTier = tier || 'pro'
 
-Question 4 - NEW SKILLS: "Have you learned any new skills, tools, or technologies recently that we should add?"
+    let textToCoach = resumeText
+    if (!textToCoach && resumeData) {
+      textToCoach = convertStructuredToText(resumeData)
+    }
+    if (!textToCoach) {
+      return NextResponse.json({ error: 'No resume data provided' }, { status: 400 })
+    }
 
-Question 5 - NEW RECOGNITION: "Have you received any new awards, honors, or special recognition recently?" (Do NOT recap their existing awards - just ask about new ones)
+    const userName = displayName || resumeData?.fullName || 'there'
 
-ONLY AFTER all 5 questions are answered, move to Phase 2.
+    // Detect career level (or use passed-in value)
+    let level = detectedLevel
+    if (!level) {
+      const detectionMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 10,
+        temperature: 0,
+        messages: [{
+          role: 'user',
+          content: `Analyze this resume and determine career stage. Respond with ONLY one word: entry, mid, or senior\n\n${textToCoach}`
+        }]
+      })
+      level = detectionMessage.content[0].text.trim().toLowerCase()
+      if (!['entry', 'mid', 'senior'].includes(level)) level = 'mid'
+    }
 
-PHASE 2: ACHIEVEMENT EXTRACTION
-Help them extract quantifiable achievements from their experience. Focus on metrics, numbers, results, and impact.
+    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData)
 
-CRITICAL: Work through their roles ONE AT A TIME in chronological order (most recent first):
-1. Start with their MOST RECENT role
-2. Ask ALL relevant questions about that role. Be sure to ask only one question at a time. Ask follow up questions if needed to prompt them for the quantifiable information needed for the strongest possible resume. Finish prompting the current question completely before moving on to the next question.
-3. Extract ALL quantifiable achievements from that role
-4. ONLY when that role is completely done, say "Great! Now let's move on to [next role]"
-5. Then move to the next role
-
-Do NOT jump between roles. Complete one role entirely before moving to the next.
-
-When you see job dates like "to present", "- present", "-present", or "current", acknowledge they're STILL in that role.
-
-6. Once all roles are complete, move on to education. Confirm current educational entries - one at a time, asking strategic questions to extract additional information on any specific classes, campus involvement, or academic awards that would strengthen their education content and make them stand out among other candidates with similar degrees.
-7. Once all education information has been maximized, move on to skills. Analyze work and educational experience to extract any skills not already listed, and ask if they would like to add them. The goal is, based on their experience, to find skills that they may not realize they have.
-8. Once the skills questions are complete, move on to recognition. Prompts from both work experience, education, and beyond (personal development) to help them find accomplishments, awards, and achievements that are appropriate and impressive on their resume. Only prompts for resume-appropriate recognition, and kindly redirect them if they give you information that is not appropriate for a professional resume.
-
-PHASE 3: COMPLETION
-After you've extracted achievements from ALL their work experience, ask this question:
-
-"We've now covered your experience, education, skills, and recognition with quantifiable achievements. Is there anything else you'd like to add, or are you ready to finalize your improved resume?"
-
-If they say they're ready (or "no" or "nothing else"):
-Respond with EXACTLY this message:
-
-"Excellent work! We've transformed your resume with quantifiable achievements. Candidates with metrics-driven resumes receive 3x more interview callbacks than those without. Click the Finish Coaching button below to save your improved resume, then head to My Resumes in the dashboard to select a template and download your final resume."
-This triggers the Finish button to appear.
-
-Be warm, friendly, and conversational throughout.
-
-Remember: Only use information that is explicitly shown above. Do not make up or assume any details.`
-    // Filter out any system messages from conversation (we're handling that above)
     const userMessages = conversation.filter(msg => msg.role !== 'system')
-    
+
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
       messages: userMessages
     })
-    
+
     return NextResponse.json({
-      response: message.content[0].text
+      response: message.content[0].text,
+      detectedLevel: level
     })
-    
+
   } catch (error) {
-    console.error('Claude API error:', error)
+    console.error('Coach API error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
