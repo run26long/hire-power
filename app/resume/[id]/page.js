@@ -1797,9 +1797,18 @@ function toggleSummary() {
 }
 // Right Panel Component
 function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume }) {  
-  const steps = userTier === 'free' 
-  ? ['review', 'assess', 'coach', 'improve', 'save']
-  : ['review', 'assess', 'coach', 'improve', 'polish', 'save']
+  const isJobSpecific = resume?.resume_type === 'job_specific'
+  const jobAnalysis = analysisResults?.analysis || analysisResults || {}
+  const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
+  const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
+
+  const steps = isJobSpecific
+    ? (userTier === 'free'
+        ? ['assess', 'save']
+        : ['assess', 'coach', 'improve', 'polish', 'save'])
+    : (userTier === 'free'
+        ? ['review', 'assess', 'coach', 'improve', 'save']
+        : ['review', 'assess', 'coach', 'improve', 'polish', 'save'])
  const currentIndex = steps.indexOf(journeyStep)
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
   const [maxStepIndex, setMaxStepIndex] = useState(currentIndex)
@@ -1821,12 +1830,23 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
  return (
     <div ref={panelRef} className="overflow-y-auto overflow-x-hidden h-full pr-3">
       
-    <div className="sticky top-0 bg-white -mx-6 px-6 pt-6 mb-6 pb-4 border-b border-gray-200 z-10">
-  <h3 className="text-center font-semibold text-sm mb-3">
+  <div className={`sticky top-0 bg-white -mx-6 px-6 pt-6 z-10 ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 shadow-sm' : 'mb-6 pb-4 shadow-sm'}`}>
+ {isJobSpecific ? (
+        <div className="mb-3 text-center">
+          <h3 className="font-bold text-sm text-gray-900 leading-tight">{resumeName}</h3>
+          {(userTier !== 'free') && (
+            <div className="mt-3">
+              <p className="text-[10px] text-purple-600 font-semibold uppercase tracking-wide">Resume Tailoring Progress</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <h3 className="text-center font-semibold text-sm mb-3">
           {userName ? `${userName.split(' ')[0]}'s ` : ''}{resumeName} Progress
         </h3>
+      )}
         
-        <div className="relative">
+        <div className={`relative ${isJobSpecific && userTier === 'free' ? 'hidden' : ''}`}>
           <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
             <div 
               className="h-full bg-purple-600 transition-all duration-300"
@@ -1834,7 +1854,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             />
           </div>
           
-         <div className="relative flex justify-between">
+        <div className={`relative flex justify-between ${isJobSpecific && userTier === 'free' ? 'hidden' : ''}`}>
             {steps.map((step, index) => (
               <div key={step} className="flex flex-col items-center">
                 <div
@@ -1921,7 +1941,165 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </>
       )}
 
-     {journeyStep === 'assess' && (
+  {journeyStep === 'assess' && isJobSpecific && (
+  <div className="space-y-4">
+    <div className="text-center mt-3">
+      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Job Match Score</div>
+      <div className="flex items-baseline justify-center gap-1 mb-2">
+        <span className="text-5xl font-bold text-gray-900">{score || '--'}</span>
+        <span className="text-xl text-gray-400">%</span>
+      </div>
+      <div className="h-4 bg-gray-200 rounded-full overflow-hidden mb-2 shadow-inner">
+        <div
+          className="h-full transition-all duration-500"
+          style={{
+            width: `${score || 0}%`,
+            background: (score || 0) >= 85 ? '#81c784' : (score || 0) >= 71 ? '#ffc870' : '#e57373'
+          }}
+        />
+      </div>
+      <div className="flex items-center justify-center gap-2 text-[10px] text-gray-800">
+        <div className="flex items-center gap-0.5">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#e57373' }}></div>
+          <span>Needs Work <span className="text-gray-500">(0-70)</span></span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ffc870' }}></div>
+          <span>Strong <span className="text-gray-500">(71-84)</span></span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#81c784' }}></div>
+          <span>Excellent <span className="text-gray-500">(85+)</span></span>
+        </div>
+      </div>
+    </div>
+
+  {userTier === 'free' ? (
+      <>
+        {(matchedCount || missingCount) ? (
+          <p className="text-xs text-gray-700 text-center -mt-1">
+            You meet <span className="font-semibold text-gray-900">{matchedCount} of {matchedCount + missingCount}</span> requirements for this role.
+          </p>
+        ) : null}
+
+        {(() => {
+          const positiveBullets = (Array.isArray(jobAnalysis.summary) ? jobAnalysis.summary : []).filter(s => s.startsWith('✓'))
+          const visible = positiveBullets.slice(0, 2)
+          const hasMore = positiveBullets.length > 2 || missingCount > 0
+          return (
+            <ul className="space-y-1.5 text-left">
+              {visible.map((sentence, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                  <span className="text-purple-600 mt-0.5 flex-shrink-0">✓</span>
+                  <span>{sentence.slice(1).trim()}</span>
+                </li>
+              ))}
+              {hasMore && (
+               <li className="flex items-start gap-2 text-xs text-gray-700">
+                  <span className="mt-0.5 flex-shrink-0">⚠️</span>
+                 <span className="text-purple-600 font-semibold">Additional strengths and opportunities identified — upgrade to reveal</span>
+                </li>
+              )}
+            </ul>
+          )
+        })()}
+
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <p className="text-xs font-semibold text-purple-800 mb-2">
+            🔒 {matchedCount} skills matched · {missingCount} to address
+          </p>
+          <p className="text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap — so your resume becomes a stronger match for this specific job.</p>
+          <button
+            onClick={() => window.location.href = '/upgrade'}
+            className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+          >
+            Close the Gap on This Job →
+          </button>
+          {(() => {
+            const s = score || 0
+            const msg = s >= 85
+              ? <>Even strong matches get sharper! Pro users typically gain <span className="font-semibold">3–5 points</span> closing specific skill gaps on their resume.</>
+              : s >= 71
+              ? <>Pro users who coach this type of resume see an average <span className="font-semibold">8-point score improvement.</span></>
+              : <>Pro users who coach low-match resumes see an average <span className="font-semibold">12-point score improvement.</span></>
+            return (
+              <div className="border-l-4 border-purple-400 pl-2 mt-3">
+                <p className="text-xs text-gray-500 italic leading-snug">{msg}</p>
+              </div>
+            )
+          })()}
+          <div className="text-center mt-3">
+            <button
+              onClick={() => window.location.href = '/my-resumes'}
+              className="text-gray-400 text-xs hover:text-gray-600"
+            >
+              ← Back to My Resumes
+            </button>
+          </div>
+        </div>
+      </>
+    ) : (
+      <>
+        {/* Summary bullets */}
+        <ul className="space-y-1.5 text-left">
+          {(Array.isArray(analysisResults?.analysis?.summary) ? analysisResults.analysis.summary : [])
+            .map((sentence, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                <span className={`mt-0.5 flex-shrink-0 ${sentence.startsWith('○') ? 'text-gray-400' : 'text-purple-600'}`}>
+                  {sentence.startsWith('○') ? '○' : '✓'}
+                </span>
+                <span>{sentence.slice(1).trim()}</span>
+              </li>
+            ))}
+        </ul>
+
+        {/* Matched Skills */}
+        {analysisResults?.analysis?.matchedKeywords?.length > 0 && (
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#81c784' }}>✅ Matched Skills</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {analysisResults.analysis.matchedKeywords.map((kw, i) => (
+                <span key={i} className="bg-green-50 border border-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full">{kw}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Missing Skills */}
+        {analysisResults?.analysis?.missingKeywords?.length > 0 && (
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#e57373' }}>⚠️ Skills to Address</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {analysisResults.analysis.missingKeywords.map((kw, i) => (
+                <span key={i} className="bg-red-50 border border-red-200 text-red-700 text-xs px-2 py-0.5 rounded-full">{kw}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+       <button
+          onClick={async () => {
+            setIsUpdatingJourney(true)
+            try {
+              const { error } = await supabase
+                .from('resumes')
+                .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+                .eq('id', params.id)
+              if (!error) setResume(prev => ({ ...prev, journey_step: 'coach' }))
+            } finally {
+              setIsUpdatingJourney(false)
+            }
+          }}
+          disabled={isUpdatingJourney}
+          className="block mx-auto bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+        >
+          Start Job Coaching →
+        </button>
+      </>
+    )}
+  </div>
+)}
+     {journeyStep === 'assess' && !isJobSpecific && (
         <div className="space-y-3">
        {/* Header */}
         <div className="flex items-center justify-center gap-6 -mt-1">
@@ -2195,6 +2373,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setResumeChanges={setResumeChanges}
           userTier={userTier}
           trialCoachingUsed={resume?.trial_coaching_used || false}
+          isJobSpecific={isJobSpecific}
+          jobDescription={resume?.job_description || null}
+          jobTitle={resume?.job_title || null}
+          jobCompany={resume?.job_company || null}
         />
       )}
 
@@ -2246,7 +2428,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed }) {
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany }) {
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -2316,6 +2498,10 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
           detectedLevel,
           displayName: userName,
           tier: tier,
+          isJobSpecific,
+          jobDescription,
+          jobTitle,
+          jobCompany,
           conversation: [{ role: 'user', content: "Hi! I'm ready to work on my resume." }]
         })
       })
@@ -2345,7 +2531,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
     setSending(true)
 
     try {
-      const response = await fetch('/api/coach', {
+     const response = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2354,6 +2540,10 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
           detectedLevel,
           displayName: userName,
           tier: userTier,
+          isJobSpecific,
+          jobDescription,
+          jobTitle,
+          jobCompany,
           conversation: updatedMessages
         })
       })

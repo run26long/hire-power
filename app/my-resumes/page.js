@@ -23,13 +23,31 @@ export default function MyResumesPage() {
   const [downloadingResumeId, setDownloadingResumeId] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
   
+ // Job-specific modal state
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [jobModalSourceId, setJobModalSourceId] = useState(null);
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobCompany, setJobCompany] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [creatingJob, setCreatingJob] = useState(false);
+  const [jobCreateError, setJobCreateError] = useState(null);
+
   // Tour modal state
   const [showTourModal, setShowTourModal] = useState(false);
   const [tourScreen, setTourScreen] = useState(1);
   const [hasSeenTour, setHasSeenTour] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
     loadData();
+    // Check for job-specific creation trigger from SaveStep
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'new-job-specific') {
+      const fromId = params.get('from');
+      setJobModalSourceId(fromId);
+      setShowJobModal(true);
+      // Clean URL without reload
+      window.history.replaceState({}, '', '/my-resumes');
+    }
   }, []);
 
   async function loadData() {
@@ -333,10 +351,8 @@ export default function MyResumesPage() {
   const handleCopyToJobSpecific = (resumeId) => {
     const isProUser = data?.userTier === TIERS.PRO;
     if (isProUser) {
-      showStubMessage(
-        "Coming Soon!",
-        "Job-specific resume creation is coming soon. We're putting the finishing touches on this feature."
-      );
+      setJobModalSourceId(resumeId);
+      setShowJobModal(true);
     } else {
       showStubMessage(
         "Upgrade to Pro",
@@ -345,13 +361,86 @@ export default function MyResumesPage() {
     }
   };
 
+  async function handleCreateJobSpecific() {
+    if (!jobTitle.trim() || !jobCompany.trim() || !jobDescription.trim()) {
+      setJobCreateError('Please fill in all three fields.');
+      return;
+    }
+    setCreatingJob(true);
+    setJobCreateError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Get source resume data
+      const sourceId = jobModalSourceId || data?.coreResume?.id;
+      const { data: sourceResume, error: fetchError } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('id', sourceId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      // Create job-specific resume record
+      const { data: newResume, error: insertError } = await supabase
+        .from('resumes')
+        .insert({
+          user_id: user.id,
+          resume_type: 'job_specific',
+          parent_resume_id: sourceId,
+          display_name: `${jobTitle} at ${jobCompany}`,
+          resume_data: sourceResume.resume_data,
+          job_title: jobTitle,
+          job_company: jobCompany,
+          job_description: jobDescription,
+          journey_step: 'assess',
+          template_id: sourceResume.template_id || 'modern',
+          font_family: sourceResume.font_family || 'Calibri',
+          font_size: sourceResume.font_size || 11,
+        })
+        .select()
+        .single();
+      if (insertError) throw insertError;
+
+      // Run job analysis
+      const analysisRes = await fetch('/api/job-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: sourceResume.resume_data,
+          jobDescription,
+          jobTitle,
+          jobCompany,
+          userId: user.id
+        })
+      });
+      const analysis = await analysisRes.json();
+
+      // Save analysis to new resume
+      await supabase
+        .from('resumes')
+        .update({
+          current_score: analysis.matchScore,
+          ai_analysis: analysis,
+          last_assessed_at: new Date().toISOString()
+        })
+        .eq('id', newResume.id);
+
+      // Navigate to new resume
+      router.push(`/resume/${newResume.id}`);
+    } catch (err) {
+      console.error('Error creating job-specific resume:', err);
+      setJobCreateError('Something went wrong. Please try again.');
+    } finally {
+      setCreatingJob(false);
+    }
+  }
+
   const handleCreateNew = () => {
     const isProUser = data?.userTier === TIERS.PRO;
     if (isProUser) {
-      showStubMessage(
-        "Coming Soon!",
-        "Job-specific resume creation is coming soon. We're putting the finishing touches on this feature."
-      );
+      setJobModalSourceId(data?.coreResume?.id || null);
+      setShowJobModal(true);
     } else {
       showStubMessage(
         "Upgrade to Pro",
@@ -1280,6 +1369,92 @@ export default function MyResumesPage() {
           </div>
         </div>
       </div>
+
+     {/* Job-Specific Resume Modal */}
+      {showJobModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
+          onClick={() => { setShowJobModal(false); setJobCreateError(null); }}
+        >
+          <div
+            className="bg-white shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col"
+            style={{ borderRadius: '8px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
+                  <span className="text-purple-600 font-bold text-lg">🎯</span>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Tailor for a Specific Job</h2>
+                  <p className="text-purple-100 text-xs">We'll analyze the match and coach your resume for this role.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowJobModal(false); setJobCreateError(null); }}
+                className="text-white hover:text-gray-200 text-4xl leading-none font-light w-8 h-8 flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Title</label>
+                <input
+                  type="text"
+                  value={jobTitle}
+                  onChange={e => setJobTitle(e.target.value)}
+                  placeholder="e.g. Marketing Coordinator"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Company</label>
+                <input
+                  type="text"
+                  value={jobCompany}
+                  onChange={e => setJobCompany(e.target.value)}
+                  placeholder="e.g. Disney"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Description</label>
+                <textarea
+                  value={jobDescription}
+                  onChange={e => setJobDescription(e.target.value)}
+                  placeholder="Paste the full job description here..."
+                  rows={6}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              {jobCreateError && (
+                <p className="text-xs text-red-600">{jobCreateError}</p>
+              )}
+
+              <button
+                onClick={handleCreateJobSpecific}
+                disabled={creatingJob}
+                className={`w-full rounded-lg py-2.5 font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
+                  creatingJob ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
+              >
+                {creatingJob && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                {creatingJob ? 'Analyzing Match...' : 'Analyze Match →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tour Modal */}
       {showTourModal && (

@@ -104,8 +104,49 @@ function convertStructuredToText(data) {
 // ─────────────────────────────────────────────
 // COACHING SYSTEM PROMPTS BY CAREER LEVEL
 // ─────────────────────────────────────────────
-function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData) {
+function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
+// ── JOB-SPECIFIC COACHING MODE ──
+  if (isJobSpecific && jobDescription) {
+    return `${extractionPhilosophy}
 
+${levelInstructions[level] || levelInstructions.mid}
+
+${careerContext ? `CAREER CONTEXT: ${careerContext.current_role || ''} → targeting ${careerContext.target_roles?.join(', ') || jobTitle || 'this role'}` : ''}
+
+RESUME CONTENT:
+${resumeText}
+
+TARGET ROLE: ${jobTitle || 'the role'} ${jobCompany ? `at ${jobCompany}` : ''}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+YOUR MISSION FOR THIS SESSION:
+This person has already coached their core resume. You are NOT here to review their whole history.
+You are here to help them close the gap between their resume and THIS specific job.
+
+YOUR OPENING MESSAGE:
+Greet ${userName} by name. In 2 sentences max, tell them you've reviewed their resume against the ${jobTitle || 'role'} description and you want to ask a few targeted questions to make sure they're presenting themselves as the strongest possible match. Then ask your first question.
+
+WHAT TO FOCUS ON:
+1. Missing keywords from the JD — do they actually have this experience but haven't captured it yet?
+2. Hidden power opportunities — experience on their resume that maps to JD requirements but isn't framed that way
+3. Any JD requirement that seems like a gap — can it be addressed through reframing existing experience?
+
+WHAT TO SKIP ENTIRELY:
+- Do NOT ask about contact info updates
+- Do NOT ask if they have new jobs or experience to add
+- Do NOT ask about new education or certifications
+- Do NOT ask about awards or recognition
+- This is a targeted gap-closing session only
+
+RULES:
+- Ask ONE question at a time
+- Keep responses to 2-3 sentences max
+- Never invent details not in the resume or conversation
+- When you have enough to reframe/strengthen their resume for this role, end with exactly:
+"click the finish coaching button below"`
+  }
   const contextBlock = careerContext ? `
 CAREER COACH CONTEXT (from earlier conversation):
 - Current role: ${careerContext.current_role || 'not specified'}
@@ -389,7 +430,11 @@ export async function POST(request) {
       displayName,
       careerContext,
       detectedLevel,
-      tier           // 'free' | 'pro' — defaults to 'pro' if not passed
+      tier,
+      isJobSpecific,
+      jobDescription,
+      jobTitle,
+      jobCompany
     } = await request.json()
 
     const userTier = tier || 'pro'
@@ -420,7 +465,7 @@ export async function POST(request) {
       if (!['entry', 'mid', 'senior'].includes(level)) level = 'mid'
     }
 
-    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData)
+    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
 
     const userMessages = conversation.filter(msg => msg.role !== 'system')
 
