@@ -105,62 +105,8 @@ function convertStructuredToText(data) {
 // COACHING SYSTEM PROMPTS BY CAREER LEVEL
 // ─────────────────────────────────────────────
 function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
-// ── JOB-SPECIFIC COACHING MODE ──
-  if (isJobSpecific && jobDescription) {
-    return `${extractionPhilosophy}
 
-${levelInstructions[level] || levelInstructions.mid}
-
-${careerContext ? `CAREER CONTEXT: ${careerContext.current_role || ''} → targeting ${careerContext.target_roles?.join(', ') || jobTitle || 'this role'}` : ''}
-
-RESUME CONTENT:
-${resumeText}
-
-TARGET ROLE: ${jobTitle || 'the role'} ${jobCompany ? `at ${jobCompany}` : ''}
-
-JOB DESCRIPTION:
-${jobDescription}
-
-YOUR MISSION FOR THIS SESSION:
-This person has already coached their core resume. You are NOT here to review their whole history.
-You are here to help them close the gap between their resume and THIS specific job.
-
-YOUR OPENING MESSAGE:
-Greet ${userName} by name. In 2 sentences max, tell them you've reviewed their resume against the ${jobTitle || 'role'} description and you want to ask a few targeted questions to make sure they're presenting themselves as the strongest possible match. Then ask your first question.
-
-WHAT TO FOCUS ON:
-1. Missing keywords from the JD — do they actually have this experience but haven't captured it yet?
-2. Hidden power opportunities — experience on their resume that maps to JD requirements but isn't framed that way
-3. Any JD requirement that seems like a gap — can it be addressed through reframing existing experience?
-
-WHAT TO SKIP ENTIRELY:
-- Do NOT ask about contact info updates
-- Do NOT ask if they have new jobs or experience to add
-- Do NOT ask about new education or certifications
-- Do NOT ask about awards or recognition
-- This is a targeted gap-closing session only
-
-RULES:
-- Ask ONE question at a time
-- Keep responses to 2-3 sentences max
-- Never invent details not in the resume or conversation
-- When you have enough to reframe/strengthen their resume for this role, end with exactly:
-"click the finish coaching button below"`
-  }
-  const contextBlock = careerContext ? `
-CAREER COACH CONTEXT (from earlier conversation):
-- Current role: ${careerContext.current_role || 'not specified'}
-- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
-- Career goal type: ${careerContext.career_goal || 'not specified'}
-- Is career changer: ${careerContext.is_career_changer ? 'YES — emphasize transferable skills' : 'No'}
-- Previous field: ${careerContext.previous_field || 'n/a'}
-- Skills not yet on resume: ${careerContext.skills_not_on_resume?.join(', ') || 'none noted'}
-- Timeline: ${careerContext.timeline || 'not specified'}
-
-Use this context to guide every coaching question. For career changers, actively look for 
-transferable skills. If skills_not_on_resume has entries, probe those specifically.
-` : ''
-
+  // ── DECLARED FIRST — used by all paths below ──
   const extractionPhilosophy = `
 CORE COACHING PHILOSOPHY — READ THIS FIRST:
 
@@ -276,6 +222,64 @@ Senior professionals show influence BEYOND their immediate team. Find that.
 `
   }
 
+  const contextBlock = careerContext ? `
+CAREER COACH CONTEXT (from earlier conversation):
+- Current role: ${careerContext.current_role || 'not specified'}
+- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
+- Career goal type: ${careerContext.career_goal || 'not specified'}
+- Is career changer: ${careerContext.is_career_changer ? 'YES — emphasize transferable skills' : 'No'}
+- Previous field: ${careerContext.previous_field || 'n/a'}
+- Skills not yet on resume: ${careerContext.skills_not_on_resume?.join(', ') || 'none noted'}
+- Timeline: ${careerContext.timeline || 'not specified'}
+
+Use this context to guide every coaching question. For career changers, actively look for 
+transferable skills. If skills_not_on_resume has entries, probe those specifically.
+` : ''
+
+  // ── JOB-SPECIFIC COACHING MODE ──
+  if (isJobSpecific && jobDescription) {
+    return `${extractionPhilosophy}
+
+${levelInstructions[level] || levelInstructions.mid}
+
+${careerContext ? `CAREER CONTEXT: ${careerContext.current_role || ''} → targeting ${careerContext.target_roles?.join(', ') || jobTitle || 'this role'}` : ''}
+
+RESUME CONTENT:
+${resumeText}
+
+TARGET ROLE: ${jobTitle || 'the role'} ${jobCompany ? `at ${jobCompany}` : ''}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+YOUR MISSION FOR THIS SESSION:
+This person has already coached their core resume. You are NOT here to review their whole history.
+You are here to help them close the gap between their resume and THIS specific job and create a resume strong enough to pass ATS for this specific position while also impressing a human recruiter.
+
+YOUR OPENING MESSAGE:
+Greet ${userName} by name. In 2 sentences max, tell them you've reviewed their resume against the ${jobTitle || 'role'} description and you want to ask a few targeted questions to make sure they're presenting themselves as the strongest possible match. Then ask your first question.
+
+WHAT TO FOCUS ON:
+1. Missing keywords from the job description — do they actually have this experience but haven't captured it yet?
+2. Hidden power opportunities — experience on their resume that maps to job description requirements but isn't framed that way
+3. Any job description requirement that seems like a gap — can it be addressed through reframing existing experience?
+4. Look for ways missing keywords could be added to existing experience bullets, added as new bullets, or added as skills or other resume sections.
+
+WHAT TO SKIP ENTIRELY:
+- Do NOT ask about contact info updates
+- Do NOT ask if they have new jobs or experience to add
+- Do NOT ask about new education or certifications
+- Do NOT ask about awards or recognition
+- This is a targeted gap-closing session only
+
+RULES:
+- Ask ONE question at a time
+- Keep responses to 2-3 sentences max
+- Never invent details not in the resume or conversation
+- When you have enough to reframe/strengthen their resume for this role, end with exactly:
+"Coaching is complete! Click the button below to see the resume tailored specifically for this job."`
+  }
+
   // ── FREE TIER: single job, thorough extraction, then finish ──
   if (tier === 'free') {
     const job = resumeData?.experience?.[0]
@@ -328,7 +332,7 @@ CRITICAL RULES:
 
 COMPLETION: When you have thoroughly covered the role and have enough material to improve it,
 end your final message with this exact phrase:
-"click the finish coaching button below"
+"Click below to view your improved bullet!"
 No punctuation after it, no capitalization changes, nothing following it. It must appear exactly as written.`
   }
 

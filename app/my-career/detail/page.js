@@ -268,7 +268,7 @@ const handleResumeUpdate = async (updatedData) => {
   }
 
   const breadcrumbItems = [
-    { label: 'My Career', path: '/my-career' },
+    { label: 'Career Coach', path: '/my-career' },
     { label: 'Career Conversation' }
   ];
 
@@ -361,7 +361,7 @@ const handleResumeUpdate = async (updatedData) => {
                           <p className="text-xs font-semibold text-gray-700 mb-1">
                             {userProfile?.display_name || 'You'}
                           </p>
-                          <div className="text-gray-800 whitespace-pre-line text-sm">
+                          <div className="text-gray-800 whitespace-pre-line text-xs">
                             {msg.content}
                           </div>
                         </div>
@@ -403,12 +403,14 @@ const handleResumeUpdate = async (updatedData) => {
               </div>
               {/* Input & Button */}
             {isConversationComplete ? (
-                <button
-                  onClick={handleConversationComplete}
-                  className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition-all font-semibold text-sm"
-                >
-                  ✓ Complete Career Conversation
-                </button>
+                <div className="flex justify-center border-t pt-4">
+                  <button
+                    onClick={handleConversationComplete}
+                    className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs"
+                  >
+                    Continue to Resume Coach →
+                  </button>
+                </div>
               ) : (
                <div className="border-t pt-4">
                   <textarea
@@ -425,7 +427,7 @@ const handleResumeUpdate = async (updatedData) => {
                     placeholder="Type your response..."
                     disabled={isAIThinking}
                     rows="2"
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none mb-2"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none mb-2"
                   />
                   <button
                     onClick={() => {

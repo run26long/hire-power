@@ -304,11 +304,13 @@ export async function GET(req) {
       }
     }
     
-    // Get resume versions (Power Match Scores / Tailored Resumes)
+   // Get job-specific resumes
     const { data: versions, error: versionsError } = await supabase
-      .from('resume_versions')
+      .from('resumes')
       .select('*')
       .eq('user_id', user.id)
+      .eq('resume_type', 'job_specific')
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
     
     if (versionsError) {
@@ -340,14 +342,16 @@ export async function GET(req) {
     // Format resume versions data (tier-specific)
     const resumeVersionsData = versions?.map(v => ({
       id: v.id,
-      version_name: v.version_name,
+      version_name: v.display_name,
       job_title: v.job_title,
       job_company: v.job_company,
-      match_score: v.match_score,
+      match_score: v.current_score,
       updated_at: v.updated_at,
-      // Only include customized_resume_data for Pro users
-      customized_resume_data: userTier === 'pro' ? v.customized_resume_data : null,
-      analysis: v.analysis
+      journey_step: v.journey_step,
+      current_score: v.current_score,
+      thumbnail_url: v.thumbnail_url,
+      customized_resume_data: userTier === 'pro' ? v.resume_data : null,
+      analysis: v.ai_analysis
     })) || [];
     
     // Return structured data

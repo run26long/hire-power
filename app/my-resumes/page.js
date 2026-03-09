@@ -1084,6 +1084,46 @@ export default function MyResumesPage() {
                             <div className="text-sm font-semibold text-gray-900">Upload Job Description</div>
                           </button>
 
+                         {/* Job Match Score Cards */}
+                          {data.resumeVersions && data.resumeVersions.length > 0 && (
+                            <div className="space-y-2">
+                              {data.resumeVersions.slice(0, 3).map((version) => (
+                                <div
+                                  key={version.id}
+                                  onClick={() => router.push(`/resume/${version.id}`)}
+                                  className="bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <div className="text-sm font-semibold text-gray-900 mb-0.5">{version.job_title}</div>
+                                      <div className="text-xs text-gray-500">{version.job_company}</div>
+                                    </div>
+                                    <div className="flex items-center justify-center ml-3">
+                                      <div className="relative">
+                                        <svg className="w-12 h-12 transform -rotate-90">
+                                          <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
+                                          <circle
+                                            cx="24" cy="24" r="20"
+                                            stroke={getCircleColor(version.match_score)}
+                                            strokeWidth="3" fill="none"
+                                            strokeDasharray={`${2 * Math.PI * 20}`}
+                                            strokeDashoffset={`${2 * Math.PI * 20 * (1 - version.match_score / 100)}`}
+                                            strokeLinecap="round"
+                                          />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="text-sm font-bold" style={{ color: getCircleColor(version.match_score) }}>
+                                            {version.match_score}%
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {/* Improve Step: Free Coaching Trial CTA */}
                           {(data.coreResume.journey_step === 'improve') && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1393,7 +1433,7 @@ export default function MyResumesPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-white">Tailor for a Specific Job</h2>
-                  <p className="text-purple-100 text-xs">We'll analyze the match and coach your resume for this role.</p>
+                  <p className="text-purple-100 text-xs">{isPro ? "We'll analyze the match and coach your resume for this role." : "We'll analyze the match and see how closely your resume aligns with this role."}</p>
                 </div>
               </div>
               <button
@@ -1490,9 +1530,7 @@ export default function MyResumesPage() {
               
               {tourScreen === 1 && (
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
-                    <span className="text-purple-600 font-bold text-lg">⚡</span>
-                  </div>
+                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                   <div>
                     <h2 className="text-xl font-bold text-white">Welcome to Resume Coach</h2>
                     <p className="text-purple-100 text-xs">The AI that asks the right questions.</p>
@@ -1502,9 +1540,7 @@ export default function MyResumesPage() {
               
               {tourScreen === 2 && (
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
-                    <span className="text-purple-600 font-bold text-lg">⚡</span>
-                  </div>
+                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                   <div>
                     <h2 className="text-xl font-bold text-white">A Clear Path to a Stronger Resume</h2>
                     <p className="text-purple-100 text-xs">No guesswork—just a clear process so you always know what to do next.</p>
@@ -1514,9 +1550,7 @@ export default function MyResumesPage() {
               
               {tourScreen === 3 && (
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
-                    <span className="text-purple-600 font-bold text-lg">⚡</span>
-                  </div>
+                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                   <div>
                     <h2 className="text-xl font-bold text-white">A Stronger Resume Starts Now</h2>
                     <p className="text-purple-100 text-xs">Upload your resume and start improving it today.</p>

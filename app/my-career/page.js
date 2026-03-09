@@ -9,7 +9,8 @@ import Breadcrumb from '../components/Breadcrumb';
 export default function MyCareerPage() {
   const router = useRouter();
   const supabase = createClient();
-const [user, setUser] = useState(null);
+
+  const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [careerContext, setCareerContext] = useState(null);
   const [existingResume, setExistingResume] = useState(null);
@@ -17,124 +18,125 @@ const [user, setUser] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalScreen, setModalScreen] = useState(1);
+
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      if (!user) { router.push('/login'); return; }
       setUser(user);
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+        .from('profiles').select('*').eq('id', user.id).single();
       setUserProfile(profile);
 
-   const { data: context } = await supabase
-        .from('career_context')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
+      const { data: context } = await supabase
+        .from('career_context').select('*').eq('user_id', user.id).maybeSingle();
       setCareerContext(context);
-      
-      // Check if user has any resumes (uploaded or built)
+
       const { data: resumes } = await supabase
-        .from('resumes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-      
-      if (resumes && resumes.length > 0) {
-        setExistingResume(resumes[0]);
-      }
-      
-     // Only show returning view if they have actual career context
-      // Having a resume alone should show new user screen with resume detection
-      if (context) {
-        setCareerContext(context);
-      }
-      
+        .from('resumes').select('*').eq('user_id', user.id)
+        .eq('resume_type', 'core')
+        .order('updated_at', { ascending: false }).limit(1);
+      if (resumes && resumes.length > 0) setExistingResume(resumes[0]);
+
       setLoading(false);
+
+      // Show modal if no career context yet
+      if (!context) {
+        setTimeout(() => {
+          const seen = localStorage.getItem('hp_career_modal_seen');
+          if (!seen) {
+            setShowModal(true);
+            setModalScreen(1);
+          }
+        }, 300);
+      }
     }
     loadData();
   }, [supabase, router]);
 
-  // Handle file upload
+  const handleDismissModal = () => {
+    localStorage.setItem('hp_career_modal_seen', 'true');
+    setShowModal(false);
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploading(true);
     setUploadError(null);
-
     try {
-      // 1. Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(filePath, file);
+      const { error: uploadErr } = await supabase.storage
+        .from('resumes').upload(filePath, file);
+      if (uploadErr) throw uploadErr;
 
-      if (uploadError) throw uploadError;
-
-      // 2. Parse the file (extract text)
-      const parseResponse = await fetch('/api/parse-pdf', {
+      const parseRes = await fetch('/api/parse-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath })
       });
+      if (!parseRes.ok) throw new Error('Parse failed');
+      const { text } = await parseRes.json();
 
-      if (!parseResponse.ok) {
-        throw new Error('Failed to parse resume');
-      }
-
-      const { text } = await parseResponse.json();
-
-      // 3. Extract structured data
-      const extractResponse = await fetch('/api/extract-resume-structure', {
+      const extractRes = await fetch('/api/extract-resume-structure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parsedText: text })
       });
+      if (!extractRes.ok) throw new Error('Extract failed');
+      const { data: resumeData } = await extractRes.json();
 
-      if (!extractResponse.ok) {
-        throw new Error('Failed to extract resume structure');
-      }
-
-      const { data: resumeData } = await extractResponse.json();
-
-      // 4. Save to database (resumes table)
-      const { data: savedResume, error: saveError } = await supabase
-        .from('resumes')
-        .insert({
+      const { data: savedResume, error: saveErr } = await supabase
+        .from('resumes').insert({
           user_id: user.id,
           resume_type: 'core',
           display_name: 'Core Resume',
           resume_data: resumeData,
           journey_step: 'review',
           file_path: filePath
-        })
-        .select()
-        .single();
+        }).select().single();
+      if (saveErr) throw saveErr;
 
-      if (saveError) throw saveError;
-
-      // 5. Redirect to Career Detail with resume ID
+      localStorage.setItem('hp_career_modal_seen', 'true');
       router.push(`/my-career/detail?resumeId=${savedResume.id}`);
-
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError(error.message || 'Failed to upload resume. Please try again.');
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadError('Upload failed. Please try again.');
       setUploading(false);
     }
   };
+
+  const handleContinueWithExisting = () => {
+    localStorage.setItem('hp_career_modal_seen', 'true');
+    router.push(`/my-career/detail?resumeId=${existingResume.id}`);
+  };
+
+  const handleStartConversation = async () => {
+    // Find most recent resume to use
+    const { data: resumes } = await supabase
+      .from('resumes').select('id').eq('user_id', user.id)
+      .eq('resume_type', 'core')
+      .order('updated_at', { ascending: false }).limit(1);
+    if (resumes && resumes.length > 0) {
+      router.push(`/my-career/detail?resumeId=${resumes[0].id}`);
+    } else {
+      // No resume yet — show modal
+      setShowModal(true);
+      setModalScreen(1);
+    }
+  };
+
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
 
   if (loading) {
     return (
@@ -144,311 +146,461 @@ const [user, setUser] = useState(null);
     );
   }
 
-const breadcrumbItems = [
-    { label: 'My Career' }
-  ];
+  const hasContext = !!careerContext;
+  const firstName = userProfile?.first_name || careerContext?.current_role?.split(' ')[0] || '';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MainNav currentPage="my-career" userProfile={userProfile} />
-      <Breadcrumb items={breadcrumbItems} />
+    <div className="h-screen bg-gray-50 flex">
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        {!careerContext ? (
-          // NEW USER - Enhanced Welcome
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              {/* Header Section - FREE BADGE ON RIGHT */}
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-8 py-4 border-b border-purple-200">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl">💼</span>
+      {/* Left Sidebar */}
+      <div
+        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        style={{
+          background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
+          height: '100vh',
+          overflowY: 'hidden'
+        }}
+      >
+        <div className="px-6 pt-6 pb-4 flex-shrink-0">
+          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Career Coach</h1>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
+            Job hunting is small talk.
+          </p>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
+            Your career deserves a conversation.
+          </p>
+          <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
+        </div>
+
+        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
+          <div>
+            {/* Career Conversation */}
+            <div className="mb-5">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">YOUR CONVERSATION</h4>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-start"><span className="mr-2">•</span><span>Current Background</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Career Direction</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Target Roles &amp; Industries</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Job Search Timeline</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Hidden Skills &amp; Experience</span></li>
+              </ul>
+            </div>
+
+            {/* Coming Soon */}
+            <div className="mb-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">COMING SOON</h4>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-start"><span className="mr-2">•</span><span>Aptitude Assessment</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Career Path Exploration</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Skills Inventory</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-auto">
+            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
+            <div>
+              <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
+                The more we know about where you want to go, the better your resume becomes.
+              </p>
+              <div className="flex items-center gap-2.5 text-white">
+                <img
+                  src="/images/Hire_Power_icon.png"
+                  alt="Lightning"
+                  className="h-5 w-auto flex-shrink-0"
+                />
+                <p className="text-sm font-medium leading-tight">
+                  Tell us where you want to go
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+        <MainNav currentPage="my-career" userProfile={userProfile} />
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
+
+            <div className="grid grid-cols-12 gap-6">
+
+              {/* Career Profile Card - 8 cols */}
+              <div className="col-span-8">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <h2 className="text-lg font-semibold text-gray-900">Career Profile</h2>
+                  <p className="text-xs text-gray-500 mb-4">Your career direction guides everything Resume Coach and Interview Coach does</p>
+
+                  {/* Profile Grid */}
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+
+                    {/* Current Role */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Current Role</div>
+                      {hasContext && careerContext.current_role ? (
+                        <p className="text-sm font-semibold text-gray-900">
+                          {careerContext.current_role}
+                          {careerContext.current_company && (
+                            <span className="text-gray-500 font-normal"> at {careerContext.current_company}</span>
+                          )}
+                        </p>
+                      ) : (
+                        <p className="text-xl font-bold text-gray-200">--</p>
+                      )}
+                      {hasContext && careerContext.years_experience && (
+                        <p className="text-xs text-gray-500 mt-0.5">{careerContext.years_experience} years experience</p>
+                      )}
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900 leading-tight">Welcome to Career Coach</h2>
-                      <p className="text-sm text-gray-600 leading-tight">Your first step to a stronger career strategy</p>
+
+                    {/* Career Direction */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Career Direction</div>
+                      {hasContext ? (
+                        <div>
+                          {careerContext.is_career_changer ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-purple-600">🔄</span>
+                              <p className="text-sm font-semibold text-gray-900">Career Transition</p>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-green-600">↑</span>
+                              <p className="text-sm font-semibold text-gray-900">Same Field</p>
+                            </div>
+                          )}
+                          {careerContext.is_career_changer && careerContext.previous_field && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {careerContext.previous_field} → {careerContext.target_industries?.[0] || 'New Field'}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xl font-bold text-gray-200">--</p>
+                      )}
+                    </div>
+
+                    {/* Target Roles */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Target Roles</div>
+                      {hasContext && careerContext.target_roles?.length > 0 ? (
+                        <p className="text-sm font-semibold text-gray-900">{careerContext.target_roles.join(', ')}</p>
+                      ) : (
+                        <p className="text-xl font-bold text-gray-200">--</p>
+                      )}
+                      {hasContext && careerContext.target_industries?.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-0.5">in {careerContext.target_industries.join(', ')}</p>
+                      )}
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Search Timeline</div>
+                      {hasContext && careerContext.timeline ? (
+                        <p className="text-sm font-semibold text-gray-900 capitalize">
+                          {careerContext.timeline.replace(/_/g, ' ')}
+                        </p>
+                      ) : (
+                        <p className="text-xl font-bold text-gray-200">--</p>
+                      )}
                     </div>
                   </div>
-                  {/* FREE BADGE - RIGHT SIDE */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-shrink-0">
-                    <span className="text-green-600 text-lg">✨</span>
-                    <div>
-                      <p className="font-semibold text-green-900 text-xs leading-tight">Free for Everyone</p>
+
+                  {/* Hidden Skills */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Hidden Skills Identified</div>
+                    {hasContext && careerContext.skills_not_on_resume?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {careerContext.skills_not_on_resume.map((skill, i) => (
+                          <span key={i} className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-300 font-semibold">--</p>
+                    )}
+                  </div>
+
+                  {/* CTA Bar */}
+                  <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">
+                        {hasContext ? 'Career Profile Complete' : 'Get Started'}
+                      </div>
+                      <p className="text-xs text-gray-700 leading-snug">
+                        {hasContext
+                          ? 'Your career direction is set. Resume Coach and Interview Coach will use this to tailor everything to your goals.'
+                          : "Answer a few quick questions about where you want to go. Takes 5 minutes and makes everything else better."
+                        }
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleStartConversation}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex-shrink-0"
+                    >
+                      {hasContext ? 'Update Goals →' : 'Start Conversation →'}
+                    </button>
+                  </div>
+
+                  {hasContext && careerContext.completed_at && (
+                    <p className="text-[10px] text-gray-400 text-right mt-2">
+                      Last updated {formatDate(careerContext.updated_at || careerContext.completed_at)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column - 4 cols */}
+              <div className="col-span-4 space-y-4">
+
+                {/* Status Card */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <h2 className="text-lg font-semibold text-gray-900">Career Readiness</h2>
+                  <p className="text-xs text-gray-500 mb-4">How prepared is your career profile?</p>
+
+                  <div className="space-y-3">
+                    {/* Career Conversation */}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                        hasContext ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 text-gray-400'
+                      }`}>
+                        {hasContext ? '✓' : '○'}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${hasContext ? 'text-gray-900' : 'text-gray-400'}`}>
+                          Career Conversation
+                        </p>
+                        <p className="text-xs text-gray-400">Goals, direction, target roles</p>
+                      </div>
+                    </div>
+
+                    {/* Resume */}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                        existingResume ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 text-gray-400'
+                      }`}>
+                        {existingResume ? '✓' : '○'}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${existingResume ? 'text-gray-900' : 'text-gray-400'}`}>
+                          Resume on File
+                        </p>
+                        <p className="text-xs text-gray-400">Core resume uploaded or built</p>
+                      </div>
+                    </div>
+
+                    {/* Interview Ready */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 bg-white border border-gray-300 text-gray-400">
+                        ○
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-400">Interview Ready</p>
+                        <p className="text-xs text-gray-400">Interview Coach prep complete</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coming Soon Assessments */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Career Assessments</h2>
+                  <p className="text-xs text-gray-500 mb-4">Additional tools to guide your career development</p>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                      <span className="text-lg">⭕</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-500">Aptitude Assessment</p>
+                        <p className="text-[10px] text-gray-400">Discover roles that match your strengths</p>
+                      </div>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                      <span className="text-lg">⭕</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-500">Career Exploration</p>
+                        <p className="text-[10px] text-gray-400">Map paths from your current experience</p>
+                      </div>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
+                      <span className="text-lg">⭕</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-500">Skills Inventory</p>
+                        <p className="text-[10px] text-gray-400">Map your complete skillset including hidden strengths</p>
+                      </div>
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Content - COMPACT */}
-              <div className="px-8 py-5">
-                <p className="text-gray-700 mb-5">
-                  Before we build your resume, let's have a quick 5-minute conversation about your career direction. This helps us tailor everything to your specific goals.
-                </p>
-
-                {/* What We'll Cover Checklist - NARROWER */}
-                <div className="max-w-lg mx-auto bg-purple-50 border border-purple-200 rounded-lg p-4 mb-5">
-                  <h3 className="font-semibold text-gray-900 mb-2.5 flex items-center gap-2">
-                    <span className="text-purple-600">📋</span>
-                    What We'll Cover:
-                  </h3>
-                  <div className="space-y-1.5">
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-purple-600 text-lg flex-shrink-0">✓</span>
-                      <span className="text-sm text-gray-700"><strong>Current Background:</strong> Your experience and role</span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-purple-600 text-lg flex-shrink-0">✓</span>
-                      <span className="text-sm text-gray-700"><strong>Career Direction:</strong> Where you want to go next</span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-purple-600 text-lg flex-shrink-0">✓</span>
-                      <span className="text-sm text-gray-700"><strong>Target Roles:</strong> Specific positions you're interested in</span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-purple-600 text-lg flex-shrink-0">✓</span>
-                      <span className="text-sm text-gray-700"><strong>Timeline:</strong> When you're planning to make a move</span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-purple-600 text-lg flex-shrink-0">✓</span>
-                      <span className="text-sm text-gray-700"><strong>Hidden Skills:</strong> Strengths you might not have on your resume</span>
-                    </div>
-                  </div>
+     {/* Onboarding Modal */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+          onClick={handleDismissModal}
+        >
+          <div
+            className="bg-white shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              borderRadius: '8px',
+              height: '520px',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{ background: 'linear-gradient(to bottom right, rgb(147 51 234), rgb(37 99 235))', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-5 relative flex-shrink-0"
+            >
+              <button
+                onClick={handleDismissModal}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >
+                ×
+              </button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  {modalScreen === 1 ? (
+                    <>
+                      <h2 className="text-xl font-bold text-white">Welcome to Career Coach</h2>
+                      <p className="text-purple-100 text-xs">The most valuable 5 minutes of your job search</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
+                      <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
+                    </>
+                  )}
                 </div>
+              </div>
+            </div>
 
-{/* Existing Resume Detected */}
-                {existingResume && !careerContext && (
-                  <div className="flex items-center gap-4 mb-4">
-                    {/* Left: Green message box */}
-                    <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                      <p className="text-sm font-semibold text-green-800 mb-1">✓ Resume Found!</p>
-                      <p className="text-sm text-green-800">
-                        We'll use your {existingResume.display_name || 'Core Resume'} for our career conversation.
+            {/* Modal Content */}
+            <div className="px-6 py-5 flex-1 flex flex-col" style={{ minHeight: '320px', maxHeight: '380px' }}>
+
+              {/* Screen 1 */}
+              {modalScreen === 1 && (
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 space-y-3">
+                    <p className="font-bold text-gray-900 text-base">Why start with Career Coach?</p>
+
+                    <p className="text-sm text-gray-700">
+                      Most resume tools optimize for where you've been, not where you're trying to go.
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      If you’re targeting a new role, changing industries, or applying to something your current title doesn’t reflect, a resume tool can’t help much without context. That's why Career Coach starts by understanding where you want to go.
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      In a quick conversation, we learn about your goals, your direction, and the skills you have that aren’t obvious on paper. Everything we learn here powers the rest of Hire Power - your resume, your interviews, your entire job search.
+                    </p>
+
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
+                      <p className="text-sm text-gray-800 font-medium">
+                        A few answers here unlock a stronger resume, sharper interviews, and a smarter job search.
                       </p>
                     </div>
-                    
-                    {/* Right: Button and link stack */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <button
-                        onClick={() => router.push(`/my-career/detail?resumeId=${existingResume.id}`)}
-                        className="bg-purple-600 text-white px-6 py-2.5 rounded-lg hover:bg-purple-700 transition-all font-semibold whitespace-nowrap"
-                      >
-                        Continue with Existing Resume →
-                      </button>
-                      <p className="text-xs text-gray-500 text-center">
-                        Need to use a different resume?{' '}
+                  </div>
+
+                  <div className="flex justify-center mt-5">
+                    <button
+                      onClick={() => setModalScreen(2)}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs"
+                    >
+                      Start the Conversation
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Screen 2 — matches Resume modal screen 3 exactly */}
+              {modalScreen === 2 && (
+                <div className="flex flex-col py-3">
+                  <div className="space-y-2">
+                    <p className="text-gray-800 text-sm leading-relaxed font-semibold text-center">
+                      Your resume shows the past. We focus on what’s next. 
+                    </p>
+                    <div className="text-gray-700 text-sm leading-relaxed text-center">
+                      <p className="mt-1">Upload your resume and we’ll use it as the starting point for a quick conversation about your goals and target roles.</p>
+                    </div>
+
+                    {/* Existing Core Resume */}
+                    {existingResume && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">✓ Resume Found</p>
+                          <p className="text-xs text-green-700">Core Resume on file</p>
+                        </div>
                         <button
-                          onClick={() => setExistingResume(null)}
-                          className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+                          onClick={handleContinueWithExisting}
+                          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs whitespace-nowrap"
                         >
-                          Upload here
+                          Use This Resume →
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col items-center mt-6">
+                      <label className="block cursor-pointer mb-3">
+                        <input
+                          type="file"
+                          accept=".pdf,.docx"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                        <div className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs cursor-pointer flex items-center justify-center gap-2">
+                          {uploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                              Uploading...
+                            </>
+                          ) : existingResume ? (
+                            'Upload a Different Resume'
+                          ) : (
+                            'Upload Resume'
+                          )}
+                        </div>
+                      </label>
+
+                      {uploadError && (
+                        <p className="text-xs text-red-600 mb-2">{uploadError}</p>
+                      )}
+
+                      <p className="text-sm text-gray-600 text-center">
+                        No resume yet?{' '}
+                        <button
+                          onClick={() => {
+                            localStorage.setItem('hp_career_modal_seen', 'true');
+                            router.push('/my-career/build');
+                          }}
+                          className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
+                        >
+                          Build from scratch
                         </button>
                       </p>
                     </div>
                   </div>
-                )}
-                {/* Upload Section - Only show if no existing resume */}
-                {!existingResume && (
-                  <div className="flex flex-col items-center space-y-3">
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept=".pdf,.docx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="resume-upload"
-                      disabled={uploading}
-                    />
-                    <div className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all font-semibold shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap flex items-center gap-2">
-                      {uploading && (
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                      )}
-                      {uploading ? 'Uploading...' : 'Upload Resume to Get Started'}
-                    </div>
-                  </label>
-
-                  <p className="text-xs text-gray-500">
-                    No resume?{' '}
-                    <button
-                      onClick={() => router.push('/my-career/build')}
-                      className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
-                    >
-                      Create one from scratch →
-                    </button>
-                 </p>
                 </div>
-                )}
-
-                {/* Error Display */}
-                {uploadError && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800">{uploadError}</p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        ) : (
-          // RETURNING USER - Enhanced Profile View
-          <div className="max-w-5xl mx-auto space-y-6">
-            {/* Career Profile Card */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-green-50 to-green-100 px-8 py-5 border-b border-green-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                      <span className="text-2xl">✓</span>
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900">Career Profile Complete</h2>
-                      <p className="text-sm text-gray-600">Your career direction is set and ready to guide your resume</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-8 py-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Current Position */}
-                  {careerContext.current_role && (
-                    <div>
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Current Position</h4>
-                      <p className="text-gray-900 font-medium">
-                        {careerContext.current_role}
-                        {careerContext.current_company && (
-                          <span className="text-gray-600 font-normal"> at {careerContext.current_company}</span>
-                        )}
-                      </p>
-                      {careerContext.years_experience && (
-                        <p className="text-sm text-gray-600 mt-1">{careerContext.years_experience} years experience</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Target Roles */}
-                  {careerContext.target_roles && careerContext.target_roles.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Target Roles</h4>
-                      <p className="text-gray-900 font-medium">{careerContext.target_roles.join(', ')}</p>
-                      {careerContext.target_industries && careerContext.target_industries.length > 0 && (
-                        <p className="text-sm text-gray-600 mt-1">in {careerContext.target_industries.join(', ')}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Career Path Type */}
-                  {careerContext.is_career_changer && (
-                    <div className="md:col-span-2">
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-purple-600 text-xl">🔄</span>
-                          <div>
-                            <p className="font-semibold text-purple-900 text-sm">Career Transition</p>
-                            <p className="text-sm text-purple-700">
-                              {careerContext.previous_field} → {careerContext.target_industries?.[0] || 'New Field'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Update Button */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-               <button
-                    onClick={async () => {
-                      const { data: resume } = await supabase
-                        .from('resumes')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .limit(1)
-                        .single();
-                      
-                      if (resume?.id) {
-                        router.push(`/my-career/detail?resumeId=${resume.id}`);
-                      }
-                    }}
-                    className="w-full bg-white text-purple-600 border-2 border-purple-600 px-4 py-2.5 rounded-lg hover:bg-purple-50 transition-all text-sm font-semibold"
-                  >
-                    Update Career Goals
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Career Assessments */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-8 py-5 border-b border-gray-200">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                  <span className="text-xl">📊</span>
-                  Career Assessments
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">Additional tools to guide your career development</p>
-              </div>
-              
-              <div className="px-8 py-6">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-gray-400 p-3 bg-gray-50 rounded-lg">
-                    <span className="text-xl">⭕</span>
-                    <div>
-                      <p className="font-medium text-sm">DISC Assessment</p>
-                      <p className="text-xs">Understand your work style and communication preferences</p>
-                    </div>
-                    <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Coming Soon</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-400 p-3 bg-gray-50 rounded-lg">
-                    <span className="text-xl">⭕</span>
-                    <div>
-                      <p className="font-medium text-sm">Career Path Exploration</p>
-                      <p className="text-xs">Discover roles that align with your skills and interests</p>
-                    </div>
-                    <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Coming Soon</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-400 p-3 bg-gray-50 rounded-lg">
-                    <span className="text-xl">⭕</span>
-                    <div>
-                      <p className="font-medium text-sm">Skills Inventory</p>
-                      <p className="text-xs">Map your complete skillset including hidden strengths</p>
-                    </div>
-                    <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Coming Soon</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-8 py-5 border-b border-gray-200">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                  <span className="text-xl">⚡</span>
-                  Quick Actions
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">Ready to move forward with your career preparation</p>
-              </div>
-              
-              <div className="px-8 py-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    onClick={() => router.push('/my-resumes')}
-                    className="bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 transition-all font-semibold shadow-sm hover:shadow-md flex items-center justify-between group"
-                  >
-                    <span>Build Your Resume</span>
-                    <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  </button>
-                  <button
-                    disabled
-                    className="bg-gray-100 text-gray-400 px-6 py-4 rounded-lg cursor-not-allowed font-semibold flex items-center justify-between"
-                  >
-                    <span>Practice Interviews</span>
-                    <span className="text-xs bg-gray-200 px-2 py-1 rounded">Coming Soon</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+        
     </div>
   );
 }
