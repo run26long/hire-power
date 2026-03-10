@@ -624,11 +624,11 @@ export default function MyResumesPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Coaching Conversation <span className="font-semibold text-xs">(1 free / Pro)</span></span>
+                  <span>Coaching Conversation <span className="font-semibold text-xs">(Pro)</span></span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Achievement Discovery <span className="font-semibold text-xs">(1 free / Pro)</span></span>
+                  <span>Achievement Discovery <span className="font-semibold text-xs">(Pro)</span></span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>

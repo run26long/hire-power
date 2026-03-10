@@ -5,522 +5,417 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function scoreColor(s) { return !s ? '#9ca3af' : s >= 85 ? '#10b981' : s >= 71 ? '#f59e0b' : '#ef4444'; }
-function scoreBg(s)    { return !s ? '#f3f4f6' : s >= 85 ? '#ecfdf5' : s >= 71 ? '#fffbeb' : '#fef2f2'; }
-function scoreLabel(s) { return !s ? 'Not assessed' : s >= 85 ? 'Excellent' : s >= 71 ? 'Strong' : 'Needs work'; }
-
-const STEPS_PRO  = ['review','assess','coach','improve','polish','save'];
-const STEPS_FREE = ['review','assess','coach','improve','save'];
-const STEP_LABEL = { review:'Review', assess:'Assess', coach:'Coach', improve:'Improve', polish:'Polish', save:'Save', complete:'Complete' };
-const STEP_BTN   = { review:'Start Review', assess:'Assess Resume', coach:'Start Coaching', improve:'Improve Resume', polish:'Polish Resume', save:'Download', complete:'Open Resume' };
-
-function stepPct(step, isPro) {
-  const steps = isPro ? STEPS_PRO : STEPS_FREE;
-  const i = steps.indexOf(step);
-  return i < 0 ? (step === 'complete' ? 100 : 0) : Math.round(((i+1)/steps.length)*100);
-}
-
-const GRAD  = 'linear-gradient(135deg,#667eea,#764ba2)';
-const GRAD2 = 'linear-gradient(135deg,#764ba2,#667eea)';
-
-// ── Resume skeleton (zero black) ──────────────────────────────────────────────
-function ResumeSkeleton() {
-  return (
-    <div style={{ padding:'12px 10px 10px', background:'#fff', height:'100%' }}>
-      {/* Name — purple, not black */}
-      <div style={{ height:8, background:'#667eea', width:'55%', borderRadius:2, marginBottom:3 }}/>
-      <div style={{ height:4, background:'#c4b5fd', width:'75%', borderRadius:2, marginBottom:8 }}/>
-      {/* Rule */}
-      <div style={{ height:1.5, background:GRAD, width:'100%', marginBottom:6 }}/>
-      {/* Section labels */}
-      {[['30%','30px'],['22%','22px']].map(([w,mt],si) => (
-        <div key={si} style={{ marginTop:si===0?0:8 }}>
-          <div style={{ height:5, background:'#764ba2', width:w, borderRadius:1.5, marginBottom:5 }}/>
-          {[88,94,76,si===0?82:65,si===0?70:55].map((bw,i)=>(
-            <div key={i} style={{ height:3.5, background:'#ede9fe', width:`${bw}%`, borderRadius:1.5, marginBottom:3 }}/>
-          ))}
-        </div>
-      ))}
-      <div style={{ marginTop:8 }}>
-        <div style={{ height:5, background:'#764ba2', width:'18%', borderRadius:1.5, marginBottom:5 }}/>
-        {[70,85].map((bw,i)=>(
-          <div key={i} style={{ height:3.5, background:'#ede9fe', width:`${bw}%`, borderRadius:1.5, marginBottom:3 }}/>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const router  = useRouter();
+  const router = useRouter();
   const supabase = createClient();
+
+  const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
-  const [careerCtx,   setCareerCtx]   = useState(null);
-  const [resumes,     setResumes]      = useState([]);
-  const [loading,     setLoading]      = useState(true);
+  const [careerContext, setCareerContext] = useState(null);
+  const [coreResume, setCoreResume] = useState(null);
+  const [jobResumes, setJobResumes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
+    async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
-      const [p, r, c] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('resumes').select('*').eq('user_id', user.id).eq('is_active', true).order('updated_at', { ascending: false }),
-        supabase.from('career_context').select('*').eq('user_id', user.id).maybeSingle(),
-      ]);
-      setUserProfile(p.data);
-      setResumes(r.data || []);
-      setCareerCtx(c.data);
+      setUser(user);
+
+      const { data: profile } = await supabase
+        .from('profiles').select('*').eq('id', user.id).single();
+      setUserProfile(profile);
+
+      const { data: context } = await supabase
+        .from('career_context').select('*').eq('user_id', user.id).maybeSingle();
+      setCareerContext(context);
+
+      const { data: resumes } = await supabase
+        .from('resumes').select('*').eq('user_id', user.id)
+        .eq('resume_type', 'core')
+        .order('updated_at', { ascending: false }).limit(1);
+      if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
+
+      const { data: jsResumes } = await supabase
+        .from('resumes').select('*').eq('user_id', user.id)
+        .eq('resume_type', 'job_specific')
+        .order('updated_at', { ascending: false }).limit(3);
+      if (jsResumes) setJobResumes(jsResumes);
+
       setLoading(false);
-    })();
+    }
+    loadData();
   }, []);
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"/>
-    </div>
-  );
+  const journeyStep = coreResume?.journey_step || null;
+  const hasCareer = !!careerContext;
+  const hasResume = !!coreResume;
+  const isPro = false;
 
-  const isPro     = userProfile?.subscription_tier === 'pro';
-  const isVault   = userProfile?.subscription_tier === 'vault';
-  const hasCareer = !!careerCtx?.completed_at;
-  const core      = resumes.find(r => r.resume_type === 'core');
-  const jobRes    = resumes.filter(r => r.resume_type === 'job_specific');
-  const coreStep  = core?.journey_step || 'review';
-  const corePct   = core ? stepPct(coreStep, isPro) : 0;
-  const coreScore = core?.current_score;
+  function StatusPill({ status }) {
+    const map = {
+      'Start Here':  { bg: '#f3f4f6', border: '#d1d5db', color: '#6b7280' },
+      'Not Started': { bg: '#f3f4f6', border: '#d1d5db', color: '#6b7280' },
+      'In Progress': { bg: '#fffbeb', border: '#fcd34d', color: '#92400e' },
+      'Completed':   { bg: '#f0fdf4', border: '#86efac', color: '#166534' },
+    };
+    const s = map[status] || map['Not Started'];
+    return (
+      <span style={{
+        fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+        background: s.bg, border: `1.5px solid ${s.border}`, color: s.color,
+        letterSpacing: '0.02em',
+      }}>
+        {status}
+      </span>
+    );
+  }
+
+  const careerStatus = hasCareer ? 'Completed' : 'Start Here';
+  const resumeStatus = !hasResume ? 'Not Started' : coreResume?.completed_at ? 'Completed' : 'In Progress';
+  const interviewStatus = 'Not Started';
+  const vaultStatus = 'Not Started';
+
+  function getCareerAdaptiveCopy() {
+    if (!careerContext) return null;
+    if (careerContext.is_career_changer) {
+      const from = careerContext.previous_field || 'your background';
+      const to = careerContext.target_roles?.length > 0 ? careerContext.target_roles[0] : 'your target role';
+      return `We'll reframe your ${from} experience to speak directly to ${to} opportunities.`;
+    }
+    return "We'll position you to move up — not just move on.";
+  }
+
+  function getResumeNextStep() {
+    if (!hasResume) return { title: 'Start here.', body: 'Upload your resume to get your baseline Power Score and see exactly what needs to improve.' };
+    if (coreResume?.completed_at) return { title: 'Ready to interview.', body: 'Your resume is done. Head to Interview Coach — it already knows your resume, your strengths, and your gaps.' };
+    const map = {
+      review:  { title: 'First things first.', body: "Give it a quick review to make sure everything parsed correctly — then we'll get your baseline score." },
+      assess:  { title: 'Get your baseline.', body: "Your Resume Power Score tells you exactly what's working and what's not — specific to your experience." },
+      coach:   { title: 'Keep going.', body: isPro ? "Let's surface the achievements, numbers, and skills that are missing." : "Get a taste of what coaching can do. One job, one real conversation — then you decide." },
+      improve: { title: 'Review your wins.', body: isPro ? "Review each improvement your coach made, then keep, edit, or reject each one." : "Review the suggestions and make your edits directly on the resume." },
+      polish:  { title: 'Almost there.', body: "Make any final edits before locking it in." },
+      save:    { title: 'Final step.', body: isPro ? "Download it, then build job-specific versions on top of this foundation." : "Download it now — and when you're ready, upload a job description to see how well it matches." },
+    };
+    return map[journeyStep] || { title: 'Keep going.', body: 'Pick up where you left off.' };
+  }
+
+  const resumeNext = getResumeNextStep();
+
+  const sidebarSteps = [
+    { num: '01', label: 'Career Coach',    sub: 'Clarify your direction — same field, new field, or somewhere in between.', path: '/my-career'     },
+    { num: '02', label: 'Résumé Coach',    sub: 'Uncover the achievements and skills that never made it to the page.',      path: '/my-resumes'    },
+    { num: '03', label: 'Interview Coach', sub: 'Learn how to explain your experience with confidence.',                     path: '/my-interviews' },
+    { num: '04', label: 'Career Vault',    sub: 'Capture your wins as they happen — never start from scratch again!',       path: null             },
+  ];
+
+  const labelStyle = { fontSize: 11, fontWeight: 900, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' };
+  const valueStyle = { fontSize: 12, fontWeight: 500, color: '#1a1a2e', lineHeight: 1.3, marginTop: 2 };
+  const labelStyleMuted = { fontSize: 11, fontWeight: 900, color: '#d1d5db', textTransform: 'uppercase', letterSpacing: '0.08em' };
+  const valueStyleMuted = { fontSize: 12, fontWeight: 500, color: '#d1d5db', lineHeight: 1.3, marginTop: 2 };
+  const numStyle = { fontSize: 13, fontWeight: 900, color: '#a78bfa', marginRight: 6 };
+
+  const nextStepStyle = {
+    background: 'linear-gradient(150deg,#f5f3ff 0%,#ede9fe 100%)',
+    border: '1px solid #ddd6fe',
+    borderRadius: 12,
+    padding: '14px 16px',
+    display: 'flex', flexDirection: 'column', flex: 1,
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-gray-50 flex">
 
-      {/* ── SIDEBAR ── */}
-      <div className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
-        style={{ background:'linear-gradient(180deg,#667eea 0%,#764ba2 100%)', height:'100vh', overflowY:'hidden' }}>
+      {/* SIDEBAR */}
+      <div
+        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', height: '100vh', overflowY: 'hidden' }}
+      >
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Dashboard</h1>
-          <p className="text-[13px] leading-tight tracking-tight mb-0.5">Job hunting is small talk.</p>
-          <p className="text-[13px] leading-tight tracking-tight">Your career deserves a conversation.</p>
-          <div className="mt-4 border-b border-white border-opacity-10"/>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">Job hunting is small talk.</p>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">Your career deserves a conversation.</p>
+          <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
-        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between overflow-hidden">
+
+        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-wider opacity-50 mb-3">What Hire Power Does</h4>
-            <ul className="space-y-3">
-              {[
-                { l:'Bulletproof your resume',  s:"We find achievements you didn't know you had." },
-                { l:'Level up your interviews', s:'AI questions built from your actual resume.' },
-                { l:'Build your career',        s:'Log wins as they happen. Stay ready for life.' },
-              ].map(item => (
-                <li key={item.l} className="flex items-start gap-2 text-sm">
-                  <span className="mt-0.5 opacity-40">•</span>
-                  <div>
-                    <p className="font-semibold leading-tight">{item.l}</p>
-                    <p className="text-[11px] opacity-60 leading-tight mt-0.5">{item.s}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="my-4 border-b border-white border-opacity-10"/>
-            <div className="bg-white bg-opacity-10 rounded-lg p-3">
-              <p className="text-[10px] opacity-60 mb-1.5 uppercase tracking-wide font-bold">Not AI generation. Coaching.</p>
-              <p className="text-[11px] opacity-70 italic mb-2">Other tools: "Tell us your job" → AI rewrites it</p>
-              <p className="text-[11px] leading-snug">We ask: "How many students did you teach?" → your real achievements, extracted through conversation</p>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 6, marginTop: -4 }}>
+              AI-powered coaching for people who want more than their next job.
+            </p>
+            <p style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.8)', lineHeight: 1.3, marginBottom: 12 }}>
+              Building your career, one conversation at a time.
+            </p>
+            <div className="mb-4">
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {sidebarSteps.map((item) => (
+                  <li key={item.num} onClick={() => item.path && router.push(item.path)}
+                    style={{ cursor: item.path ? 'pointer' : 'default', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ width: 18, height: 22, borderRadius: 5, background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', flexShrink: 0, marginTop: 1 }}>
+                      {item.num}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{item.label}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.3, marginTop: 1 }}>{item.sub}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
+            <div className="mt-4 mb-2 border-b border-gray-400 border-opacity-10"></div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>Hire Power isn't just for this job search.</p>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.9)', lineHeight: 1.4 }}>
+              It's the operating system for your career — tracking your growth and capturing your wins so you're always ready when your next opportunity appears.
+            </p>
           </div>
-          <div>
-            <div className="mb-3 border-b border-white border-opacity-10"/>
-            <p className="text-[11px] opacity-60 italic leading-relaxed mb-3">"Most tools help you find a job. Ours helps you build a career."</p>
-            <div className="flex items-center gap-2">
-              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-5 w-auto flex-shrink-0"/>
-              <p className="text-sm font-medium">Your lifelong career coach</p>
+          <div className="mt-auto">
+            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
+            <div className="flex items-center gap-2.5 text-white">
+              <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
+              <p className="text-sm font-medium leading-tight">Your lifelong career coach</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── MAIN ── */}
+      {/* MAIN CONTENT */}
       <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
-        <MainNav currentPage="dashboard" userProfile={userProfile}/>
-        <div className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="px-8 py-5 max-w-[1400px] mx-auto w-full space-y-4">
+        <MainNav currentPage="dashboard" userProfile={userProfile} />
 
-            {/* ══════════════ TOP ROW ══════════════ */}
-            <div className="grid grid-cols-12 gap-4">
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-8 py-3 max-w-[1400px] mx-auto w-full">
 
-              {/* ── CAREER COACH col-4 ── */}
-              <div className="col-span-4">
-                <div className="bg-white rounded-xl border border-gray-100 h-full flex flex-col overflow-hidden"
-                  style={{ boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
+            {/* ROW 1 */}
+            <div className="grid gap-2.5 mb-2.5" style={{ gridTemplateColumns: '1fr 2.2fr' }}>
 
-                  {/* Gradient accent header */}
-                  <div className="px-5 pt-5 pb-4 relative overflow-hidden"
-                    style={{ background:'linear-gradient(135deg,rgba(102,126,234,0.07),rgba(118,75,162,0.04))' }}>
-                    {/* Decorative chat bubbles — illustrative, not cheesy */}
-                    <div className="absolute right-4 top-3 opacity-10">
-                      <svg width="64" height="44" viewBox="0 0 64 44" fill="none">
-                        <rect x="0" y="12" width="38" height="20" rx="10" fill="#667eea"/>
-                        <rect x="22" y="0" width="42" height="20" rx="10" fill="#764ba2"/>
-                        <rect x="8" y="26" width="30" height="16" rx="8" fill="#667eea"/>
-                      </svg>
+              {/* ① CAREER COACH */}
+              <div
+                className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => router.push('/my-career')}
+              >
+                <div className="p-3 pb-2 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-xl font-bold text-gray-900 tracking-tight">
+                      <span style={numStyle}>01</span>Career Coach
                     </div>
-
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ color: hasCareer ? '#059669':'#7c3aed', background: hasCareer ? '#ecfdf5':'#ede9fe' }}>
-                        {hasCareer ? '✓ Complete' : 'Start here — free'}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900 leading-tight mb-0.5">Career Coach</h3>
-                    <p className="text-xs font-semibold text-purple-600">A better resume starts with a conversation.</p>
+                    <span className="ml-auto"><StatusPill status={careerStatus} /></span>
                   </div>
+                  <div className="text-[13px] font-normal text-purple-600 mb-2">Point your job search in the right direction.</div>
 
-                  <div className="px-5 pb-5 flex-1 flex flex-col justify-between">
-                    {hasCareer ? (
-                      <>
-                        <div className="pt-3 space-y-1.5 mb-4">
-                          <p className="text-[11px] text-gray-400 mb-2.5 leading-relaxed">
-                            Your goals are locked in. Every coaching session now points toward where you want to go.
-                          </p>
-                          {careerCtx?.current_role && (
-                            <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide w-10 flex-shrink-0">Now</span>
-                              <p className="text-xs font-medium text-gray-700 leading-tight truncate">
-                                {careerCtx.current_role}{careerCtx.current_company && <span className="text-gray-400"> · {careerCtx.current_company}</span>}
-                              </p>
-                            </div>
-                          )}
-                          {careerCtx?.target_roles?.length > 0 && (
-                            <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide w-10 flex-shrink-0">Goal</span>
-                              <p className="text-xs font-medium text-gray-700 leading-tight truncate">{careerCtx.target_roles.slice(0,2).join(', ')}</p>
-                            </div>
-                          )}
-                          {careerCtx?.is_career_changer && (
-                            <span className="inline-block text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full mt-1">Career Transition</span>
+                  {hasCareer ? (
+                    <>
+                      <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(99,102,241,0.06))', border: '1.5px solid rgba(124,58,237,0.18)' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <div className="w-4 h-4 rounded-full bg-purple-600 flex items-center justify-center text-[9px] text-white font-bold flex-shrink-0">✓</div>
+                          <span className="text-[13px] font-bold text-purple-700">Direction set</span>
+                          {careerContext?.is_career_changer && (
+                            <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#ede9fe', color: '#6d28d9' }}>Career Change</span>
                           )}
                         </div>
-                        <button onClick={() => router.push('/my-career')}
-                          className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1 transition-colors">
-                          Update goals →
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-gray-500 leading-relaxed pt-3 mb-4">
-                          5 minutes before your resume. We learn where you're headed — career change, same field, or figuring it out. Everything we do after will be smarter for it.
-                        </p>
-                        <button onClick={() => router.push('/my-career')}
-                          className="w-full text-xs font-semibold text-white py-2.5 rounded-lg transition-colors"
-                          style={{ background: GRAD }}>
-                          Start the Conversation →
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── RESUME COACH col-8 ── */}
-              <div className="col-span-8">
-                <div className="bg-white rounded-xl border border-gray-100 h-full flex flex-col overflow-hidden"
-                  style={{ boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
-
-                  {/* Gradient accent header */}
-                  <div className="px-5 pt-5 pb-4 relative overflow-hidden"
-                    style={{ background:'linear-gradient(135deg,rgba(102,126,234,0.07),rgba(118,75,162,0.04))' }}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-base font-bold text-gray-900 leading-tight mb-0.5">Resume Coach</h3>
-                        <p className="text-xs font-semibold text-purple-600">Bulletproof your resume.</p>
-                      </div>
-                      <button onClick={() => router.push('/my-resumes')}
-                        className="text-[11px] font-semibold text-purple-600 hover:text-purple-700 transition-colors flex-shrink-0">
-                        View all →
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="px-5 pb-5 pt-4 flex-1 flex flex-col min-h-0">
-
-                    {!core ? (
-                      /* Empty */
-                      <div className="flex-1 flex flex-col">
-                        <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                          Not just a formatter. We have a conversation that uncovers quantifiable achievements you forgot were impressive — then we rebuild your bullets from there.
-                        </p>
-                        <div onClick={() => router.push('/my-resumes')}
-                          className="flex-1 rounded-xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-2 py-6">
-                          <div className="w-9 h-11 rounded border border-gray-200 flex items-center justify-center" style={{ background:'#f9fafb' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" strokeWidth="1.5"><path d="M12 4v16m8-8H4" strokeLinecap="round"/></svg>
+                        {careerContext?.target_roles?.length > 0 && (
+                          <div className="mb-2">
+                            <div style={labelStyle}>Targeting</div>
+                            <div style={valueStyle}>{careerContext.target_roles.slice(0, 2).join(' · ')}</div>
                           </div>
-                          <p className="text-sm font-medium text-gray-400">Upload your resume to begin</p>
-                          <p className="text-[11px] text-gray-300">PDF or DOCX</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex-1 flex flex-col gap-4 min-h-0">
-
-                        {/* ── Core resume: real thumbnail LEFT, details RIGHT ── */}
-                        <div className="flex gap-4" style={{ minHeight: 170 }}>
-
-                          {/* Thumbnail — full-height document */}
-                          <div onClick={() => router.push(`/resume/${core.id}`)}
-                            className="flex-shrink-0 cursor-pointer group relative"
-                            style={{ width: 120 }}>
-                            <div className="w-full h-full overflow-hidden rounded-lg border border-gray-200 group-hover:border-purple-300 transition-colors"
-                              style={{ aspectRatio:'8.5/11', boxShadow:'0 2px 10px rgba(102,126,234,0.12)' }}>
-                              {core.thumbnail_url ? (
-                                <img src={core.thumbnail_url} alt="Resume" className="w-full h-full object-cover object-top"/>
-                              ) : (
-                                <ResumeSkeleton/>
-                              )}
-                            </div>
-                            {/* Hover overlay */}
-                            <div className="absolute inset-0 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                              style={{ background:'rgba(102,126,234,0.25)' }}>
-                              <span className="text-white text-[11px] font-bold drop-shadow">Open →</span>
-                            </div>
-                          </div>
-
-                          {/* Details */}
-                          <div className="flex-1 flex flex-col justify-between min-w-0">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-800 leading-tight mb-0.5 truncate">{core.display_name || 'Core Resume'}</p>
-                              <p className="text-[11px] text-gray-400 mb-3">
-                                {coreStep === 'complete' ? 'Complete' : `Up next: ${STEP_LABEL[coreStep]}`}
-                              </p>
-
-                              {/* Score */}
-                              {coreScore ? (
-                                <div className="flex items-center gap-2 mb-4">
-                                  <span className="text-4xl font-bold tabular-nums" style={{ color: scoreColor(coreScore) }}>{coreScore}</span>
-                                  <div>
-                                    <p className="text-xs font-bold leading-tight" style={{ color: scoreColor(coreScore) }}>{scoreLabel(coreScore)}</p>
-                                    <p className="text-[10px] text-gray-400">Resume Power Score</p>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 mb-4">
-                                  <span className="text-3xl font-bold text-gray-200">--</span>
-                                  <p className="text-[11px] text-gray-400">Not yet assessed</p>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Progress + CTA */}
-                            <div>
-                              <div className="flex items-center gap-2 mb-1.5">
-                                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background:'#ede9fe' }}>
-                                  <div className="h-full rounded-full transition-all duration-500"
-                                    style={{ width:`${corePct}%`, background: coreStep==='complete' ? '#10b981' : GRAD }}/>
-                                </div>
-                                <span className="text-[10px] text-gray-400 w-7 text-right">{corePct}%</span>
-                              </div>
-                              {/* Step pills */}
-                              <div className="flex gap-0.5 mb-3">
-                                {(isPro ? STEPS_PRO : STEPS_FREE).map((s,i) => {
-                                  const idx = (isPro ? STEPS_PRO : STEPS_FREE).indexOf(coreStep);
-                                  return <div key={s} className="h-1 flex-1 rounded-full" style={{ background: i<=idx ? '#667eea':'#ede9fe' }}/>;
-                                })}
-                              </div>
-                              <button onClick={() => router.push(`/resume/${core.id}`)}
-                                className="text-[11px] font-semibold text-white px-4 py-2 rounded-lg transition-colors"
-                                style={{ background: GRAD }}>
-                                {STEP_BTN[coreStep]} →
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── Job-specific: clean pill cards ── */}
-                        {(jobRes.length > 0 || coreStep === 'complete') && (
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Job-Specific Resumes</p>
-                              {!isPro && <span className="text-[10px] font-semibold text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full">Pro</span>}
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                              {jobRes.slice(0,4).map(r => (
-                                <div key={r.id}
-                                  onClick={() => router.push(`/resume/${r.id}`)}
-                                  className="cursor-pointer rounded-lg border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all px-3 py-2.5 flex items-center gap-2.5 bg-gray-50 hover:bg-white"
-                                  style={{ minWidth:130 }}>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-semibold text-gray-800 truncate leading-tight">{r.job_title || r.display_name}</p>
-                                    {r.job_company && <p className="text-[10px] text-gray-400 truncate">{r.job_company}</p>}
-                                  </div>
-                                  {r.current_score && (
-                                    <span className="text-[11px] font-bold flex-shrink-0 px-1.5 py-0.5 rounded-md"
-                                      style={{ color: scoreColor(r.current_score), background: scoreBg(r.current_score) }}>
-                                      {r.current_score}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                              <div onClick={() => router.push('/my-resumes')}
-                                className="cursor-pointer rounded-lg border border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all px-3 py-2.5 flex items-center gap-1.5 bg-gray-50"
-                                style={{ minWidth:72 }}>
-                                <span className="text-purple-300 text-base font-light">+</span>
-                                <span className="text-[11px] text-gray-400">New</span>
-                              </div>
-                            </div>
+                        )}
+                        {careerContext?.timeline && (
+                          <div className="mb-0">
+                            <div style={labelStyle}>Timeline</div>
+                            <div style={valueStyle} className="capitalize">{careerContext.timeline.replace(/_/g, ' ')}</div>
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
+                      {getCareerAdaptiveCopy() && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10 }}>
+                          <img src="/images/Hire_Power_icon_2.png" alt="" style={{ height: 22, width: 'auto', flexShrink: 0 }} />
+                          <p style={{ fontSize: 11, fontWeight: 500, color: '#7c3aed', lineHeight: 1.35, marginBottom: 0 }}>
+                            {getCareerAdaptiveCopy()}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="rounded-xl p-2.5 mb-1.5" style={{ background: 'rgba(147,51,234,0.02)', border: '1.5px solid rgba(147,51,234,0.08)' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[9px] text-gray-400 font-bold flex-shrink-0">✓</div>
+                          <span className="text-[13px] font-bold text-gray-300">Direction set</span>
+                        </div>
+                        <div className="mb-2">
+                          <div style={labelStyleMuted}>Targeting</div>
+                          <div style={valueStyleMuted}>—</div>
+                        </div>
+                        <div>
+                          <div style={labelStyleMuted}>Timeline</div>
+                          <div style={valueStyleMuted}>—</div>
+                        </div>
+                      </div>
+                      <div className="mt-auto pt-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); router.push('/my-career'); }}
+                          className="w-full text-white text-xs font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                        >
+                          Start the Conversation →
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* ══════════════ BOTTOM ROW ══════════════ */}
-            <div className="grid grid-cols-12 gap-4">
-
-              {/* ── INTERVIEW COACH col-8 ── */}
-              <div className="col-span-8">
-                <div className="bg-white rounded-xl border border-gray-100 h-full flex flex-col overflow-hidden"
-                  style={{ boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
-
-                  <div className="px-5 pt-5 pb-4 relative overflow-hidden"
-                    style={{ background:'linear-gradient(135deg,rgba(102,126,234,0.07),rgba(118,75,162,0.04))' }}>
-                    {/* Decorative mic icon */}
-                    <div className="absolute right-5 top-3 opacity-8">
-                      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" opacity="0.09">
-                        <rect x="8" y="2" width="8" height="13" rx="4" fill="#667eea"/>
-                        <path d="M5 10a7 7 0 0014 0" stroke="#764ba2" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M12 17v4M9 21h6" stroke="#667eea" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
+              {/* ② RESUME COACH — two columns: value prop + next step */}
+              <div
+                className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => router.push('/my-resumes')}
+              >
+                <div className="p-3 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-xl font-bold text-gray-900 tracking-tight">
+                      <span style={numStyle}>02</span>Resume Coach
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-base font-bold text-gray-900 leading-tight">Interview Coach</h3>
-                          {!isPro && <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Pro</span>}
-                        </div>
-                        <p className="text-xs font-semibold text-purple-600">Level up your interviews.</p>
-                      </div>
-                    </div>
+                    <span className="ml-auto"><StatusPill status={resumeStatus} /></span>
+                  </div>
+                  <div className="text-[13px] font-normal text-purple-600 mb-3">
+                    Uncover the achievements and skills that never made it to the page.
                   </div>
 
-                  <div className="px-5 pb-5 pt-4 flex-1 flex flex-col">
-                    <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                      Most people walk into interviews having practiced generic questions with generic answers. You'll walk in having practiced with an AI that knows your resume, your strengths, your gaps — and exactly what to say about each one.
-                    </p>
-
-                    {/* Power analysis cards — the visual anchor */}
-                    <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="grid grid-cols-2 gap-3 flex-1">
+                    {/* Left: what it does */}
+                    <div style={{ background: '#faf9ff', border: '1px solid #ede9fe', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {[
-                        { label:'Core Power',  desc:'Your obvious strengths with the evidence to back them up',          color:'#059669', bg:'#ecfdf5', border:'#a7f3d0' },
-                        { label:'Hidden Power', desc:"Skills you actually have but don't know how to talk about",         color:'#d97706', bg:'#fffbeb', border:'#fde68a' },
-                        { label:'Power Gaps',   desc:"What's missing — and exactly how to address it without apologizing", color:'#dc2626', bg:'#fef2f2', border:'#fecaca' },
-                      ].map(p => (
-                        <div key={p.label} className="rounded-xl p-4 relative overflow-hidden"
-                          style={{ background:p.bg, border:`1px solid ${p.border}` }}>
-                          {!isPro && (
-                            <div className="absolute inset-0 bg-white bg-opacity-55 backdrop-blur-[1.5px] flex items-center justify-center rounded-xl z-10">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pro</span>
-                            </div>
-                          )}
-                          <div className="w-5 h-5 rounded-full mb-2.5 flex items-center justify-center" style={{ background:p.color }}>
-                            <div className="w-1.5 h-1.5 rounded-full bg-white"/>
-                          </div>
-                          <p className="text-[11px] font-bold mb-1" style={{ color:p.color }}>{p.label}</p>
-                          <p className="text-[11px] text-gray-600 leading-tight">{p.desc}</p>
+                        { label: 'Not a form.', body: 'A conversation. The same questions a $500 resume writer would ask — powered by AI.' },
+                        { label: 'Not generation.', body: 'Extraction. We surface your real achievements, then help you say them right.' },
+                        { label: 'Not one-time.', body: 'Coach it once, customize forever. Every job version builds on this foundation.' },
+                      ].map(({ label, body }) => (
+                        <div key={label}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#5b21b6', marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 11, fontWeight: 400, color: '#6b7280', lineHeight: 1.4 }}>{body}</div>
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex items-center gap-3 mt-auto">
-                      <button onClick={() => router.push(isPro ? '/interview-practice' : '/pricing')}
-                        className="text-xs font-semibold text-white px-5 py-2.5 rounded-lg transition-colors flex-shrink-0"
-                        style={{ background: GRAD }}>
-                        {isPro ? 'Start Interview Prep →' : 'Upgrade to Pro →'}
-                      </button>
-                      {!isPro && (
-                        <p className="text-[11px] text-gray-400 leading-snug">
-                          Stop practicing into a mirror. Your first real session shouldn't be the actual interview.
-                        </p>
+                    {/* Right: next step */}
+                    <div style={nextStepStyle}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Next Step</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#5b21b6', marginBottom: 6, lineHeight: 1.25 }}>
+                        {resumeNext.title}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#4c1d95', lineHeight: 1.45, fontWeight: 400 }}>
+                        {resumeNext.body}
+                      </div>
+                      {hasResume && !coreResume?.completed_at && journeyStep && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12 }}>
+                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', flexShrink: 0, animation: 'hp-pulse 1.8s ease-in-out infinite' }} />
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#5b21b6' }}>{journeyStep} step</span>
+                        </div>
                       )}
+                      {coreResume?.completed_at && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12, padding: '4px 10px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #86efac', alignSelf: 'flex-start' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#166534' }}>✓ Complete</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <style>{`@keyframes hp-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
+              </div>
+            </div>
+
+            {/* ROW 2 */}
+            <div className="grid gap-2.5" style={{ gridTemplateColumns: '2.2fr 1fr' }}>
+
+              {/* ③ INTERVIEW COACH — two columns: power concepts + next step */}
+              <div
+                className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => router.push('/my-interviews')}
+              >
+                <div className="p-3 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-xl font-bold text-gray-900 tracking-tight">
+                      <span style={numStyle}>03</span>Interview Coach
+                    </div>
+                    <span className="ml-auto"><StatusPill status={interviewStatus} /></span>
+                  </div>
+                  <div className="text-[13px] font-normal text-purple-600 mb-3">
+                    The first time you answer an interview question shouldn't be in the interview.
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 flex-1">
+                    {/* Left: power analysis concepts */}
+                    <div style={{ background: '#faf9ff', border: '1px solid #ede9fe', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {[
+                        { label: 'Core Power.', color: '#15803d', body: 'The strengths you already have that directly match the job.' },
+                        { label: 'Hidden Power.', color: '#92400e', body: 'Transferable skills you didn\'t know you had — until we ask the right questions.' },
+                        { label: 'Power Gaps.', color: '#b91c1c', body: 'What\'s missing — and exactly how to address it without apologizing.' },
+                      ].map(({ label, color, body }) => (
+                        <div key={label}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color, marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 11, fontWeight: 400, color: '#6b7280', lineHeight: 1.4 }}>{body}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right: next step */}
+                    <div style={nextStepStyle}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Next Step</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#5b21b6', marginBottom: 6, lineHeight: 1.25 }}>
+                        Practice before it counts.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#4c1d95', lineHeight: 1.45, fontWeight: 400 }}>
+                        {coreResume?.completed_at
+                          ? "Upload a job description and start a real practice session — AI-spoken questions built from the role and your actual experience."
+                          : "Finish your resume first — your Interview Coach uses it to build questions specific to your experience and the job you're targeting."}
+                      </div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12 }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af' }}>Not started</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ── CAREER VAULT col-4 ── */}
-              <div className="col-span-4">
-                <div className="bg-white rounded-xl border border-gray-100 h-full flex flex-col overflow-hidden"
-                  style={{ boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
+              {/* ④ CAREER VAULT */}
+              <div className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all">
+                <div className="p-3 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-xl font-bold text-gray-900 tracking-tight">
+                      <span style={numStyle}>04</span>Career Vault
+                    </div>
+                    <span className="ml-auto"><StatusPill status={vaultStatus} /></span>
+                  </div>
+                  <div className="text-[13px] font-normal text-purple-600 mb-2">Track your wins before you forget them.</div>
 
-                  <div className="px-5 pt-5 pb-4 relative overflow-hidden"
-                    style={{ background:'linear-gradient(135deg,rgba(102,126,234,0.07),rgba(118,75,162,0.04))' }}>
-                    {/* Decorative lock */}
-                    <div className="absolute right-4 top-2 opacity-8">
-                      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" opacity="0.1">
-                        <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="#667eea" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-base font-bold text-gray-900 leading-tight mb-0.5">Career Vault</h3>
-                        <p className="text-xs font-semibold text-purple-600">Track your wins. Stay ready for life.</p>
-                      </div>
-                      {!isVault && !isPro && (
-                        <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full flex-shrink-0">$4.99/mo</span>
-                      )}
-                    </div>
+                  <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(99,102,241,0.04))', border: '1.5px solid rgba(124,58,237,0.12)' }}>
+                    <p className="text-[12px] font-bold italic text-gray-900 leading-snug mb-1" style={{ letterSpacing: '-0.03em' }}>
+                      "Three years from now, you won't remember what you accomplished today."
+                    </p>
+                    <p className="text-[11px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                      Keep building your career archive between job searches. When opportunity knocks, you'll be ready.
+                    </p>
                   </div>
 
-                  <div className="px-5 pb-5 pt-4 flex-1 flex flex-col justify-between">
-                    <div>
-                      {/* Quote callout */}
-                      <div className="rounded-lg p-3 mb-3" style={{ background:'rgba(102,126,234,0.06)', borderLeft:'3px solid #667eea' }}>
-                        <p className="text-xs text-gray-600 leading-relaxed italic">
-                          "Three years from now, you'll sit down to update your resume — and you won't remember half of what you accomplished."
-                        </p>
+                  <div className="flex flex-col gap-0.5 mb-1.5">
+                    {['Led Q3 launch across 3 teams', 'Promoted to Senior in 18 months', 'Cut onboarding from 3 weeks to 5 days'].map((win, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
+                        <span className="text-[11px] text-gray-500">{win}</span>
                       </div>
-                      <p className="text-xs text-gray-500 leading-relaxed mb-3">
-                        Log a win in 30 seconds. A raise, a project, a compliment from your boss. When you need a resume — for a raise, a pivot, your next role — everything is already waiting.
-                      </p>
-                      {/* Sample logged wins — illustrative if no data */}
-                      <div className="space-y-1.5">
-                        {[
-                          { label:'Led Q3 product launch across 3 teams' },
-                          { label:'Promoted to Senior in 18 months' },
-                          { label:'Cut onboarding time from 3 weeks to 5 days' },
-                        ].map((win, i) => (
-                          <div key={i} className="flex items-center gap-2 rounded-lg px-3 py-2"
-                            style={{ background: (isVault || isPro) ? '#f9fafb' : 'rgba(102,126,234,0.04)', opacity: (isVault || isPro) ? 1 : 0.5 }}>
-                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background:'#667eea' }}/>
-                            <p className="text-[11px] text-gray-600 truncate">{win.label}</p>
-                          </div>
-                        ))}
-                        {(!isVault && !isPro) && (
-                          <p className="text-[10px] text-gray-400 text-center pt-0.5">Your wins will live here.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      {isVault || isPro ? (
-                        <button onClick={() => router.push('/career-archive')}
-                          className="w-full text-xs font-semibold text-white py-2.5 rounded-lg transition-colors"
-                          style={{ background: GRAD }}>
-                          Open Career Archive →
-                        </button>
-                      ) : (
-                        <div>
-                          <button onClick={() => router.push('/pricing')}
-                            className="w-full text-xs font-semibold text-white py-2.5 rounded-lg transition-colors mb-1.5"
-                            style={{ background: GRAD }}>
-                            Get Vault — $4.99/mo →
-                          </button>
-                          <p className="text-[10px] text-gray-400 text-center">No scrambling. No forgetting. Just wins on demand.</p>
-                        </div>
-                      )}
-                    </div>
+                    ))}
                   </div>
+
+                  <p className="text-[12px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.01em' }}>
+                    Job search complete? Activate Vault so your next resume builds itself while you live your career.
+                  </p>
                 </div>
               </div>
 

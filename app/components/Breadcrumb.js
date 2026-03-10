@@ -19,7 +19,10 @@ export default function Breadcrumb({ items }) {
                 {item.label}
               </button>
             ) : (
-              <span className="text-purple-600 font-semibold border-b-2 border-purple-600 pb-0.5">
+              <span
+                className="text-purple-700 font-semibold rounded-md px-3 py-1"
+                style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)' }}
+              >
                 {item.label}
               </span>
             )}

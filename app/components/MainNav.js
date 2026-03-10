@@ -26,7 +26,7 @@ export default function MainNav({ currentPage, userProfile }) {
               className="h-8 w-auto"
             />
           </button>
-          <span className="text-xs text-gray-500 border-l border-gray-300 pl-3">
+          <span className="text-sm text-gray-500 border-l border-gray-300 pl-3">
             The operating system for your career
           </span>
         </div>
@@ -37,9 +37,10 @@ export default function MainNav({ currentPage, userProfile }) {
               <button
                 key={item.id}
                 onClick={() => !item.disabled && router.push(item.path)}
-                className={`text-sm ${
+                style={currentPage === item.id ? { backgroundColor: 'rgba(147, 51, 234, 0.08)' } : {}}
+className={`text-xs ${
                   currentPage === item.id
-                    ? 'text-purple-600 font-semibold border-b-2 border-purple-600 pb-1'
+                    ? 'text-purple-700 font-semibold rounded-md px-3 py-1'
                     : item.disabled
                     ? 'text-gray-400 cursor-not-allowed'
                     : 'text-gray-600 hover:text-purple-600'

@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import MainNav from '@/app/components/MainNav'
+import { getTemplateStyles } from '../../templates/getTemplateStyles'
+import Breadcrumb from '@/app/components/Breadcrumb'
 
 const styles = `
   [contenteditable][data-placeholder]:empty:before {
@@ -45,7 +48,8 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const isUndoingRef = useRef(false)
   
   // Toolbar states
-  const [selectedTemplate, setSelectedTemplate] = useState('modern')
+  const [selectedTemplate, setSelectedTemplate] = useState('crisp')
+const [accentColor, setAccentColor] = useState('#5b4fcf')
   const [selectedFont, setSelectedFont] = useState('Calibri')
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
@@ -75,6 +79,7 @@ const handleDownload = async () => {
         resumeData: resume,
         templateName: templateForApi,
         fontSize: fontSizeForApi,
+        accentColor: accentColor,
         action: 'download',
         versionId: null,
         isJobVersion: false,
@@ -319,6 +324,7 @@ if (data.ai_analysis) {
         font_family: selectedFont,
         font_size: selectedSize,
         date_format: dateFormat,
+        accent_color: accentColor,
         updated_at: new Date().toISOString()
       })
       .eq('id', params.id)
@@ -369,88 +375,12 @@ if (data.ai_analysis) {
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
      <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-        {/* Main Navigation Header - STICKY */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="px-6 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2"
-            >
-              <img 
-                src="/images/HirePower_logo.png" 
-                alt="Hire Power" 
-                className="h-8 w-auto"
-              />
-            </button>
-            <span className="text-xs text-gray-500 border-l border-gray-300 pl-3">
-              The operating system for your career
-            </span>
-          </div>
+        <MainNav currentPage="my-resumes" userProfile={userProfile} />
 
-     <div className="flex items-center gap-6">
-            <nav className="flex items-center gap-6">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-sm text-gray-600 hover:text-purple-600"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => router.push('/my-career')}
-                className="text-sm text-gray-600 hover:text-purple-600"
-              >
-                Career Coach
-              </button>
-              <button
-                onClick={() => router.push('/my-resumes')}
-                className="text-sm text-purple-600 font-semibold border-b-2 border-purple-600 pb-1 hover:text-purple-700"
-              >
-                Resume Coach
-              </button>
-              <button
-                onClick={() => router.push('/my-interviewsS')}
-                className="text-sm text-gray-600 hover:text-purple-600"
-              >
-                Interview Coach
-              </button>
-            </nav>
-
-            <button
-              onClick={() => router.push('/profile')}
-              className="flex items-center gap-2 text-gray-700 hover:text-purple-600"
-            >
-              {userProfile?.photo_url ? (
-                <img
-                  src={userProfile.photo_url}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm">
-                  {userProfile?.display_name?.charAt(0).toUpperCase() || 'U'}
-                </div>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Breadcrumb - STICKY */}
-      <div className="bg-white border-b border-gray-200 sticky top-[52px] z-40">
-        <div className="px-6 py-1.5 flex items-center text-xs">
-          <button
-            onClick={() => router.push('/my-resumes')}
-            className="text-gray-600 hover:text-purple-600"
-          >
-            Resume Coach
-          </button>
-          <span className="mx-2 text-gray-400">|</span>
-          <span className="text-purple-600 font-semibold border-b-2 border-purple-600 pb-0.5">
-            {resume.display_name || 'Core Resume'}
-          </span>
-        </div>
-      </div>
+      <Breadcrumb items={[
+        { label: 'Resume Coach', path: '/my-resumes' },
+        { label: resume.display_name || 'Core Resume' }
+      ]} />
 
       {/* Toolbar - STICKY */}
       <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30">
@@ -464,8 +394,11 @@ if (data.ai_analysis) {
               onChange={(e) => setSelectedTemplate(e.target.value)}
               className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
             >
-              <option value="modern">Modern</option>
-              <option value="classic">Classic</option>
+              <option value="crisp">Crisp (Free)</option>
+              <option value="sharp">Sharp (Free)</option>
+              <option value="command">Command ✦ Pro</option>
+              <option value="prestige">Prestige ✦ Pro</option>
+              <option value="signature">Signature ✦ Pro</option>
             </select>
           </div>
 
@@ -522,6 +455,34 @@ if (data.ai_analysis) {
                 <option value="year">YYYY</option>
               </select>
             </div>
+
+          {['command','prestige','signature'].includes(selectedTemplate) && (
+            <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
+              <span>🎨</span>
+              <div className="flex gap-1 items-center">
+                {['#5b4fcf','#1e3a5f','#1e5f3a','#7a1e3a','#2d4a6b','#1e6b6b','#2d2d2d','#8b3a1e'].map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setAccentColor(c)}
+                    title={c}
+                    style={{
+                      width: '14px', height: '14px', borderRadius: '50%', background: c,
+                      border: accentColor === c ? '2px solid #1a1a1a' : '2px solid transparent',
+                      cursor: 'pointer', padding: 0, flexShrink: 0
+                    }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  style={{ width: '20px', height: '20px', border: 'none', cursor: 'pointer', borderRadius: '4px', padding: 0, background: 'none' }}
+                  title="Custom color"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="h-6 w-px bg-gray-300 mx-2" />
 
           <button
@@ -604,20 +565,38 @@ if (data.ai_analysis) {
       <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
         <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
           <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
-            <div 
-              className="p-8"
-              style={{ 
+            <div
+              style={{
                 transform: `scale(${zoom / 100})`,
                 transformOrigin: 'top left',
+                width: '816px',
+                position: 'relative',
+fontFamily: selectedFont,
+fontSize: `${selectedSize}pt`,
                 fontFamily: selectedFont,
-                fontSize: `${selectedSize}pt`
+                fontSize: `${selectedSize}pt`,
               }}
             >
-             <ResumeContent 
-                  resumeData={resumeData} 
+              {/* Page break line */}
+              <div style={{
+                position: 'absolute',
+                top: `1056px`,
+                left: 0, right: 0,
+                borderTop: '2px dashed #ef4444',
+                zIndex: 10, pointerEvents: 'none',
+              }}>
+                <span style={{ position: 'absolute', right: '8px', top: '-10px', fontSize: '10px',
+                  color: '#ef4444', background: '#fff', padding: '0 4px', fontWeight: '600' }}>
+                  ── page 1 ends here ──
+                </span>
+              </div>
+
+              <ResumeContent
+                  resumeData={resumeData}
                   onUpdate={updateResumeData}
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
+                  templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize)}
                 />
             </div>
           </div>
@@ -696,8 +675,9 @@ if (data.ai_analysis) {
 }
 
 // Resume Content Component
-function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false }) {
+function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {} }) {
   const [confirmingDelete, setConfirmingDelete] = useState(null)
+  const ts = templateStyles
   
   function addExperienceSummary(jobIndex) {
     const newData = JSON.parse(JSON.stringify(resumeData))
@@ -746,6 +726,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
     bullets[bulletIndex + 1] = temp
     onUpdate(newData)
   }
+
   function addEducationLine(eduIndex) {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.education[eduIndex].lines) {
@@ -778,6 +759,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
     newData.skillsCategories[category].splice(index, 1)
     onUpdate(newData)
   }
+
   function renameSkillCategory(oldName, newName) {
     if (!newName.trim() || oldName === newName) return
     const newData = JSON.parse(JSON.stringify(resumeData))
@@ -786,7 +768,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
     onUpdate(newData)
   }
 
- function deleteSkillCategory(category) {
+  function deleteSkillCategory(category) {
     const newData = JSON.parse(JSON.stringify(resumeData))
     const skillsToMerge = newData.skillsCategories[category]
     const categories = Object.keys(newData.skillsCategories)
@@ -814,6 +796,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
     newData.skillsCategories['New Category'] = []
     onUpdate(newData)
   }
+
   function flattenSkills() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     const allSkills = []
@@ -823,7 +806,8 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
     newData.skillsCategories = { "Skills": allSkills }
     onUpdate(newData)
   }
-function addProject() {
+
+  function addProject() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.projects) {
       newData.projects = []
@@ -895,12 +879,14 @@ function addProject() {
     newData.languages.splice(langIndex, 1)
     onUpdate(newData)
   }
+
   function updateField(field, value) {
     if (isUndoingRef.current) return
     const newData = { ...resumeData, [field]: value }
     onUpdate(newData)
   }
-function toggleSummary() {
+
+  function toggleSummary() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     newData.hideSummary = !newData.hideSummary
     onUpdate(newData)
@@ -935,6 +921,7 @@ function toggleSummary() {
     newData.sectionOrder = order
     onUpdate(newData)
   }
+
   function updateNestedField(path, value) {
     if (isUndoingRef.current) return
     
@@ -959,43 +946,22 @@ function toggleSummary() {
     onUpdate(newData)
   }
 
-  // Helper function to render sections dynamically
-  function renderSection(sectionName) {
-    switch(sectionName) {
-      case 'experience':
-        if (!resumeData.experience || resumeData.experience.length === 0) return null
-        return (
-          <div key="experience" className="mb-6 group">
-            {/* ... full Experience section JSX ... */}
-          </div>
-        )
-      
-      case 'education':
-        if (!resumeData.education || resumeData.education.length === 0) return null
-        return (
-          <div key="education" className="mb-6 group">
-            {/* ... full Education section JSX ... */}
-          </div>
-        )
-      
-      // ... etc for all sections
-    }
-  }
-
   return (
     <>
       {/* Contact */}
-      <div className="text-center mb-6 p-2 rounded">
+      <div className="text-center mb-6 p-2 rounded" style={ts.headerArea || {}}>
         <h1 
-                className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
-                contentEditable={!readOnly}
-                suppressContentEditableWarning
+          className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
+          style={ts.name || {}}
+          contentEditable={!readOnly}
+          suppressContentEditableWarning
           onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
         >
           {resumeData.fullName || 'Your Name'}
         </h1>
         <p 
           className={`text-sm text-gray-600 mt-1 ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
+          style={ts.contact || {}}
           contentEditable={!readOnly}
           suppressContentEditableWarning
           onBlur={(e) => {
@@ -1015,9 +981,10 @@ function toggleSummary() {
         </p>
       </div>
 
-{/* Summary */}
+      {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
-    <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>         <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2">
+        <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2" style={ts.sectionHeader || {}}>
             SUMMARY
             {!readOnly && (
               <button
@@ -1029,7 +996,7 @@ function toggleSummary() {
               </button>
             )}
           </h2>
-         <p 
+          <p 
             className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
             contentEditable={!readOnly}
             suppressContentEditableWarning
@@ -1040,7 +1007,7 @@ function toggleSummary() {
         </div>
       )}
       
-     {/* Show Summary button if hidden */}
+      {/* Show Summary button if hidden */}
       {!readOnly && resumeData.summary && resumeData.hideSummary && (
         <button
           onClick={toggleSummary}
@@ -1050,49 +1017,51 @@ function toggleSummary() {
         </button>
       )}
 
- {/* Experience */}
+      {/* Experience */}
       {resumeData.experience && resumeData.experience.length > 0 && (
         <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
             EXPERIENCE
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
-              <button
-                onClick={() => moveSectionUp('experience')}
-                disabled={resumeData.sectionOrder?.[0] === 'experience'}
-                className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                title="Move this section up on your resume"
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => moveSectionDown('experience')}
-                disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'experience'}
-                className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                title="Move this section down on your resume"
-              >
-                ↓
-             </button>
+                <button
+                  onClick={() => moveSectionUp('experience')}
+                  disabled={resumeData.sectionOrder?.[0] === 'experience'}
+                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+                  title="Move this section up on your resume"
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => moveSectionDown('experience')}
+                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'experience'}
+                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+                  title="Move this section down on your resume"
+                >
+                  ↓
+                </button>
               </span>
             )}
           </h2>
           {resumeData.experience.map((job, jobIndex) => (
-           <div key={jobIndex} className={`mb-4 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
+            <div key={jobIndex} className={`mb-4 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
               <div className="flex justify-between items-start mb-1">
-               <h3 
+                <h3 
                   className={`font-semibold ${!readOnly && 'cursor-text'}`}
+                  style={ts.jobTitle || {}}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
                   onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}
                 >
                   {job.title || 'Job Title'}
                 </h3>
-               <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600" style={ts.date || {}}>
                   {formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}
                 </span>
               </div>
-             <p 
+              <p 
                 className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`}
+                style={ts.company || {}}
                 contentEditable={!readOnly}
                 suppressContentEditableWarning
                 onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}
@@ -1100,8 +1069,8 @@ function toggleSummary() {
                 {job.company}
               </p>
               
-          {/* Summary paragraph */}
-             {job.summary ? (
+              {/* Summary paragraph */}
+              {job.summary ? (
                 <div className="mb-2">
                   <p 
                     className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`}
@@ -1120,7 +1089,7 @@ function toggleSummary() {
                     </button>
                   )}
                 </div>
-             ) : !readOnly && job.summaryDismissed !== true && (
+              ) : !readOnly && job.summaryDismissed !== true && (
                 <div className="flex items-center gap-2 mb-2">
                   <button
                     onClick={() => addExperienceSummary(jobIndex)}
@@ -1141,11 +1110,11 @@ function toggleSummary() {
                 </div>
               )}
 
-             {/* Bullets */}
+              {/* Bullets */}
               {job.bullets && job.bullets.length > 0 && job.bullets.map((bullet, bulletIndex) => (
                 <div key={bulletIndex} className="flex items-start gap-2 mb-1 group/bullet">
-                  <span className="text-sm">•</span>
-                <p 
+                  <span className="text-sm" style={ts.bullet || {}}>•</span>
+                  <p 
                     className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
@@ -1153,58 +1122,58 @@ function toggleSummary() {
                   >
                     {bullet}
                   </p>
-               {!readOnly && (
+                  {!readOnly && (
                     <div className="flex items-center gap-1 opacity-30 group-hover/bullet:opacity-100">
-                    <button
-                      onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)}
-                      disabled={bulletIndex === 0}
-                      className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Move up"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)}
-                      disabled={bulletIndex === job.bullets.length - 1}
-                      className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Move down"
-                    >
-                      ↓
-                    </button>
-                    {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600">Delete?</span>
-                        <button
-                          onClick={() => {
-                            deleteExperienceBullet(jobIndex, bulletIndex)
-                            setConfirmingDelete(null)
-                          }}
-                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setConfirmingDelete(null)}
-                          className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
                       <button
-                        onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)}
-                        className="text-red-500 hover:bg-red-50 px-1 rounded"
-                        title="Delete bullet"
+                        onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)}
+                        disabled={bulletIndex === 0}
+                        className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move up"
                       >
-                        🗑️
+                        ↑
                       </button>
-                    )}
+                      <button
+                        onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)}
+                        disabled={bulletIndex === job.bullets.length - 1}
+                        className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move down"
+                      >
+                        ↓
+                      </button>
+                      {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-gray-600">Delete?</span>
+                          <button
+                            onClick={() => {
+                              deleteExperienceBullet(jobIndex, bulletIndex)
+                              setConfirmingDelete(null)
+                            }}
+                            className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() => setConfirmingDelete(null)}
+                            className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)}
+                          className="text-red-500 hover:bg-red-50 px-1 rounded"
+                          title="Delete bullet"
+                        >
+                          🗑️
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
               ))}
 
-             {!readOnly && (
+              {!readOnly && (
                 <button
                   onClick={() => addExperienceBullet(jobIndex)}
                   className="text-purple-600 text-xs mt-2 opacity-0 group-hover:opacity-100"
@@ -1217,36 +1186,37 @@ function toggleSummary() {
         </div>
       )}
 
-     {/* Education */}
+      {/* Education */}
       {resumeData.education && resumeData.education.length > 0 && (
         <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
             EDUCATION
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
-              <button
-                onClick={() => moveSectionUp('education')}
-                disabled={resumeData.sectionOrder?.[0] === 'education'}
-                className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                title="Move this section up on your resume"
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => moveSectionDown('education')}
-                disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'education'}
-                className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                title="Move this section down on your resume"
-              >
-                ↓
-             </button>
+                <button
+                  onClick={() => moveSectionUp('education')}
+                  disabled={resumeData.sectionOrder?.[0] === 'education'}
+                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+                  title="Move this section up on your resume"
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => moveSectionDown('education')}
+                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'education'}
+                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+                  title="Move this section down on your resume"
+                >
+                  ↓
+                </button>
               </span>
             )}
           </h2>
           {resumeData.education.map((edu, eduIndex) => (
-           <div key={eduIndex} className={`mb-3 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
+            <div key={eduIndex} className={`mb-3 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
               <h3 
                 className={`font-semibold mb-1 ${!readOnly && 'cursor-text'}`}
+                style={ts.jobTitle || {}}
                 contentEditable={!readOnly}
                 suppressContentEditableWarning
                 onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}
@@ -1265,7 +1235,7 @@ function toggleSummary() {
                   >
                     {line}
                   </p>
-                 {!readOnly && (
+                  {!readOnly && (
                     <button
                       onClick={() => deleteEducationLine(eduIndex, lineIndex)}
                       className="text-red-500 opacity-0 group-hover/line:opacity-100 text-xs"
@@ -1289,10 +1259,10 @@ function toggleSummary() {
         </div>
       )}
 
-{/* Skills */}
+      {/* Skills */}
       {resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0 && (
-       <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2">
+        <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2" style={ts.sectionHeader || {}}>
             SKILLS
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
@@ -1409,10 +1379,11 @@ function toggleSummary() {
           )}
         </div>
       )}
-{/* Projects */}
+
+      {/* Projects */}
       {resumeData.projects && resumeData.projects.length > 0 && (
         <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
             PROJECTS
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
@@ -1440,6 +1411,7 @@ function toggleSummary() {
               <div className="flex items-start justify-between gap-2 mb-1">
                 <h3 
                   className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`}
+                  style={ts.jobTitle || {}}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
                   onBlur={(e) => updateNestedField(`projects[${projectIndex}].name`, e.currentTarget.textContent)}
@@ -1509,10 +1481,11 @@ function toggleSummary() {
           )}
         </div>
       )}
-           {/* Certifications */}
+
+      {/* Certifications */}
       {resumeData.certifications && resumeData.certifications.length > 0 && (
         <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
             CERTIFICATIONS
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
@@ -1536,11 +1509,12 @@ function toggleSummary() {
             )}
           </h2>
           {resumeData.certifications.map((cert, certIndex) => (
-          <div key={volIndex} className={`mb-3 p-2 rounded group/vol ${!readOnly && 'hover:bg-purple-50'}`}>
+            <div key={certIndex} className={`mb-3 p-2 rounded group/cert ${!readOnly && 'hover:bg-purple-50'}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <h3 
                     className={`font-semibold ${!readOnly && 'cursor-text'}`}
+                    style={ts.jobTitle || {}}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
                     onBlur={(e) => updateNestedField(`certifications[${certIndex}].name`, e.currentTarget.textContent)}
@@ -1601,10 +1575,11 @@ function toggleSummary() {
           )}
         </div>
       )}
-     {/* Volunteer */}
+
+      {/* Volunteer */}
       {resumeData.volunteer && resumeData.volunteer.length > 0 && (
         <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
             VOLUNTEER
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
@@ -1632,6 +1607,7 @@ function toggleSummary() {
               <div className="flex items-start justify-between gap-2 mb-1">
                 <h3 
                   className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`}
+                  style={ts.jobTitle || {}}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
                   onBlur={(e) => updateNestedField(`volunteer[${volIndex}].organization`, e.currentTarget.textContent)}
@@ -1691,10 +1667,11 @@ function toggleSummary() {
           )}
         </div>
       )}
-     {/* Languages */}
+
+      {/* Languages */}
       {resumeData.languages && resumeData.languages.length > 0 && (
         <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3">
+          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
             LANGUAGES
             {!readOnly && (
               <span className="opacity-30 group-hover:opacity-100 ml-2">
@@ -1718,7 +1695,7 @@ function toggleSummary() {
             )}
           </h2>
           {resumeData.languages.map((lang, langIndex) => (
-          <div key={langIndex} className={`mb-2 p-2 rounded group/lang flex items-center justify-between ${!readOnly && 'hover:bg-purple-50'}`}>
+            <div key={langIndex} className={`mb-2 p-2 rounded group/lang flex items-center justify-between ${!readOnly && 'hover:bg-purple-50'}`}>
               <div className="flex items-center gap-3 flex-1">
                 <span 
                   className={`font-semibold ${!readOnly && 'cursor-text'}`}
@@ -1789,6 +1766,7 @@ function toggleSummary() {
           )}
         </div>
       )}
+
       {(!resumeData.experience || resumeData.experience.length === 0) && (
         <div className="text-center text-gray-400 py-12">
           <p>Resume content will appear here</p>
@@ -3862,6 +3840,24 @@ function PolishStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
 // ─────────────────────────────────────────────
 function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
   const firstName = userName ? userName.split(' ')[0] : null
+
+  useEffect(() => {
+    async function markComplete() {
+      const supabase = createClient()
+      const { data: resume } = await supabase
+        .from('resumes')
+        .select('completed_at')
+        .eq('id', params.id)
+        .single()
+      if (!resume?.completed_at) {
+        await supabase
+          .from('resumes')
+          .update({ completed_at: new Date().toISOString() })
+          .eq('id', params.id)
+      }
+    }
+    markComplete()
+  }, [params.id])
 
   return (
     <div className="space-y-2 -mt-2">
