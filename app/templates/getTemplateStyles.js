@@ -2,27 +2,41 @@
 // Returns style objects for each template, applied inline in ResumeContent
 // Free: crisp, sharp | Pro: command, prestige, signature
 
-export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 11) {
+export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 11, font = null) {
   const base = fontSize
   const accent = accentColor
 
+  // Template default fonts — overridden by user font selection if provided
+  const templateFonts = {
+    crisp: 'Georgia, "Times New Roman", serif',
+    sharp: '"Trebuchet MS", Arial, sans-serif',
+    command: 'Arial, Helvetica, sans-serif',
+    prestige: '"Palatino Linotype", Palatino, Georgia, serif',
+    signature: '"Palatino Linotype", Palatino, Georgia, serif',
+  }
+
+  // Use user-selected font if provided, otherwise use template default
+  const ff = font || templateFonts[template] || 'Calibri, Arial, sans-serif'
+
   const defaults = {
     page: {
-      fontFamily: 'Calibri, Arial, sans-serif',
+      fontFamily: ff,
       fontSize: `${base}pt`,
-      lineHeight: '1.45',
+      lineHeight: '1.1',
       color: '#1a1a1a',
       background: '#fff',
     },
     name: {
-      fontSize: `${base + 13}pt`,
+      fontFamily: ff,
+      fontSize: '20pt',
       fontWeight: '700',
       textAlign: 'center',
-      marginBottom: '4px',
+      marginBottom: '0px',       // No gap between name and contact
       letterSpacing: '0',
       textTransform: 'none',
       color: '#1a1a1a',
       fontStyle: 'normal',
+      lineHeight: '1.15',
     },
     headerArea: {
       background: 'transparent',
@@ -30,12 +44,16 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       marginBottom: '8px',
     },
     contact: {
+      fontFamily: ff,
       textAlign: 'center',
       color: '#444',
-      fontSize: `${base - 1}pt`,
+      fontSize: `${base}pt`,
+      marginBottom: '0px',       // No extra gap after contact
+      lineHeight: '1.15',
     },
     sectionHeader: {
-      fontSize: '1.125rem',
+      fontFamily: ff,
+      fontSize: '14pt',
       fontWeight: '700',
       letterSpacing: '0',
       textTransform: 'uppercase',
@@ -45,25 +63,35 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       marginBottom: '8px',
       marginTop: '14px',
       fontStyle: 'normal',
+      lineHeight: '1.15',
     },
     jobTitle: {
+      fontFamily: ff,
       fontWeight: '700',
       color: '#1a1a1a',
       fontStyle: 'normal',
+      fontSize: `${base}pt`,
     },
     company: {
+      fontFamily: ff,
       color: '#555',
       fontStyle: 'normal',
+      fontSize: `${base}pt`,
     },
     date: {
+      fontFamily: ff,
       color: '#666',
-      fontSize: `${base - 1}pt`,
+      fontSize: `${base}pt`,
     },
     bullet: {
+      fontFamily: ff,
       color: '#1a1a1a',
+      fontSize: `${base}pt`,
     },
     body: {
+      fontFamily: ff,
       color: '#333',
+      fontSize: `${base}pt`,
     },
   }
 
@@ -72,38 +100,47 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
     case 'crisp':
       return {
         ...defaults,
-        page: { ...defaults.page, fontFamily: 'Georgia, "Times New Roman", serif' },
-        name: { ...defaults.name, fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase', fontSize: `${base + 12}pt` },
+        page: { ...defaults.page },
+        name: { ...defaults.name, letterSpacing: '2px', textTransform: 'uppercase' },
+        contact: { ...defaults.contact },
         sectionHeader: {
           ...defaults.sectionHeader,
-          fontFamily: 'Georgia, serif',
-          letterSpacing: '1.5px',
+          fontSize: '13pt',
+          letterSpacing: '0.5px',
           borderBottom: '1.5px solid #1a1a1a',
+          marginTop: '10px',
+          marginBottom: '2px',
         },
-        jobTitle: { ...defaults.jobTitle, fontFamily: 'Georgia, serif' },
+        jobTitle: { ...defaults.jobTitle },
         company: { ...defaults.company, fontStyle: 'italic' },
+        date: { ...defaults.date },
+        bullet: { ...defaults.bullet },
+        body: { ...defaults.body },
       }
 
     case 'sharp':
       return {
         ...defaults,
-        page: { ...defaults.page, fontFamily: '"Trebuchet MS", Arial, sans-serif' },
-        name: { ...defaults.name, fontWeight: '800', letterSpacing: '1px', fontSize: `${base + 14}pt` },
+        page: { ...defaults.page },
+        name: { ...defaults.name, fontWeight: '800', letterSpacing: '1px' },
+        contact: { ...defaults.contact },
         sectionHeader: {
           ...defaults.sectionHeader,
-          fontFamily: '"Trebuchet MS", Arial, sans-serif',
           fontWeight: '800',
           letterSpacing: '2px',
           borderBottom: '2.5px solid #1a1a1a',
-          fontSize: '1.125rem',
         },
         jobTitle: { ...defaults.jobTitle, fontWeight: '800' },
+        company: { ...defaults.company },
+        date: { ...defaults.date },
+        bullet: { ...defaults.bullet },
+        body: { ...defaults.body },
       }
 
     case 'command':
       return {
         ...defaults,
-        page: { ...defaults.page, fontFamily: 'Arial, Helvetica, sans-serif' },
+        page: { ...defaults.page },
         headerArea: {
           background: accent,
           padding: '18px 24px 14px',
@@ -112,14 +149,8 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
           marginRight: '-52px',
           marginTop: '-48px',
         },
-        name: {
-          ...defaults.name,
-          color: '#ffffff',
-          fontWeight: '700',
-          letterSpacing: '1px',
-          fontSize: `${base + 14}pt`,
-        },
-        contact: { ...defaults.contact, color: 'rgba(255,255,255,0.88)', fontSize: `${base - 1}pt` },
+        name: { ...defaults.name, color: '#ffffff', fontWeight: '700', letterSpacing: '1px' },
+        contact: { ...defaults.contact, color: 'rgba(255,255,255,0.88)' },
         sectionHeader: {
           ...defaults.sectionHeader,
           color: accent,
@@ -127,55 +158,39 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
           fontWeight: '700',
           letterSpacing: '1px',
         },
-        jobTitle: { ...defaults.jobTitle, color: '#1a1a1a' },
+        jobTitle: { ...defaults.jobTitle },
+        company: { ...defaults.company },
+        date: { ...defaults.date },
+        bullet: { ...defaults.bullet },
+        body: { ...defaults.body },
       }
 
     case 'prestige':
       return {
         ...defaults,
-        page: { ...defaults.page, fontFamily: '"Palatino Linotype", Palatino, Georgia, serif' },
-        name: {
-          ...defaults.name,
-          fontWeight: '700',
-          letterSpacing: '3px',
-          textTransform: 'uppercase',
-          fontSize: `${base + 11}pt`,
-          marginBottom: '0',
-        },
-        headerArea: {
-          background: 'transparent',
-          borderBottom: `3px double ${accent}`,
-          paddingBottom: '10px',
-          marginBottom: '10px',
-        },
-        contact: { ...defaults.contact, color: '#555', fontSize: `${base - 1}pt` },
+        page: { ...defaults.page },
+        name: { ...defaults.name, fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '0' },
+        headerArea: { background: 'transparent', borderBottom: `3px double ${accent}`, paddingBottom: '10px', marginBottom: '10px' },
+        contact: { ...defaults.contact, color: '#555' },
         sectionHeader: {
           ...defaults.sectionHeader,
-          fontFamily: '"Palatino Linotype", Palatino, Georgia, serif',
           letterSpacing: '1.5px',
-          textTransform: 'uppercase',
           borderBottom: 'none',
           borderLeft: `3px solid ${accent}`,
           paddingLeft: '8px',
-          color: '#1a1a1a',
-          fontSize: '1.125rem',
         },
-        jobTitle: { ...defaults.jobTitle, fontFamily: '"Palatino Linotype", serif' },
+        jobTitle: { ...defaults.jobTitle },
         company: { ...defaults.company, fontStyle: 'italic', color: '#666' },
+        date: { ...defaults.date },
+        bullet: { ...defaults.bullet },
+        body: { ...defaults.body },
       }
 
     case 'signature':
       return {
         ...defaults,
-        page: { ...defaults.page, fontFamily: '"Palatino Linotype", Palatino, Georgia, serif' },
-        name: {
-          ...defaults.name,
-          fontWeight: '400',
-          letterSpacing: '4px',
-          textTransform: 'uppercase',
-          fontSize: `${base + 10}pt`,
-          fontFamily: '"Palatino Linotype", serif',
-        },
+        page: { ...defaults.page },
+        name: { ...defaults.name, fontWeight: '400', letterSpacing: '4px', textTransform: 'uppercase' },
         contact: { ...defaults.contact, letterSpacing: '0.5px' },
         sectionHeader: {
           ...defaults.sectionHeader,
@@ -185,12 +200,12 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
           letterSpacing: '1px',
           textTransform: 'none',
           borderBottom: `1px solid ${accent}`,
-          fontSize: '1.125rem',
-          fontFamily: '"Palatino Linotype", serif',
         },
-        jobTitle: { ...defaults.jobTitle, fontFamily: '"Palatino Linotype", serif', fontWeight: '700' },
+        jobTitle: { ...defaults.jobTitle, fontWeight: '700' },
         company: { ...defaults.company, fontStyle: 'italic', color: '#666' },
-        bullet: { color: accent },
+        date: { ...defaults.date },
+        bullet: { ...defaults.bullet, color: accent },
+        body: { ...defaults.body },
       }
 
     default:

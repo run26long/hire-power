@@ -603,85 +603,61 @@ export default function MyResumesPage() {
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
         
-        {/* Main Content - NO SCROLL */}
-        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
-          <div>
-            {/* Core Resume Section */}
-            <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">CORE RESUME</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>AI Assessment</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Resume Power Score</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Detailed Action Plan</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Coaching Conversation <span className="font-semibold text-xs">(Pro)</span></span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Achievement Discovery <span className="font-semibold text-xs">(Pro)</span></span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Skill Identification <span className="font-semibold text-xs">(Pro)</span></span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Auto Improvements <span className="font-semibold text-xs">(Pro)</span></span>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Job-Specific Section */}
-            <div className="mb-4">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">JOB-SPECIFIC</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Match Score</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Coaching Conversation <span className="font-semibold text-xs">(Pro)</span></span>
-                </li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Job-Specific Resumes <span className="font-semibold text-xs">(Pro)</span></span>
-                </li>
-              </ul>
-            </div>
+        {/* Main Content */}
+        <div className="px-6 pt-3 pb-6">
+
+          {/* Intro copy */}
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 9 }}>
+              AI knows how to write a great résumé. The problem is, it doesn't know you.
+            </p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4, marginBottom: 0 }}>
+              Most AI tools can only work with what's on the page. Resume Coach asks what's missing — just like a professional résumé writer would.
+            </p>
           </div>
-          
-          {/* Bottom section - pushed to bottom */}
-          <div className="mt-auto">
-            {/* Bottom divider - matches top spacing */}
-            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
-            
-            <div>
-              <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-                We don't invent experience. We extract and strengthen what's already yours.
+
+          {/* Feature List */}
+          <div style={{ marginBottom: 16 }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {[
+                { label: 'AI Assessment' },
+                { label: 'Resume Power Score' },
+                { label: 'Detailed Action Plan' },
+                { label: 'Coaching Conversation', pro: true },
+                { label: 'Achievement Discovery', pro: true },
+                { label: 'Skill Identification', pro: true },
+                { label: 'Auto Improvements', pro: true },
+                { label: 'Match Score' },
+                { label: 'Job-Specific Resumes', pro: true },
+              ].map(({ label, pro }) => (
+                <li key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>•</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)', lineHeight: 1.2 }}>
+                    {label}{pro && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginLeft: 3 }}>(Pro)</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+        {/* Bottom section */}
+          <div style={{ marginTop: 16 }}>
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 30 }}>
+              The AI that interviews you like a professional résumé writer would.
+            </p>
+            <div className="flex items-center gap-2.5 text-white">
+              <img 
+                src="/images/Hire_Power_icon.png" 
+                alt="Lightning" 
+                className="h-5 w-auto flex-shrink-0"
+              />
+              <p className="text-sm font-medium leading-tight">
+                Let's start your conversation.
               </p>
-              <div className="flex items-center gap-2.5 text-white">
-                <img 
-                  src="/images/Hire_Power_icon.png" 
-                  alt="Lightning" 
-                  className="h-5 w-auto flex-shrink-0"
-                />
-                <p className="text-sm font-medium leading-tight">
-                  Select any resume to start the conversation
-                </p>
-              </div>
             </div>
           </div>
+
         </div>
       </div>
 

@@ -111,8 +111,6 @@ export default function DashboardPage() {
 
   const labelStyle = { fontSize: 11, fontWeight: 900, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' };
   const valueStyle = { fontSize: 12, fontWeight: 500, color: '#1a1a2e', lineHeight: 1.3, marginTop: 2 };
-  const labelStyleMuted = { fontSize: 11, fontWeight: 900, color: '#d1d5db', textTransform: 'uppercase', letterSpacing: '0.08em' };
-  const valueStyleMuted = { fontSize: 12, fontWeight: 500, color: '#d1d5db', lineHeight: 1.3, marginTop: 2 };
   const numStyle = { fontSize: 13, fontWeight: 900, color: '#a78bfa', marginRight: 6 };
 
   const nextStepStyle = {
@@ -170,8 +168,7 @@ export default function DashboardPage() {
                 ))}
               </ul>
             </div>
-            <div className="mt-4 mb-2 border-b border-gray-400 border-opacity-10"></div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>Hire Power isn't just for this job search.</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4, marginTop: 32 }}>Hire Power isn't just for this job search.</p>
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.9)', lineHeight: 1.4 }}>
               It's the operating system for your career — tracking your growth and capturing your wins so you're always ready when your next opportunity appears.
             </p>
@@ -201,7 +198,7 @@ export default function DashboardPage() {
                 className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
                 onClick={() => router.push('/my-career')}
               >
-                <div className="p-3 pb-2 flex flex-col flex-1">
+                <div className="p-2.5 pb-2 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
                     <div className="text-xl font-bold text-gray-900 tracking-tight">
                       <span style={numStyle}>01</span>Career Coach
@@ -210,31 +207,38 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-[13px] font-normal text-purple-600 mb-2">Point your job search in the right direction.</div>
 
+                  {/* Quote box — always shown */}
+                  <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(99,102,241,0.04))', border: '1.5px solid rgba(124,58,237,0.12)' }}>
+                    <p className="text-[12px] font-bold italic text-gray-900 leading-snug mb-1" style={{ letterSpacing: '-0.03em' }}>
+                      "The most valuable 5 minutes of your job search."
+                    </p>
+                    <p className="text-[11px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                      Most tools optimize for where you've been. Career Coach starts with where you're going.
+                    </p>
+                  </div>
+
                   {hasCareer ? (
                     <>
-                      <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(99,102,241,0.06))', border: '1.5px solid rgba(124,58,237,0.18)' }}>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <div className="w-4 h-4 rounded-full bg-purple-600 flex items-center justify-center text-[9px] text-white font-bold flex-shrink-0">✓</div>
-                          <span className="text-[13px] font-bold text-purple-700">Direction set</span>
-                          {careerContext?.is_career_changer && (
-                            <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: '#ede9fe', color: '#6d28d9' }}>Career Change</span>
-                          )}
-                        </div>
-                        {careerContext?.target_roles?.length > 0 && (
-                          <div className="mb-2">
-                            <div style={labelStyle}>Targeting</div>
-                            <div style={valueStyle}>{careerContext.target_roles.slice(0, 2).join(' · ')}</div>
-                          </div>
-                        )}
-                        {careerContext?.timeline && (
-                          <div className="mb-0">
-                            <div style={labelStyle}>Timeline</div>
-                            <div style={valueStyle} className="capitalize">{careerContext.timeline.replace(/_/g, ' ')}</div>
-                          </div>
-                        )}
+                      <div className="flex flex-col gap-0.5 mb-1.5">
+                        {[
+                          careerContext?.target_roles?.length > 0
+                            ? `Targeting: ${careerContext.target_roles.slice(0, 2).join(' · ')}`
+                            : 'Direction set',
+                          careerContext?.timeline
+                            ? `Timeline: ${careerContext.timeline.replace(/_/g, ' ')}`
+                            : 'Timeline set',
+                          careerContext?.is_career_changer
+                            ? 'Career change: experience reframed for target roles'
+                            : 'Same-field advancement mapped',
+                        ].map((item, i) => (
+  <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg">
+    <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
+    <span className="text-[11px] text-gray-600">{item}</span>
+  </div>
+                        ))}
                       </div>
                       {getCareerAdaptiveCopy() && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4 }}>
                           <img src="/images/Hire_Power_icon_2.png" alt="" style={{ height: 22, width: 'auto', flexShrink: 0 }} />
                           <p style={{ fontSize: 11, fontWeight: 500, color: '#7c3aed', lineHeight: 1.35, marginBottom: 0 }}>
                             {getCareerAdaptiveCopy()}
@@ -244,21 +248,18 @@ export default function DashboardPage() {
                     </>
                   ) : (
                     <>
-                      <div className="rounded-xl p-2.5 mb-1.5" style={{ background: 'rgba(147,51,234,0.02)', border: '1.5px solid rgba(147,51,234,0.08)' }}>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[9px] text-gray-400 font-bold flex-shrink-0">✓</div>
-                          <span className="text-[13px] font-bold text-gray-300">Direction set</span>
-                        </div>
-                        <div className="mb-2">
-                          <div style={labelStyleMuted}>Targeting</div>
-                          <div style={valueStyleMuted}>—</div>
-                        </div>
-                        <div>
-                          <div style={labelStyleMuted}>Timeline</div>
-                          <div style={valueStyleMuted}>—</div>
-                        </div>
+                      <div className="flex flex-col gap-0.5 mb-1.5">
+                        {['Direction set', 'Target roles identified', 'Experience connected to your goals'].map((item, i) => (
+                          <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
+                            <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
+                            <span className="text-[11px] text-gray-500">{item}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="mt-auto pt-1">
+                      <p className="text-[11px] text-gray-400 leading-tight mb-2" style={{ letterSpacing: '-0.01em' }}>
+                        Five minutes here sets the direction for everything that follows.
+                      </p>
+                      <div className="mt-auto">
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push('/my-career'); }}
                           className="w-full text-white text-xs font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
@@ -277,7 +278,7 @@ export default function DashboardPage() {
                 className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
                 onClick={() => router.push('/my-resumes')}
               >
-                <div className="p-3 flex flex-col flex-1">
+                <div className="p-2.5 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
                     <div className="text-xl font-bold text-gray-900 tracking-tight">
                       <span style={numStyle}>02</span>Resume Coach
@@ -296,9 +297,9 @@ export default function DashboardPage() {
                         { label: 'Not generation.', body: 'Extraction. We surface your real achievements, then help you say them right.' },
                         { label: 'Not one-time.', body: 'Coach it once, customize forever. Every job version builds on this foundation.' },
                       ].map(({ label, body }) => (
-                        <div key={label}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#5b21b6', marginBottom: 2 }}>{label}</div>
-                          <div style={{ fontSize: 11, fontWeight: 400, color: '#6b7280', lineHeight: 1.4 }}>{body}</div>
+                        <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                          <span style={{ fontWeight: 800, color: '#5b21b6' }}>{label}</span>
+                          {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
                         </div>
                       ))}
                     </div>
@@ -352,14 +353,15 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-2 gap-3 flex-1">
                     {/* Left: power analysis concepts */}
                     <div style={{ background: '#faf9ff', border: '1px solid #ede9fe', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', lineHeight: 1.4, paddingBottom: 6, borderBottom: '1px solid #ede9fe' }}>Your Interview Coach will prepare you to discuss:</div>
                       {[
                         { label: 'Core Power.', color: '#15803d', body: 'The strengths you already have that directly match the job.' },
-                        { label: 'Hidden Power.', color: '#92400e', body: 'Transferable skills you didn\'t know you had — until we ask the right questions.' },
-                        { label: 'Power Gaps.', color: '#b91c1c', body: 'What\'s missing — and exactly how to address it without apologizing.' },
+                        { label: 'Hidden Power.', color: '#92400e', body: "Transferable skills you didn't know you had — until we ask the right questions." },
+                        { label: 'Power Gaps.', color: '#b91c1c', body: "What's missing — and exactly how to address it without apologizing." },
                       ].map(({ label, color, body }) => (
-                        <div key={label}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color, marginBottom: 2 }}>{label}</div>
-                          <div style={{ fontSize: 11, fontWeight: 400, color: '#6b7280', lineHeight: 1.4 }}>{body}</div>
+                        <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                          <span style={{ fontWeight: 800, color }}>{label}</span>
+                          {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
                         </div>
                       ))}
                     </div>

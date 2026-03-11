@@ -54,18 +54,82 @@ const [accentColor, setAccentColor] = useState('#5b4fcf')
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
 const [dateFormat, setDateFormat] = useState('short')
+const [isAutoFitting, setIsAutoFitting] = useState(false)
+
+const handleAutoFit = async () => {
+  setIsAutoFitting(true)
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+    const minSize = 9.5
+    const maxSize = 12
+    let testSize = selectedSize
+
+    const checkSize = async (size) => {
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: resume.resume_data,
+          templateName: templateForApi,
+          fontSize: size,
+          font: selectedFont,
+          accentColor: accentColor,
+          action: 'check',
+          userId: user.id
+        })
+      })
+      if (!response.ok) throw new Error('Auto-fit check failed')
+      return await response.json()
+    }
+
+    // First check current size
+    const current = await checkSize(testSize)
+
+    if (current.pageCount === 1) {
+      // Fits — try growing up to maxSize to fill the page better
+      let bestSize = testSize
+      let trySize = Math.round((testSize + 0.5) * 10) / 10
+      while (trySize <= maxSize) {
+        const result = await checkSize(trySize)
+        if (result.pageCount === 1) {
+          bestSize = trySize
+          trySize = Math.round((trySize + 0.5) * 10) / 10
+        } else {
+          break
+        }
+      }
+      setSelectedSize(bestSize)
+    } else {
+      // Too long — step down until it fits
+      testSize = Math.round((testSize - 0.5) * 10) / 10
+      let fitted = false
+      while (testSize >= minSize) {
+        const result = await checkSize(testSize)
+        if (result.pageCount === 1) {
+          setSelectedSize(testSize)
+          fitted = true
+          break
+        }
+        testSize = Math.round((testSize - 0.5) * 10) / 10
+      }
+      if (!fitted) {
+        alert('Your resume is too long for one page. Consider removing older jobs or trimming bullets.')
+      }
+    }
+  } catch (error) {
+    console.error('Auto-fit error:', error)
+    alert('Auto-fit failed. Please try again.')
+  } finally {
+    setIsAutoFitting(false)
+  }
+}
 
 const handleDownload = async () => {
   setIsDownloading(true)
   try {
     
     const { data: { user } } = await supabase.auth.getUser()
-    
-    // Convert font size number to API format
-    let fontSizeForApi = 'medium'
-    if (selectedSize <= 10) fontSizeForApi = 'small'
-    else if (selectedSize === 11) fontSizeForApi = 'medium'
-    else if (selectedSize >= 12) fontSizeForApi = 'large'
     
     // Capitalize template name for API
     const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
@@ -76,10 +140,11 @@ const handleDownload = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        resumeData: resume,
-        templateName: templateForApi,
-        fontSize: fontSizeForApi,
-        accentColor: accentColor,
+  resumeData: resume.resume_data,
+  templateName: templateForApi,
+  fontSize: selectedSize,
+  font: selectedFont,
+  accentColor: accentColor,
         action: 'download',
         versionId: null,
         isJobVersion: false,
@@ -210,6 +275,19 @@ function formatDate(dateString, format = dateFormat) {
     loadUserProfile()
   }, [params.id])
 
+  useEffect(() => {
+    const templateFonts = {
+      crisp: 'Georgia',
+      sharp: 'Trebuchet MS',
+      command: 'Arial',
+      prestige: 'Palatino Linotype',
+      signature: 'Palatino Linotype',
+    }
+    if (templateFonts[selectedTemplate]) {
+      setSelectedFont(templateFonts[selectedTemplate])
+    }
+  }, [selectedTemplate])
+
   async function loadResume() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -234,7 +312,7 @@ function formatDate(dateString, format = dateFormat) {
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
 }
-   setSelectedTemplate(data.template_id || 'modern')
+   setSelectedTemplate(data.template_id || 'crisp')
     setSelectedFont(data.font_family || 'Calibri')
     setSelectedSize(data.font_size || 11)
     setDateFormat(data.date_format || 'short')
@@ -383,10 +461,21 @@ if (data.ai_analysis) {
       ]} />
 
       {/* Toolbar - STICKY */}
-      <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30">
-        <div className="px-6 py-1.5 flex items-center gap-2 text-xs">
-          <span className="text-gray-700 font-medium mr-2">Formatting Tools:</span>
-          
+      <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible">
+  <div className="px-6 py-2 max-w-7xl mx-auto w-full overflow-visible">
+  <div className="flex items-center gap-2 text-xs overflow-visible">
+       <button
+  onClick={handleAutoFit}
+  disabled={isAutoFitting}
+  className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center gap-1 ${
+    isAutoFitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+  }`}
+>
+  {isAutoFitting && (
+    <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+  )}
+  {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+</button>             
           <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
             <span>📄</span>
             <select
@@ -483,9 +572,7 @@ if (data.ai_analysis) {
             </div>
           )}
 
-          <div className="h-6 w-px bg-gray-300 mx-2" />
-
-          <button
+                  <button
             onClick={undo}
             disabled={historyIndex <= 0}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${
@@ -511,6 +598,7 @@ if (data.ai_analysis) {
           </button>
 
           <div className="flex-1" />
+          <div className="flex items-center gap-2 mr-1">
 
           {score && (
             <div className={`
@@ -544,6 +632,8 @@ if (data.ai_analysis) {
               Preview
             </button>
 
+          
+
           <button 
   onClick={handleDownload}
   disabled={isDownloading}
@@ -559,6 +649,8 @@ if (data.ai_analysis) {
   {isDownloading ? 'Generating...' : 'Download'}
 </button>
         </div>
+        </div>
+      </div>
       </div>
 
     {/* Main Content: Resume + Right Panel */}
@@ -572,31 +664,15 @@ if (data.ai_analysis) {
                 width: '816px',
                 position: 'relative',
 fontFamily: selectedFont,
-fontSize: `${selectedSize}pt`,
-                fontFamily: selectedFont,
                 fontSize: `${selectedSize}pt`,
               }}
             >
-              {/* Page break line */}
-              <div style={{
-                position: 'absolute',
-                top: `1056px`,
-                left: 0, right: 0,
-                borderTop: '2px dashed #ef4444',
-                zIndex: 10, pointerEvents: 'none',
-              }}>
-                <span style={{ position: 'absolute', right: '8px', top: '-10px', fontSize: '10px',
-                  color: '#ef4444', background: '#fff', padding: '0 4px', fontWeight: '600' }}>
-                  ── page 1 ends here ──
-                </span>
-              </div>
-
-              <ResumeContent
+                 <ResumeContent
                   resumeData={resumeData}
                   onUpdate={updateResumeData}
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
-                  templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize)}
+                  templateStyles={(() => { const s = getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont); console.log('font:', selectedFont, 'page fontFamily:', s.page?.fontFamily); return s; })()}
                 />
             </div>
           </div>
@@ -664,6 +740,7 @@ fontSize: `${selectedSize}pt`,
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
                   readOnly={true}
+                  templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
                 />
               </div>
             </div>
@@ -947,7 +1024,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
   }
 
   return (
-    <>
+    <div style={ts.page || {}}>
       {/* Contact */}
       <div className="text-center mb-6 p-2 rounded" style={ts.headerArea || {}}>
         <h1 
@@ -998,6 +1075,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
           </h2>
           <p 
             className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
+            style={ts.body || {}}
             contentEditable={!readOnly}
             suppressContentEditableWarning
             onBlur={(e) => updateField('summary', e.currentTarget.textContent)}
@@ -1074,6 +1152,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
                 <div className="mb-2">
                   <p 
                     className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`}
+                    style={ts.body || {}}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
                     onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}
@@ -1116,6 +1195,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
                   <span className="text-sm" style={ts.bullet || {}}>•</span>
                   <p 
                     className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`}
+                    style={ts.body || {}}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
                     onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}
@@ -1229,6 +1309,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
                 <div key={lineIndex} className="flex items-start gap-2 group/line">
                   <p 
                     className={`text-sm font-medium text-gray-700 flex-1 ${!readOnly && 'cursor-text'}`}
+                    style={ts.body || {}}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
                     onBlur={(e) => updateNestedField(`education[${eduIndex}].lines[${lineIndex}]`, e.currentTarget.textContent)}
@@ -1303,6 +1384,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
                   <div className="flex items-center gap-2 mb-1">
                     <p 
                       className={`text-sm font-semibold ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`}
+                      style={ts.body || {}}
                       contentEditable={!readOnly}
                       suppressContentEditableWarning
                       onBlur={(e) => {
@@ -1350,6 +1432,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
                 )}
                 <p 
                   className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`}
+                  style={ts.body || {}}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
                   onBlur={(e) => {
@@ -1453,6 +1536,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
               </div>
               <p 
                 className={`text-sm text-gray-700 mb-1 ${!readOnly && 'cursor-text'}`}
+                style={ts.body || {}}
                 contentEditable={!readOnly}
                 suppressContentEditableWarning
                 onBlur={(e) => updateNestedField(`projects[${projectIndex}].description`, e.currentTarget.textContent)}
@@ -1462,6 +1546,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
               {project.link && (
                 <p 
                   className={`text-sm text-purple-600 ${!readOnly && 'cursor-text'}`}
+                  style={ts.body || {}}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
                   onBlur={(e) => updateNestedField(`projects[${projectIndex}].link`, e.currentTarget.textContent)}
@@ -1523,6 +1608,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
                   </h3>
                   <p 
                     className={`text-sm text-gray-600 ${!readOnly && 'cursor-text'}`}
+                    style={ts.body || {}}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
                     onBlur={(e) => updateNestedField(`certifications[${certIndex}].details`, e.currentTarget.textContent)}
@@ -1649,6 +1735,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
               </div>
               <p 
                 className={`text-sm text-gray-700 ${!readOnly && 'cursor-text'}`}
+                style={ts.body || {}}
                 contentEditable={!readOnly}
                 suppressContentEditableWarning
                 onBlur={(e) => updateNestedField(`volunteer[${volIndex}].description`, e.currentTarget.textContent)}
@@ -1773,7 +1860,7 @@ function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnl
           <p className="text-sm mt-2">Click to edit</p>
         </div>
       )}
-    </>
+    </div>
   )
 }
 // Right Panel Component
