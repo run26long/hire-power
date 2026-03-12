@@ -3425,7 +3425,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             </div>
             <div className="flex justify-center">
               <button
-                onClick={finishReview}
+                onClick={() => finishReview()}
                 disabled={accepting}
                 className="px-6 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center gap-2 transition-colors"
               >

@@ -32,9 +32,25 @@ export default function MyResumesPage() {
   const [creatingJob, setCreatingJob] = useState(false);
   const [jobCreateError, setJobCreateError] = useState(null);
 
+const [careerContext, setCareerContext] = useState(null);
+
+useEffect(() => {
+  const fetchCareerContext = async () => {
+    const { data } = await supabase
+      .from('career_context')
+      .select('completed_at')
+      .eq('user_id', user.id)
+      .single();
+    setCareerContext(data);
+  };
+  if (user?.id) fetchCareerContext();
+}, [user?.id]);
+
+const careerCoachComplete = careerContext && careerContext.completed_at !== null;
+
   // Tour modal state
   const [showTourModal, setShowTourModal] = useState(false);
-  const [tourScreen, setTourScreen] = useState(1);
+  const [tourScreen, setTourScreen] = useState(0);
   const [hasSeenTour, setHasSeenTour] = useState(false);
 
  useEffect(() => {
@@ -85,7 +101,7 @@ export default function MyResumesPage() {
           if (!tourSeen) {
             setHasSeenTour(false);
             setShowTourModal(true);
-            setTourScreen(1);
+            setTourScreen(0);
           } else {
             setHasSeenTour(true);
             setShowTourModal(true);
@@ -1503,7 +1519,19 @@ export default function MyResumesPage() {
                   ×
                 </button>
               )}
-              
+              {tourScreen === 0 && (
+  <div className="flex items-center gap-3">
+    <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+    <div>
+      <h2 className="text-xl font-bold text-white">
+        {careerCoachComplete ? "You told us where you're going." : "Welcome to Resume Coach"}
+      </h2>
+      <p className="text-purple-100 text-xs">
+        {careerCoachComplete ? "Now let's build the resume that gets you there." : "The AI that asks the right questions."}
+      </p>
+    </div>
+  </div>
+)}
               {tourScreen === 1 && (
                 <div className="flex items-center gap-3">
                   <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
@@ -1537,6 +1565,64 @@ export default function MyResumesPage() {
 
             {/* Content */}
             <div className="px-6 py-5 flex-1 flex flex-col" style={{ minHeight: '320px', maxHeight: '320px' }}>
+            
+            {/* Screen 0 */}
+{tourScreen === 0 && (
+  <div className="flex flex-col h-full">
+    <div className="flex-1 space-y-4">
+      {careerCoachComplete ? (
+        <>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            Your Career Coach session gave us a clear picture of where you're headed. Resume Coach will use that context to ask the right questions and pull out the achievements that matter most for the roles you're targeting.
+          </p>
+          <div className="space-y-2 text-sm text-gray-700">
+            <p><span className="font-bold text-purple-600">→</span> No generic tips. No AI guessing.</p>
+            <p><span className="font-bold text-purple-600">→</span> Coaching built around your actual goals.</p>
+            <p><span className="font-bold text-purple-600">→</span> Your real achievements, written to get interviews.</p>
+          </div>
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
+            <p className="text-sm text-gray-800 font-medium">
+              The fastest path to a stronger resume starts with the right conversation. You've already had it.
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            The more we know about where you're headed, the stronger your resume becomes. Resume Coach works best after a quick Career Coach session, but you can start here too.
+          </p>
+          <div className="space-y-2 text-sm text-gray-700">
+            <p><span className="font-bold text-purple-600">→</span> We'll still ask the right questions.</p>
+            <p><span className="font-bold text-purple-600">→</span> You can complete Career Coach anytime to sharpen your results.</p>
+          </div>
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
+            <p className="text-sm text-gray-800 font-medium">
+              No generic tips. No AI fiction. Just your real achievements, turned into a resume that gets interviews.
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+
+    <div className="flex flex-col items-center gap-2 mt-5">
+      <button
+        onClick={handleNextTourScreen}
+        className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
+      >
+        Let's Go
+      </button>
+      {!careerCoachComplete && (
+        <button
+          onClick={() => router.push('/career-coach')}
+          className="text-purple-600 text-xs hover:underline"
+        >
+          Start with Career Coach first (recommended)
+        </button>
+      )}
+    </div>
+  </div>
+)}
+            
               {/* Screen 1 */}
               {tourScreen === 1 && (
                 <div className="flex flex-col h-full">

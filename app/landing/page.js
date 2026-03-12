@@ -1,0 +1,743 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import MainNav from '../components/MainNav';
+import { createClient } from '@/utils/supabase/client';
+
+export default function LandingPage() {
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setUserProfile(profile);
+      }
+    }
+    loadUser();
+  }, []);
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;0,900;1,300;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+        :root {
+          --purple: #9333ea;
+          --purple-dark: #7e22ce;
+          --purple-light: #f5f3ff;
+          --purple-mid: #ede9fe;
+          --black: #0D0D0D;
+          --dark: #1a1033;
+          --gray: #6B7280;
+          --light: #F8F8FC;
+          --white: #FFFFFF;
+          --green: #10B981;
+          --red: #EF4444;
+          --amber: #F59E0B;
+        }
+
+        html { scroll-behavior: smooth; }
+        .landing-page * { margin: 0; padding: 0; box-sizing: border-box; }
+        .landing-page { font-family: 'DM Sans', sans-serif; color: var(--black); background: var(--white); overflow-x: hidden; }
+
+        .btn-primary-lg {
+          display: inline-flex; align-items: center; gap: 10px;
+          background: var(--purple); color: white; padding: 16px 32px;
+          border-radius: 10px; font-size: 17px; font-weight: 600; text-decoration: none;
+          transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+          box-shadow: 0 4px 24px rgba(108,99,255,0.35);
+        }
+        .btn-primary-lg:hover { background: var(--purple-dark); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(108,99,255,0.45); }
+
+        .btn-white {
+          display: inline-flex; align-items: center; gap: 10px;
+          background: white; color: var(--black); padding: 16px 32px;
+          border-radius: 10px; font-size: 17px; font-weight: 600; text-decoration: none;
+          transition: all 0.2s; box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+        }
+        .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+        .hero {
+          min-height: 100vh; display: grid; grid-template-columns: 1fr 1.1fr;
+          align-items: center; padding: 20px 48px 48px 96px; gap: 24px;
+          background: var(--white); position: relative; overflow: hidden;
+        }
+        .hero::before {
+          content: ''; position: absolute; top: -200px; right: -200px;
+          width: 700px; height: 700px;
+          background: radial-gradient(circle, rgba(147,51,234,0.06) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .hero h1 { font-family: 'Fraunces', serif; font-weight: 900; font-size: clamp(40px,4.2vw,62px); line-height: 1.0; letter-spacing: -2px; color: var(--black); margin-bottom: 10px; }
+        .hero h1 em { font-style: italic; color: var(--purple); }
+        .hero-sub { font-size: 16px; color: #444; line-height: 1.6; margin-bottom: 28px; max-width: 460px; }
+        .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+        .hero-trust { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--gray); }
+        .hero-trust svg { color: var(--green); flex-shrink: 0; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+        .section-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--purple); margin-bottom: 16px; }
+        .section-title { font-family: 'Fraunces', serif; font-weight: 900; font-size: clamp(36px,4vw,56px); line-height: 1.05; letter-spacing: -1.5px; color: var(--black); margin-bottom: 20px; }
+        .section-title em { font-style: italic; color: var(--purple); }
+        .section-sub { font-size: 18px; color: var(--gray); line-height: 1.6; max-width: 600px; }
+
+        .problem { padding: 120px 0; background: var(--dark); overflow: hidden; }
+        .problem .section-eyebrow { color: rgba(255,255,255,0.4); }
+        .problem .section-title { color: white; }
+        .problem .section-sub { color: rgba(255,255,255,0.6); }
+        .problem-truth { margin-top: 56px; text-align: center; padding: 48px; background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.2); border-radius: 20px; }
+        .problem-truth p { font-family: 'Fraunces', serif; font-size: clamp(20px,2.5vw,30px); font-weight: 700; color: white; line-height: 1.4; font-style: italic; }
+        .problem-truth strong { color: #A5B4FC; font-style: normal; }
+
+        .interview-moment { padding: 80px 0; background: var(--purple-light); border-top: 1px solid rgba(108,99,255,0.1); border-bottom: 1px solid rgba(108,99,255,0.1); }
+        .interview-moment-inner { max-width: 800px; margin: 0 auto; text-align: center; padding: 0 48px; }
+        .interview-moment-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--purple); margin-bottom: 20px; }
+        .interview-moment p { font-family: 'Fraunces', serif; font-size: clamp(20px,2.8vw,32px); font-weight: 700; line-height: 1.4; color: var(--black); }
+        .interview-moment p em { color: var(--purple); font-style: italic; }
+
+        .how { padding: 120px 0; background: var(--white); }
+        .how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin-top: 80px; }
+        .how-steps { display: flex; flex-direction: column; gap: 32px; }
+        .how-step { display: flex; gap: 20px; align-items: flex-start; }
+        .step-num { width: 40px; height: 40px; background: var(--purple-light); color: var(--purple); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 18px; font-weight: 900; flex-shrink: 0; }
+        .step-content h4 { font-size: 17px; font-weight: 600; color: var(--black); margin-bottom: 6px; }
+        .step-content p { font-size: 15px; color: var(--gray); line-height: 1.6; }
+        .how-visual { background: var(--light); border-radius: 20px; padding: 32px; border: 1px solid rgba(0,0,0,0.06); }
+        .coaches-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+        .coach-pill { background: white; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 16px; text-align: center; }
+        .coach-pill-icon { font-size: 24px; margin-bottom: 8px; }
+        .coach-pill h5 { font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 4px; }
+        .coach-pill p { font-size: 12px; color: var(--gray); line-height: 1.4; }
+        .context-arrow { text-align: center; font-size: 11px; color: var(--gray); margin: 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .context-arrow::before, .context-arrow::after { content: ''; height: 1px; flex: 1; background: rgba(0,0,0,0.08); }
+        .power-score-visual { margin-top: 16px; background: white; border-radius: 12px; padding: 20px; border: 1px solid rgba(0,0,0,0.08); }
+        .power-score-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray); margin-bottom: 12px; }
+        .score-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .score-bar-name { font-size: 13px; color: var(--black); width: 80px; flex-shrink: 0; }
+        .score-bar-track { flex: 1; height: 6px; background: #E5E7EB; border-radius: 100px; overflow: hidden; }
+        .score-bar-fill { height: 100%; border-radius: 100px; }
+        .score-bar-val { font-size: 13px; font-weight: 600; color: var(--black); width: 36px; text-align: right; flex-shrink: 0; }
+
+        .manifesto { padding: 100px 48px; background: var(--dark); text-align: center; position: relative; overflow: hidden; }
+        .manifesto::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 700px; height: 300px; background: radial-gradient(ellipse, rgba(147,51,234,0.15) 0%, transparent 70%); pointer-events: none; }
+        .manifesto-inner { max-width: 760px; margin: 0 auto; position: relative; }
+        .manifesto-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #a78bfa; margin-bottom: 32px; }
+        .manifesto p { font-family: 'DM Sans', sans-serif; font-size: clamp(20px,2.5vw,28px); font-weight: 400; line-height: 1.65; color: rgba(255,255,255,0.75); }
+        .manifesto p strong { font-weight: 700; color: white; }
+        .manifesto p em { font-style: normal; color: #c4b5fd; }
+
+        .vault { padding: 120px 0; background: var(--dark); overflow: hidden; }
+        .vault-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+        .vault .section-eyebrow { color: rgba(255,255,255,0.4); }
+        .vault .section-title { color: white; }
+        .vault-body { font-size: 17px; color: rgba(255,255,255,0.65); line-height: 1.7; margin-bottom: 32px; }
+        .vault-body strong { color: white; }
+        .vault-quote { padding: 24px; background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.25); border-radius: 16px; font-family: 'Fraunces', serif; font-size: 20px; font-style: italic; color: #C7D2FE; line-height: 1.5; }
+        .vault-visual { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 32px; }
+        .vault-timeline { display: flex; flex-direction: column; gap: 0; }
+        .vault-event { display: flex; gap: 16px; align-items: flex-start; position: relative; }
+        .vault-event:not(:last-child)::after { content: ''; position: absolute; left: 15px; top: 32px; bottom: -16px; width: 2px; background: rgba(255,255,255,0.08); }
+        .vault-event + .vault-event { margin-top: 24px; }
+        .vault-dot { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+        .vault-event-content { flex: 1; padding-bottom: 8px; }
+        .vault-event-content h5 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); margin-bottom: 4px; }
+        .vault-event-content p { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+        .vault-event-date { font-size: 12px; color: rgba(255,255,255,0.3); flex-shrink: 0; margin-top: 2px; }
+
+        .pricing { padding: 120px 0; background: var(--white); }
+        .pricing-header { text-align: center; margin-bottom: 20px; }
+        .pricing-os-line { text-align: center; font-size: 15px; color: var(--gray); margin-bottom: 64px; font-style: italic; }
+        .pricing-os-line strong { color: var(--black); font-style: normal; }
+        .pricing-tiers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; align-items: stretch; }
+        .tier-card { border-radius: 20px; padding: 36px 32px; border: 1.5px solid rgba(0,0,0,0.08); background: white; display: flex; flex-direction: column; transition: border-color 0.2s, box-shadow 0.2s; }
+        .tier-card:hover { border-color: rgba(108,99,255,0.3); box-shadow: 0 8px 32px rgba(108,99,255,0.08); }
+        .tier-card.featured { background: var(--dark); border-color: var(--purple); box-shadow: 0 16px 48px rgba(108,99,255,0.25); position: relative; }
+        .featured-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--purple); color: white; font-size: 12px; font-weight: 700; padding: 4px 16px; border-radius: 100px; white-space: nowrap; letter-spacing: 0.04em; }
+        .tier-os-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--purple); margin-bottom: 20px; }
+        .tier-card.featured .tier-os-tag { color: rgba(165,180,252,0.8); }
+        .tier-name { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 900; color: var(--black); margin-bottom: 4px; }
+        .tier-card.featured .tier-name { color: white; }
+        .tier-price { font-size: 42px; font-weight: 700; color: var(--black); line-height: 1; margin-bottom: 4px; }
+        .tier-card.featured .tier-price { color: white; }
+        .tier-price span { font-size: 16px; font-weight: 400; color: var(--gray); }
+        .tier-card.featured .tier-price span { color: rgba(255,255,255,0.5); }
+        .tier-desc { font-size: 14px; color: var(--gray); line-height: 1.5; margin: 16px 0 28px; padding-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+        .tier-card.featured .tier-desc { color: rgba(255,255,255,0.5); border-bottom-color: rgba(255,255,255,0.08); }
+        .tier-features { list-style: none; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+        .tier-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #374151; line-height: 1.4; }
+        .tier-card.featured .tier-features li { color: rgba(255,255,255,0.75); }
+        .tier-features .check { color: var(--green); flex-shrink: 0; margin-top: 1px; font-size: 16px; }
+        .tier-cta { margin-top: 32px; }
+        .tier-btn { display: block; text-align: center; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+        .tier-btn.ghost { border: 1.5px solid rgba(0,0,0,0.12); color: var(--black); }
+        .tier-btn.ghost:hover { border-color: var(--purple); color: var(--purple); }
+        .tier-btn.solid { background: var(--purple); color: white; box-shadow: 0 4px 16px rgba(108,99,255,0.35); }
+        .tier-btn.solid:hover { background: var(--purple-dark); transform: translateY(-1px); }
+        .pricing-note { text-align: center; margin-top: 40px; font-size: 14px; color: var(--gray); }
+
+        .final-cta { padding: 120px 48px; background: var(--dark); text-align: center; position: relative; overflow: hidden; }
+        .final-cta::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 800px; height: 400px; background: radial-gradient(ellipse, rgba(108,99,255,0.2) 0%, transparent 70%); pointer-events: none; }
+        .final-cta h2 { font-family: 'Fraunces', serif; font-weight: 900; font-size: clamp(40px,5vw,64px); color: white; line-height: 1.05; letter-spacing: -1.5px; margin-bottom: 20px; position: relative; }
+        .final-cta h2 em { font-style: italic; color: #A5B4FC; }
+        .final-cta p { font-size: 18px; color: rgba(255,255,255,0.55); max-width: 500px; margin: 0 auto 48px; line-height: 1.6; position: relative; }
+        .final-cta-actions { display: flex; align-items: center; justify-content: center; gap: 16px; position: relative; }
+
+        footer { background: #0A0A14; padding: 48px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); }
+        .footer-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        .footer-logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg,#9333ea,#6b21a8); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .footer-logo-text { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 16px; color: white; }
+        .footer-logo-text span { color: #a78bfa; }
+        .footer-links { display: flex; gap: 24px; }
+        .footer-link { font-size: 13px; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
+        .footer-link:hover { color: rgba(255,255,255,0.7); }
+        .footer-copy { font-size: 13px; color: rgba(255,255,255,0.25); }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .hero-left > * { animation: fadeUp 0.7s ease both; }
+        .hero-eyebrow { animation-delay: 0.1s; }
+        .hero h1 { animation-delay: 0.2s; }
+        .hero-sub { animation-delay: 0.4s; }
+        .hero-actions { animation-delay: 0.5s; }
+        .hero-trust { animation-delay: 0.6s; }
+        .hero-visual { animation: fadeIn 0.9s ease 0.3s both; }
+      `}</style>
+
+      {/* NAV */}
+      <MainNav currentPage="landing" userProfile={userProfile} />
+
+      <div className="landing-page">
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-left">
+          <div style={{marginLeft:'48px'}}>
+          <p style={{fontFamily:"'Fraunces',serif",fontSize:'22px',fontWeight:400,fontStyle:'italic',color:'#9ca3af',letterSpacing:'-0.5px',marginBottom:'8px'}}>Job hunting is small talk.</p>
+          <h1>Your career<br/>deserves a<br/><em>conversation.</em></h1>
+          <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would, pulling out everything worth saying that you forgot to include.</p>
+          <div className="hero-actions">
+            <Link href="/signup" className="btn-primary-lg">Start Your Career Conversation — It&apos;s Free ↗</Link>
+          </div>
+          </div>
+          <div className="hero-trust">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L9.854 5.757L15 6.292L11.25 9.773L12.382 15L8 12.35L3.618 15L4.75 9.773L1 6.292L6.146 5.757L8 1Z" fill="currentColor"/></svg>
+            No credit card required &nbsp;·&nbsp; Free forever plan &nbsp;·&nbsp; Built by a professional resume writer
+          </div>
+        </div>
+
+        <div className="hero-visual" style={{display:'flex',alignItems:'center',position:'relative'}}>
+          {/* Chat card */}
+          <div style={{background:'white',borderRadius:'20px',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.11), 0 4px 16px rgba(0,0,0,0.06)',border:'1px solid rgba(0,0,0,0.07)',width:'360px',flexShrink:0,position:'relative',zIndex:1}}>
+            <div style={{background:'linear-gradient(to right,#667eea,#764ba2)',padding:'11px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                <div style={{width:'24px',height:'24px',background:'rgba(255,255,255,0.2)',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
+                </div>
+                <div>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,color:'white'}}>Resume Coach</div>
+                  <div style={{fontSize:'9px',color:'rgba(255,255,255,0.65)'}}>Resume · Coaching step</div>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:'4px'}}>
+                {[0,1,2].map(i=><div key={i} style={{width:'7px',height:'7px',borderRadius:'50%',background:'rgba(255,255,255,0.25)'}}/>)}
+              </div>
+            </div>
+            {/* Progress strip */}
+            <div style={{background:'#f9fafb',borderBottom:'1px solid #e5e7eb',padding:'7px 14px 4px'}}>
+              <div style={{display:'flex',alignItems:'center'}}>
+                {['Review','Assess','Coach','Improve','Polish','Save'].map((step,i)=>(
+                  <React.Fragment key={step}>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'2px'}}>
+                      {i < 2 ? (
+                        <div style={{width:'15px',height:'15px',borderRadius:'50%',background:'#9333ea',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </div>
+                      ) : i === 2 ? (
+                        <div style={{width:'15px',height:'15px',borderRadius:'50%',background:'#9333ea',border:'2px solid #9333ea',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'white'}}/>
+                        </div>
+                      ) : (
+                        <div style={{width:'15px',height:'15px',borderRadius:'50%',background:'white',border:'1.5px solid #d1d5db'}}/>
+                      )}
+                      <span style={{fontSize:'7.5px',color:i<=2?'#9333ea':'#9ca3af',fontWeight:i<=2?600:400}}>{step}</span>
+                    </div>
+                    {i < 5 && <div style={{height:'1.5px',flex:1,background:i<2?'#9333ea':'#e5e7eb',marginBottom:'11px'}}/>}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+            {/* Chat messages */}
+            <div style={{padding:'9px 12px 0',background:'#fafafa',display:'flex',flexDirection:'column',gap:'5px'}}>
+              <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'8px 10px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'3px'}}>
+                  <span style={{fontSize:'10px'}}>🎓</span>
+                  <span style={{fontSize:'8.5px',fontWeight:600,color:'#7c3aed'}}>Resume Coach</span>
+                </div>
+                <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>When inventory counts were off, who usually figured out why?</p>
+              </div>
+              <div style={{display:'flex',justifyContent:'flex-end'}}>
+                <div style={{background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:'9px 3px 9px 9px',padding:'8px 10px',maxWidth:'84%'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'3px',marginBottom:'3px'}}>
+                    <div style={{width:'11px',height:'11px',borderRadius:'50%',background:'#e9d5ff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'6.5px',fontWeight:700,color:'#9333ea'}}>M</div>
+                    <span style={{fontSize:'8.5px',fontWeight:600,color:'#6b7280'}}>You</span>
+                  </div>
+                  <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Me. I cross-checked the system against the floor every week — my manager trusted my counts more than the software.</p>
+                </div>
+              </div>
+              <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'8px 10px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'3px'}}>
+                  <span style={{fontSize:'10px'}}>🎓</span>
+                  <span style={{fontSize:'8.5px',fontWeight:600,color:'#7c3aed'}}>Resume Coach</span>
+                </div>
+                <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Did that ever actually catch something?</p>
+              </div>
+              <div style={{display:'flex',justifyContent:'flex-end'}}>
+                <div style={{background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:'9px 3px 9px 9px',padding:'8px 10px',maxWidth:'84%'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'3px',marginBottom:'3px'}}>
+                    <div style={{width:'11px',height:'11px',borderRadius:'50%',background:'#e9d5ff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'6.5px',fontWeight:700,color:'#9333ea'}}>M</div>
+                    <span style={{fontSize:'8.5px',fontWeight:600,color:'#6b7280'}}>You</span>
+                  </div>
+                  <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Yeah — a vendor had been short-shipping us for months. Probably $8–10K worth.</p>
+                </div>
+              </div>
+            </div>
+            {/* Coached bullet */}
+            <div style={{margin:'7px 12px 10px',background:'white',border:'1px solid #e5e7eb',borderRadius:'9px',padding:'8px 12px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'5px'}}>
+                <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#10b981',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <span style={{fontSize:'8.5px',fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em'}}>Coached Bullet</span>
+              </div>
+              <p style={{fontSize:'11.5px',color:'#111827',lineHeight:1.55,margin:0}}>Identified systematic vendor short-shipment through independent weekly audits — recovering an estimated $8–10K in merchandise and exposing a gap in the receiving process</p>
+            </div>
+          </div>
+
+          {/* Improvement Complete card */}
+          <div style={{width:'210px',flexShrink:0,marginLeft:'-16px',background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 20px 60px rgba(147,51,234,0.22), 0 4px 20px rgba(0,0,0,0.1)',border:'1px solid rgba(147,51,234,0.1)',position:'relative',zIndex:2}}>
+            <div style={{background:'#9333ea',padding:'18px 16px 14px',textAlign:'center'}}>
+              <div style={{width:'36px',height:'36px',background:'rgba(255,255,255,0.2)',borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px'}}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10.5 2L4 10h5.5L7.5 16l7-8h-5.5L10.5 2z" fill="white"/></svg>
+              </div>
+              <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'15px',fontWeight:800,color:'white',letterSpacing:'-0.3px'}}>Improvement Complete.</div>
+            </div>
+            <div style={{padding:'16px',textAlign:'center'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'12px',marginBottom:'10px'}}>
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:'10px',color:'#9ca3af',fontWeight:500,marginBottom:'3px'}}>Before</div>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'32px',fontWeight:800,color:'#d1d5db',lineHeight:1}}>66</div>
+                </div>
+                <div style={{color:'#9333ea',fontSize:'18px',fontWeight:300,paddingTop:'14px'}}>→</div>
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:'10px',color:'#9ca3af',fontWeight:500,marginBottom:'3px'}}>After</div>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'32px',fontWeight:800,color:'#9333ea',lineHeight:1}}>88</div>
+                </div>
+              </div>
+              <div style={{background:'#f0fdf4',borderRadius:'8px',padding:'8px 12px',marginBottom:'12px'}}>
+                <div style={{fontSize:'13px',fontWeight:700,color:'#10b981'}}>+22 points</div>
+                <div style={{fontSize:'11px',color:'#6b7280',marginTop:'1px'}}>12 bullets improved</div>
+                <div style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>7 new skills identified</div>
+              </div>
+              <div style={{background:'#9333ea',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'12px',fontWeight:700,color:'white'}}>Polish My Resume →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PROBLEM / DIRTY SECRET */}
+      <section className="problem" id="problem">
+        <div className="container">
+          <div className="section-eyebrow">The Dirty Secret</div>
+          <h2 className="section-title">AI tools are <em>making up</em><br/>your resume.</h2>
+          <p className="section-sub" style={{maxWidth:'760px'}}>
+            A VP of Business Development with 20+ years selling to aerospace and defense. Tried two resume tools — theirs and ours. Here&apos;s a sample bullet from his resume and what each tool did with it:{' '}
+            <strong><em style={{color:'rgba(255,255,255,0.92)'}}>&quot;Built strategic relationships with high-profile commercial customers including Boeing, managing long-cycle sales for complex technology packages.&quot;</em></strong>
+          </p>
+
+          {/* Side-by-side comparison */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginTop:'24px',marginBottom:'64px'}}>
+            <div style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 8px 40px rgba(0,0,0,0.25)'}}>
+              <div style={{background:'#374151',padding:'16px 22px',display:'flex',alignItems:'center',gap:'8px'}}>
+                <span style={{fontSize:'16px'}}>⚠️</span>
+                <span style={{fontFamily:"'Fraunces',serif",fontSize:'14px',fontWeight:700,color:'rgba(255,255,255,0.9)',fontStyle:'italic'}}>They saw Boeing and made the rest up.</span>
+              </div>
+              <div style={{padding:'20px 22px',display:'flex',flexDirection:'column',gap:'18px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                  <div style={{flex:1,height:'1px',background:'#f3f4f6'}}/>
+                  <div style={{fontSize:'11px',fontWeight:700,color:'#ef4444',textTransform:'uppercase',letterSpacing:'0.08em'}}>Other AI Suggestion</div>
+                  <div style={{flex:1,height:'1px',background:'#f3f4f6'}}/>
+                </div>
+                <p style={{fontSize:'13.5px',color:'#374151',lineHeight:1.75,margin:0,fontStyle:'italic',paddingLeft:'14px',borderLeft:'3px solid #fca5a5'}}>&quot;Coordinated with customers on airline services, communicating flight controls to 50+ customers; addressed queries of on board passengers, securing selection as 1 of 3 Boeing Global Services Spotlight interns.&quot;</p>
+              </div>
+            </div>
+
+            <div style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 8px 40px rgba(0,0,0,0.25)'}}>
+              <div style={{background:'linear-gradient(to right,#667eea,#764ba2)',padding:'16px 22px',display:'flex',alignItems:'center',gap:'8px'}}>
+                <div style={{width:'20px',height:'20px',background:'rgba(255,255,255,0.2)',borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
+                </div>
+                <span style={{fontFamily:"'Fraunces',serif",fontSize:'14px',fontWeight:700,color:'white',fontStyle:'italic'}}>We saw Boeing and asked what it meant.</span>
+              </div>
+              <div style={{padding:'20px 22px',display:'flex',flexDirection:'column',gap:'18px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                  <div style={{flex:1,height:'1px',background:'#f3f4f6'}}/>
+                  <div style={{fontSize:'11px',fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.08em'}}>Hire Power AI Suggestion</div>
+                  <div style={{flex:1,height:'1px',background:'#f3f4f6'}}/>
+                </div>
+                <p style={{fontSize:'13.5px',color:'#111827',lineHeight:1.75,margin:0,fontStyle:'italic',paddingLeft:'14px',borderLeft:'3px solid #a78bfa'}}>&quot;Secured company&apos;s first-ever enterprise engagement with Boeing&apos;s aerospace division, a $10M contract for eight advanced technology packages built over two years of strategic pursuit.&quot;</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Transition */}
+          <div style={{textAlign:'center',marginBottom:'56px'}}>
+            <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(22px,2.8vw,36px)',fontWeight:700,color:'white',lineHeight:1.3,fontStyle:'italic'}}>
+              How did we get all that information?<br/><span style={{color:'#a78bfa'}}>We just asked.</span>
+            </p>
+          </div>
+
+          {/* Chat + Editorial panel */}
+          <div style={{display:'grid',gridTemplateColumns:'520px 1fr',gap:'36px',alignItems:'start'}}>
+
+            {/* Chat card */}
+            <div style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.15)',border:'1px solid rgba(0,0,0,0.06)'}}>
+              {/* Header */}
+              <div style={{background:'linear-gradient(to right,#667eea,#764ba2)',padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                  <div style={{width:'20px',height:'20px',background:'rgba(255,255,255,0.2)',borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
+                  </div>
+                  <div>
+                    <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'10px',fontWeight:700,color:'white'}}>Resume Coach</div>
+                    <div style={{fontSize:'8px',color:'rgba(255,255,255,0.65)'}}>Robert&apos;s Resume · Coaching step</div>
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:'4px'}}>
+                  {[0,1,2].map(i=><div key={i} style={{width:'6px',height:'6px',borderRadius:'50%',background:'rgba(255,255,255,0.25)'}}/>)}
+                </div>
+              </div>
+
+              {/* Progress strip */}
+              <div style={{background:'#f9fafb',borderBottom:'1px solid #e5e7eb',padding:'5px 12px 3px'}}>
+                <div style={{display:'flex',alignItems:'center'}}>
+                  {['Review','Assess','Coach','Improve','Polish','Save'].map((step,i)=>(
+                    <React.Fragment key={step}>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'1px'}}>
+                        {i < 2 ? (
+                          <div style={{width:'13px',height:'13px',borderRadius:'50%',background:'#9333ea',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            <svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                        ) : i === 2 ? (
+                          <div style={{width:'13px',height:'13px',borderRadius:'50%',background:'#9333ea',border:'2px solid #9333ea',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            <div style={{width:'4px',height:'4px',borderRadius:'50%',background:'white'}}/>
+                          </div>
+                        ) : (
+                          <div style={{width:'13px',height:'13px',borderRadius:'50%',background:'white',border:'1.5px solid #d1d5db'}}/>
+                        )}
+                        <span style={{fontSize:'7px',color:i<=2?'#9333ea':'#9ca3af',fontWeight:i<=2?600:400}}>{step}</span>
+                      </div>
+                      {i < 5 && <div style={{height:'1.5px',flex:1,background:i<2?'#9333ea':'#e5e7eb',marginBottom:'9px'}}/>}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div style={{padding:'8px 10px 0',background:'#fafafa',display:'flex',flexDirection:'column',gap:'5px'}}>
+                {[
+                  {role:'coach', text:"I can see you're VP of Business Development. You listed Boeing as a key customer. Tell me about that relationship and what they were buying from you."},
+                  {role:'robert', text:"Boeing was a brand new client. They'd never ordered from us before. We engineered technology packages for their aerospace division."},
+                  {role:'coach', text:"You landed Boeing Aerospace as a first-ever client for your company. That's a career-defining deal! Walk me through how it developed. Was it a one-time order, or were they a repeat customer?"},
+                  {role:'robert', text:"Two packages initially, then six more over the next two years."},
+                  {role:'coach', text:"What was the total contract value? Can you give me a dollar range on those packages?"},
+                  {role:'robert', text:"They ranged from $400K to $1.6M each. Total was over $10M."},
+                ].map((msg,i)=> msg.role === 'coach' ? (
+                  <div key={i} style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'6px 10px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'2px'}}>
+                      <span style={{fontSize:'9px'}}>🎓</span>
+                      <span style={{fontSize:'8px',fontWeight:600,color:'#7c3aed'}}>Resume Coach</span>
+                    </div>
+                    <p style={{fontSize:'11px',color:'#1f2937',lineHeight:1.45,margin:0}}>{msg.text}</p>
+                  </div>
+                ) : (
+                  <div key={i} style={{display:'flex',justifyContent:'flex-end',alignItems:'flex-end',gap:'5px'}}>
+                    <div style={{background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:'9px 3px 9px 9px',padding:'6px 10px',maxWidth:'84%'}}>
+                      <p style={{fontSize:'11px',color:'#1f2937',lineHeight:1.45,margin:0}}>{msg.text}</p>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',flexShrink:0}}>
+                      <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#dbeafe',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'7px',fontWeight:700,color:'#2563eb'}}>R</div>
+                      <span style={{fontSize:'7px',fontWeight:600,color:'#9ca3af'}}>Robert</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Coached bullet */}
+              <div style={{margin:'6px 10px 10px',background:'white',border:'1px solid #e5e7eb',borderRadius:'9px',padding:'6px 10px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'4px'}}>
+                  <div style={{width:'12px',height:'12px',borderRadius:'50%',background:'#10b981',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <span style={{fontSize:'8px',fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em'}}>Coached Bullet</span>
+                </div>
+                <p style={{fontSize:'11px',color:'#111827',lineHeight:1.5,margin:0}}>Secured company&apos;s first-ever enterprise engagement with Boeing&apos;s aerospace division, a $10M contract for eight advanced technology packages built over two years of strategic pursuit.</p>
+              </div>
+            </div>
+
+            {/* Editorial panel */}
+            <div style={{paddingTop:'8px'}}>
+              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(14px,1.4vw,17px)',fontWeight:700,color:'white',lineHeight:1.35,margin:'0 0 20px',fontStyle:'italic'}}>
+                Hire Power is the AI that interviews you like a professional resume writer would.{' '}
+                <span style={{color:'#a78bfa'}}>Because your resume needs facts, not fiction.</span>
+              </p>
+              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.7)',lineHeight:1.5,margin:'0 0 10px'}}>We recognized a VP who landed a $10M deal with Boeing Aerospace.</p>
+              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into a flight attendant (or an intern — we can&apos;t quite tell!)</p>
+              <div style={{height:'1px',background:'rgba(255,255,255,0.1)',marginBottom:'18px'}}/>
+              <p style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',lineHeight:1.6,margin:'0 0 14px',fontWeight:600}}>After working with Hire Power, Robert landed:</p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'24px'}}>
+                <div style={{borderLeft:'3px solid #9333ea',paddingLeft:'14px'}}>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:'56px',fontWeight:900,color:'white',lineHeight:1,letterSpacing:'-2px'}}>3</div>
+                  <div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.6)',lineHeight:1.4,marginTop:'4px'}}>interviews<br/>within a week</div>
+                </div>
+                <div style={{borderLeft:'3px solid #a78bfa',paddingLeft:'14px'}}>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:'56px',fontWeight:900,color:'white',lineHeight:1,letterSpacing:'-2px'}}>1</div>
+                  <div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.6)',lineHeight:1.4,marginTop:'4px'}}>offer<br/>within the month</div>
+                </div>
+              </div>
+              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(15px,1.6vw,18px)',fontWeight:700,fontStyle:'italic',color:'white',lineHeight:1.3,margin:'0 0 28px'}}>
+                Same candidate. Two tools.<br/>One wrote fiction.<br/><span style={{color:'#a78bfa'}}>The other uncovered the facts that got him hired.</span>
+              </p>
+              <Link href="/signup" style={{display:'inline-block',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',fontWeight:700,padding:'12px 24px',borderRadius:'10px',textDecoration:'none',letterSpacing:'-0.01em',boxShadow:'0 4px 20px rgba(102,126,234,0.4)'}}>
+                Start for free — reveal your best resume →
+              </Link>
+            </div>
+          </div>
+
+          <div className="problem-truth" style={{marginTop:'56px'}}>
+            <p>&quot;Every number is real. Every word is defensible.<br/>Because when an interviewer asks you to back it up —<br/>and <strong>they will</strong> — <em>&apos;the AI wrote that&apos; isn&apos;t an answer.</em>&quot;</p>
+          </div>
+        </div>
+      </section>
+
+      {/* INTERVIEW MOMENT */}
+      <section className="interview-moment">
+        <div className="interview-moment-inner">
+          <div className="interview-moment-eyebrow">Interview Coach</div>
+          <p>Interviewer asks: &quot;Tell me about your project management experience.&quot; You don&apos;t think you have any. <em>Hire Power already found three examples in your resume you didn&apos;t know counted.</em></p>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="how" id="how">
+        <div className="container">
+          <div className="section-eyebrow">How It Works</div>
+          <h2 className="section-title">Three conversations.<br/>One complete picture.</h2>
+          <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other — so nothing falls through the cracks.</p>
+          <div className="how-grid">
+            <div className="how-steps">
+              {[
+                {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out — your answer shapes everything that comes next. Free for everyone, unlimited."},
+                {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing."},
+                {n:'3',title:'Interview Coach prepares you to defend it',body:"Power Analysis identifies your Core Power, Hidden Power, and Power Gaps. Then we practice — with AI-spoken questions based on your actual resume and target company."},
+                {n:'4',title:'Career Archive keeps it running',body:"Log wins as they happen. When you're ready to move again, your next resume is basically already written. That's the OS. It never turns off."},
+              ].map(step=>(
+                <div key={step.n} className="how-step">
+                  <div className="step-num">{step.n}</div>
+                  <div className="step-content">
+                    <h4>{step.title}</h4>
+                    <p>{step.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="how-visual">
+              <div className="coaches-row">
+                {[{icon:'🧭',name:'Career Coach',desc:'Direction & goals'},{icon:'📄',name:'Resume Coach',desc:'Achievement extraction'},{icon:'🎯',name:'Interview Coach',desc:'Practice & power'}].map(c=>(
+                  <div key={c.name} className="coach-pill">
+                    <div className="coach-pill-icon">{c.icon}</div>
+                    <h5>{c.name}</h5>
+                    <p>{c.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="context-arrow">Shared context flows between all three coaches</div>
+              <div className="power-score-visual">
+                <div className="power-score-label">Your Power Analysis</div>
+                {[
+                  {label:'Core Power',pct:'88%',val:'88%',color:'var(--green)'},
+                  {label:'Hidden Power',pct:'65%',val:'65%',color:'var(--amber)'},
+                  {label:'Power Gaps',pct:'30%',val:'3',color:'var(--red)'},
+                ].map(row=>(
+                  <div key={row.label} className="score-bar-row">
+                    <div className="score-bar-name" style={{color:row.color,fontSize:'12px',fontWeight:600}}>{row.label}</div>
+                    <div className="score-bar-track"><div className="score-bar-fill" style={{width:row.pct,background:row.color}}/></div>
+                    <div className="score-bar-val">{row.val}</div>
+                  </div>
+                ))}
+                <div style={{marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #E5E7EB'}}>
+                  <div style={{fontSize:'12px',color:'var(--gray)',marginBottom:'8px'}}>💡 Hidden Power discovered:</div>
+                  <div style={{fontSize:'13px',color:'var(--black)',lineHeight:1.5}}>&quot;You&apos;ve been doing project management this whole time. You just haven&apos;t been calling it that.&quot;</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* MANIFESTO */}
+      <section className="manifesto">
+        <div className="manifesto-inner">
+          <div className="manifesto-eyebrow">Our Belief</div>
+          <p><strong>Most tools help you find a job.</strong> Ours helps you build a career. Hire Power is your <em>lifelong career coach</em> — turning career management from a crisis into an ongoing conversation. Through AI-powered coaching, we help you bulletproof your resume, level up your interviews, and build a career archive that grows with you. <strong>From entry-level to executive suite — we help you power through the&nbsp;entire&nbsp;journey.</strong></p>
+        </div>
+      </section>
+
+      {/* NEVER START OVER */}
+      <section style={{background:'white',padding:'100px 80px',textAlign:'center',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:'800px',height:'800px',background:'radial-gradient(circle, rgba(147,51,234,0.05) 0%, transparent 70%)',pointerEvents:'none'}}/>
+        <div style={{position:'relative',maxWidth:'900px',margin:'0 auto'}}>
+          <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:'#9333ea',marginBottom:'32px'}}>The part nobody talks about</div>
+          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(56px,7vw,100px)',fontWeight:900,lineHeight:1.0,letterSpacing:'-3px',color:'#0f0f0f',margin:0}}>Never start from<br/><em style={{fontStyle:'italic',color:'#9333ea'}}>scratch</em> again.</h2>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:'18px',color:'#6b7280',lineHeight:1.65,maxWidth:'560px',margin:'32px auto 0'}}>Three years from now, you won&apos;t remember what you accomplished today. Hire Power will.</p>
+        </div>
+      </section>
+
+      {/* VAULT */}
+      <section className="vault" id="vault">
+        <div className="container">
+          <div className="vault-grid">
+            <div>
+              <div className="section-eyebrow">Hire Power Vault · $4.99/mo</div>
+              <h2 className="section-title">The OS that keeps<br/>running between<br/><em>job searches.</em></h2>
+              <p className="vault-body">Once your job search is complete, most people go dark — until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move — your resume is basically already written.</p>
+              <div className="vault-quote">&quot;Get hired. Log your wins along the way. When you&apos;re ready to move on — your next resume is basically already written. That&apos;s why people stay.&quot;</div>
+              <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times.</p>
+            </div>
+            <div className="vault-visual">
+              <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',marginBottom:'24px'}}>Career Archive · Live</div>
+              <div className="vault-timeline">
+                {[
+                  {dot:'🏆',bg:'rgba(16,185,129,0.15)',title:'Led Q3 product launch',desc:'Coordinated 4 teams, delivered 2 weeks ahead of schedule',date:'Mar 10'},
+                  {dot:'📚',bg:'rgba(108,99,255,0.15)',title:'Completed PMP certification',desc:'Project Management Professional · PMI',date:'Feb 22'},
+                  {dot:'💬',bg:'rgba(245,158,11,0.15)',title:'Manager kudos saved',desc:'"Your stakeholder work on this was exceptional"',date:'Feb 8'},
+                  {dot:'📈',bg:'rgba(16,185,129,0.15)',title:'Reduced onboarding time 40%',desc:'New documentation system, measured over 3 cohorts',date:'Jan 15'},
+                ].map(e=>(
+                  <div key={e.title} className="vault-event">
+                    <div className="vault-dot" style={{background:e.bg}}>{e.dot}</div>
+                    <div className="vault-event-content">
+                      <h5>{e.title}</h5>
+                      <p>{e.desc}</p>
+                    </div>
+                    <div className="vault-event-date">{e.date}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:'24px',padding:'16px',background:'rgba(108,99,255,0.1)',borderRadius:'12px',border:'1px solid rgba(108,99,255,0.2)'}}>
+                <div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'4px'}}>When you&apos;re ready to search again...</div>
+                <div style={{fontSize:'14px',color:'rgba(255,255,255,0.8)',fontWeight:500}}>Your resume is 80% written already. ✓</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section className="pricing" id="pricing">
+        <div className="container">
+          <div className="pricing-header">
+            <div className="section-eyebrow" style={{textAlign:'center'}}>Pricing</div>
+            <h2 className="section-title" style={{textAlign:'center'}}>One platform.<br/><em>Your whole career.</em></h2>
+          </div>
+          <p className="pricing-os-line"><strong>Free</strong> — Try the OS &nbsp;·&nbsp; <strong>Pro</strong> — Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong> — Keep the OS running between upgrades</p>
+          <div className="pricing-tiers">
+            {/* FREE */}
+            <div className="tier-card">
+              <div className="tier-os-tag">Try the OS</div>
+              <div className="tier-name">Free</div>
+              <div className="tier-price">$0</div>
+              <p className="tier-desc">Get a real feel for conversation-based coaching. No credit card. No expiration.</p>
+              <ul className="tier-features">
+                {['Career Coach — full access, unlimited','1 resume with AI analysis','Resume Power Score','Resume coaching trial (1 session)','Basic interview practice','Unlimited downloads','4 ATS-optimized templates'].map(f=>(
+                  <li key={f}><span className="check">✓</span> {f}</li>
+                ))}
+              </ul>
+              <div className="tier-cta"><Link href="/signup" className="tier-btn ghost">Get started free</Link></div>
+            </div>
+
+            {/* PRO */}
+            <div className="tier-card featured">
+              <div className="featured-badge">MOST POPULAR</div>
+              <div className="tier-os-tag">Full Power</div>
+              <div className="tier-name">Pro</div>
+              <div className="tier-price">$29.99<span>/mo</span></div>
+              <p className="tier-desc">The complete career preparation platform. Every coach, every conversation, fully unlocked.</p>
+              <ul className="tier-features">
+                {['Everything in Free','Resume Coach — unlimited conversations','Unlimited job customization','ATS optimization','Interview Coach — full Power Analysis','AI-spoken interview questions','Video recording & feedback','Company research integration','Career Archive (unlimited)','5 premium templates'].map(f=>(
+                  <li key={f}><span className="check">✓</span> {f}</li>
+                ))}
+              </ul>
+              <div className="tier-cta"><Link href="/signup?plan=pro" className="tier-btn solid">Start Pro free trial</Link></div>
+            </div>
+
+            {/* VAULT */}
+            <div className="tier-card">
+              <div className="tier-os-tag">Keep the OS Running</div>
+              <div className="tier-name">Vault</div>
+              <div className="tier-price">$4.99<span>/mo</span></div>
+              <p className="tier-desc">Between job searches. Track wins, stay ready. Your career doesn&apos;t pause — neither should your OS.</p>
+              <ul className="tier-features">
+                {['Track achievements as they happen','Complete career archive access','Saved job descriptions','Unlimited resume downloads','Premium templates','Job application tracking'].map(f=>(
+                  <li key={f}><span className="check">✓</span> {f}</li>
+                ))}
+              </ul>
+              <div style={{marginTop:'auto',paddingTop:'24px',fontSize:'13px',color:'var(--gray)',fontStyle:'italic',lineHeight:1.5}}>
+                &quot;Your career doesn&apos;t pause between job searches. Neither should your OS.&quot;
+              </div>
+              <div className="tier-cta"><Link href="/signup?plan=vault" className="tier-btn ghost">Start with Vault</Link></div>
+            </div>
+          </div>
+          <p className="pricing-note">
+            All plans include no credit card required to start &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp;{' '}
+            <Link href="#universities" style={{color:'var(--purple)',textDecoration:'none'}}>University licensing available →</Link>
+          </p>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="final-cta">
+        <h2>Your career deserves<br/>a <em>real conversation.</em></h2>
+        <p>Start with Career Coach — free, unlimited, and the most important career conversation you&apos;ll have this year.</p>
+        <div className="final-cta-actions">
+          <Link href="/signup" className="btn-white">Start Your Career Conversation — It&apos;s Free ↗</Link>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer>
+        <Link href="/" className="footer-logo">
+          <div className="footer-logo-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
+          </div>
+          <div className="footer-logo-text">HIRE <span>POWER</span></div>
+        </Link>
+        <div className="footer-links">
+          <Link href="/privacy" className="footer-link">Privacy</Link>
+          <Link href="/terms" className="footer-link">Terms</Link>
+          <Link href="/universities" className="footer-link">Universities</Link>
+          <Link href="/contact" className="footer-link">Contact</Link>
+        </div>
+        <div className="footer-copy">© 2026 Hire Power. All rights reserved.</div>
+      </footer>
+      </div>
+    </>
+  );
+}
