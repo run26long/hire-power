@@ -8,6 +8,7 @@ import MainNav from '@/app/components/MainNav'
 import UpgradeModal from '@/app/components/UpgradeModal'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
+import ResumeContent from '../../components/ResumeContent'
 
 const styles = `
   [contenteditable][data-placeholder]:empty:before {
@@ -30,7 +31,11 @@ export default function ResumePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
  const [showPreview, setShowPreview] = useState(false)
+const [previewUrl, setPreviewUrl] = useState(null)
+const [isLoadingPreview, setIsLoadingPreview] = useState(false)
  const [isDownloading, setIsDownloading] = useState(false)
+ const [showColorPicker, setShowColorPicker] = useState(false)
+const isAutoFitJustRanRef = useRef(false)
 
   // Analysis state
   const [analysisResults, setAnalysisResults] = useState(null)
@@ -53,11 +58,14 @@ const [showCtaModal, setShowCtaModal] = useState(false)
   // Toolbar states
   const [selectedTemplate, setSelectedTemplate] = useState('crisp')
 const [accentColor, setAccentColor] = useState('#5b4fcf')
-  const [selectedFont, setSelectedFont] = useState('Calibri')
+  const [selectedFont, setSelectedFont] = useState('Georgia')
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
 const [dateFormat, setDateFormat] = useState('short')
 const [isAutoFitting, setIsAutoFitting] = useState(false)
+const [selectedSpacing, setSelectedSpacing] = useState(1)
+const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
+const [showTooLongModal, setShowTooLongModal] = useState(false)
 
 const handleAutoFit = async () => {
   setIsAutoFitting(true)
@@ -68,7 +76,7 @@ const handleAutoFit = async () => {
     const maxSize = 12
     let testSize = selectedSize
 
-    const checkSize = async (size) => {
+    const checkSize = async (size, spacing = 1) => {
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,11 +86,16 @@ const handleAutoFit = async () => {
           fontSize: size,
           font: selectedFont,
           accentColor: accentColor,
+          spacing,
           action: 'check',
           userId: user.id
         })
       })
-      if (!response.ok) throw new Error('Auto-fit check failed')
+      if (!response.ok) {
+        const err = await response.json()
+        console.error('Auto-fit API error:', err)
+        throw new Error('Auto-fit check failed')
+      }
       return await response.json()
     }
 
@@ -90,11 +103,12 @@ const handleAutoFit = async () => {
     const current = await checkSize(testSize)
 
     if (current.pageCount === 1) {
-      // Fits — try growing up to maxSize to fill the page better
+      // Fits — try growing font up to maxSize first
       let bestSize = testSize
+      let bestSpacing = 1
       let trySize = Math.round((testSize + 0.5) * 10) / 10
       while (trySize <= maxSize) {
-        const result = await checkSize(trySize)
+        const result = await checkSize(trySize, 1)
         if (result.pageCount === 1) {
           bestSize = trySize
           trySize = Math.round((trySize + 0.5) * 10) / 10
@@ -102,7 +116,22 @@ const handleAutoFit = async () => {
           break
         }
       }
+      // If still under-filling, nudge spacing up (1.0 → 1.5 max)
+      let trySpacing = Math.round((bestSpacing + 0.1) * 10) / 10
+      while (trySpacing <= 1.5) {
+        const result = await checkSize(bestSize, trySpacing)
+        if (result.pageCount === 1) {
+          bestSpacing = trySpacing
+          trySpacing = Math.round((trySpacing + 0.1) * 10) / 10
+        } else {
+          break
+        }
+      }
       setSelectedSize(bestSize)
+      setSelectedSpacing(bestSpacing)
+      setResumeExceedsPage(false)
+      isAutoFitJustRanRef.current = true
+      await save()
     } else {
       // Too long — step down until it fits
       testSize = Math.round((testSize - 0.5) * 10) / 10
@@ -112,19 +141,25 @@ const handleAutoFit = async () => {
         if (result.pageCount === 1) {
           setSelectedSize(testSize)
           fitted = true
+          isAutoFitJustRanRef.current = true
+          await save()
           break
         }
         testSize = Math.round((testSize - 0.5) * 10) / 10
       }
       if (!fitted) {
-        alert('Your resume is too long for one page. Consider removing older jobs or trimming bullets.')
+        setSelectedSize(minSize)
+        setShowTooLongModal(true)
+      } else {
+        setResumeExceedsPage(false)
       }
     }
-  } catch (error) {
+ } catch (error) {
     console.error('Auto-fit error:', error)
     alert('Auto-fit failed. Please try again.')
   } finally {
     setIsAutoFitting(false)
+    setResumeExceedsPage(false)
   }
 }
 
@@ -148,7 +183,8 @@ const handleDownload = async () => {
   fontSize: selectedSize,
   font: selectedFont,
   accentColor: accentColor,
-        action: 'download',
+          spacing: selectedSpacing,
+          action: 'download',
         versionId: null,
         isJobVersion: false,
         userId: user.id
@@ -223,8 +259,8 @@ const updateData = {
 }
     
     // If coming from review, also update journey_step
-    if (resume.journey_step === 'review') {
-      updateData.journey_step = 'assess'
+    if (resume.journey_step === 'review' || resume.journey_step === 'assess') {
+      updateData.journey_step = 'coach'
     }
     
     const { error } = await supabase
@@ -279,6 +315,19 @@ function formatDate(dateString, format = dateFormat) {
   }, [params.id])
 
   useEffect(() => {
+    if (isAutoFitJustRanRef.current) {
+      isAutoFitJustRanRef.current = false
+      return
+    }
+    const resumeEl = document.querySelector('[data-resume-content="true"]')
+    if (resumeEl) {
+      const pageHeight = (11 * 96) * 1.08
+      const isOver = resumeEl.scrollHeight > pageHeight
+      setResumeExceedsPage(isOver)
+    }
+  }, [resume?.resume_data])
+
+  useEffect(() => {
     const templateFonts = {
       crisp: 'Georgia',
       sharp: 'Trebuchet MS',
@@ -315,10 +364,20 @@ function formatDate(dateString, format = dateFormat) {
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
 }
-   setSelectedTemplate(data.template_id || 'crisp')
-    setSelectedFont(data.font_family || 'Calibri')
+   const templateFonts = {
+      crisp: 'Georgia',
+      sharp: 'Trebuchet MS',
+      command: 'Arial',
+      prestige: 'Palatino Linotype',
+      signature: 'Palatino Linotype',
+    }
+   const loadedTemplate = data.template_id || 'crisp'
+    
+    setSelectedTemplate(loadedTemplate)
+    setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Georgia')
     setSelectedSize(data.font_size || 11)
     setDateFormat(data.date_format || 'short')
+    setAccentColor(data.accent_color || '#5b4fcf')
 
     // Load career context if it exists
    const { data: contextData } = await supabase
@@ -423,8 +482,15 @@ if (data.ai_analysis) {
 
     setHasUnsavedChanges(false)
     setSaveSuccess(true)
-    
     setTimeout(() => setSaveSuccess(false), 2000)
+
+    // Check if resume exceeds one page (fast browser check, no API call)
+    const resumeEl = document.querySelector('[data-resume-content="true"]')
+    
+    if (resumeEl) {
+      const pageHeight = 11 * 96
+      setResumeExceedsPage(resumeEl.scrollHeight > pageHeight)
+    }
   }
 if (showCtaModal) {
     return (
@@ -528,9 +594,9 @@ if (showCtaModal) {
     )
   }
 
-  const resumeData = resume.resume_data || {}
-  const journeyStep = resume.journey_step || 'start'
-  const score = resume.current_score || null
+  const resumeData = resume?.resume_data || {}
+  const journeyStep = resume?.journey_step || 'start'
+  const score = resume?.current_score || null
 
   return (
     <>
@@ -543,79 +609,59 @@ if (showCtaModal) {
         { label: resume.display_name || 'Core Resume' }
       ]} />
 
-      {/* Toolbar - STICKY */}
+{/* Toolbar - STICKY */}
       <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible">
-  <div className="px-6 py-2 max-w-7xl mx-auto w-full overflow-visible">
-  <div className="flex items-center gap-2 text-xs overflow-visible">
-       <button
-  onClick={handleAutoFit}
-  disabled={isAutoFitting}
-  className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center gap-1 ${
-    isAutoFitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-  }`}
->
-  {isAutoFitting && (
-    <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-  )}
-  {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
-</button>             
-          <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
-            <span>📄</span>
-            <select
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
-              className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="crisp">Crisp (Free)</option>
-              <option value="sharp">Sharp (Free)</option>
-              <option value="command">Command ✦ Pro</option>
-              <option value="prestige">Prestige ✦ Pro</option>
-              <option value="signature">Signature ✦ Pro</option>
-            </select>
-          </div>
+        <div className="px-6 pt-4 pb-2 max-w-7xl mx-auto w-full overflow-visible">
+          <div className="flex items-center gap-2 text-xs overflow-visible flex-nowrap">
 
-          <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
-            <span className="font-bold">A</span>
-            <select
-              value={selectedFont}
-              onChange={(e) => setSelectedFont(e.target.value)}
-              className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="Calibri">Calibri</option>
-              <option value="Arial">Arial</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Helvetica">Helvetica</option>
-            </select>
-          </div>
+            {/* Template */}
+            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+              <span>📄</span>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
+              >
+                <option value="crisp">Crisp (Free)</option>
+                <option value="sharp">Sharp (Free)</option>
+                <option value="command">Command ✦ Pro</option>
+                <option value="prestige">Prestige ✦ Pro</option>
+                <option value="signature">Signature ✦ Pro</option>
+              </select>
+            </div>
 
-          <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
-            <span>⚙️</span>
-            <select
-              value={selectedSize}
-              onChange={(e) => setSelectedSize(Number(e.target.value))}
-              className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
-            >
-              {[10, 11, 12, 13, 14].map(size => (
-                <option key={size} value={size}>{size}pt</option>
-              ))}
-            </select>
-          </div>
+            {/* Font */}
+            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+              <span className="font-bold">A</span>
+              <select
+                value={selectedFont}
+                onChange={(e) => setSelectedFont(e.target.value)}
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
+              >
+                <option value="Georgia">Georgia</option>
+                <option value="Calibri">Calibri</option>
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Helvetica">Helvetica</option>
+              </select>
+            </div>
 
-          <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
-            <span>🔍</span>
-            <select
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
-            >
-              <option value={75}>75%</option>
-              <option value={100}>100%</option>
-              <option value={125}>125%</option>
-              <option value={150}>150%</option>
-            </select>
-          </div>
-<div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
+            {/* Size */}
+            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+              <span>⚙️</span>
+              <select
+                value={selectedSize}
+                onChange={(e) => setSelectedSize(Number(e.target.value))}
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
+              >
+                {[10, 11, 12, 13, 14].map(size => (
+                  <option key={size} value={size}>{size}pt</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date */}
+            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span>📅</span>
               <select
                 value={dateFormat}
@@ -628,119 +674,201 @@ if (showCtaModal) {
               </select>
             </div>
 
-          {['command','prestige','signature'].includes(selectedTemplate) && (
-            <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
-              <span>🎨</span>
-              <div className="flex gap-1 items-center">
-                {['#5b4fcf','#1e3a5f','#1e5f3a','#7a1e3a','#2d4a6b','#1e6b6b','#2d2d2d','#8b3a1e'].map(c => (
+            {/* Zoom dropdown */}
+            <div className="relative group/zoom">
+              <button className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 flex items-center gap-1">
+                🔍 <span>{zoom}%</span>
+              </button>
+              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/zoom:block bg-white border border-gray-200 rounded shadow-lg py-1 min-w-[80px]">
+                {[75, 100, 125, 150].map(z => (
                   <button
-                    key={c}
-                    onClick={() => setAccentColor(c)}
-                    title={c}
-                    style={{
-                      width: '14px', height: '14px', borderRadius: '50%', background: c,
-                      border: accentColor === c ? '2px solid #1a1a1a' : '2px solid transparent',
-                      cursor: 'pointer', padding: 0, flexShrink: 0
-                    }}
-                  />
+                    key={z}
+                    onClick={() => setZoom(z)}
+                    className={`w-full text-left px-3 py-1 text-xs hover:bg-purple-50 ${zoom === z ? 'text-purple-600 font-semibold' : 'text-gray-700'}`}
+                  >
+                    {z}%
+                  </button>
                 ))}
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  style={{ width: '20px', height: '20px', border: 'none', cursor: 'pointer', borderRadius: '4px', padding: 0, background: 'none' }}
-                  title="Custom color"
-                />
               </div>
             </div>
-          )}
 
-                  <button
-            onClick={undo}
-            disabled={historyIndex <= 0}
-            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-              historyIndex <= 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-purple-100 hover:bg-purple-200'
-            }`}
-          >
-            ↶ Undo
-          </button>
-
-          <button
-            onClick={save}
-            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-              saveSuccess
-                ? 'bg-green-600 text-white'
-                : hasUnsavedChanges
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
-                : 'bg-gray-300 text-gray-600'
-            }`}
-          >
-            {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No Changes'}
-          </button>
-
-          <div className="flex-1" />
-          <div className="flex items-center gap-2 mr-1">
-
-          {score && (
-            <div className={`
-              px-3 py-1 rounded font-semibold text-xs
-              ${score >= 85 ? 'bg-green-100 text-green-700' : 
-                score >= 71 ? 'bg-yellow-100 text-yellow-700' : 
-                'bg-red-100 text-red-700'}
-            `}>
-              📊 {score}/100
-            </div>
-          )}
-
-     <button 
-           onClick={() => handleReassess()}
-            disabled={isAnalyzing || journeyStep === 'review'}
-            className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center gap-1 ${
-              isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-            }`}
-            title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
-          >
-            {isAnalyzing && journeyStep !== 'review' && (
-              <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+          {/* Color picker - Pro templates only */}
+            {['command','prestige','signature'].includes(selectedTemplate) && (
+              <div className="relative group/colorpick">
+                <button
+                  style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
+                  title="Change accent color"
+                />
+                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/colorpick:block bg-white border border-gray-200 rounded shadow-lg p-2" style={{ minWidth: '120px' }}>
+                    <div className="flex gap-1 items-center mb-2 flex-wrap">
+                      {['#5b4fcf','#1e3a5f','#7a1e3a','#1e6b6b','#1e5f3a','#8b3a1e','#2d2d2d','#2d4a6b'].map(c => (
+                        <button
+                          key={c}
+                          onClick={() => { setAccentColor(c); setShowColorPicker(false) }}
+                          title={c}
+                          style={{
+                            width: '20px', height: '20px', borderRadius: '4px', background: c,
+                            border: accentColor === c ? '2px solid #1a1a1a' : '2px solid #e5e7eb',
+                            cursor: 'pointer', padding: 0, flexShrink: 0
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <input
+                      type="color"
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      style={{ width: '100%', height: '24px', border: 'none', cursor: 'pointer', borderRadius: '4px', padding: 0 }}
+                      title="Custom color"
+                    />
+                 </div>
+              </div>
             )}
-            {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : 'Re-assess'}
-          </button>
 
-         <button 
-              onClick={() => setShowPreview(true)}
-              className="px-3 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50"
+            {/* Auto-fit */}
+            <div className="relative group/autofit">
+              <button
+                onClick={handleAutoFit}
+                disabled={isAutoFitting}
+                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors ${
+                  isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
+                  : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
+                  : 'border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {isAutoFitting && (
+                  <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                )}
+                {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+              </button>
+              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/autofit:block w-56 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
+                {'Automatically adjusts font size and spacing to best fill one page.' + (resumeExceedsPage ? ' Your resume currently exceeds one page.' : '')}
+              </div>
+            </div>
+
+            {/* Preview */}
+            <div className="relative group/preview">
+              <button
+                onClick={async () => {
+                  setIsLoadingPreview(true)
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser()
+                    const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                    const response = await fetch('/api/generate-pdf', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        resumeData: resume.resume_data,
+                        templateName: templateForApi,
+                        fontSize: selectedSize,
+                        font: selectedFont,
+                        accentColor: accentColor,
+                        spacing: selectedSpacing,
+                        action: 'preview',
+                        userId: user.id
+                      })
+                    })
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      const url = window.URL.createObjectURL(blob)
+                      setPreviewUrl(url)
+                      setShowPreview(true)
+                    }
+                  } catch (e) {
+                    console.error('Preview error:', e)
+                  } finally {
+                    setIsLoadingPreview(false)
+                  }
+                }}
+                disabled={isLoadingPreview}
+                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+              >
+                {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                {isLoadingPreview ? 'Loading...' : 'Preview'}
+              </button>
+              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
+                See your resume at actual page size before downloading.
+              </div>
+            </div>
+
+            {/* Undo */}
+            <button
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all ${
+                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
+              }`}
             >
-              Preview
+              ↶ Undo
             </button>
 
-          
+            {/* Save */}
+            <button
+              onClick={save}
+              className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                saveSuccess
+                  ? 'bg-green-600 text-white'
+                  : hasUnsavedChanges
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-gray-300 text-gray-600'
+              }`}
+            >
+              {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No Changes'}
+            </button>
 
-          <button 
-  onClick={handleDownload}
-  disabled={isDownloading}
-  className={`px-3 py-1 rounded text-xs font-medium flex items-center gap-1 ${
-    isDownloading 
-      ? 'bg-gray-400 cursor-not-allowed' 
-      : 'bg-purple-600 hover:bg-purple-700 text-white'
-  }`}
->
-  {isDownloading && (
-    <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-  )}
-  {isDownloading ? 'Generating...' : 'Download'}
-</button>
+              {/* Score */}
+              {score && (
+                <div className={`px-3 py-1 rounded font-semibold text-xs ${
+                  score >= 85 ? 'bg-green-100 text-green-700' :
+                  score >= 71 ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  📊 {score}/100
+                </div>
+              )}
+
+              {/* Re-assess */}
+              <button
+                onClick={() => handleReassess()}
+                disabled={isAnalyzing || journeyStep === 'review'}
+                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${
+                  isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                }`}
+                title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
+              >
+                {isAnalyzing && journeyStep !== 'review' && (
+                  <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                )}
+                {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : 'Re-assess'}
+              </button>
+
+              {/* Download */}
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 ${
+                  isDownloading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
+              >
+                {isDownloading && (
+                  <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                )}
+                {isDownloading ? 'Generating...' : 'Download'}
+              </button>
+
+            </div>
+          </div>
         </div>
-        </div>
-      </div>
-      </div>
+      
 
     {/* Main Content: Resume + Right Panel */}
-      <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
+         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
         <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
-          <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
+          <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto relative">
             <div
+              data-resume-content="true"
               style={{
                 transform: `scale(${zoom / 100})`,
                 transformOrigin: 'top left',
@@ -755,7 +883,7 @@ fontFamily: selectedFont,
                   onUpdate={updateResumeData}
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
-                  templateStyles={(() => { const s = getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont); console.log('font:', selectedFont, 'page fontFamily:', s.page?.fontFamily); return s; })()}
+                  templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
                 />
             </div>
           </div>
@@ -795,37 +923,80 @@ fontFamily: selectedFont,
         </div>
       </div>
       </div>
+      {/* Too Long Modal */}
+      {showTooLongModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+          onClick={() => setShowTooLongModal(false)}
+        >
+          <div
+            className="bg-white shadow-2xl max-w-md w-full overflow-hidden border border-gray-200"
+            onClick={(e) => e.stopPropagation()}
+            style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', borderRadius: '8px' }}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, rgb(147 51 234), rgb(37 99 235))' }}
+              className="px-6 py-5 relative"
+            >
+              <button
+                onClick={() => setShowTooLongModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Resume Too Long</h2>
+                  <p className="text-purple-100 text-xs">Auto-fit couldn't squeeze everything onto one page.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-gray-700 mb-3">Your resume has more content than can fit on one page, even at the smallest font size.</p>
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-5">
+                <p className="text-sm text-gray-800">Try removing older jobs, trimming bullets to your most impactful ones, or shortening your summary.</p>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowTooLongModal(false)}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-semibold"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-8">
           <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Resume Preview</h3>
+              <div>
+                <h3 className="text-lg font-semibold">Resume Preview</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Need help with page fit? Use <span className="font-medium text-purple-600">⚡ Auto-fit</span> in the toolbar. It automatically adjusts font size and spacing to best fill one page, whether your resume is too long or too short.</p>
+              </div>
               <button
-                onClick={() => setShowPreview(false)}
+                onClick={() => {
+                  setShowPreview(false)
+                  if (previewUrl) window.URL.revokeObjectURL(previewUrl)
+                  setPreviewUrl(null)
+                }}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
                 ×
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-8 bg-gray-50">
-              <div 
-                className="bg-white p-8 shadow-lg mx-auto"
-                style={{ 
-                  maxWidth: '8.5in',
-                  fontFamily: selectedFont,
-                  fontSize: `${selectedSize}pt`
-                }}
-              >
-               <ResumeContent 
-                  resumeData={resumeData} 
-                  onUpdate={() => {}} 
-                  isUndoingRef={isUndoingRef}
-                  formatDate={formatDate}
-                  readOnly={true}
-                  templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
+            <div className="flex-1 overflow-hidden">
+              {previewUrl && (
+                <iframe
+                  src={`${previewUrl}#toolbar=0`}
+                  className="w-full h-full"
+                  title="Resume Preview"
                 />
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -834,1120 +1005,8 @@ fontFamily: selectedFont,
   )
 }
 
-// Resume Content Component
-function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {} }) {
-  const [confirmingDelete, setConfirmingDelete] = useState(null)
-  const ts = templateStyles
-  
-  function addExperienceSummary(jobIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.experience[jobIndex]) return
-    newData.experience[jobIndex].summary = ' ' // Space so it's truthy
-    onUpdate(newData)
-  }
-
-  function removeExperienceSummary(jobIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    delete newData.experience[jobIndex].summary
-    onUpdate(newData)
-  }
-
-  function addExperienceBullet(jobIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.experience[jobIndex].bullets) {
-      newData.experience[jobIndex].bullets = []
-    }
-    newData.experience[jobIndex].bullets.push('New bullet point')
-    onUpdate(newData)
-  }
-
-  function deleteExperienceBullet(jobIndex, bulletIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.experience[jobIndex].bullets.splice(bulletIndex, 1)
-    onUpdate(newData)
-  }
-
-  function moveExperienceBulletUp(jobIndex, bulletIndex) {
-    if (bulletIndex === 0) return
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const bullets = newData.experience[jobIndex].bullets
-    const temp = bullets[bulletIndex]
-    bullets[bulletIndex] = bullets[bulletIndex - 1]
-    bullets[bulletIndex - 1] = temp
-    onUpdate(newData)
-  }
-
-  function moveExperienceBulletDown(jobIndex, bulletIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const bullets = newData.experience[jobIndex].bullets
-    if (bulletIndex === bullets.length - 1) return
-    const temp = bullets[bulletIndex]
-    bullets[bulletIndex] = bullets[bulletIndex + 1]
-    bullets[bulletIndex + 1] = temp
-    onUpdate(newData)
-  }
-
-  function addEducationLine(eduIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.education[eduIndex].lines) {
-      newData.education[eduIndex].lines = []
-    }
-    newData.education[eduIndex].lines.push('New line')
-    onUpdate(newData)
-  }
-
-  function deleteEducationLine(eduIndex, lineIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.education[eduIndex].lines.splice(lineIndex, 1)
-    onUpdate(newData)
-  }
-
-  function addSkill(category) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.skillsCategories) {
-      newData.skillsCategories = {}
-    }
-    if (!newData.skillsCategories[category]) {
-      newData.skillsCategories[category] = []
-    }
-    newData.skillsCategories[category].push('New Skill')
-    onUpdate(newData)
-  }
-
-  function deleteSkill(category, index) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.skillsCategories[category].splice(index, 1)
-    onUpdate(newData)
-  }
-
-  function renameSkillCategory(oldName, newName) {
-    if (!newName.trim() || oldName === newName) return
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.skillsCategories[newName] = newData.skillsCategories[oldName]
-    delete newData.skillsCategories[oldName]
-    onUpdate(newData)
-  }
-
-  function deleteSkillCategory(category) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const skillsToMerge = newData.skillsCategories[category]
-    const categories = Object.keys(newData.skillsCategories)
-    
-    if (categories.length === 1) return // Can't delete last category
-    
-    // Find first remaining category
-    const targetCategory = categories.find(cat => cat !== category)
-    
-    // Merge skills into that category
-    newData.skillsCategories[targetCategory] = [
-      ...newData.skillsCategories[targetCategory], 
-      ...skillsToMerge
-    ]
-    
-    delete newData.skillsCategories[category]
-    onUpdate(newData)
-  }
-
-  function addSkillCategory() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.skillsCategories) {
-      newData.skillsCategories = {}
-    }
-    newData.skillsCategories['New Category'] = []
-    onUpdate(newData)
-  }
-
-  function flattenSkills() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const allSkills = []
-    Object.values(newData.skillsCategories).forEach(skills => {
-      allSkills.push(...skills)
-    })
-    newData.skillsCategories = { "Skills": allSkills }
-    onUpdate(newData)
-  }
-
-  function addProject() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.projects) {
-      newData.projects = []
-    }
-    newData.projects.push({
-      name: 'New Project',
-      description: 'Project description',
-      link: ''
-    })
-    onUpdate(newData)
-  }
-
-  function deleteProject(projectIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.projects.splice(projectIndex, 1)
-    onUpdate(newData)
-  }
-
-  function addCertification() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.certifications) {
-      newData.certifications = []
-    }
-    newData.certifications.push({
-      name: 'New Certification',
-      details: 'Issuing organization | Date'
-    })
-    onUpdate(newData)
-  }
-
-  function deleteCertification(certIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.certifications.splice(certIndex, 1)
-    onUpdate(newData)
-  }
-
-  function addVolunteer() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.volunteer) {
-      newData.volunteer = []
-    }
-    newData.volunteer.push({
-      organization: 'Organization Name',
-      description: 'Role and responsibilities'
-    })
-    onUpdate(newData)
-  }
-
-  function deleteVolunteer(volIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.volunteer.splice(volIndex, 1)
-    onUpdate(newData)
-  }
-
-  function addLanguage() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.languages) {
-      newData.languages = []
-    }
-    newData.languages.push({
-      language: 'Language',
-      proficiency: 'Professional'
-    })
-    onUpdate(newData)
-  }
-
-  function deleteLanguage(langIndex) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.languages.splice(langIndex, 1)
-    onUpdate(newData)
-  }
-
-  function updateField(field, value) {
-    if (isUndoingRef.current) return
-    const newData = { ...resumeData, [field]: value }
-    onUpdate(newData)
-  }
-
-  function toggleSummary() {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.hideSummary = !newData.hideSummary
-    onUpdate(newData)
-  }
-
-  function moveSectionUp(sectionName) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const order = newData.sectionOrder || []
-    const index = order.indexOf(sectionName)
-    if (index <= 0) return // Already at top or not found
-    
-    // Swap with previous
-    const temp = order[index]
-    order[index] = order[index - 1]
-    order[index - 1] = temp
-    
-    newData.sectionOrder = order
-    onUpdate(newData)
-  }
-
-  function moveSectionDown(sectionName) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const order = newData.sectionOrder || []
-    const index = order.indexOf(sectionName)
-    if (index < 0 || index >= order.length - 1) return // At bottom or not found
-    
-    // Swap with next
-    const temp = order[index]
-    order[index] = order[index + 1]
-    order[index + 1] = temp
-    
-    newData.sectionOrder = order
-    onUpdate(newData)
-  }
-
-  function updateNestedField(path, value) {
-    if (isUndoingRef.current) return
-    
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const keys = path.split('.')
-    let current = newData
-    
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i]
-      const arrayMatch = key.match(/(\w+)\[(\d+)\]/)
-      
-      if (arrayMatch) {
-        const [, arrayName, index] = arrayMatch
-        current = current[arrayName][parseInt(index)]
-      } else {
-        current = current[key]
-      }
-    }
-    
-    const lastKey = keys[keys.length - 1]
-    current[lastKey] = value
-    onUpdate(newData)
-  }
-
-  return (
-    <div style={ts.page || {}}>
-      {/* Contact */}
-      <div className="text-center mb-6 p-2 rounded" style={ts.headerArea || {}}>
-        <h1 
-          className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
-          style={ts.name || {}}
-          contentEditable={!readOnly}
-          suppressContentEditableWarning
-          onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
-        >
-          {resumeData.fullName || 'Your Name'}
-        </h1>
-        <p 
-          className={`text-sm text-gray-600 mt-1 ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
-          style={ts.contact || {}}
-          contentEditable={!readOnly}
-          suppressContentEditableWarning
-          onBlur={(e) => {
-            if (isUndoingRef.current) return
-            const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
-            const newData = {
-              ...resumeData,
-              location: parts[0] || '',
-              phone: parts[1] || '',
-              email: parts[2] || '',
-              linkedin: parts[3] || ''
-            }
-            onUpdate(newData)
-          }}
-        >
-          {[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}
-        </p>
-      </div>
-
-      {/* Summary */}
-      {resumeData.summary && !resumeData.hideSummary && (
-        <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2" style={ts.sectionHeader || {}}>
-            SUMMARY
-            {!readOnly && (
-              <button
-                onClick={toggleSummary}
-                className="text-gray-400 hover:text-gray-600 text-xs ml-2 opacity-0 group-hover:opacity-100"
-                title="Hide this section from your resume"
-              >
-                Hide Summary Section
-              </button>
-            )}
-          </h2>
-          <p 
-            className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
-            style={ts.body || {}}
-            contentEditable={!readOnly}
-            suppressContentEditableWarning
-            onBlur={(e) => updateField('summary', e.currentTarget.textContent)}
-          >
-            {resumeData.summary}
-          </p>
-        </div>
-      )}
-      
-      {/* Show Summary button if hidden */}
-      {!readOnly && resumeData.summary && resumeData.hideSummary && (
-        <button
-          onClick={toggleSummary}
-          className="mb-4 text-purple-600 text-sm opacity-50 hover:opacity-100"
-        >
-          👁️ Show Summary Section
-        </button>
-      )}
-
-      {/* Experience */}
-      {resumeData.experience && resumeData.experience.length > 0 && (
-        <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
-            EXPERIENCE
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('experience')}
-                  disabled={resumeData.sectionOrder?.[0] === 'experience'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('experience')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'experience'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-              </span>
-            )}
-          </h2>
-          {resumeData.experience.map((job, jobIndex) => (
-            <div key={jobIndex} className={`mb-4 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
-              <div className="flex justify-between items-start mb-1">
-                <h3 
-                  className={`font-semibold ${!readOnly && 'cursor-text'}`}
-                  style={ts.jobTitle || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}
-                >
-                  {job.title || 'Job Title'}
-                </h3>
-                <span className="text-sm text-gray-600" style={ts.date || {}}>
-                  {formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}
-                </span>
-              </div>
-              <p 
-                className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`}
-                style={ts.company || {}}
-                contentEditable={!readOnly}
-                suppressContentEditableWarning
-                onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}
-              >
-                {job.company}
-              </p>
-              
-              {/* Summary paragraph */}
-              {job.summary ? (
-                <div className="mb-2">
-                  <p 
-                    className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`}
-                    style={ts.body || {}}
-                    contentEditable={!readOnly}
-                    suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}
-                  >
-                    {job.summary}
-                  </p>
-                  {!readOnly && (
-                    <button
-                      onClick={() => removeExperienceSummary(jobIndex)}
-                      className="text-red-500 text-xs mt-1 opacity-50 hover:opacity-100"
-                    >
-                      × Remove Summary
-                    </button>
-                  )}
-                </div>
-              ) : !readOnly && job.summaryDismissed !== true && (
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    onClick={() => addExperienceSummary(jobIndex)}
-                    className="text-purple-600 text-xs opacity-50 hover:opacity-100"
-                  >
-                    + Add Summary Paragraph (1-2 sentences)
-                  </button>
-                  <button
-                    onClick={() => {
-                      const newData = JSON.parse(JSON.stringify(resumeData))
-                      newData.experience[jobIndex].summaryDismissed = true
-                      onUpdate(newData)
-                    }}
-                    className="text-gray-400 text-xs hover:text-gray-600"
-                  >
-                    × Hide this field
-                  </button>
-                </div>
-              )}
-
-              {/* Bullets */}
-              {job.bullets && job.bullets.length > 0 && job.bullets.map((bullet, bulletIndex) => (
-                <div key={bulletIndex} className="flex items-start gap-2 mb-1 group/bullet">
-                  <span className="text-sm" style={ts.bullet || {}}>•</span>
-                  <p 
-                    className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`}
-                    style={ts.body || {}}
-                    contentEditable={!readOnly}
-                    suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}
-                  >
-                    {bullet}
-                  </p>
-                  {!readOnly && (
-                    <div className="flex items-center gap-1 opacity-30 group-hover/bullet:opacity-100">
-                      <button
-                        onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)}
-                        disabled={bulletIndex === 0}
-                        className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move up"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)}
-                        disabled={bulletIndex === job.bullets.length - 1}
-                        className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move down"
-                      >
-                        ↓
-                      </button>
-                      {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="text-gray-600">Delete?</span>
-                          <button
-                            onClick={() => {
-                              deleteExperienceBullet(jobIndex, bulletIndex)
-                              setConfirmingDelete(null)
-                            }}
-                            className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            onClick={() => setConfirmingDelete(null)}
-                            className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)}
-                          className="text-red-500 hover:bg-red-50 px-1 rounded"
-                          title="Delete bullet"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {!readOnly && (
-                <button
-                  onClick={() => addExperienceBullet(jobIndex)}
-                  className="text-purple-600 text-xs mt-2 opacity-0 group-hover:opacity-100"
-                >
-                  + Add Bullet
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Education */}
-      {resumeData.education && resumeData.education.length > 0 && (
-        <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
-            EDUCATION
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('education')}
-                  disabled={resumeData.sectionOrder?.[0] === 'education'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('education')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'education'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-              </span>
-            )}
-          </h2>
-          {resumeData.education.map((edu, eduIndex) => (
-            <div key={eduIndex} className={`mb-3 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
-              <h3 
-                className={`font-semibold mb-1 ${!readOnly && 'cursor-text'}`}
-                style={ts.jobTitle || {}}
-                contentEditable={!readOnly}
-                suppressContentEditableWarning
-                onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}
-              >
-                {edu.school}
-              </h3>
-              
-              {/* Flexible lines */}
-              {edu.lines && edu.lines.map((line, lineIndex) => (
-                <div key={lineIndex} className="flex items-start gap-2 group/line">
-                  <p 
-                    className={`text-sm font-medium text-gray-700 flex-1 ${!readOnly && 'cursor-text'}`}
-                    style={ts.body || {}}
-                    contentEditable={!readOnly}
-                    suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`education[${eduIndex}].lines[${lineIndex}]`, e.currentTarget.textContent)}
-                  >
-                    {line}
-                  </p>
-                  {!readOnly && (
-                    <button
-                      onClick={() => deleteEducationLine(eduIndex, lineIndex)}
-                      className="text-red-500 opacity-0 group-hover/line:opacity-100 text-xs"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              {!readOnly && (
-                <button
-                  onClick={() => addEducationLine(eduIndex)}
-                  className="text-purple-600 text-xs mt-1 opacity-0 group-hover:opacity-100"
-                >
-                  + Add Line
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Skills */}
-      {resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0 && (
-        <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2" style={ts.sectionHeader || {}}>
-            SKILLS
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('skills')}
-                  disabled={resumeData.sectionOrder?.[0] === 'skills'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('skills')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'skills'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-                {Object.keys(resumeData.skillsCategories).length > 1 && (
-                  <button
-                    onClick={flattenSkills}
-                    className="text-purple-600 hover:bg-purple-100 px-2 py-1 rounded text-xs ml-2 font-medium"
-                  >
-                    Combine All Skills Into One List
-                  </button>
-                )}
-              </span>
-            )}
-          </h2>
-          
-          {Object.entries(resumeData.skillsCategories).map(([category, skills]) => {
-            const isSingleSkillsCategory = Object.keys(resumeData.skillsCategories).length === 1 && category === 'Skills'
-            
-            return (
-              <div key={category} className="mb-3 group/category">
-                {!isSingleSkillsCategory && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <p 
-                      className={`text-sm font-semibold ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`}
-                      style={ts.body || {}}
-                      contentEditable={!readOnly}
-                      suppressContentEditableWarning
-                      onBlur={(e) => {
-                        if (isUndoingRef.current) return
-                        const newName = e.currentTarget.textContent.trim()
-                        if (newName && newName !== category) {
-                          renameSkillCategory(category, newName)
-                        }
-                      }}
-                    >
-                      {category}
-                    </p>
-                    {!readOnly && (
-                      <>
-                        {confirmingDelete === `category-${category}` ? (
-                          <div className="flex items-center gap-1 text-xs">
-                            <span className="text-gray-600">Delete?</span>
-                            <button
-                              onClick={() => {
-                                deleteSkillCategory(category)
-                                setConfirmingDelete(null)
-                              }}
-                              className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                            >
-                              Yes
-                            </button>
-                            <button
-                              onClick={() => setConfirmingDelete(null)}
-                              className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmingDelete(`category-${category}`)}
-                            className="text-red-500 opacity-0 group-hover/category:opacity-100 text-xs px-1 hover:bg-red-50 rounded"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-                <p 
-                  className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`}
-                  style={ts.body || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => {
-                    if (isUndoingRef.current) return
-                    const newData = JSON.parse(JSON.stringify(resumeData))
-                    const skillText = e.currentTarget.textContent.trim()
-                    newData.skillsCategories[category] = skillText
-                      .split(/[,•]/)
-                      .map(s => s.trim())
-                      .filter(s => s.length > 0)
-                    onUpdate(newData)
-                  }}
-                >
-                  {Array.isArray(skills) ? skills.join(', ') : skills}
-                </p>
-              </div>
-            )
-          })}
-          
-          {!readOnly && (
-            <button
-              onClick={addSkillCategory}
-              className="text-purple-600 text-xs mt-2 opacity-0 group-hover:opacity-100"
-            >
-              + Add Category
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Projects */}
-      {resumeData.projects && resumeData.projects.length > 0 && (
-        <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
-            PROJECTS
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('projects')}
-                  disabled={resumeData.sectionOrder?.[0] === 'projects'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('projects')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'projects'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-              </span>
-            )}
-          </h2>
-          {resumeData.projects.map((project, projectIndex) => (
-            <div key={projectIndex} className={`mb-3 p-2 rounded group/project ${!readOnly && 'hover:bg-purple-50'}`}>
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 
-                  className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`}
-                  style={ts.jobTitle || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`projects[${projectIndex}].name`, e.currentTarget.textContent)}
-                >
-                  {project.name}
-                </h3>
-                {!readOnly && (
-                  <>
-                    {confirmingDelete === `projects-${projectIndex}` ? (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600">Delete?</span>
-                        <button
-                          onClick={() => {
-                            deleteProject(projectIndex)
-                            setConfirmingDelete(null)
-                          }}
-                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setConfirmingDelete(null)}
-                          className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmingDelete(`projects-${projectIndex}`)}
-                        className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/project:opacity-100"
-                        title="Delete project"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-              <p 
-                className={`text-sm text-gray-700 mb-1 ${!readOnly && 'cursor-text'}`}
-                style={ts.body || {}}
-                contentEditable={!readOnly}
-                suppressContentEditableWarning
-                onBlur={(e) => updateNestedField(`projects[${projectIndex}].description`, e.currentTarget.textContent)}
-              >
-                {project.description}
-              </p>
-              {project.link && (
-                <p 
-                  className={`text-sm text-purple-600 ${!readOnly && 'cursor-text'}`}
-                  style={ts.body || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`projects[${projectIndex}].link`, e.currentTarget.textContent)}
-                >
-                  {project.link}
-                </p>
-              )}
-            </div>
-          ))}
-          {!readOnly && (
-            <button
-              onClick={addProject}
-              className="text-purple-600 text-xs opacity-0 group-hover:opacity-100"
-            >
-              + Add Project
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Certifications */}
-      {resumeData.certifications && resumeData.certifications.length > 0 && (
-        <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
-            CERTIFICATIONS
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('certifications')}
-                  disabled={resumeData.sectionOrder?.[0] === 'certifications'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('certifications')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'certifications'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-              </span>
-            )}
-          </h2>
-          {resumeData.certifications.map((cert, certIndex) => (
-            <div key={certIndex} className={`mb-3 p-2 rounded group/cert ${!readOnly && 'hover:bg-purple-50'}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <h3 
-                    className={`font-semibold ${!readOnly && 'cursor-text'}`}
-                    style={ts.jobTitle || {}}
-                    contentEditable={!readOnly}
-                    suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`certifications[${certIndex}].name`, e.currentTarget.textContent)}
-                  >
-                    {cert.name}
-                  </h3>
-                  <p 
-                    className={`text-sm text-gray-600 ${!readOnly && 'cursor-text'}`}
-                    style={ts.body || {}}
-                    contentEditable={!readOnly}
-                    suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`certifications[${certIndex}].details`, e.currentTarget.textContent)}
-                  >
-                    {cert.details}
-                  </p>
-                </div>
-                {!readOnly && (
-                  <>
-                    {confirmingDelete === `certifications-${certIndex}` ? (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600">Delete?</span>
-                        <button
-                          onClick={() => {
-                            deleteCertification(certIndex)
-                            setConfirmingDelete(null)
-                          }}
-                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setConfirmingDelete(null)}
-                          className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmingDelete(`certifications-${certIndex}`)}
-                        className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/cert:opacity-100"
-                        title="Delete certification"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-          {!readOnly && (
-            <button
-              onClick={addCertification}
-              className="text-purple-600 text-xs opacity-0 group-hover:opacity-100"
-            >
-              + Add Certification
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Volunteer */}
-      {resumeData.volunteer && resumeData.volunteer.length > 0 && (
-        <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
-            VOLUNTEER
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('volunteer')}
-                  disabled={resumeData.sectionOrder?.[0] === 'volunteer'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('volunteer')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'volunteer'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-              </span>
-            )}
-          </h2>
-          {resumeData.volunteer.map((vol, volIndex) => (
-            <div key={volIndex} className="mb-3 p-2 rounded hover:bg-purple-50 group/vol">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 
-                  className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`}
-                  style={ts.jobTitle || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`volunteer[${volIndex}].organization`, e.currentTarget.textContent)}
-                >
-                  {vol.organization}
-                </h3>
-                {!readOnly && (
-                  <>
-                    {confirmingDelete === `volunteer-${volIndex}` ? (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600">Delete?</span>
-                        <button
-                          onClick={() => {
-                            deleteVolunteer(volIndex)
-                            setConfirmingDelete(null)
-                          }}
-                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setConfirmingDelete(null)}
-                          className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmingDelete(`volunteer-${volIndex}`)}
-                        className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/vol:opacity-100"
-                        title="Delete volunteer experience"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-              <p 
-                className={`text-sm text-gray-700 ${!readOnly && 'cursor-text'}`}
-                style={ts.body || {}}
-                contentEditable={!readOnly}
-                suppressContentEditableWarning
-                onBlur={(e) => updateNestedField(`volunteer[${volIndex}].description`, e.currentTarget.textContent)}
-              >
-                {vol.description}
-              </p>
-            </div>
-          ))}
-          {!readOnly && (
-            <button
-              onClick={addVolunteer}
-              className="text-purple-600 text-xs opacity-0 group-hover:opacity-100"
-            >
-              + Add Volunteer Experience
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Languages */}
-      {resumeData.languages && resumeData.languages.length > 0 && (
-        <div className="mb-6 group">
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3" style={ts.sectionHeader || {}}>
-            LANGUAGES
-            {!readOnly && (
-              <span className="opacity-30 group-hover:opacity-100 ml-2">
-                <button
-                  onClick={() => moveSectionUp('languages')}
-                  disabled={resumeData.sectionOrder?.[0] === 'languages'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section up on your resume"
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveSectionDown('languages')}
-                  disabled={resumeData.sectionOrder?.[resumeData.sectionOrder.length - 1] === 'languages'}
-                  className="text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-30 disabled:cursor-not-allowed text-sm"
-                  title="Move this section down on your resume"
-                >
-                  ↓
-                </button>
-              </span>
-            )}
-          </h2>
-          {resumeData.languages.map((lang, langIndex) => (
-            <div key={langIndex} className={`mb-2 p-2 rounded group/lang flex items-center justify-between ${!readOnly && 'hover:bg-purple-50'}`}>
-              <div className="flex items-center gap-3 flex-1">
-                <span 
-                  className={`font-semibold ${!readOnly && 'cursor-text'}`}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`languages[${langIndex}].language`, e.currentTarget.textContent)}
-                >
-                  {lang.language}
-                </span>
-                <span className="text-gray-400">—</span>
-                {readOnly ? (
-                  <span className="text-sm text-gray-600">{lang.proficiency || 'Professional'}</span>
-                ) : (
-                  <select
-                    value={lang.proficiency || 'Professional'}
-                    onChange={(e) => updateNestedField(`languages[${langIndex}].proficiency`, e.target.value)}
-                    className="text-sm text-gray-600 bg-transparent border-none focus:outline-none cursor-pointer"
-                  >
-                    <option value="Native">Native</option>
-                    <option value="Fluent">Fluent</option>
-                    <option value="Professional">Professional</option>
-                    <option value="Conversational">Conversational</option>
-                    <option value="Basic">Basic</option>
-                  </select>
-                )}
-              </div>
-              {!readOnly && (
-                <>
-                  {confirmingDelete === `languages-${langIndex}` ? (
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="text-gray-600">Delete?</span>
-                      <button
-                        onClick={() => {
-                          deleteLanguage(langIndex)
-                          setConfirmingDelete(null)
-                        }}
-                        className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setConfirmingDelete(null)}
-                        className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded"
-                      >
-                        No
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmingDelete(`languages-${langIndex}`)}
-                      className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/lang:opacity-100"
-                      title="Delete language"
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
-          {!readOnly && (
-            <button
-              onClick={addLanguage}
-              className="text-purple-600 text-xs opacity-0 group-hover:opacity-100"
-            >
-              + Add Language
-            </button>
-          )}
-        </div>
-      )}
-
-      {(!resumeData.experience || resumeData.experience.length === 0) && (
-        <div className="text-center text-gray-400 py-12">
-          <p>Resume content will appear here</p>
-          <p className="text-sm mt-2">Click to edit</p>
-        </div>
-      )}
-    </div>
-  )
-}
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume }) {  
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal }) {  
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2528,6 +1587,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           jobTitle={resume?.job_title || null}
           jobCompany={resume?.job_company || null}
           analysisResults={analysisResults}
+          showUpgradeModal={showUpgradeModal}
+          setShowUpgradeModal={setShowUpgradeModal}
         />
       )}
 
@@ -2556,15 +1617,16 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
       )}
 
       {journeyStep === 'polish' && (
-        <PolishStep
-          supabase={supabase}
-          params={params}
-          setResume={setResume}
-          handleReassess={handleReassess}
-          isAnalyzing={isAnalyzing}
-          score={score}
-        />
-      )}
+  <PolishStep
+    supabase={supabase}
+    params={params}
+    setResume={setResume}
+    handleReassess={handleReassess}
+    isAnalyzing={isAnalyzing}
+    score={score}
+    userTier={userTier}
+  />
+)}
 
      {journeyStep === 'save' && (
         <SaveStep
@@ -2581,7 +1643,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults }) {
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal }) {
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -4028,7 +3090,10 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
       if (!resume?.completed_at) {
         await supabase
           .from('resumes')
-          .update({ completed_at: new Date().toISOString() })
+          .update({ 
+            completed_at: new Date().toISOString(),
+            journey_step: 'save'
+          })
           .eq('id', params.id)
       }
     }

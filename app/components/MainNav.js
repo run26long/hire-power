@@ -66,6 +66,20 @@ export default function MainNav({ currentPage, userProfile }) {
               onClick={() => router.push('/profile')}
               className="flex items-center gap-2 text-gray-700 hover:text-purple-600"
             >
+             {userProfile?.subscription_tier === 'pro' && (
+                <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
+              )}
+              {userProfile?.subscription_tier === 'maintenance' && (
+                <span className="text-[10px] font-bold text-white bg-gray-500 px-2 py-0.5 rounded-full">MAINTENANCE</span>
+              )}
+              {(!userProfile?.subscription_tier || userProfile?.subscription_tier === 'free') && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); router.push('/#pricing'); }}
+                  className="text-[10px] font-bold text-purple-600 bg-white border border-purple-200 px-2 py-0.5 rounded-full cursor-pointer hover:border-purple-400 hover:shadow-sm transition-all"
+                >
+                  Go Pro
+                </span>
+              )}
               {userProfile?.photo_url ? (
                 <img
                   src={userProfile.photo_url}

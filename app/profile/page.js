@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import MainNav from '../components/MainNav'
 import { TIERS } from '@/lib/subscription'
+import UpgradeModal from '../components/UpgradeModal'
 
 export default function Profile() {
   const router = useRouter()
@@ -20,6 +21,7 @@ export default function Profile() {
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [cancelFeedback, setCancelFeedback] = useState('')
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [processing, setProcessing] = useState(false)
@@ -74,7 +76,7 @@ export default function Profile() {
     try {
       setProcessing(true)
       const { error } = await supabase.from('profiles')
-        .update({ subscription_tier: TIERS.VAULT, downgrade_scheduled_date: new Date().toISOString() })
+        .update({ subscription_tier: TIERS.STANDBY, downgrade_scheduled_date: new Date().toISOString() })
         .eq('id', user.id)
       if (error) throw error
       setShowDowngradeModal(false)
@@ -124,10 +126,10 @@ export default function Profile() {
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
-  const tierLabel = { [TIERS.FREE]: 'Free', [TIERS.PRO]: 'Pro', [TIERS.VAULT]: 'Maintenance' }
-  const tierColor = { [TIERS.FREE]: '#6b7280', [TIERS.PRO]: '#7c3aed', [TIERS.VAULT]: '#0369a1' }
-  const tierBg    = { [TIERS.FREE]: '#f3f4f6', [TIERS.PRO]: '#faf5ff', [TIERS.VAULT]: '#f0f9ff' }
-  const tierBorder = { [TIERS.FREE]: '#e5e7eb', [TIERS.PRO]: '#e9d5ff', [TIERS.VAULT]: '#bae6fd' }
+  const tierLabel = { [TIERS.FREE]: 'Free', [TIERS.PRO]: 'Pro', [TIERS.STANDBY]: 'Standby' }
+  const tierColor = { [TIERS.FREE]: '#6b7280', [TIERS.PRO]: '#7c3aed', [TIERS.STANDBY]: '#0369a1' }
+  const tierBg    = { [TIERS.FREE]: '#f3f4f6', [TIERS.PRO]: '#faf5ff', [TIERS.STANDBY]: '#f0f9ff' }
+  const tierBorder = { [TIERS.FREE]: '#e5e7eb', [TIERS.PRO]: '#e9d5ff', [TIERS.STANDBY]: '#bae6fd' }
 
   const cardBase = {
     background: '#fff',
@@ -156,9 +158,9 @@ export default function Profile() {
   const btnPurple  = { background: 'linear-gradient(135deg,#9333ea,#6b21a8)', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
   const btnOutline = { background: '#fff', color: '#7c3aed', border: '1.5px solid #c4b5fd', borderRadius: 7, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
   const btnGhost   = { background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 7, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }
-  const btnRed     = { background: '#fff', color: '#dc2626', border: '1.5px solid #fca5a5', borderRadius: 7, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
-  const btnRedSolid= { background: '#dc2626', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
-  const btnOrange  = { background: '#fff', color: '#c2410c', border: '1.5px solid #fed7aa', borderRadius: 7, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
+ const btnRed     = { background: '#fff', color: '#e57373', border: '1.5px solid #e57373', borderRadius: 7, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
+  const btnRedSolid= { background: '#e57373', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
+  const btnOrange  = { background: '#fff', color: '#6b7280', border: '1.5px solid #e5e7eb', borderRadius: 7, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
 
   const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }
   const modalBox     = { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, boxShadow: '0 25px 50px rgba(0,0,0,0.2)', overflow: 'hidden' }
@@ -310,7 +312,7 @@ export default function Profile() {
                 <div style={cardHeader()}>
                   <span style={cardTitle}>Plan</span>
                   {tier === TIERS.FREE && (
-                    <button onClick={() => router.push('/pricing')} style={btnPurple}>Upgrade to Pro</button>
+                    <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
                   )}
                 </div>
                 <div style={cardBody}>
@@ -322,7 +324,7 @@ export default function Profile() {
                       <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
                         {tier === TIERS.FREE && 'Limited features'}
                         {tier === TIERS.PRO && '$29.99/month · All features unlocked'}
-                        {tier === TIERS.VAULT && '$4.99/month · Archive access'}
+                        {tier === TIERS.STANDBY && '$4.99/month · Career Vault access'}
                       </p>
                     </div>
                   </div>
@@ -331,14 +333,16 @@ export default function Profile() {
                   {tier === TIERS.PRO && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Between job searches? Keep your work safe for $4.99/month.</p>
-                      <button onClick={() => setShowDowngradeModal(true)} style={btnOutline}>Downgrade to Maintenance</button>
-                      <button onClick={() => setShowCancelModal(true)} style={btnRed}>Cancel Subscription</button>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => setShowDowngradeModal(true)} style={{ ...btnOutline, flex: 1 }}>Keep Career in Standby</button>
+                        <button onClick={() => setShowCancelModal(true)} style={{ ...btnRed, flex: 1, color: '#e57373', borderColor: '#e57373' }}>Cancel Subscription</button>
+                      </div>
                     </div>
                   )}
-                  {tier === TIERS.VAULT && (
+                  {tier === TIERS.STANDBY && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
-                      <button onClick={() => router.push('/pricing')} style={btnPurple}>Upgrade to Pro</button>
+                      <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
                       <button onClick={() => setShowCancelModal(true)} style={btnRed}>Cancel Subscription</button>
                     </div>
                   )}
@@ -414,7 +418,7 @@ export default function Profile() {
                 {/* DANGER ZONE */}
                 <div style={{ ...cardBase, border: '1px solid #fecaca' }}>
                   <div style={cardHeader('linear-gradient(135deg,#fff5f5,#fee2e2)')}>
-                    <span style={{ ...cardTitle, color: '#dc2626' }}>Danger Zone</span>
+                    <span style={{ ...cardTitle, color: '#e57373' }}>Danger Zone</span>
                   </div>
                   <div style={{ ...cardBody, display: 'flex', gap: 8 }}>
                     <button onClick={() => setShowExportModal(true)} style={{ ...btnOrange, flex: 1, textAlign: 'center' }}>
@@ -438,7 +442,7 @@ export default function Profile() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHead()}>
-              <p style={modalTitle}>Downgrade to Maintenance?</p>
+              <p style={modalTitle}>Keep Your Career in Standby</p>
               <p style={modalSub}>$4.99/month between job searches</p>
             </div>
             <div style={modalBody}>
@@ -457,7 +461,7 @@ export default function Profile() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowDowngradeModal(false)} disabled={processing} style={{ ...btnGhost, flex: 1 }}>Keep Pro</button>
                 <button onClick={handleDowngrade} disabled={processing} style={{ ...btnPurple, flex: 1, opacity: processing ? 0.6 : 1 }}>
-                  {processing ? 'Processing...' : 'Switch to Maintenance'}
+                  {processing ? 'Processing...' : 'Switch to Standby'}
                 </button>
               </div>
             </div>
@@ -572,6 +576,13 @@ export default function Profile() {
         </div>
       )}
 
+   {showUpgradeModal && (
+        <UpgradeModal
+          onClose={() => setShowUpgradeModal(false)}
+          userProfile={profile}
+          supabase={supabase}
+        />
+      )}
     </div>
   )
 }

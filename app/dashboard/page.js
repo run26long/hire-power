@@ -108,6 +108,11 @@ const searchParams = useSearchParams();
       setResetError(error.message);
     } else {
       setResetSuccess(true);
+      setTimeout(() => {
+        setShowLoginModal(false);
+        setResetSuccess(false);
+        setLoginView('login');
+      }, 3000);
     }
   };
 

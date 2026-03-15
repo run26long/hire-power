@@ -8,47 +8,7 @@ const supabase = createClient(
 
 export async function POST(request) {
   try {
-    const { resumeData, resumeId, templateName, fontSize, font, action, versionId, isJobVersion, userId } = await request.json()
-    
-    // Transform builder format to template format
-    function transformResumeData(builderData) {
-      // Flatten skillsCategories object into a single skills array
-      const skills = builderData.skillsCategories
-        ? Object.values(builderData.skillsCategories).flat()
-        : Array.isArray(builderData.skills) ? builderData.skills : []
-
-      return {
-        contact: {
-          fullName: builderData.fullName || '',
-          phone: builderData.phone || '',
-          email: builderData.email || '',
-          location: builderData.location || '',
-          linkedin: builderData.linkedin || ''
-        },
-        summary: (builderData.hideSummary ? null : builderData.summary) || null,
-        experience: (builderData.experience || []).map(job => ({
-          title: job.title || '',
-          company: job.company || '',
-          location: job.location || '',
-          startDate: job.startDate || '',
-          endDate: job.current ? 'Present' : (job.endDate || ''),
-          summary: job.summary || null,
-          achievements: Array.isArray(job.bullets) ? job.bullets : []
-        })),
-        education: (builderData.education || []).map(edu => ({
-          school: edu.school || '',
-          degree: Array.isArray(edu.lines) ? edu.lines[0] || '' : '',
-          lines: Array.isArray(edu.lines) ? edu.lines : [],
-          graduationDate: edu.graduationDate || ''
-        })),
-        skills,
-        skillsCategories: builderData.skillsCategories || {},
-        certifications: builderData.certifications || [],
-        volunteer: builderData.volunteer || [],
-        projects: builderData.projects || [],
-        languages: builderData.languages || []
-      }
-    }
+    const { resumeData, resumeId, templateName, fontSize, font, spacing, action, versionId, isJobVersion, userId } = await request.json()
     
     // Generate the PDF using Puppeteer
     const browser = await puppeteer.launch({
@@ -64,7 +24,7 @@ export async function POST(request) {
     
     // Render template to HTML string
     const { renderToString } = await import('react-dom/server')
-    const htmlContent = renderToString(TemplateComponent({ resumeData, font, fontSize }))    
+    const htmlContent = renderToString(TemplateComponent({ resumeData, font, fontSize, spacing: spacing || 1 }))
     const fullHtml = `
       <!DOCTYPE html>
       <html>
@@ -103,7 +63,6 @@ export async function POST(request) {
     if (action === 'download') {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       
-      // Create ATS-friendly filename
       const fullName = resumeData?.fullName || 'Resume'
       const nameParts = fullName.split(' ')
       const firstName = nameParts[0] || 'Resume'
@@ -112,7 +71,6 @@ export async function POST(request) {
       
       const fileName = `${userId}/${versionId || 'core'}/${atsName}_Resume_${templateName}_${timestamp}.pdf`
       
-      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('resume-pdfs')
         .upload(fileName, pdfBuffer, {
@@ -122,16 +80,13 @@ export async function POST(request) {
 
       if (uploadError) throw uploadError
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('resume-pdfs')
         .getPublicUrl(fileName)
 
-      // Update formatted_versions in database
       const tableName = isJobVersion ? 'resume_versions' : 'resumes'
       const recordId = versionId || resumeId
 
-      // Get current formatted_versions
       const { data: currentRecord } = await supabase
         .from(tableName)
         .select('formatted_versions')
@@ -145,7 +100,6 @@ export async function POST(request) {
         file_path: fileName
       }
 
-      // Update database
       await supabase
         .from(tableName)
         .update({ formatted_versions: formattedVersions })
@@ -165,10 +119,13 @@ export async function POST(request) {
     const lastName = nameParts[nameParts.length - 1] || ''
     const atsName = lastName ? `${firstName}_${lastName}` : firstName
     
+    const downloadName = resumeData?.fullName
+      ? `${resumeData.fullName.replace(/\s+/g, '_')}_Resume_Preview.pdf`
+      : 'Resume_Preview.pdf'
     return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename=${atsName}_Resume_Preview.pdf`
+        'Content-Disposition': `inline; filename="${downloadName}"`
       }
     })
 

@@ -1,11 +1,14 @@
 // CrispTemplate.js — Clean serif | Free tier
 import { formatDate, formatDateRange, getSkillsDisplay } from './templateUtils';
 
-export default function CrispTemplate({ resumeData, font, fontSize, accentColor, dateFormat = 'short' }) {
+export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1, accentColor, dateFormat = 'short' }) {
   if (!resumeData) return null;
   const skills = getSkillsDisplay(resumeData);
   const base = fontSize || 11;
+  const sp = spacing || 1;
   const fontFamily = font || 'Georgia, "Times New Roman", serif';
+
+  const px = (n) => `${Math.round(n * sp)}px`;
 
   const s = {
     page: {
@@ -13,7 +16,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, accentColor,
       fontSize: `${base}pt`,
       lineHeight: '1.1',
       color: '#1a1a1a',
-      padding: '36px 64px',
+      padding: `${px(36)} ${px(64)}`,
       background: '#fff',
       width: '100%',
       boxSizing: 'border-box',
@@ -33,28 +36,34 @@ export default function CrispTemplate({ resumeData, font, fontSize, accentColor,
       textAlign: 'center',
       fontSize: `${base}pt`,
       color: '#444',
-      marginBottom: '8px',
+      marginBottom: px(8),
       lineHeight: '1.1',
     },
     hr: { border: 'none', borderBottom: '1.5px solid #1a1a1a', margin: '0 0 0 0' },
-    hrSection: { border: 'none', borderBottom: '1.5px solid #1a1a1a', margin: '0 0 4px 0' },
+    hrSection: { border: 'none', borderBottom: '1.5px solid #1a1a1a', margin: `0 0 ${px(4)} 0` },
+    // Section wrapper — identical top margin for every section
+    section: {
+      marginTop: px(14),
+    },
     sh: {
       fontFamily,
       fontSize: '13pt',
       fontWeight: '700',
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
-      marginBottom: '2px',
-      marginTop: '10px',
+      marginBottom: px(2),
+      marginTop: '0',
       lineHeight: '1.1',
     },
     row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
     jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.1' },
     dt: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.1' },
-    co: { fontFamily, fontStyle: 'italic', color: '#555', marginBottom: '2px', fontSize: `${base}pt`, lineHeight: '1.1' },
-    li: { fontFamily, margin: '1px 0', fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
-    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: '2px 0', lineHeight: '1.1' },
-    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: '0 0 3px', lineHeight: '1.1' },
+    co: { fontFamily, fontStyle: 'italic', color: '#555', marginBottom: px(2), fontSize: `${base}pt`, lineHeight: '1.1' },
+    // Consistent spacing between entries within a section
+    entry: { marginBottom: px(10) },
+    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.1' },
+    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(3)}`, lineHeight: '1.1' },
   };
 
   const contactParts = [
@@ -73,20 +82,20 @@ export default function CrispTemplate({ resumeData, font, fontSize, accentColor,
 
       {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Professional Summary</div>
           <hr style={s.hrSection} />
           <p style={s.body}>{resumeData.summary}</p>
-        </>
+        </div>
       )}
 
       {/* Experience */}
       {resumeData.experience?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Experience</div>
           <hr style={s.hrSection} />
           {resumeData.experience.map((job, i) => (
-            <div key={i} style={{ marginBottom: '12px' }}>
+            <div key={i} style={i < resumeData.experience.length - 1 ? s.entry : {}}>
               <div style={s.row}>
                 <span style={s.jt}>{job.title}</span>
                 <span style={s.dt}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</span>
@@ -94,7 +103,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, accentColor,
               <div style={s.co}>{[job.company, job.location].filter(Boolean).join(' | ')}</div>
               {job.summary && !job.summaryDismissed && <p style={s.sm}>{job.summary}</p>}
               {job.bullets?.length > 0 && (
-                <div style={{ marginTop: '2px' }}>
+                <div style={{ marginTop: px(2) }}>
                   {job.bullets.map((b, k) => (
                     <div key={k} style={s.li}>
                       <span style={{ flexShrink: 0 }}>•</span>
@@ -105,34 +114,34 @@ export default function CrispTemplate({ resumeData, font, fontSize, accentColor,
               )}
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {/* Education */}
       {resumeData.education?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Education</div>
           <hr style={s.hrSection} />
           {resumeData.education.map((ed, i) => (
-            <div key={i} style={{ marginBottom: '8px' }}>
+            <div key={i} style={i < resumeData.education.length - 1 ? s.entry : {}}>
               <div style={s.row}>
                 <span style={s.jt}>{ed.school}</span>
                 <span style={s.dt}>{formatDate(ed.graduationDate, dateFormat)}</span>
               </div>
               <div style={s.co}>{[ed.degree, ed.field].filter(Boolean).join(', ')}</div>
-              {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#555' }}>{l}</div>)}
+              {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{l}</div>)}
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {/* Skills */}
       {Object.keys(skills).length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Skills</div>
           <hr style={s.hrSection} />
           {Object.entries(skills).map(([cat, items]) => (
-            <div key={cat} style={{ marginBottom: '3px' }}>
+            <div key={cat} style={{ marginBottom: px(3) }}>
               {Object.keys(skills).length > 1
                 ? <><span style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt` }}>{cat}: </span>
                     <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span></>
@@ -140,59 +149,61 @@ export default function CrispTemplate({ resumeData, font, fontSize, accentColor,
               }
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {/* Certifications */}
       {resumeData.certifications?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Certifications</div>
           <hr style={s.hrSection} />
           {resumeData.certifications.map((c, i) => (
-            <div key={i} style={{ fontFamily, fontSize: `${base}pt`, marginBottom: '3px' }}>
-              <strong>{c.name}</strong>{c.details ? ` – ${c.details}` : ''}
+            <div key={i} style={i < resumeData.certifications.length - 1 ? s.entry : {}}>
+              <div style={{ fontFamily, fontSize: `${base}pt` }}>
+                <strong>{c.name}</strong>{c.details ? ` – ${c.details}` : ''}
+              </div>
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {/* Volunteer */}
       {resumeData.volunteer?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Volunteer Experience</div>
           <hr style={s.hrSection} />
           {resumeData.volunteer.map((v, i) => (
-            <div key={i} style={{ marginBottom: '6px' }}>
+            <div key={i} style={i < resumeData.volunteer.length - 1 ? s.entry : {}}>
               <div style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt` }}>{v.organization}</div>
               <div style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{v.description}</div>
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {/* Projects */}
       {resumeData.projects?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Projects</div>
           <hr style={s.hrSection} />
           {resumeData.projects.map((p, i) => (
-            <div key={i} style={{ marginBottom: '6px' }}>
+            <div key={i} style={i < resumeData.projects.length - 1 ? s.entry : {}}>
               <div style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt` }}>{p.name}{p.link ? ` — ${p.link}` : ''}</div>
               <div style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{p.description}</div>
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {/* Languages */}
       {resumeData.languages?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Languages</div>
           <hr style={s.hrSection} />
           <div style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>
             {resumeData.languages.map(l => `${l.language} (${l.proficiency})`).join(' • ')}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

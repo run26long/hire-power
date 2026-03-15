@@ -359,7 +359,8 @@ export async function GET(req) {
       userTier,
       userProfile: {
         display_name: profile.display_name,
-        photo_url: profile.photo_url
+        photo_url: profile.photo_url,
+        subscription_tier: profile.subscription_tier
       },
       coreResume: coreResumeData,
       resumeVersions: resumeVersionsData,
