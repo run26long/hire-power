@@ -23,7 +23,7 @@ export default function MyResumesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push('/login');
+        router.push('/dashboard');
         return;
       }
       setUser(user);

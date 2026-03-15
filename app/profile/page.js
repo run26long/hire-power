@@ -31,7 +31,7 @@ export default function Profile() {
   async function loadProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      if (!user) { router.push('/dashboard'); return }
       setUser(user)
       const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (p) {
@@ -403,7 +403,7 @@ export default function Profile() {
                       Reset Password
                     </button>
                     <button
-                      onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
+                      onClick={async () => { await supabase.auth.signOut(); router.push('/dashboard') }}
                       style={{ ...btnGhost, flex: 1, textAlign: 'center' }}
                     >
                       Sign Out

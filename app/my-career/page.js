@@ -25,7 +25,7 @@ export default function MyCareerPage() {
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/login'); return; }
+      if (!user) { router.push('/dashboard'); return; }
       setUser(user);
 
       const { data: profile } = await supabase

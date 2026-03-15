@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
-import Modal from '../components/Modal';
+import UpgradeModal from '../components/UpgradeModal';
 import { TIERS } from '@/lib/subscription';
 
 export default function MyResumesPage() {
@@ -16,7 +16,7 @@ export default function MyResumesPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [retryCount, setRetryCount] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -50,7 +50,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
   // Tour modal state
   const [showTourModal, setShowTourModal] = useState(false);
-  const [tourScreen, setTourScreen] = useState(0);
+  const [tourScreen, setTourScreen] = useState(1);
   const [hasSeenTour, setHasSeenTour] = useState(false);
 
  useEffect(() => {
@@ -71,13 +71,19 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setLoadError(null);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push('/login');
+        router.push('/dashboard');
         return;
       }
       setUser(user);
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
       
+      if (!session) {
+        router.push('/dashboard');
+        return;
+      }
+
       const response = await fetch('/api/my-resumes/data', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -101,7 +107,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           if (!tourSeen) {
             setHasSeenTour(false);
             setShowTourModal(true);
-            setTourScreen(0);
+            setTourScreen(1);
           } else {
             setHasSeenTour(true);
             setShowTourModal(true);
@@ -153,13 +159,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   // Modal state and handlers
-  const [showStubModal, setShowStubModal] = useState(false);
-  const [stubModalContent, setStubModalContent] = useState({ title: '', message: '' });
-
-  const showStubMessage = (title, message) => {
-    setStubModalContent({ title, message });
-    setShowStubModal(true);
-  };
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Tour handlers
   const handleNextTourScreen = () => {
@@ -355,10 +355,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       
     } catch (error) {
       console.error('Error downloading resume:', error);
-      showStubMessage(
-        "Download Error",
-        "There was a problem downloading your resume. Please try again."
-      );
+      alert('There was a problem downloading your resume. Please try again.');
     } finally {
       setDownloadingResumeId(null); // Clear downloading state
     }
@@ -370,10 +367,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setJobModalSourceId(resumeId);
       setShowJobModal(true);
     } else {
-      showStubMessage(
-        "Upgrade to Pro",
-        "Create unlimited job-specific resumes with Pro. Customize your resume for each application."
-      );
+      setShowUpgradeModal(true);
     }
   };
 
@@ -458,10 +452,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setJobModalSourceId(data?.coreResume?.id || null);
       setShowJobModal(true);
     } else {
-      showStubMessage(
-        "Upgrade to Pro",
-        "Upgrade to Pro to create customized resumes for specific jobs."
-      );
+      setShowUpgradeModal(true);
     }
   };
 
@@ -1065,7 +1056,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         <div className="space-y-3">
                           {/* Upload JD Card */}
                           <button
-                            onClick={() => showStubMessage("Coming Soon", "Job matching feature is coming soon!")}
+                            onClick={() => setShowUpgradeModal(true)}
                             className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
                           >
                             <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
@@ -1140,7 +1131,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 Pro users create unlimited job-specific resumes optimized for each role.
                               </p>
                               <button
-                                onClick={() => showStubMessage("Upgrade to Pro", "Pro tier coming soon!")}
+                                onClick={() => setShowUpgradeModal(true)}
                                 className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
                               >
                                 Upgrade to Pro
@@ -1519,19 +1510,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   ×
                 </button>
               )}
-              {tourScreen === 0 && (
-  <div className="flex items-center gap-3">
-    <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-    <div>
-      <h2 className="text-xl font-bold text-white">
-        {careerCoachComplete ? "You told us where you're going." : "Welcome to Resume Coach"}
-      </h2>
-      <p className="text-purple-100 text-xs">
-        {careerCoachComplete ? "Now let's build the resume that gets you there." : "The AI that asks the right questions."}
-      </p>
-    </div>
-  </div>
-)}
+             
               {tourScreen === 1 && (
                 <div className="flex items-center gap-3">
                   <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
@@ -1565,63 +1544,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
             {/* Content */}
             <div className="px-6 py-5 flex-1 flex flex-col" style={{ minHeight: '320px', maxHeight: '320px' }}>
-            
-            {/* Screen 0 */}
-{tourScreen === 0 && (
-  <div className="flex flex-col h-full">
-    <div className="flex-1 space-y-4">
-      {careerCoachComplete ? (
-        <>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            Your Career Coach session gave us a clear picture of where you're headed. Resume Coach will use that context to ask the right questions and pull out the achievements that matter most for the roles you're targeting.
-          </p>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p><span className="font-bold text-purple-600">→</span> No generic tips. No AI guessing.</p>
-            <p><span className="font-bold text-purple-600">→</span> Coaching built around your actual goals.</p>
-            <p><span className="font-bold text-purple-600">→</span> Your real achievements, written to get interviews.</p>
-          </div>
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
-            <p className="text-sm text-gray-800 font-medium">
-              The fastest path to a stronger resume starts with the right conversation. You've already had it.
-            </p>
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            The more we know about where you're headed, the stronger your resume becomes. Resume Coach works best after a quick Career Coach session, but you can start here too.
-          </p>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p><span className="font-bold text-purple-600">→</span> We'll still ask the right questions.</p>
-            <p><span className="font-bold text-purple-600">→</span> You can complete Career Coach anytime to sharpen your results.</p>
-          </div>
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
-            <p className="text-sm text-gray-800 font-medium">
-              No generic tips. No AI fiction. Just your real achievements, turned into a resume that gets interviews.
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-
-    <div className="flex flex-col items-center gap-2 mt-5">
-      <button
-        onClick={handleNextTourScreen}
-        className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
-      >
-        Let's Go
-      </button>
-      {!careerCoachComplete && (
-        <button
-          onClick={() => router.push('/career-coach')}
-          className="text-purple-600 text-xs hover:underline"
-        >
-          Start with Career Coach first (recommended)
-        </button>
-      )}
-    </div>
-  </div>
-)}
             
               {/* Screen 1 */}
               {tourScreen === 1 && (
@@ -1795,14 +1717,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
       )}
 
-      {/* Modal */}
-      <Modal
-        isOpen={showStubModal}
-        onClose={() => setShowStubModal(false)}
-        title={stubModalContent.title}
-        message={stubModalContent.message}
-        icon="⚡"
-        buttonText="Got it"
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
     </div>
   );

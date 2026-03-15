@@ -40,7 +40,7 @@ export default function ResumeAnalysis() {
       // Get user and their tier
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/login')
+        router.push('/dashboard')
         return
       }
 

@@ -120,7 +120,7 @@ const handleResumeUpdate = async (updatedData) => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push('/login');
+        router.push('/dashboard');
         return;
       }
       setUser(user);

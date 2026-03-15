@@ -16,7 +16,7 @@ export default function ChoosePlanPage() {
   const checkIfAlreadySelected = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/login')
+      router.push('/dashboard')
       return
     }
 

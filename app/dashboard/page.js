@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 
@@ -15,11 +15,23 @@ export default function DashboardPage() {
   const [coreResume, setCoreResume] = useState(null);
   const [jobResumes, setJobResumes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginView, setLoginView] = useState('login'); // 'login' | 'forgot' | 'reset'
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/login'); return; }
+      if (!user) { setLoading(false); setShowLoginModal(true); return; }
       setUser(user);
 
       const { data: profile } = await supabase
@@ -47,6 +59,82 @@ export default function DashboardPage() {
     loadData();
   }, []);
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError('');
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: loginPassword,
+    });
+
+    setLoginLoading(false);
+
+    if (signInError) {
+      if (signInError.message.includes('Invalid login credentials') ||
+          signInError.message.includes('Email not confirmed')) {
+        setLoginError('account_not_found');
+      } else {
+        setLoginError(signInError.message);
+      }
+      return;
+    }
+
+    if (data.user) {
+      setShowLoginModal(false);
+      window.location.href = '/dashboard';
+    }
+  };
+const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      setShowLoginModal(true);
+      setLoginView('reset');
+    }
+  }, [searchParams]);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetError('');
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/dashboard`,
+    });
+    setResetLoading(false);
+    if (error) {
+      setResetError(error.message);
+    } else {
+      setResetSuccess(true);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (resetPassword !== resetConfirm) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+    if (resetPassword.length < 6) {
+      setResetError('Password must be at least 6 characters.');
+      return;
+    }
+    setResetLoading(true);
+    setResetError('');
+    const { error } = await supabase.auth.updateUser({ password: resetPassword });
+    setResetLoading(false);
+    if (error) {
+      setResetError(error.message);
+    } else {
+      setResetSuccess(true);
+      setTimeout(() => {
+        setShowLoginModal(false);
+        window.location.href = '/dashboard';
+      }, 2000);
+    }
+  };
   const journeyStep = coreResume?.journey_step || null;
   const hasCareer = !!careerContext;
   const hasResume = !!coreResume;
@@ -131,6 +219,206 @@ export default function DashboardPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex">
+
+{/* LOGIN MODAL */}
+      {showLoginModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{backgroundColor:'rgba(0,0,0,0.5)'}}
+        >
+          <div
+            className="bg-white shadow-2xl w-full overflow-hidden"
+            style={{maxWidth:'420px',borderRadius:'12px'}}
+          >
+            {/* Header */}
+            <div
+              style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+              className="px-6 py-5"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {loginView === 'login' && 'Welcome back'}
+                    {loginView === 'forgot' && 'Reset your password'}
+                    {loginView === 'reset' && 'Choose a new password'}
+                  </h2>
+                  <p className="text-purple-100 text-xs">
+                    {loginView === 'login' && 'Your lifelong career coach.'}
+                    {loginView === 'forgot' && "We'll send you a reset link."}
+                    {loginView === 'reset' && 'Make it something you\'ll remember.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5">
+
+              {/* LOGIN VIEW */}
+              {loginView === 'login' && (
+                <>
+                  {loginError === 'account_not_found' ? (
+                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm mb-4">
+                      👋 No account found. <button onClick={() => router.push('/landing')} className="font-semibold underline">Sign up free →</button>
+                    </div>
+                  ) : loginError ? (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
+                      {loginError}
+                    </div>
+                  ) : null}
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                      <input
+                        type="email"
+                        required
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="you@example.com"
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                      <input
+                        type="password"
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Your password"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loginLoading}
+                      className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    >
+                      {loginLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
+                          Logging in...
+                        </span>
+                      ) : 'Log in'}
+                    </button>
+                  </form>
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => { setLoginView('forgot'); setResetError(''); setResetSuccess(false); }}
+                      className="text-xs text-purple-600 hover:underline bg-transparent border-none cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                    <button onClick={() => router.push('/landing')} className="text-xs text-gray-400 hover:underline bg-transparent border-none cursor-pointer">
+                      Sign up free
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* FORGOT PASSWORD VIEW */}
+              {loginView === 'forgot' && (
+                <>
+                  {resetSuccess ? (
+                    <div className="text-center py-4">
+                      <div className="text-4xl mb-3">📧</div>
+                      <p className="font-semibold text-gray-900 mb-2">Check your email!</p>
+                      <p className="text-sm text-gray-600">Click the reset link and you'll be brought back here to choose a new password.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {resetError && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">{resetError}</div>
+                      )}
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                          <input
+                            type="email"
+                            required
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                            placeholder="you@example.com"
+                            autoFocus
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={resetLoading}
+                          className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                          {resetLoading ? 'Sending...' : 'Send reset link'}
+                        </button>
+                      </form>
+                      <button
+                        onClick={() => setLoginView('login')}
+                        className="w-full text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer mt-4"
+                      >
+                        ← Back to log in
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* RESET PASSWORD VIEW */}
+              {loginView === 'reset' && (
+                <>
+                  {resetSuccess ? (
+                    <div className="text-center py-4">
+                      <div className="text-4xl mb-3">✅</div>
+                      <p className="font-semibold text-gray-900 mb-2">Password updated!</p>
+                      <p className="text-sm text-gray-600">Taking you to your dashboard...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {resetError && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">{resetError}</div>
+                      )}
+                      <form onSubmit={handleResetPassword} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+                          <input
+                            type="password"
+                            required
+                            value={resetPassword}
+                            onChange={(e) => setResetPassword(e.target.value)}
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                            placeholder="Min. 6 characters"
+                            minLength={6}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+                          <input
+                            type="password"
+                            required
+                            value={resetConfirm}
+                            onChange={(e) => setResetConfirm(e.target.value)}
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                            placeholder="Same password again"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={resetLoading}
+                          className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                          {resetLoading ? 'Updating...' : 'Update password'}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                </>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SIDEBAR */}
       <div

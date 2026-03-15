@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import MainNav from '@/app/components/MainNav'
+import UpgradeModal from '@/app/components/UpgradeModal'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 
@@ -43,6 +44,8 @@ const [rewrittenResume, setRewrittenResume] = useState(null)
 const [resumeChanges, setResumeChanges] = useState([])
 const [coachingMessages, setCoachingMessages] = useState([])
 const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
+const [showCtaModal, setShowCtaModal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
@@ -291,7 +294,7 @@ function formatDate(dateString, format = dateFormat) {
   async function loadResume() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/login')
+      router.push('/dashboard')
       return
     }
 
@@ -335,6 +338,12 @@ if (data.ai_analysis) {
     setHistoryIndex(0)
     
     setLoading(false)
+
+    // Show CTA modal on first visit to resume detail
+    const ctaSeen = localStorage.getItem('hp_resume_cta_seen')
+    if (!ctaSeen) {
+      setTimeout(() => setShowCtaModal(true), 500)
+    }
   }
 
   async function loadUserProfile() {
@@ -416,6 +425,80 @@ if (data.ai_analysis) {
     setSaveSuccess(true)
     
     setTimeout(() => setSaveSuccess(false), 2000)
+  }
+if (showCtaModal) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{backgroundColor:'rgba(0,0,0,0.6)'}}
+      >
+        <div
+          className="bg-white shadow-2xl w-full overflow-hidden"
+          style={{maxWidth:'480px',borderRadius:'12px'}}
+        >
+          {/* Header */}
+          <div
+            style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+            className="px-6 py-5"
+          >
+            <div className="flex items-center gap-3">
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+              <div>
+                <h2 className="text-xl font-bold text-white">Your resume is ready to improve.</h2>
+                <p className="text-purple-100 text-xs">Here's what Pro does that Free can't.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="px-6 py-5">
+            <div className="space-y-3 mb-5">
+              {[
+                { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
+                { icon: '⚡', title: 'Improvements applied automatically', desc: "No guessing how to rewrite your bullets. Pro does it for you in under a minute." },
+                { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific versions, each coached and optimized for the role.' },
+                { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + AI-spoken practice built from your actual resume and target role.' },
+              ].map((item) => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <span className="text-xl flex-shrink-0">{item.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-5">
+              <p className="text-sm text-gray-800 font-medium">
+                Free tells you what to fix. Pro fixes it for you.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                localStorage.setItem('hp_resume_cta_seen', 'true')
+                setShowCtaModal(false)
+                // Wire to Stripe later
+              }}
+              className="w-full py-2.5 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors mb-3"
+            >
+              Upgrade to Pro — $29.99/mo
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.setItem('hp_resume_cta_seen', 'true')
+                setShowCtaModal(false)
+              }}
+              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
+            >
+              Continue with Free
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -2078,7 +2161,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           </p>
           <p className="text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap — so your resume becomes a stronger match for this specific job.</p>
           <button
-            onClick={() => window.location.href = '/upgrade'}
+            onClick={() => setShowUpgradeModal(true)}
             className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
           >
             Close the Gap on This Job →
@@ -2802,7 +2885,7 @@ const getMessageText = (msg) => {
             Pro users see an average <strong>16-point improvement</strong> after coaching.
           </p>
           <button
-            onClick={() => window.location.href = '/upgrade'}
+            onClick={() => setShowUpgradeModal(true)}
             className="w-full bg-purple-600 text-white rounded-lg px-6 py-2.5 text-sm font-semibold hover:bg-purple-700 transition-colors"
           >
             Upgrade to Pro →
@@ -3066,7 +3149,7 @@ const getMessageText = (msg) => {
                     </p>
                   )}
                   <button
-                    onClick={() => window.location.href = '/upgrade'}
+                    onClick={() => setShowUpgradeModal(true)}
                     className="bg-purple-600 text-white rounded-lg px-6 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
                   >
                     Upgrade to Pro → Coach My Entire Resume
@@ -3080,6 +3163,12 @@ const getMessageText = (msg) => {
           </div>
         </div>
       )}
+   
+   <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
+
     </>
   )
 }
@@ -3742,7 +3831,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
       <p className="text-xs text-gray-500 text-center">
         Want your entire resume coached?{' '}
         <button
-          onClick={() => window.location.href = '/upgrade'}
+          onClick={() => setShowUpgradeModal(true)}
           className="text-purple-600 font-medium hover:text-purple-700 underline"
         >
           Upgrade to Pro →

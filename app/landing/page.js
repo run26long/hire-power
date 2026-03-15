@@ -3,10 +3,59 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MainNav from '../components/MainNav';
-import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 
 export default function LandingPage() {
+  const router = useRouter();
   const [userProfile, setUserProfile] = useState(null);
+const [showSignupModal, setShowSignupModal] = useState(false);
+const [signupEmail, setSignupEmail] = useState('');
+const [signupPassword, setSignupPassword] = useState('');
+const [signupLoading, setSignupLoading] = useState(false);
+const [signupError, setSignupError] = useState('');
+const [signupSuccess, setSignupSuccess] = useState(false);
+const [signupAccountExists, setSignupAccountExists] = useState(false);
+
+const supabase = createClient();
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setSignupLoading(true);
+    setSignupError('');
+    setSignupSuccess(false);
+    setSignupAccountExists(false);
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: signupEmail,
+      password: signupPassword,
+    });
+
+    setSignupLoading(false);
+
+    if (signUpError) {
+      const errorMsg = signUpError.message.toLowerCase();
+      if (errorMsg.includes('already registered') ||
+          errorMsg.includes('already exists') ||
+          errorMsg.includes('user already registered')) {
+        setSignupAccountExists(true);
+        setTimeout(() => router.push('/dashboard'), 2000);
+      } else {
+        setSignupError(signUpError.message);
+      }
+      return;
+    }
+
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setSignupAccountExists(true);
+     setTimeout(() => router.push('/dashboard'), 2000);
+      return;
+    }
+
+    if (data.user) {
+      setSignupSuccess(true);
+    }
+  };
 
   useEffect(() => {
     async function loadUser() {
@@ -211,6 +260,107 @@ export default function LandingPage() {
         .hero-visual { animation: fadeIn 0.9s ease 0.3s both; }
       `}</style>
 
+{/* SIGNUP MODAL */}
+      {showSignupModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{backgroundColor:'rgba(0,0,0,0.5)'}}
+          onClick={() => setShowSignupModal(false)}
+        >
+          <div
+            className="bg-white shadow-2xl w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            style={{maxWidth:'420px',borderRadius:'12px'}}
+          >
+            {/* Header */}
+            <div
+              style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+              className="px-6 py-5 relative"
+            >
+              <button
+                onClick={() => setShowSignupModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Start your free account</h2>
+                  <p className="text-purple-100 text-xs">No credit card required. Free forever plan.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5">
+              {signupSuccess ? (
+                <div className="text-center py-4">
+                  <div className="text-4xl mb-3">📧</div>
+                  <p className="font-semibold text-gray-900 mb-2">Check your email!</p>
+                  <p className="text-sm text-gray-600">Click the confirmation link and you'll be signed in automatically and taken straight to your account.</p>
+                </div>
+              ) : (
+                <>
+                  {signupAccountExists && (
+                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm mb-4">
+                      👋 Account already exists! Redirecting to login...
+                    </div>
+                  )}
+                  {signupError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
+                      {signupError}
+                    </div>
+                  )}
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                      <input
+                        type="email"
+                        required
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                      <input
+                        type="password"
+                        required
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Min. 6 characters"
+                        minLength={6}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={signupLoading}
+                      className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    >
+                      {signupLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
+                          Creating account...
+                        </span>
+                      ) : 'Create free account'}
+                    </button>
+                  </form>
+                  <p className="text-center text-xs text-gray-400 mt-4">
+                    Already have an account?{' '}
+                    <a href="/login" className="text-purple-600 hover:underline font-medium">Log in</a>
+                  </p>
+                  <p className="text-center mt-3">
+                    <a href="/login?plan=pro" className="text-purple-600 text-xs hover:underline">Ready for the real conversation? Start with Pro.</a>
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* NAV */}
       <MainNav currentPage="landing" userProfile={userProfile} />
 
@@ -222,8 +372,13 @@ export default function LandingPage() {
           <p style={{fontFamily:"'Fraunces',serif",fontSize:'22px',fontWeight:400,fontStyle:'italic',color:'#9ca3af',letterSpacing:'-0.5px',marginBottom:'8px'}}>Job hunting is small talk.</p>
           <h1>Your career<br/>deserves a<br/><em>conversation.</em></h1>
           <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would, pulling out everything worth saying that you forgot to include.</p>
-          <div className="hero-actions">
-            <Link href="/signup" className="btn-primary-lg">Start Your Career Conversation — It&apos;s Free ↗</Link>
+         
+         <div style={{display:'flex',alignItems:'center',gap:'24px',margin:'0 0 24px',flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+              <div style={{width:'3px',height:'36px',background:'var(--purple)',borderRadius:'2px',flexShrink:0}}/>
+              <p style={{fontFamily:"'Fraunces',serif",fontSize:'18px',fontWeight:700,fontStyle:'italic',color:'#1a1033',lineHeight:1.3,margin:0}}>You&apos;re only one conversation away<br/>from a resume that gets results.</p>
+            </div>
+            <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'var(--purple)',color:'white',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(108,99,255,0.35)',transition:'all 0.2s',flexShrink:0}}>Start now for free</button>
           </div>
           </div>
           <div className="hero-trust">
@@ -516,9 +671,9 @@ export default function LandingPage() {
               <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(15px,1.6vw,18px)',fontWeight:700,fontStyle:'italic',color:'white',lineHeight:1.3,margin:'0 0 28px'}}>
                 Same candidate. Two tools.<br/>One wrote fiction.<br/><span style={{color:'#a78bfa'}}>The other uncovered the facts that got him hired.</span>
               </p>
-              <Link href="/signup" style={{display:'inline-block',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',fontWeight:700,padding:'12px 24px',borderRadius:'10px',textDecoration:'none',letterSpacing:'-0.01em',boxShadow:'0 4px 20px rgba(102,126,234,0.4)'}}>
+              <button onClick={() => setShowSignupModal(true)} style={{display:'inline-block',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',fontWeight:700,padding:'12px 24px',borderRadius:'10px',border:'none',cursor:'pointer',letterSpacing:'-0.01em',boxShadow:'0 4px 20px rgba(102,126,234,0.4)'}}>
                 Start for free — reveal your best resume →
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -650,15 +805,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PRICING */}
+{/* PRICING */}
       <section className="pricing" id="pricing">
         <div className="container">
           <div className="pricing-header">
             <div className="section-eyebrow" style={{textAlign:'center'}}>Pricing</div>
             <h2 className="section-title" style={{textAlign:'center'}}>One platform.<br/><em>Your whole career.</em></h2>
           </div>
-          <p className="pricing-os-line"><strong>Free</strong> — Try the OS &nbsp;·&nbsp; <strong>Pro</strong> — Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong> — Keep the OS running between upgrades</p>
+          <p className="pricing-os-line"><strong>Free</strong> — Try the OS &nbsp;·&nbsp; <strong>Pro</strong> — Run the OS at full power &nbsp;·&nbsp; <strong>Maintenance</strong> — Keep the OS running between upgrades</p>
           <div className="pricing-tiers">
+
             {/* FREE */}
             <div className="tier-card">
               <div className="tier-os-tag">Try the OS</div>
@@ -666,11 +822,28 @@ export default function LandingPage() {
               <div className="tier-price">$0</div>
               <p className="tier-desc">Get a real feel for conversation-based coaching. No credit card. No expiration.</p>
               <ul className="tier-features">
-                {['Career Coach — full access, unlimited','1 resume with AI analysis','Resume Power Score','Resume coaching trial (1 session)','Basic interview practice','Unlimited downloads','4 ATS-optimized templates'].map(f=>(
-                  <li key={f}><span className="check">✓</span> {f}</li>
-                ))}
+                <li><span className="check">✓</span> Career Coach — full access, unlimited</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Coach</li>
+                <li><span className="check">✓</span> 1 resume with AI analysis</li>
+                <li><span className="check">✓</span> Resume Power Score</li>
+                <li>
+                  <span className="check">✓</span>
+                  <span>Improvement Action Plan
+                    <span style={{display:'block',fontSize:'12px',color:'#9ca3af',fontWeight:400,marginTop:'2px'}}>You apply the changes</span>
+                  </span>
+                </li>
+               <li><span className="check">✓</span> Resume coaching trial</li>
+                <li><span className="check">✓</span> Unlimited downloads</li>
+                <li><span className="check">✓</span> 2 ATS-optimized templates</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Coach</li>
+                <li><span className="check">✓</span> Unlimited practice with general questions</li>
+                <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
+                <li><span className="check">✓</span> 1 job-specific interview practice session</li>
+                <li><span className="check">✓</span> Power Analysis reveal after your session — see what Pro prepares you with first</li>
               </ul>
-              <div className="tier-cta"><Link href="/signup" className="tier-btn ghost">Get started free</Link></div>
+              <div className="tier-cta">
+                <button onClick={() => setShowSignupModal(true)} className="tier-btn ghost" style={{width:'100%',cursor:'pointer',border:'1.5px solid rgba(0,0,0,0.12)'}}>Get started free</button>
+              </div>
             </div>
 
             {/* PRO */}
@@ -679,35 +852,57 @@ export default function LandingPage() {
               <div className="tier-os-tag">Full Power</div>
               <div className="tier-name">Pro</div>
               <div className="tier-price">$29.99<span>/mo</span></div>
-              <p className="tier-desc">The complete career preparation platform. Every coach, every conversation, fully unlocked.</p>
+              <p className="tier-desc">The complete Career OS. Every coach, every conversation, fully unlocked.</p>
               <ul className="tier-features">
-                {['Everything in Free','Resume Coach — unlimited conversations','Unlimited job customization','ATS optimization','Interview Coach — full Power Analysis','AI-spoken interview questions','Video recording & feedback','Company research integration','Career Archive (unlimited)','5 premium templates'].map(f=>(
-                  <li key={f}><span className="check">✓</span> {f}</li>
-                ))}
+                <li><span className="check">✓</span> Everything included in Free Tier, PLUS:</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Coach</li>
+                <li><span className="check">✓</span> Core resume + unlimited job-specific resumes</li>
+                <li>
+                  <span className="check">✓</span>
+                  <span>Improvement Action Plan
+                    <span style={{display:'block',fontSize:'12px',color:'rgba(255,255,255,0.4)',fontWeight:400,marginTop:'2px'}}>Applied automatically in under a minute</span>
+                  </span>
+                </li>
+                <li><span className="check">✓</span> Tailored resume for every application</li>
+                <li><span className="check">✓</span> Unlimited downloads</li>
+                <li><span className="check">✓</span> 5 ATS-optimized templates</li>
+                <li><span className="check">✓</span> Job application tracking</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Coach</li>
+                <li><span className="check">✓</span> Unlimited coaching + practice</li>
+                <li><span className="check">✓</span> Learn how to best present your experience for each specific role</li>
+                <li><span className="check">✓</span> Company research integration</li>
+                <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
+                <li><span className="check">✓</span> Video recording &amp; performance feedback</li>
+                <li><span className="check">✓</span> Level up before your interview — gamified practice progression</li>
               </ul>
-              <div className="tier-cta"><Link href="/signup?plan=pro" className="tier-btn solid">Start Pro free trial</Link></div>
+              <div className="tier-cta">
+                <button onClick={() => setShowSignupModal(true)} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none'}}>Go Pro — $29.99/mo</button>
+              </div>
             </div>
 
-            {/* VAULT */}
+            {/* MAINTENANCE */}
             <div className="tier-card">
               <div className="tier-os-tag">Keep the OS Running</div>
-              <div className="tier-name">Vault</div>
+              <div className="tier-name">Maintenance</div>
               <div className="tier-price">$4.99<span>/mo</span></div>
               <p className="tier-desc">Between job searches. Track wins, stay ready. Your career doesn&apos;t pause — neither should your OS.</p>
               <ul className="tier-features">
-                {['Track achievements as they happen','Complete career archive access','Saved job descriptions','Unlimited resume downloads','Premium templates','Job application tracking'].map(f=>(
-                  <li key={f}><span className="check">✓</span> {f}</li>
-                ))}
+                <li><span className="check">✓</span> Saved job description from the role you landed — the foundation of your next resume</li>
+                <li><span className="check">✓</span> Track achievements as they happen</li>
+                <li><span className="check">✓</span> Add new training, education, and skills in real time</li>
+                <li><span className="check">✓</span> Complete career archive access</li>
+                <li><span className="check">✓</span> Unlimited resume downloads</li>
+                <li><span className="check">✓</span> 5 premium templates</li>
               </ul>
               <div style={{marginTop:'auto',paddingTop:'24px',fontSize:'13px',color:'var(--gray)',fontStyle:'italic',lineHeight:1.5}}>
-                &quot;Your career doesn&apos;t pause between job searches. Neither should your OS.&quot;
+                Available after your job search — so you never have to start from scratch again.
               </div>
-              <div className="tier-cta"><Link href="/signup?plan=vault" className="tier-btn ghost">Start with Vault</Link></div>
             </div>
+
           </div>
           <p className="pricing-note">
             All plans include no credit card required to start &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp;{' '}
-            <Link href="#universities" style={{color:'var(--purple)',textDecoration:'none'}}>University licensing available →</Link>
+            <a href="#universities" style={{color:'var(--purple)',textDecoration:'none'}}>University licensing available →</a>
           </p>
         </div>
       </section>
@@ -715,9 +910,9 @@ export default function LandingPage() {
       {/* FINAL CTA */}
       <section className="final-cta">
         <h2>Your career deserves<br/>a <em>real conversation.</em></h2>
-        <p>Start with Career Coach — free, unlimited, and the most important career conversation you&apos;ll have this year.</p>
+        <p>Start with Career Coach — free, unlimited, and the most valuable five minutes of your job search.</p>
         <div className="final-cta-actions">
-          <Link href="/signup" className="btn-white">Start Your Career Conversation — It&apos;s Free ↗</Link>
+          <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'white',color:'#0D0D0D',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>Start now for free</button>
         </div>
       </section>
 

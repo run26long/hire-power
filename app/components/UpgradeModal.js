@@ -1,162 +1,126 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { TIERS } from '@/lib/subscription'
 
-export default function UpgradeModal({ isOpen, onClose, currentTier }) {
-  const router = useRouter()
-  const supabase = createClient()
-  const [upgrading, setUpgrading] = useState(false)
+export default function UpgradeModal({ isOpen, onClose }) {
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const handleUpgrade = async () => {
-    setUpgrading(true)
+    setLoading(true)
     setError(null)
-    
     try {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { error: updateError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
-        .update({
-          subscription_tier: TIERS.PRO,
-          subscription_start_date: new Date().toISOString()
-        })
+        .select('email')
         .eq('id', user.id)
+        .single()
 
-      if (updateError) throw updateError
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+          userId: user.id,
+          email: profile?.email || user.email,
+        })
+      })
 
-      onClose()
-      router.push('/dashboard?upgraded=true')
-      
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+
+      window.location.href = data.url
+
     } catch (err) {
       console.error('Upgrade error:', err)
-      setError('Upgrade failed. Please try again or contact support.')
-    } finally {
-      setUpgrading(false)
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
     }
   }
 
   if (!isOpen) return null
 
   return (
-   <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl border-2 border-purple-300 max-w-3xl w-full max-h-[85vh] overflow-y-auto">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-6 rounded-t-xl flex justify-between items-center">
-          <h2 className="text-3xl font-bold">Upgrade to Pro</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{backgroundColor:'rgba(0,0,0,0.6)'}}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white shadow-2xl w-full overflow-hidden"
+        style={{maxWidth:'480px',borderRadius:'12px'}}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+          className="px-6 py-5 relative"
+        >
           <button
             onClick={onClose}
-            className="text-white hover:text-gray-200 text-3xl leading-none font-light"
-          >
-            ×
-          </button>
+            className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+          >×</button>
+          <div className="flex items-center gap-3">
+            <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+            <div>
+              <h2 className="text-xl font-bold text-white">Unlock the full coaching experience</h2>
+              <p className="text-purple-100 text-xs">Everything Free has, plus the parts that do the work for you.</p>
+            </div>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8">
-          
+        <div className="px-6 py-5">
           {error && (
-            <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm font-medium">{error}</p>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
+              {error}
             </div>
           )}
 
-          {/* Pricing */}
-          <div className="text-center mb-6">
-            <div className="text-5xl font-bold text-purple-600 mb-2">$29.99</div>
-            <div className="text-gray-600">per month</div>
-          </div>
-          
-          <p className="text-center text-gray-700 mb-8 text-lg">
-            Your complete career operating system - resume coaching, interview practice, and lifetime achievement tracking in one integrated platform.
-          </p>
-          
-          {/* Features Grid */}
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
-            <div>
-              <p className="font-bold mb-4 text-lg text-gray-900">Resume Features:</p>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Professional coaching conversations</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Unlimited job customization</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>ATS optimization & match scoring</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Premium templates</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Unlimited re-analysis</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <p className="font-bold mb-4 text-lg text-gray-900">Interview Features:</p>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>AI-spoken personalized questions</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Power Skill Analysis</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Company research integration</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Video recording & feedback</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Gamified progression</span>
-                </li>
-              </ul>
-            </div>
+          <div className="space-y-3 mb-5">
+            {[
+              { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
+              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite your bullets. Pro does it for you in under a minute.' },
+              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific versions, each coached and optimized for the role.' },
+              { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + AI-spoken practice built from your actual resume and target role.' },
+            ].map((item) => (
+              <div key={item.title} className="flex items-start gap-3">
+                <span className="text-xl flex-shrink-0">{item.icon}</span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Integration Callout */}
-          <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-center text-purple-900">
-              <strong>True Integration:</strong> One achievement database feeds both resume customization AND interview prep. No competitor offers this.
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-5">
+            <p className="text-sm text-gray-800 font-medium">
+              Free tells you what to fix. Pro fixes it for you.
             </p>
           </div>
-          
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleUpgrade}
-              disabled={upgrading || currentTier === TIERS.PRO}
-              className="w-full bg-purple-600 text-white py-4 rounded-lg hover:bg-purple-700 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {upgrading && (
-                <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-              )}
-              {currentTier === TIERS.PRO ? 'Already on Pro' : upgrading ? 'Processing...' : 'Upgrade to Pro →'}
-            </button>
-            
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 font-medium transition-colors"
-            >
-              Maybe Later
-            </button>
-          </div>
+
+          <button
+            onClick={handleUpgrade}
+            disabled={loading}
+            className="w-full py-2.5 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors mb-3"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
+                Redirecting to checkout...
+              </span>
+            ) : 'Upgrade to Pro — $29.99/mo'}
+          </button>
+
+          <button
+            onClick={onClose}
+            className="w-full text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
+          >
+            Continue with Free
+          </button>
         </div>
       </div>
     </div>

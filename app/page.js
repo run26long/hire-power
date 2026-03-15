@@ -11,24 +11,12 @@ export default function Home() {
     checkUser()
   }, [])
 
-const checkUser = async () => {
+  const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    
     if (user) {
-      // Check if they've selected a tier
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tier_selected')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.tier_selected) {
-        router.push('/dashboard')
-      } else {
-        router.push('/choose-plan')
-      }
+      router.push('/dashboard')
     } else {
-      router.push('/login')
+      router.push('/landing')
     }
   }
 

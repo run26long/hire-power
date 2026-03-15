@@ -198,7 +198,7 @@ export default function PricingPage() {
             </ul>
             <p className="text-xs text-gray-500">
               Already have an account? {' '}
-              <button onClick={() => router.push('/login')} className="text-purple-600 hover:underline">
+              <button onClick={() => router.push('/dashboard')} className="text-purple-600 hover:underline">
                 Sign in
               </button>
             </p>
