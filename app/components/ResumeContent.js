@@ -256,6 +256,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   const activeSectionOrder = (resumeData.sectionOrder?.length ? resumeData.sectionOrder : defaultSectionOrder)
     .filter(s => defaultSectionOrder.includes(s))
 
+  const titleTemplates = ['prestige', 'signature', 'current', 'vibe', 'edge']
+  const showProfessionalTitle = titleTemplates.includes(selectedTemplate)
+  const professionalTitleDisplay = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
+
   // Entry move arrows — shown on hover for each entry within a section
   const entryArrows = (field, index, length) => !readOnly && (
     <div className="flex items-center gap-1 opacity-0 group-hover/entry:opacity-100">
@@ -673,8 +677,8 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
 
   return (
     <div style={ts.page || {}}>
-      {/* Contact */}
-      <div className="text-center mb-6 p-2 rounded" style={ts.headerArea || {}}>
+      {/* Header */}
+      <div className="mb-6 p-2 rounded" style={ts.headerArea || {}}>
         <h1
           className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
           style={ts.name || {}}
@@ -682,18 +686,29 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           suppressContentEditableWarning
           onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
         >{resumeData.fullName || 'Your Name'}</h1>
-        <p
-          className={`text-sm text-gray-600 mt-1 ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
-          style={ts.contact || {}}
-          contentEditable={!readOnly}
-          suppressContentEditableWarning
-          onBlur={(e) => {
-            if (isUndoingRef.current) return
-            const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
-            const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
-            onUpdate(newData)
-          }}
-        >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
+        {showProfessionalTitle && (
+          <p
+            className={`text-sm text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-50 px-2 rounded'}`}
+            style={ts.professionalTitle || { fontStyle: 'italic', color: '#666' }}
+            contentEditable={!readOnly}
+            suppressContentEditableWarning
+            onBlur={(e) => updateField('professionalTitle', e.currentTarget.textContent)}
+          >{professionalTitleDisplay || (!readOnly ? 'Add a professional title' : '')}</p>
+        )}
+        <div style={ts.contactBand || {}}>
+          <p
+            className={`text-sm text-gray-600 mt-1 text-center ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
+            style={ts.contact || {}}
+            contentEditable={!readOnly}
+            suppressContentEditableWarning
+            onBlur={(e) => {
+              if (isUndoingRef.current) return
+              const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
+              const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
+              onUpdate(newData)
+            }}
+          >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
+        </div>
       </div>
 
       {/* Summary */}

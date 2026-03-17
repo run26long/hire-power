@@ -9,6 +9,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
   const fontFamily = font || 'Calibri, "Trebuchet MS", Arial, sans-serif';
 
   const px = (n) => `${Math.round(n * sp)}px`;
+  const heavyWeight = (font && font.includes('Arial')) ? '700' : '800';
 
   const s = {
     page: {
@@ -24,8 +25,9 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
     name: {
       fontFamily,
       fontSize: '22pt',
-      fontWeight: '800',
+      fontWeight: heavyWeight,
       letterSpacing: '0.5px',
+      padding: '0',
       marginBottom: px(2),
       lineHeight: '1.1',
       color: '#111',
@@ -52,7 +54,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
     sh: {
       fontFamily,
       fontSize: `${base}pt`,
-      fontWeight: '800',
+      fontWeight: heavyWeight,
       letterSpacing: '2px',
       textTransform: 'uppercase',
       borderBottom: '1.5px solid #111',
@@ -63,12 +65,12 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       lineHeight: '1.1',
     },
     entry: { marginBottom: px(10) },
-    jobTitle: { fontFamily, fontWeight: '800', fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
+    jobTitle: { fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
     jobMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(2), lineHeight: '1.1' },
     li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
     sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.1' },
     body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.1' },
-    eduTitle: { fontFamily, fontWeight: '800', fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
+    eduTitle: { fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
     eduMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.1' },
   };
 
@@ -84,8 +86,8 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
     <div style={s.page}>
       {/* Header */}
       <div style={s.name}>{resumeData.fullName}</div>
-      <div style={s.contact}>{contactParts.map((p, i) => <span key={i}>{p}</span>)}</div>
       <hr style={s.hdrRule} />
+      <div style={s.contact}>{contactParts.map((p, i) => <span key={i}>{p}</span>)}</div>
 
       {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
@@ -146,7 +148,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
           {Object.entries(skills).map(([cat, items]) => (
             <div key={cat} style={{ marginBottom: px(3) }}>
               {Object.keys(skills).length > 1
-                ? <><span style={{ fontFamily, fontWeight: '800', fontSize: `${base}pt` }}>{cat}: </span>
+                ? <><span style={{ fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt` }}>{cat}: </span>
                     <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span></>
                 : <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span>
               }

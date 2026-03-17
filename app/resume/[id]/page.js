@@ -56,9 +56,9 @@ const [showCtaModal, setShowCtaModal] = useState(false)
   const isUndoingRef = useRef(false)
   
   // Toolbar states
-  const [selectedTemplate, setSelectedTemplate] = useState('crisp')
+  const [selectedTemplate, setSelectedTemplate] = useState('current')
 const [accentColor, setAccentColor] = useState('#5b4fcf')
-  const [selectedFont, setSelectedFont] = useState('Georgia')
+  const [selectedFont, setSelectedFont] = useState('Calibri')
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
 const [dateFormat, setDateFormat] = useState('short')
@@ -328,12 +328,15 @@ function formatDate(dateString, format = dateFormat) {
   }, [resume?.resume_data])
 
   useEffect(() => {
-    const templateFonts = {
+   const templateFonts = {
       crisp: 'Cambria',
       sharp: 'Calibri',
+      current: 'Calibri',
       command: 'Arial',
       prestige: 'Garamond',
-      signature: 'Georgia',
+      signature: 'Garamond',
+      vibe: 'Georgia',
+      edge: 'Arial',
     }
     if (templateFonts[selectedTemplate]) {
       setSelectedFont(templateFonts[selectedTemplate])
@@ -367,11 +370,14 @@ if (data.ai_analysis) {
    const templateFonts = {
       crisp: 'Cambria',
       sharp: 'Calibri',
+      current: 'Calibri',
       command: 'Arial',
       prestige: 'Garamond',
-      signature: 'Georgia',
+      signature: 'Garamond',
+      vibe: 'Georgia',
+      edge: 'Arial',
     }
-   const loadedTemplate = data.template_id || 'crisp'
+   const loadedTemplate = data.template_id || 'current'
     
     setSelectedTemplate(loadedTemplate)
     setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Georgia')
@@ -623,11 +629,14 @@ if (showCtaModal) {
                   const t = e.target.value
                   setSelectedTemplate(t)
                   const templateDefaultFonts = {
-                    crisp: 'Georgia',
+                    crisp: 'Cambria',
                     sharp: 'Calibri',
+                    current: 'Calibri',
                     command: 'Arial',
-                    prestige: 'Georgia',
-                    signature: 'Georgia',
+                    prestige: 'Garamond',
+                    signature: 'Garamond',
+                    vibe: 'Georgia',
+                    edge: 'Arial',
                   }
                   setSelectedFont(templateDefaultFonts[t] || 'Georgia')
                 }}
@@ -635,9 +644,12 @@ if (showCtaModal) {
               >
                 <option value="crisp">Crisp (Free)</option>
                 <option value="sharp">Sharp (Free)</option>
+                <option value="current">Current (Free)</option>
                 <option value="command">Command ✦ Pro</option>
                 <option value="prestige">Prestige ✦ Pro</option>
                 <option value="signature">Signature ✦ Pro</option>
+                <option value="vibe">Vibe ✦ Pro</option>
+                <option value="edge">Edge ✦ Pro</option>
               </select>
             </div>
 
@@ -704,7 +716,7 @@ if (showCtaModal) {
             </div>
 
           {/* Color picker - Pro templates only */}
-            {['command','prestige','signature'].includes(selectedTemplate) && (
+            {['command','prestige','signature','vibe','edge'].includes(selectedTemplate) && (
               <div className="relative group/colorpick">
                 <button
                   style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}

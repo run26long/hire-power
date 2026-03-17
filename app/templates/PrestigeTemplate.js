@@ -36,6 +36,7 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
     tl: {
       fontFamily,
       fontSize: `${base + 1}pt`,
+      fontWeight: '700',
       letterSpacing: '1px',
       color: color,
       fontStyle: 'italic',
@@ -166,7 +167,7 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
             {Object.entries(skills).map(([cat, items]) => (
               <div key={cat} style={{ marginBottom: px(3) }}>
                 {Object.keys(skills).length > 1
-                  ? <><span style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt`, color: color }}>{cat}: </span>
+                  ? <><span style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt`, color: '#1a1a1a' }}>{cat}: </span>
                       <span style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{items.join(' • ')}</span></>
                   : <span style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{items.join(' • ')}</span>
                 }

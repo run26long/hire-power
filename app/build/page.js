@@ -26,6 +26,7 @@ export default function BuildPage() {
     location: "",
     linkedin: "",
     portfolio: "",
+    professionalTitle: "",
     summary: "",
     hideSummary: false,
     experience: [],
@@ -36,6 +37,7 @@ export default function BuildPage() {
     certifications: [],
     volunteer: [],
     languages: [],
+    additionalInfo: [],
     sectionOrder: ["experience", "education", "skills"]
   });
 
@@ -343,6 +345,20 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             placeholder="janedoe.com"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Professional Title <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={resumeData.professionalTitle}
+            onChange={(e) => handleChange('professionalTitle', e.target.value)}
+            placeholder="e.g., Marketing Manager, Software Engineer"
+            className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+          />
+          <p className="text-xs text-gray-400 mt-1">Used on select templates. You can add or edit this later.</p>
         </div>
       </div>
 
