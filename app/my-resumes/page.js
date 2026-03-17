@@ -475,13 +475,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       review: `/resume/${resumeId}?step=assess`,
       assess: `/resume/${resumeId}?step=coach`,
       coach: `/resume/${resumeId}?step=improve`,
-      improve: `/resume/${resumeId}?step=polish`,
-      polish: `/resume/${resumeId}?step=save`
+      improve: `/resume/${resumeId}?step=format`,
+      format: `/resume/${resumeId}?step=save`
     } : {
       review: `/resume/${resumeId}?step=assess`,
       assess: `/resume/${resumeId}?step=coach`,
       coach: `/resume/${resumeId}?step=improve`,
-      improve: `/resume/${resumeId}?step=save`
+      improve: `/resume/${resumeId}?step=format`,
+      format: `/resume/${resumeId}?step=save`
     };
     
     router.push(nextSteps[journeyStep] || `/resume/${resumeId}`);
@@ -500,7 +501,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
      improve: isFree 
         ? "Review the suggestions from your assessment and make changes directly to your resume. When you're done, save and download."
         : "The big reveal! See your updated Resume Power Score, review each improvement your coach made, then keep, edit, or reject each change.",
-      polish: "Last chance for tweaks. Make any final edits before locking it in.",
+      format: "Content is locked in. Run Auto-fit to get the perfect page fit, try different templates, and preview before downloading.",
       save: isFree
         ? "Your core resume is complete! Download it for immediate use, and when you're ready, upload a job description to see how well your resume matches that role."
         : "Your core resume is bulletproof. Download it for immediate use, and when you're ready, create a job-specific version that builds on this foundation."
@@ -515,7 +516,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       assess: "Start Assessment",
       coach: "Start Coaching",
       improve: "Improve Resume",
-      polish: "Polish Resume",
+      format: "Format Resume",
       save: "Download Resume"
     };
     return buttonText[step] || "Continue";
@@ -581,8 +582,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
   // Journey steps for progress bar (tier-specific)
  const steps = isPro 
-    ? ['review', 'assess', 'coach', 'improve', 'polish', 'save']
-    : ['review', 'assess', 'coach', 'improve', 'save'];
+    ? ['review', 'assess', 'coach', 'improve', 'format', 'save']
+    : ['review', 'assess', 'coach', 'improve', 'format', 'save'];
   const currentIndex = data?.coreResume?.journey_step ? steps.indexOf(data.coreResume.journey_step) : -1;
   const totalSteps = steps.length;
 
@@ -921,8 +922,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         </div>
                         <div className="relative flex justify-between">
                           {(isPro 
-                            ? ['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save']
-                            : ['Review', 'Assess', 'Coach', 'Improve', 'Save']
+                            ? ['Review', 'Assess', 'Coach', 'Improve', 'Format', 'Save']
+                            : ['Review', 'Assess', 'Coach', 'Improve', 'Format', 'Save']
                           ).map((step, index) => {
                             const isPast = currentIndex > index;
                             const isActive = currentIndex === index || (currentIndex < 0 && index <= 1);
@@ -1298,10 +1299,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200"></div>
                         <div className="relative flex justify-between">
-                         {(isPro 
-                            ? ['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save']
-                            : ['Review', 'Assess', 'Coach', 'Improve', 'Save']
-                          ).map((step) => (
+                         {['Review', 'Assess', 'Coach', 'Improve', 'Format', 'Save'].map((step) => (
                             <div key={step} className="flex flex-col items-center">
                               <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
                                 ○
@@ -1611,7 +1609,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         
                         {/* Circles - w-4 h-4 with empty circle character */}
                         <div className="relative flex flex-col justify-between" style={{ height: '160px', marginTop: '-2px' }}>
-                          {['Review', 'Assess', 'Coach', 'Improve', 'Polish', 'Save'].map((step, index) => (
+                          {['Review', 'Assess', 'Coach', 'Improve', 'Format', 'Save'].map((step, index) => (
                             <div key={step} className="flex items-center justify-center" style={{ height: '16px' }}>
                               <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
                                 ○
@@ -1628,7 +1626,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           { title: 'Assess', desc: 'See your Resume Power Score' },
                           { title: 'Coach', desc: 'Conversation reveals missing achievements', pro: true },
                           { title: 'Improve', desc: 'Accept targeted improvements' },
-                          { title: 'Polish', desc: 'Final edits and formatting', pro: true },
+                          { title: 'Format', desc: 'Auto-fit and final formatting' },
                           { title: 'Save', desc: 'Download your stronger resume' }
                         ].map((step, i) => (
                           <div key={i} style={{ height: '16px', display: 'flex', alignItems: 'center' }}>

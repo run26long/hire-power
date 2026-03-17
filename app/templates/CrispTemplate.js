@@ -6,7 +6,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
   const skills = getSkillsDisplay(resumeData);
   const base = fontSize || 11;
   const sp = spacing || 1;
-  const fontFamily = font || 'Georgia, "Times New Roman", serif';
+ const fontFamily = font || 'Cambria, "Times New Roman", serif';
 
   const px = (n) => `${Math.round(n * sp)}px`;
 
@@ -160,7 +160,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
           {resumeData.certifications.map((c, i) => (
             <div key={i} style={i < resumeData.certifications.length - 1 ? s.entry : {}}>
               <div style={{ fontFamily, fontSize: `${base}pt` }}>
-                <strong>{c.name}</strong>{c.details ? ` – ${c.details}` : ''}
+                <strong>{c.name}</strong>{c.details ? ` | ${c.details}` : ''}
               </div>
             </div>
           ))}
@@ -190,6 +190,22 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
             <div key={i} style={i < resumeData.projects.length - 1 ? s.entry : {}}>
               <div style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt` }}>{p.name}{p.link ? ` — ${p.link}` : ''}</div>
               <div style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{p.description}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Additional Information */}
+      {resumeData.additionalInfo?.length > 0 && (
+        <div style={s.section}>
+          <div style={s.sh}>Additional Information</div>
+          <hr style={s.hrSection} />
+          {resumeData.additionalInfo.map((item, i) => (
+            <div key={i} style={i < resumeData.additionalInfo.length - 1 ? { marginBottom: px(3) } : {}}>
+              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.1', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
+                <strong>{item.label}</strong>
+                {item.detail && <span style={{ color: '#555' }}>| {item.detail}</span>}
+              </div>
             </div>
           ))}
         </div>

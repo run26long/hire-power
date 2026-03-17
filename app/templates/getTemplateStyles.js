@@ -8,11 +8,11 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
 
   // Template default fonts — overridden by user font selection if provided
   const templateFonts = {
-    crisp: 'Georgia, "Times New Roman", serif',
-    sharp: '"Trebuchet MS", Arial, sans-serif',
+    crisp: 'Cambria, "Times New Roman", serif',
+    sharp: 'Calibri, Arial, sans-serif',
     command: 'Arial, Helvetica, sans-serif',
-    prestige: '"Palatino Linotype", Palatino, Georgia, serif',
-    signature: '"Palatino Linotype", Palatino, Georgia, serif',
+    prestige: 'Garamond, "Times New Roman", serif',
+    signature: 'Georgia, "Times New Roman", serif',
   }
 
   // Use user-selected font if provided, otherwise use template default
@@ -22,7 +22,7 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
     page: {
       fontFamily: ff,
       fontSize: `${base}pt`,
-      lineHeight: '1.1',
+      lineHeight: '1.15',
       color: '#1a1a1a',
       background: '#fff',
     },
@@ -122,13 +122,16 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       return {
         ...defaults,
         page: { ...defaults.page },
-        name: { ...defaults.name, fontWeight: '800', letterSpacing: '1px' },
-        contact: { ...defaults.contact },
+        name: { ...defaults.name, fontWeight: '800', letterSpacing: '0.5px', textAlign: 'left', fontSize: '22pt' },
+        contact: { ...defaults.contact, textAlign: 'left' },
+        headerArea: { ...defaults.headerArea, borderBottom: '3px solid #111', padding: '0 0 4px 0', marginBottom: '4px' },
         sectionHeader: {
           ...defaults.sectionHeader,
           fontWeight: '800',
           letterSpacing: '2px',
-          borderBottom: '2.5px solid #1a1a1a',
+          borderBottom: '1.5px solid #111',
+          marginTop: '14px',
+          marginBottom: '4px',
         },
         jobTitle: { ...defaults.jobTitle, fontWeight: '800' },
         company: { ...defaults.company },
@@ -145,9 +148,9 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
           background: accent,
           padding: '18px 24px 14px',
           marginBottom: '12px',
-          marginLeft: '-52px',
-          marginRight: '-52px',
-          marginTop: '-48px',
+          marginLeft: '-24px',
+          marginRight: '-24px',
+          marginTop: '-0',
         },
         name: { ...defaults.name, color: '#ffffff', fontWeight: '700', letterSpacing: '1px' },
         contact: { ...defaults.contact, color: 'rgba(255,255,255,0.88)' },

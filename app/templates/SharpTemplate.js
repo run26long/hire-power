@@ -1,46 +1,75 @@
-// SharpTemplate.js — Clean sans-serif | Free tier
+// SharpTemplate.js — Bold sans-serif | Free tier
 import { formatDate, formatDateRange, getSkillsDisplay } from './templateUtils';
 
-export default function SharpTemplate({ resumeData, font, fontSize, accentColor, dateFormat = 'short' }) {
+export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1, accentColor, dateFormat = 'short' }) {
   if (!resumeData) return null;
   const skills = getSkillsDisplay(resumeData);
   const base = fontSize || 11;
+  const sp = spacing || 1;
+  const fontFamily = font || 'Calibri, "Trebuchet MS", Arial, sans-serif';
+
+  const px = (n) => `${Math.round(n * sp)}px`;
 
   const s = {
     page: {
-      fontFamily: font || '"Trebuchet MS", "Helvetica Neue", Arial, sans-serif',
-      fontSize: `${base}px`,
-      lineHeight: '1.5',
-      color: '#222',
-      padding: '44px 52px',
+      fontFamily,
+      fontSize: `${base}pt`,
+      lineHeight: '1.1',
+      color: '#111',
+      padding: `${px(36)} ${px(52)}`,
       background: '#fff',
       width: '100%',
       boxSizing: 'border-box',
     },
-    hdr: { marginBottom: '14px', borderBottom: '2px solid #222', paddingBottom: '12px' },
-    name: { fontSize: `${base + 15}px`, fontWeight: '700', letterSpacing: '0.5px', marginBottom: '5px' },
-    contact: { fontSize: `${base - 1.5}px`, color: '#555', display: 'flex', gap: '14px', flexWrap: 'wrap' },
-    sh: {
-      fontSize: `${base}px`,
-      fontWeight: '700',
-      letterSpacing: '1.5px',
-      textTransform: 'uppercase',
-      borderBottom: '1px solid #ddd',
-      paddingBottom: '3px',
-      marginBottom: '8px',
-      marginTop: '14px',
-      color: '#222',
+    name: {
+      fontFamily,
+      fontSize: '22pt',
+      fontWeight: '800',
+      letterSpacing: '0.5px',
+      marginBottom: px(2),
+      lineHeight: '1.1',
+      color: '#111',
+      textAlign: 'left',
     },
-    row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
-    jt: { fontWeight: '700', fontSize: `${base}px` },
-    dt: { fontSize: `${base - 1}px`, color: '#666' },
-    co: { fontSize: `${base - 1}px`, color: '#555', marginBottom: '4px' },
-    li: { margin: '2px 0 2px 16px', listStyle: 'square' },
-    sm: { fontSize: `${base - 1}px`, color: '#444', margin: '3px 0' },
-    grid: { display: 'flex', gap: '24px', flexWrap: 'wrap' },
-    sc: { flex: '1 1 160px' },
-    scn: { fontWeight: '700', fontSize: `${base - 1}px`, marginBottom: '3px' },
-    si: { fontSize: `${base - 1}px`, color: '#444', margin: '1px 0' },
+    contact: {
+      fontFamily,
+      fontSize: `${base}pt`,
+      color: '#444',
+      display: 'flex',
+      gap: px(12),
+      flexWrap: 'wrap',
+      marginBottom: px(4),
+      lineHeight: '1.1',
+    },
+    hdrRule: {
+      border: 'none',
+      borderBottom: '3px solid #111',
+      margin: `0 0 ${px(2)} 0`,
+    },
+    section: {
+      marginTop: px(14),
+    },
+    sh: {
+      fontFamily,
+      fontSize: `${base}pt`,
+      fontWeight: '800',
+      letterSpacing: '2px',
+      textTransform: 'uppercase',
+      borderBottom: '1.5px solid #111',
+      paddingBottom: px(2),
+      marginBottom: px(5),
+      marginTop: '0',
+      color: '#111',
+      lineHeight: '1.1',
+    },
+    entry: { marginBottom: px(10) },
+    jobTitle: { fontFamily, fontWeight: '800', fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
+    jobMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(2), lineHeight: '1.1' },
+    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.1' },
+    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.1' },
+    eduTitle: { fontFamily, fontWeight: '800', fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
+    eduMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.1' },
   };
 
   const contactParts = [
@@ -53,119 +82,142 @@ export default function SharpTemplate({ resumeData, font, fontSize, accentColor,
 
   return (
     <div style={s.page}>
-      <div style={s.hdr}>
-        <div style={s.name}>{resumeData.fullName}</div>
-        <div style={s.contact}>
-          {contactParts.map((p, i) => <span key={i}>{p}</span>)}
-        </div>
-      </div>
+      {/* Header */}
+      <div style={s.name}>{resumeData.fullName}</div>
+      <div style={s.contact}>{contactParts.map((p, i) => <span key={i}>{p}</span>)}</div>
+      <hr style={s.hdrRule} />
 
+      {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Professional Summary</div>
-          <p style={{ fontSize: `${base}px`, color: '#333', margin: '0 0 2px' }}>{resumeData.summary}</p>
-        </>
+          <p style={s.body}>{resumeData.summary}</p>
+        </div>
       )}
 
+      {/* Experience */}
       {resumeData.experience?.length > 0 && (
-        <>
-          <div style={s.sh}>Professional Experience</div>
+        <div style={s.section}>
+          <div style={s.sh}>Experience</div>
           {resumeData.experience.map((job, i) => (
-            <div key={i} style={{ marginBottom: '13px' }}>
-              <div style={s.row}>
-                <span style={s.jt}>{job.title}</span>
-                <span style={s.dt}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</span>
+            <div key={i} style={i < resumeData.experience.length - 1 ? s.entry : {}}>
+              <div style={s.jobTitle}>{job.title}</div>
+              <div style={s.jobMeta}>
+                {[job.company, job.location, formatDateRange(job.startDate, job.endDate, job.current, dateFormat)]
+                  .filter(Boolean).join(' | ')}
               </div>
-              <div style={s.co}>{[job.company, job.location].filter(Boolean).join(' | ')}</div>
               {job.summary && !job.summaryDismissed && <p style={s.sm}>{job.summary}</p>}
               {job.bullets?.length > 0 && (
-                <ul style={{ margin: 0, padding: 0 }}>
-                  {job.bullets.map((b, k) => <li key={k} style={s.li}>{b}</li>)}
-                </ul>
+                <div style={{ marginTop: px(2) }}>
+                  {job.bullets.map((b, k) => (
+                    <div key={k} style={s.li}>
+                      <span style={{ flexShrink: 0 }}>•</span>
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ))}
-        </>
+        </div>
       )}
 
+      {/* Education */}
       {resumeData.education?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Education</div>
           {resumeData.education.map((ed, i) => (
-            <div key={i} style={{ marginBottom: '8px' }}>
-              <div style={s.row}>
-                <span style={s.jt}>{ed.school}</span>
-                <span style={s.dt}>{formatDate(ed.graduationDate, dateFormat)}</span>
+            <div key={i} style={i < resumeData.education.length - 1 ? s.entry : {}}>
+              <div style={s.eduTitle}>{ed.school}</div>
+              <div style={s.eduMeta}>
+                {[ed.degree && ed.field ? `${ed.degree}, ${ed.field}` : (ed.degree || ed.field), formatDate(ed.graduationDate, dateFormat)]
+                  .filter(Boolean).join(' | ')}
               </div>
-              <div style={s.co}>{[ed.degree, ed.field].filter(Boolean).join(', ')}</div>
-              {ed.lines?.map((l, k) => <div key={k} style={{ fontSize: `${base - 1}px`, color: '#555' }}>{l}</div>)}
+              {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#333', lineHeight: '1.1' }}>{l}</div>)}
             </div>
           ))}
-        </>
+        </div>
       )}
 
+      {/* Skills */}
       {Object.keys(skills).length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Skills</div>
-          {Object.keys(skills).length > 1 ? (
-            <div style={s.grid}>
-              {Object.entries(skills).map(([cat, items]) => (
-                <div key={cat} style={s.sc}>
-                  <div style={s.scn}>{cat}</div>
-                  {items.map((item, i) => <div key={i} style={s.si}>{item}</div>)}
-                </div>
-              ))}
+          {Object.entries(skills).map(([cat, items]) => (
+            <div key={cat} style={{ marginBottom: px(3) }}>
+              {Object.keys(skills).length > 1
+                ? <><span style={{ fontFamily, fontWeight: '800', fontSize: `${base}pt` }}>{cat}: </span>
+                    <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span></>
+                : <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span>
+              }
             </div>
-          ) : (
-            <div style={{ fontSize: `${base - 1}px`, color: '#333' }}>
-              {Object.values(skills)[0].join(' • ')}
-            </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
 
+      {/* Certifications */}
       {resumeData.certifications?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Certifications</div>
           {resumeData.certifications.map((c, i) => (
-            <div key={i} style={{ fontSize: `${base - 1}px`, marginBottom: '3px' }}>
-              <strong>{c.name}</strong>{c.details ? ` — ${c.details}` : ''}
+            <div key={i} style={i < resumeData.certifications.length - 1 ? s.entry : {}}>
+              <div style={{ fontFamily, fontSize: `${base}pt` }}>
+                <strong>{c.name}</strong>{c.details ? ` | ${c.details}` : ''}
+              </div>
             </div>
           ))}
-        </>
+        </div>
       )}
 
+      {/* Volunteer */}
       {resumeData.volunteer?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Volunteer Experience</div>
           {resumeData.volunteer.map((v, i) => (
-            <div key={i} style={{ marginBottom: '6px' }}>
-              <div style={{ fontWeight: '700', fontSize: `${base}px` }}>{v.organization}</div>
-              <div style={{ fontSize: `${base - 1}px`, color: '#444' }}>{v.description}</div>
+            <div key={i} style={i < resumeData.volunteer.length - 1 ? s.entry : {}}>
+              <div style={{ fontFamily, fontWeight: '800', fontSize: `${base}pt` }}>{v.organization}</div>
+              <div style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{v.description}</div>
             </div>
           ))}
-        </>
+        </div>
       )}
 
+      {/* Projects */}
       {resumeData.projects?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Projects</div>
           {resumeData.projects.map((p, i) => (
-            <div key={i} style={{ marginBottom: '6px' }}>
-              <div style={{ fontWeight: '700', fontSize: `${base}px` }}>{p.name}{p.link ? ` — ${p.link}` : ''}</div>
-              <div style={{ fontSize: `${base - 1}px`, color: '#444' }}>{p.description}</div>
+            <div key={i} style={i < resumeData.projects.length - 1 ? s.entry : {}}>
+              <div style={{ fontFamily, fontWeight: '800', fontSize: `${base}pt` }}>{p.name}{p.link ? ` — ${p.link}` : ''}</div>
+              <div style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{p.description}</div>
             </div>
           ))}
-        </>
+        </div>
       )}
 
+      {/* Additional Information */}
+      {resumeData.additionalInfo?.length > 0 && (
+        <div style={s.section}>
+          <div style={s.sh}>Additional Information</div>
+          {resumeData.additionalInfo.map((item, i) => (
+            <div key={i} style={i < resumeData.additionalInfo.length - 1 ? { marginBottom: px(3) } : {}}>
+              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.1', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
+                <strong>{item.label}</strong>
+                {item.detail && <span style={{ color: '#555' }}>| {item.detail}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Languages */}
       {resumeData.languages?.length > 0 && (
-        <>
+        <div style={s.section}>
           <div style={s.sh}>Languages</div>
-          <div style={{ fontSize: `${base - 1}px`, color: '#333' }}>
+          <div style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>
             {resumeData.languages.map(l => `${l.language} (${l.proficiency})`).join(' • ')}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

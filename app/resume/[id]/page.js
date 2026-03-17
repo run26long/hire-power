@@ -329,11 +329,11 @@ function formatDate(dateString, format = dateFormat) {
 
   useEffect(() => {
     const templateFonts = {
-      crisp: 'Georgia',
-      sharp: 'Trebuchet MS',
+      crisp: 'Cambria',
+      sharp: 'Calibri',
       command: 'Arial',
-      prestige: 'Palatino Linotype',
-      signature: 'Palatino Linotype',
+      prestige: 'Garamond',
+      signature: 'Georgia',
     }
     if (templateFonts[selectedTemplate]) {
       setSelectedFont(templateFonts[selectedTemplate])
@@ -365,11 +365,11 @@ if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
 }
    const templateFonts = {
-      crisp: 'Georgia',
-      sharp: 'Trebuchet MS',
+      crisp: 'Cambria',
+      sharp: 'Calibri',
       command: 'Arial',
-      prestige: 'Palatino Linotype',
-      signature: 'Palatino Linotype',
+      prestige: 'Garamond',
+      signature: 'Georgia',
     }
    const loadedTemplate = data.template_id || 'crisp'
     
@@ -619,7 +619,18 @@ if (showCtaModal) {
               <span>📄</span>
               <select
                 value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
+                onChange={(e) => {
+                  const t = e.target.value
+                  setSelectedTemplate(t)
+                  const templateDefaultFonts = {
+                    crisp: 'Georgia',
+                    sharp: 'Calibri',
+                    command: 'Arial',
+                    prestige: 'Georgia',
+                    signature: 'Georgia',
+                  }
+                  setSelectedFont(templateDefaultFonts[t] || 'Georgia')
+                }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
                 <option value="crisp">Crisp (Free)</option>
@@ -638,11 +649,11 @@ if (showCtaModal) {
                 onChange={(e) => setSelectedFont(e.target.value)}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
-                <option value="Georgia">Georgia</option>
+                <option value="Cambria">Cambria</option>
                 <option value="Calibri">Calibri</option>
                 <option value="Arial">Arial</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Helvetica">Helvetica</option>
+                <option value="Garamond">Garamond</option>
+                <option value="Georgia">Georgia</option>
               </select>
             </div>
 
@@ -878,12 +889,13 @@ fontFamily: selectedFont,
                 fontSize: `${selectedSize}pt`,
               }}
             >
-                 <ResumeContent
+                <ResumeContent
                   resumeData={resumeData}
                   onUpdate={updateResumeData}
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
                   templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
+                  selectedTemplate={selectedTemplate} 
                 />
             </div>
           </div>
@@ -1015,10 +1027,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const steps = isJobSpecific
     ? (userTier === 'free'
         ? ['assess', 'save']
-        : ['assess', 'coach', 'improve', 'polish', 'save'])
+        : ['assess', 'coach', 'improve', 'format', 'save'])
     : (userTier === 'free'
-        ? ['review', 'assess', 'coach', 'improve', 'save']
-        : ['review', 'assess', 'coach', 'improve', 'polish', 'save'])
+        ? ['review', 'assess', 'coach', 'improve', 'format', 'save']
+        : ['review', 'assess', 'coach', 'improve', 'format', 'save'])
  const currentIndex = steps.indexOf(journeyStep)
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
   const [maxStepIndex, setMaxStepIndex] = useState(currentIndex)
@@ -1616,8 +1628,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         />
       )}
 
-      {journeyStep === 'polish' && (
-  <PolishStep
+      {journeyStep === 'format' && (
+  <FormatStep
     supabase={supabase}
     params={params}
     setResume={setResume}
@@ -2851,7 +2863,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 
                 <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-5 text-left">
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    Give it a final review in the Polish step, then download.
+                    Give it a final review in the Format step, then download.
                   </p>
                 </div>
 
@@ -2866,7 +2878,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   }}
                   className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors"
                 >
-                  Polish My Resume →
+                  Format My Resume →
                 </button>
               </div>
             </div>
@@ -3003,37 +3015,25 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
   )
 }
 // ─────────────────────────────────────────────
-// POLISH STEP
+// FORMAT STEP
 // ─────────────────────────────────────────────
-function PolishStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier }) {
+function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier }) {
   const [advancing, setAdvancing] = useState(false)
-
-  if (userTier === 'free') {
-    async function skipToSave() {
-      await supabase
-        .from('resumes')
-        .update({ journey_step: 'save', updated_at: new Date().toISOString() })
-        .eq('id', params.id)
-      setResume(prev => ({ ...prev, journey_step: 'save' }))
-    }
-    skipToSave()
-    return null
-  }
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-lg">✨ Polish Your Resume</h3>
+      <h3 className="font-semibold text-lg">🎨 Format Your Resume</h3>
 
       <p className="text-sm text-gray-700">
-        Your resume has been improved. Take a final look and make any last tweaks before saving.
+        Content is locked in. Now make sure your resume looks exactly right before saving.
       </p>
 
       <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
         <div className="text-xs text-purple-900 space-y-1.5">
-          <div>✓ Review all sections for personal accuracy</div>
-          <div>✓ Adjust any wording you want to personalize</div>
-          <div>✓ Check formatting looks right at your chosen zoom</div>
+          <div>⚡ Run <strong>Auto-fit</strong> to optimize font size and spacing for one perfect page</div>
           <div>✓ Try different templates from the toolbar</div>
+          <div>✓ Adjust font or size if you prefer</div>
+          <div>✓ Preview to see exactly how it will look when downloaded</div>
         </div>
       </div>
 

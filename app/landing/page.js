@@ -397,7 +397,7 @@ const supabase = createClient();
                 </div>
                 <div>
                   <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,color:'white'}}>Resume Coach</div>
-                  <div style={{fontSize:'9px',color:'rgba(255,255,255,0.65)'}}>Resume · Coaching step</div>
+                  <div style={{fontSize:'9px',color:'rgba(255,255,255,0.65)'}}>Core Resume | Coaching step</div>
                 </div>
               </div>
               <div style={{display:'flex',gap:'4px'}}>
@@ -407,7 +407,7 @@ const supabase = createClient();
             {/* Progress strip */}
             <div style={{background:'#f9fafb',borderBottom:'1px solid #e5e7eb',padding:'7px 14px 4px'}}>
               <div style={{display:'flex',alignItems:'center'}}>
-                {['Review','Assess','Coach','Improve','Polish','Save'].map((step,i)=>(
+                {['Review','Assess','Coach','Improve','Format','Save'].map((step,i)=>(
                   <React.Fragment key={step}>
                     <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'2px'}}>
                       {i < 2 ? (
@@ -443,7 +443,7 @@ const supabase = createClient();
                     <div style={{width:'11px',height:'11px',borderRadius:'50%',background:'#e9d5ff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'6.5px',fontWeight:700,color:'#9333ea'}}>M</div>
                     <span style={{fontSize:'8.5px',fontWeight:600,color:'#6b7280'}}>You</span>
                   </div>
-                  <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Me. I cross-checked the system against the floor every week — my manager trusted my counts more than the software.</p>
+                  <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Me. I cross-checked the system against the floor every week. My manager trusted my counts more than the software.</p>
                 </div>
               </div>
               <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'8px 10px'}}>
@@ -459,7 +459,7 @@ const supabase = createClient();
                     <div style={{width:'11px',height:'11px',borderRadius:'50%',background:'#e9d5ff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'6.5px',fontWeight:700,color:'#9333ea'}}>M</div>
                     <span style={{fontSize:'8.5px',fontWeight:600,color:'#6b7280'}}>You</span>
                   </div>
-                  <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Yeah — a vendor had been short-shipping us for months. Probably $8–10K worth.</p>
+                  <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Yeah, a vendor had been short-shipping us for months. Probably $8–10K worth.</p>
                 </div>
               </div>
             </div>
@@ -471,7 +471,7 @@ const supabase = createClient();
                 </div>
                 <span style={{fontSize:'8.5px',fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em'}}>Coached Bullet</span>
               </div>
-              <p style={{fontSize:'11.5px',color:'#111827',lineHeight:1.55,margin:0}}>Identified systematic vendor short-shipment through independent weekly audits — recovering an estimated $8–10K in merchandise and exposing a gap in the receiving process</p>
+              <p style={{fontSize:'11.5px',color:'#111827',lineHeight:1.55,margin:0}}>Identified systematic vendor short-shipment through independent weekly audits, recovering an estimated $8–10K in merchandise and exposing a gap in the receiving process.</p>
             </div>
           </div>
 
@@ -501,7 +501,7 @@ const supabase = createClient();
                 <div style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>7 new skills identified</div>
               </div>
               <div style={{background:'#9333ea',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
-                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'12px',fontWeight:700,color:'white'}}>Polish My Resume →</div>
+                <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'12px',fontWeight:700,color:'white'}}>Format My Resume →</div>
               </div>
             </div>
           </div>
@@ -573,7 +573,7 @@ const supabase = createClient();
                   </div>
                   <div>
                     <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'10px',fontWeight:700,color:'white'}}>Resume Coach</div>
-                    <div style={{fontSize:'8px',color:'rgba(255,255,255,0.65)'}}>Robert&apos;s Resume · Coaching step</div>
+                    <div style={{fontSize:'8px',color:'rgba(255,255,255,0.65)'}}>Robert&apos;s Core Resume | Coaching step</div>
                   </div>
                 </div>
                 <div style={{display:'flex',gap:'4px'}}>
@@ -584,7 +584,7 @@ const supabase = createClient();
               {/* Progress strip */}
               <div style={{background:'#f9fafb',borderBottom:'1px solid #e5e7eb',padding:'5px 12px 3px'}}>
                 <div style={{display:'flex',alignItems:'center'}}>
-                  {['Review','Assess','Coach','Improve','Polish','Save'].map((step,i)=>(
+                  {['Review','Assess','Coach','Improve','Format','Save'].map((step,i)=>(
                     <React.Fragment key={step}>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'1px'}}>
                         {i < 2 ? (
@@ -655,7 +655,7 @@ const supabase = createClient();
                 <span style={{color:'#a78bfa'}}>Because your resume needs facts, not fiction.</span>
               </p>
               <p style={{fontSize:'14px',color:'rgba(255,255,255,0.7)',lineHeight:1.5,margin:'0 0 10px'}}>We recognized a VP who landed a $10M deal with Boeing Aerospace.</p>
-              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into a flight attendant (or an intern — we can&apos;t quite tell!)</p>
+              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into an intern (or a flight attendant — we can&apos;t quite tell!)</p>
               <div style={{height:'1px',background:'rgba(255,255,255,0.1)',marginBottom:'18px'}}/>
               <p style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',lineHeight:1.6,margin:'0 0 14px',fontWeight:600}}>After working with Hire Power, Robert landed:</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'24px'}}>
@@ -700,10 +700,10 @@ const supabase = createClient();
           <div className="how-grid">
             <div className="how-steps">
               {[
-                {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out — your answer shapes everything that comes next. Free for everyone, unlimited."},
-                {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing."},
-                {n:'3',title:'Interview Coach prepares you to defend it',body:"Power Analysis identifies your Core Power, Hidden Power, and Power Gaps. Then we practice — with AI-spoken questions based on your actual resume and target company."},
-                {n:'4',title:'Career Archive keeps it running',body:"Log wins as they happen. When you're ready to move again, your next resume is basically already written. That's the OS. It never turns off."},
+                {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. Free for everyone, unlimited."},
+                {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
+                {n:'3',title:'Interview Coach prepares you to defend it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice — with AI-spoken questions that simulate a real interview."},
+                {n:'4',title:'Career Archive keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(
                 <div key={step.n} className="how-step">
                   <div className="step-num">{step.n}</div>
@@ -773,9 +773,9 @@ const supabase = createClient();
             <div>
               <div className="section-eyebrow">Hire Power Vault · $4.99/mo</div>
               <h2 className="section-title">The OS that keeps<br/>running between<br/><em>job searches.</em></h2>
-              <p className="vault-body">Once your job search is complete, most people go dark — until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move — your resume is basically already written.</p>
-              <div className="vault-quote">&quot;Get hired. Log your wins along the way. When you&apos;re ready to move on — your next resume is basically already written. That&apos;s why people stay.&quot;</div>
-              <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times.</p>
+              <p className="vault-body">Once your job search is complete, most people go dark — until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move — your resume is basically already written.</p>
+              <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Stay ready for any opportunity. Never start from scratch again.&quot;</div>
+              <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
             </div>
             <div className="vault-visual">
               <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',marginBottom:'24px'}}>Career Archive · Live</div>

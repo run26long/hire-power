@@ -14,8 +14,8 @@ export function formatDate(dateStr, format = 'short') {
     ];
     return `${months[parseInt(month, 10) - 1]} ${year}`;
   }
-  // default: short MM/YYYY
-  return `${month}/${year}`;
+  // default: short M/YYYY (no leading zero)
+  return `${parseInt(month, 10)}/${year}`;
 }
 
 export function formatDateRange(startDate, endDate, current, format = 'short') {

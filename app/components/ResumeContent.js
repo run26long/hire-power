@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {} }) {
+export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {}, selectedTemplate = 'crisp', combineBannerDismissed = false, setCombineBannerDismissed = () => {} }) {
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [editingSection, setEditingSection] = useState(null)
   const ts = templateStyles
@@ -200,13 +200,14 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     certifications: 'CERTIFICATIONS',
     volunteer: 'VOLUNTEER',
     languages: 'LANGUAGES',
+    additionalInfo: 'ADDITIONAL INFORMATION',
   }
 
   function getSectionTitle(key) {
     return resumeData.sectionTitles?.[key] || defaultSectionTitles[key]
   }
 
-  const defaultSectionOrder = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages']
+  const defaultSectionOrder = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
 
   function moveSectionUp(sectionName) {
     const newData = JSON.parse(JSON.stringify(resumeData))
@@ -279,7 +280,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     if (sectionKey === 'certifications') newData.certifications = []
     if (sectionKey === 'volunteer') newData.volunteer = []
     if (sectionKey === 'languages') newData.languages = []
-    // Also remove from sectionOrder
+    if (sectionKey === 'additionalInfo') newData.additionalInfo = []
     if (newData.sectionOrder) {
       newData.sectionOrder = newData.sectionOrder.filter(s => s !== sectionKey)
     }
@@ -287,7 +288,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     setConfirmingDelete(null)
   }
 
-  const deletableSections = ['projects', 'certifications', 'volunteer', 'languages']
+  const deletableSections = ['projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
 
   // Section header with title editing + section move arrows + optional delete
   const sectionHeader = (sectionKey, extraContent = null) => (
@@ -367,9 +368,17 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   </div>
                 ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete job">🗑️</button>)}
               </div>
-              <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
+              {selectedTemplate !== 'sharp' && (
+                <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
+              )}
             </div>
-            <p className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`} style={ts.company || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}>{job.company}</p>
+            {selectedTemplate === 'sharp' ? (
+              <p className={`text-sm text-gray-600 mb-2`} style={ts.company || {}}>
+                {[job.company, job.location, `${formatDate(job.startDate)} - ${job.current ? 'Present' : formatDate(job.endDate)}`].filter(Boolean).join(' | ')}
+              </p>
+            ) : (
+              <p className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`} style={ts.company || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}>{job.company}</p>
+            )}
             {job.summary ? (
               <div className="mb-2">
                 <p className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
@@ -581,7 +590,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           <div key={langIndex} className={`mb-2 p-2 rounded group/entry flex items-center justify-between ${!readOnly && 'hover:bg-purple-50'}`}>
             <div className="flex items-center gap-3 flex-1">
               <span className={`font-semibold ${!readOnly && 'cursor-text'}`} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`languages[${langIndex}].language`, e.currentTarget.textContent)}>{lang.language}</span>
-              <span className="text-gray-400">—</span>
+              <span className="text-gray-400">|</span>
               {readOnly ? (
                 <span className="text-sm text-gray-600">{lang.proficiency || 'Professional'}</span>
               ) : (
@@ -605,6 +614,59 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           </div>
         ))}
         {!readOnly && <button onClick={addLanguage} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Language</button>}
+      </div>
+    ) : null,
+
+    additionalInfo: resumeData.additionalInfo?.length > 0 ? (
+      <div className="mb-6 group" key="additionalInfo">
+        {sectionHeader('additionalInfo')}
+        {resumeData.additionalInfo.map((item, itemIndex) => (
+         <div key={itemIndex} className={`py-0.5 px-1 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 flex-1">
+                <span
+                  className={`font-semibold text-sm ${!readOnly && 'cursor-text'}`}
+                  style={ts.jobTitle || {}}
+                  contentEditable={!readOnly}
+                  suppressContentEditableWarning
+                  onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].label`, e.currentTarget.textContent)}
+                >{item.label}</span>
+                {item.detail && <span className="text-gray-400 text-sm shrink-0">|</span>}
+                <span
+                  className={`text-sm text-gray-600 flex-1 ${!readOnly && 'cursor-text'}`}
+                  style={ts.body || {}}
+                  contentEditable={!readOnly}
+                  suppressContentEditableWarning
+                  onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].detail`, e.currentTarget.textContent)}
+                >{item.detail}</span>
+                {entryArrows('additionalInfo', itemIndex, resumeData.additionalInfo.length)}
+              </div>
+              {!readOnly && (confirmingDelete === `additionalInfo-${itemIndex}` ? (
+                <div className="flex items-center gap-1 text-xs">
+                  <span className="text-gray-600">Delete?</span>
+                  <button onClick={() => {
+                    const newData = JSON.parse(JSON.stringify(resumeData))
+                    newData.additionalInfo.splice(itemIndex, 1)
+                    onUpdate(newData)
+                    setConfirmingDelete(null)
+                  }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                  <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                </div>
+              ) : <button onClick={() => setConfirmingDelete(`additionalInfo-${itemIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete item">🗑️</button>)}
+            </div>
+          </div>
+        ))}
+        {!readOnly && (
+          <button
+            onClick={() => {
+              const newData = JSON.parse(JSON.stringify(resumeData))
+              if (!newData.additionalInfo) newData.additionalInfo = []
+              newData.additionalInfo.push({ label: 'Item Name', detail: 'Additional detail' })
+              onUpdate(newData)
+            }}
+            className="text-purple-600 text-xs opacity-0 group-hover:opacity-100"
+          >+ Add Item</button>
+        )}
       </div>
     ) : null,
   }
@@ -680,6 +742,74 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         </div>
       )}
 
+      {/* Combine Sections Banner */}
+      {!readOnly && !resumeData._combineDismissed && (() => {
+        const smallSections = [
+          { key: 'certifications', items: resumeData.certifications },
+          { key: 'languages', items: resumeData.languages },
+          { key: 'volunteer', items: resumeData.volunteer },
+          { key: 'projects', items: resumeData.projects },
+        ].filter(s => s.items?.length > 0 && s.items.length <= 2)
+
+        if (smallSections.length < 2) return null
+
+        return (
+          <div className="mt-4 mb-2 border border-purple-200 bg-purple-50 rounded-lg p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-purple-800 mb-1">
+                  💡 Combine into Additional Information?
+                </p>
+                <p className="text-xs text-purple-700">
+                  You have {smallSections.length} sections with only 1-2 items each. Combining them into a single Additional Information section is cleaner and more professional.
+                </p>
+              </div>
+              <button
+                onClick={() => onUpdate({ ...resumeData, _combineDismissed: true })}
+                className="text-purple-400 hover:text-purple-600 text-lg leading-none shrink-0"
+              >×</button>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  const newData = JSON.parse(JSON.stringify(resumeData))
+                  if (!newData.additionalInfo) newData.additionalInfo = []
+                  smallSections.forEach(s => {
+                    s.items.forEach(item => {
+                      if (s.key === 'certifications') {
+                        newData.additionalInfo.push({ label: item.name, detail: item.details || '' })
+                      } else if (s.key === 'languages') {
+                        newData.additionalInfo.push({ label: item.language, detail: item.proficiency || '' })
+                      } else if (s.key === 'volunteer') {
+                        newData.additionalInfo.push({ label: item.organization, detail: item.description || '' })
+                      } else if (s.key === 'projects') {
+                        newData.additionalInfo.push({ label: item.name, detail: item.description || '' })
+                      }
+                    })
+                    newData[s.key] = []
+                    if (newData.sectionOrder) {
+                      newData.sectionOrder = newData.sectionOrder.filter(k => k !== s.key)
+                    }
+                  })
+                  if (!newData.sectionOrder) newData.sectionOrder = [...defaultSectionOrder]
+                  if (!newData.sectionOrder.includes('additionalInfo')) newData.sectionOrder.push('additionalInfo')
+                  onUpdate(newData)
+                }}
+                className="bg-purple-600 text-white text-xs font-semibold px-3 py-1.5 rounded hover:bg-purple-700"
+              >
+                Yes, combine them
+              </button>
+              <button
+                onClick={() => onUpdate({ ...resumeData, _combineDismissed: true })}
+                className="text-xs text-purple-600 px-3 py-1.5 rounded hover:bg-purple-100"
+              >
+                No thanks
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Add Section */}
       {!readOnly && (() => {
         const allOptional = [
@@ -687,6 +817,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           { key: 'certifications', label: 'Certifications', check: () => !resumeData.certifications?.length },
           { key: 'volunteer', label: 'Volunteer Experience', check: () => !resumeData.volunteer?.length },
           { key: 'languages', label: 'Languages', check: () => !resumeData.languages?.length },
+          { key: 'additionalInfo', label: 'Additional Information', check: () => !resumeData.additionalInfo?.length },
         ]
         const missing = allOptional.filter(s => s.check())
         if (missing.length === 0) return null
@@ -696,7 +827,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             <button className="text-purple-600 text-sm opacity-50 hover:opacity-100 flex items-center gap-1">
               + Add Section
             </button>
-           <div className="absolute left-0 bottom-full mb-1 z-50 hidden group-hover/addsection:block bg-white border border-gray-200 rounded shadow-lg py-1 min-w-[180px]">
+           <div className="absolute left-0 bottom-full pb-1 z-50 hidden group-hover/addsection:block bg-white border border-gray-200 rounded shadow-lg py-1 min-w-[180px]">
               {missing.map(s => (
                 <button
                   key={s.key}
@@ -706,8 +837,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                     if (s.key === 'certifications') newData.certifications = [{ name: 'Certification Name', details: 'Issuing organization | Date' }]
                     if (s.key === 'volunteer') newData.volunteer = [{ organization: 'Organization Name', description: 'Role and responsibilities' }]
                     if (s.key === 'languages') newData.languages = [{ language: 'Language', proficiency: 'Professional' }]
+                    if (s.key === 'additionalInfo') newData.additionalInfo = [{ type: 'certification', label: 'Item Label', detail: 'Detail or description' }]
                     if (!newData.sectionOrder) newData.sectionOrder = [...defaultSectionOrder]
                     if (!newData.sectionOrder.includes(s.key)) newData.sectionOrder.push(s.key)
+                    newData._combineDismissed = false
                     onUpdate(newData)
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600"
