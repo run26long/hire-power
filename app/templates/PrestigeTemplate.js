@@ -16,7 +16,7 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
     page: {
       fontFamily,
       fontSize: `${base}pt`,
-      lineHeight: '1.1',
+      lineHeight: '1.3',
       color: '#1a1a1a',
       background: '#fff',
       width: '100%',
@@ -39,8 +39,8 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
       fontWeight: '700',
       letterSpacing: '1px',
       color: color,
-      fontStyle: 'italic',
-      marginBottom: px(10),
+      fontStyle: 'normal',
+      marginBottom: px(4),
       lineHeight: '1.1',
     },
     band: {
@@ -56,8 +56,8 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
       lineHeight: '1.1',
       fontFamily,
     },
-    body: { padding: `${px(14)} ${px(52)} ${px(36)}` },
-    section: { marginTop: px(14) },
+    body: { padding: `${px(8)} ${px(52)} ${px(36)}` },
+    section: { marginTop: px(16) },
     sh: {
       fontFamily,
       fontSize: `${base}pt`,
@@ -67,17 +67,17 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
       color: '#1a1a1a',
       marginBottom: px(2),
       marginTop: '0',
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     rule: { border: 'none', borderBottom: `1px solid ${color}`, margin: `0 0 ${px(5)}` },
     entry: { marginBottom: px(10) },
     row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
-    jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.1' },
-    dt: { fontFamily, fontSize: `${base}pt`, color: '#666', fontStyle: 'italic', lineHeight: '1.1' },
-    co: { fontFamily, fontSize: `${base}pt`, color: '#555', fontStyle: 'italic', marginBottom: px(2), lineHeight: '1.1' },
-    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
-    sm: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `${px(2)} 0`, lineHeight: '1.1' },
-    bodyText: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.1' },
+    jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.3' },
+    dt: { fontFamily, fontSize: `${base}pt`, color: '#666', fontStyle: 'italic', lineHeight: '1.3' },
+    co: { fontFamily, fontSize: `${base}pt`, color: '#555', fontStyle: 'italic', marginBottom: px(2), lineHeight: '1.3' },
+    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.3' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `${px(2)} 0`, lineHeight: '1.3' },
+    bodyText: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.3' },
   };
 
   const contactParts = [
@@ -98,7 +98,9 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
         <div style={s.tl}>{titleLine}</div>
       </div>
       <div style={s.band}>
-        {contactParts.map((p, i) => <span key={i}>{p}</span>)}
+        {contactParts.map((p, i) => (
+          <span key={i}>{p}{i < contactParts.length - 1 ? '  |  ' : ''}</span>
+        ))}
       </div>
 
       {/* Body */}
@@ -107,7 +109,7 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
         {/* Summary */}
         {resumeData.summary && !resumeData.hideSummary && (
           <div style={s.section}>
-            <div style={s.sh}>Professional Summary</div>
+            <div style={s.sh}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</div>
             <hr style={s.rule} />
             <p style={s.bodyText}>{resumeData.summary}</p>
           </div>

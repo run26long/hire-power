@@ -15,7 +15,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
     page: {
       fontFamily,
       fontSize: `${base}pt`,
-      lineHeight: '1.1',
+      lineHeight: '1.3',
       color: '#111',
       padding: `${px(36)} ${px(52)}`,
       background: '#fff',
@@ -29,7 +29,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       letterSpacing: '0.5px',
       padding: '0',
       marginBottom: px(2),
-      lineHeight: '1.1',
+      lineHeight: '1.3',
       color: '#111',
       textAlign: 'left',
     },
@@ -41,19 +41,19 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       gap: px(12),
       flexWrap: 'wrap',
       marginBottom: px(4),
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     hdrRule: {
       border: 'none',
-      borderBottom: '3px solid #111',
-      margin: `0 0 ${px(2)} 0`,
+      borderBottom: '1px solid #111',
+      margin: `0 0 ${px(8)} 0`,
     },
     section: {
       marginTop: px(14),
     },
     sh: {
       fontFamily,
-      fontSize: `${base}pt`,
+      fontSize: `${base+2}pt`,
       fontWeight: heavyWeight,
       letterSpacing: '2px',
       textTransform: 'uppercase',
@@ -62,16 +62,16 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       marginBottom: px(5),
       marginTop: '0',
       color: '#111',
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     entry: { marginBottom: px(10) },
-    jobTitle: { fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
-    jobMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(2), lineHeight: '1.1' },
-    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
-    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.1' },
-    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.1' },
-    eduTitle: { fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
-    eduMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.1' },
+    jobTitle: { fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt`, lineHeight: '1.3', color: '#111' },
+    jobMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(2), lineHeight: '1.3' },
+    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.3' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.3' },
+    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.3' },
+    eduTitle: { fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt`, lineHeight: '1.3', color: '#111' },
+    eduMeta: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.3' },
   };
 
   const contactParts = [
@@ -87,12 +87,12 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       {/* Header */}
       <div style={s.name}>{resumeData.fullName}</div>
       <hr style={s.hdrRule} />
-      <div style={s.contact}>{contactParts.map((p, i) => <span key={i}>{p}</span>)}</div>
+      <div style={s.contact}>{contactParts.map((p, i) => <span key={i}>{p}{i < contactParts.length - 1 ? ' | ' : ''}</span>)}</div>
 
       {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
         <div style={s.section}>
-          <div style={s.sh}>Professional Summary</div>
+          <div style={s.sh}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</div>
           <p style={s.body}>{resumeData.summary}</p>
         </div>
       )}
@@ -135,7 +135,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
                 {[ed.degree && ed.field ? `${ed.degree}, ${ed.field}` : (ed.degree || ed.field), formatDate(ed.graduationDate, dateFormat)]
                   .filter(Boolean).join(' | ')}
               </div>
-              {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#333', lineHeight: '1.1' }}>{l}</div>)}
+              {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#333', lineHeight: '1.3' }}>{l}</div>)}
             </div>
           ))}
         </div>
@@ -203,7 +203,7 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
           <div style={s.sh}>Additional Information</div>
           {resumeData.additionalInfo.map((item, i) => (
             <div key={i} style={i < resumeData.additionalInfo.length - 1 ? { marginBottom: px(3) } : {}}>
-              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.1', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
+              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.3', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
                 <strong>{item.label}</strong>
                 {item.detail && <span style={{ color: '#555' }}>| {item.detail}</span>}
               </div>

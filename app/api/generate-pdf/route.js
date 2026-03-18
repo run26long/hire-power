@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function POST(request) {
   try {
-    const { resumeData, resumeId, templateName, fontSize, font, spacing, action, versionId, isJobVersion, userId } = await request.json()
+    const { resumeData, resumeId, templateName, fontSize, font, spacing, accentColor, action, versionId, isJobVersion, userId } = await request.json()
     
     // Generate the PDF using Puppeteer
     const browser = await puppeteer.launch({
@@ -24,7 +24,7 @@ export async function POST(request) {
     
     // Render template to HTML string
     const { renderToString } = await import('react-dom/server')
-    const htmlContent = renderToString(TemplateComponent({ resumeData, font, fontSize, spacing: spacing || 1 }))
+    const htmlContent = renderToString(TemplateComponent({ resumeData, font, fontSize, spacing: spacing || 1, accentColor: accentColor || '#5b4fcf' }))
     const fullHtml = `
       <!DOCTYPE html>
       <html>

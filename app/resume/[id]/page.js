@@ -643,13 +643,15 @@ if (showCtaModal) {
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
                 <option value="crisp">Crisp (Free)</option>
-                <option value="sharp">Sharp (Free)</option>
                 <option value="current">Current (Free)</option>
+                <option value="sharp">Sharp (Free)</option>
+                
                 <option value="command">Command ✦ Pro</option>
+                <option value="edge">Edge ✦ Pro</option>
                 <option value="prestige">Prestige ✦ Pro</option>
                 <option value="signature">Signature ✦ Pro</option>
                 <option value="vibe">Vibe ✦ Pro</option>
-                <option value="edge">Edge ✦ Pro</option>
+                
               </select>
             </div>
 
@@ -661,9 +663,9 @@ if (showCtaModal) {
                 onChange={(e) => setSelectedFont(e.target.value)}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
-                <option value="Cambria">Cambria</option>
-                <option value="Calibri">Calibri</option>
                 <option value="Arial">Arial</option>
+                <option value="Calibri">Calibri</option>
+                <option value="Cambria">Cambria</option>
                 <option value="Garamond">Garamond</option>
                 <option value="Georgia">Georgia</option>
               </select>
@@ -722,7 +724,8 @@ if (showCtaModal) {
                   style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
                   title="Change accent color"
                 />
-                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/colorpick:block bg-white border border-gray-200 rounded shadow-lg p-2" style={{ minWidth: '120px' }}>
+                <div className="absolute left-0 top-full z-50 hidden group-hover/colorpick:block pt-1" style={{ minWidth: '120px' }}>
+                <div className="bg-white border border-gray-200 rounded shadow-lg p-2">
                     <div className="flex gap-1 items-center mb-2 flex-wrap">
                       {['#5b4fcf','#1e3a5f','#7a1e3a','#1e6b6b','#1e5f3a','#8b3a1e','#2d2d2d','#2d4a6b'].map(c => (
                         <button
@@ -744,7 +747,8 @@ if (showCtaModal) {
                       style={{ width: '100%', height: '24px', border: 'none', cursor: 'pointer', borderRadius: '4px', padding: 0 }}
                       title="Custom color"
                     />
-                 </div>
+                </div>
+                </div>
               </div>
             )}
 

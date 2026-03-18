@@ -14,7 +14,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
     page: {
       fontFamily,
       fontSize: `${base}pt`,
-      lineHeight: '1.1',
+      lineHeight: '1.3',
       color: '#1a1a1a',
       padding: `${px(36)} ${px(64)}`,
       background: '#fff',
@@ -29,7 +29,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
       textTransform: 'uppercase',
       textAlign: 'center',
       marginBottom: '0px',
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     contact: {
       fontFamily,
@@ -37,7 +37,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
       fontSize: `${base}pt`,
       color: '#444',
       marginBottom: px(8),
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     hr: { border: 'none', borderBottom: '1.5px solid #1a1a1a', margin: '0 0 0 0' },
     hrSection: { border: 'none', borderBottom: '1.5px solid #1a1a1a', margin: `0 0 ${px(4)} 0` },
@@ -53,17 +53,17 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
       textTransform: 'uppercase',
       marginBottom: px(2),
       marginTop: '0',
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
-    jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.1' },
-    dt: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.1' },
-    co: { fontFamily, fontStyle: 'italic', color: '#555', marginBottom: px(2), fontSize: `${base}pt`, lineHeight: '1.1' },
+    jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.3' },
+    dt: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.3' },
+    co: { fontFamily, fontStyle: 'italic', color: '#555', marginBottom: px(2), fontSize: `${base}pt`, lineHeight: '1.3' },
     // Consistent spacing between entries within a section
     entry: { marginBottom: px(10) },
-    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
-    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.1' },
-    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(3)}`, lineHeight: '1.1' },
+    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.3' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.3' },
+    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(3)}`, lineHeight: '1.3' },
   };
 
   const contactParts = [
@@ -83,7 +83,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
       {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
         <div style={s.section}>
-          <div style={s.sh}>Professional Summary</div>
+          <div style={s.sh}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</div>
           <hr style={s.hrSection} />
           <p style={s.body}>{resumeData.summary}</p>
         </div>
@@ -202,7 +202,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
           <hr style={s.hrSection} />
           {resumeData.additionalInfo.map((item, i) => (
             <div key={i} style={i < resumeData.additionalInfo.length - 1 ? { marginBottom: px(3) } : {}}>
-              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.1', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
+              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.3', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
                 <strong>{item.label}</strong>
                 {item.detail && <span style={{ color: '#555' }}>| {item.detail}</span>}
               </div>

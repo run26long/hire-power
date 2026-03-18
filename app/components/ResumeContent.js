@@ -5,6 +5,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [editingSection, setEditingSection] = useState(null)
   const ts = templateStyles
+  const sectionClass = selectedTemplate === 'current' ? 'mb-0 group' : 'mb-6 group'
 
   function addExperienceSummary(jobIndex) {
     const newData = JSON.parse(JSON.stringify(resumeData))
@@ -102,6 +103,36 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     const targetCategory = categories.find(cat => cat !== category)
     newData.skillsCategories[targetCategory] = [...newData.skillsCategories[targetCategory], ...skillsToMerge]
     delete newData.skillsCategories[category]
+    onUpdate(newData)
+  }
+
+  function moveSkillCategoryUp(category) {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    const keys = Object.keys(newData.skillsCategories)
+    const index = keys.indexOf(category)
+    if (index <= 0) return
+    const reordered = {}
+    keys.forEach((k, i) => {
+      if (i === index - 1) reordered[category] = newData.skillsCategories[category]
+      else if (i === index) reordered[keys[index - 1]] = newData.skillsCategories[keys[index - 1]]
+      else reordered[k] = newData.skillsCategories[k]
+    })
+    newData.skillsCategories = reordered
+    onUpdate(newData)
+  }
+
+  function moveSkillCategoryDown(category) {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    const keys = Object.keys(newData.skillsCategories)
+    const index = keys.indexOf(category)
+    if (index >= keys.length - 1) return
+    const reordered = {}
+    keys.forEach((k, i) => {
+      if (i === index) reordered[keys[index + 1]] = newData.skillsCategories[keys[index + 1]]
+      else if (i === index + 1) reordered[category] = newData.skillsCategories[category]
+      else reordered[k] = newData.skillsCategories[k]
+    })
+    newData.skillsCategories = reordered
     onUpdate(newData)
   }
 
@@ -207,7 +238,8 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     return resumeData.sectionTitles?.[key] || defaultSectionTitles[key]
   }
 
-  const defaultSectionOrder = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
+  const edgeSectionOrder = ['skills', 'experience', 'education', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
+  const defaultSectionOrder = selectedTemplate === 'edge' ? edgeSectionOrder : ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
 
   function moveSectionUp(sectionName) {
     const newData = JSON.parse(JSON.stringify(resumeData))
@@ -253,7 +285,9 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     onUpdate(newData)
   }
 
-  const activeSectionOrder = (resumeData.sectionOrder?.length ? resumeData.sectionOrder : defaultSectionOrder)
+  const activeSectionOrder = (selectedTemplate === 'edge'
+    ? edgeSectionOrder
+    : (resumeData.sectionOrder?.length ? resumeData.sectionOrder : defaultSectionOrder))
     .filter(s => defaultSectionOrder.includes(s))
 
   const titleTemplates = ['prestige', 'signature', 'current', 'vibe', 'edge']
@@ -296,7 +330,107 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
 
   // Section header with title editing + section move arrows + optional delete
   const sectionHeader = (sectionKey, extraContent = null) => (
-    <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3 flex items-center gap-1" style={ts.sectionHeader || {}}>
+    <>
+      {ts.sectionDivider && <div style={ts.sectionDivider} />}
+      {ts.vibeSectionDivider ? (
+        <>
+        <div style={ts.vibeSectionDivider}>
+          <div style={ts.vibeSectionLine} />
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0' }}>
+              {!readOnly && editingSection === sectionKey ? (
+                <input
+                  autoFocus
+                  defaultValue={getSectionTitle(sectionKey)}
+                  className="font-semibold bg-purple-50 border border-purple-300 rounded px-1 outline-none"
+                  style={ts.sectionHeader || {}}
+                  onBlur={(e) => updateSectionTitle(sectionKey, e.target.value.trim() || defaultSectionTitles[sectionKey])}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.target.blur()
+                    if (e.key === 'Escape') setEditingSection(null)
+                  }}
+                />
+              ) : (
+                <span
+                  className={!readOnly ? 'cursor-pointer hover:text-purple-600' : ''}
+                  onClick={() => !readOnly && setEditingSection(sectionKey)}
+                  title={!readOnly ? 'Click to rename' : ''}
+                >
+                  {getSectionTitle(sectionKey)}
+                </span>
+              )}
+            </h2>
+            {!readOnly && (
+              <span className="absolute right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
+                <button onClick={() => moveSectionUp(sectionKey)} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
+                <button onClick={() => moveSectionDown(sectionKey)} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
+                {deletableSections.includes(sectionKey) && (
+                  confirmingDelete === `section-${sectionKey}` ? (
+                    <span className="flex items-center gap-1 text-xs font-normal">
+                      <span className="text-gray-600">Remove section?</span>
+                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+                  )
+                )}
+              </span>
+            )}
+            </div>
+          <div style={ts.vibeSectionLine} />
+        </div>
+        {extraContent && <div className="flex justify-center mt-1">{extraContent}</div>}
+        </>
+      ) : selectedTemplate === 'edge' ? (
+        <div className="mb-2 w-full">
+          <div style={ts.sectionHeader || {}} className="w-full">
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0', background: 'transparent' }}>
+              {!readOnly && editingSection === sectionKey ? (
+                <input
+                  autoFocus
+                  defaultValue={getSectionTitle(sectionKey)}
+                  className="font-semibold bg-purple-50 border border-purple-300 rounded px-1 outline-none text-center"
+                  style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0' }}
+                  onBlur={(e) => updateSectionTitle(sectionKey, e.target.value.trim() || defaultSectionTitles[sectionKey])}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.target.blur()
+                    if (e.key === 'Escape') setEditingSection(null)
+                  }}
+                />
+              ) : (
+                <span
+                  className={!readOnly ? 'cursor-pointer hover:text-purple-600' : ''}
+                  onClick={() => !readOnly && setEditingSection(sectionKey)}
+                >
+                  {getSectionTitle(sectionKey)}
+                </span>
+              )}
+            </h2>
+            {!readOnly && (
+              <span className="absolute right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
+                <button onClick={() => moveSectionUp(sectionKey)} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
+                <button onClick={() => moveSectionDown(sectionKey)} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
+                {deletableSections.includes(sectionKey) && (
+                  confirmingDelete === `section-${sectionKey}` ? (
+                    <span className="flex items-center gap-1 text-xs font-normal">
+                      <span className="text-gray-600">Remove section?</span>
+                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+                  )
+                )}
+              </span>
+            )}
+          </div>
+          </div>
+          {extraContent && <div className="flex justify-center mt-1">{extraContent}</div>}
+        </div>
+      ) : (
+      <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3 flex items-center gap-1" style={ts.sectionHeader || {}}>
       {!readOnly && editingSection === sectionKey ? (
         <input
           autoFocus
@@ -347,11 +481,13 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       )}
       {extraContent}
     </h2>
+    )}
+    </>
   )
 
   const sections = {
     experience: resumeData.experience?.length > 0 ? (
-      <div className="mb-6 group" key="experience">
+      <div className={sectionClass} key="experience">
         {sectionHeader('experience')}
         {resumeData.experience.map((job, jobIndex) => (
           <div key={jobIndex} className={`mb-4 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
@@ -372,11 +508,11 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   </div>
                 ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete job">🗑️</button>)}
               </div>
-              {selectedTemplate !== 'sharp' && (
+              {selectedTemplate !== 'sharp' && selectedTemplate !== 'edge' && (
                 <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
               )}
             </div>
-            {selectedTemplate === 'sharp' ? (
+            {selectedTemplate === 'sharp' || selectedTemplate === 'edge' ? (
               <p className={`text-sm text-gray-600 mb-2`} style={ts.company || {}}>
                 {[job.company, job.location, `${formatDate(job.startDate)} - ${job.current ? 'Present' : formatDate(job.endDate)}`].filter(Boolean).join(' | ')}
               </p>
@@ -492,6 +628,12 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               {!isSingleSkillsCategory && (
                 <div className="flex items-center gap-2 mb-1">
                   <p className={`text-sm font-semibold ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => { if (isUndoingRef.current) return; const newName = e.currentTarget.textContent.trim(); if (newName && newName !== category) renameSkillCategory(category, newName) }}>{category}</p>
+                  {!readOnly && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover/category:opacity-100">
+                      <button onClick={() => moveSkillCategoryUp(category)} disabled={Object.keys(resumeData.skillsCategories)[0] === category} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▲</button>
+                      <button onClick={() => moveSkillCategoryDown(category)} disabled={Object.keys(resumeData.skillsCategories)[Object.keys(resumeData.skillsCategories).length - 1] === category} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▼</button>
+                    </div>
+                  )}
                   {!readOnly && (confirmingDelete === `category-${category}` ? (
                     <div className="flex items-center gap-1 text-xs">
                       <span className="text-gray-600">Delete?</span>
@@ -679,42 +821,95 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     <div style={ts.page || {}}>
       {/* Header */}
       <div className="mb-6 p-2 rounded" style={ts.headerArea || {}}>
-        <h1
-          className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
-          style={ts.name || {}}
-          contentEditable={!readOnly}
-          suppressContentEditableWarning
-          onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
-        >{resumeData.fullName || 'Your Name'}</h1>
-        {showProfessionalTitle && (
-          <p
-            className={`text-sm text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-50 px-2 rounded'}`}
-            style={ts.professionalTitle || { fontStyle: 'italic', color: '#666' }}
-            contentEditable={!readOnly}
-            suppressContentEditableWarning
-            onBlur={(e) => updateField('professionalTitle', e.currentTarget.textContent)}
-          >{professionalTitleDisplay || (!readOnly ? 'Add a professional title' : '')}</p>
+        {selectedTemplate === 'vibe' ? (
+          <>
+            <div style={{ flex: 1 }}>
+              <h1
+                className={`${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`}
+                style={ts.name || {}}
+                contentEditable={!readOnly}
+                suppressContentEditableWarning
+                onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
+              >{resumeData.fullName || 'Your Name'}</h1>
+              {showProfessionalTitle && (
+                <p
+                  className={`${!readOnly && 'cursor-text hover:bg-purple-50 px-1 rounded'}`}
+                  style={ts.professionalTitle || { fontStyle: 'italic', color: '#666' }}
+                  contentEditable={!readOnly}
+                  suppressContentEditableWarning
+                  onBlur={(e) => updateField('professionalTitle', e.currentTarget.textContent)}
+                >{professionalTitleDisplay || (!readOnly ? 'Add a professional title' : '')}</p>
+              )}
+            </div>
+            <div style={{ textAlign: 'right', fontSize: '10pt', color: '#555', lineHeight: '1.4' }}>
+              {resumeData.email && resumeData.phone && resumeData.location
+                ? <>
+                    <div>{resumeData.email}</div>
+                    <div>{resumeData.phone} | {resumeData.location}</div>
+                    {resumeData.linkedin && <div>{resumeData.linkedin}</div>}
+                    {resumeData.portfolio && <div>{resumeData.portfolio}</div>}
+                  </>
+                : [resumeData.email, resumeData.phone, resumeData.location, resumeData.linkedin, resumeData.portfolio]
+                    .filter(Boolean).map((p, i) => <div key={i}>{p}</div>)
+              }
+            </div>
+          </>
+        ) : (
+          <>
+            <h1
+              className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
+              style={ts.name || {}}
+              contentEditable={!readOnly}
+              suppressContentEditableWarning
+              onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
+            >{resumeData.fullName || 'Your Name'}</h1>
+            {showProfessionalTitle && (
+              <p
+                className={`text-sm text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-50 px-2 rounded'}`}
+                style={ts.professionalTitle || { fontStyle: 'italic', color: '#666' }}
+                contentEditable={!readOnly}
+                suppressContentEditableWarning
+                onBlur={(e) => updateField('professionalTitle', e.currentTarget.textContent)}
+              >{professionalTitleDisplay || (!readOnly ? 'Add a professional title' : '')}</p>
+            )}
+            <div style={ts.contactBand || {}}>
+              <p
+                className={`text-sm text-gray-600 mt-1 text-center ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
+                style={ts.contact || {}}
+                contentEditable={!readOnly}
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  if (isUndoingRef.current) return
+                  const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
+                  const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
+                  onUpdate(newData)
+                }}
+              >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
+            </div>
+          </>
         )}
-        <div style={ts.contactBand || {}}>
-          <p
-            className={`text-sm text-gray-600 mt-1 text-center ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
-            style={ts.contact || {}}
-            contentEditable={!readOnly}
-            suppressContentEditableWarning
-            onBlur={(e) => {
-              if (isUndoingRef.current) return
-              const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
-              const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
-              onUpdate(newData)
-            }}
-          >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
-        </div>
       </div>
 
       {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
-        <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
-          <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-2 flex items-center gap-1" style={ts.sectionHeader || {}}>
+        <div style={selectedTemplate === 'edge' ? { paddingLeft: '18px', paddingRight: '18px' } : {}} className={`${selectedTemplate === 'current' ? 'mb-0' : selectedTemplate === 'vibe' ? 'mb-0' : selectedTemplate === 'edge' ? 'mb-6' : 'mb-6 p-2'} rounded group ${!readOnly && 'hover:bg-purple-50'}`}>
+          {ts.vibeSectionDivider ? (
+            <div style={{ ...ts.vibeSectionDivider, marginTop: '0' }}>
+              <div style={ts.vibeSectionLine} />
+              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0' }}>
+                  <span className={!readOnly ? 'cursor-pointer hover:text-purple-600' : ''} onClick={() => !readOnly && setEditingSection('summary')}>
+                    {resumeData.sectionTitles?.summary || 'SUMMARY'}
+                  </span>
+                </h2>
+                {!readOnly && (
+                  <button onClick={toggleSummary} className="absolute right-0 text-gray-400 hover:text-gray-600 text-xs opacity-0 group-hover:opacity-100 font-normal" title="Hide this section">Hide</button>
+                )}
+              </div>
+              <div style={ts.vibeSectionLine} />
+            </div>
+          ) : (
+          <h2 className={`text-lg font-semibold flex items-center gap-1 ${selectedTemplate === 'edge' ? 'mb-2 justify-center' : 'border-b border-gray-300 pb-1 mb-2'}`} style={ts.sectionHeader || {}}>
             {!readOnly && editingSection === 'summary' ? (
               <input
                 autoFocus
@@ -732,6 +927,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               <button onClick={toggleSummary} className="text-gray-400 hover:text-gray-600 text-xs ml-2 opacity-0 group-hover:opacity-100 font-normal" title="Hide this section">Hide</button>
             )}
           </h2>
+          )}
           <p
             className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
             style={ts.body || {}}
@@ -748,7 +944,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         </button>
       )}
 
-      {activeSectionOrder.map(sectionName => sections[sectionName] || null)}
+      {selectedTemplate === 'edge'
+        ? <div style={{ paddingLeft: '10px', paddingRight: '10px' }}>{activeSectionOrder.map(sectionName => sections[sectionName] || null)}</div>
+        : activeSectionOrder.map(sectionName => sections[sectionName] || null)
+      }
 
       {(!resumeData.experience || resumeData.experience.length === 0) && (
         <div className="text-center text-gray-400 py-12">

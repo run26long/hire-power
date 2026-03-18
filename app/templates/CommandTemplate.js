@@ -15,7 +15,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
     page: {
       fontFamily,
       fontSize: `${base}pt`,
-      lineHeight: '1.1',
+      lineHeight: '1.3',
       color: '#1a1a1a',
       background: '#fff',
       width: '100%',
@@ -32,7 +32,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
       fontWeight: '700',
       letterSpacing: '1px',
       marginBottom: px(4),
-      lineHeight: '1.1',
+      lineHeight: '1.3',
       color: '#fff',
     },
     contact: {
@@ -42,7 +42,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
       display: 'flex',
       flexWrap: 'wrap',
       gap: px(10),
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     body: {
       padding: `${px(16)} ${px(52)} ${px(36)}`,
@@ -61,16 +61,16 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
       paddingBottom: px(2),
       marginBottom: px(5),
       marginTop: '0',
-      lineHeight: '1.1',
+      lineHeight: '1.3',
     },
     entry: { marginBottom: px(10) },
     row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
-    jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.1', color: '#111' },
-    dt: { fontFamily, fontSize: `${base}pt`, color: '#666', lineHeight: '1.1' },
-    co: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(2), lineHeight: '1.1' },
-    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.1' },
-    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.1' },
-    bodyText: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.1' },
+    jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.3', color: '#111' },
+    dt: { fontFamily, fontSize: `${base}pt`, color: '#666', lineHeight: '1.3' },
+    co: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(2), lineHeight: '1.3' },
+    li: { fontFamily, margin: `${px(1)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.3' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(2)} 0`, lineHeight: '1.3' },
+    bodyText: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(2)}`, lineHeight: '1.3' },
   };
 
   const contactParts = [
@@ -99,7 +99,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
         {/* Summary */}
         {resumeData.summary && !resumeData.hideSummary && (
           <div style={s.section}>
-            <div style={s.sh}>Professional Summary</div>
+            <div style={s.sh}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</div>
             <p style={s.bodyText}>{resumeData.summary}</p>
           </div>
         )}
@@ -142,7 +142,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
                   <span style={s.dt}>{formatDate(ed.graduationDate, dateFormat)}</span>
                 </div>
                 <div style={s.co}>{[ed.degree, ed.field].filter(Boolean).join(', ')}</div>
-                {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#333', lineHeight: '1.1' }}>{l}</div>)}
+                {ed.lines?.map((l, k) => <div key={k} style={{ fontFamily, fontSize: `${base}pt`, color: '#333', lineHeight: '1.3' }}>{l}</div>)}
               </div>
             ))}
           </div>
@@ -210,7 +210,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
           <div style={s.sh}>Additional Information</div>
           {resumeData.additionalInfo.map((item, i) => (
             <div key={i} style={i < resumeData.additionalInfo.length - 1 ? { marginBottom: px(3) } : {}}>
-              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.1', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
+              <div style={{ fontFamily, fontSize: `${base}pt`, lineHeight: '1.3', display: 'flex', gap: '6px', alignItems: 'baseline' }}>
                 <strong>{item.label}</strong>
                 {item.detail && <span style={{ color: '#555' }}>| {item.detail}</span>}
               </div>

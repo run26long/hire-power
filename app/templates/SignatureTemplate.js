@@ -70,7 +70,7 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
       fontFamily,
       fontSize: `${base}pt`,
       fontWeight: '700',
-      letterSpacing: '2px',
+      letterSpacing: '0.5px',
       textTransform: 'uppercase',
       color: '#1a1a1a',
       background: color + '22',
@@ -115,7 +115,7 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
       {/* Summary */}
       {resumeData.summary && !resumeData.hideSummary && (
         <div style={s.section}>
-          <div style={s.sh}>Professional Summary</div>
+          <div style={s.sh}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</div>
           <p style={s.body}>{resumeData.summary}</p>
 
         </div>
