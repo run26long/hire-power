@@ -6,7 +6,7 @@ export default function CurrentTemplate({ resumeData, font, fontSize, spacing = 
   const skills = getSkillsDisplay(resumeData);
   const base = fontSize || 11;
   const sp = spacing || 1;
-  const fontFamily = font || 'Calibri, Arial, sans-serif';
+  const fontFamily = font || 'Lato';
   const px = (n) => `${Math.round(n * sp)}px`;
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || '';
 

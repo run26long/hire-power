@@ -61,7 +61,7 @@ const [showCtaModal, setShowCtaModal] = useState(false)
   // Toolbar states
   const [selectedTemplate, setSelectedTemplate] = useState('current')
 const [accentColor, setAccentColor] = useState('#5b4fcf')
-  const [selectedFont, setSelectedFont] = useState('Calibri')
+  const [selectedFont, setSelectedFont] = useState('Lato')
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
 const [dateFormat, setDateFormat] = useState('short')
@@ -332,14 +332,14 @@ function formatDate(dateString, format = dateFormat) {
 
   useEffect(() => {
    const templateFonts = {
-      crisp: 'Cambria',
-      sharp: 'Calibri',
-      current: 'Calibri',
-      command: 'Arial',
-      prestige: 'Garamond',
-      signature: 'Garamond',
-      vibe: 'Georgia',
-      edge: 'Arial',
+      crisp: 'Source Serif 4',
+      sharp: 'Helvetica',
+      current: 'Lato',
+      command: 'Lato',
+      prestige: 'EB Garamond',
+      signature: 'EB Garamond',
+      vibe: 'Source Serif 4',
+      edge: 'Open Sans',
     }
     if (templateFonts[selectedTemplate]) {
       setSelectedFont(templateFonts[selectedTemplate])
@@ -371,19 +371,19 @@ if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
 }
    const templateFonts = {
-      crisp: 'Cambria',
-      sharp: 'Calibri',
-      current: 'Calibri',
-      command: 'Arial',
-      prestige: 'Garamond',
-      signature: 'Garamond',
-      vibe: 'Georgia',
-      edge: 'Arial',
+      crisp: 'Source Serif 4',
+      sharp: 'Helvetica',
+      current: 'Lato',
+      command: 'Lato',
+      prestige: 'EB Garamond',
+      signature: 'EB Garamond',
+      vibe: 'Source Serif 4',
+      edge: 'Open Sans',
     }
    const loadedTemplate = data.template_id || 'current'
     
     setSelectedTemplate(loadedTemplate)
-    setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Georgia')
+    setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Lato')
     setSelectedSize(data.font_size || 11)
     setDateFormat(data.date_format || 'short')
     setAccentColor(data.accent_color || '#5b4fcf')
@@ -632,16 +632,16 @@ if (showCtaModal) {
                   const t = e.target.value
                   setSelectedTemplate(t)
                   const templateDefaultFonts = {
-                    crisp: 'Cambria',
-                    sharp: 'Calibri',
-                    current: 'Calibri',
-                    command: 'Arial',
-                    prestige: 'Garamond',
-                    signature: 'Garamond',
-                    vibe: 'Georgia',
-                    edge: 'Arial',
+                    crisp: 'Source Serif 4',
+                    sharp: 'Helvetica',
+                    current: 'Lato',
+                    command: 'Lato',
+                    prestige: 'EB Garamond',
+                    signature: 'EB Garamond',
+                    vibe: 'Source Serif 4',
+                    edge: 'Open Sans',
                   }
-                  setSelectedFont(templateDefaultFonts[t] || 'Georgia')
+                  setSelectedFont(templateDefaultFonts[t] || 'Lato')
                 }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
@@ -666,11 +666,11 @@ if (showCtaModal) {
                 onChange={(e) => setSelectedFont(e.target.value)}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
-                <option value="Arial">Arial</option>
-                <option value="Calibri">Calibri</option>
-                <option value="Cambria">Cambria</option>
-                <option value="Garamond">Garamond</option>
-                <option value="Georgia">Georgia</option>
+               <option value="EB Garamond">EB Garamond</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Lato">Lato</option>
+                <option value="Open Sans">Open Sans</option>
+                <option value="Source Serif 4">Source Serif 4</option>
               </select>
             </div>
 
@@ -1942,6 +1942,7 @@ const getMessageText = (msg) => {
           coaching_conversation: coachingMessages,
           rewritten_resume: finalResume,
           resume_changes: finalChanges,
+          coaching_complete: true,
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)

@@ -8,7 +8,7 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
   const sp = spacing || 1;
   const color = accentColor || '#5b4fcf';
   const bandBg = color + '18';
-  const fontFamily = font || 'Garamond, "Times New Roman", serif';
+  const fontFamily = font || 'EB Garamond';
 
   const px = (n) => `${Math.round(n * sp)}px`;
 

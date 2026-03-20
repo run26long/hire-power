@@ -405,7 +405,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           job_description: jobDescription,
           journey_step: 'assess',
           template_id: sourceResume.template_id || 'modern',
-          font_family: sourceResume.font_family || 'Calibri',
+          font_family: sourceResume.font_family || 'Lato',
           font_size: sourceResume.font_size || 11,
         })
         .select()

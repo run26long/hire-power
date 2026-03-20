@@ -7,7 +7,7 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
   const base = fontSize || 11;
   const sp = spacing || 1;
   const color = accentColor || '#5b4fcf';
-  const fontFamily = font || 'Garamond, "Times New Roman", serif';
+  const fontFamily = font || 'EB Garamond';
   const px = (n) => `${Math.round(n * sp)}px`;
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || '';
 

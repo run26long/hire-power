@@ -6,10 +6,10 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
   const skills = getSkillsDisplay(resumeData);
   const base = fontSize || 11;
   const sp = spacing || 1;
-  const fontFamily = font || 'Calibri, "Trebuchet MS", Arial, sans-serif';
+  const fontFamily = font || 'Helvetica';
 
   const px = (n) => `${Math.round(n * sp)}px`;
-  const heavyWeight = (font && font.includes('Arial')) ? '700' : '800';
+  const heavyWeight = (font && (font.includes('Arial') || font.includes('Helvetica'))) ? '700' : '800';
 
   const s = {
     page: {
@@ -28,10 +28,12 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       fontWeight: heavyWeight,
       letterSpacing: '0.5px',
       padding: '0',
-      marginBottom: px(2),
+      paddingBottom: px(4),
+      marginBottom: px(8),
       lineHeight: '1.3',
       color: '#111',
       textAlign: 'left',
+      borderBottom: '2px solid #111',
     },
     contact: {
       fontFamily,
@@ -44,9 +46,14 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       lineHeight: '1.3',
     },
     hdrRule: {
-      border: 'none',
-      borderBottom: '1px solid #111',
+      width: '100%',
+      height: '0',
+      borderTop: 'none',
+      borderLeft: 'none',
+      borderRight: 'none',
+      borderBottom: '2px solid #111',
       margin: `0 0 ${px(8)} 0`,
+      display: 'block',
     },
     section: {
       marginTop: px(14),
@@ -86,7 +93,6 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
     <div style={s.page}>
       {/* Header */}
       <div style={s.name}>{resumeData.fullName}</div>
-      <hr style={s.hdrRule} />
       <div style={s.contact}>{contactParts.map((p, i) => <span key={i}>{p}{i < contactParts.length - 1 ? ' | ' : ''}</span>)}</div>
 
       {/* Summary */}

@@ -7,7 +7,7 @@ export default function VibeTemplate({ resumeData, font, fontSize, spacing = 1, 
   const base = fontSize || 11;
   const sp = spacing || 1;
   const color = accentColor || '#5b4fcf';
-  const fontFamily = font || 'Georgia, "Times New Roman", serif';
+  const fontFamily = font || 'Source Serif 4';
   const px = (n) => `${Math.round(n * sp)}px`;
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || '';
 

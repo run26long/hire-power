@@ -1,80 +1,145 @@
-import puppeteer from 'puppeteer'
+import React from 'react'
+import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
+import path from 'path'
+import ResumePDFCurrent from '../../templates/pdf/ResumePDF-Current'
+import ResumePDFCommand from '../../templates/pdf/ResumePDF-Command'
+import ResumePDFCrisp from '../../templates/pdf/ResumePDF-Crisp'
+import ResumePDFEdge from '../../templates/pdf/ResumePDF-Edge'
+import ResumePDFPrestige from '../../templates/pdf/ResumePDF-Prestige'
+import ResumePDFSharp from '../../templates/pdf/ResumePDF-Sharp'
+import ResumePDFSignature from '../../templates/pdf/ResumePDF-Signature'
+import ResumePDFVibe from '../../templates/pdf/ResumePDF-Vibe'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+// ─────────────────────────────────────────────
+// FONT REGISTRATION
+// Loads from local TTF files in public/fonts/
+// Registered once at module load — no network calls, no runtime failures
+// ─────────────────────────────────────────────
+const fontsDir = path.join(process.cwd(), 'public', 'fonts')
+
+Font.register({
+  family: 'Lato',
+  fonts: [
+    { src: path.join(fontsDir, 'Lato-Regular.ttf'), fontWeight: 400, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'Lato-Bold.ttf'), fontWeight: 700, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'Lato-Italic.ttf'), fontWeight: 400, fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'Lato-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
+  ]
+})
+
+Font.register({
+  family: 'EB Garamond',
+  fonts: [
+    { src: path.join(fontsDir, 'EBGaramond-Regular.ttf'), fontWeight: 400, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'EBGaramond-Bold.ttf'), fontWeight: 700, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'EBGaramond-Italic.ttf'), fontWeight: 400, fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'EBGaramond-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
+  ]
+})
+
+Font.register({
+  family: 'Open Sans',
+  fonts: [
+    { src: path.join(fontsDir, 'OpenSans-Regular.ttf'), fontWeight: 400, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'OpenSans-Bold.ttf'), fontWeight: 700, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'OpenSans-Italic.ttf'), fontWeight: 400, fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'OpenSans-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
+  ]
+})
+
+Font.register({
+  family: 'Source Serif 4',
+  fonts: [
+    { src: path.join(fontsDir, 'SourceSerif4-Regular.ttf'), fontWeight: 400, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'SourceSerif4-Bold.ttf'), fontWeight: 700, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'SourceSerif4-Italic.ttf'), fontWeight: 400, fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'SourceSerif4-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
+  ]
+})
+
+// Disable hyphenation globally — never acceptable in a resume
+Font.registerHyphenationCallback((word) => [word])
+
+// ─────────────────────────────────────────────
+// PAGE COUNT
+// ─────────────────────────────────────────────
+function countPDFPages(buffer) {
+  const str = buffer.toString('binary')
+  const matches = str.match(/\/Type\s*\/Page[^s]/g)
+  return matches ? matches.length : 1
+}
+
+// ─────────────────────────────────────────────
+// MAIN HANDLER
+// ─────────────────────────────────────────────
 export async function POST(request) {
   try {
-    const { resumeData, resumeId, templateName, fontSize, font, spacing, accentColor, action, versionId, isJobVersion, userId } = await request.json()
-    
-    // Generate the PDF using Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    const {
+      resumeData,
+      resumeId,
+      templateName,
+      fontSize,
+      font,
+      spacing,
+      accentColor,
+      action,
+      versionId,
+      isJobVersion,
+      userId
+    } = await request.json()
+
+    const fontMap = {
+      'Lato': 'Lato',
+      'EB Garamond': 'EB Garamond',
+      'Open Sans': 'Open Sans',
+      'Source Serif 4': 'Source Serif 4',
+      'Helvetica': 'Helvetica',
+    }
+    const fontToUse = fontMap[font] || 'Lato'
+
+    const templateComponents = {
+      Current: ResumePDFCurrent,
+      Command: ResumePDFCommand,
+      Crisp: ResumePDFCrisp,
+      Edge: ResumePDFEdge,
+      Prestige: ResumePDFPrestige,
+      Sharp: ResumePDFSharp,
+      Signature: ResumePDFSignature,
+      Vibe: ResumePDFVibe,
+    }
+    const TemplateComponent = templateComponents[templateName] || ResumePDFCurrent
+
+    const element = React.createElement(TemplateComponent, {
+      resumeData,
+      font: fontToUse,
+      fontSize: fontSize || 11,
+      spacing: spacing || 1,
+      accentColor: accentColor || '#5b4fcf'
     })
 
-    const page = await browser.newPage()
-    
-    // Import the template component and render it
-    const templateModule = await import(`../../templates/${templateName}Template.js`)
-    const TemplateComponent = templateModule.default
-    
-    // Render template to HTML string
-    const { renderToString } = await import('react-dom/server')
-    const htmlContent = renderToString(TemplateComponent({ resumeData, font, fontSize, spacing: spacing || 1, accentColor: accentColor || '#5b4fcf' }))
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
-            @page { margin: 0; }
-            * { -webkit-font-smoothing: antialiased; word-spacing: normal; letter-spacing: normal; }
-            p, li, span, div { word-break: normal; overflow-wrap: normal; white-space: normal; }
-          </style>
-        </head>
-        <body>${htmlContent}</body>
-      </html>
-    `
-    
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' })
-    
-    const pdfBuffer = await page.pdf({
-      format: 'Letter',
-      printBackground: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      tagged: true
-    })
-    
-    // If action is 'check', just return page count without saving
+    const pdfBuffer = await renderToBuffer(element)
+
     if (action === 'check') {
-      const pageCount = await page.evaluate(() => {
-        return Math.ceil(document.body.scrollHeight / (11 * 96))
-      })
-      await browser.close()
+      const pageCount = countPDFPages(pdfBuffer)
       return Response.json({ pageCount })
     }
 
-    await browser.close()
-
-    // If action is 'download', save to Supabase Storage
     if (action === 'download') {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      
       const fullName = resumeData?.fullName || 'Resume'
       const nameParts = fullName.split(' ')
       const firstName = nameParts[0] || 'Resume'
       const lastName = nameParts[nameParts.length - 1] || ''
       const atsName = lastName ? `${firstName}_${lastName}` : firstName
-      
       const fileName = `${userId}/${versionId || 'core'}/${atsName}_Resume_${templateName}_${timestamp}.pdf`
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
+
+      const { error: uploadError } = await supabase.storage
         .from('resume-pdfs')
         .upload(fileName, pdfBuffer, {
           contentType: 'application/pdf',
@@ -108,23 +173,17 @@ export async function POST(request) {
         .update({ formatted_versions: formattedVersions })
         .eq('id', recordId)
 
-      return Response.json({ 
-        success: true, 
+      return Response.json({
+        success: true,
         pdfUrl: publicUrl,
         action: 'download'
       })
     }
 
-    // If action is 'preview', return PDF directly
-    const fullName = resumeData?.fullName || 'Resume'
-    const nameParts = fullName.split(' ')
-    const firstName = nameParts[0] || 'Resume'
-    const lastName = nameParts[nameParts.length - 1] || ''
-    const atsName = lastName ? `${firstName}_${lastName}` : firstName
-    
     const downloadName = resumeData?.fullName
       ? `${resumeData.fullName.replace(/\s+/g, '_')}_Resume_Preview.pdf`
       : 'Resume_Preview.pdf'
+
     return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
@@ -133,7 +192,7 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    console.error('Error generating PDF:', error)
+    console.error('PDF generation error:', error)
     return Response.json(
       { error: 'Failed to generate PDF', details: error.message },
       { status: 500 }

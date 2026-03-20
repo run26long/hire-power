@@ -857,7 +857,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         ) : (
           <>
             <h1
-              className={`text-3xl font-bold text-center mb-1 ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 rounded'}`}
+              className={`text-3xl font-bold text-center mb-1 ${!readOnly && `cursor-text hover:bg-purple-100 px-2 ${selectedTemplate !== 'sharp' ? 'rounded' : ''}`}`}
               style={ts.name || {}}
               contentEditable={!readOnly}
               suppressContentEditableWarning

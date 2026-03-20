@@ -6,7 +6,7 @@ export default function CrispTemplate({ resumeData, font, fontSize, spacing = 1,
   const skills = getSkillsDisplay(resumeData);
   const base = fontSize || 11;
   const sp = spacing || 1;
- const fontFamily = font || 'Cambria, "Times New Roman", serif';
+ const fontFamily = font || 'Source Serif 4';
 
   const px = (n) => `${Math.round(n * sp)}px`;
 

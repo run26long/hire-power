@@ -7,7 +7,7 @@ export default function EdgeTemplate({ resumeData, font, fontSize, spacing = 1, 
   const base = fontSize || 11;
   const sp = spacing || 1;
   const color = accentColor || '#5b4fcf';
-  const fontFamily = font || 'Arial, Helvetica, sans-serif';
+  const fontFamily = font || 'Open Sans';
   const px = (n) => `${Math.round(n * sp)}px`;
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || '';
 

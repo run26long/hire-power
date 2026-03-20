@@ -8,19 +8,20 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
 
   // Template default fonts — overridden by user font selection if provided
   const templateFonts = {
-    crisp: 'Cambria, "Times New Roman", serif',
-    sharp: 'Calibri, Arial, sans-serif',
-    current: 'Calibri, Arial, sans-serif',
-    command: 'Arial, Helvetica, sans-serif',
-    prestige: 'Garamond, "Times New Roman", serif',
-    signature: 'Garamond, "Times New Roman", serif',
-    vibe: 'Georgia, "Times New Roman", serif',
-    edge: 'Arial, Helvetica, sans-serif',
+    crisp: '"Source Serif 4", "Times New Roman", serif',
+    sharp: 'Helvetica, Arial, sans-serif',
+    current: 'Lato, Arial, sans-serif',
+    command: 'Lato',
+    prestige: 'EB Garamond, "Times New Roman", serif',
+    signature: 'EB Garamond, "Times New Roman", serif',
+    vibe: '"Source Serif 4"',
+    edge: 'Open Sans, Arial, sans-serif',
   }
 
   // Use user-selected font if provided, otherwise use template default
- const ff = font || templateFonts[template] || 'Calibri, Arial, sans-serif'
-  const sharpWeight = (template === 'sharp' && ff.includes('Arial')) ? '600' : '800'
+  const rawFont = font || templateFonts[template] || 'Lato, Arial, sans-serif'
+  const ff = rawFont === 'Source Serif 4' ? '"Source Serif 4"' : rawFont
+ const sharpWeight = (template === 'sharp' && (ff.includes('Arial') || ff.includes('Helvetica'))) ? '600' : '800'
 
   const defaults = {
     page: {

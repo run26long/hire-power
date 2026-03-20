@@ -7,7 +7,7 @@ export default function CommandTemplate({ resumeData, font, fontSize, spacing = 
   const base = fontSize || 11;
   const sp = spacing || 1;
   const color = accentColor || '#5b4fcf';
-  const fontFamily = font || 'Arial, Helvetica, sans-serif';
+  const fontFamily = font || 'Lato';
 
   const px = (n) => `${Math.round(n * sp)}px`;
 
