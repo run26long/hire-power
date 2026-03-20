@@ -51,6 +51,9 @@ const [coachingMessages, setCoachingMessages] = useState([])
 const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
 const [showCtaModal, setShowCtaModal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
+  const [remainingGaps, setRemainingGaps] = useState([])
+  const [recoachAttempts, setRecoachAttempts] = useState(0)
 
   // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
@@ -946,6 +949,11 @@ fontFamily: selectedFont,
               setScoreBeforeCoaching={setScoreBeforeCoaching}
               scoreAfterCoaching={scoreAfterCoaching}
               resume={resume}
+              setPostCoachingAnalysis={setPostCoachingAnalysis}
+              setRemainingGaps={setRemainingGaps}
+              remainingGaps={remainingGaps}
+              recoachAttempts={recoachAttempts}
+              setRecoachAttempts={setRecoachAttempts}
             />
           </div>
         </div>
@@ -1034,7 +1042,7 @@ fontFamily: selectedFont,
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal }) {  
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts }) {  
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -1552,10 +1560,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               // PRO TIER - Start coaching
               <button 
                 onClick={async () => {
-                  console.log('Start Coaching clicked!')
                   setIsUpdatingJourney(true)
                   try {
-                    console.log('Updating journey step to coach...')
                     const { error } = await supabase
                       .from('resumes')
                       .update({ 
@@ -1563,28 +1569,24 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         updated_at: new Date().toISOString()
                       })
                       .eq('id', params.id)
-
                     if (error) {
-                      console.error('Error updating journey:', error)
                       alert('Failed to start coaching. Please try again.')
                     } else {
-                      console.log('Journey step updated successfully!')
                       setResume(prev => ({ ...prev, journey_step: 'coach' }))
                     }
                   } catch (err) {
-                    console.error('Unexpected error:', err)
                     alert('Something went wrong. Please try again.')
                   } finally {
                     setIsUpdatingJourney(false)
                   }
                 }}
                 disabled={isUpdatingJourney}
-                className={`w-full bg-purple-600 text-white rounded-lg py-3 font-semibold transition-colors flex items-center justify-center gap-2 ${
+                className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors flex items-center gap-2 ${
                   isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
                 }`}
               >
                 {isUpdatingJourney && (
-                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                  <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
                 )}
                 {isUpdatingJourney ? 'Starting...' : 'Start Coaching →'}
               </button>
@@ -1617,6 +1619,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           analysisResults={analysisResults}
           showUpgradeModal={showUpgradeModal}
           setShowUpgradeModal={setShowUpgradeModal}
+          scoreBeforeCoaching={scoreBeforeCoaching}
+          setScoreBeforeCoaching={setScoreBeforeCoaching}
+          setPostCoachingAnalysis={setPostCoachingAnalysis}
+          setRemainingGaps={setRemainingGaps}
         />
       )}
 
@@ -1635,12 +1641,19 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setResume={setResume}
           score={score}
           handleReassess={handleReassess}
-         showRevealModal={showRevealModal}
+          showRevealModal={showRevealModal}
           setShowRevealModal={setShowRevealModal}
           scoreBeforeCoaching={scoreBeforeCoaching}
           setScoreBeforeCoaching={setScoreBeforeCoaching}
           scoreAfterCoaching={scoreAfterCoaching}
           coachingSamplesUsed={coachingSamplesUsed}
+          remainingGaps={remainingGaps}
+          setRemainingGaps={setRemainingGaps}
+          recoachAttempts={recoachAttempts}
+          setRecoachAttempts={setRecoachAttempts}
+          userName={userProfile?.display_name || resumeData?.fullName}
+          userProfile={userProfile}
+          detectedLevel={detectedLevel}
         />
       )}
 
@@ -1671,7 +1684,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal }) {
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps }) {
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -1684,6 +1697,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const previousMessageCount = useRef(0)
+  const hasStartedCoaching = useRef(false)
 
 const getMessageText = (msg) => {
     if (!msg.content) return ''
@@ -1734,7 +1748,8 @@ const getMessageText = (msg) => {
       setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
-      if (coachingMessages.length === 0 || !hasRealMessages) {
+      if ((coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current) {
+        hasStartedCoaching.current = true
         await startCoaching(tier)
       }
     }
@@ -1748,7 +1763,10 @@ const getMessageText = (msg) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resumeData,
+          resumeData: {
+            ...resumeData,
+            _analysisResults: analysisResults?.analysis || null
+          },
           careerContext,
           detectedLevel,
           displayName: userName,
@@ -1791,7 +1809,10 @@ const getMessageText = (msg) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resumeData,
+          resumeData: {
+            ...resumeData,
+            _analysisResults: analysisResults?.analysis || null
+          },
           careerContext,
           detectedLevel,
           displayName: userName,
@@ -1822,40 +1843,111 @@ const getMessageText = (msg) => {
     async function finishCoaching() {
     setIsFinishing(true)
     try {
+
+      // ── ATTEMPT 1: Run coach-finish ──
+      const resumeDataWithAnalysis = {
+        ...resumeData,
+        _analysisResults: analysisResults?.analysis || null
+      }
+
+      const coachFinishPayload = {
+        resumeData: resumeDataWithAnalysis,
+        conversation: coachingMessages,
+        detectedLevel,
+        careerContext,
+        isJobSpecific: isJobSpecific || false,
+        jobDescription: jobDescription || null,
+        jobTitle: jobTitle || null,
+        jobCompany: jobCompany || null,
+        matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
+        missingKeywords: analysisResults?.analysis?.missingKeywords || []
+      }
+
       const response = await fetch('/api/coach-finish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resumeData,
-          conversation: coachingMessages,
-          detectedLevel,
-          careerContext,
-          isJobSpecific: isJobSpecific || false,
-          jobDescription: jobDescription || null,
-          jobTitle: jobTitle || null,
-          jobCompany: jobCompany || null,
-          matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
-          missingKeywords: analysisResults?.analysis?.missingKeywords || []
-        })
+        body: JSON.stringify(coachFinishPayload)
       })
       const data = await response.json()
       if (!data.rewrittenResume) throw new Error('Rewrite failed')
 
-      setRewrittenResume(data.rewrittenResume)
-      setResumeChanges(data.changes || [])
+      // ── SCORE CHECK: Analyze the rewritten resume ──
+      const scoreCheckResponse = await fetch('/api/analyze-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeData: data.rewrittenResume })
+      })
+      const scoreCheckData = await scoreCheckResponse.json()
+      const attemptOneScore = scoreCheckData?.score ?? null
+
+      // Store post-coaching analysis for targeted recoach
+      if (scoreCheckData?.analysis) {
+        setPostCoachingAnalysis(scoreCheckData.analysis)
+        // Extract remaining gaps from weaknesses and suggestions
+        const gaps = (scoreCheckData.analysis.suggestions || []).slice(0, 5)
+        
+        // Cap at 5 most important gaps
+        setRemainingGaps(gaps)
+      }
+
+      let finalResume = data.rewrittenResume
+      let finalChanges = data.changes || []
+
+      // ── RETRY: If score didn't improve, try once more with explicit instruction ──
+      if (
+        attemptOneScore !== null &&
+        scoreBeforeCoaching !== null &&
+        attemptOneScore <= scoreBeforeCoaching
+      ) {
+        console.warn(`Score did not improve (before: ${scoreBeforeCoaching}, after: ${attemptOneScore}). Retrying with stronger instruction.`)
+
+        const retryResponse = await fetch('/api/coach-finish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...coachFinishPayload,
+            retryInstruction: `Your first attempt produced a resume that scored ${attemptOneScore}, which did not improve on the original score of ${scoreBeforeCoaching}. This means your rewrite was too conservative or did not fully use the coaching conversation. Try again. Go deeper into the coaching material. Find every specific detail, every scope indicator, every trust signal, every skill mentioned — and make sure it appears in the resume. The standard is: every bullet should pass the Brain Test, and the overall resume must score higher than ${scoreBeforeCoaching}.`
+          })
+        })
+        const retryData = await retryResponse.json()
+
+        if (retryData.rewrittenResume) {
+          // Score the retry and use whichever attempt scored higher
+          const retryScoreResponse = await fetch('/api/analyze-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resumeData: retryData.rewrittenResume })
+          })
+          const retryScoreData = await retryScoreResponse.json()
+          const retryScore = retryScoreData?.score ?? null
+
+          if (retryScore !== null && retryScore > attemptOneScore) {
+            console.log(`Retry improved score: ${attemptOneScore} → ${retryScore}. Using retry result.`)
+            finalResume = retryData.rewrittenResume
+            finalChanges = retryData.changes || []
+          } else {
+            console.log(`Retry did not further improve score (${retryScore}). Using attempt 1 result.`)
+          }
+        }
+      }
+
+      // ── SAVE AND APPLY ──
+      setRewrittenResume(finalResume)
+      setResumeChanges(finalChanges)
 
       await supabase
         .from('resumes')
         .update({
           journey_step: 'improve',
           coaching_conversation: coachingMessages,
-          rewritten_resume: data.rewrittenResume,
-          resume_changes: data.changes || [],
+          rewritten_resume: finalResume,
+          resume_changes: finalChanges,
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
 
-      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: data.rewrittenResume }))
+      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
+
     } catch (err) {
       console.error('Error finishing coaching:', err)
       alert('Something went wrong generating your resume. Please try again.')
@@ -2069,7 +2161,7 @@ const getMessageText = (msg) => {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && (
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 flex-shrink-0 items-center">
             <textarea
               ref={inputRef}
               value={userInput}
@@ -2088,7 +2180,7 @@ const getMessageText = (msg) => {
             <button
               onClick={sendMessage}
               disabled={!userInput.trim() || sending}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end"
+              className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end flex-shrink-0"
             >
               Send
             </button>
@@ -2265,7 +2357,7 @@ const getMessageText = (msg) => {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts }) {
   const [accepting, setAccepting] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
@@ -2276,6 +2368,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   const [editingChange, setEditingChange] = useState(false)
   const [editedText, setEditedText] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPreparingReveal, setIsPreparingReveal] = useState(false)
+  const [showGapsModal, setShowGapsModal] = useState(false)
+  const [showTargetedRecoach, setShowTargetedRecoach] = useState(false)
+  const [targetedMessages, setTargetedMessages] = useState([])
+  const [isTargetedFinishing, setIsTargetedFinishing] = useState(false)
 
   // Capture score before coaching when improve step loads
   useEffect(() => {
@@ -2480,6 +2577,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 
   async function finishReview(explicitAccepted = null) {
     setAccepting(true)
+    setIsPreparingReveal(true)
     try {
       let finalData = JSON.parse(JSON.stringify(originalResumeData))
       const changesToApply = explicitAccepted || acceptedChanges
@@ -2505,6 +2603,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       alert('Something went wrong. Please try again.')
     } finally {
       setAccepting(false)
+      setIsPreparingReveal(false)
     }
   }
 
@@ -2577,40 +2676,40 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           <span className="text-xs text-gray-500 whitespace-nowrap">{reviewedCount}/{totalChanges}</span>
         </div>
 
-        {!isDone ? (
-          <>
-            <button
-              onClick={() => setShowChangeModal(true)}
-              className="w-full bg-purple-600 text-white rounded-lg py-2.5 font-semibold text-sm hover:bg-purple-700 transition-colors"
-            >
-              Review Change {currentChangeIndex + 1} of {totalChanges} →
-            </button>
-            <button
-              onClick={() => {
-                const remaining = resumeChanges.slice(currentChangeIndex)
-                setAcceptedChanges(prev => [...prev, ...remaining])
-                setCurrentChangeIndex(totalChanges)
-              }}
-              className="w-full bg-white text-gray-600 border border-gray-300 rounded-lg py-2 text-sm hover:bg-gray-50 transition-colors"
-            >
-              Accept All Remaining
-            </button>
-          </>
-        ) : (
-          <div className="space-y-3">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-              <p className="font-semibold text-green-800 text-sm">Review complete!</p>
-              <p className="text-xs text-green-700 mt-1">Keeping {acceptedChanges.length} of {totalChanges} changes</p>
-            </div>
-            <div className="flex justify-center">
-              <button
-                onClick={() => finishReview()}
-                disabled={accepting}
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center gap-2 transition-colors"
-              >
-                {accepting && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                {accepting ? 'Applying...' : 'Apply Selected Changes →'}
-              </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowChangeModal(true)}
+            className="flex-1 bg-purple-600 text-white rounded-lg py-1.5 font-medium text-xs hover:bg-purple-700 transition-colors"
+          >
+            Review Changes ({currentChangeIndex + 1}/{totalChanges})
+          </button>
+          <button
+            onClick={() => {
+              const remaining = resumeChanges.slice(currentChangeIndex)
+              const newAccepted = [...acceptedChanges, ...remaining]
+              setAcceptedChanges(newAccepted)
+              setCurrentChangeIndex(totalChanges)
+              setShowChangeModal(false)
+              finishReview(newAccepted)
+            }}
+            disabled={accepting}
+            className="flex-1 bg-white text-gray-600 border border-gray-300 rounded-lg py-1.5 text-xs hover:bg-gray-50 transition-colors disabled:opacity-75"
+          >
+            {accepting ? 'Saving...' : 'Accept All'}
+          </button>
+        </div>
+
+        {/* Preparing Reveal Modal — shown between last change and reveal modal */}
+        {isPreparingReveal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
+          >
+            <div className="bg-white rounded-lg shadow-2xl p-8 text-center" style={{ maxWidth: '320px' }}>
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-10 w-auto mx-auto mb-4" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <h3 className="font-semibold text-gray-900 mb-1">Preparing your resume...</h3>
+              <p className="text-xs text-gray-500">Applying your changes and calculating your new score.</p>
             </div>
           </div>
         )}
@@ -2714,10 +2813,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       setCurrentChangeIndex(newIndex)
                       setEditingChange(false)
                       setEditedText('')
-                      setShowChangeModal(false)
                       if (newIndex >= totalChanges) {
+                        setShowChangeModal(false)
                         finishReview([...acceptedChanges])
                       }
+                      // Modal stays open for next change
                     }}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
                   >
@@ -2747,10 +2847,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       setCurrentChangeIndex(newIndex)
                       setEditingChange(false)
                       setEditedText('')
-                      setShowChangeModal(false)
                       if (newIndex >= totalChanges) {
+                        setShowChangeModal(false)
                         finishReview(newAccepted)
                       }
+                      // Modal stays open for next change
                     }}
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors"
                   >
@@ -2778,25 +2879,27 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           </p>
         </div>
 
-        <p className="text-xs text-gray-600 text-center">
-          The improved version is displayed on your resume. Accept it to move forward, or review each change individually.
-        </p>
+        <div className="text-xs text-gray-600 text-center space-y-2">
+          <p><strong>The improved version is displayed.</strong></p>
+          <p>Love it? <strong>Accept All</strong> and you're ready to format, download, and start applying!</p>
+          <p>Want to fine-tune? <strong>Review Changes</strong> lets you go through each one and edit as you like.</p>
+        </div>
 
         <div className="flex justify-center mt-2">
-          <div className="flex flex-col gap-2" style={{ minWidth: '210px' }}>
+          <div className="flex gap-2">
             <button
               onClick={acceptAll}
               disabled={accepting}
-              className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center justify-center gap-2 transition-colors"
+              className="bg-purple-600 text-white rounded-lg py-1.5 px-3 text-xs font-medium hover:bg-purple-700 disabled:opacity-75 flex items-center gap-1.5 transition-colors"
             >
               {accepting && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-              {accepting ? 'Saving...' : '✓ Accept All Changes'}
+              {accepting ? 'Saving...' : '✓ Accept All'}
             </button>
             <button
               onClick={() => { setReviewMode(true); setShowChangeModal(true) }}
-              className="w-full bg-white text-purple-600 border border-purple-600 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
+              className="bg-white text-purple-600 border border-purple-600 rounded-lg py-1.5 px-3 text-xs font-medium hover:bg-purple-50 transition-colors"
             >
-              Review Each Change
+              Review Changes
             </button>
           </div>
         </div>
@@ -2868,7 +2971,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     ) : (
                       <p className="text-sm text-gray-500">Score held — your resume was already well-optimized.</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">We recommend submitting at 85 or above.</p>
+                    
                   </div>
                 ) : (
                   <div className="mb-4">
@@ -2879,11 +2982,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 
                 <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-5 text-left">
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    Give it a final review in the Format step, then download.
+                    Give it a final review in the Format step, then it's ready to download and apply.
                   </p>
                 </div>
 
-                <button
+                 <button
                   onClick={async () => {
                     setShowRevealModal(false)
                     await supabase
@@ -2892,15 +2995,117 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       .eq('id', params.id)
                     setResume(prev => ({ ...prev, journey_step: 'polish' }))
                   }}
-                  className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors"
+                  className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors mb-3"
                 >
                   Format My Resume →
                 </button>
+
+                {scoreAfterCoaching && scoreAfterCoaching < 85 && remainingGaps.length > 0 && recoachAttempts < 1 && (
+                  <button
+                    onClick={() => {
+                      setShowRevealModal(false)
+                      setShowGapsModal(true)
+                    }}
+                    className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 text-xs font-medium hover:bg-purple-50 transition-colors"
+                  >
+                    Want to push for more points? →
+                  </button>
+                )}
               </div>
             </div>
 
           </div>
         </div>
+      )}
+    {/* Gaps Modal */}
+      {showGapsModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
+        >
+          <div
+            className="bg-white shadow-2xl w-full max-w-md border border-gray-200"
+            style={{ borderRadius: '8px' }}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-4"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-base font-bold text-white">Here's what would move your score higher.</h2>
+                  <p className="text-purple-100 text-xs">We need a little more from you to get there.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <ul className="space-y-2 mb-5">
+                {remainingGaps.map((gap, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                    <span className="text-purple-600 flex-shrink-0 mt-0.5">•</span>
+                    <span>{gap}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="text-xs text-gray-500 mb-5">
+                If you have this information, a 5-minute follow-up session could add more points.
+                If you don't — that's okay. Your resume already reflects everything you shared,
+                and a score built on honest content will always outperform one built on fluff.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    setShowGapsModal(false)
+                    setShowTargetedRecoach(true)
+                  }}
+                  className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  I have more to share — let's do it →
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowGapsModal(false)
+                    await supabase
+                      .from('resumes')
+                      .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                      .eq('id', params.id)
+                    setResume(prev => ({ ...prev, journey_step: 'format' }))
+                  }}
+                  className="w-full bg-white text-gray-500 border border-gray-200 rounded-lg py-2 text-xs font-medium hover:bg-gray-50 transition-colors"
+                >
+                  I'm good with my current score
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Targeted Recoach */}
+      {showTargetedRecoach && (
+        <TargetedRecoachStep
+          resumeData={resumeData}
+          rewrittenResume={rewrittenResume}
+          remainingGaps={remainingGaps}
+          detectedLevel={detectedLevel}
+          userName={userName}
+          userProfile={userProfile}
+          supabase={supabase}
+          params={params}
+          setResume={setResume}
+          setRewrittenResume={setRewrittenResume}
+          setResumeChanges={setResumeChanges}
+          targetedMessages={targetedMessages}
+          setTargetedMessages={setTargetedMessages}
+          handleReassess={handleReassess}
+          setShowRevealModal={setShowRevealModal}
+          setRecoachAttempts={setRecoachAttempts}
+          onClose={() => setShowTargetedRecoach(false)}
+        />
       )}
     </>
   )
@@ -3030,6 +3235,251 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
     </div>
   )
 }
+// ─────────────────────────────────────────────
+// TARGETED RECOACH STEP
+// ─────────────────────────────────────────────
+function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detectedLevel, userName, userProfile, supabase, params, setResume, setRewrittenResume, setResumeChanges, targetedMessages, setTargetedMessages, handleReassess, setShowRevealModal, setRecoachAttempts, onClose }) {
+  const [userInput, setUserInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [isFinishing, setIsFinishing] = useState(false)
+  const messagesEndRef = useRef(null)
+  const inputRef = useRef(null)
+  const hasStartedRef = useRef(false)
+
+  const getMessageText = (msg) => {
+    if (!msg.content) return ''
+    if (typeof msg.content === 'string') return msg.content
+    if (Array.isArray(msg.content)) return msg.content.map(b => b.text || '').join(' ')
+    return ''
+  }
+
+  const isComplete = targetedMessages.some(msg =>
+    msg.role === 'assistant' && getMessageText(msg).toLowerCase().includes('click the button below')
+  )
+
+  useEffect(() => {
+    if (targetedMessages.length === 0 && !hasStartedRef.current) {
+      hasStartedRef.current = true
+      startTargetedCoach()
+    }
+  }, [])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [targetedMessages])
+
+  async function startTargetedCoach() {
+    setSending(true)
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: {
+            ...resumeData,
+            _remainingGaps: remainingGaps,
+            _previousCoaching: true
+          },
+          detectedLevel,
+          displayName: userName,
+          tier: 'targeted',
+          conversation: [{ role: 'user', content: "I have more information to share." }]
+        })
+      })
+      const data = await response.json()
+      if (data.response) {
+        setTargetedMessages([{ role: 'assistant', content: data.response }])
+      }
+    } catch (err) {
+      console.error('Error starting targeted coach:', err)
+    } finally {
+      setSending(false)
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100)
+    }
+  }
+
+  async function sendMessage() {
+    if (!userInput.trim() || sending) return
+    const newMessage = { role: 'user', content: userInput }
+    const updatedMessages = [...targetedMessages, newMessage]
+    setTargetedMessages(updatedMessages)
+    setUserInput('')
+    setSending(true)
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: {
+            ...resumeData,
+            _remainingGaps: remainingGaps,
+            _previousCoaching: true
+          },
+          detectedLevel,
+          displayName: userName,
+          tier: 'targeted',
+          conversation: updatedMessages
+        })
+      })
+      const data = await response.json()
+      if (data.response) {
+        setTargetedMessages([...updatedMessages, { role: 'assistant', content: data.response }])
+      }
+    } catch (err) {
+      console.error('Error in targeted coach:', err)
+    } finally {
+      setSending(false)
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100)
+    }
+  }
+
+  async function finishTargetedCoach() {
+    setIsFinishing(true)
+    try {
+      const response = await fetch('/api/coach-finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: {
+            ...resumeData,
+            _rewrittenResume: rewrittenResume,
+            _remainingGaps: remainingGaps
+          },
+          conversation: targetedMessages,
+          detectedLevel,
+          isTargetedEnhancement: true
+        })
+      })
+      const data = await response.json()
+      if (!data.rewrittenResume) throw new Error('Enhancement failed')
+
+      setRewrittenResume(data.rewrittenResume)
+      setResumeChanges(data.changes || [])
+      setRecoachAttempts(prev => prev + 1)
+
+      await supabase
+        .from('resumes')
+        .update({
+          rewritten_resume: data.rewrittenResume,
+          resume_changes: data.changes || [],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', params.id)
+
+      setResume(prev => ({ ...prev, resume_data: data.rewrittenResume }))
+      await handleReassess(data.rewrittenResume)
+      setShowRevealModal(true)
+      onClose()
+    } catch (err) {
+      console.error('Error finishing targeted coach:', err)
+      alert('Something went wrong. Please try again.')
+    } finally {
+      setIsFinishing(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
+    >
+      <div
+        className="bg-white shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col"
+        style={{ borderRadius: '8px', maxHeight: '80vh' }}
+      >
+        <div
+          style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
+          className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+        >
+          <div className="flex items-center gap-3">
+            <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+            <div>
+              <h2 className="text-base font-bold text-white">Let's push a little further.</h2>
+              <p className="text-purple-100 text-xs">5 minutes. Focused. Just the gaps.</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200 text-3xl leading-none font-light"
+          >×</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {targetedMessages.map((msg, i) => (
+            <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`rounded-lg px-3 py-2 text-xs leading-snug ${
+                msg.role === 'assistant'
+                  ? 'bg-purple-50 border border-purple-100 w-full'
+                  : 'bg-gray-100 border border-gray-200 max-w-[90%]'
+              }`}>
+                {msg.role === 'assistant' && (
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-sm">🎓</span>
+                    <span className="text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                  </div>
+                )}
+                <div className="text-gray-800" dangerouslySetInnerHTML={{
+                  __html: getMessageText(msg)
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n\n/g, '<br/><br/>')
+                    .replace(/\n/g, '<br/>')
+                }} />
+              </div>
+            </div>
+          ))}
+          {sending && (
+            <div className="flex">
+              <div className="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 w-full">
+                <div className="flex gap-1 items-center">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="p-4 border-t border-gray-100 flex-shrink-0">
+          {!isComplete ? (
+            <div className="flex gap-2 items-center">
+              <textarea
+                ref={inputRef}
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+                }}
+                placeholder="Type your response..."
+                disabled={sending}
+                rows={2}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!userInput.trim() || sending}
+                className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+              >
+                Send
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={finishTargetedCoach}
+              disabled={isFinishing}
+              className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center justify-center gap-2 transition-colors"
+            >
+              {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+              {isFinishing ? 'Updating your resume...' : '✨ Update My Resume →'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────
 // FORMAT STEP
 // ─────────────────────────────────────────────

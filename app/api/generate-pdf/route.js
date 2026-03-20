@@ -34,6 +34,8 @@ export async function POST(request) {
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
             @page { margin: 0; }
+            * { -webkit-font-smoothing: antialiased; word-spacing: normal; letter-spacing: normal; }
+            p, li, span, div { word-break: normal; overflow-wrap: normal; white-space: normal; }
           </style>
         </head>
         <body>${htmlContent}</body>
@@ -45,7 +47,8 @@ export async function POST(request) {
     const pdfBuffer = await page.pdf({
       format: 'Letter',
       printBackground: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 }
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      tagged: true
     })
     
     // If action is 'check', just return page count without saving
