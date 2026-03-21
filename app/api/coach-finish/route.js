@@ -45,7 +45,7 @@ KEYWORDS (20 points) — Does this resume speak the language of the field at the
   - Role-appropriate professional terminology
 
 ═══════════════════════════════════════════════
-PART 2: THE BRAIN TEST — MANDATORY QUALITY CHECK
+PART 2: THE BRAIN TEST — MANDATORY QUALITY CHECK FOR EVERY SENTENCE WRITTEN
 ═══════════════════════════════════════════════
 
 After writing every bullet, apply this test before moving on:
@@ -236,7 +236,22 @@ When a metric exists, ask: is there a larger, equally accurate way to express it
 Never present a number that makes an achievement sound smaller than it actually is.
 
 MULTIPLY OUT when a larger number is more accurate and more impressive:
-  Daily → weekly → monthly → total run (use whichever is largest and still truthful)
+  Daily → weekly → monthly → total run. Use whichever is largest and still truthful.
+  
+  CUMULATIVE REACH RULE — applies to any role involving repeated interactions, 
+  sessions, events, or transactions:
+  If the coaching conversation gave you a per-unit number AND a total count, calculate 
+  cumulative reach before deciding which to use.
+  "50 patients/week × 50 weeks = 2,500 patient interactions annually" may be more 
+  impressive than "50 patients per week."
+  "8 calls/day × 240 working days = 1,900+ client touchpoints" may tell a bigger story 
+  than the per-day number.
+  Use whichever is larger and still completely accurate.
+  
+  Exception: when the same people recur (same 10 enrolled students each week, same 
+  ongoing client accounts), use the actual count — not a multiplied total that implies 
+  new people each time.
+  The test: are these new people or transactions each time, or the same ones returning?
   "5 shows a day, 5 days a week, for 15 months" → "325+ performances over a 15-month run"
   "20 students per week" → accurate as-is, but ask: is there a semester or annual total?
   "4-person cast" for a multi-show production → wrong metric entirely. Use show count and 
@@ -879,6 +894,9 @@ RULES:
 - NEVER use em dashes (—). Use commas or periods instead. Em dashes are an AI signal.
 - Do not combine unlike skills or experiences into one crammed sentence. 
   Two focused sentences beat one sentence trying to cover everything.
+- Readability is the first rule. If a sentence requires a second read to understand, 
+  it needs to be broken up or simplified. A recruiter who has to work to understand 
+  your summary has already moved on.
 - Be aggressive. This is the hook. It should make a recruiter think: "This person gets what we need."
 
 THE BRAIN TEST:
@@ -996,8 +1014,11 @@ ${levelInstructions}
 You are performing a TARGETED ENHANCEMENT PASS on an already-improved resume.
 The resume was recently coached and rewritten. It is already significantly better than the original.
 
-YOUR ONLY JOB: Use the new information from the follow-up conversation to enhance specific 
-bullets where new material was provided. Do not touch anything else.
+YOUR JOB: Use the new information from the follow-up conversation to meaningfully improve 
+the resume. This may mean enhancing existing bullets, adding new bullets where the 
+conversation surfaced content that has no home yet, or strengthening the summary to 
+reflect new positioning information. Be surgical where the original is strong. Be bold 
+where new material was provided that isn't yet on the resume at all.
 
 REMAINING GAPS THAT WERE ADDRESSED IN THIS CONVERSATION:
 ${remainingGaps.map((gap, i) => `${i + 1}. ${gap}`).join('\n')}
@@ -1078,7 +1099,45 @@ export async function POST(request) {
       if (cleanedEnhancement.startsWith('```')) {
         cleanedEnhancement = cleanedEnhancement.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      const enhancedResume = JSON.parse(cleanedEnhancement)
+      let enhancedResume = JSON.parse(cleanedEnhancement)
+
+      // Score check — if no improvement, retry with stronger instruction
+      const scoreCheckResponse = await fetch(new URL('/api/analyze-resume', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeData: enhancedResume })
+      })
+      const scoreCheckData = await scoreCheckResponse.json()
+      const enhancementScore = scoreCheckData?.score ?? null
+      const baseScore = resumeData?._baseScore ?? null
+
+      if (enhancementScore !== null && baseScore !== null && enhancementScore <= baseScore) {
+        console.warn(`Targeted enhancement did not improve score (base: ${baseScore}, after: ${enhancementScore}). Retrying with stronger instruction.`)
+        
+        const retryPrompt = buildTargetedEnhancementPrompt({
+          rewrittenResume: baseResume,
+          newConversation: conversation,
+          remainingGaps,
+          level
+        }) + `\n\nCRITICAL RETRY INSTRUCTION: Your first attempt scored ${enhancementScore}, which did not improve on the baseline of ${baseScore}. You were too conservative. The new content from the conversation MUST appear prominently in the resume — not as minor edits but as substantive additions that a scorer will notice. Add new bullets if needed. Strengthen the summary if the new positioning information warrants it. The standard is: the resume must score higher than ${baseScore} after this pass.`
+
+        const retryMessage = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: retryPrompt }]
+        })
+
+        let cleanedRetry = retryMessage.content[0].text.trim()
+        if (cleanedRetry.startsWith('```')) {
+          cleanedRetry = cleanedRetry.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        }
+        try {
+          const retryResume = JSON.parse(cleanedRetry)
+          enhancedResume = retryResume
+        } catch (e) {
+          console.warn('Retry parse failed, using first attempt')
+        }
+      }
 
       const changesPrompt = buildChangesPrompt(baseResume, enhancedResume)
       const changesMessage = await anthropic.messages.create({
@@ -1377,11 +1436,25 @@ OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
 ${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
 
-    const rewriteMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
-      messages: [{ role: 'user', content: rewritePrompt }]
-    })
+    let rewriteMessage
+    let rewriteAttempts = 0
+    while (rewriteAttempts < 3) {
+      try {
+        rewriteMessage = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: rewritePrompt }]
+        })
+        break
+      } catch (err) {
+        if (err.status === 529 && rewriteAttempts < 2) {
+          rewriteAttempts++
+          await new Promise(resolve => setTimeout(resolve, 2000 * rewriteAttempts))
+        } else {
+          throw err
+        }
+      }
+    }
 
     let cleanedRewrite = rewriteMessage.content[0].text.trim()
     if (cleanedRewrite.startsWith('```')) {

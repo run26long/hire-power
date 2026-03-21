@@ -187,7 +187,7 @@ const searchParams = useSearchParams();
       assess:  { title: 'Get your baseline.', body: "Your Resume Power Score tells you exactly what's working and what's not — specific to your experience." },
       coach:   { title: 'Keep going.', body: isPro ? "Let's surface the achievements, numbers, and skills that are missing." : "Get a taste of what coaching can do. One job, one real conversation — then you decide." },
       improve: { title: 'Review your wins.', body: isPro ? "Review each improvement your coach made, then keep, edit, or reject each one." : "Review the suggestions and make your edits directly on the resume." },
-      polish:  { title: 'Almost there.', body: "Make any final edits before locking it in." },
+      format:  { title: 'Almost there.', body: "Make any final edits before locking it in." },
       save:    { title: 'Final step.', body: isPro ? "Download it, then build job-specific versions on top of this foundation." : "Download it now — and when you're ready, upload a job description to see how well it matches." },
     };
     return map[journeyStep] || { title: 'Keep going.', body: 'Pick up where you left off.' };

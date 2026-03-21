@@ -2430,7 +2430,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           setShowRevealModal={setShowRevealModal}
         />
 
-        {/* Score Reveal Modal — free users go to save, not polish */}
+        {/* Score Reveal Modal — free users */}
         {showRevealModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center"
@@ -2517,13 +2517,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       setShowRevealModal(false)
                       await supabase
                         .from('resumes')
-                        .update({ journey_step: 'save', updated_at: new Date().toISOString() })
+                        .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                         .eq('id', params.id)
-                      setResume(prev => ({ ...prev, journey_step: 'save' }))
+                      setResume(prev => ({ ...prev, journey_step: 'format' }))
                     }}
                     className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors"
                   >
-                    Save My Resume →
+                    Format My Resume →
                   </button>
                 </div>
               </div>
@@ -2906,7 +2906,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         </div>
       </div>
 
-      {/* Score Reveal Modal — Pro users go to polish */}
+      {/* Score Reveal Modal — Pro users */}
       {showRevealModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
@@ -2992,19 +2992,20 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     setShowRevealModal(false)
                     await supabase
                       .from('resumes')
-                      .update({ journey_step: 'polish', updated_at: new Date().toISOString() })
+                      .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                       .eq('id', params.id)
-                    setResume(prev => ({ ...prev, journey_step: 'polish' }))
+                    setResume(prev => ({ ...prev, journey_step: 'format' }))
                   }}
                   className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors mb-3"
                 >
                   Format My Resume →
                 </button>
 
-                {scoreAfterCoaching && scoreAfterCoaching < 85 && remainingGaps.length > 0 && recoachAttempts < 1 && (
+                {scoreAfterCoaching && scoreAfterCoaching < 85 && remainingGaps.length > 0 && recoachAttempts < 2 && (
                   <button
                     onClick={() => {
                       setShowRevealModal(false)
+                      setTargetedMessages([])
                       setShowGapsModal(true)
                     }}
                     className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 text-xs font-medium hover:bg-purple-50 transition-colors"
@@ -3105,6 +3106,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           handleReassess={handleReassess}
           setShowRevealModal={setShowRevealModal}
           setRecoachAttempts={setRecoachAttempts}
+          score={score}
           onClose={() => setShowTargetedRecoach(false)}
         />
       )}
@@ -3220,15 +3222,15 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
             </button>
             <button
               onClick={async () => {
-                await supabase
-                  .from('resumes')
-                  .update({ journey_step: 'save', updated_at: new Date().toISOString() })
-                  .eq('id', params.id)
-                setResume(prev => ({ ...prev, journey_step: 'save' }))
-              }}
-              className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 transition-colors"
-            >
-              Finalize Changes →
+              await supabase
+                .from('resumes')
+                .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                .eq('id', params.id)
+              setResume(prev => ({ ...prev, journey_step: 'format' }))
+            }}
+            className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 transition-colors"
+          >
+            Format My Resume →
             </button>
           </div>
         </div>
@@ -3239,7 +3241,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
 // ─────────────────────────────────────────────
 // TARGETED RECOACH STEP
 // ─────────────────────────────────────────────
-function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detectedLevel, userName, userProfile, supabase, params, setResume, setRewrittenResume, setResumeChanges, targetedMessages, setTargetedMessages, handleReassess, setShowRevealModal, setRecoachAttempts, onClose }) {
+function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detectedLevel, userName, userProfile, supabase, params, setResume, setRewrittenResume, setResumeChanges, targetedMessages, setTargetedMessages, handleReassess, setShowRevealModal, setRecoachAttempts, score, onClose }) {
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -3344,7 +3346,8 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           resumeData: {
             ...resumeData,
             _rewrittenResume: rewrittenResume,
-            _remainingGaps: remainingGaps
+            _remainingGaps: remainingGaps,
+            _baseScore: score
           },
           conversation: targetedMessages,
           detectedLevel,
