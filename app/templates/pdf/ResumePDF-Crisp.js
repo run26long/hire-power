@@ -20,13 +20,13 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 64, paddingRight: 64, backgroundColor: '#ffffff' }} wrap={false}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 64, paddingRight: 64, backgroundColor: '#ffffff' }}>
 
        <Text style={{ fontFamily: f, fontSize: 20, fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
         <Text style={{ fontFamily: f, fontSize: base, color: '#444444', textAlign: 'center', marginBottom: Math.round(8*sp) }}>{contactParts.join(' \u2022 ')}</Text>
 
         {resumeData.summary && !resumeData.hideSummary && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
+          <View style={{ marginTop: Math.round(6*sp) }}>
             <SH title={resumeData.sectionTitles?.summary || 'Professional Summary'} />
             <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
           </View>

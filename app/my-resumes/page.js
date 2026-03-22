@@ -22,6 +22,8 @@ export default function MyResumesPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadingResumeId, setDownloadingResumeId] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   
  // Job-specific modal state
   const [showJobModal, setShowJobModal] = useState(false);
@@ -142,7 +144,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   function getScoreTier(score) {
     if (!score) return 'Not Assessed';
     if (score >= 85) return 'Excellent';
-    if (score >= 71) return 'Strong';
+    if (score >= 71) return 'Solid';
     return 'Needs Improvement';
   }
 
@@ -358,6 +360,25 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       alert('There was a problem downloading your resume. Please try again.');
     } finally {
       setDownloadingResumeId(null); // Clear downloading state
+    }
+  };
+
+  const handleDeleteResume = async (resumeId) => {
+    try {
+      setDeletingId(resumeId);
+      const { error } = await supabase
+        .from('resumes')
+        .delete()
+        .eq('id', resumeId)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setConfirmDeleteId(null);
+      await loadData();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Could not delete resume. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -762,6 +783,19 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                     </svg>
                                   )}
                                 </button>
+                                {/* Delete */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmDeleteId(data.coreResume.id);
+                                  }}
+                                  className="w-9 h-9 rounded-full bg-[#e57373] hover:bg-[#c62828] flex items-center justify-center text-white transition-colors"
+                                  title="Delete resume"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -814,7 +848,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full" style={{ background: '#ffc870' }}></div>
-                                <span>Strong<span className="text-gray-400 ml-1">(71-84)</span></span>
+                                <span>Solid<span className="text-gray-400 ml-1">(71-84)</span></span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full" style={{ background: '#81c784' }}></div>
@@ -844,7 +878,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                <span className="text-[10px] text-green-600 font-medium">Strong</span>
+                                <span className="text-[10px] text-green-600 font-medium">Solid</span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
@@ -871,7 +905,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                <span className="text-[10px] text-green-600 font-medium">Strong</span>
+                                <span className="text-[10px] text-green-600 font-medium">Solid</span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
@@ -1009,15 +1043,27 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             data.resumeVersions.slice(0, 2).map((version) => (
                               <div
                                 key={version.id}
-                                onClick={() => router.push(`/resume/${data.coreResume.id}?version=${version.id}`)}
-                                className="bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+                                className="group bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer relative"
+                                onClick={() => router.push(`/resume/${version.id}`)}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
                                     <div className="text-sm font-semibold text-gray-900 mb-0.5">{version.job_title}</div>
                                     <div className="text-xs text-gray-500">{version.job_company}</div>
                                   </div>
-                                  <div className="flex items-center justify-center ml-3">
+                                  <div className="flex items-center gap-2 ml-3">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setConfirmDeleteId(version.id);
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                                      title="Delete"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
                                     <div className="relative">
                                       <svg className="w-12 h-12 transform -rotate-90">
                                         <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
@@ -1057,7 +1103,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         <div className="space-y-3">
                           {/* Upload JD Card */}
                           <button
-                            onClick={() => setShowUpgradeModal(true)}
+                            onClick={() => {
+                              setJobModalSourceId(data?.coreResume?.id || null);
+                              setShowJobModal(true);
+                            }}
                             className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
                           >
                             <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
@@ -1068,21 +1117,33 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-sm font-semibold text-gray-900">Upload Job Description</div>
                           </button>
 
-                         {/* Job Match Score Cards */}
+                       {/* Job Match Score Cards */}
                           {data.resumeVersions && data.resumeVersions.length > 0 && (
                             <div className="space-y-2">
                               {data.resumeVersions.slice(0, 3).map((version) => (
                                 <div
                                   key={version.id}
+                                  className="group bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
                                   onClick={() => router.push(`/resume/${version.id}`)}
-                                  className="bg-white border border-gray-200 rounded-lg p-3 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
                                       <div className="text-sm font-semibold text-gray-900 mb-0.5">{version.job_title}</div>
                                       <div className="text-xs text-gray-500">{version.job_company}</div>
                                     </div>
-                                    <div className="flex items-center justify-center ml-3">
+                                    <div className="flex items-center gap-2 ml-3">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setConfirmDeleteId(version.id);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                                        title="Delete"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
                                       <div className="relative">
                                         <svg className="w-12 h-12 transform -rotate-90">
                                           <circle cx="24" cy="24" r="20" stroke="#e5e7eb" strokeWidth="3" fill="none" />
@@ -1245,7 +1306,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full" style={{ background: '#ffc870' }}></div>
-                                <span>Strong<span className="text-gray-400 ml-1">(71-84)</span></span>
+                                <span>Solid<span className="text-gray-400 ml-1">(71-84)</span></span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <div className="w-2 h-2 rounded-full" style={{ background: '#81c784' }}></div>
@@ -1533,8 +1594,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="flex items-center gap-3">
                   <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                   <div>
-                    <h2 className="text-xl font-bold text-white">A Stronger Resume Starts Now</h2>
-                    <p className="text-purple-100 text-xs">Upload your resume and start improving it today.</p>
+                    <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
+                    <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
                   </div>
                 </div>
               )}
@@ -1657,20 +1718,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
               )}
 
-            {/* Screen 3 */}
+           {/* Screen 3 */}
               {tourScreen === 3 && (
                 <div className="flex flex-col py-3">
                   <div className="space-y-2">
-                    {/* Bold line - centered */}
                     <p className="text-gray-800 text-sm leading-relaxed font-semibold text-center">
-                      Most resumes improve in minutes!
+                      Your resume shows the past. We focus on what's next.
                     </p>
-                   <div className="text-gray-700 text-sm leading-relaxed text-center">
-                    <p className="mt-1">Start for free and go Pro at any time.</p>
+                    <div className="text-gray-700 text-sm leading-relaxed text-center">
+                      <p className="mt-1">Upload your resume and we'll use it as the starting point for coaching that surfaces what you've actually accomplished.</p>
                     </div>
-                    
-                    {/* Upload button + build link - at bottom */}
-                    <div className="flex flex-col items-center mt-8">
+
+                    <div className="flex flex-col items-center mt-6">
                       <label className="block cursor-pointer mb-3">
                         <input
                           type="file"
@@ -1682,12 +1741,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           className="hidden"
                           disabled={uploading}
                         />
-                        <div className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm cursor-pointer">
+                        <div className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs cursor-pointer flex items-center justify-center gap-2">
                           {uploading ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                               Uploading...
-                            </div>
+                            </>
                           ) : (
                             'Upload Resume'
                           )}
@@ -1710,6 +1769,48 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this resume?</h3>
+            <p className="text-sm text-gray-600 mb-5">This can't be undone. {isPro ? 'All coaching history and improvements will be permanently removed.' : 'Your resume and all assessment history will be permanently removed.'}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteResume(confirmDeleteId)}
+                disabled={deletingId === confirmDeleteId}
+                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deletingId === confirmDeleteId ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  'Yes, Delete'
+                )}
+              </button>
             </div>
           </div>
         </div>

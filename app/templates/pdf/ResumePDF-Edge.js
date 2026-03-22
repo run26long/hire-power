@@ -13,15 +13,15 @@ export default function ResumePDFEdge({ resumeData, font = 'Open Sans', fontSize
 
   const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
-  const SH = ({ title }) => (
-    <View style={{ backgroundColor: color + '33', borderRadius: 20, paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(10*sp), paddingRight: Math.round(10*sp), marginTop: Math.round(12*sp), marginBottom: Math.round(6*sp), alignItems: 'center' }}>
+  const SH = ({ title, first = false }) => (
+    <View style={{ backgroundColor: color + '33', borderRadius: 20, paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(10*sp), paddingRight: Math.round(10*sp), marginTop: first ? 0 : Math.round(12*sp), marginBottom: Math.round(6*sp), alignItems: 'center' }}>
       <Text style={{ fontFamily: f, fontSize: base, fontWeight: 'bold', textTransform: 'uppercase', fontStyle: 'italic', color: '#1a1a1a', textAlign: 'center' }}>{title}</Text>
     </View>
   )
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }} wrap={false}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }}>
 
         <View style={{ alignItems: 'center', marginBottom: Math.round(14*sp) }}>
           <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
@@ -31,7 +31,7 @@ export default function ResumePDFEdge({ resumeData, font = 'Open Sans', fontSize
 
         {resumeData.summary && !resumeData.hideSummary && (
           <View>
-            <SH title={resumeData.sectionTitles?.summary || 'Summary'} />
+            <SH title={resumeData.sectionTitles?.summary || 'Summary'} first={true} />
             <View style={{ paddingLeft: Math.round(10*sp), paddingRight: Math.round(10*sp) }}>
               <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
             </View>

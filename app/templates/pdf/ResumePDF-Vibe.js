@@ -10,8 +10,8 @@ export default function ResumePDFVibe({ resumeData, font = 'Source Serif 4', fon
   const f = font === 'Arial' ? 'Helvetica' : (font || 'Source Serif 4')
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
 
-  const SH = ({ title }) => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: Math.round(18*sp), marginBottom: Math.round(8*sp) }}>
+  const SH = ({ title, first = false }) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: first ? 0 : Math.round(18*sp), marginBottom: Math.round(8*sp) }}>
       <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#aaaaaa' }} />
       <Text style={{ fontFamily: f, fontSize: base, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginLeft: 8, marginRight: 8 }}>{title}</Text>
       <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#aaaaaa' }} />
@@ -30,7 +30,7 @@ export default function ResumePDFVibe({ resumeData, font = 'Source Serif 4', fon
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }} wrap={false}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }}>
 
         {/* Two-column header */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(10*sp), paddingBottom: Math.round(8*sp) }}>
@@ -45,7 +45,7 @@ export default function ResumePDFVibe({ resumeData, font = 'Source Serif 4', fon
 
         {resumeData.summary && !resumeData.hideSummary && (
           <View style={{ marginTop: 0 }}>
-            <SH title={resumeData.sectionTitles?.summary || 'Professional Summary'} />
+            <SH title={resumeData.sectionTitles?.summary || 'Professional Summary'} first={true} />
             <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
           </View>
         )}

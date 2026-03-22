@@ -851,7 +851,7 @@ if (showCtaModal) {
                 <div className={`px-3 py-1 rounded font-semibold text-xs ${
                   score >= 85 ? 'bg-green-100 text-green-700' :
                   score >= 71 ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
+                  'bg-[#fdecea] text-red-700'
                 }`}>
                   📊 {score}/100
                 </div>
@@ -927,7 +927,7 @@ fontFamily: selectedFont,
               userTier={userProfile?.subscription_tier || 'free'}
               coachingSamplesUsed={coachingSamplesUsed}
               resumeName={resume.display_name || 'Core Resume'}
-              userName={userProfile?.display_name || resumeData.fullName}
+              userName={userProfile?.display_name}
               userProfile={userProfile}
               supabase={supabase}
               params={params}
@@ -1211,7 +1211,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </div>
         <div className="flex items-center gap-0.5">
           <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ffc870' }}></div>
-          <span>Strong <span className="text-gray-500">(71-84)</span></span>
+          <span>Solid <span className="text-gray-500">(71-84)</span></span>
         </div>
         <div className="flex items-center gap-0.5">
           <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#81c784' }}></div>
@@ -1378,7 +1378,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   </div>
   <div className="flex items-center gap-0.5">
     <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ffc870' }}></div>
-    <span>Strong <span className="text-gray-400">(71-84)</span></span>
+    <span>Solid <span className="text-gray-400">(71-84)</span></span>
   </div>
   <div className="flex items-center gap-0.5">
     <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#81c784' }}></div>
@@ -1883,10 +1883,23 @@ const getMessageText = (msg) => {
       // Store post-coaching analysis for targeted recoach
       if (scoreCheckData?.analysis) {
         setPostCoachingAnalysis(scoreCheckData.analysis)
-        // Extract remaining gaps from weaknesses and suggestions
-        const gaps = (scoreCheckData.analysis.suggestions || []).slice(0, 5)
-        
-        // Cap at 5 most important gaps
+
+        // Filter gaps to only those the user can answer with new information
+        // Exclude writing quality issues — those are coach-finish's job, not the user's
+        const writingQualityPatterns = [
+          /weak verb/i, /action verb/i, /passive/i, /vague language/i,
+          /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
+          /formatting/i, /grammar/i, /spelling/i, /punctuation/i,
+          /sentence structure/i, /word choice/i, /tone/i, /clarity/i
+        ]
+
+        const isWritingQuality = (text) =>
+          writingQualityPatterns.some(pattern => pattern.test(text))
+
+        const gaps = (scoreCheckData.analysis.suggestions || [])
+          .filter(gap => !isWritingQuality(gap))
+          .slice(0, 5)
+
         setRemainingGaps(gaps)
       }
 

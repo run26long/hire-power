@@ -214,7 +214,7 @@ export default function MyResumesPage() {
                                   className={`h-full transition-all duration-500 ${
                                     (score || 62) >= 85 ? 'bg-green-500' :
                                     (score || 62) >= 70 ? 'bg-yellow-500' :
-                                    'bg-red-500'
+                                    'bg-[#e57373]'
                                   }`}
                                   style={{ width: `${score || 62}%` }}
                                 />

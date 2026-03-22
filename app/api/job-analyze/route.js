@@ -64,6 +64,7 @@ Rules:
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
+      temperature: 0,
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -71,12 +72,14 @@ Rules:
     const cleanText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     const analysis = JSON.parse(cleanText);
 
-    // Free tier: counts only
+    // Free tier: same match score as Pro, details gated in UI
     if (userTier === 'free') {
       return Response.json({
         matchScore: analysis.matchScore,
-        matchedCount: analysis.matchedKeywords.length,
-        missingCount: analysis.missingKeywords.length,
+        matchedKeywords: analysis.matchedKeywords,
+        missingKeywords: analysis.missingKeywords,
+        hiddenPower: analysis.hiddenPower,
+        coreStrengths: analysis.coreStrengths,
         summary: analysis.summary,
         tier: 'free'
       });

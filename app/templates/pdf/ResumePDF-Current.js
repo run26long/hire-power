@@ -80,7 +80,6 @@ export default function ResumePDF({
           paddingRight: 56,
           backgroundColor: '#ffffff'
         }}
-        wrap={false}
       >
 
         {/* ── HEADER ── */}
@@ -139,7 +138,7 @@ export default function ResumePDF({
 
         {/* ── SUMMARY ── */}
         {resumeData.summary && !resumeData.hideSummary ? (
-          <View style={{ marginTop: Math.round(18 * sp) }}>
+          <View style={{ marginTop: Math.round(2 * sp) }}>
             <Text style={{
               fontFamily: resolvedFont,
               fontSize: base + 1,

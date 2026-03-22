@@ -71,14 +71,14 @@ export default function TestScoreDisplays() {
           <div className="relative h-12 mb-2">
             {/* Colored zone line */}
             <div className="flex h-2">
-              <div className="bg-red-500 rounded-l-full" style={{ width: '70%' }}></div>
+              <div className="bg-[#e57373] rounded-l-full" style={{ width: '70%' }}></div>
               <div className="bg-yellow-500" style={{ width: '14%' }}></div>
               <div className="bg-green-500 rounded-r-full" style={{ width: '16%' }}></div>
             </div>
             
             {/* Zone markers - PERFECTLY CENTERED */}
             <div className="absolute top-0 left-[70%] -translate-x-1/2 -translate-y-px">
-              <div className="w-3 h-3 rounded-full bg-white border-2 border-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-white border-2 border-[#e57373]"></div>
             </div>
             <div className="absolute top-0 left-[84%] -translate-x-1/2 -translate-y-px">
               <div className="w-3 h-3 rounded-full bg-white border-2 border-yellow-500"></div>
@@ -118,7 +118,7 @@ export default function TestScoreDisplays() {
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full ${breakdown.impact/40 >= 0.8 ? 'bg-green-500' : breakdown.impact/40 >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                  className={`h-full ${breakdown.impact/40 >= 0.8 ? 'bg-green-500' : breakdown.impact/40 >= 0.6 ? 'bg-yellow-500' : 'bg-[#e57373]'}`}
                   style={{ width: `${(breakdown.impact/40)*100}%` }}
                 ></div>
               </div>
@@ -135,7 +135,7 @@ export default function TestScoreDisplays() {
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full ${breakdown.clarity/40 >= 0.8 ? 'bg-green-500' : breakdown.clarity/40 >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                  className={`h-full ${breakdown.clarity/40 >= 0.8 ? 'bg-green-500' : breakdown.clarity/40 >= 0.6 ? 'bg-yellow-500' : 'bg-[#e57373]'}`}
                   style={{ width: `${(breakdown.clarity/40)*100}%` }}
                 ></div>
               </div>
@@ -152,7 +152,7 @@ export default function TestScoreDisplays() {
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full ${breakdown.keywords/20 >= 0.8 ? 'bg-green-500' : breakdown.keywords/20 >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                  className={`h-full ${breakdown.keywords/20 >= 0.8 ? 'bg-green-500' : breakdown.keywords/20 >= 0.6 ? 'bg-yellow-500' : 'bg-[#e57373]'}`}
                   style={{ width: `${(breakdown.keywords/20)*100}%` }}
                 ></div>
               </div>

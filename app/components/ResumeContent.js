@@ -23,7 +23,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   function addExperienceBullet(jobIndex) {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.experience[jobIndex].bullets) newData.experience[jobIndex].bullets = []
-    newData.experience[jobIndex].bullets.push('New bullet point')
+    newData.experience[jobIndex].bullets.push('')
     onUpdate(newData)
   }
 
@@ -36,6 +36,13 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   function moveExperienceBulletUp(jobIndex, bulletIndex) {
     if (bulletIndex === 0) return
     const newData = JSON.parse(JSON.stringify(resumeData))
+    // Sync current DOM text for all bullets in this job before moving
+    document.querySelectorAll(`[data-bullet^="${jobIndex}-"]`).forEach(el => {
+      const idx = parseInt(el.getAttribute('data-bullet').split('-')[1])
+      if (!isNaN(idx) && newData.experience[jobIndex].bullets[idx] !== undefined) {
+        newData.experience[jobIndex].bullets[idx] = el.textContent
+      }
+    })
     const bullets = newData.experience[jobIndex].bullets
     const temp = bullets[bulletIndex]
     bullets[bulletIndex] = bullets[bulletIndex - 1]
@@ -45,6 +52,13 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
 
   function moveExperienceBulletDown(jobIndex, bulletIndex) {
     const newData = JSON.parse(JSON.stringify(resumeData))
+    // Sync current DOM text for all bullets in this job before moving
+    document.querySelectorAll(`[data-bullet^="${jobIndex}-"]`).forEach(el => {
+      const idx = parseInt(el.getAttribute('data-bullet').split('-')[1])
+      if (!isNaN(idx) && newData.experience[jobIndex].bullets[idx] !== undefined) {
+        newData.experience[jobIndex].bullets[idx] = el.textContent
+      }
+    })
     const bullets = newData.experience[jobIndex].bullets
     if (bulletIndex === bullets.length - 1) return
     const temp = bullets[bulletIndex]
@@ -368,7 +382,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   confirmingDelete === `section-${sectionKey}` ? (
                     <span className="flex items-center gap-1 text-xs font-normal">
                       <span className="text-gray-600">Remove section?</span>
-                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                       <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </span>
                   ) : (
@@ -416,7 +430,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   confirmingDelete === `section-${sectionKey}` ? (
                     <span className="flex items-center gap-1 text-xs font-normal">
                       <span className="text-gray-600">Remove section?</span>
-                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                       <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </span>
                   ) : (
@@ -470,7 +484,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             confirmingDelete === `section-${sectionKey}` ? (
               <span className="flex items-center gap-1 text-xs font-normal">
                 <span className="text-gray-600">Remove section?</span>
-                <button onClick={() => deleteSection(sectionKey)} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                 <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
               </span>
             ) : (
@@ -503,7 +517,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       newData.experience.splice(jobIndex, 1)
                       onUpdate(newData)
                       setConfirmingDelete(null)
-                    }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                    }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                     <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                   </div>
                 ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete job">🗑️</button>)}
@@ -522,7 +536,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             {job.summary ? (
               <div className="mb-2">
                 <p className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
-                {!readOnly && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-red-500 text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
+                {!readOnly && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-[#e57373] text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
               </div>
             ) : !readOnly && job.summaryDismissed !== true && (
               <div className="flex items-center gap-2 mb-2">
@@ -531,21 +545,25 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               </div>
             )}
             {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
-              <div key={bulletIndex} className="flex items-start gap-2 mb-1 group/bullet">
-                <span className="text-sm" style={ts.bullet || {}}>•</span>
-                <p className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet}</p>
+              <div key={bulletIndex} className="relative flex items-start gap-1 mb-1 group/bullet">
+                <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
+                <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet}</p>
                 {!readOnly && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100">
-                    <button onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)} disabled={bulletIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
-                    <button onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)} disabled={bulletIndex === job.bullets.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                  <div className="absolute right-0 top-0 flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100 bg-white">
+                    <button
+                      onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
+                      onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)} disabled={bulletIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                    <button
+                      onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
+                      onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)} disabled={bulletIndex === job.bullets.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
                     {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
                       <div className="flex items-center gap-1 text-xs">
                         <span className="text-gray-600">Delete?</span>
-                        <button onClick={() => { deleteExperienceBullet(jobIndex, bulletIndex); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                        <button onClick={() => { deleteExperienceBullet(jobIndex, bulletIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                         <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                       </div>
                     ) : (
-                      <button onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
+                      <button onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
                     )}
                   </div>
                 )}
@@ -573,10 +591,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                     newData.education.splice(eduIndex, 1)
                     onUpdate(newData)
                     setConfirmingDelete(null)
-                  }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                  }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                   <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`education-${eduIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete education">🗑️</button>)}
+              ) : <button onClick={() => setConfirmingDelete(`education-${eduIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete education">🗑️</button>)}
             </div>
             {edu.lines?.map((line, lineIndex) => (
               <div key={lineIndex} className="flex items-start gap-2 group/line">
@@ -600,10 +618,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                     {confirmingDelete === `eduline-${eduIndex}-${lineIndex}` ? (
                       <div className="flex items-center gap-1 text-xs">
                         <span className="text-gray-600">Delete?</span>
-                        <button onClick={() => { deleteEducationLine(eduIndex, lineIndex); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                        <button onClick={() => { deleteEducationLine(eduIndex, lineIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                         <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                       </div>
-                    ) : <button onClick={() => setConfirmingDelete(`eduline-${eduIndex}-${lineIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded" title="Delete line">🗑️</button>}
+                    ) : <button onClick={() => setConfirmingDelete(`eduline-${eduIndex}-${lineIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete line">🗑️</button>}
                   </div>
                 )}
               </div>
@@ -637,10 +655,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   {!readOnly && (confirmingDelete === `category-${category}` ? (
                     <div className="flex items-center gap-1 text-xs">
                       <span className="text-gray-600">Delete?</span>
-                      <button onClick={() => { deleteSkillCategory(category); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => { deleteSkillCategory(category); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                       <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </div>
-                  ) : <button onClick={() => setConfirmingDelete(`category-${category}`)} className="text-red-500 opacity-0 group-hover/category:opacity-100 text-xs px-1 hover:bg-red-50 rounded">🗑️</button>)}
+                  ) : <button onClick={() => setConfirmingDelete(`category-${category}`)} className="text-[#e57373] opacity-0 group-hover/category:opacity-100 text-xs px-1 hover:bg-red-50 rounded">🗑️</button>)}
                 </div>
               )}
               <p className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => { if (isUndoingRef.current) return; const newData = JSON.parse(JSON.stringify(resumeData)); newData.skillsCategories[category] = e.currentTarget.textContent.trim().split(/[,•]/).map(s => s.trim()).filter(s => s.length > 0); onUpdate(newData) }}>{Array.isArray(skills) ? skills.join(' • ') : skills}</p>
@@ -664,10 +682,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               {!readOnly && (confirmingDelete === `projects-${projectIndex}` ? (
                 <div className="flex items-center gap-1 text-xs">
                   <span className="text-gray-600">Delete?</span>
-                  <button onClick={() => { deleteProject(projectIndex); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                  <button onClick={() => { deleteProject(projectIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                   <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`projects-${projectIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete project">🗑️</button>)}
+              ) : <button onClick={() => setConfirmingDelete(`projects-${projectIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete project">🗑️</button>)}
             </div>
             <p className={`text-sm text-gray-700 mb-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].description`, e.currentTarget.textContent)}>{project.description}</p>
             {project.link && <p className={`text-sm text-purple-600 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].link`, e.currentTarget.textContent)}>{project.link}</p>}
@@ -693,10 +711,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               {!readOnly && (confirmingDelete === `certifications-${certIndex}` ? (
                 <div className="flex items-center gap-1 text-xs">
                   <span className="text-gray-600">Delete?</span>
-                  <button onClick={() => { deleteCertification(certIndex); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                  <button onClick={() => { deleteCertification(certIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                   <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`certifications-${certIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete certification">🗑️</button>)}
+              ) : <button onClick={() => setConfirmingDelete(`certifications-${certIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete certification">🗑️</button>)}
             </div>
           </div>
         ))}
@@ -717,10 +735,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               {!readOnly && (confirmingDelete === `volunteer-${volIndex}` ? (
                 <div className="flex items-center gap-1 text-xs">
                   <span className="text-gray-600">Delete?</span>
-                  <button onClick={() => { deleteVolunteer(volIndex); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                  <button onClick={() => { deleteVolunteer(volIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                   <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`volunteer-${volIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete volunteer">🗑️</button>)}
+              ) : <button onClick={() => setConfirmingDelete(`volunteer-${volIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete volunteer">🗑️</button>)}
             </div>
             <p className={`text-sm text-gray-700 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`volunteer[${volIndex}].description`, e.currentTarget.textContent)}>{vol.description}</p>
           </div>
@@ -753,10 +771,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             {!readOnly && (confirmingDelete === `languages-${langIndex}` ? (
               <div className="flex items-center gap-1 text-xs">
                 <span className="text-gray-600">Delete?</span>
-                <button onClick={() => { deleteLanguage(langIndex); setConfirmingDelete(null) }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                <button onClick={() => { deleteLanguage(langIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                 <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
               </div>
-            ) : <button onClick={() => setConfirmingDelete(`languages-${langIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete language">🗑️</button>)}
+            ) : <button onClick={() => setConfirmingDelete(`languages-${langIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete language">🗑️</button>)}
           </div>
         ))}
         {!readOnly && <button onClick={addLanguage} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Language</button>}
@@ -795,10 +813,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                     newData.additionalInfo.splice(itemIndex, 1)
                     onUpdate(newData)
                     setConfirmingDelete(null)
-                  }} className="text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 rounded">Yes</button>
+                  }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                   <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`additionalInfo-${itemIndex}`)} className="text-red-500 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete item">🗑️</button>)}
+              ) : <button onClick={() => setConfirmingDelete(`additionalInfo-${itemIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete item">🗑️</button>)}
             </div>
           </div>
         ))}

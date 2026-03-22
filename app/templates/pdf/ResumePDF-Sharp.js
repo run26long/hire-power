@@ -13,14 +13,14 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#111111', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }} wrap={false}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#111111', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }}>
 
         <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', color: '#111111', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
         <View style={{ borderBottomWidth: 1, borderBottomColor: '#111111', marginBottom: Math.round(4*sp) }} />
         <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(8*sp) }}>{contactParts.join(' | ')}</Text>
 
         {resumeData.summary && !resumeData.hideSummary && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
+          <View style={{ marginTop: Math.round(6*sp) }}>
             <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</Text>
             <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
           </View>

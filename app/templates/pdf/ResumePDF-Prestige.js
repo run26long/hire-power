@@ -22,7 +22,7 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', backgroundColor: '#ffffff' }} wrap={false}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', backgroundColor: '#ffffff' }}>
 
         {/* Name block */}
         <View style={{ paddingTop: Math.round(30*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp) }}>
@@ -39,7 +39,7 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
         <View style={{ paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp), paddingBottom: Math.round(36*sp) }}>
 
           {resumeData.summary && !resumeData.hideSummary && (
-            <View style={{ marginTop: Math.round(16*sp) }}>
+            <View style={{ marginTop: Math.round(8*sp) }}>
               <SH title={resumeData.sectionTitles?.summary || 'Professional Summary'} />
               <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
             </View>

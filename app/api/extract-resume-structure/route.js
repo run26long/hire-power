@@ -87,6 +87,7 @@ CRITICAL INSTRUCTIONS:
 - volunteer: Extract volunteer work or community service. Include organization name and description of role/activities.
 - languages: Extract spoken/written languages. Proficiency options: "Native", "Fluent", "Professional", "Conversational", "Basic"
 - sectionOrder: Only include sections that have actual data in this resume (e.g., if no certifications, don't include "certifications" in array)
+- NON-STANDARD SECTIONS: If the resume contains sections that don't map to the standard fields above (such as "Performance Experience," "Publications," "Awards," "Competitions," "Exhibitions," "Portfolio," or any other custom section), DO NOT drop them. Map them to the closest available field: performance credits, competitions, and portfolio work → projects array (use the event/show/achievement as "name" and the details as "description"). Awards and honors → certifications array. Community involvement → volunteer array. Never silently discard content that appears in the resume.
 - Dates: Use YYYY-MM format (e.g., "2023-09" for September 2023)
 - current: Set true if job description says "Present" or "Current"
 - If resume has a professional summary paragraph at top, put it in summary field

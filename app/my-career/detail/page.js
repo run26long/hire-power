@@ -195,7 +195,7 @@ const handleResumeUpdate = async (updatedData) => {
     const currentCompany = currentJob?.company;
     
 // Get user's first name if available
-    const firstName = data?.fullName?.split(' ')[0] || 'there';
+    const firstName = userProfile?.display_name?.split(' ')[0] || data?.fullName?.split(' ')[0] || 'there';
     
     let openingMessage = `Hi ${firstName}! Let's talk about your career goals! This conversation helps me create a resume targeted to where you want to go - not just where you've been. The more specific you can be, the stronger your resume becomes.\n\n`;
     

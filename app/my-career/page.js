@@ -170,6 +170,9 @@ export default function MyCareerPage() {
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
+          <p className="text-[15px] font-bold text-white leading-tight tracking-tight mt-3">
+            The best 5-minute investment you can make in your career.
+          </p>
         </div>
 
         <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
@@ -201,7 +204,7 @@ export default function MyCareerPage() {
             <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
             <div>
               <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-                The more we know about where you want to go, the better your resume becomes.
+                The more we know about your goals, the better your resume becomes.
               </p>
               <div className="flex items-center gap-2.5 text-white">
                 <img

@@ -21,7 +21,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', paddingTop: 40, paddingBottom: 40, paddingLeft: 56, paddingRight: 56, backgroundColor: '#ffffff' }} wrap={false}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', paddingTop: 40, paddingBottom: 40, paddingLeft: 56, paddingRight: 56, backgroundColor: '#ffffff' }}>
 
         {/* Header */}
         <View style={{ alignItems: 'center', paddingBottom: Math.round(10*sp), marginBottom: Math.round(4*sp) }}>
@@ -32,7 +32,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
         </View>
 
         {resumeData.summary && !resumeData.hideSummary && (
-          <View style={{ marginTop: Math.round(16*sp) }}>
+          <View style={{ marginTop: Math.round(0*sp) }}>
             <SH title={resumeData.sectionTitles?.summary || 'Professional Summary'} />
             <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
           </View>

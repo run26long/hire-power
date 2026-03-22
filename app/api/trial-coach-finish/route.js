@@ -10,9 +10,11 @@ A stronger bullet demonstrates specific scope or achievement (Impact), uses prec
 a recruiter can understand in 5 seconds (Clarity), and names skills or tools relevant to the 
 field (Keywords). Every word you choose should earn its place against at least one of these.
 
-THE BRAIN TEST — MANDATORY BEFORE OUTPUTTING:
+THE BRAIN TEST — MANDATORY QUALITY CHECK FOR EVERY SENTENCE WRITTEN:
 After writing the improved bullet, read it back and ask:
 "Would a hiring manager's brain engage with this, or skim past it?"
+Readability is the first rule. If a sentence requires a second read to understand, 
+it needs to be broken up or simplified.
 
 SKIM TRIGGERS — if any are present, rewrite before outputting:
   ✗ Abstract with no concrete anchor ("leveraged expertise," "drove strategic outcomes," 
@@ -74,12 +76,38 @@ NO HALLUCINATION — ABSOLUTE RULE:
   Use ONLY information in the resume or extracted during coaching.
   NEVER invent metrics, dates, company details, or responsibilities.
   If coaching didn't surface a number, write around it with qualitative strength.
+
+ABSOLUTE RULES — NON-NEGOTIABLE:
+  - NEVER use em dashes (—) anywhere. Use commas or periods instead.
+  - NEVER end bullets with periods.
+  - NEVER use: "responsible for," "helped with," "assisted with," "worked on" as openers.
+  - NEVER mention the candidate's age.
+  - NEVER use filler: "results-driven," "passionate about," "detail-oriented," "team player."
+  - Exception for two-sentence bullets: first sentence takes a period, second does not.
 `
 
 const LEVEL_INSTRUCTIONS = {
-  entry: `This is an entry-level candidate. Write their bullet in the voice of a strong early-career professional. Do not use executive language. Authentic, specific, and impressive for their stage.`,
-  mid: `This is a mid-career professional. Write with confidence. Ground claims in specifics. Metrics expected where the role produces them.`,
-  senior: `This is a senior professional. Focus on organizational scope, strategic impact, and leadership at scale.`
+  entry: `This is an entry-level candidate. Write their bullet in the voice of a strong early-career professional. Do not use executive language. Authentic, specific, and impressive for their stage.
+
+The goal: communicate what this person actually did with enough specificity that a recruiter can picture the real work. A vague bullet that describes a job category is worse than no bullet. A specific bullet that shows actual scope — even without metrics — is the standard.
+
+Do NOT inflate responsibility. Accuracy builds credibility. "Supported" stays if they supported.`,
+
+  mid: `This is a mid-career professional. Write with confidence. Ground every claim in specifics.
+
+For metrics-heavy roles (sales, ops, finance): quantification is expected — if coaching surfaced numbers, they must appear.
+For non-metrics roles (nursing, HR, education, trades, creative): trust signals, complexity, scope, and quality indicators are equally valid. Do not treat absence of numbers as a deficit for these role types.
+
+The goal: a recruiter reads this and thinks "this person knows their field and gets results."`,
+
+  senior: `This is a senior professional. Write to reflect the actual scope of their work — not a generic executive template.
+
+IMPORTANT: Most senior professionals are excellent individual contributors or organizational leaders — not industry influencers with speaking engagements. Write to who they actually are.
+
+For senior by tenure/expertise (long-tenured specialists, independent practitioners): deep expertise, sustained reliability, scope of work, and any influence beyond their immediate role.
+For senior by organizational rank (Directors, VPs, executives): organizational impact, team scale, budget responsibility, business outcomes.
+
+The goal: a recruiter reads this and immediately understands the scope and quality of this person's contribution.`
 }
 
 export async function POST(request) {
