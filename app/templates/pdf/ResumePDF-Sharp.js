@@ -11,6 +11,10 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
 
   const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
+  const SH = ({ title }) => (
+    <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>{title}</Text>
+  )
+
   return (
     <Document hyphenationCallback={(w) => [w]}>
       <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#111111', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }}>
@@ -21,109 +25,199 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
 
         {resumeData.summary && !resumeData.hideSummary && (
           <View style={{ marginTop: Math.round(6*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>{resumeData.sectionTitles?.summary || 'Professional Summary'}</Text>
+            <SH title={resumeData.sectionTitles?.summary || 'Professional Summary'} />
             <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.summary}</Text>
           </View>
         )}
 
-        {resumeData.experience?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Experience</Text>
-            {resumeData.experience.map((job, i) => (
-              <View key={i} style={{ marginBottom: i < resumeData.experience.length - 1 ? Math.round(10*sp) : 0 }}>
-                <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{job.title || ''}</Text>
-                <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(2*sp) }}>{[job.company, job.location, formatDateRange(job.startDate, job.endDate, job.current, dateFormat)].filter(Boolean).join(' | ')}</Text>
-                {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
-                {job.bullets?.map((b, k) => (
-                  <View key={k} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
-                    <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                    <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+        {(resumeData.sectionOrder || ['experience','education','skills','projects','certifications','volunteer','languages','additionalInfo']).map((section) => {
+          switch(section) {
+
+            case 'experience': {
+              if (!resumeData.experience?.length) return null
+              const [firstJob, ...restJobs] = resumeData.experience
+              return (
+                <View key="experience" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.experience || 'Experience'} />
+                    <View style={{ marginBottom: restJobs.length > 0 ? Math.round(10*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{firstJob.title || ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(2*sp) }}>{[firstJob.company, firstJob.location, formatDateRange(firstJob.startDate, firstJob.endDate, firstJob.current, dateFormat)].filter(Boolean).join(' | ')}</Text>
+                      {firstJob.summary && !firstJob.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(2*sp) }}>{firstJob.summary}</Text>}
+                      {firstJob.bullets?.map((b, k) => (
+                        <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        )}
+                  {restJobs.map((job, i) => (
+                    <View key={i+1} style={{ marginBottom: i < restJobs.length - 1 ? Math.round(10*sp) : 0 }}>
+                      <View wrap={false}>
+                        <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{job.title || ''}</Text>
+                        <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(2*sp) }}>{[job.company, job.location, formatDateRange(job.startDate, job.endDate, job.current, dateFormat)].filter(Boolean).join(' | ')}</Text>
+                        {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
+                      </View>
+                      {job.bullets?.map((b, k) => (
+                        <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {resumeData.education?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Education</Text>
-            {resumeData.education.map((ed, i) => (
-              <View key={i} style={{ marginBottom: i < resumeData.education.length - 1 ? Math.round(10*sp) : 0 }}>
-                <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{ed.school || ''}</Text>
-                <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[ed.degree && ed.field ? `${ed.degree}, ${ed.field}` : (ed.degree || ed.field), formatDate(ed.graduationDate, dateFormat)].filter(Boolean).join(' | ')}</Text>
-                {ed.lines?.map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
-              </View>
-            ))}
-          </View>
-        )}
+            case 'education': {
+              if (!resumeData.education?.length) return null
+              const [firstEd, ...restEd] = resumeData.education
+              return (
+                <View key="education" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.education || 'Education'} />
+                    <View style={{ marginBottom: restEd.length > 0 ? Math.round(10*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{firstEd.school || ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[firstEd.degree && firstEd.field ? `${firstEd.degree}, ${firstEd.field}` : (firstEd.degree || firstEd.field), formatDate(firstEd.graduationDate, dateFormat)].filter(Boolean).join(' | ')}</Text>
+                      {firstEd.lines?.map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
+                    </View>
+                  </View>
+                  {restEd.map((ed, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restEd.length - 1 ? Math.round(10*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{ed.school || ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[ed.degree && ed.field ? `${ed.degree}, ${ed.field}` : (ed.degree || ed.field), formatDate(ed.graduationDate, dateFormat)].filter(Boolean).join(' | ')}</Text>
+                      {ed.lines?.map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {Object.keys(skills).length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Skills</Text>
-            {Object.entries(skills).map(([cat, items]) => (
-              <View key={cat} style={{ marginBottom: Math.round(3*sp) }}>
-                {Object.keys(skills).length > 1
-                  ? <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text><Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text></Text>
-                  : <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{items.join(' \u2022 ')}</Text>
-                }
-              </View>
-            ))}
-          </View>
-        )}
+            case 'skills': {
+              if (!Object.keys(skills).length) return null
+              const skillEntries = Object.entries(skills)
+              const [firstSkill, ...restSkills] = skillEntries
+              return (
+                <View key="skills" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.skills || 'Skills'} />
+                    <View style={{ marginBottom: Math.round(3*sp) }}>
+                      {Object.keys(skills).length > 1
+                        ? <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{firstSkill[0] + ': '}</Text><Text style={{ color: '#333333' }}>{firstSkill[1].join(' \u2022 ')}</Text></Text>
+                        : <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{firstSkill[1].join(' \u2022 ')}</Text>
+                      }
+                    </View>
+                  </View>
+                  {restSkills.map(([cat, items]) => (
+                    <View key={cat} wrap={false} style={{ marginBottom: Math.round(3*sp) }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text><Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text></Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {resumeData.certifications?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Certifications</Text>
-            {resumeData.certifications.map((c, i) => (
-              <View key={i} style={{ marginBottom: i < resumeData.certifications.length - 1 ? Math.round(6*sp) : 0 }}>
-                <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{c.details ? ' | ' + c.details : ''}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+            case 'certifications': {
+              if (!resumeData.certifications?.length) return null
+              const [firstCert, ...restCerts] = resumeData.certifications
+              return (
+                <View key="certifications" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.certifications || 'Certifications'} />
+                    <View style={{ marginBottom: restCerts.length > 0 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{firstCert.name || ''}</Text>{firstCert.details ? ' | ' + firstCert.details : ''}</Text>
+                    </View>
+                  </View>
+                  {restCerts.map((c, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restCerts.length - 1 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{c.details ? ' | ' + c.details : ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {resumeData.volunteer?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Volunteer Experience</Text>
-            {resumeData.volunteer.map((v, i) => (
-              <View key={i} style={{ marginBottom: i < resumeData.volunteer.length - 1 ? Math.round(6*sp) : 0 }}>
-                <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{v.organization || ''}</Text>
-                <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{v.description || ''}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+            case 'volunteer': {
+              if (!resumeData.volunteer?.length) return null
+              const [firstVol, ...restVol] = resumeData.volunteer
+              return (
+                <View key="volunteer" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.volunteer || 'Volunteer Experience'} />
+                    <View style={{ marginBottom: restVol.length > 0 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{firstVol.organization || ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{firstVol.description || ''}</Text>
+                    </View>
+                  </View>
+                  {restVol.map((v, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restVol.length - 1 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{v.organization || ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{v.description || ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {resumeData.projects?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Projects</Text>
-            {resumeData.projects.map((p, i) => (
-              <View key={i} style={{ marginBottom: i < resumeData.projects.length - 1 ? Math.round(6*sp) : 0 }}>
-                <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{(p.name || '') + (p.link ? ' — ' + p.link : '')}</Text>
-                <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{p.description || ''}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+            case 'projects': {
+              if (!resumeData.projects?.length) return null
+              const [firstProj, ...restProj] = resumeData.projects
+              return (
+                <View key="projects" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.projects || 'Projects'} />
+                    <View style={{ marginBottom: restProj.length > 0 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{(firstProj.name || '') + (firstProj.link ? ' — ' + firstProj.link : '')}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{firstProj.description || ''}</Text>
+                    </View>
+                  </View>
+                  {restProj.map((p, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restProj.length - 1 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{(p.name || '') + (p.link ? ' — ' + p.link : '')}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{p.description || ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {resumeData.additionalInfo?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Additional Information</Text>
-            {resumeData.additionalInfo.map((item, i) => (
-              <View key={i} style={{ marginBottom: Math.round(3*sp) }}>
-                <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{item.label || ''}</Text>{item.detail ? ' | ' + item.detail : ''}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+            case 'additionalInfo': {
+              if (!resumeData.additionalInfo?.length) return null
+              const [firstInfo, ...restInfo] = resumeData.additionalInfo
+              return (
+                <View key="additionalInfo" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.additionalInfo || 'Additional Information'} />
+                    <View style={{ marginBottom: Math.round(3*sp) }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{firstInfo.label || ''}</Text>{firstInfo.detail ? ' | ' + firstInfo.detail : ''}</Text>
+                    </View>
+                  </View>
+                  {restInfo.map((item, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: Math.round(3*sp) }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{item.label || ''}</Text>{item.detail ? ' | ' + item.detail : ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {resumeData.languages?.length > 0 && (
-          <View style={{ marginTop: Math.round(14*sp) }}>
-            <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>Languages</Text>
-            <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.languages.map(l => `${l.language} (${l.proficiency})`).join(' \u2022 ')}</Text>
-          </View>
-        )}
+            case 'languages':
+              if (!resumeData.languages?.length) return null
+              return (
+                <View key="languages" style={{ marginTop: Math.round(14*sp) }}>
+                  <View wrap={false}>
+                    <SH title={resumeData.sectionTitles?.languages || 'Languages'} />
+                    <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{resumeData.languages.map(l => `${l.language} (${l.proficiency})`).join(' \u2022 ')}</Text>
+                  </View>
+                </View>
+              )
+
+            default:
+              return null
+          }
+        })}
 
       </Page>
     </Document>

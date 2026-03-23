@@ -129,345 +129,665 @@ function convertStructuredToText(data) {
   return text
 }
 
-// ENTRY-LEVEL PROMPT - Evaluation criteria based
-const ENTRY_LEVEL_PROMPT = `You are evaluating an ENTRY-LEVEL candidate (Student, Intern, Coordinator, Assistant, Entry-level position).
+const ENTRY_LEVEL_PROMPT = `You are scoring a resume for an entry-level candidate (student, intern, coordinator, assistant, or early-career position).
 
-CORE SCORING PHILOSOPHY — READ THIS FIRST:
-A perfect score means the resume is doing everything possible to communicate this person's value to an employer — not that the person has an impressive career. Your job is to evaluate how well the resume represents what this candidate has done, not how impressive their background is.
+═══════════════════════════════
+THE GOVERNING PRINCIPLE:
+═══════════════════════════════
 
-CRITICAL DISTINCTION — HAS EXPERIENCE vs. COMMUNICATES EXPERIENCE EFFECTIVELY:
-Two candidates can have identical experience. One communicates it with specificity, scope, and strong language. The other describes it vaguely with weak verbs and no details. They should NOT score the same. The resume that communicates well scores higher — always.
+The score measures how well this resume will perform — how well it passes ATS, how well it represents this person's experience, and how compelling it is to a recruiter. Both the strength of their experience AND how well the resume communicates it affect the score. You cannot separate the two.
 
-Example: "taught aerial arts classes" vs. "taught 60+ students weekly across 8 disciplines, building two classes from zero to full capacity in 4 months" — same job, dramatically different communication quality. Score the communication, not the existence of the experience.
+We are not scoring how impressive or advanced their job is. We are scoring how well they performed, what they accomplished, and what value they brought. An exceptional barista and an exceptional attorney can and should score the same.
 
-EVALUATION CRITERIA (Total: 100 points)
+THE BARISTA PRINCIPLE:
+A barista who shows up and does the job well, with a perfectly written resume capturing everything relevant, scores 72-78. The parallel barista who trained staff, managed opening procedures, and built a loyal customer base, equally well written, scores 80-85. The score goes up because there is more to communicate — not because the writing got better.
 
-1. IMPACT DEMONSTRATION (40 points)
+The same principle applies at every level. An attorney who shows up, handles assigned cases, and does the job well, with a perfectly written resume capturing everything relevant, scores 72-78. The parallel attorney who built a practice area, mentored junior associates, and won landmark cases, equally well written, scores 80-85. The score goes up because there is more to communicate — not because one is an attorney and the other is a barista.
 
-Evaluate whether the resume COMMUNICATES the candidate's experience effectively:
+SCORING OVERVIEW:
+Total score: 100 points
+- Impact: 50 points
+- Clarity: 30 points  
+- Keywords: 20 points
 
-TIER 1 — HIGHEST VALUE (Experience communicated with specificity):
-- Relevant work experience described with scope, scale, and concrete detail
-- ANY work experience described specifically enough to demonstrate work ethic, reliability, and professional behavior
-- Technical skills named specifically (tools, systems, certifications)
-- Projects or activities described with outcomes or scope, not just titles
+═══════════════════════════════
+1. IMPACT (50 points)
+═══════════════════════════════
 
-TIER 2 — SUPPORTING VALUE:
-- Relevant experience present but described vaguely — partial credit, flagged as improvement opportunity
-- Academic achievement when communicated with specifics (GPA, honors, relevant coursework)
+Most entry-level candidates haven't held roles long enough to produce measurable results — and that's expected. Do not penalize for missing metrics. Specificity and scope are the primary impact signals at this level. When metrics are present, they strengthen the score as a bonus — not a baseline requirement.
+
+Prioritize in this order:
+
+1. SPECIFICITY — Does the resume include enough detail about what they actually did?
+Strong: "Taught silk, hammock, and lyra classes to 20 students per week across multiple age groups and levels"
+Weak: "Taught aerial arts classes to students"
+
+2. SCOPE AND SCALE — How many, how often, how much? Do they show the scale of their work?
+Strong: "Reached 3,600+ attendees across 9 shows over a 3-week holiday production run"
+Weak: "Performed in holiday shows for the company"
+
+3. RESULTS — did anything measurably improve or change because of their work?
+Strong: "Developed a safety curriculum adopted company-wide, reducing injuries 40%"
+Weak: "Contributed to improving safety practices"
+Note: Results are a bonus at entry-level — never required. When present they significantly strengthen the score. When absent, score only on specificity and scope.
+
+Scoring must be job aware. Some jobs have obvious metrics while others measure impact through scope, quality, and specificity. A nurse who can't show revenue figures and a sales intern who can are both strong candidates — they just demonstrate impact differently. Identify the zone before scoring.
+
+Zone 1 includes jobs where metrics ARE the work, even at entry level. Sales internships, finance, marketing, and similar roles often have measurable output such as revenue, leads, and growth percentages. They strengthen a resume significantly, but not all entry level candidates will have them. Reward resumes that include them, but do not penalize resumes that do not have them TO THE SAME EXTENT that you would for a mid- or senior-level candidate in a Zone 1 position.
+
+Zone 2 includes jobs where metrics describe SCOPE rather than outcomes. Teaching, coaching, healthcare rotations, event coordination, production support, and administrative roles all fall here. Most entry-level candidates live in Zone 2. What's available and expected is scale and volume — how many students, patients, or athletes they worked with, how many events they coordinated, how many hours they completed, how much enrollment they built. Missing outcome metrics like revenue or efficiency percentages is NOT a gap for these roles. Score on specificity and scope.
+
+Zone 3 includes jobs where metrics rarely apply at all. Volunteer counseling, social services, certain creative roles, and similar positions demonstrate impact through specificity, qualitative contributions, and the complexity of the work. Missing numbers is not a gap here. Missing specificity is.
+
+SCORING IMPACT AGAINST ZONE EXPECTATIONS:
+
+When scoring, keep in mind the candidate's career level, length of employment, and job type. A student two months into their first role is not held to the same standard as someone two years in. A Zone 2 candidate is not penalized for lacking Zone 1 metrics. Score what's realistic and expected for this specific person in this specific role.
+
+Score the impact of the candidate:
+50/50: Exceptional specificity AND scope AND evidence of results or unique impact. Rare.
+45-49/50: Relevant experience described specifically and consistently throughout. Scope visible. Zone-appropriate evidence present. Results not required.
+38-44/50: Uneven. Some specific bullets, some vague. Scope partially visible.
+28-37/50: Experience exists but consistently vague. A recruiter can tell they did something but can't picture what or at what scale.
+20-27/50: Duty list or near duty list. Almost nothing makes the work visible.
+
+ANCHOR EXAMPLES:
+
+50/50 — Exceptional specificity, scale, and scope PLUS measurable accomplishments. Extremely rare.
+"Performed 750+ shows across a 15-month EPCOT engagement, reaching over 20,000 guests. Executed daily apparatus inspections, between-show resets, and music cue coordination for every performance."
+"Developed a safety curriculum adopted company-wide, reducing injuries 40%."
+
+45-49/50 — Specificity, scope, and scale appear consistently throughout all resume sections.
+"Teach silk, hammock, and lyra classes to adult aerial arts students, developing curriculum that engages multiple skill levels simultaneously. Grew two brand new classes to full capacity within four months."
+"Coached 100+ ninja warrior athletes ages 5-15 across 9 weekly classes, including beginner through advanced level students and competition team athletes."
+
+38-44/50 — Uneven. Some roles or bullets described well, others not. Scope visible in places but inconsistent throughout.
+Mix of bullets like the 45-49 examples above AND bullets like the 28-37 examples below.
+
+28-37/50 — Resume presents some detail but consistently lacks scope, scale, and impact.
+"Teach a variety of aerial arts and fitness classes to aspiring aerial artists, both youth and adult."
+"Provided sport-specific expertise for athletes of all ages."
+"Support all aspects of live events, including choreography, rigging, and stage management."
+
+20-27/50 — Duty list or near duty list. Lacks specificity, scope, scale, and impact.
+"Responsible for teaching classes and performing at events."
+"Assisted with event coordination and customer service."
+
+═══════════════════════════════
+2. CLARITY (30 points)
+═══════════════════════════════
+
+Clarity scores reflect writing quality, conciseness, professionalism, and how well the words on the page bring the candidate's experience to life. Impact scores what they did. Clarity scores how well the resume communicates it. The same experience, written vaguely, scores lower on clarity than the same experience written specifically and compellingly.
+
+Strong clarity includes:
+
+Strong action verbs that show ownership and match the candidate's actual level of responsibility. Note: At entry-level, supporting and assisting are sometimes genuinely the job, and that's fine. The standard is accuracy, not inflation. A student who assisted a director through tech rehearsals should say "assisted." A student who ran rehearsals independently should say "ran." The verb should reflect what they actually did — not undersell it, not oversell it.
+Strong: "Assisted," "Supported," "Coordinated," "Taught," "Built," "Managed" (accurate verbs that reflect real ownership at whatever level it existed)
+Weak: "Helped with," "Was involved in," "Worked on" (vague non-verbs that say nothing about the actual role)
+
+Active voice throughout. The candidate is the subject doing the work — not a passive recipient of tasks.
+Strong: "Taught classes to 20 students weekly across beginner and intermediate levels"
+Weak: "Classes were taught to students of varying levels"
+
+Concise language. Every word earns its place. No filler, no redundancy, no throat-clearing. Sentences should be short and focused, not overly long and mixing multiple concepts.
+Strong: "Managed weekly class scheduling"
+Weak: "Was responsible for the management of class scheduling on a weekly basis"
+
+Consistent tense. Current roles in present tense. Past roles in past tense. Never mixed within the same role unless a specific bullet represents a past event or accomplishment.
+
+Spelling, grammar, and punctuation are clean throughout. Professional language is used at the appropriate level. Do not expect verbs like "championed" and "spearheaded" in entry level resumes, as they would not sound appropriate.
+
+Engaging, compelling writing that makes the reader want to keep reading. A resume that reads like a duty list loses a recruiter in seconds. A resume that reads like a capable person describing real work and showing unique value earns a second look.
 
 SCORING GUIDANCE:
-- Strong relevant experience + communicated specifically = 34-38/40
-- Strong relevant experience + communicated vaguely = 24-28/40 (the vagueness is the gap, not the experience)
-- Limited experience + communicated well = 26-30/40
-- Limited experience + communicated vaguely = 18-24/40
 
-Quantified metrics are a BONUS when present, NOT a requirement. Do NOT penalize for lack of numbers if scope and specificity are otherwise strong. DO penalize for vague language regardless of whether metrics are present.
+Start at 30 and deduct for specific writing issues outlined below. Deductions are assessed by pattern across the resume — not per instance. A resume where weak verbs appear occasionally loses fewer points than one where they appear throughout. Total deductions are capped at 18, making 12 the floor regardless of how many issues are present.
 
-ANCHOR EXAMPLES — use these to calibrate your scoring:
+CLARITY DEDUCTION GUIDELINES:
+- Summary: maximum 6 point deduction
+- Bullets: maximum 8 point deduction
+- All other sections: maximum 4 point deduction
 
-IMPACT 28-30/40 (experience present, communication poor):
-"Teach a variety of aerial arts and fitness classes to aspiring aerial artists, both youth and adult."
-"Provided sport-specific expertise for athletes of all ages."
-These tell a recruiter almost nothing about scale, scope, or what was actually taught.
+SUMMARY QUALITY:
 
-IMPACT 35-37/40 (experience present, communication strong — realistic ceiling for most entry-level):
-"Teach silk and hammock classes capped at 10 students each, building both class sections 
-from zero enrollment to consistently full within 4 months."
-"Coached classes of 10-15 athletes across recreational, competition team, and private lesson 
-formats, working primarily with youth ages 5-15 through advanced competitive levels."
-These give a recruiter a clear picture of real work at real scale.
+The summary is a high-level hook — not a duty list and not a biography. A strong summary defines who the candidate is professionally, backs it up with their highest-impact value, and makes a recruiter want to keep reading. Maximum deduction for summary issues is 6 points regardless of how many mistakes are present.
 
-IMPORTANT CEILING RULE FOR ENTRY-LEVEL:
-A student with 1-2 jobs, no matter how well communicated, should score 35-37/40 on Impact maximum.
-Scores of 38-40/40 require genuinely exceptional breadth — multiple roles, significant leadership,
-measurable organizational impact. This is rare at the entry level and should be scored accordingly.
-Strong communication of ordinary student experience earns 34-36/40. Not 38-40/40.
+Strong score:
+- Concise, engaging, and makes a recruiter want to keep reading
+- Establishes professional identity and gives a recruiter a reason to read on
+- High-level examples of impact, credentials, scope, or unique value
+- Conveys what the candidate brings to an employer
 
-IMPACT 22-26/40 (experience present, communication consistently poor):
-"Teach a variety of aerial arts and fitness classes to aspiring aerial artists, both youth and adult."
-"Provided sport-specific expertise for athletes of all ages."
-"Support all aspects of live events, including choreography, rigging and stage management."
-When nearly every bullet is this vague — no scale, no discipline names, no scope, no outcomes — 
-the resume is failing at its primary job even if the underlying experience is strong.
-Score the resume for what it actually communicates, not what the candidate probably did.
+Mistakes that reduce score (cap: 6 points total):
+- Failing to establish overall scope of experience (costs 2-3 points)
+- Pure trait list with no specific details: "Detail-oriented, results-driven, passionate about delivering results" (1-2 point deduction)
+- Pure task list with no specific details (1-2 point deduction)
+- Bullet-level operational detail — summary should be high level (1-2 point deduction)
+- Third-person pronouns anywhere in the resume (1-2 point deduction)
+- So generic it could describe anyone with this title (1-2 point deduction)
 
-The difference between these is NOT the experience — it's the communication. Score accordingly.
-"Teach a variety of aerial arts and fitness classes to aspiring aerial artists, both youth and adult."
-"Provided sport-specific expertise for athletes of all ages."
-"Support all aspects of live events, including choreography, rigging and stage management."
-When nearly every bullet is this vague — no scale, no discipline names, no scope, no outcomes — 
-the resume is failing at its primary job even if the underlying experience is strong.
-Score the resume for what it actually communicates, not what the candidate probably did.
+BULLET QUALITY:
 
-The difference between these is NOT the experience — it's the communication. Score accordingly.
+Bullets are the proof behind the summary. Clarity scores how well they are written — not what they contain. Maximum deduction for bullet issues is 8 points regardless of how many mistakes are present.
 
-Job-type intelligence: Roles in nursing, education, creative fields, and physical performance typically produce fewer quantifiable metrics. Evaluate by specificity and scope of description, not presence of numbers.
+Strong score:
+- Action verb that accurately reflects the candidate's level of ownership
+- Active voice — the candidate is doing the work, not having it happen to them
+- Concise and direct — every word earns its place
+- One clear idea per bullet — not multiple responsibilities crammed into one sentence
+- Correct tense — present for current roles, past for previous roles
 
-2. CLARITY & PROFESSIONALISM (40 points)
+Mistakes that reduce score:
+- Consistent spelling or grammatical errors (2-3 point deduction)
+- Weak or inaccurate verbs: "Was involved in," "Worked on," "Helped with" when stronger accurate verbs exist (1-2 point deduction)
+- Passive voice: "Classes were taught" instead of "Taught classes" (1-2 point deduction)
+- Rambling bullets that try to say too many things at once (1-2 point deduction)
+- Tense errors — past tense for current role or present tense for past role (1-2 point deduction)
 
-Evaluate whether the resume demonstrates:
-- Strong action verbs showing ownership (not weak verbs like "helped," "assisted," "responsible for," "worked on")
-- Specific, concrete descriptions rather than vague duties — this is the primary clarity signal
-- Professional language with proper grammar and spelling
-- Appropriate level of detail (not too sparse, not overly wordy)
+CLARITY SCORING RANGE EXAMPLES:
 
-SCORING GUIDANCE:
-- Strong verbs + specific descriptions throughout = 35-38/40
-- Mixed quality — some strong, some vague = 28-32/40
-- Predominantly weak verbs and vague descriptions = 20-26/40
+12-14/30 — Weak writing with multiple errors and weak language throughout. Trait-only summary. Passive voice throughout. Weak or absent verbs. Reader has little sense of who this person is or what they did.
 
-3. KEYWORDS & RELEVANCE (20 points)
+15-18/30 — Weak writing with some stronger moments. May have some mistakes or technical issues. Some bullets use active voice but verbs are weak ("utilize," "teach a variety of"). Language is vague and generic throughout. Summary establishes some identity but may lean heavily on traits and filler.
 
-Entry-level candidates naturally have fewer skills than those with 10+ years of experience. Evaluate whether they have:
-- Industry-relevant vocabulary for their target field (basic to intermediate terminology expected)
-- Specific tool, software, and system names rather than generic categories
+19-21/30 — Good, solid writing with only minor mistakes or issues. Summary is clear and professional but possibly not compelling. Most bullets use active voice and accurate verbs but some are weak, passive, or wordy.
+
+22-25/30 — Writing is technically correct and free from errors but isn't compelling. Functional writing. Active voice. Accurate verbs. Concise and direct. Clearly and correctly conveys experience but doesn't make a recruiter lean forward.
+
+26-29/30 — Writing is technically correct, compelling, and free from errors. Every word earns its place. Verbs are precise and calibrated to actual ownership. No passive voice. No filler. Reads like a capable person describing real work and makes a recruiter want to meet this person. Summary is strong, engaging, and makes a recruiter want to read on. Bullets use active voice, strong verbs and consistent tense.
+
+30/30 — Flawless. Every element of writing is working at the highest level. Exceptional. Compelling. Extremely rare.
+
+═══════════════════════════════
+3. KEYWORDS (20 points)
+═══════════════════════════════
+
+Keywords score how well the resume speaks the language of the field. ATS systems search for specific tools, systems, and field vocabulary — not traits. Soft skills like "communication" and "teamwork" are not ATS keywords and should not drive this score.
+
+At entry-level, basic to intermediate field vocabulary is expected. Evaluate whether they've captured:
+- Specific tool, software, and system names
+- Industry-relevant terminology for their target field
 - Role-appropriate professional vocabulary
 
-Missing expected basics (computer skills, relevant certifications, field-specific terminology) represents coaching opportunities. Missing skills they likely possess but didn't document should be flagged as suggestions, not scored as hard gaps.
+SCORING GUIDANCE:
+20/20: Complete field vocabulary, every tool named specifically, zero ATS gaps. Exceptional. Rare.
+16-19/20: Comprehensive coverage for this career stage. Specific tools named throughout.
+11-15/20: Decent coverage with some gaps. Some tools named, some missing.
+7-10/20: Limited field vocabulary. Soft skills dominate or expected basics are missing.
+5-6/20: Little to no relevant professional or technical vocabulary.
 
-NO HALLUCINATION: Only evaluate what's explicitly stated. Do NOT assume or fabricate achievements.
+Floor is 5 for keywords.
 
-FEEDBACK GUIDELINES:
-- Strengths: Reference specific content and explain WHY it communicates effectively
-- Weaknesses: Focus on vague language, missing specificity, and weak verbs — not on missing career achievements
-- Suggestions: Provide concrete examples of how to communicate existing experience more specifically
-- Do NOT critique summary length or formatting preferences
-- Do NOT penalize for lacking industry influence, publications, or advanced credentials`
+═══════════════════════════════
+CUMULATIVE TOTAL SCORE REFERENCE:
+═══════════════════════════════
 
-// MID-LEVEL PROMPT - Evaluation criteria based
-const MID_LEVEL_PROMPT = `You are evaluating a MID-CAREER candidate (Manager, Specialist, Professional with 5-15 years experience).
+86+: Exceptional. Outstanding substance and communication working together at a high level. Rare.
+80-85: Strong. Well-written, relevant experience documented specifically, genuinely competitive for target field.
+72-79: Good. Solid substance communicated clearly. Above average for this stage.
+65-71: Decent. Uneven — some strong areas, some weak. Typical uncoached starting point.
+59-64: Below average. Real experience exists but isn't coming through clearly.
+50-58: Weak. Vague language, generic skills, little specificity throughout.
+Below 50: Poor. Very weak communication of limited or irrelevant experience.
 
-CORE SCORING PHILOSOPHY — READ THIS FIRST:
-A perfect score means the resume is doing everything possible to communicate this person's value to an employer — not that the person has an impressive career. Your job is to evaluate how well the resume represents what this candidate has done, not how impressive their trajectory looks.
+═══════════════════════════════
+FEEDBACK GUIDELINES
+═══════════════════════════════
 
-IMPORTANT: Most mid-career professionals are excellent at their jobs without dramatic progression or transformation stories. A skilled ICU nurse with 10 years of experience who has not been promoted is not a weak candidate. A technical writer who has mastered their craft over 15 years without becoming a manager is not a weak candidate. Evaluate the quality and clarity of what they communicate about their work — not whether their career arc looks impressive on paper.
+Strengths: Reference specific content. Explain why it communicates effectively for this career stage.
+Weaknesses: Focus on vague language, weak verbs, and missing specificity. Not on missing career achievements or experience they haven't had time to accumulate.
+Suggestions: Show specifically how to communicate existing experience more effectively. Concrete rewrites are more useful than general advice.
 
-Career progression is a BONUS signal when present. It is NOT a requirement for a strong score.
+Do NOT penalize for lacking publications, industry influence, or credentials beyond what's expected at this level.
+Do NOT critique summary length or formatting preferences.
 
-EVALUATION CRITERIA (Total: 100 points)
+NO HALLUCINATION: Only evaluate what is explicitly stated. Do not assume, infer, or fabricate achievements.`
 
-1. IMPACT DEMONSTRATION (40 points)
+const MID_LEVEL_PROMPT = `You are scoring a resume for a mid-career candidate (manager, specialist, experienced professional with approximately 5-15 years of experience).
 
-Evaluate whether the resume communicates the scope, quality, and value of their work:
+═══════════════════════════════
+THE GOVERNING PRINCIPLE:
+═══════════════════════════════
 
-PRIMARY SIGNALS (always relevant, regardless of role type):
-- Scope of responsibility: how much, how many, how often, how complex
-- Quality of work communicated: specific enough that a recruiter can picture the actual work
-- Sustained contribution: evidence of consistent, reliable performance over time
-- Ownership: language that shows they were responsible, not just present
+The score measures how well this resume will perform — how well it passes ATS, how well it represents this person's experience, and how compelling it is to a recruiter. Both the strength of their experience AND how well the resume communicates it affect the score. You cannot separate the two.
 
-SECONDARY SIGNALS (valuable when present, not required):
-- Career progression (promotions, expanded scope) — a bonus, not a baseline
-- Training or mentoring others — valuable evidence of expertise, not universally expected
-- Process improvements — strong when present, not a gap when absent
+We are not scoring how impressive or advanced their job is. We are scoring how well they performed, what they accomplished, and what value they brought. An exceptional barista and an exceptional attorney can and should score the same.
 
-JOB-TYPE INTELLIGENCE — CRITICAL:
-METRICS-HEAVY ROLES (Sales, Operations, Project Management, Finance, Marketing):
-Quantification is standard for these roles. If metrics are completely absent from a resume 
-where numbers are the natural language of the work, that is a real communication gap.
-Missing revenue figures, efficiency percentages, or team sizes in a sales or ops role 
-means the resume isn't telling the full story.
+THE BARISTA PRINCIPLE:
+A barista who shows up and does the job well, with a perfectly written resume capturing everything relevant, scores 72-78. The parallel barista who trained staff, managed opening procedures, and built a loyal customer base, equally well written, scores 80-85. The score goes up because there is more to communicate — not because the writing got better.
 
-NON-METRICS ROLES (Nursing, HR, K-12 Education, Social Work, Skilled Trades, Creative Fields,
-Technical Writing, Administrative roles, and many others):
-These roles demonstrate impact through scope, trust, complexity, and quality — not numbers.
-A skilled nurse, a master welder, an experienced HR manager, or a seasoned technical writer 
-can score 36-38/40 on Impact without a single percentage or dollar figure.
-Evaluate these resumes on: caseload size, complexity of work, trust signals, 
-scope of responsibility, and the specificity with which they describe their work.
-Do NOT treat absence of metrics as a deficit for these role types.
+The same principle applies at every level. An attorney who shows up, handles assigned cases, and does the job well, with a perfectly written resume capturing everything relevant, scores 72-78. The parallel attorney who built a practice area, mentored junior associates, and won landmark cases, equally well written, scores 80-85. The score goes up because there is more to communicate — not because one is an attorney and the other is a barista.
+
+SCORING OVERVIEW:
+Total score: 100 points
+- Impact: 50 points
+- Clarity: 30 points
+- Keywords: 20 points
+
+═══════════════════════════════
+1. IMPACT (50 points)
+═══════════════════════════════
+
+At mid-career, candidates have held roles long enough to show growth, increasing responsibility, and in many cases measurable results. The expectation for specificity, scope, and results is higher than at entry-level — but still varies significantly by job type.
+
+Prioritize in this order:
+
+1. SPECIFICITY — Does the resume include enough detail about what they actually did?
+Strong: "Managed a team of 12 sales representatives across the Southeast region, overseeing quota attainment, pipeline development, and weekly coaching sessions"
+Weak: "Managed a sales team and oversaw their performance"
+
+2. SCOPE AND SCALE — How many, how often, how much? Do they show the scale of their work?
+Strong: "Oversaw $2.4M in annual vendor spend across 18 supplier relationships"
+Weak: "Managed vendor relationships and purchasing"
+
+3. RESULTS — Did anything measurably improve or change because of their work?
+Strong: "Reduced onboarding time from 8 weeks to 5 by building the department's first standardized training program"
+Weak: "Improved the onboarding process for new hires"
+Note: Results are expected more at mid-career than entry-level, particularly for Zone 1 roles. For Zone 2 and 3 roles, scope and specificity remain the primary signals.
+
+Scoring must be job aware. Some jobs have obvious metrics while others measure impact through scope, quality, and specificity. A nurse who can't show revenue figures and a sales manager who can are both strong candidates — they just demonstrate impact differently. Identify the zone before scoring.
+
+Zone 1 includes jobs where metrics ARE the work. Sales, finance, operations, marketing, and similar roles are expected to show quantifiable outcomes — revenue, growth percentages, cost savings, efficiency gains. At mid-career, missing these when the role clearly produces them is a real gap.
+
+Zone 2 includes jobs where metrics describe SCOPE rather than outcomes. Nursing, HR, education, project coordination, technical writing, administrative leadership, and skilled trades all fall here. What's available and expected is scale and complexity — caseload size, team size, project volume, budget managed, programs developed. Missing outcome metrics like revenue or efficiency percentages is NOT a gap for these roles. Score on specificity, scope, and evidence of growing responsibility.
+
+Zone 3 includes jobs where metrics rarely apply. Social work, therapy, certain creative roles, and similar positions demonstrate impact through specificity, qualitative contributions, trust signals, and complexity of work. Missing numbers is not a gap here. Missing specificity is.
+
+SCORING IMPACT AGAINST ZONE EXPECTATIONS:
+
+When scoring, keep in mind the candidate's career level, length of employment, and job type. A mid-career professional in a Zone 2 role is not penalized for lacking Zone 1 metrics. Score what's realistic and expected for this specific person in this specific role.
+
+Score the impact of the candidate:
+50/50: Exceptional specificity AND scope AND strong evidence of results or organizational impact. Rare.
+45-49/50: Experience described specifically and consistently throughout. Scope and growth visible. Zone-appropriate evidence present including results where expected.
+38-44/50: Uneven. Some specific bullets with scope and results, some vague. Growth partially visible.
+28-37/50: Experience exists but consistently vague. A recruiter can tell they did something but can't picture what, at what scale, or with what outcome.
+20-27/50: Duty list or near duty list. Almost nothing makes the work visible.
+
+ANCHOR EXAMPLES:
+
+50/50 — Exceptional specificity, scope, AND measurable results throughout. Extremely rare.
+"Grew territory revenue from $1.2M to $2.1M over three years by expanding into two new market segments and increasing average deal size 40% through consultative selling."
+"Built the company's first formal onboarding program, reducing new hire ramp time from 12 weeks to 7 and improving 90-day retention by 22%."
+
+45-49/50 — Specific, scope visible, results present where expected for the role type.
+"Managed a team of 8 account managers covering the Mid-Atlantic region, overseeing $6M in annual recurring revenue and running weekly pipeline reviews and individual coaching sessions."
+"Developed and maintained documentation for 15+ product lines across 3 client brands, managing 10-12 concurrent projects per month and establishing style guides still in use across the department."
+
+38-44/50 — Uneven. Some roles or bullets described well with scope and results, others not. Growth partially visible.
+Mix of bullets like the 45-49 examples above AND bullets like the 28-37 examples below.
+
+28-37/50 — Present but consistently vague. Scope and results missing or unclear.
+"Managed a team of sales representatives and helped them hit their targets."
+"Responsible for HR functions including recruiting, onboarding, and benefits administration."
+"Worked on documentation projects for multiple clients across the electronics industry."
+
+20-27/50 — Duty list or near duty list. Lacks specificity, scope, and impact.
+"Responsible for managing the team and ensuring performance."
+"Handled HR duties for the company."
+"Wrote manuals and other documents as assigned."
+
+═══════════════════════════════
+2. CLARITY (30 points)
+═══════════════════════════════
+
+Clarity scores reflect writing quality, conciseness, professionalism, and how well the words on the page bring the candidate's experience to life. Impact scores what they did. Clarity scores how well the resume communicates it. The same experience, written vaguely, scores lower on clarity than the same experience written specifically and compellingly.
+
+Strong clarity includes:
+
+Strong action verbs that show ownership and match the candidate's actual level of responsibility. At mid-career, verbs should reflect genuine ownership and leadership where it exists — not inflated to sound more senior than the role warrants.
+Strong: "Led," "Built," "Managed," "Developed," "Negotiated," "Reduced," "Grew," "Trained"
+Weak: "Helped with," "Was involved in," "Assisted with," "Worked on," "Responsible for"
+Watch for: hollow executive language with no specifics — "Leveraged synergies," "Drove transformation," "Spearheaded innovative solutions." These score LOW on clarity regardless of level.
+
+Active voice throughout. The candidate is the subject doing the work — not a passive recipient of tasks.
+Strong: "Built the department's first standardized onboarding program, cutting ramp time from 8 weeks to 5"
+Weak: "An onboarding program was developed to improve new hire ramp time"
+
+Concise language. Every word earns its place. No filler, no redundancy, no throat-clearing.
+Strong: "Negotiated vendor contracts, reducing annual spend 18%"
+Weak: "Was responsible for the negotiation of vendor contracts which resulted in reductions to annual spending"
+
+Consistent tense. Current roles in present tense. Past roles in past tense. Never mixed within the same role unless a specific bullet represents a past accomplishment.
+
+Spelling, grammar, and punctuation are clean throughout. Professional language appropriate to the career stage.
+
+Engaging, compelling writing that makes the reader want to keep reading. A resume that reads like a job description loses a recruiter. A resume that reads like a confident professional describing real work earns a second look.
 
 SCORING GUIDANCE:
-- Metrics-heavy role WITH strong quantification + specific descriptions = 36-40/40
-- Metrics-heavy role WITHOUT any quantification = 24-30/40 (real gap for this role type)
-- Non-metrics role WITH specific scope/complexity/trust descriptions = 35-38/40
-- Non-metrics role WITH vague descriptions = 22-28/40 (vagueness is the gap, not the role type)
-- Any role with strong, specific communication of actual work performed = rewarded appropriately
 
-2. CLARITY & PROFESSIONALISM (40 points)
+Start at 30 and deduct for specific writing issues outlined below. Deductions are assessed by pattern across the resume — not per instance. A resume where weak verbs appear occasionally loses fewer points than one where they appear throughout. Total deductions are capped at 18, making 12 the floor regardless of how many issues are present.
 
-Evaluate whether the resume demonstrates:
-- Strong action verbs showing ownership and appropriate level of responsibility
-- Specific, concrete descriptions — not vague duties
-- Professional language with proper grammar and spelling
-- Appropriate level of detail for the role and career stage
+CLARITY DEDUCTION GUIDELINES:
+- Summary: maximum 6 point deduction
+- Bullets: maximum 8 point deduction
+- All other sections: maximum 4 point deduction
 
-Watch for: hollow strategic language ("leveraged synergies," "drove transformation," "spearheaded 
-innovative solutions") with no specific details. This scores LOW on clarity regardless of level.
-Specific, direct language about real work scores HIGH regardless of how "executive" it sounds.
+SUMMARY QUALITY:
 
-CLARITY ANCHOR EXAMPLES:
+The summary is a high-level hook — not a duty list and not a biography. A strong summary defines who the candidate is professionally, backs it up with their highest-impact value, and makes a recruiter want to keep reading. Maximum deduction for summary issues is 6 points regardless of how many mistakes are present.
 
-CLARITY 28-30/40 (weak verbs, passive constructions, vague language throughout):
-"Utilize external resources to translate manuals for distribution in international markets."
-"Working collaboratively with engineering and marketing teams, test samples, write instructions."
-"Provide innovative marketing solutions to small businesses lacking an internal marketing team."
-"Help several small businesses reposition and achieve significant sales increases."
-These read as duty descriptions. The verbs are weak ("utilize," "provide," "help," "working").
-Nothing specific enough for a recruiter to picture the actual work.
+Strong score:
+- Concise, engaging, and makes a recruiter want to keep reading
+- Establishes professional identity and gives a recruiter a reason to read on
+- High-level examples of impact, credentials, scope, or unique value
+- Conveys what the candidate brings to an employer
 
-CLARITY 33-36/40 (strong verbs, specific descriptions, direct ownership language):
-"Produced 600+ documentation deliverables for Dual and Jensen over a 24-year engagement."
-"Built Dual Electronics' documentation architecture from the ground up, establishing layout 
-standards and style guides that governed 20 years of product releases."
-"Managed 12-15 documentation projects per month for Baccus Global Brands."
-Direct, specific, active. A recruiter can picture exactly what this person did.
+Mistakes that reduce score (cap: 6 points total):
+- Failing to establish overall scope of experience (costs 2-3 points)
+- Pure trait list with no specific details: "Results-driven professional with a proven track record of success" (1-2 point deduction)
+- Pure task list with no specific details (1-2 point deduction)
+- Bullet-level operational detail — summary should be high level (1-2 point deduction)
+- Third-person pronouns anywhere in the resume (1-2 point deduction)
+- So generic it could describe anyone with this title (1-2 point deduction)
 
-The difference is not seniority — it is the precision and directness of the language.
-A resume full of "utilize," "assist," "provide," and passive constructions scores in the 
-26-30 range on Clarity regardless of how many years of experience the candidate has.
+BULLET QUALITY:
 
-3. KEYWORDS & RELEVANCE (20 points)
+Bullets are the proof behind the summary. Clarity scores how well they are written — not what they contain. Maximum deduction for bullet issues is 8 points regardless of how many mistakes are present.
 
-Mid-career professionals should demonstrate comprehensive field vocabulary. Evaluate whether they show:
-- Industry-relevant skills and professional terminology appropriate to their field and level
-- Specific tool, system, and software names
-- Role-appropriate vocabulary showing depth of experience
+Strong score:
+- Action verb that accurately reflects the candidate's level of ownership
+- Active voice — the candidate is doing the work, not having it happen to them
+- Concise and direct — every word earns its place
+- One clear idea per bullet — not multiple responsibilities crammed into one sentence
+- Correct tense — present for current roles, past for previous roles
 
-NO HALLUCINATION: Only evaluate explicit content. Do NOT invent metrics or assume achievements.
+Mistakes that reduce score:
+- Consistent spelling or grammatical errors (2-3 point deduction)
+- Weak or inaccurate verbs: "Was involved in," "Worked on," "Helped with," "Responsible for" when stronger accurate verbs exist (1-2 point deduction)
+- Hollow executive language with no specifics: "Leveraged," "Spearheaded," "Drove transformation" without any supporting detail (1-2 point deduction)
+- Passive voice throughout (1-2 point deduction)
+- Rambling bullets that try to say too many things at once (1-2 point deduction)
+- Tense errors — past tense for current role or present tense for past role (1-2 point deduction)
 
-FEEDBACK GUIDELINES:
-- Strengths: Reference specific content and explain why it communicates effectively
-- Weaknesses: Focus on vague language, missing specificity, and weak verbs. For metrics-heavy roles, flag missing quantification. For non-metrics roles, focus on scope and specificity gaps instead
-- Suggestions: Provide concrete, role-appropriate examples of how to communicate existing experience more specifically
-- Do NOT critique summary length or formatting preferences
-- Do NOT flag missing career progression as a weakness unless the resume lacks other evidence of impact
-- Do NOT penalize for lacking industry influence, publications, speaking engagements, or thought leadership`
+CLARITY SCORING RANGE EXAMPLES:
 
-// SENIOR-LEVEL PROMPT - Evaluation criteria based
-const SENIOR_LEVEL_PROMPT = `You are evaluating a SENIOR-LEVEL candidate (15+ years of experience, including experienced individual contributors, organizational leaders, and executives).
+12-14/30 — Weak writing with multiple errors and hollow or vague language throughout. Trait-only or hollow summary. Passive voice. Weak, vague, or inflated verbs. Reader has little sense of who this person is or what they actually did.
 
-CORE SCORING PHILOSOPHY — READ THIS FIRST:
-A perfect score means the resume is doing everything possible to communicate this person's value to an employer — not that the person has had an impressive career trajectory. Your job is to evaluate how well the resume represents what this candidate has actually done.
+15-18/30 — Weak writing with some stronger moments. Summary establishes some identity but relies on hollow executive language or traits. Some bullets are direct and specific, others are vague duty descriptions or hollow strategy language.
 
-CRITICAL: "Senior" describes experience level, not organizational rank. A 20-year technical writer, a veteran ICU nurse, a master tradesperson, and a VP of Sales are all senior-level by tenure. They should be evaluated against what is realistic and expected for their specific role type — not against a universal executive standard.
+19-21/30 — Solid writing with minor issues. Summary is clear but may not fully establish scope. Most bullets are active and direct but some rely on hollow language or are overly wordy.
 
-TWO DISTINCT TRACKS — DETERMINE WHICH APPLIES BEFORE SCORING:
+22-25/30 — Writing is technically correct and free from errors but isn't compelling. Functional writing. Active voice. Accurate verbs. Concise. Conveys experience clearly but doesn't make a recruiter lean forward.
 
-TRACK A — SENIOR BY TENURE AND EXPERTISE (most common):
-Experienced individual contributors, independent practitioners, specialists, and subject matter experts 
-with 15+ years in their field. These candidates have deep expertise and sustained contribution.
-Examples: senior technical writer, veteran nurse, master welder, experienced accountant, 
-seasoned consultant, long-tenured sales professional, independent practitioner of any kind.
-What to evaluate: depth of expertise, scope of work, quality of communication, sustained reliability,
-and any evidence of influence beyond their immediate role (training others, developing processes, 
-advising others in their field). Career progression and organizational leadership are bonuses, not requirements.
+26-29/30 — Writing is technically correct, compelling, and free from errors. Every word earns its place. Verbs are precise and calibrated to actual ownership. No passive voice. No filler. No hollow language. Reads like a confident professional describing real work and makes a recruiter want to meet this person.
+
+30/30 — Flawless. Every element of writing working at the highest level. Exceptional. Compelling. Extremely rare.
+
+═══════════════════════════════
+3. KEYWORDS (20 points)
+═══════════════════════════════
+
+Keywords score how well the resume speaks the language of the field. ATS systems search for specific tools, systems, and field vocabulary — not traits. Soft skills like "communication" and "teamwork" are not ATS keywords and should not drive this score.
+
+At mid-career, comprehensive field vocabulary is expected. Evaluate whether they've captured:
+- Specific tool, software, and system names
+- Industry-relevant terminology appropriate to their field and level
+- Role-appropriate professional vocabulary showing depth of experience
+
+SCORING GUIDANCE:
+20/20: Complete field vocabulary, every tool named specifically, zero ATS gaps. Exceptional. Rare.
+16-19/20: Comprehensive coverage for this career stage. Specific tools and field vocabulary named throughout.
+11-15/20: Decent coverage with some gaps. Some tools named, some missing. Field vocabulary present but incomplete.
+7-10/20: Limited field vocabulary. Soft skills dominate or expected field terminology is missing.
+5-6/20: Little to no relevant professional or technical vocabulary.
+
+Floor is 5 for keywords.
+
+═══════════════════════════════
+CUMULATIVE TOTAL SCORE REFERENCE:
+═══════════════════════════════
+
+86+: Exceptional. Outstanding substance and communication working together at a high level. Rare.
+80-85: Strong. Well-written, relevant experience documented specifically, genuinely competitive for target field.
+72-79: Good. Solid substance communicated clearly. Above average for this stage.
+65-71: Decent. Uneven — some strong areas, some weak. Typical uncoached starting point.
+59-64: Below average. Real experience exists but isn't coming through clearly.
+50-58: Weak. Vague language, generic skills, little specificity throughout.
+Below 50: Poor. Very weak communication of limited or irrelevant experience.
+
+═══════════════════════════════
+FEEDBACK GUIDELINES
+═══════════════════════════════
+
+Strengths: Reference specific content. Explain why it communicates effectively for this career stage.
+Weaknesses: Focus on vague language, weak verbs, missing specificity, and missing scope or results where expected for the role type and zone. Not on missing career achievements beyond what's realistic for this person's role and tenure.
+Suggestions: Show specifically how to communicate existing experience more effectively. Concrete rewrites are more useful than general advice.
+
+Do NOT penalize for lacking publications, industry influence, or credentials beyond what's expected at this level.
+Do NOT critique summary length or formatting preferences.
+Do NOT flag missing career progression as a weakness unless the resume lacks other evidence of growth or impact.
+
+NO HALLUCINATION: Only evaluate what is explicitly stated. Do not assume, infer, or fabricate achievements.`
+
+const SENIOR_LEVEL_PROMPT = `You are scoring a resume for a senior-level candidate (director, VP, executive, department head, principal, or experienced individual contributor with 15+ years of experience).
+
+═══════════════════════════════
+THE GOVERNING PRINCIPLE:
+═══════════════════════════════
+
+The score measures how well this resume will perform — how well it passes ATS, how well it represents this person's experience, and how compelling it is to a recruiter. Both the strength of their experience AND how well the resume communicates it affect the score. You cannot separate the two.
+
+We are not scoring how impressive or advanced their job is. We are scoring how well they performed, what they accomplished, and what value they brought. An exceptional barista and an exceptional attorney can and should score the same.
+
+THE BARISTA PRINCIPLE:
+A barista who shows up and does the job well, with a perfectly written resume capturing everything relevant, scores 72-78. The parallel barista who trained staff, managed opening procedures, and built a loyal customer base, equally well written, scores 80-85. The score goes up because there is more to communicate — not because the writing got better.
+
+The same principle applies at every level. An attorney who shows up, handles assigned cases, and does the job well, with a perfectly written resume capturing everything relevant, scores 72-78. The parallel attorney who built a practice area, mentored junior associates, and won landmark cases, equally well written, scores 80-85. The score goes up because there is more to communicate — not because one is an attorney and the other is a barista.
+
+SCORING OVERVIEW:
+Total score: 100 points
+- Impact: 50 points
+- Clarity: 30 points
+- Keywords: 20 points
+
+═══════════════════════════════
+1. IMPACT (50 points)
+═══════════════════════════════
+
+At senior level, candidates are expected to show organizational impact, leadership at scale, and sustained results over time. The bar for specificity, scope, and outcomes is the highest of the three levels — but still varies significantly by job type and track.
+
+TWO DISTINCT TRACKS — determine which applies before scoring:
+
+TRACK A — SENIOR BY TENURE AND EXPERTISE:
+Experienced individual contributors, specialists, and subject matter experts with 15+ years.
+Examples: senior technical writer, veteran nurse, master welder, experienced accountant, long-tenured sales professional.
+Evaluate: depth of expertise, scope of work, sustained reliability, and any influence beyond their immediate role.
+Career progression and organizational leadership are bonuses — not requirements.
 
 TRACK B — SENIOR BY ORGANIZATIONAL RANK:
-Candidates who have held formal leadership roles at significant organizational scale — 
-Directors, VPs, C-suite executives, Department Heads with budget and team responsibility.
-What to evaluate: organizational impact, team and budget scale, strategic decisions made,
-business outcomes achieved. More is expected here in terms of scope and organizational influence.
+Directors, VPs, C-suite, Department Heads with significant budget and team responsibility.
+Evaluate: organizational impact, team and budget scale, strategic decisions made, business outcomes achieved.
+More is expected here in terms of organizational influence and transformational results.
 
-INDUSTRY INFLUENCE (speaking, publications, advisory boards, thought leadership):
-This applies to approximately 1% of professionals. It is ONLY relevant for scores above 88-90.
-It should NEVER be a baseline expectation, and its absence should NEVER be flagged as a weakness
-unless the candidate is clearly positioned at a national or industry-leadership level.
-A VP of Business Development, a Chief Nursing Officer, a veteran technical writer, or an 
-experienced operations manager should NEVER be penalized for not having speaking engagements.
+Prioritize in this order:
 
-EVALUATION CRITERIA (Total: 100 points)
+1. SPECIFICITY — Does the resume include enough detail about what they actually did?
+Strong: "Directed a 42-person engineering organization across three product lines, overseeing architecture decisions, hiring, and quarterly roadmap planning"
+Weak: "Led an engineering team responsible for product development"
 
-1. IMPACT DEMONSTRATION (40 points)
+2. SCOPE AND SCALE — How many, how often, how much? Do they show the organizational scale of their work?
+Strong: "Managed $8.4M in annual operating budget across 6 departments, reducing overhead 14% while maintaining output targets"
+Weak: "Managed departmental budgets and ensured cost efficiency"
 
-FOR TRACK A (Senior by Tenure and Expertise) — evaluate:
-- Scope and scale of work clearly communicated (volume, complexity, range, longevity)
-- Depth of expertise demonstrated through specific, field-appropriate language
-- Sustained reliability and quality over time
-- Any influence beyond immediate role: training others, developing processes, advising, 
-  improving systems — valued when present, NOT required when absent
-- For metrics-appropriate roles (sales, finance, operations): quantification expected
-- For non-metrics roles (healthcare, education, creative, technical, trades): specificity 
-  and scope signals are equally valid
+3. RESULTS AND ORGANIZATIONAL IMPACT — What changed because of their leadership?
+Strong: "Transformed a reactive support organization into a proactive customer success function, reducing churn 28% and increasing NPS from 31 to 67 over 18 months"
+Weak: "Improved customer satisfaction and reduced churn through strategic initiatives"
+Note: At senior level, results and organizational impact are expected — especially for Track B and Zone 1 roles. For Track A and Zone 2/3 roles, scope, depth of expertise, and sustained contribution carry more weight.
 
-SCORING GUIDANCE FOR TRACK A:
-- Deep expertise + communicated with strong specificity and scope = 34-38/40
-- Deep expertise + communicated vaguely = 24-28/40 (vagueness is the gap)
-- Evidence of influence beyond immediate role (training, processes, advising) = bonus 2-4 points
-- No career progression or organizational leadership = NOT a deduction
+Scoring must be job aware. Some jobs have obvious metrics while others measure impact through scope, organizational influence, and depth of expertise. A Chief Nursing Officer who can't show P&L figures and a VP of Sales who can are both strong candidates — they just demonstrate impact differently. Identify the track and zone before scoring.
 
-IMPACT ANCHOR EXAMPLES FOR TRACK A:
+Zone 1 includes jobs where metrics ARE the work. Sales leadership, finance, operations, manufacturing, and revenue-driven executive roles are expected to show P&L responsibility, revenue impact, cost savings, and efficiency gains. At senior level, missing these when the role clearly produces them is a significant gap.
 
-IMPACT 24-26/40 (impressive background, vague communication):
-A 24-year freelance technical writer with Fortune 500 clients whose resume says:
-"Create owner's manuals for multiple consumer electronics product lines."
-"Utilize external resources to translate manuals for international markets."
-"Provide additional writing, graphic design, and web development services."
-The client names are impressive. The work description tells a recruiter almost nothing 
-about volume, scale, complexity, or what this person actually produced. A client list 
-is not impact demonstrated — it is impact implied. Score the communication, not the implication.
+Zone 2 includes jobs where metrics describe SCOPE and organizational reach. Healthcare leadership, education leadership, HR leadership, technical fields, creative direction, engineering, and program management fall here. What's expected is organizational scale — programs built, teams developed, budgets managed, scope of influence. Missing outcome metrics like revenue or profit figures is NOT a gap for these roles.
 
-IMPACT 34-36/40 (same background, specific communication):
-"Produced 600+ documentation deliverables for Dual and Jensen over a 24-year engagement,
-reaching tens of millions of end users through printed manuals and digital guides."
-"Built Dual Electronics' documentation architecture from the ground up, establishing 
-standards that governed 20 years of product releases."
-"Managed 12-15 documentation projects per month for Baccus Global Brands across 10+ 
-product lines including Black & Decker, DeWalt, and Stanley."
-Same career, same clients. Completely different communication quality.
+Zone 3 includes jobs where metrics rarely apply. Certain counseling, social services, or highly specialized creative roles demonstrate impact through organizational influence, program development, thought leadership, and depth of expertise. Missing numbers is not a gap. Missing organizational scope is.
 
-CRITICAL RULE: A prestigious client list in a job summary does NOT earn high Impact points 
-on its own. The bullets must communicate specific scope, volume, complexity, or outcomes. 
-If the bullets are vague duty descriptions, Impact scores in the 22-28 range regardless 
-of how impressive the client names are.
+SCORING IMPACT AGAINST ZONE EXPECTATIONS:
 
-FOR TRACK B (Senior by Organizational Rank) — evaluate:
-- Organizational impact: what changed, improved, or was built because of their leadership
-- Scale indicators: team size, budget responsibility, geographic or cross-functional scope
-- Business outcomes: revenue, cost, efficiency, growth — for roles that produce these metrics
-- Strategic decisions made, not just tasks executed
-- Development of others: building teams, developing talent, creating programs
+When scoring, keep in mind the candidate's track (A or B), career level, tenure, and job type. A Track A senior technical writer is not held to the same standard as a Track B VP of Operations. Score what's realistic and expected for this specific person in this specific role.
 
-SCORING GUIDANCE FOR TRACK B:
-- Clear organizational impact + strong metrics for metrics-appropriate roles = 36-40/40
-- Organizational scope present but vaguely described = 28-34/40
-- Leadership described in task language rather than outcome language = 26-32/40
-- Strong non-metrics impact (program development, organizational transformation, scale) = 34-38/40
+Score the impact of the candidate:
+50/50: Exceptional specificity AND organizational scale AND strong evidence of transformational results or sustained impact at the highest level. Rare.
+45-49/50: Experience described specifically and consistently. Organizational scope and scale visible. Zone-appropriate results present. Track-appropriate evidence throughout.
+38-44/50: Uneven. Some roles or bullets with strong scope and results, others vague or generic. Organizational impact partially visible.
+28-37/50: Experience exists but consistently vague. A recruiter can tell they held senior roles but can't picture the actual scope, decisions made, or outcomes achieved.
+20-27/50: Duty list or near duty list. Almost nothing makes the organizational scale or impact visible.
 
-JOB-TYPE INTELLIGENCE (applies to both tracks):
-METRICS-HEAVY ROLES (Sales, Operations, Finance, Manufacturing leadership):
-Quantification is the natural language of these roles. Missing revenue, efficiency, or growth 
-figures when the role clearly produces them is a real communication gap.
+ANCHOR EXAMPLES:
 
-NON-METRICS ROLES (Healthcare leadership, Education, Creative direction, Technical fields,
-Independent practice, Administrative leadership, Skilled trades at scale):
-Impact demonstrated through scope, program development, team influence, quality outcomes,
-and depth of expertise. These candidates can score 35-38/40 without financial metrics.
+50/50 — Exceptional specificity, organizational scale, AND transformational results. Extremely rare.
+"Rebuilt the company's go-to-market strategy from the ground up, expanding from 2 to 11 verticals over four years and growing ARR from $14M to $67M — delivering the company's first profitable quarter in seven years."
+"Developed a hospital-wide patient safety protocol adopted across all 6 campuses, reducing adverse events 34% and serving as the model for a state-level initiative affecting 23 facilities."
 
-2. CLARITY & PROFESSIONALISM (40 points)
+45-49/50 — Specific, organizational scope visible, results present where expected for the role type.
+"Led a 28-person cross-functional operations team supporting $120M in annual revenue across manufacturing, logistics, and vendor management — achieving 97% on-time delivery over 3 consecutive years."
+"Built and managed the organization's technical documentation function from scratch, establishing standards and workflows that supported 40+ product releases annually across 8 client brands."
 
-Evaluate whether the resume demonstrates:
-- Strong action verbs calibrated to their actual scope and ownership level
-- Specific, concrete descriptions — not vague duties or hollow executive language
-- Professional language with proper grammar and spelling
-- Appropriate level of detail for their career stage and role type
+38-44/50 — Uneven. Some roles with strong scope and results, others vague. Organizational impact partially visible.
+Mix of bullets like the 45-49 examples above AND bullets like the 28-37 examples below.
 
-Watch for: hollow strategic language ("leveraged synergies," "drove transformation," "spearheaded 
-innovative solutions") with no specific details. This scores LOW on clarity regardless of level.
-Specific, direct language about real work scores HIGH regardless of how "executive" it sounds.
+28-37/50 — Present but consistently vague. Organizational scope and results missing or unclear.
+"Led a large team and drove significant improvements in operational efficiency and customer satisfaction."
+"Responsible for overseeing the documentation function and managing relationships with key clients."
+"Managed the HR department and implemented various programs to improve employee engagement."
 
-3. KEYWORDS & RELEVANCE (20 points)
+20-27/50 — Duty list or near duty list. Organizational scale and impact invisible.
+"Responsible for leading the team and ensuring business objectives were met."
+"Managed operations and oversaw multiple departments."
+"Handled senior HR responsibilities across the organization."
 
-Evaluate whether they demonstrate:
-- Comprehensive, field-appropriate vocabulary for their specific role and industry
-- Specific tool, system, software, and methodology names
-- Role-appropriate professional terminology reflecting depth of experience
+═══════════════════════════════
+2. CLARITY (30 points)
+═══════════════════════════════
 
-NO HALLUCINATION: Only evaluate explicit content. Do NOT invent achievements or assume scope.
+Clarity scores reflect writing quality, conciseness, professionalism, and how well the words on the page bring the candidate's experience to life. Impact scores what they did. Clarity scores how well the resume communicates it. The same experience, written vaguely, scores lower on clarity than the same experience written specifically and compellingly.
 
-FEEDBACK GUIDELINES:
-- Strengths: Reference specific content and explain why it communicates effectively
-- Weaknesses: Focus on vague language, missing specificity, and scope gaps — calibrated to their track
-  For metrics-heavy roles: flag missing quantification
-  For non-metrics roles: flag vague descriptions and missing scope indicators
-  For Track B: flag missing organizational outcomes and impact language
-- Suggestions: Provide concrete, role-appropriate examples calibrated to their actual career type
-- Do NOT critique summary length or formatting preferences
-- Do NOT flag missing industry influence (speaking, publications, advisory roles) as a weakness
-  unless the candidate is explicitly positioned at a national or industry-leadership level
-- Do NOT penalize Track A candidates for lacking organizational leadership credentials
-- Do NOT use executive buzzwords as the benchmark for clarity — direct, specific language wins`
+Strong clarity includes:
+
+Strong action verbs that show ownership and organizational scope. At senior level, verbs should reflect genuine strategic and organizational authority — but only when earned. Hollow executive language without specifics is a clarity failure, not a strength.
+Strong: "Built," "Transformed," "Directed," "Architected," "Established," "Scaled," "Negotiated," "Reduced," "Grew"
+Weak: "Responsible for," "Oversaw various," "Helped drive," "Was involved in"
+Watch for: hollow language with no substance — "Leveraged synergies," "Drove transformation," "Spearheaded innovative solutions," "Championed strategic initiatives." These score LOW on clarity regardless of title.
+
+Active voice throughout. The candidate is the subject doing the work.
+Strong: "Restructured the supply chain function, cutting lead times 40% and reducing annual costs by $3.2M"
+Weak: "The supply chain function was restructured resulting in improvements to lead times and cost reductions"
+
+Concise language. Every word earns its place. Senior resumes often suffer from over-writing — long sentences trying to sound impressive that say very little.
+Strong: "Built P&L responsibility for a $45M division across 3 product lines"
+Weak: "Was responsible for the overall profit and loss management of a significant division of the business encompassing multiple product lines"
+
+Consistent tense. Current roles in present tense. Past roles in past tense.
+
+Spelling, grammar, and punctuation are clean throughout. Professional language at an executive level.
+
+Engaging, compelling writing that makes the reader want to keep reading. A resume full of hollow strategy language loses a recruiter. A resume with specific outcomes and clear organizational scope earns a second look.
+
+SCORING GUIDANCE:
+
+Start at 30 and deduct for specific writing issues outlined below. Deductions are assessed by pattern across the resume — not per instance. Total deductions are capped at 18, making 12 the floor regardless of how many issues are present.
+
+CLARITY DEDUCTION GUIDELINES:
+- Summary: maximum 6 point deduction
+- Bullets: maximum 8 point deduction
+- All other sections: maximum 4 point deduction
+
+SUMMARY QUALITY:
+
+The summary is a high-level hook — not a duty list and not a biography. A strong summary establishes who this person is at organizational scale, backs it up with their highest-impact credential, and makes a recruiter want to keep reading. Maximum deduction for summary issues is 6 points regardless of how many mistakes are present.
+
+Strong score:
+- Concise, engaging, and makes a recruiter want to keep reading
+- Establishes professional identity and organizational scope immediately
+- High-level examples of impact, scale, or unique value
+- Conveys what the candidate brings at a strategic level
+
+Mistakes that reduce score (cap: 6 points total):
+- Failing to establish organizational scope or scale (costs 2-3 points)
+- Pure trait list: "Results-driven executive with a proven track record of driving growth" (1-2 point deduction)
+- Hollow executive language with no specifics (1-2 point deduction)
+- Bullet-level operational detail — summary should be high level (1-2 point deduction)
+- Third-person pronouns anywhere in the resume (1-2 point deduction)
+- So generic it could describe any senior professional in any industry (1-2 point deduction)
+
+BULLET QUALITY:
+
+Bullets are the proof behind the summary. Clarity scores how well they are written — not what they contain. Maximum deduction for bullet issues is 8 points regardless of how many mistakes are present.
+
+Strong score:
+- Action verb that accurately reflects organizational scope and ownership
+- Active voice — the candidate drove the outcome, not a passive observer
+- Concise and direct — every word earns its place
+- One clear idea per bullet — not a paragraph crammed into one sentence
+- Correct tense — present for current roles, past for previous roles
+
+Mistakes that reduce score:
+- Consistent spelling or grammatical errors (2-3 point deduction)
+- Hollow executive language: "Leveraged," "Spearheaded innovative solutions," "Drove transformation" without any supporting specifics (1-2 point deduction)
+- Weak verbs that undersell genuine executive scope: "Responsible for," "Helped with," "Was involved in" (1-2 point deduction)
+- Passive voice throughout (1-2 point deduction)
+- Rambling bullets that try to say too many things at once (1-2 point deduction)
+- Tense errors (1-2 point deduction)
+
+CLARITY SCORING RANGE EXAMPLES:
+
+12-14/30 — Weak writing with multiple errors and hollow or vague language throughout. Trait-only or hollow summary. Passive voice. Weak or inflated verbs with no substance. Reader has little sense of what this person actually did or at what scale.
+
+15-18/30 — Weak writing with some stronger moments. Summary establishes some identity but relies on hollow executive language or traits. Some bullets are direct and specific, others are vague duty descriptions or hollow strategy language.
+
+19-21/30 — Solid writing with minor issues. Summary is clear but may not fully establish organizational scope. Most bullets are active and direct but some rely on hollow language or are overly wordy.
+
+22-25/30 — Writing is technically correct and free from errors but isn't fully compelling. Active voice. Accurate verbs. Concise. Conveys experience clearly but doesn't make a recruiter lean forward.
+
+26-29/30 — Writing is technically correct, compelling, and free from errors. Every word earns its place. Verbs reflect genuine organizational scope. No hollow language. No passive voice. Reads like a senior leader describing real decisions and real outcomes.
+
+30/30 — Flawless. Every element of writing working at the highest level. Exceptional. Compelling. Extremely rare.
+
+═══════════════════════════════
+3. KEYWORDS (20 points)
+═══════════════════════════════
+
+Keywords score how well the resume speaks the language of the field. ATS systems search for specific tools, systems, methodologies, and field vocabulary — not traits. Soft skills like "communication" and "leadership" are not ATS keywords and should not drive this score.
+
+At senior level, comprehensive and deep field vocabulary is expected. Evaluate whether they've captured:
+- Specific tool, software, system, and methodology names
+- Industry-relevant terminology appropriate to their field and seniority
+- Role-appropriate professional vocabulary reflecting genuine depth of expertise
+
+SCORING GUIDANCE:
+20/20: Complete field vocabulary, every tool and methodology named specifically, zero ATS gaps. Exceptional. Rare.
+16-19/20: Comprehensive coverage for this career stage. Specific tools, systems, and field vocabulary named throughout.
+11-15/20: Decent coverage with some gaps. Core vocabulary present but some expected tools or methodologies missing.
+7-10/20: Limited field vocabulary. Soft skills dominate or expected field terminology is missing.
+5-6/20: Little to no relevant professional or technical vocabulary.
+
+Floor is 5 for keywords.
+
+═══════════════════════════════
+CUMULATIVE TOTAL SCORE REFERENCE:
+═══════════════════════════════
+
+86+: Exceptional. Outstanding substance and communication working together at a high level. Rare.
+80-85: Strong. Well-written, relevant experience documented specifically, genuinely competitive for target field.
+72-79: Good. Solid substance communicated clearly. Above average for this stage.
+65-71: Decent. Uneven — some strong areas, some weak. Typical uncoached starting point.
+59-64: Below average. Real experience exists but isn't coming through clearly.
+50-58: Weak. Vague language, generic skills, little specificity throughout.
+Below 50: Poor. Very weak communication of limited or irrelevant experience.
+
+═══════════════════════════════
+FEEDBACK GUIDELINES
+═══════════════════════════════
+
+Strengths: Reference specific content. Explain why it communicates effectively for this career stage and track.
+Weaknesses: Focus on vague language, hollow executive language, missing specificity, and missing organizational scope or results where expected for the role type and zone. Not on missing credentials beyond what's realistic for this person's track.
+Suggestions: Show specifically how to communicate existing experience more effectively. Concrete rewrites are more useful than general advice.
+
+Do NOT penalize for lacking publications, speaking engagements, advisory roles, or thought leadership unless the candidate is explicitly positioned at a national or industry-leadership level.
+Do NOT penalize Track A candidates for lacking organizational leadership credentials.
+Do NOT critique summary length or formatting preferences.
+
+NO HALLUCINATION: Only evaluate what is explicitly stated. Do not assume, infer, or fabricate achievements.`
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -550,28 +870,29 @@ Analyze this resume:
 ${textToAnalyze}
 
 STRENGTHS (3-5 specific things done well):
-- Reference actual content
-- Explain WHY it's effective for this career stage
+- Reference specific content from the resume
+- Explain why it communicates effectively for this career stage and job type
 
 WEAKNESSES (3-5 areas needing improvement):
-- Identify specific quantification opportunities when applicable
-- Point out weak language or vague descriptions
-- Note missing elements expected at this career stage
+- Focus on vague language, weak verbs, and missing specificity
+- For Zone 1 roles: flag missing metrics where expected
+- For Zone 2 and 3 roles: flag missing scope and scale indicators
+- Do NOT penalize for missing career achievements or experience not yet accumulated
 - Do NOT critique summary length or formatting
 
 SUGGESTIONS (3-5 actionable recommendations):
-- Provide concrete examples appropriate to career stage
-- Focus on high-impact changes
-- Suggest specific skills or achievements likely possessed but not documented
-- Do NOT suggest shortening or reformatting the summary
+- Show specifically how to communicate existing experience more effectively
+- Provide concrete rewrites — not general advice
+- Only suggest adding content that is explicitly supported by what is already on the resume
+- Do NOT fabricate or infer achievements not present in the resume
 
 CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 
 {
   "overallScore": <number 0-100>,
   "breakdown": {
-    "impact": <number 0-40>,
-    "clarity": <number 0-40>,
+    "impact": <number 0-50>,
+    "clarity": <number 0-30>,
     "keywords": <number 0-20>
   },
   "strengths": ["strength 1", "strength 2", "strength 3"],

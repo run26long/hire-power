@@ -189,14 +189,12 @@ export default function Profile() {
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 tracking-tight">Profile</h1>
-          <p className="text-[13px] text-white leading-tight tracking-tight mb-0.5" style={{ opacity: 0.95 }}>Your account.</p>
-          <p className="text-[13px] text-white leading-tight tracking-tight" style={{ opacity: 0.95 }}>Your data. Your career.</p>
-          <div className="mt-4 border-b border-white border-opacity-10"></div>
+          <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
 
         {/* Avatar + plan badge */}
-        <div className="px-6 pt-4 pb-2 flex-shrink-0">
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '16px 0' }}>
+        <div className="px-6 pt-3 pb-2 flex-shrink-0">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
             {photoUrl ? (
               <img src={photoUrl} alt="Profile" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.4)' }} />
             ) : (
@@ -218,38 +216,29 @@ export default function Profile() {
               </span>
             </div>
           </div>
-          <div className="border-b border-white border-opacity-10 mt-2"></div>
+          <div className="border-b border-gray-400 border-opacity-10 mt-2"></div>
         </div>
 
-        {/* Body copy */}
-        <div className="px-6 pt-4 pb-6 flex flex-col justify-between flex-1">
+        {/* Body */}
+        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 8 }}>
-              Everything in one place.
-            </p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)', lineHeight: 1.5, marginBottom: 16 }}>
-              Manage your name, photo, plan, and account settings — then get back to building your career.
-            </p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {[
-                { dot: '·', label: 'Personal info and photo' },
-                { dot: '·', label: 'Career context snapshot' },
-                { dot: '·', label: 'Plan and billing' },
-                { dot: '·', label: 'Account settings' },
-                { dot: '·', label: 'Data export and privacy' },
-              ].map(item => (
-                <li key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1, flexShrink: 0 }}>·</span>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.85)', lineHeight: 1.3 }}>{item.label}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mb-5">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">YOUR ACCOUNT</h4>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-start"><span className="mr-2">•</span><span>Personal info and photo</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Career context snapshot</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Plan and billing</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Account settings</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Data export and privacy</span></li>
+              </ul>
+            </div>
           </div>
-          <div>
-            <div className="border-b border-white border-opacity-10 mb-3"></div>
-            <div className="flex items-center gap-2.5">
+
+          <div className="mt-auto">
+            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
+            <div className="flex items-center gap-2.5 text-white">
               <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
-              <p className="text-sm font-medium leading-tight text-white">Your lifelong career coach</p>
+              <p className="text-sm font-medium leading-tight">Your lifelong career coach</p>
             </div>
           </div>
         </div>

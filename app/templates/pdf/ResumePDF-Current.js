@@ -11,7 +11,7 @@ import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
 // ─────────────────────────────────────────────
 function SectionHeader({ title, font, base, sp }) {
   return (
-    <View>
+    <View wrap={false}>
       <View style={{
         borderBottomWidth: 1,
         borderBottomColor: '#bbbbbb',
@@ -35,7 +35,6 @@ function SectionHeader({ title, font, base, sp }) {
 
 // ─────────────────────────────────────────────
 // MAIN PDF COMPONENT
-// Used for ALL templates — single source of ATS truth
 // ─────────────────────────────────────────────
 export default function ResumePDF({
   resumeData,
@@ -51,10 +50,7 @@ export default function ResumePDF({
   const base = fontSize || 11
   const sp = spacing || 1
 
-  // Arial maps to Helvetica (built-in react-pdf font, no registration needed)
-  // All other fonts must be registered in the route before calling this component
   const resolvedFont = font === 'Arial' ? 'Helvetica' : (font || 'Helvetica')
-
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
 
   const contactParts = [
@@ -162,287 +158,209 @@ export default function ResumePDF({
           </View>
         ) : null}
 
-        {/* ── EXPERIENCE ── */}
-        {resumeData.experience?.length > 0 ? (
-          <View>
-            <SectionHeader title="EXPERIENCE" font={resolvedFont} base={base} sp={sp} />
-            {resumeData.experience.map((job, i) => (
-              <View
-                key={i}
-                style={{ marginBottom: i < resumeData.experience.length - 1 ? Math.round(10 * sp) : 0 }}
-              >
-                {/* Title + Date */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{
-                    fontFamily: resolvedFont,
-                    fontWeight: 'bold',
-                    fontSize: base,
-                    lineHeight: 1.2,
-                    color: '#1a1a1a',
-                    flex: 1
-                  }}>
-                    {job.title || ''}
-                  </Text>
-                  <Text style={{
-                    fontFamily: resolvedFont,
-                    fontSize: base,
-                    color: '#555555',
-                    lineHeight: 1.2
-                  }}>
-                    {formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}
-                  </Text>
-                </View>
+        {/* ── SECTIONS (sectionOrder-driven) ── */}
+        {(resumeData.sectionOrder || ['experience','education','skills','projects','certifications','volunteer','languages','additionalInfo']).map((section) => {
+          switch(section) {
 
-                {/* Company */}
-                <Text style={{
-                  fontFamily: resolvedFont,
-                  fontSize: base,
-                  color: '#555555',
-                  marginBottom: Math.round(2 * sp),
-                  lineHeight: 1.2
-                }}>
-                  {[job.company, job.location].filter(Boolean).join(' | ')}
-                </Text>
-
-                {/* Job summary — italic */}
-                {job.summary && !job.summaryDismissed ? (
-                  <Text style={{
-                    fontFamily: resolvedFont,
-                    fontSize: base,
-                    color: '#444444',
-                    fontStyle: 'italic',
-                    marginTop: Math.round(2 * sp),
-                    marginBottom: Math.round(2 * sp),
-                    lineHeight: 1.25
-                  }}>
-                    {job.summary}
-                  </Text>
-                ) : null}
-
-                {/* Bullets */}
-                {job.bullets?.length > 0 ? (
-                  <View style={{ marginTop: Math.round(2 * sp) }}>
-                    {job.bullets.map((bullet, k) => (
-                      <View
-                        key={k}
-                        style={{ flexDirection: 'row', marginBottom: Math.round(1 * sp) }}
-                      >
-                        <Text style={{
-                          fontFamily: resolvedFont,
-                          fontSize: base,
-                          lineHeight: 1.25,
-                          width: 10,
-                          flexShrink: 0
-                        }}>
-                          {'\u2022 '}
-                        </Text>
-                        <Text style={{
-                          fontFamily: resolvedFont,
-                          fontSize: base,
-                          lineHeight: 1.25,
-                          flex: 1
-                        }}>
-                          {bullet}
-                        </Text>
+            case 'experience': {
+              if (!resumeData.experience?.length) return null
+              const [firstJob, ...restJobs] = resumeData.experience
+              return (
+                <View key="experience">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.experience || 'EXPERIENCE'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: restJobs.length > 0 ? Math.round(10 * sp) : 0 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.2, color: '#1a1a1a', flex: 1 }}>{firstJob.title || ''}</Text>
+                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', lineHeight: 1.2 }}>{formatDateRange(firstJob.startDate, firstJob.endDate, firstJob.current, dateFormat)}</Text>
                       </View>
-                    ))}
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[firstJob.company, firstJob.location].filter(Boolean).join(' | ')}</Text>
+                      {firstJob.summary && !firstJob.summaryDismissed ? <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', fontStyle: 'italic', marginTop: Math.round(2 * sp), marginBottom: Math.round(2 * sp), lineHeight: 1.25 }}>{firstJob.summary}</Text> : null}
+                      {firstJob.bullets?.map((bullet, k) => (
+                        <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1 * sp) }}>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, width: 10, flexShrink: 0 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, flex: 1 }}>{bullet}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {/* ── EDUCATION ── */}
-        {resumeData.education?.length > 0 ? (
-          <View>
-            <SectionHeader title="EDUCATION" font={resolvedFont} base={base} sp={sp} />
-            {resumeData.education.map((ed, i) => (
-              <View
-                key={i}
-                style={{ marginBottom: i < resumeData.education.length - 1 ? Math.round(10 * sp) : 0 }}
-              >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{
-                    fontFamily: resolvedFont,
-                    fontWeight: 'bold',
-                    fontSize: base,
-                    lineHeight: 1.2,
-                    color: '#1a1a1a',
-                    flex: 1
-                  }}>
-                    {ed.school || ''}
-                  </Text>
-                  <Text style={{
-                    fontFamily: resolvedFont,
-                    fontSize: base,
-                    color: '#555555',
-                    lineHeight: 1.2
-                  }}>
-                    {formatDate(ed.graduationDate, dateFormat)}
-                  </Text>
+                  {restJobs.map((job, i) => (
+                    <View key={i+1} style={{ marginBottom: i < restJobs.length - 1 ? Math.round(10 * sp) : 0 }}>
+                      <View wrap={false}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.2, color: '#1a1a1a', flex: 1 }}>{job.title || ''}</Text>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', lineHeight: 1.2 }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
+                        </View>
+                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[job.company, job.location].filter(Boolean).join(' | ')}</Text>
+                        {job.summary && !job.summaryDismissed ? <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', fontStyle: 'italic', marginTop: Math.round(2 * sp), marginBottom: Math.round(2 * sp), lineHeight: 1.25 }}>{job.summary}</Text> : null}
+                      </View>
+                      {job.bullets?.map((bullet, k) => (
+                        <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1 * sp) }}>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, width: 10, flexShrink: 0 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, flex: 1 }}>{bullet}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
                 </View>
+              )
+            }
 
-                <Text style={{
-                  fontFamily: resolvedFont,
-                  fontSize: base,
-                  color: '#555555',
-                  marginBottom: Math.round(2 * sp),
-                  lineHeight: 1.2
-                }}>
-                  {[ed.degree, ed.field].filter(Boolean).join(', ')}
-                </Text>
+            case 'education': {
+              if (!resumeData.education?.length) return null
+              const [firstEd, ...restEd] = resumeData.education
+              return (
+                <View key="education">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.education || 'EDUCATION'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: restEd.length > 0 ? Math.round(10 * sp) : 0 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.2, color: '#1a1a1a', flex: 1 }}>{firstEd.school || ''}</Text>
+                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', lineHeight: 1.2 }}>{formatDate(firstEd.graduationDate, dateFormat)}</Text>
+                      </View>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[firstEd.degree, firstEd.field].filter(Boolean).join(', ')}</Text>
+                      {firstEd.lines?.map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
+                    </View>
+                  </View>
+                  {restEd.map((ed, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restEd.length - 1 ? Math.round(10 * sp) : 0 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.2, color: '#1a1a1a', flex: 1 }}>{ed.school || ''}</Text>
+                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', lineHeight: 1.2 }}>{formatDate(ed.graduationDate, dateFormat)}</Text>
+                      </View>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[ed.degree, ed.field].filter(Boolean).join(', ')}</Text>
+                      {ed.lines?.map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-                {ed.lines?.map((line, k) => (
-                  <Text key={k} style={{
-                    fontFamily: resolvedFont,
-                    fontSize: base,
-                    color: '#333333',
-                    lineHeight: 1.25
-                  }}>
-                    {line}
-                  </Text>
-                ))}
-              </View>
-            ))}
-          </View>
-        ) : null}
+            case 'skills': {
+              if (!Object.keys(skills).length) return null
+              const skillEntries = Object.entries(skills)
+              const [firstSkill, ...restSkills] = skillEntries
+              return (
+                <View key="skills">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.skills || 'SKILLS'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: Math.round(3 * sp) }}>
+                      {Object.keys(skills).length > 1
+                        ? <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{firstSkill[0] + ': '}</Text><Text style={{ color: '#333333' }}>{firstSkill[1].join(' \u2022 ')}</Text></Text>
+                        : <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{firstSkill[1].join(' \u2022 ')}</Text>
+                      }
+                    </View>
+                  </View>
+                  {restSkills.map(([cat, items]) => (
+                    <View key={cat} wrap={false} style={{ marginBottom: Math.round(3 * sp) }}>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text><Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text></Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {/* ── SKILLS ── */}
-        {Object.keys(skills).length > 0 ? (
-          <View>
-            <SectionHeader title="SKILLS" font={resolvedFont} base={base} sp={sp} />
-            {Object.entries(skills).map(([cat, items]) => (
-              <View key={cat} style={{ marginBottom: Math.round(3 * sp) }}>
-                {Object.keys(skills).length > 1 ? (
-                  <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}>
-                    <Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text>
-                    <Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text>
-                  </Text>
-                ) : (
-                  <Text style={{
-                    fontFamily: resolvedFont,
-                    fontSize: base,
-                    color: '#333333',
-                    lineHeight: 1.25
-                  }}>
-                    {items.join(' \u2022 ')}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
-        ) : null}
+            case 'certifications': {
+              if (!resumeData.certifications?.length) return null
+              const [firstCert, ...restCerts] = resumeData.certifications
+              return (
+                <View key="certifications">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.certifications || 'CERTIFICATIONS'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: restCerts.length > 0 ? Math.round(10 * sp) : 0 }}>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{firstCert.name || ''}</Text>{firstCert.details ? <Text>{' | ' + firstCert.details}</Text> : null}</Text>
+                    </View>
+                  </View>
+                  {restCerts.map((c, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restCerts.length - 1 ? Math.round(10 * sp) : 0 }}>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{c.details ? <Text>{' | ' + c.details}</Text> : null}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {/* ── CERTIFICATIONS ── */}
-        {resumeData.certifications?.length > 0 ? (
-          <View>
-            <SectionHeader title="CERTIFICATIONS" font={resolvedFont} base={base} sp={sp} />
-            {resumeData.certifications.map((c, i) => (
-              <View
-                key={i}
-                style={{ marginBottom: i < resumeData.certifications.length - 1 ? Math.round(10 * sp) : 0 }}
-              >
-                <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}>
-                  <Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>
-                  {c.details ? <Text>{' | ' + c.details}</Text> : null}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+            case 'volunteer': {
+              if (!resumeData.volunteer?.length) return null
+              const [firstVol, ...restVol] = resumeData.volunteer
+              return (
+                <View key="volunteer">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.volunteer || 'VOLUNTEER EXPERIENCE'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: restVol.length > 0 ? Math.round(10 * sp) : 0 }}>
+                      <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.25 }}>{firstVol.organization || ''}</Text>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', lineHeight: 1.25 }}>{firstVol.description || ''}</Text>
+                    </View>
+                  </View>
+                  {restVol.map((v, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restVol.length - 1 ? Math.round(10 * sp) : 0 }}>
+                      <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.25 }}>{v.organization || ''}</Text>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', lineHeight: 1.25 }}>{v.description || ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {/* ── VOLUNTEER ── */}
-        {resumeData.volunteer?.length > 0 ? (
-          <View>
-            <SectionHeader title="VOLUNTEER EXPERIENCE" font={resolvedFont} base={base} sp={sp} />
-            {resumeData.volunteer.map((v, i) => (
-              <View
-                key={i}
-                style={{ marginBottom: i < resumeData.volunteer.length - 1 ? Math.round(10 * sp) : 0 }}
-              >
-                <Text style={{
-                  fontFamily: resolvedFont,
-                  fontWeight: 'bold',
-                  fontSize: base,
-                  lineHeight: 1.25
-                }}>
-                  {v.organization || ''}
-                </Text>
-                <Text style={{
-                  fontFamily: resolvedFont,
-                  fontSize: base,
-                  color: '#444444',
-                  lineHeight: 1.25
-                }}>
-                  {v.description || ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+            case 'projects': {
+              if (!resumeData.projects?.length) return null
+              const [firstProj, ...restProj] = resumeData.projects
+              return (
+                <View key="projects">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.projects || 'PROJECTS'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: restProj.length > 0 ? Math.round(10 * sp) : 0 }}>
+                      <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.25 }}>{(firstProj.name || '') + (firstProj.link ? ' | ' + firstProj.link : '')}</Text>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', lineHeight: 1.25 }}>{firstProj.description || ''}</Text>
+                    </View>
+                  </View>
+                  {restProj.map((p, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restProj.length - 1 ? Math.round(10 * sp) : 0 }}>
+                      <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.25 }}>{(p.name || '') + (p.link ? ' | ' + p.link : '')}</Text>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', lineHeight: 1.25 }}>{p.description || ''}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {/* ── PROJECTS ── */}
-        {resumeData.projects?.length > 0 ? (
-          <View>
-            <SectionHeader title="PROJECTS" font={resolvedFont} base={base} sp={sp} />
-            {resumeData.projects.map((p, i) => (
-              <View
-                key={i}
-                style={{ marginBottom: i < resumeData.projects.length - 1 ? Math.round(10 * sp) : 0 }}
-              >
-                <Text style={{
-                  fontFamily: resolvedFont,
-                  fontWeight: 'bold',
-                  fontSize: base,
-                  lineHeight: 1.25
-                }}>
-                  {(p.name || '') + (p.link ? ' | ' + p.link : '')}
-                </Text>
-                <Text style={{
-                  fontFamily: resolvedFont,
-                  fontSize: base,
-                  color: '#444444',
-                  lineHeight: 1.25
-                }}>
-                  {p.description || ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+            case 'additionalInfo': {
+              if (!resumeData.additionalInfo?.length) return null
+              const [firstInfo, ...restInfo] = resumeData.additionalInfo
+              return (
+                <View key="additionalInfo">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.additionalInfo || 'ADDITIONAL INFORMATION'} font={resolvedFont} base={base} sp={sp} />
+                    <View style={{ marginBottom: Math.round(3 * sp) }}>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{firstInfo.label || ''}</Text>{firstInfo.detail ? <Text style={{ color: '#555555' }}>{' | ' + firstInfo.detail}</Text> : null}</Text>
+                    </View>
+                  </View>
+                  {restInfo.map((item, i) => (
+                    <View key={i+1} wrap={false} style={{ marginBottom: Math.round(3 * sp) }}>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{item.label || ''}</Text>{item.detail ? <Text style={{ color: '#555555' }}>{' | ' + item.detail}</Text> : null}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
+            }
 
-        {/* ── ADDITIONAL INFORMATION ── */}
-        {resumeData.additionalInfo?.length > 0 ? (
-          <View>
-            <SectionHeader title="ADDITIONAL INFORMATION" font={resolvedFont} base={base} sp={sp} />
-            {resumeData.additionalInfo.map((item, i) => (
-              <View key={i} style={{ marginBottom: Math.round(3 * sp) }}>
-                <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}>
-                  <Text style={{ fontWeight: 'bold' }}>{item.label || ''}</Text>
-                  {item.detail ? (
-                    <Text style={{ color: '#555555' }}>{' | ' + item.detail}</Text>
-                  ) : null}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+            case 'languages':
+              if (!resumeData.languages?.length) return null
+              return (
+                <View key="languages">
+                  <View wrap={false}>
+                    <SectionHeader title={resumeData.sectionTitles?.languages || 'LANGUAGES'} font={resolvedFont} base={base} sp={sp} />
+                    <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>
+                      {resumeData.languages.map(l => `${l.language} (${l.proficiency})`).join(' \u2022 ')}
+                    </Text>
+                  </View>
+                </View>
+              )
 
-        {/* ── LANGUAGES ── */}
-        {resumeData.languages?.length > 0 ? (
-          <View>
-            <SectionHeader title="LANGUAGES" font={resolvedFont} base={base} sp={sp} />
-            <Text style={{
-              fontFamily: resolvedFont,
-              fontSize: base,
-              color: '#333333',
-              lineHeight: 1.25
-            }}>
-              {resumeData.languages.map(l => `${l.language} (${l.proficiency})`).join(' \u2022 ')}
-            </Text>
-          </View>
-        ) : null}
+            default:
+              return null
+          }
+        })}
 
       </Page>
     </Document>

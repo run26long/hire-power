@@ -129,16 +129,11 @@ THE NO-ORPHAN RULE — APPLY TO EVERY SINGLE BULLET BEFORE OUTPUTTING:
     ✗ Two lines with 1-3 orphaned words at end
     ✗ Three lines with 1-3 orphaned words at end
 
-QUANTITY PER ROLE — TENURE-PROPORTIONAL:
-  Most recent role: 4-6 bullets. Senior with broad scope: up to 7.
-  Second role: proportional to tenure. A 9-year VP role warrants 5-6. A 2-year role warrants 3-4.
-  Third role: 2-3 bullets maximum regardless of tenure.
-  Fourth role and beyond: 1-2 bullets or title/company/dates only.
-
-  AFTER WRITING EACH ROLE — COUNT AND CUT:
-  If over the target, ask: "Would a recruiter for the target role notice this bullet was gone?"
-  If no — cut it. The weakest bullet goes first.
-
+QUANTITY PER ROLE:
+  Current / most recent role: 5-7 bullets
+  Mid-career roles: 3-5 bullets
+  Older roles (5+ years ago): 2-3 bullets, or title/company/dates only if no longer relevant
+  Senior/executive roles: up to 6-8 bullets maximum
   Quality always beats quantity. Five strong bullets beats eight mediocre ones every time.
 
 CONSOLIDATION RULE:
@@ -916,16 +911,16 @@ ${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
 function buildSummaryPrompt({ rewrittenResume, conversation, careerContext, level, isJobSpecific, jobDescription, jobTitle, jobCompany }) {
 
   const levelVoice = {
-    entry: `Entry-level candidate. Sound like the strongest version of an early-career professional — not a junior executive. Authentic and specific for their stage.`,
-    mid: `Mid-career professional. Confident expert who delivers results. Specific, grounded, evidence-based.`,
-    senior: `Senior/executive candidate. Organizational scope and strategic leadership. Authoritative, outcome-focused, specific about scale.`
+    entry: `Entry-level candidate. Position them as a prepared, capable early-career professional. Lead with relevant experience or strongest credential. Do not use executive language. Authentic and specific for their stage.`,
+    mid: `Mid-career professional. Position them as a confident expert who delivers results. Specific, grounded, evidence-based. Not entry-level and not inflated to executive scope.`,
+    senior: `Senior/executive candidate. Reflect organizational scope and strategic leadership. Authoritative, outcome-focused, specific about scale and influence.`
   }
 
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
 - Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
 - Career changer: ${careerContext.is_career_changer ? `YES — transitioning from ${careerContext.previous_field} to ${careerContext.target_roles?.join('/')}` : 'No'}
-- Transferable skills: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
+- Transferable skills identified: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
 ` : ''
 
   const bulletSnapshot = rewrittenResume.experience?.map(job =>
@@ -936,75 +931,12 @@ CAREER CONTEXT:
     .map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`)
     .join('\n\n')
 
-  const governingPrinciple = `
-THE GOVERNING PRINCIPLE:
-The summary is a trailer, not a scene. It states who this person is and at what scale.
-The bullets prove it. Never put operational detail in the summary — that is what bullets are for.
-One idea per sentence. Stop when done.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WRONG — ENTRY-LEVEL (every failure annotated):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"Entertainment Management student with hands-on production and performance experience across live events, sustained performance runs, and rehearsal management in professional entertainment environments. Performed 750+ shows across a 15-month EPCOT engagement, built two aerial class sections from zero to full enrollment within 4 months, and supported productions from first rehearsal through opening night, coordinating music cues, staging, and technical elements alongside directors and crew. Brings a working knowledge of what happens on both sides of the curtain, having operated consistently as both a performer and a production collaborator across high-volume, professional environments. For a stage management or production team, that means someone who understands the full picture before they walk in the door."
-
-SENTENCE 1: Opens as "student" — student identity, not production identity. Wrong angle for a production or stage management target. Open from where they are going, not where they have been.
-SENTENCE 2: Three achievements crammed into one. EPCOT shows (right) + class enrollment (irrelevant to stage management — wrong) + production support (right but buried). One sentence, three ideas, one of them wrong. If a sentence contains two achievements connected by "and" — split it or cut the weaker one.
-SENTENCE 3: "Brings a working knowledge" — third-person. Never. No pronouns anywhere.
-SENTENCE 4: "For a stage management team, that means..." — addresses the employer directly. The recruiter draws their own conclusions. Never editorialize about what hiring this person means.
-
-RIGHT — ENTRY-LEVEL:
-"Aerial arts professional and production contributor with hands-on experience across professional theme park performances, live event productions, and original choreography in entertainment environments. Performed 750+ shows across a 15-month EPCOT engagement. Choreographed and stage-managed an original group production from first rehearsal through a 9-show professional run, working with a director through tech and dress."
-
-SENTENCE 1: Opens from production identity, not student identity. One idea: who they are and at what scope.
-SENTENCE 2: The headline credential — scale only, no operational detail. The bullet proves it; the summary states it.
-SENTENCE 3: The differentiator — what they built beyond performing. Stops when done. No editorializing.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WRONG — MID-CAREER (every failure annotated):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"Results-driven operations professional with extensive experience in vendor management, procurement, and cross-functional team leadership. Passionate about driving operational excellence and building high-performing teams that deliver results. Proven track record of improving efficiency, reducing costs, and increasing stakeholder satisfaction across complex organizational environments. Brings a collaborative mindset and data-driven approach to every challenge."
-
-SENTENCE 1: "Results-driven" — instant skim trigger. Filler that signals AI. Cut it always.
-SENTENCE 2: "Passionate about" — filler. Means nothing. Everyone is passionate.
-SENTENCE 3: "Proven track record" — everyone says this. Zero specifics. Zero scale. Zero proof.
-SENTENCE 4: "Brings a collaborative mindset" — third-person. Never. Also filler.
-RESULT: Four sentences, zero specific details. Could describe anyone with an ops title. A recruiter skips this entirely.
-
-RIGHT — MID-CAREER:
-"Operations coordinator with six years of progressive experience building the vendor relationships, procurement systems, and cross-functional processes that keep operations teams functional. Manages close to $1M in annual vendor spend, negotiates contracts independently, and resolves complex client escalations with a 90% same-day satisfaction rate. Built the operations onboarding program from scratch and led Asana adoption across 20 staff members."
-
-SENTENCE 1: Specific identity and tenure — not a job title, a description of what they actually do and for how long.
-SENTENCE 2: Ongoing metrics — the proof that sentence 1 is real.
-SENTENCE 3: The differentiator — what they built beyond the job description.
-RESULT: Three sentences. All specific. All about this one person. A recruiter stops skimming.
-
-THE TEST:
-Read it back. Would a recruiter engage or skim?
-If it sounds like every other summary, it is not done.
-If any sentence has more than one idea — split it or cut the weaker one.
-If any sentence contains operational detail — move it to a bullet.
-If any sentence could describe anyone with this title — rewrite it until it could not.
-`
-
-  const hardRules = `
-HARD RULES — NON-NEGOTIABLE:
-- 3-4 sentences maximum. Count them. If you have 5, cut the weakest one.
-- One idea per sentence. "And" connecting two separate achievements = two sentences or cut one.
-- Open from the TARGET role identity — not their current title or school enrollment.
-- No operational detail in the summary. State the credential. The bullets prove it.
-- NEVER address the employer: no "For a [team], that means..." No "Someone who understands..."
-- NEVER editorialize about what hiring this person means. The recruiter draws their own conclusions.
-- NEVER: "seeking," "looking for," "hoping to," "I am," "I bring," "passionate about," "results-driven," "proven track record," "detail-oriented," "team player," "go-getter"
-- NEVER: third-person constructions. No "she," "he," "brings" as third-person, "has" as third-person.
-- NEVER: candidate's age or any age-comparative language.
-- NEVER: specific company names.
-- NEVER: em dashes (—). Commas or periods only.
-- Career changers: sentence 1 establishes the new identity. Sentence 2 explains why it is credible. Never combined.
-- Students/recent grads: summary must work within a one-page resume. Write accordingly.
-`
-
   if (isJobSpecific && jobDescription) {
     return `You are writing the professional summary for a job-specific resume.
+
+This is the most important piece of real estate on the page. It is the first thing a recruiter 
+reads. It must function as a hook that makes them want to read everything below it.
+A weak summary costs interviews. A strong one opens doors.
 
 VOICE: ${levelVoice[level] || levelVoice.mid}
 
@@ -1015,49 +947,321 @@ TARGET ROLE: ${jobTitle || 'the role'}${jobCompany ? ` at ${jobCompany}` : ''}
 JOB DESCRIPTION:
 ${jobDescription}
 
-FINALIZED BULLETS (the summary is built from these — they are the source of truth):
+FINALIZED RESUME BULLETS (write the summary from these — they are the source of truth):
 ${bulletSnapshot}
 
-COACHING CONVERSATION (for full context on the candidate's background):
+COACHING CONVERSATION (for full context on the candidate's story and background):
 ${conversationBlock}
 
-${governingPrinciple}
+THE EMPLOYER-FIRST RULE — ABSOLUTE:
+Show employers what THEY GET. Never what the candidate wants.
+✓ "Event Coordinator with 3 years of production experience bringing vendor management, 
+   budget oversight, and stakeholder coordination to every project."
+✗ "Seeking an Event Coordinator role where I can apply my skills and grow professionally."
+✗ "Passionate professional looking for opportunities in event management."
+✗ Even subtle: "Hoping to bring my background to a new team."
 
-FOR JOB-SPECIFIC SUMMARIES — THE EMPLOYER-FIRST RULE:
-Show what the employer GETS. Never what the candidate wants.
-Open with a role descriptor that mirrors the job title as a noun.
-Name 2-3 skills from the JD requirements using the JD's exact language where possible — this improves ATS matching.
-End with what the employer gains: outcomes, reliability, scope, expertise.
+THE FORMULA:
+[Role descriptor mirroring the job title as a noun] + [2-3 specific skills from the JD requirements section, using the JD's exact language where possible for ATS matching] + [what the employer gains — outcomes, reliability, scope, expertise]
 
-✓ "Event coordinator with 3 years of production experience bringing vendor management, budget oversight, and stakeholder coordination to every project."
-✗ "Seeking an event coordinator role where I can apply my skills and grow professionally."
+RULES:
+- 3-4 sentences maximum — this is a hard limit, not a guideline
+- SELF-CHECK BEFORE OUTPUTTING: Count the sentences. If you have 5 or more, cut the weakest one. If you have 6 or more, cut two. A summary that tries to say everything says nothing. Pick the 3-4 sentences that make the strongest case and cut the rest.
 
-${hardRules}
+${careerContext?.is_career_changer ? `
+CAREER CHANGER SUMMARY STRUCTURE — REQUIRED:
+The summary must separate two distinct ideas into two distinct sentences. Never combine them.
+
+SENTENCE 1 — NEW IDENTITY: Who they are now and what they built or do. Clean, no qualifiers.
+"Founder and CEO of Hire Power, an AI-powered career coaching platform that replicates 
+the achievement-extraction methodology of a professional resume writer at scale."
+
+SENTENCE 2 — CREDIBILITY BRIDGE: Why their background makes them uniquely qualified.
+"The product is built on 20 years of professional resume writing experience and 400+ client 
+engagements — domain knowledge baked into every prompt, rubric, and coaching system that 
+competitors cannot replicate off the shelf."
+
+The credibility backstory belongs in sentence 2, never sentence 1.
+Sentence 1 establishes the new identity. Sentence 2 explains why it's credible.
+A reader should understand who this person is from sentence 1 alone.
+` : ''}
+- Open with a role descriptor that mirrors the job title (a noun, never a goal)
+- Name 2-3 skills pulled directly from JD requirements — exact phrasing preferred
+- End with what the employer gains, not what the candidate seeks
+- NEVER name the company
+- NEVER: "seeking," "looking for," "hoping to," "passionate about," "I am," "I bring"
+- NEVER third-person pronouns
+- NEVER mention age
+- NO filler: "results-driven," "dynamic professional," "proven track record," "detail-oriented"
+- NEVER use em dashes (—). Use commas or periods instead. Em dashes are an AI signal.
+- Do not combine unlike skills or experiences into one crammed sentence. 
+  Two focused sentences beat one sentence trying to cover everything.
+- Readability is the first rule. If a sentence requires a second read to understand, 
+  it needs to be broken up or simplified. A recruiter who has to work to understand 
+  your summary has already moved on.
+- Be aggressive. This is the hook. It should make a recruiter think: "This person gets what we need."
+
+THE BRAIN TEST:
+Read it back. Would a recruiter engage or skim?
+If it sounds like every other summary, rewrite it.
 
 Return ONLY the summary paragraph. No JSON. No label. No explanation. Just the text.`
   }
 
   return `You are writing the professional summary for a core resume.
 
+This is the most important piece of real estate on the page. It is the first thing a recruiter 
+reads. It must function as a hook that makes them want to read everything below it.
+A weak summary costs interviews. A strong one opens doors.
+
 VOICE: ${levelVoice[level] || levelVoice.mid}
 
 ${contextBlock}
 
-FINALIZED BULLETS (write from these — they are the source of truth, not the raw coaching conversation):
+FINALIZED RESUME BULLETS (write the summary from these — they are the source of truth, 
+not the raw coaching conversation):
 ${bulletSnapshot}
 
-COACHING CONVERSATION (for full context on who this person is and where they are going):
+COACHING CONVERSATION (for full context on who this person is and where they're going):
 ${conversationBlock}
 
-${governingPrinciple}
+THE SUMMARY — WHAT IT IS AND WHAT IT IS NOT:
 
-FOR CORE SUMMARIES:
-Position for a role TYPE, not a specific job or company.
-Lead with the strongest credibility signal from the finalized bullets.
-The target role determines sentence 1. If career context or coaching established a target, open from that angle — not from their current title.
-For career changers: the summary opens from the new identity. Their previous experience becomes evidence, not identity.
+The summary is the trailer. The resume is the movie. The trailer makes someone want to
+see the movie. It does not show scenes. It shows who this person is, at what scale,
+and what an employer gets by hiring them.
 
-${hardRules}
+WHAT BELONGS IN THE SUMMARY:
+- Sustained patterns: things they do consistently, across time, at scale
+- Credentials that define who they are professionally
+- The clearest signal of what they offer an employer
+
+WHAT NEVER BELONGS IN THE SUMMARY:
+- Anything that happened once: one show, one project, one event, one client.
+  Those are bullets. If you can put a specific date on it, it is a bullet.
+- Their current job title if it is not their target role.
+  The summary opens from where they are GOING, not where they have been.
+- Anything addressing the employer directly.
+  No "For a [role] team, that means..."
+  No "What this brings to your organization..."
+  No "Someone who understands the full picture..."
+  The summary describes the candidate. It does not pitch to the reader. Ever.
+- Editorial commentary about what their experience signifies.
+  Show it. Do not explain it. A recruiter draws their own conclusions.
+
+THE THREE THINGS THE SUMMARY ANSWERS — IN ORDER:
+1. WHO ARE THEY, aimed at the target role (not their current title)
+2. WHAT IS THE PROOF — sustained, scaled evidence that #1 is real
+3. WHAT DOES AN EMPLOYER GET — the offer, stated plainly
+
+THE STANDARD:
+3-4 sentences. No more. Each sentence does one job and one job only.
+If a sentence contains "and" connecting two separate achievements, it is two sentences.
+Break it or cut one. Every time.
+Simple language that lands cleanly beats impressive language that requires effort. Always.
+
+ONE IDEA PER SENTENCE — MANDATORY:
+Read every sentence back before outputting. If it contains more than one distinct
+achievement or credential, break it into two sentences or cut the weaker one.
+
+WRONG: "Performed 750+ shows at EPCOT, built two class sections from zero to full
+enrollment, and supported productions from first rehearsal through opening night."
+RIGHT: "Performed 750+ shows across a 15-month EPCOT engagement."
+RIGHT: "Built two aerial class sections from zero to full enrollment within 4 months."
+
+THE TEST:
+Read each sentence back. Does it describe a sustained pattern or credential?
+Does it open from the target role? Does every sentence contain exactly one idea?
+Could a recruiter read the whole thing in 10 seconds and know exactly who this person is?
+If any answer is no — rewrite until all answers are yes.
+
+WORKED EXAMPLES:
+
+ENTRY-LEVEL (targeting stage management internships):
+
+WRONG:
+"Entertainment Management student with hands-on production and performance experience
+across live events, sustained performance runs, and rehearsal management in professional
+entertainment environments. Performed 750+ shows across a 15-month EPCOT engagement,
+built two aerial class sections from zero to full enrollment within 4 months, and
+supported productions from first rehearsal through opening night, coordinating music
+cues, staging, and technical elements alongside directors and crew. Brings a working
+knowledge of what happens on both sides of the curtain. For a stage management or
+production team, that means someone who understands the full picture before they
+walk in the door."
+
+WHY IT FAILS:
+Sentence 2 has three achievements crammed into one sentence. Building aerial classes
+is not relevant to stage management — wrong credential in summary. Last two sentences
+editorialize and address the employer directly. A recruiter stopped reading at sentence 2.
+
+RIGHT:
+"Entertainment Management student with hands-on production experience across live events,
+professional performance runs, and rehearsal management in professional entertainment
+environments. Performed 750+ shows across a 15-month EPCOT engagement, executing daily
+apparatus inspections, between-show resets, and music cue coordination for every
+performance. Choreographed and produced original works from first rehearsal through
+opening night, coordinating across rigging, audio, and staging."
+
+WHY IT WORKS:
+Opens from target role identity, not performer identity. Each sentence is one idea.
+Sentence 2 is sustained scale across 15 months, not a one-time event. No editorializing.
+Stops when it is done.
+
+MID-CAREER (targeting operations manager):
+
+RIGHT:
+"Operations coordinator with six years of progressive experience building the vendor
+relationships, procurement systems, and cross-functional processes that keep operations
+teams functional. Manages close to $1M in annual vendor spend, negotiates contracts
+independently, and resolves complex client escalations with a 90% same-day resolution
+rate. Built the operations onboarding program from scratch and led Asana adoption
+across 20 staff members, consistently absorbing responsibility beyond the role because
+the work needed doing."
+
+WHY IT WORKS:
+Opens from target trajectory. Sentence 2 is ongoing metrics, not one event.
+Sentence 3 is the differentiator. Direct, simple language throughout.
+
+  THE TARGET ROLE RULE — READ THIS BEFORE WRITING SENTENCE 1:
+  Nothing that happened once or twice belongs in the summary. Not the holiday show. Not one
+  specific project. Not a performance from last December. Those are scenes — they belong in bullets.
+
+  The summary answers: who is this person, at what sustained scale, heading where?
+
+  BELONGS IN SUMMARY (sustained pattern of work):
+  "650+ shows over 15 months" — sustained scale across a full engagement
+  "hands-on experience across live events and backstage operations" — pattern of work
+  "built two class sections from zero to full enrollment within 4 months" — sustained result
+
+  BELONGS IN A BULLET (one-time event):
+  "Choreographed the annual holiday production" — one event
+  "Produced a student's solo for a private event" — one instance
+  "Managed day-of logistics for a specific show" — one occasion
+
+  THE TEST: Can you put a specific date on it? It's a bullet.
+  Does it describe a sustained pattern across time? It can go in the summary.
+
+  THE TARGET ROLE RULE — READ THIS BEFORE WRITING SENTENCE 1:
+  The summary must serve the candidate's stated target role. It does not describe where they 
+  have been. It argues for where they are going.
+
+  Determine the target role FIRST. Then write the summary from that angle.
+  - If careerContext has target_roles, use those.
+  - If the resume coaching conversation established a target, use that.
+  - If neither exists, read the resume for the most recent and relevant role type.
+
+  The candidate's current title is evidence of their past. It is not necessarily their identity in this summary.
+
+  WORKED EXAMPLE — same person, two approaches:
+  Person: aerial arts instructor and performer. Targeting: stage management internships.
+
+  WRONG — opens from current identity:
+  "Aerial arts performer and coach with hands-on production experience..."
+  (A stage management recruiter reads "performer" and moves on.)
+
+  RIGHT — opens from target role identity:
+  "Entertainment Management student with hands-on experience supporting rehearsals,
+  backstage operations, and production logistics in live performance environments."
+  (Performance experience is the proof, not the headline.)
+
+  THE TEST: Read Sentence 1. Does it sound like someone applying for [target role]?
+  If it sounds like someone describing their current job — rewrite it.
+
+  SENTENCE 1 — IDENTITY + SCOPE:
+  Who they are professionally, written from the TARGET ROLE angle — not their current title.
+  No adjectives that aren't proven by sentence 2. No activity verbs. Identity only.
+  ✓ "Entertainment Management student with hands-on experience supporting rehearsals,
+     backstage operations, and production logistics in live performance environments."
+  ✓ "Aerial arts professional with production experience across live events and performance
+     runs, now pursuing stage management roles."
+  ✗ "Aerial arts performer and coach with hands-on production experience..."
+     (opens from current identity — wrong for a stage management applicant)
+  ✗ "Built and documented a group act from concept through a 9-show run..."
+  ✗ "Former competitive gymnast with five years of coaching experience..."
+
+ONE IDEA PER SENTENCE — MANDATORY:
+Each sentence in the summary covers exactly one idea. Not two. Not three. One.
+A sentence that contains "and" connecting two separate achievements is two sentences.
+Break it. Every time.
+
+WRONG: "Performed 750+ shows at EPCOT, built two class sections from zero to full enrollment,
+and supported productions from first rehearsal through opening night."
+RIGHT: "Performed 750+ shows across a 15-month EPCOT engagement."
+RIGHT: "Built two aerial class sections from zero to full enrollment within 4 months."
+
+If sentence 2 tries to be the proof for everything, it will fail at all of it.
+Pick the ONE or TWO strongest credentials and make them land cleanly.
+
+SENTENCE 2 — THE PROOF:
+Specific credibility signals that prove sentence 1 is real.
+Numbers, named responsibilities, actual scope. This is where metrics live.
+This is the sentence most summaries skip — and why most summaries fail.
+Instead of claiming to be results-driven, show the results.
+✓ "Performed 600+ shows at EPCOT over 15 months reaching an estimated 12,000-27,000 
+   attendees, choreographed and managed a holiday production from rehearsal through 
+   a 9-show run, and built two aerial class sections from zero to consistently full 
+   within 4 months."
+
+SENTENCE 3 — THE DIFFERENTIATOR:
+What they built or did that goes beyond the job description.
+Separates them from everyone else with the same title.
+This is the sentence that makes a recruiter lean forward.
+
+SENTENCE 4 — THE HOOK:
+One line. What do you actually get when you hire this person that you can't easily find elsewhere.
+The sentence they carry into the interview.
+
+THE TRAILER TEST:
+Read it back. Would a recruiter think "I want to meet this person" or skim past it?
+A great summary makes them stop skimming and start reading.
+If it could describe anyone in this field, it is not done.R
+
+THE EMPLOYER-FIRST RULE:
+Show employers what they get. Never what the candidate wants.
+✓ "Aerial arts instructor and event coordinator with 3 years of performance and production 
+   experience, bringing curriculum development, safety management, and multi-disciplinary 
+   instruction to every role."
+✗ "Seeking a position where I can apply my background in entertainment."
+
+FOR CORE RESUMES:
+- Position for a role TYPE, not a specific company or job
+- Lead with the strongest credibility signal from the finalized bullets — not school enrollment
+- The summary should make a recruiter want to read the bullets below it
+- It must feel written about this specific person, not generated from a template
+- For career changers: frame the identity around the TARGET role, not the previous field. 
+  Use the coaching conversation to find the transferable thread that makes the transition 
+  feel inevitable rather than abrupt.
+
+RULES:
+- 3-4 sentences maximum. If you have written 5 or more sentences, you have editorialized.
+  Find the sentence that is least specific or most redundant and cut it. No exceptions.
+- STUDENT / ENTRY-LEVEL PAGE LIMIT: For candidates currently enrolled in school or within
+  2 years of graduation, the resume must fit on ONE page. If the rewrite exceeds one page,
+  cut the lowest-value content first: old competition awards, dated activities, secondary
+  skills already captured in bullets. A one-page student resume is not a limitation.
+  It is the standard. Two pages for a 19-year-old is a red flag, not a feature.
+- NEVER: candidate's age or any age-comparative language
+- NEVER: third-person pronouns anywhere
+- NEVER: "seeking," "looking for," "hoping to," "I am," "I bring"
+- NEVER repeat bullet content verbatim
+- NEVER address the employer directly or editorialize about what hiring this person means.
+  No "For a [role] team, that means..." No "What this brings to your organization is..."
+  No "Someone who understands..." as a closing thought directed at the reader.
+  The summary describes the candidate. It does not pitch to the hiring manager.
+  If you find yourself writing a sentence that starts with "For," "What this means," or
+  "Someone who" as a closing — delete it. It is never acceptable.
+- NO filler: "results-driven," "dynamic professional," "proven track record," 
+  "passionate about," "detail-oriented," "team player," "go-getter"
+- NEVER use em dashes (—). Commas or periods only. Em dashes are an immediate AI signal.
+- Do not cram unlike skills or experiences into a single sentence trying to cover everything.
+  A summary that tries to say three things at once says nothing clearly.
+  Two sharp, focused sentences beat one sprawling sentence every time.
+
+THE BRAIN TEST:
+Read it back. Would a recruiter engage or skim? It MUST compel a recruiter keep reading.
+A great summary makes a recruiter think: "I want to meet this person."
+If it reads like every other summary, it is not done.
 
 Return ONLY the summary paragraph. No JSON. No label. No explanation. Just the text.`
 }
@@ -1180,7 +1384,7 @@ export async function POST(request) {
       }))
     }
 
-    // ── TARGETED ENHANCEMENT PATH ──
+// ── TARGETED ENHANCEMENT PATH ──
     if (isTargetedEnhancement) {
       const level = detectedLevel || 'mid'
       const baseResume = resumeData?._rewrittenResume || resumeData
@@ -1290,8 +1494,8 @@ export async function POST(request) {
       }
       const rewrittenResume = JSON.parse(cleanedRewrite)
 
-      // Education deduplication — prevent degree/field rendering twice
-      deduplicateEducation(rewrittenResume)
+    // Education deduplication — prevent degree/field rendering twice
+    deduplicateEducation(rewrittenResume)
 
       // ── SUMMARY: Written last, from completed bullets ──
       const jsSummaryPrompt = buildSummaryPrompt({
@@ -1366,54 +1570,7 @@ VALIDATION CHECK: Before outputting, verify that at least 3 of the gaps/action i
 are visibly addressed in your rewrite. If they are not, you have not finished the job.
 ` : ''
 
- const rewritePrompt = `You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with — one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance. You never include anything that doesn't serve the candidate's target role. Good enough is not good enough.
-
-THE GOVERNING PHILOSOPHY:
-The goal is the smallest resume that makes the strongest case. Not comprehensive. Not complete. Focused. A resume that tries to say everything says nothing. Every bullet, every skill, every word is there because it serves the target role — or it is cut.
-
-WHERE THINGS BELONG — READ THIS BEFORE WRITING ANYTHING:
-
-The same experience can go in three places. Putting it in the wrong one is the most common resume writing failure.
-
-THREE PIECES OF INFORMATION. THREE PLACEMENTS.
-
-Ava performed 750+ shows at EPCOT over 15 months. She called cues at a few aerial competitions. She used MindBody to manage her class schedule.
-
-IN THE SUMMARY: "750+ shows across a 15-month EPCOT engagement"
-The credential stated cleanly. Scale and identity only. This is who she is.
-No operational detail in the summary. Ever.
-
-IN A BULLET: "Performed 750+ shows across a 15-month EPCOT engagement, executing daily apparatus inspections, between-show resets, and music cue coordination for every performance"
-The credential proven. Scope and operational detail live here — not in the summary.
-
-IN SKILLS: Cue Calling (motor and music) • MindBody
-Cue calling at a few competitions has no scope for a bullet.
-MindBody is a scheduling tool, not an achievement.
-Both are ATS keywords. Both belong in skills only.
-
-BULLET TEST — all three must be true before writing a bullet:
-1. Did they DO this, not just USE something to do it?
-2. Does it have scope, context, or impact worth stating?
-3. Would a recruiter for the target role care about this specifically?
-If any answer is no — extract the keyword to skills. Do not write a bullet.
-
-PLACEMENT RULES:
-- Summary: sustained credential only. Scale and identity. No operational detail.
-- Bullet: meaningful work with scope, context, and impact relevant to target role.
-- Skills: every ATS keyword, including those already in bullets.
-- Operational detail in the summary → move it to a bullet.
-- Bullet about using a tool → move it to skills.
-- Something that happened once or twice without meaningful scope → skills or cut.
-
-KEYWORD DUPLICATION STRATEGY:
-Skills is always the ATS safety net. If a keyword appears in a bullet, it still goes in skills.
-ATS systems weight keywords appearing in multiple sections higher.
-Never duplicate within the same section. Always include in skills regardless of where else it appears.
-
-SKILLS EXTRACTION HAPPENS FIRST:
-Before writing any bullets, extract ALL skills from the resume and coaching conversation into skillsCategories. Then write bullets for what remains that genuinely warrants bullet-level treatment.
-
-${WRITING_CONSTITUTION}
+    const rewritePrompt = `${WRITING_CONSTITUTION}
 
 ${levelInstructions}
 
@@ -1426,85 +1583,257 @@ ${retryInstruction ? `⚠️ RETRY INSTRUCTION — READ THIS BEFORE ANYTHING ELS
 COACHING CONVERSATION (everything extracted — use all of it):
 ${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}
 
-ORIGINAL RESUME DATA:
+ORIGINAL RESUME DATA (canonical JSON structure — this is what you are improving):
 ${JSON.stringify(resumeData, null, 2)}
 
 ${careerContext?.is_career_changer === true ? `
-CAREER PIVOT INSTRUCTION:
-This candidate is transitioning from ${careerContext.previous_field || 'their previous field'} to ${careerContext.target_roles?.join(' / ') || 'a new field'}.
+CAREER PIVOT INSTRUCTION — READ BEFORE ANYTHING ELSE:
+This candidate is making a deliberate career change from ${careerContext.previous_field || 'their previous field'} 
+to ${careerContext.target_roles?.join(' / ') || 'a new field'}.
 
-Every decision — summary, bullets, skills, section order — serves the target field, not the previous one.
+This changes how you write EVERYTHING:
 
-SUMMARY: Opens from the target role identity. Their previous experience becomes evidence, not identity.
-BULLETS: For every bullet ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" If yes — keep and strengthen. If no — reframe or cut.
-SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer go last or get cut.
-CUTTING: For career changers, the no-removal default is suspended. Build the strongest case for where they're going, not a complete record of where they've been.
+SUMMARY: Must open from the TARGET role identity, not their current title. Frame their background 
+as preparation for the pivot, not a description of where they've been. A performer targeting stage 
+management opens as a stage management candidate — their performance experience is evidence, not identity.
+
+BULLETS: For every bullet, ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" 
+If yes — keep it and make it stronger. If it only makes sense in their old field — cut it or reframe it.
+
+TRANSFERABLE SKILLS: The coaching conversation almost certainly surfaced skills from their old field 
+that map directly to the new one. These must appear prominently — not buried, not hedged. 
+"You've been doing project management — you just haven't been calling it that."
+
+SKILLS SECTION: Weight toward the target field vocabulary. Old-field-specific skills go last or get cut 
+if they don't transfer. Target-field keywords go first.
+
+FRAMING RULE: The reader should finish this resume thinking "this person is ready for [target role]" — 
+not "this person used to do [old field] and wants to switch."
+
+OVERRIDE — THE NO-REMOVAL RULE DOES NOT APPLY TO CAREER CHANGERS:
+For this resume, the standard "preserve everything" rule is suspended. You are building the 
+strongest possible picture of where this person is GOING, not a complete record of where they've been.
+
+CUTTING RULES FOR CAREER CHANGERS:
+- Bullets that only make sense in the old field and have no transferable angle → cut them
+- Entire roles that predate the pivot and add nothing to the target story → reduce to title/company/dates only
+- Skills that are old-field-specific and don't transfer → remove from skills section
+- Details that make the old identity MORE prominent than the new one → cut or reframe
+
+KEEPING RULES:
+- Anything that demonstrates a skill the target role needs → keep and strengthen
+- Evidence of transferable skills even if framed differently → keep and reframe
+- Scope, scale, and responsibility signals that translate → keep
+- Anything the coaching conversation specifically surfaced as relevant to the target → keep
+
+The goal is a focused, purposeful resume that makes a clear case for the pivot — 
+not a comprehensive career history that happens to mention the target field at the end.
 ` : ''}
 
-STEP 1 — ASSESS THE RESUME:
-Strong resume (multiple bullets per role, relevant content): Enhancement mode. Preserve what works. Improve what's weak. Add what's missing.
-Bare-bones resume (vague descriptions, thin content): Build mode. The coaching conversation IS the resume. Most of this gets written from scratch.
+STEP 1 — ASSESS THE STARTING POINT:
+Before writing anything, evaluate the original resume quality:
+
+STRONG RESUME (has multiple bullets per role, clear structure, relevant content):
+→ Enhancement mode. Preserve what is working. Improve what is weak. Add what is missing.
+→ The user built something — respect it and make it better.
+
+BARE-BONES RESUME (1-2 bullets per role, vague descriptions, thin content, or mostly empty):
+→ Build mode. The coaching conversation IS the resume. Extract everything from it.
+→ Keep any existing content that is accurate, but expect to write most of this from scratch.
+→ A bare-bones resume after coaching should look dramatically different. That is the point.
 
 STEP 2 — FILTER THE COACHING CONVERSATION:
-The conversation is raw material, not a script. Apply this filter:
-✓ Demonstrates a skill, achievement, or responsibility relevant to target role → include it
-✗ Celebrity name, personal anecdote, or colorful detail → reframe or omit
-✗ Impressive-sounding fact that doesn't help their job search → cut it
-Skill hiding inside a story → extract to skillsCategories, not a bullet
+The coaching conversation is raw material, not a script. The candidate said things.
+YOU decide what belongs on a resume and in what form.
 
-STEP 3 — EXTRACT SKILLS FIRST (before writing any bullets):
-Read every bullet, job summary, and coaching answer. Ask: "What skill is this person demonstrating that they have not explicitly listed?" These go in skillsCategories.
+Apply this filter to everything from the conversation:
+- Does it demonstrate a skill, achievement, or responsibility relevant to their target role? → Include it
+- Is it a specific name, celebrity, personal anecdote, or colorful detail? → Reframe or omit
+- Is it a skill hiding inside a story? → Extract to skillsCategories, not a bullet
+- Is it an impressive-sounding fact that does not help their job search? → Cut it
+- Is it something a professional resume writer would never include? → Do not include it
 
-STEP 4 — WRITE THE RESUME:
+Examples of the filter in action:
+- "I performed at the same event as J.Lo and Pitbull" → becomes: "Performed at major corporate galas and entertainment events requiring professional discretion"
+- "I started this job when I was 17" → Cut entirely. Age never belongs on a resume.
+- "My manager trusted me more than anyone else" → becomes: "Trusted with [specific responsibility] due to [demonstrated quality]"
+- "I kind of helped with social media" → if it is real, write it properly
+
+STEP 3 — SKILLS EXTRACTION FROM EXPERIENCE:
+Read every bullet, every job summary, every coaching answer and ask:
+"What skill is this person demonstrating that they have not explicitly listed?"
+
+Examples:
+- Contingency planning for live shows → Risk Management, Crisis Response
+- Coordinating vendors and venues → Vendor Relations, Logistics Coordination  
+- Training new staff → Onboarding, Knowledge Transfer, Mentorship
+- Managing social media growth → Content Strategy, Community Engagement
+
+These go in skillsCategories. Do NOT create a bullet for every skill — extract them.
+
+STEP 4 — WRITE THE ENHANCED RESUME:
+
+THE RELEVANCE RULE — READ BEFORE WRITING ANYTHING:
+The resume exists to serve the candidate's target role — not to document their complete career history.
+A shorter, focused resume that makes a clear case for the target role is ALWAYS better than a 
+comprehensive resume that buries the relevant signal under irrelevant noise.
+
+THE ONE RULE THAT OVERRIDES EVERYTHING:
+NEVER remove anything that is relevant to the candidate's current work or future goals.
+If it helps them get where they're going, it stays and gets stronger.
+Everything else is evaluated below.
+
+CUT ENTIRELY — remove without hesitation:
+- Roles that are 15+ years old AND completely unrelated to the target role
+  (summer jobs, student jobs, early career in a different field with no transferable value)
+- Bullets within any role that describe tasks with zero relevance to the target
+  ("Cleaned equipment at end of shift" for a VP candidate targeting executive roles)
+- Skills that are outdated, irrelevant, or actively signal the wrong direction
+- Duplicate bullets that say the same thing as another bullet already in the resume
+- Any content the coaching conversation explicitly identified as no longer relevant
+
+CONDENSE TO TITLE/COMPANY/DATES ONLY — keep the timeline, drop the detail:
+- Roles older than 15-20 years that were relevant then but are superseded by stronger recent evidence
+- Earlier roles in a field the candidate has moved beyond
+- Roles that establish career continuity but add no new information
+
+KEEP AND STRENGTHEN — never touch these:
+- Anything within the last 15 years that serves the target role
+- Older roles containing the ONLY evidence of a critical skill (keep the skill, condense the rest)
+- Anything the coaching conversation specifically surfaced as important
+- Everything relevant to their current work and future goals — always
+
+AGE DISCRIMINATION PROTECTION — apply automatically for senior candidates:
+For candidates with 20+ years of experience (detectable from date range):
+- Drop graduation year from education unless it's recent or a prestigious credential
+- Condense or cut pre-2005 experience unless it's uniquely relevant
+- Never list more than 20 years of work history without a compelling reason
+- "Earlier Career" summary line is acceptable: "Earlier experience in [field] available upon request"
+
+CHANGING FOR ITS OWN SAKE IS STILL WRONG:
+Do not remove content you simply find unimpressive if it serves the target role.
+Do not rewrite content that is already strong just to put your mark on it.
+The test is always: does removing or changing this make the resume a stronger case 
+for the target role? If yes — do it. If no — leave it exactly as written.
+
+SPECIAL CASE — SECTIONS:
+Never remove an entire section (certifications, volunteer, projects) unless the content 
+within it fails the relevance test above. When a section has mixed relevance, 
+keep the relevant items and cut the rest rather than keeping or removing the whole section.
+
+SPECIAL CASE — ADMIN EXPERIENCE, ALL CAREER LEVELS:
+Before removing any administrative bullet, ask: is admin capability relevant to the 
+target role? For many roles, admin IS the job — not a footnote to it.
+
+Administrative content includes: scheduling, record keeping, roster management, 
+data entry, document management, order processing, inventory, family or client 
+communication, filing, reporting, coordination, and correspondence.
+
+FOR STUDENTS AND EARLY-CAREER: Admin bullets are almost always essential. 
+Internship and entry-level coordinators explicitly look for evidence of admin capability. 
+Never remove admin content on the grounds that it "seems minor" or was "absorbed" 
+into other bullets. If it was on the original resume and the target role has any 
+admin component, it stays.
+
+FOR MID AND SENIOR LEVEL: Admin content stays when:
+- The target role has administrative responsibilities (coordinator, manager, director)
+- The admin work demonstrates scope, ownership, or systems thinking
+- Removing it leaves a gap in the picture of what this person actually does
+
+FOR ANY LEVEL: The test before removing any admin bullet is:
+"Does the target role require any form of administrative capability?"
+If yes — preserve it. The candidate put it there for a reason.
+Only remove admin content if it is genuinely redundant with another bullet that 
+says the same thing more specifically, or if the target role has absolutely no 
+administrative component whatsoever.
+
+EXPERIENCE (follow this order for each role):
+
+STEP 4A — TRIAGE FIRST. Before writing anything, evaluate every existing bullet:
+
+  STRONG BULLET (passes all of these):
+  - Starts with an accurate, calibrated action verb
+  - Contains at least one specific detail (number, name, scope, frequency, context)
+  - Passes the Brain Test — a recruiter would engage, not skim
+  - Accurately represents the candidate's level of ownership
+  → DO NOT rewrite. Look for one enhancement only (see below).
+
+  WEAK BULLET (fails any of the above):
+  - Vague, duty-focused, or task-oriented
+  - No specifics — could describe anyone in this role
+  - Fails the Brain Test
+  - Opens with a weak or inaccurate verb
+  → REWRITE using coaching material.
+
+STEP 4B — ENHANCE STRONG BULLETS, DON'T REPLACE THEM:
+  For every bullet that passes the triage above, ask ONE question:
+  "Is there one thing from the coaching conversation that would make this bullet undeniable?"
+
+  Enhancement targets in priority order:
+  1. QUANTIFICATION — Can a number be added that wasn't there?
+     "Teach adult and youth aerial arts classes" → add class size, enrollment built, 
+     frequency, number of disciplines, or student age range
+  2. SPECIFICITY — Can a vague phrase be made concrete?
+     "with emphasis on safety" → "maintaining zero injury record across X sessions"
+  3. SCOPE — Can scale be added that wasn't visible?
+     "managing students" → "managing simultaneous instruction for skill levels from 
+     beginner through advanced within a single class"
+  4. COMPELLING FRAMING — Is there a more specific verb or a detail that tells the story better?
+     Only change the verb if a more accurate one exists — never change for style alone.
+
+  If the coaching conversation provides material for enhancement → enhance the bullet.
+  If the coaching conversation provides nothing new for this bullet → leave it exactly as written.
+  Do NOT enhance by adding information not in the resume or coaching conversation.
+  Do NOT rewrite the entire bullet when only one element needs updating.
+
+  THE PROFESSIONAL RESUME WRITER TEST:
+  A professional resume writer reading a strong bullet asks: "What would make this undeniable?"
+  Not: "How would I write this differently?"
+  Find the gap. Fill the gap. Leave everything else alone.
+
+STEP 4C — THEN HANDLE THE REST:
+1. Keep every existing bullet confirmed strong in triage — enhance only where coaching adds something
+2. Rewrite bullets confirmed weak in triage — use coaching material
+3. Add new bullets from coaching that represent important, relevant achievements not yet on the resume
+4. Consolidate when multiple bullets cover the same theme (max 4-6 bullets per role)
+5. Add a job summary if missing — Role + environment + core responsibility
+
+BULLET ORDER WITHIN EACH ROLE — REQUIRED:
+After writing all bullets for a role, reorder them so the most target-relevant appear first.
+A recruiter scanning for 5 seconds reads the first 2 bullets. Make them count.
+
+The test for each bullet: does this directly demonstrate a skill or experience the
+target role requires? If yes — it moves toward the top. If no — it moves toward the bottom.
+
+Example: Candidate targeting stage management. Role has 7 bullets covering teaching,
+performing, choreography, production logistics, and safety compliance.
+Correct order: production logistics first, choreography second, safety third,
+teaching fourth, performing last.
+Wrong order: teaching first because it takes up most of their time.
+
+Order by relevance to target role — not by time spent, not by what you find most impressive,
+not by chronological order within the role. Relevance to target role only.
 
 PROFESSIONAL SUMMARY:
 Set summary to an empty string: "".
-The summary is written in a dedicated second pass. Do not write it here under any circumstances.
+The summary will be written in a dedicated second pass after all bullets are finalized.
+Do not write a summary in this pass under any circumstances.
 
-EXPERIENCE:
-
-Triage every existing bullet before writing anything:
-STRONG (passes all): calibrated verb, specific detail, passes Brain Test, accurate ownership level → do not rewrite. Enhance only if coaching adds something new.
-WEAK (fails any): vague, duty-focused, no specifics, fails Brain Test → rewrite using coaching material.
-
-For every strong bullet: "Is there one thing from coaching that makes this undeniable?" If yes — enhance it. If no — leave it exactly as written.
-
-BULLET COUNT — TENURE-PROPORTIONAL:
-Most recent role: 4-6 bullets. Senior with broad scope: up to 7.
-Second role: proportional to tenure. 9-year VP role = 5-6. 2-year role = 3-4.
-Third role: 2-3 maximum.
-Fourth role and beyond: 1-2 bullets or title/company/dates only.
-After writing each role: count. If over — "Would a recruiter for the target role notice this was gone?" If no — cut it.
-
-BULLET ORDER WITHIN EACH ROLE:
-Most target-relevant bullets first. A recruiter scanning for 5 seconds reads the first two. Make them count.
-
-THE NO-REMOVAL DEFAULT:
-Before removing any content: Does the coaching conversation give a specific reason to remove this? Is it genuinely redundant or irrelevant to the target role? Am I replacing it with something strictly better?
-If not clearly YES on all three — preserve it.
-
-ADMIN EXPERIENCE: Never remove admin bullets for student or early-career resumes. Internship and coordinator roles explicitly require evidence of admin capability.
+SKILLS:
+Add skills extracted from both the resume AND the coaching conversation.
+Organize into max 3 categories. 2 categories is preferable, and 1 is acceptable. Merge small ones. Remove what is already in bullets.
 
 EDUCATION:
-Preserve as-is. Condense paragraph-length coursework to one line. 
-CRITICAL: Never repeat degree name or school name in lines[] — output each education entry exactly once.
+Preserve as-is unless coursework descriptions are paragraph-length — condense to one line.
+Cut coursework that does not support the target role.
+CRITICAL: Output each education entry EXACTLY ONCE. Do not duplicate degree names, 
+school names, or graduation years. If the original data has both a degree field and 
+a lines array containing the same degree text, output it once in the cleanest format.
+The education section should never repeat the same information twice.
 
-SECTION ORDER — apply only when a change clearly serves the candidate better. Otherwise leave it alone.
-Student with relevant degree and unrelated work → Education first.
-Experienced professional with relevant experience → Experience first.
-Credential-driven roles (RN, CPA, PMP) → Certifications can precede experience.
-Executive → Experience always leads.
-Career changer → Lead with strongest case for target role.
-Strong skill set that titles don't convey → Skills may precede experience.
-
-AGE DISCRIMINATION PROTECTION:
-20+ years experience: drop graduation year, condense pre-2005 roles to title/company/dates or cut entirely. Never list more than 20 years of work history without a compelling reason.
-
-PRE-OUTPUT — THE GOVERNING TEST:
-Before outputting, ask one question: "Is every word here earning its place for the target role?"
-Not "did I capture everything?" Not "did I address all the gaps?" Just: does this serve the target role, or not?
-
-If you cannot point to specific, meaningful improvements in at least two of impact, clarity, and keywords — you have not finished the job. Return to the coaching conversation and find what you missed.
+SECTION ORDER:
+Apply logic only when a structural change clearly serves the candidate better.
+Otherwise, leave the structure alone.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:

@@ -682,7 +682,7 @@ if (showCtaModal) {
                 onChange={(e) => setSelectedSize(Number(e.target.value))}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
               >
-                {[10, 11, 12, 13, 14].map(size => (
+                {[10, 11, 12].map(size => (
                   <option key={size} value={size}>{size}pt</option>
                 ))}
               </select>
@@ -1395,7 +1395,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 <div>
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-semibold text-gray-900 text-sm">Impact</span>
-                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 20}/40</span>
+                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 25}/50</span>
                   </div>
                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
                     {detectedLevel === 'entry' && 'Relevant experience, skills, work ethic'}
@@ -1406,9 +1406,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <div 
   className="h-full"
   style={{ 
-    width: `${((analysisResults?.analysis?.breakdown?.impact || 20)/40)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.impact || 20)/40 >= 0.8 ? '#81c784' : 
-                (analysisResults?.analysis?.breakdown?.impact || 20)/40 >= 0.6 ? '#ffc870' : 
+    width: `${((analysisResults?.analysis?.breakdown?.impact || 25)/50)*100}%`,
+    background: (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.8 ? '#81c784' : 
+                (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.6 ? '#ffc870' : 
                 '#e57373'
   }}
 ></div>
@@ -1418,16 +1418,16 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 <div>
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-semibold text-gray-900 text-sm">Clarity</span>
-                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 28}/40</span>
+                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 18}/30</span>
                   </div>
                   <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Strong verbs, grammar, professional language</div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
   className="h-full"
   style={{ 
-    width: `${((analysisResults?.analysis?.breakdown?.clarity || 28)/40)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.clarity || 28)/40 >= 0.8 ? '#81c784' : 
-                (analysisResults?.analysis?.breakdown?.clarity || 28)/40 >= 0.6 ? '#ffc870' : 
+    width: `${((analysisResults?.analysis?.breakdown?.clarity || 18)/30)*100}%`,
+    background: (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.8 ? '#81c784' : 
+                (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.6 ? '#ffc870' : 
                 '#e57373'
   }}
 ></div>

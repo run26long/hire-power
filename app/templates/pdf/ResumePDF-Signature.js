@@ -14,7 +14,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
   const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
   const SH = ({ title }) => (
-    <View style={{ backgroundColor: color + '22', paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(6*sp), paddingRight: Math.round(6*sp), marginBottom: Math.round(8*sp), alignItems: 'center' }}>
+    <View wrap={false} style={{ backgroundColor: color + '22', paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(6*sp), paddingRight: Math.round(6*sp), marginBottom: Math.round(8*sp), alignItems: 'center' }}>
       <Text style={{ fontFamily: f, fontSize: base, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', textAlign: 'center' }}>{title}</Text>
     </View>
   )

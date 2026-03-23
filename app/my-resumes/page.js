@@ -864,13 +864,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-2xl font-bold mb-0.5">
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">35</span>
-                                  <span className="text-sm text-gray-400">/40</span>
+                                  <span className="text-gray-900">{data.coreResume.score_breakdown?.impact ?? '--'}</span>
+                                  <span className="text-sm text-gray-400">/50</span>
                                 </>
                               ) : (
                                 <>
                                   <span className="text-gray-300">--</span>
-                                  <span className="text-sm text-gray-300">/40</span>
+                                  <span className="text-sm text-gray-300">/50</span>
                                 </>
                               )}
                             </div>
@@ -891,13 +891,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-2xl font-bold mb-0.5">
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">32</span>
-                                  <span className="text-sm text-gray-400">/40</span>
+                                  <span className="text-gray-900">{data.coreResume.score_breakdown?.clarity ?? '--'}</span>
+                                  <span className="text-sm text-gray-400">/30</span>
                                 </>
                               ) : (
                                 <>
                                   <span className="text-gray-300">--</span>
-                                  <span className="text-sm text-gray-300">/40</span>
+                                  <span className="text-sm text-gray-300">/30</span>
                                 </>
                               )}
                             </div>
@@ -918,7 +918,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-2xl font-bold mb-0.5">
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">18</span>
+                                  <span className="text-gray-900">{data.coreResume.score_breakdown?.keywords ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/20</span>
                                 </>
                               ) : (
@@ -1726,7 +1726,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       Your resume shows the past. We focus on what's next.
                     </p>
                     <div className="text-gray-700 text-sm leading-relaxed text-center">
-                      <p className="mt-1">Upload your resume and we'll use it as the starting point for coaching that surfaces what you've actually accomplished.</p>
+                      <p className="mt-1">Upload your resume and we'll use it as the starting point for coaching that discoversS what you've actually accomplished.</p>
                     </div>
 
                     <div className="flex flex-col items-center mt-6">

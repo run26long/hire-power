@@ -681,6 +681,12 @@ want to list the activity itself?"`}
 This catches skills from family businesses, informal work, or experiences the candidate 
 wants to reference in skills only, not as a full job entry.
 
+${careerContext?.is_career_changer === true ? `
+Q2c: Outdated content (career changer only)
+"Since you're making a transition, is there anything on your current resume you'd rather leave off — roles or experience that point away from where you're headed?"
+Acknowledge and note anything they want removed. Do not argue. Move on.
+` : ''}
+
 Q3: New education
 "Have you completed any new degrees, certifications, or courses since this resume was last updated?"
 
