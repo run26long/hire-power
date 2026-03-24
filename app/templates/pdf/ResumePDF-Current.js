@@ -219,7 +219,12 @@ export default function ResumePDF({
                         <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', lineHeight: 1.2 }}>{formatDate(firstEd.graduationDate, dateFormat)}</Text>
                       </View>
                       <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[firstEd.degree, firstEd.field].filter(Boolean).join(', ')}</Text>
-                      {firstEd.lines?.map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
+                      {firstEd.lines?.filter(line => {
+  const lineLower = (line || '').toLowerCase()
+  const degreeLower = (firstEd.degree || '').toLowerCase()
+  const fieldLower = (firstEd.field || '').toLowerCase()
+  return !lineLower.includes(degreeLower) && !(fieldLower && lineLower.includes(fieldLower))
+}).map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
                     </View>
                   </View>
                   {restEd.map((ed, i) => (
@@ -229,7 +234,12 @@ export default function ResumePDF({
                         <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', lineHeight: 1.2 }}>{formatDate(ed.graduationDate, dateFormat)}</Text>
                       </View>
                       <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[ed.degree, ed.field].filter(Boolean).join(', ')}</Text>
-                      {ed.lines?.map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
+                      {ed.lines?.filter(line => {
+  const lineLower = (line || '').toLowerCase()
+  const degreeLower = (ed.degree || '').toLowerCase()
+  const fieldLower = (ed.field || '').toLowerCase()
+  return !lineLower.includes(degreeLower) && !(fieldLower && lineLower.includes(fieldLower))
+}).map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
                     </View>
                   ))}
                 </View>

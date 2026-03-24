@@ -1398,9 +1398,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 25}/50</span>
                   </div>
                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
-                    {detectedLevel === 'entry' && 'Relevant experience, skills, work ethic'}
-                    {detectedLevel === 'mid' && 'Growth, leadership, quantified results'}
-                    {detectedLevel === 'senior' && 'Strategic impact, organizational influence'}
+                    {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
+                    {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
+                    {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
@@ -1420,7 +1420,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="font-semibold text-gray-900 text-sm">Clarity</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 18}/30</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Strong verbs, grammar, professional language</div>
+                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
   className="h-full"
@@ -1440,9 +1440,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 14}/20</span>
                   </div>
                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
-                    {detectedLevel === 'entry' && 'Industry-relevant skills and terminology'}
-                    {detectedLevel === 'mid' && 'Comprehensive professional vocabulary'}
-                    {detectedLevel === 'senior' && 'Strategic and executive-level terminology'}
+                  {detectedLevel === 'entry' && 'Field vocabulary, tools, and software names'}
+{detectedLevel === 'mid' && 'Field vocabulary, tools, and software names'}
+{detectedLevel === 'senior' && 'Field vocabulary, tools, methodologies, and systems'}
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                    <div 
