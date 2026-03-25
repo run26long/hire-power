@@ -69,6 +69,7 @@ const [isAutoFitting, setIsAutoFitting] = useState(false)
 const [selectedSpacing, setSelectedSpacing] = useState(1)
 const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
 const [showTooLongModal, setShowTooLongModal] = useState(false)
+const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
 
 const handleAutoFit = async () => {
   setIsAutoFitting(true)
@@ -318,6 +319,20 @@ function formatDate(dateString, format = dateFormat) {
   }, [params.id])
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('upgraded') === 'true') {
+      setShowUpgradedBanner(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (userProfile) {
+      setCoachingSamplesUsed(userProfile.coaching_samples_used || 0)
+    }
+  }, [userProfile])
+
+  useEffect(() => {
     if (isAutoFitJustRanRef.current) {
       isAutoFitJustRanRef.current = false
       return
@@ -366,7 +381,8 @@ function formatDate(dateString, format = dateFormat) {
       return
     }
 
-    setResume(data)    
+    setResume(data)
+
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
 }
@@ -611,7 +627,16 @@ if (showCtaModal) {
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
      <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-        <MainNav currentPage="my-resumes" userProfile={userProfile} />
+        {showUpgradedBanner && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-3 py-3 px-6 shadow-lg">
+          <span>🎉 Welcome to Pro! Your full coaching session is ready.</span>
+          <button
+            onClick={() => setShowUpgradedBanner(false)}
+            className="text-white hover:text-purple-200 text-lg leading-none font-light"
+          >×</button>
+        </div>
+      )}
+      <MainNav currentPage="my-resumes" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
       <Breadcrumb items={[
         { label: 'Resume Coach', path: '/my-resumes' },
@@ -849,8 +874,9 @@ if (showCtaModal) {
               {/* Score */}
               {score && (
                 <div className={`px-3 py-1 rounded font-semibold text-xs ${
-                  score >= 85 ? 'bg-green-100 text-green-700' :
-                  score >= 71 ? 'bg-yellow-100 text-yellow-700' :
+                  score >= 85 ? 'bg-purple-100 text-purple-700' :
+                  score >= 75 ? 'bg-green-100 text-green-700' :
+                  score >= 60 ? 'bg-yellow-100 text-yellow-700' :
                   'bg-[#fdecea] text-red-700'
                 }`}>
                   📊 {score}/100
@@ -951,14 +977,22 @@ fontFamily: selectedFont,
               resume={resume}
               setPostCoachingAnalysis={setPostCoachingAnalysis}
               setRemainingGaps={setRemainingGaps}
-              remainingGaps={remainingGaps}
-              recoachAttempts={recoachAttempts}
-              setRecoachAttempts={setRecoachAttempts}
-            />
+          remainingGaps={remainingGaps}
+          recoachAttempts={recoachAttempts}
+          setRecoachAttempts={setRecoachAttempts}
+          setShowUpgradeModal={setShowUpgradeModal}
+          setCoachingSamplesUsed={setCoachingSamplesUsed}
+        />
           </div>
         </div>
       </div>
       </div>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        resumeId={params.id}
+      />
+
       {/* Too Long Modal */}
       {showTooLongModal && (
         <div
@@ -1042,8 +1076,7 @@ fontFamily: selectedFont,
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts }) {  
-  const isJobSpecific = resume?.resume_type === 'job_specific'
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed }) {  const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
   const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
@@ -1200,25 +1233,24 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           className="h-full transition-all duration-500"
           style={{
             width: `${score || 0}%`,
-            background: (score || 0) >= 85 ? '#81c784' : (score || 0) >= 71 ? '#ffc870' : '#e57373'
+            background: (score || 0) >= 85 ? '#9333ea' : (score || 0) >= 75 ? '#81c784' : (score || 0) >= 60 ? '#ffc870' : '#e57373'
           }}
         />
       </div>
-      <div className="flex items-center justify-center gap-2 text-[10px] text-gray-800">
-        <div className="flex items-center gap-0.5">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#e57373' }}></div>
-          <span>Needs Work <span className="text-gray-500">(0-70)</span></span>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ffc870' }}></div>
-          <span>Solid <span className="text-gray-500">(71-84)</span></span>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#81c784' }}></div>
-          <span>Excellent <span className="text-gray-500">(85+)</span></span>
-        </div>
-      </div>
+    <div className="flex items-center justify-center gap-3 text-[9px] text-gray-600">
+  {[
+    { color: '#e57373', label: 'Needs Work' },
+    { color: '#ffc870', label: 'Developing' },
+    { color: '#81c784', label: 'Strong' },
+    { color: '#9333ea', label: 'Excellent' },
+  ].map(({ color, label }) => (
+    <div key={label} className="flex items-center gap-1">
+      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+      <span>{label}</span>
     </div>
+  ))}
+</div>
+</div>
 
   {userTier === 'free' ? (
       <>
@@ -1261,11 +1293,11 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           >
             Close the Gap on This Job →
           </button>
-          {(() => {
+        {(() => {
             const s = score || 0
             const msg = s >= 85
               ? <>Even strong matches get sharper! Pro users typically gain <span className="font-semibold">3–5 points</span> closing specific skill gaps on their resume.</>
-              : s >= 71
+              : s >= 75
               ? <>Pro users who coach this type of resume see an average <span className="font-semibold">8-point score improvement.</span></>
               : <>Pro users who coach low-match resumes see an average <span className="font-semibold">12-point score improvement.</span></>
             return (
@@ -1345,7 +1377,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     )}
   </div>
 )}
-     {journeyStep === 'assess' && !isJobSpecific && (
+ {journeyStep === 'assess' && !isJobSpecific && (
         <div className="space-y-3">
        {/* Header */}
         <div className="flex items-center justify-center gap-6 -mt-1">
@@ -1366,24 +1398,23 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
       className="h-full transition-all duration-500"
       style={{ 
         width: `${score || 62}%`,
-        background: (score || 62) >= 85 ? '#81c784' : (score || 62) >= 71 ? '#ffc870' : '#e57373'
+        background: (score || 62) >= 85 ? '#9333ea' : (score || 62) >= 75 ? '#81c784' : (score || 62) >= 60 ? '#ffc870' : '#e57373'
       }}
     />
   </div>
   
-  <div className="flex items-center justify-center gap-2 text-[10px] text-gray-600">
-  <div className="flex items-center gap-0.5">
-    <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#e57373' }}></div>
-    <span>Needs Work <span className="text-gray-400">(0-70)</span></span>
-  </div>
-  <div className="flex items-center gap-0.5">
-    <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ffc870' }}></div>
-    <span>Solid <span className="text-gray-400">(71-84)</span></span>
-  </div>
-  <div className="flex items-center gap-0.5">
-    <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#81c784' }}></div>
-    <span>Excellent <span className="text-gray-400">(85+)</span></span>
-  </div>
+ <div className="flex items-center justify-center gap-3 text-[9px] text-gray-600">
+  {[
+    { color: '#e57373', label: 'Needs Work' },
+    { color: '#ffc870', label: 'Developing' },
+    { color: '#81c784', label: 'Strong' },
+    { color: '#9333ea', label: 'Excellent' },
+  ].map(({ color, label }) => (
+    <div key={label} className="flex items-center gap-1">
+      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+      <span>{label}</span>
+    </div>
+  ))}
 </div>
 </div>
           
@@ -1407,9 +1438,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   className="h-full"
   style={{ 
     width: `${((analysisResults?.analysis?.breakdown?.impact || 25)/50)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.8 ? '#81c784' : 
-                (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.6 ? '#ffc870' : 
-                '#e57373'
+    background: (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.85 ? '#9333ea' :
+            (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.75 ? '#81c784' :
+            (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.60 ? '#ffc870' :
+            '#e57373'
   }}
 ></div>
                   </div>
@@ -1426,9 +1458,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   className="h-full"
   style={{ 
     width: `${((analysisResults?.analysis?.breakdown?.clarity || 18)/30)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.8 ? '#81c784' : 
-                (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.6 ? '#ffc870' : 
-                '#e57373'
+    background: (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.85 ? '#9333ea' :
+            (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.75 ? '#81c784' :
+            (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.60 ? '#ffc870' :
+            '#e57373'
   }}
 ></div>
                   </div>
@@ -1449,9 +1482,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   className="h-full"
   style={{ 
     width: `${((analysisResults?.analysis?.breakdown?.keywords || 14)/20)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.8 ? '#81c784' : 
-                (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.6 ? '#ffc870' : 
-                '#e57373'
+    background: (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.85 ? '#9333ea' :
+            (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.75 ? '#81c784' :
+            (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.60 ? '#ffc870' :
+            '#e57373'
   }}
 ></div>
                   </div>
@@ -1477,11 +1511,23 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             </ul>
           </div>
           
-          {/* Weaknesses */}
+         {/* Weaknesses */}
           <div className="pt-3 border-t border-gray-300">
            <h3 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#e57373' }}>⚠️ What's Missing</h3>
             <ul className="space-y-1">
-              {(analysisResults?.analysis?.weaknesses || [
+              {((resume?.coaching_complete === true
+  ? (analysisResults?.analysis?.weaknesses || []).filter(w => ![
+      /weak verb/i, /action verb/i, /passive/i, /vague language/i,
+      /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
+      /word choice/i, /tone/i, /clarity/i, /formatting/i, /grammar/i,
+      /spelling/i, /punctuation/i, /sentence structure/i, /break up/i,
+      /split/i, /combine/i, /bullet/i, /rewrite/i, /restructure/i,
+      /specific term/i, /field term/i, /terminology/i, /stronger verb/i,
+      /replace.*verb/i, /strengthen.*verb/i, /ownership verb/i,
+      /stronger action verb/i, /need stronger/i
+    ].some(p => p.test(w)))
+  : (analysisResults?.analysis?.weaknesses || [])
+) || [
                 "Three experience bullets lack quantifiable metrics or measurable outcomes.",
                 "Vague language such as 'managed team' without specifying team size or budget.",
                 "Generic claim of 'improved efficiency' requires percentage or specific timeframe.",
@@ -1501,7 +1547,19 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           <div className="pt-3 border-t border-gray-300">
            <h3 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#ffc870' }}>🎯 Action Plan</h3>
             <ul className="space-y-1">
-              {(analysisResults?.analysis?.suggestions || [
+              {((resume?.coaching_complete === true
+  ? (analysisResults?.analysis?.suggestions || []).filter(s => ![
+      /weak verb/i, /action verb/i, /passive/i, /vague language/i,
+      /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
+      /word choice/i, /tone/i, /clarity/i, /formatting/i, /grammar/i,
+      /spelling/i, /punctuation/i, /sentence structure/i, /break up/i,
+      /split/i, /combine/i, /bullet/i, /rewrite/i, /restructure/i,
+      /specific term/i, /field term/i, /terminology/i, /stronger verb/i,
+      /replace.*verb/i, /strengthen.*verb/i, /ownership verb/i,
+      /stronger action verb/i, /need stronger/i
+    ].some(p => p.test(s)))
+  : (analysisResults?.analysis?.suggestions || [])
+) || [
                 "Add team size (e.g., 'Led team of 8') and budget amounts to management role descriptions.",
                 "Quantify efficiency improvement with specific metrics: '30% faster turnaround' or 'saved 10 hours weekly'.",
                 "Include 2-3 technical skills from job description, such as Salesforce, Tableau, or Asana.",
@@ -1515,7 +1573,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 </li>
               ))}
             </ul>
-          </div>          
+          </div>      
 {/* CTA */}
           <div className="pt-3 border-t border-gray-300">
         {userTier === 'free' ? (
@@ -1525,36 +1583,79 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                   <h4 className="font-semibold text-gray-900 mb-1">What's Next?</h4>
             
                 </div>
-                <button
-                  onClick={async () => {
-                    setIsUpdatingJourney(true)
-                    try {
-                      const { error } = await supabase
-                        .from('resumes')
-                        .update({
-                          journey_step: 'coach',
-                          updated_at: new Date().toISOString()
-                        })
-                        .eq('id', params.id)
-                      if (error) throw error
-                      setResume(prev => ({ ...prev, journey_step: 'coach' }))
-                    } catch (err) {
-                      console.error('Error:', err)
-                      alert('Something went wrong. Please try again.')
-                    } finally {
-                      setIsUpdatingJourney(false)
-                    }
-                  }}
-                  disabled={isUpdatingJourney}
-                  className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors -mt-1 ${
-                    isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
-                  }`}
-                >
-                  Start Free Coaching Trial →
-                </button>
-                <p className="text-xs text-gray-500 text-center">
-                  Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
-                </p>
+                {coachingSamplesUsed > 0 ? (
+                  <>
+                    <button
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                    >
+                      Upgrade to Pro. We'll rewrite your entire resume for you.
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">
+                      Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
+                    </p>
+                    <div className="text-center">
+                      <button
+                        onClick={async () => {
+                          setIsUpdatingJourney(true)
+                          try {
+                            const { error } = await supabase
+                              .from('resumes')
+                              .update({
+                                journey_step: 'improve',
+                                updated_at: new Date().toISOString()
+                              })
+                              .eq('id', params.id)
+                            if (error) throw error
+                            setResume(prev => ({ ...prev, journey_step: 'improve' }))
+                          } catch (err) {
+                            console.error('Error:', err)
+                            alert('Something went wrong. Please try again.')
+                          } finally {
+                            setIsUpdatingJourney(false)
+                          }
+                        }}
+                        disabled={isUpdatingJourney}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        I'll make these changes myself →
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={async () => {
+                        setIsUpdatingJourney(true)
+                        try {
+                          const { error } = await supabase
+                            .from('resumes')
+                            .update({
+                              journey_step: 'coach',
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', params.id)
+                          if (error) throw error
+                          setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                        } catch (err) {
+                          console.error('Error:', err)
+                          alert('Something went wrong. Please try again.')
+                        } finally {
+                          setIsUpdatingJourney(false)
+                        }
+                      }}
+                      disabled={isUpdatingJourney}
+                      className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors -mt-1 ${
+                        isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+                      }`}
+                    >
+                      Start Free Coaching Trial →
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">
+                      Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               // PRO TIER - Start coaching
@@ -1611,7 +1712,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setRewrittenResume={setRewrittenResume}
           setResumeChanges={setResumeChanges}
           userTier={userTier}
-          trialCoachingUsed={resume?.trial_coaching_used || false}
+          trialCoachingUsed={coachingSamplesUsed > 0}
           isJobSpecific={isJobSpecific}
           jobDescription={resume?.job_description || null}
           jobTitle={resume?.job_title || null}
@@ -1623,6 +1724,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setScoreBeforeCoaching={setScoreBeforeCoaching}
           setPostCoachingAnalysis={setPostCoachingAnalysis}
           setRemainingGaps={setRemainingGaps}
+          setCoachingSamplesUsed={setCoachingSamplesUsed}
         />
       )}
 
@@ -1654,6 +1756,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           userName={userProfile?.display_name || resumeData?.fullName}
           userProfile={userProfile}
           detectedLevel={detectedLevel}
+          setShowUpgradeModal={setShowUpgradeModal}
         />
       )}
 
@@ -1684,8 +1787,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps }) {
-  const [userInput, setUserInput] = useState('')
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed }) {  const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [userTier, setUserTier] = useState(userTierProp || null)
@@ -1716,7 +1818,8 @@ const getMessageText = (msg) => {
   const isTrialCoachingComplete = coachingMessages.some(msg =>
     msg.role === 'assistant' && (
       getMessageText(msg).toLowerCase().includes('click the button below') ||
-      getMessageText(msg).toLowerCase().includes('finish coaching')
+      getMessageText(msg).toLowerCase().includes('finish coaching') ||
+      getMessageText(msg).toLowerCase().includes('click below to view your improved bullet')
     )
   )
 
@@ -1887,11 +1990,19 @@ const getMessageText = (msg) => {
         // Filter gaps to only those the user can answer with new information
         // Exclude writing quality issues — those are coach-finish's job, not the user's
         const writingQualityPatterns = [
-          /weak verb/i, /action verb/i, /passive/i, /vague language/i,
-          /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
-          /formatting/i, /grammar/i, /spelling/i, /punctuation/i,
-          /sentence structure/i, /word choice/i, /tone/i, /clarity/i
-        ]
+  // Verb and language quality — AI's job
+  /weak verb/i, /action verb/i, /passive/i, /vague language/i,
+  /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
+  /word choice/i, /tone/i, /clarity/i,
+  // Formatting and structure — AI's job
+  /formatting/i, /grammar/i, /spelling/i, /punctuation/i,
+  /sentence structure/i, /break up/i, /split/i, /combine/i,
+  /bullet/i, /rewrite/i, /restructure/i,
+  // Terminology and keywords — AI's job
+  /specific term/i, /field term/i, /terminology/i, /specific language/i,
+  /ats/i, /keyword/i, /phrase/i, /add.*term/i, /include.*term/i,
+  /such as/i, /for example/i, /like '/i
+]
 
         const isWritingQuality = (text) =>
           writingQualityPatterns.some(pattern => pattern.test(text))
@@ -2001,10 +2112,12 @@ const getMessageText = (msg) => {
           .select('coaching_samples_used')
           .eq('id', user.id)
           .single()
+        const newCount = (profile?.coaching_samples_used || 0) + 1
         await supabase
           .from('profiles')
-          .update({ coaching_samples_used: (profile?.coaching_samples_used || 0) + 1 })
+          .update({ coaching_samples_used: newCount })
           .eq('id', user.id)
+        setCoachingSamplesUsed(newCount)
       }
 
       setTrialResult(data)
@@ -2060,14 +2173,14 @@ const getMessageText = (msg) => {
   // ── Already used trial → upsell ──
   if (trialCoachingUsed && !trialComplete) {
     return (
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">💬 Resume Coach</h3>
-        <div className="bg-purple-50 rounded-lg p-4">
-          <p className="font-semibold text-gray-900 mb-2">You've used your free coaching session</p>
-          <p className="text-sm text-gray-600 mb-4">
+      <div className="space-y-2">
+        <h3 className="font-semibold text-lg -mt-3">💬 Resume Coach</h3>
+        <div className="bg-purple-50 rounded-lg p-2">
+          <p className="text-xs font-semibold text-gray-900 mb-1">You've used your free coaching session</p>
+          <p className="text-xs text-gray-600 mb-3">
             Upgrade to Pro to coach every job, every bullet, and uncover skills you didn't know belonged on a resume.
           </p>
-          <div className="bg-white rounded-lg p-3 mb-4 border border-purple-100">
+          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-100">
             <p className="text-xs font-semibold text-purple-700 mb-2">Pro coaching includes:</p>
             <ul className="text-xs text-gray-600 space-y-1.5">
               <li>✓ Full conversation across all jobs</li>
@@ -2080,18 +2193,22 @@ const getMessageText = (msg) => {
           <p className="text-xs text-purple-700 font-medium mb-3 text-center">
             Pro users see an average <strong>16-point improvement</strong> after coaching.
           </p>
-          <button
-            onClick={() => setShowUpgradeModal(true)}
-            className="w-full bg-purple-600 text-white rounded-lg px-6 py-2.5 text-sm font-semibold hover:bg-purple-700 transition-colors"
-          >
-            Upgrade to Pro →
-          </button>
-          <button
-            onClick={advanceToImprove}
-            className="w-full mt-2 text-gray-400 text-xs hover:text-gray-600 py-1 text-center"
-          >
-            Continue improving myself →
-          </button>
+          <div className="flex justify-center mb-2">
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Upgrade to Pro →
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <button
+              onClick={advanceToImprove}
+              className="text-gray-400 text-xs hover:text-gray-600"
+            >
+              Continue improving myself →
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -2351,7 +2468,7 @@ const getMessageText = (msg) => {
                     Upgrade to Pro → Coach My Entire Resume
                   </button>
                   <p className="text-xs text-gray-400">
-                    We found this in <strong>5 minutes</strong> from one job. Imagine what's in the rest.
+                    We found this in <strong>5 minutes</strong> from one job. Imagine what's in the rest. Go Pro, and we'll rewrite it all for you!
                   </p>
                 </div>
               </div>
@@ -2371,8 +2488,7 @@ const getMessageText = (msg) => {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts }) {
-  const [accepting, setAccepting] = useState(false)
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal }) {  const [accepting, setAccepting] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
   const [acceptedChanges, setAcceptedChanges] = useState([])
@@ -2425,10 +2541,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   // FREE USER VIEW — must come before rewrittenResume check (free users never have one)
   if (userTier === 'free') {
     const suggestions = analysisResults?.analysis?.suggestions || []
-    const allSuggestions = [
-      ...suggestions,
-      'Replace weak verbs like "helped," "assisted," and "responsible for" with strong action verbs: Led, Built, Drove, Reduced, Increased, Designed, Managed.'
-    ]
+    const allSuggestions = suggestions
 
     return (
       <>
@@ -2441,6 +2554,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           handleReassess={handleReassess}
           isAnalyzing={isAnalyzing}
           setShowRevealModal={setShowRevealModal}
+          setShowUpgradeModal={setShowUpgradeModal}
         />
 
         {/* Score Reveal Modal — free users */}
@@ -2519,25 +2633,37 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     </div>
                   )}
 
-                  <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-5 text-left">
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      Your resume is ready to download and use for job applications. Want even more improvement? Upgrade to Pro for full coaching.
-                    </p>
+                 <p className="text-sm text-gray-700 mb-3">Your resume is ready to download.</p>
+
+                  <div className="flex justify-center mb-3">
+                    <button
+                      onClick={async () => {
+                        setShowRevealModal(false)
+                        await supabase
+                          .from('resumes')
+                          .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                          .eq('id', params.id)
+                        setResume(prev => ({ ...prev, journey_step: 'format' }))
+                      }}
+                      className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 transition-colors"
+                    >
+                      Format My Resume →
+                    </button>
                   </div>
 
-                  <button
-                    onClick={async () => {
-                      setShowRevealModal(false)
-                      await supabase
-                        .from('resumes')
-                        .update({ journey_step: 'format', updated_at: new Date().toISOString() })
-                        .eq('id', params.id)
-                      setResume(prev => ({ ...prev, journey_step: 'format' }))
-                    }}
-                    className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors"
-                  >
-                    Format My Resume →
-                  </button>
+                  <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-3 text-left">
+<p className="text-sm text-gray-700 leading-relaxed mb-2 text-center">Want your entire resume coached and rewritten? Upgrade to Pro and we'll do it for you.</p>                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setShowRevealModal(false)
+                          setShowUpgradeModal(true)
+                        }}
+                        className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-50 transition-colors"
+                      >
+                        Let Us Rewrite It
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -3130,8 +3256,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 // ─────────────────────────────────────────────
 // FREE IMPROVE STEP
 // ─────────────────────────────────────────────
-function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal, setShowUpgradeModal }) {  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isChecking, setIsChecking] = useState(false)
   const isDone = currentIndex >= suggestions.length
   const hasUsedTrial = coachingSamplesUsed > 0
 
@@ -3184,31 +3310,46 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
             <p className="text-xs text-gray-800 leading-snug">{suggestions[currentIndex]}</p>
           </div>
 
-          <p className="text-[10px] text-gray-400 text-center">
-            Make this change wherever it applies on your resume.
+          <p className="text-[12px] text-gray-600 text-center">
+            Make this change on your resume, then click Next Suggestion to make the next improvement.
           </p>
 
-          <div className="flex flex-col items-center gap-1 mt-5">
-            <button
-              onClick={async () => {
-                const isLast = currentIndex === suggestions.length - 1
-                if (isLast) {
-                  await handleReassess()
-                  setShowRevealModal(true)
-                } else {
-                  setCurrentIndex(prev => prev + 1)
-                }
-              }}
-              className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 transition-colors"
-            >
-              {currentIndex === suggestions.length - 1 ? 'Finalize & Check My Score →' : 'Next Suggestion →'}
-            </button>
-            <button
-              onClick={() => setCurrentIndex(prev => prev + 1)}
-              className="text-gray-400 text-xs hover:text-gray-600"
-            >
-              Skip
-            </button>
+          <div className="mt-5 space-y-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 font-semibold text-xs hover:bg-purple-50 transition-colors"
+              >
+                Let Us Rewrite It
+              </button>
+              <button
+                onClick={async () => {
+                  const isLast = currentIndex === suggestions.length - 1
+                  if (isLast) {
+                    setIsChecking(true)
+                    await handleReassess()
+                    setIsChecking(false)
+                    setShowRevealModal(true)
+                  } else {
+                    setCurrentIndex(prev => prev + 1)
+                  }
+                }}
+                disabled={isChecking}
+className="flex-1 bg-purple-600 text-white rounded-lg py-2 px-3 font-semibold text-xs hover:bg-purple-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-75 whitespace-nowrap"            >
+              {isChecking
+                ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Checking...</>
+                : currentIndex === suggestions.length - 1 ? 'Check My Score →' : 'Next Improvement →'}
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <button
+                onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                disabled={currentIndex === 0}
+                className="text-gray-400 text-xs hover:text-gray-600 disabled:opacity-30"
+              >
+                ← Back
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -3220,6 +3361,12 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
           </div>
 
           <div className="flex flex-col items-center gap-2 mt-5">
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 font-semibold text-xs hover:bg-purple-50 transition-colors"
+              >
+                Let Us Rewrite It
+            </button>
             <button
               onClick={async () => {
                 await handleReassess()
@@ -3459,7 +3606,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
         </div>
 
         <div className="p-4 border-t border-gray-100 flex-shrink-0">
-          {!isComplete ? (
+          {!isTrialCoachingComplete ? (
             <div className="flex gap-2 items-center">
               <textarea
                 ref={inputRef}
@@ -3483,7 +3630,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
             </div>
           ) : (
             <button
-              onClick={finishTargetedCoach}
+              onClick={finishTrialCoaching}
               disabled={isFinishing}
               className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center justify-center gap-2 transition-colors"
             >
@@ -3504,10 +3651,10 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
   const [advancing, setAdvancing] = useState(false)
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-semibold text-lg">🎨 Format Your Resume</h3>
+    <div className="space-y-2">
+      <h3 className="font-semibold text-lg -mt-3">🎨 Format Your Resume</h3>
 
-      <p className="text-sm text-gray-700">
+      <p className="text-xs text-gray-700">
         Content is locked in. Now make sure your resume looks exactly right before saving.
       </p>
 
@@ -3521,15 +3668,14 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
       </div>
 
       {score && (
-        <div className="text-center">
-          <p className="text-xs text-gray-500 mb-1">Current score</p>
-          <p className={`text-2xl font-bold ${score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+        <div className="flex items-center justify-center gap-2">
+          <p className="text-sm text-gray-500">Current score:</p>
+          <p className={`text-large font-bold ${score >= 85 ? 'text-purple-600' : score >= 75 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
             {score}/100
           </p>
         </div>
       )}
-
-      <div className="flex flex-col items-center mt-5">
+      <div className="flex flex-col items-center mt-3">
         <button
           onClick={async () => {
             setAdvancing(true)

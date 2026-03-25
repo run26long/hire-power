@@ -812,7 +812,7 @@ const supabase = createClient();
             <div className="section-eyebrow" style={{textAlign:'center'}}>Pricing</div>
             <h2 className="section-title" style={{textAlign:'center'}}>One platform.<br/><em>Your whole career.</em></h2>
           </div>
-          <p className="pricing-os-line"><strong>Free</strong> — Try the OS &nbsp;·&nbsp; <strong>Pro</strong> — Run the OS at full power &nbsp;·&nbsp; <strong>Standby</strong> — Keep the OS running between upgrades</p>
+          <p className="pricing-os-line"><strong>Free</strong> — Try the OS &nbsp;·&nbsp; <strong>Pro</strong> — Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong> — Keep the OS running between upgrades</p>
           <div className="pricing-tiers">
 
             {/* FREE */}
@@ -880,10 +880,10 @@ const supabase = createClient();
               </div>
             </div>
 
-            {/* MAINTENANCE */}
+            {/* MAINTENANCE2 */}
             <div className="tier-card">
               <div className="tier-os-tag">Keep the OS Running</div>
-              <div className="tier-name">Standby</div>
+              <div className="tier-name">Vault</div>
               <div className="tier-price">$4.99<span>/mo</span></div>
               <p className="tier-desc">Between job searches. Track wins, stay ready. Your career doesn&apos;t pause — neither should your OS.</p>
               <ul className="tier-features">

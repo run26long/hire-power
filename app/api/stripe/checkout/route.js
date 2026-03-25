@@ -4,7 +4,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
   try {
-    const { priceId, userId, email, couponCode } = await req.json();
+    const { priceId, userId, email, couponCode, resumeId } = await req.json();
 
     // Build checkout session params
     const sessionParams = {
@@ -13,8 +13,12 @@ export async function POST(req) {
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: email,
       client_reference_id: userId,
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+      success_url: resumeId
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/resume/${resumeId}?upgraded=true`
+        : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
+      cancel_url: resumeId
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/resume/${resumeId}`
+        : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
       metadata: { userId, priceId },
     };
 

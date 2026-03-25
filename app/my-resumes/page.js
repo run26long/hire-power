@@ -10,6 +10,14 @@ import { TIERS } from '@/lib/subscription';
 export default function MyResumesPage() {
   const router = useRouter();
   const supabase = createClient();
+
+ const getBreakdownLabel = (score, max) => {
+  const pct = (score / max) * 100
+  if (pct >= 85) return { label: 'Excellent', color: '#9333ea', text: 'text-purple-600' }
+  if (pct >= 75) return { label: 'Strong', color: '#81c784', text: 'text-green-600' }
+  if (pct >= 60) return { label: 'Developing', color: '#ffc870', text: 'text-yellow-600' }
+  return { label: 'Needs Work', color: '#e57373', text: 'text-red-600' }
+}
   
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -136,21 +144,24 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
   function getScoreColor(score) {
     if (!score) return 'text-gray-400';
-    if (score >= 85) return 'text-green-600';
-    if (score >= 71) return 'text-yellow-600';
+    if (score >= 85) return 'text-purple-600';
+    if (score >= 75) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
   }
 
   function getScoreTier(score) {
     if (!score) return 'Not Assessed';
     if (score >= 85) return 'Excellent';
-    if (score >= 71) return 'Solid';
-    return 'Needs Improvement';
+    if (score >= 75) return 'Strong';
+    if (score >= 60) return 'Developing';
+    return 'Needs Work';
   }
 
   function getCircleColor(score) {
-    if (score >= 85) return '#81c784';
-    if (score >= 71) return '#ffc870';
+    if (score >= 85) return '#9333ea';
+    if (score >= 75) return '#81c784';
+    if (score >= 60) return '#ffc870';
     return '#e57373';
   }
 
@@ -562,7 +573,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
         {/* Main Content */}
         <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
-          <MainNav currentPage="my-resumes" userProfile={userProfile} />
+          <MainNav currentPage="my-resumes" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
           <div className="flex-1 overflow-y-auto">
             <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
@@ -835,30 +846,29 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 className="h-full transition-all duration-500"
                                 style={{ 
                                   width: !showPlaceholder ? `${score}%` : '0%',
-                                  background: !showPlaceholder ? (score >= 85 ? '#81c784' : score >= 71 ? '#ffc870' : '#e57373') : '#d1d5db'
+                                  background: !showPlaceholder ? (score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373') : '#d1d5db'
                                 }}
                               />
                             </div>
                             
                             {/* Simple text labels with dots */}
-                            <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ background: '#e57373' }}></div>
-                                <span>Needs Work<span className="text-gray-400 ml-1">(0-70)</span></span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ background: '#ffc870' }}></div>
-                                <span>Solid<span className="text-gray-400 ml-1">(71-84)</span></span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ background: '#81c784' }}></div>
-                                <span>Excellent<span className="text-gray-400 ml-1">(85+)</span></span>
-                              </div>
-                            </div>
+                            <div className="flex items-center justify-center gap-10 text-xs text-gray-600">
+  {[
+    { color: '#e57373', label: 'Needs Work' },
+    { color: '#ffc870', label: 'Developing' },
+    { color: '#81c784', label: 'Strong' },
+    { color: '#9333ea', label: 'Excellent' },
+  ].map(({ color, label }) => (
+    <div key={label} className="flex items-center gap-1">
+      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+      <span>{label}</span>
+    </div>
+  ))}
+</div>
                           </div>
                         </div>
                         
-                        {/* Breakdown Grid - Bigger Text */}
+                   {/* Breakdown Grid - Bigger Text */}
                         <div className="grid grid-cols-3 gap-1.5">
                           <div className="text-center p-1.5 bg-gray-50 rounded-lg">
                             <div className="text-2xl font-bold mb-0.5">
@@ -877,8 +887,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                <span className="text-[10px] text-green-600 font-medium">Solid</span>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).color }}></span>
+                                <span className={`text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).text}`}>
+                                  {getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).label}
+                                </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
@@ -904,8 +916,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                <span className="text-[10px] text-green-600 font-medium">Solid</span>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).color }}></span>
+                                <span className={`text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).text}`}>
+                                  {getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).label}
+                                </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
@@ -931,8 +945,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                <span className="text-[10px] text-green-600 font-medium">Excellent</span>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).color }}></span>
+                                <span className={`text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).text}`}>
+                                  {getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).label}
+                                </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
@@ -943,7 +959,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         </div>
                       </div>
                     </div>
-                    
                     {/* Progress Bar */}
                     <div className="mb-4">
                       <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">Progress</div>
@@ -1299,20 +1314,19 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                             
                             {/* Simple text labels with dots */}
-                            <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ background: '#e57373' }}></div>
-                                <span>Needs Work<span className="text-gray-400 ml-1">(0-70)</span></span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ background: '#ffc870' }}></div>
-                                <span>Solid<span className="text-gray-400 ml-1">(71-84)</span></span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ background: '#81c784' }}></div>
-                                <span>Excellent<span className="text-gray-400 ml-1">(85+)</span></span>
-                              </div>
-                            </div>
+                            <div className="flex items-center justify-center gap-6 text-xs text-gray-600">
+  {[
+    { color: '#e57373', label: 'Needs Work' },
+    { color: '#e8853a', label: 'Developing' },
+    { color: '#ffc870', label: 'Strong' },
+    { color: '#81c784', label: 'Excellent' },
+  ].map(({ color, label }) => (
+    <div key={label} className="flex items-center gap-1">
+      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+      <span>{label}</span>
+    </div>
+  ))}
+</div>
                           </div>
                         </div>
                         
@@ -1321,9 +1335,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           <div className="text-center p-1.5 bg-gray-50 rounded-lg">
                             <div className="text-2xl font-bold mb-0.5">
                               <span className="text-gray-300">--</span>
-                              <span className="text-sm text-gray-300">/40</span>
-                            </div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
+                              <span className="text-sm text-gray-300">/50</span>
+</div>
+<div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
                             <div className="flex items-center justify-center gap-1">
                               <span className="text-[10px] text-gray-400">—</span>
                             </div>
@@ -1332,9 +1346,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           <div className="text-center p-1.5 bg-gray-50 rounded-lg">
                             <div className="text-2xl font-bold mb-0.5">
                               <span className="text-gray-300">--</span>
-                              <span className="text-sm text-gray-300">/40</span>
-                            </div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
+                              <span className="text-sm text-gray-300">/30</span>
+</div>
+<div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
                             <div className="flex items-center justify-center gap-1">
                               <span className="text-[10px] text-gray-400">—</span>
                             </div>

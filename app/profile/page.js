@@ -76,7 +76,7 @@ export default function Profile() {
     try {
       setProcessing(true)
       const { error } = await supabase.from('profiles')
-        .update({ subscription_tier: TIERS.STANDBY, downgrade_scheduled_date: new Date().toISOString() })
+        .update({ subscription_tier: TIERS.VAULT, downgrade_scheduled_date: new Date().toISOString() })
         .eq('id', user.id)
       if (error) throw error
       setShowDowngradeModal(false)
@@ -126,10 +126,10 @@ export default function Profile() {
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
-  const tierLabel = { [TIERS.FREE]: 'Free', [TIERS.PRO]: 'Pro', [TIERS.STANDBY]: 'Standby' }
-  const tierColor = { [TIERS.FREE]: '#6b7280', [TIERS.PRO]: '#7c3aed', [TIERS.STANDBY]: '#0369a1' }
-  const tierBg    = { [TIERS.FREE]: '#f3f4f6', [TIERS.PRO]: '#faf5ff', [TIERS.STANDBY]: '#f0f9ff' }
-  const tierBorder = { [TIERS.FREE]: '#e5e7eb', [TIERS.PRO]: '#e9d5ff', [TIERS.STANDBY]: '#bae6fd' }
+  const tierLabel = { [TIERS.FREE]: 'Free', [TIERS.PRO]: 'Pro', [TIERS.VAULT]: 'Vault' }
+  const tierColor = { [TIERS.FREE]: '#6b7280', [TIERS.PRO]: '#7c3aed', [TIERS.VAULT]: '#0369a1' }
+  const tierBg    = { [TIERS.FREE]: '#f3f4f6', [TIERS.PRO]: '#faf5ff', [TIERS.VAULT]: '#f0f9ff' }
+  const tierBorder = { [TIERS.FREE]: '#e5e7eb', [TIERS.PRO]: '#e9d5ff', [TIERS.VAULT]: '#bae6fd' }
 
   const cardBase = {
     background: '#fff',
@@ -313,7 +313,7 @@ export default function Profile() {
                       <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
                         {tier === TIERS.FREE && 'Limited features'}
                         {tier === TIERS.PRO && '$29.99/month · All features unlocked'}
-                        {tier === TIERS.STANDBY && '$4.99/month · Career Vault access'}
+                        {tier === TIERS.VAULT && '$4.99/month · Career Vault access'}
                       </p>
                     </div>
                   </div>
@@ -323,12 +323,12 @@ export default function Profile() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Between job searches? Keep your work safe for $4.99/month.</p>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setShowDowngradeModal(true)} style={{ ...btnOutline, flex: 1 }}>Keep Career in Standby</button>
+                        <button onClick={() => setShowDowngradeModal(true)} style={{ ...btnOutline, flex: 1 }}>Switch to Vault</button>
                         <button onClick={() => setShowCancelModal(true)} style={{ ...btnRed, flex: 1, color: '#e57373', borderColor: '#e57373' }}>Cancel Subscription</button>
                       </div>
                     </div>
                   )}
-                  {tier === TIERS.STANDBY && (
+                  {tier === TIERS.VAULT && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
                       <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
@@ -431,7 +431,7 @@ export default function Profile() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHead()}>
-              <p style={modalTitle}>Keep Your Career in Standby</p>
+              <p style={modalTitle}>Switch to Vault</p>
               <p style={modalSub}>$4.99/month between job searches</p>
             </div>
             <div style={modalBody}>
@@ -450,7 +450,7 @@ export default function Profile() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowDowngradeModal(false)} disabled={processing} style={{ ...btnGhost, flex: 1 }}>Keep Pro</button>
                 <button onClick={handleDowngrade} disabled={processing} style={{ ...btnPurple, flex: 1, opacity: processing ? 0.6 : 1 }}>
-                  {processing ? 'Processing...' : 'Switch to Standby'}
+                  {processing ? 'Processing...' : 'Switch to Vault'}
                 </button>
               </div>
             </div>

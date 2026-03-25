@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
-export default function UpgradeModal({ isOpen, onClose }) {
+export default function UpgradeModal({ isOpen, onClose, resumeId }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -27,6 +27,7 @@ export default function UpgradeModal({ isOpen, onClose }) {
           priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
           userId: user.id,
           email: profile?.email || user.email,
+          resumeId: resumeId || null,
         })
       })
 
@@ -82,7 +83,7 @@ export default function UpgradeModal({ isOpen, onClose }) {
           <div className="space-y-3 mb-5">
             {[
               { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
-              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite your bullets. Pro does it for you in under a minute.' },
+              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite your bullets. Pro does it for you in under 2 minutes.' },
               { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific versions, each coached and optimized for the role.' },
               { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + AI-spoken practice built from your actual resume and target role.' },
             ].map((item) => (

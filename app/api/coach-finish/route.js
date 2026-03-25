@@ -186,7 +186,7 @@ Exception: when the same people recur (same 10 enrolled students each week, same
 "5 shows a day, 5 days a week, for 15 months" becomes "325+ performances over a 15-month run." "20 students per week" stays as-is unless there is a semester or annual total that tells a bigger story. When you have both a unit number and a cumulative number, use whichever makes the work sound more substantial, as long as it is completely accurate.
 
 MANDATORY SELF-CHECK 
-Apply to every bullet before outputting. Does this bullet contain two or more numbers? If yes: which number answers "so what?", that is the impact metric and it leads. Which number describes what you did to get there, that is the activity metric and it follows. If you cannot clearly identify which is which, the bullet needs to be restructured before it is finished. A bullet where you cannot answer "so what?" is not done. If you only have an activity metric and no impact metric, use scope language instead.
+Apply to every bullet before outputting. Does this bullet contain two or more numbers? If yes: which number answers "so what?", that is the impact metric and it leads. Which number describes what you did to get there, that is the activity metric and it follows. If you cannot clearly identify which is which, the bullet needs to be restructured before it is finished. A bullet where you cannot answer "so what?" is not done. If you only have an activity metric and no impact metric, use scope language instead. The per-bullet application of this rule lives in the BULLET WRITING GATES section of RESUME ELEMENTS.
 
 ═══════════════════════════════
 3: SCORING GUIDELINES: CLARITY (30 points)
@@ -225,7 +225,7 @@ CONCISE LANGUAGE: every word earns its place. No filler, no redundancy, no throa
 Strong: "Negotiated vendor contracts, reducing annual spend 18%"
 Weak: "Was responsible for the negotiation of vendor contracts which resulted in reductions to annual spending"
 
-HOLLOW LANGUAGE: watch for language that sounds impressive but says nothing specific. "Leveraged synergies," "drove transformation," "spearheaded innovative solutions," "championed strategic initiatives" with no supporting specifics score low on clarity regardless of level. Specific, direct language about real work scores high regardless of how executive it sounds.
+HOLLOW LANGUAGE: watch for language that sounds impressive but says nothing specific. "Leveraged synergies," "drove transformation," "spearheaded innovative solutions," "championed strategic initiatives" with no supporting specifics score low on clarity regardless of level. Specific, direct language about real work scores high regardless of how executive it sounds. For the bullet-level application of this rule including the write-the-action gate, see BULLET WRITING GATES in RESUME ELEMENTS.
 
 GRAMMAR CHECK: TENSE AND PERSON. Bullets and job summaries use first-person implied. No pronouns, no third-person conjugation. Present tense for current roles, past tense for past roles. Never use third-person conjugation (teaches, manages, coordinates). These read as if someone else is describing the candidate.
 
@@ -358,32 +358,71 @@ Senior Level: reflect organizational scope and strategic leadership. Authoritati
 RESUME ELEMENTS 1: WRITING GUIDELINES FOR PROFESSIONAL SUMMARY (REQUIRED SECTION)
 ═══════════════════════════════════════════════
 
-The summary is the first thing a recruiter reads and the last thing most candidates get right. It is not a biography, an objective statement, or a list of traits. It is a hook: four sentences or fewer that answer the only question a recruiter is asking in the first ten seconds: why should I keep reading?
+The summary must convey the candidate’s professional essence in under 10 seconds and make a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
 
-A great summary does three things. It establishes who this person is professionally at the level they are targeting. It gives the recruiter a specific, credible reason to believe it. And it shows what the employer gets when they hire this person, not what the candidate wants, not what they are hoping for, not what they are passionate about. What they deliver.
+THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
 
-THE FORMULA: Professional identity + area of expertise + what they deliver. In that order. Every time.
+A great summary does these three things, so each sentence has a purpose:
 
-Strong: "Operations coordinator with six years of progressive experience building the vendor relationships, procurement systems, and cross-functional processes that keep operations teams functional. Manages close to $1M in annual vendor spend, negotiates contracts independently, and resolves complex client escalations with a 90% same-day satisfaction rate. Built the operations onboarding program from scratch and led Asana adoption across 20 staff members."
+Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-This summary works because sentence one establishes identity and scope. Sentence two proves it with specifics. Sentence three shows the differentiator and what this person built beyond the job description. A recruiter reads this and puts down the rest of the stack.
+Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
 
-Weak: "Results-driven operations professional with extensive experience in vendor management and cross-functional collaboration. Passionate about driving operational excellence and building high-performing teams. Proven track record of improving efficiency and reducing costs."
+The test for every proof point: could this appear as a bullet in their experience section? If yes, it belongs there, not here.
 
-This summary fails because it could describe anyone with an ops title. There is not a single specific detail. A recruiter skims it in two seconds and moves on.
+RIGHT (ongoing scope):
+"Manages close to $1M in annual vendor spend, coordinates 5-8 concurrent cross-departmental projects at any given time, and resolves client escalations autonomously at a volume of 5-10 per week."
+
+WRONG (one-time accomplishments disguised as scope):
+"Built the onboarding SOP from scratch, led Asana adoption across the office, and redesigned the filing system."
+
+THE TENSE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" – it’s not summary material, it's bullet material.
+PRESENT TENSE = ongoing scope = summary material
+"Manages $1M in vendor spend"
+"Coordinates 5-8 concurrent projects"
+"Resolves escalations autonomously"
+
+PAST TENSE = one-time accomplishment = bullet
+"Built the onboarding SOP from scratch"
+"Led Asana adoption across the office"
+"Redesigned the filing system"
+
+Sentence 3: Hook + What They Deliver – Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that. 
+
+SUMMARY EXAMPLES:
+
+STRONG SENTENCE 1 (Professional Identity & Scope): 
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running." 
+WHY IT WORKS: Establishes who they are and at what scale. The ending - "that keep mid-size offices running" - is specific, illustrative, and unexpected. A recruiter pictures a real person doing real work. 
+
+WEAK SENTENCE 1 (weak, hollow and generic): Results-driven operations professional with extensive experience in vendor management and cross-functional collaboration.
+WHY IT FAILS: So generic it could describe anyone with this job title. There is no scale, no specificity, nothing unexpected, nothing that makes a recruiter want to keep reading.
+
+STRONG SENTENCE 2 (Ongoing Actions & Results): "Manages close to $1M in annual vendor spend across 15-20 suppliers, coordinates 5-8 concurrent cross-departmental projects at any given time, and resolves client and internal escalations autonomously at a volume of 5-10 per week." 
+WHY IT WORKS: Proves sentence 1 with specifics. Scope is visible. A recruiter now believes the claim in sentence 1.
+
+WEAK SENTENCE 2 (no results): Passionate about driving operational excellence and building high-performing teams.
+WHY IT FAILS: "Passionate about" and "driving operational excellence" are hollow filler that say nothing specific about what this person actually does or delivers. This is a sentence about feelings, not scope.
+
+
+STRONG SENTENCE 3 (Hook & What They Deliver): "Brings the process discipline to build systems that last and the people fluency to get every department head on board with them."
+WHY IT WORKS: No accomplishment listed. No proof needed here. The bullets handle that. This is the line that makes a recruiter want to pick up the phone.
+
+WEAK SENTENCE 3 (accomplishments disguised as a hook): "Built the employee onboarding SOP from scratch, a process that has since onboarded 30-40 employees and remains the standard today, and led Asana adoption across the office, replacing an informal system of spreadsheets with a single source of project visibility for 35-40 active users." 
+WHY IT FAILS: These are bullets, not a summary sentence. One-time accomplishments belong in experience where they can be read in context. This sentence lists achievements instead of answering the only question sentence 3 exists to answer: what does the employer GET when they hire this person? 
+
+WEAK SENTENCE 3 (vague and unspecific): Proven track record of improving efficiency and reducing costs.
+WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
 STRUCTURE RULES:
-- 3-4 sentences maximum. Count them. If you have 5, cut the weakest one.
-- Open from the TARGET role identity. Not current title, not school enrollment, not "seeking."
+- 3 sentences. Strong. Concise. No cramming in too much information that belongs in job experience bullets instead.
+- Use information from the full resume, career context, and all coaching conversation. DO NOT simply rewrite the existing summary. The summary is ALWAYS a full rewrite.
 - Lead with the strongest credibility signal available.
-- No operational detail in the summary. State the credential. The bullets prove it.
-- Use information from the full resume, career context, and all coaching conversation.
-- Do NOT repeat bullet points verbatim.
-- One idea per sentence. A sentence that jumps between two unrelated achievements or combines two separate thoughts that each deserve their own space should be split or cut. "And" connecting related details within a single idea is fine. "And" stitching two separate achievements together is not. Give each its own sentence or cut the weaker one.
-Strong: related details, one idea: "Manages close to $1M in annual vendor spend, negotiates contracts independently, and resolves complex client escalations with a 90% same-day satisfaction rate."
-Weak: two separate achievements forced together: "Managed vendor relationships and also launched the company's first onboarding program."
 
 FOR CORE RESUME SUMMARIES: Position for a role type, not a specific company or job posting.
+
+TENSE RULE
+Summary is written in present tense, as it defines who this person is professionally right now. Past tense in a summary is almost always a sign that a bullet has snuck in or that stronger phrasing is available.
 
 THE EMPLOYER-FIRST RULE: 
 Show employers what they get. Never state what the candidate wants.
@@ -395,9 +434,26 @@ Wrong even if subtle: "Hoping to bring my background in events to a new team."
 NEVER IN ANY SUMMARY:
 - The candidate's age or any comparative age reference ("at only 22," "unusually young," "most candidates her age"). These invite bias and make strength sound accidental
 - Third-person pronouns anywhere: "Brings a performer's instincts" is correct. "She brings a performer's instincts" is never acceptable.
-- Specific company names
+- Target company name (name of company they *hope* to work for)
 - "Seeking," "looking for," "hoping to," "I am," "I bring," "I have"
 - "Results-driven," "dynamic professional," "proven track record," "passionate about," "detail-oriented," "team player," "go-getter"
+- One-time projects or accomplishments (these are bullets) 
+- More than 3 proof points in sentence 2
+
+SUMMARY QUALITY CHECKPOINT 
+Read every sentence before outputting. For each one ask: does this describe the overall scope of their ongoing work and impact, or does it describe a specific project or one-time achievement?
+•	Ongoing or overall scope = summary material
+•	One-time project or achievement = bullet material
+
+No bullet material in the summary. Not even combined with others. Not even impressive ones. 
+
+Trying to cram in all a candidate’s accomplishments makes the summary weaker not stronger. Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver. That is it.
+
+TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. If any sentence or proof point wants to be past tense, either rewrite it in present tense or remove it.
+Present tense = ongoing scope = summary material. Past tense = one-time accomplishment = bullet material. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
+
+WHEN MATERIAL IS THIN
+When coaching is thin or experience is limited, write the strongest honest version of what exists. A summary built from limited material will score lower than one built from rich coaching — and that is correct. The score reflects how well the resume communicates the candidate's value. A thin candidate with a perfectly written thin summary scores appropriately. Never inflate, invent, or editorialize to compensate for limited material. Write what is real. Make it as specific and compelling as the evidence allows. Stop there.
 
 ═══════════════════════════════════════════════
 RESUME ELEMENTS 1: WRITING GUIDELINES FOR EXPERIENCE (REQUIRED SECTION)
@@ -457,11 +513,34 @@ CLEAN (right because it is broken into two focused sentences):
 
 TEST: Read the bullet out loud. If you have to pause for breath more than once, it needs to be broken up. If you have a hard time following the meaning and need to reread it, it needs to be broken up.
 
+BULLET WRITING GATES: Apply both checks to every bullet before moving to the next one.
+
+GATE 1 — OUTPUT LEADS:
+Identify the impact signal and the activity signal in the bullet. The impact signal answers "so what?" and leads. The activity signal describes what you did to produce it and follows. If you cannot identify which is which, the bullet is not done. Restructure it before moving on.
+
+WRONG: "Manage relationships with 15-20 vendors representing an estimated $800K-$1M in annual purchasing..."
+WHY: Vendor count leads. The dollar figure is the "so what." It should lead.
+
+RIGHT: "Manage an estimated $800K-$1M in annual vendor spend across 15-20 suppliers..."
+WHY: Impact leads. Activity follows as supporting context.
+
+If you only have an activity metric and no impact metric, use scope language instead. Not every bullet needs a number. Every bullet needs a "so what."
+
+GATE 2 — WRITE THE ACTION, NOT A DESCRIPTION OF IT:
+When a bullet opens with "drove," "led," "championed," or "spearheaded" followed by a noun, stop and ask: what did they actually do? Write that instead.
+
+WRONG: "Drove process optimization of a disorganized filing system"
+WHY: "Drove process optimization" is corporate narration of the action, not the action itself.
+
+RIGHT: "Redesigned a disorganized filing system inherited at the start of the role, restructuring the layout so advisors could pull records quickly and consistently"
+WHY: Writes what happened. A recruiter can picture it.
+
+The action is always more compelling than a description of the action. If you find yourself narrating what a bullet demonstrates ("demonstrating end-to-end ownership," "showcasing strategic thinking," "reflecting cross-functional expertise"), stop. The achievement speaks for itself. Write what happened and move on.
+
 BULLET PUNCTUATION:
 - Do NOT end bullets with periods. This is the current universal standard.
 - Periods at the end of resume bullets are outdated. Omit them consistently across the entire resume.
 - Exception: if a bullet contains two distinct sentences, the first sentence takes a period, the second does not. Two-sentence bullets are acceptable when it improves readability. Do not force everything into one sentence when a clean break reads better.
-
 ═══════════════════════════════════════════════
 RESUME ELEMENTS 3: WRITING GUIDELINES FOR SKILLS (REQUIRED SECTION)
 ═══════════════════════════════════════════════
@@ -552,7 +631,7 @@ At this point, the degree is the story and the primary qualification. The job ex
 
 CASE 2: CREDENTIAL OUTWEIGHS EXPERIENCE:
 Education leads when the degree or credential is genuinely more impressive than  any single job on the resume, regardless of what the candidate submitted.
-An MBA, JD, MD, or CPA earned through years of sacrifice belongs above three years of retail, food service, or unrelated work used to fund that degree. Until they have field experience, the credential is the headline. The survival jobs are the context. Do not bury an impressive academic achievement below unremarkable work history.
+An MBA, job description, MD, or CPA earned through years of sacrifice belongs above three years of retail, food service, or unrelated work used to fund that degree. Until they have field experience, the credential is the headline. The survival jobs are the context. Do not bury an impressive academic achievement below unremarkable work history.
 
 CASE 3: EXPERIENCED PROFESSIONAL, RELEVANT DEGREE:
 Experience leads. A mid-career professional with 5+ years in their field puts experience first. The degree is expected and supporting, not the headline.
@@ -736,34 +815,14 @@ ATS KEYWORD STRATEGY:
 - Do not keyword-stuff. Every keyword must appear in a context that makes sense.
 
 BULLET RELEVANCE ORDERING:
-- Within each role, reorder bullets so the most JD-relevant appear first.
+- Within each role, reorder bullets so the most job description-relevant appear first.
 - A recruiter scanning for 5 seconds will read the first 2 bullets. Make them count.
-- Bullets that do not connect to this specific JD can stay but go last.
+- Bullets that do not connect to this specific job description can stay but go last.
 
-SUMMARY — THE EMPLOYER-FIRST RULE:
-This is the most important section. It is your strongest ATS and recruiter hook.
-
-The cardinal rule: Show employers what THEY GET by hiring this person.
-NEVER what the candidate WANTS or is SEEKING.
-
-RIGHT: "Event Coordinator with 3 years of production experience who brings stakeholder 
-management, budget oversight, and vendor negotiation to every project."
-WRONG: "Seeking an Event Coordinator role where I can grow my skills."
-WRONG: "Passionate professional looking for opportunities in event management."
-WRONG EVEN IF SUBTLE: "Hoping to bring my skills to a new team."
-
-The summary formula:
-[Role title or professional identity] + [2-3 specific skill areas from the JD] + 
-[what they DELIVER, not what they want]
-
-The summary should:
-- Open with a role descriptor that mirrors the job title (as a noun, not a goal)
-- Name 2-3 skills pulled directly from the JD requirements section
-- End with what the employer gains — outcomes, impact, reliability, expertise
-- NEVER name the company
-- NEVER use "seeking," "looking for," "hoping to," "passionate about"
-- NEVER write in first person ("I am" or "I bring")
-- BE aggressive — this is the hook. Make it land.
+SUMMARY:
+The summary is written in a dedicated second pass after bullets are finalized.
+Set the summary field to an empty string: "".
+Do not write a summary in this pass under any circumstances.
 
 SKILLS SECTION:
 - Add missing keywords here if they cannot fit naturally into bullets.
@@ -774,7 +833,7 @@ SKILLS SECTION:
 NO HALLUCINATION — ABSOLUTE:
 Only add a keyword if the candidate actually has that skill or experience.
 Source: their resume OR the coaching conversation.
-If neither mentions it, do not add it — even if the JD requires it.
+If neither mentions it, do not add it — even if the job description requires it.
 `
 
 // ─────────────────────────────────────────────
@@ -879,7 +938,7 @@ YOUR REWRITE INSTRUCTIONS:
    - Third option: skills section if it cannot fit naturally in experience.
    - If you have no material to support it: leave it out entirely.
 
-3. BULLET REORDERING — Within each role, put the most JD-relevant bullets first.
+3. BULLET REORDERING — Within each role, put the most job description-relevant bullets first.
    A recruiter will read the first 2. Make them the strongest match for this specific role.
 
 4. MATCHED KEYWORDS — Verify they are still present and prominent. Do not accidentally remove them.
@@ -887,8 +946,18 @@ YOUR REWRITE INSTRUCTIONS:
 5. SKILLS SECTION — Add any missing keywords that could not fit into bullets.
    Keep all existing specific tool names — never consolidate into suite names.
 
-6. EVERYTHING ELSE — Apply standard resume writing quality (strong verbs, specific language, 
-   no hallucination). But the keyword strategy is the priority for this rewrite.
+6. EVERYTHING ELSE — Apply standard resume writing quality to every bullet you write or improve.
+   The keyword strategy is the priority, but every bullet must also pass both writing gates:
+
+   GATE 1 — OUTPUT LEADS: The impact signal answers "so what?" and leads. The activity signal
+   follows. If a bullet leads with vendor count, call volume, or team size when a dollar figure,
+   revenue number, or outcome is available — reorder it.
+
+   GATE 2 — WRITE THE ACTION: When a bullet opens with "drove," "led," or "championed" followed
+   by a noun, ask what they actually did and write that instead. Never narrate or editorialize
+   on what a bullet demonstrates — write what happened and let it speak for itself.
+
+   No em dashes anywhere. No hallucination. No "responsible for" as a bullet opener.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
@@ -923,62 +992,94 @@ CAREER CONTEXT:
 
   const governingPrinciple = `
 THE GOVERNING PRINCIPLE:
-The summary is the first thing a recruiter reads and the last thing most candidates get right. It is not a biography, an objective statement, or a list of traits. It is a hook: four sentences or fewer that answer the only question a recruiter is asking in the first ten seconds: why should I keep reading?
+The summary must convey the candidate's professional essence in under 10 seconds and make a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
 
-A great summary does three things. It establishes who this person is professionally at the level they are targeting. It gives the recruiter a specific, credible reason to believe it. And it shows what the employer gets when they hire this person, not what the candidate wants, not what they are hoping for, not what they are passionate about. What they deliver.
+THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
 
-THE FORMULA: Professional identity + area of expertise + what they deliver. In that order. Every time.
+A great summary does these three things, so each sentence has a purpose:
 
-WRONG — ENTRY-LEVEL (every failure annotated):
-"Entertainment Management student with hands-on production and performance experience across live events, sustained performance runs, and rehearsal management in professional entertainment environments. Performed 750+ shows across a 15-month EPCOT engagement, built two aerial class sections from zero to full enrollment within 4 months, and supported productions from first rehearsal through opening night, coordinating music cues, staging, and technical elements alongside directors and crew. Brings a working knowledge of what happens on both sides of the curtain, having operated consistently as both a performer and a production collaborator across high-volume, professional environments. For a stage management or production team, that means someone who understands the full picture before they walk in the door."
+Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-SENTENCE 1: Opens as "student" — student identity, not production identity. Wrong angle for a production or stage management target. Open from where they are going, not where they have been.
-SENTENCE 2: Three achievements crammed into one. EPCOT shows (right) + class enrollment (irrelevant to stage management — wrong) + production support (right but buried). One sentence, three ideas, one of them wrong. If a sentence contains two unrelated achievements connected by "and," split it or cut the weaker one.
-SENTENCE 3: "Brings a working knowledge" — third-person. Never. No pronouns anywhere.
-SENTENCE 4: "For a stage management team, that means..." — addresses the employer directly. The recruiter draws their own conclusions. Never editorialize about what hiring this person means.
+Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
 
-RIGHT — ENTRY-LEVEL:
-"Aerial arts professional and production contributor with hands-on experience across professional theme park performances, live event productions, and original choreography in entertainment environments. Performed 750+ shows across a 15-month EPCOT engagement. Choreographed and stage-managed an original group production from first rehearsal through a 9-show professional run, working with a director through tech and dress."
+The test for every proof point: could this appear as a bullet in their experience section? If yes, it belongs there, not here.
 
-SENTENCE 1: Opens from production identity, not student identity. One idea: who they are and at what scope.
-SENTENCE 2: The headline credential, scale only, no operational detail. The bullet proves it; the summary states it.
-SENTENCE 3: The differentiator, what they built beyond performing. Stops when done. No editorializing.
+RIGHT (ongoing scope):
+"Manages close to $1M in annual vendor spend, coordinates 5-8 concurrent cross-departmental projects at any given time, and resolves client escalations autonomously at a volume of 5-10 per week."
 
-WRONG — MID-CAREER (every failure annotated):
-"Results-driven operations professional with extensive experience in vendor management, procurement, and cross-functional team leadership. Passionate about driving operational excellence and building high-performing teams that deliver results. Proven track record of improving efficiency, reducing costs, and increasing stakeholder satisfaction across complex organizational environments. Brings a collaborative mindset and data-driven approach to every challenge."
+WRONG (one-time accomplishments disguised as scope):
+"Built the onboarding SOP from scratch, led Asana adoption across the office, and redesigned the filing system."
 
-SENTENCE 1: "Results-driven" — instant skim trigger. Filler that signals AI. Cut it always.
-SENTENCE 2: "Passionate about" — filler. Means nothing. Everyone is passionate.
-SENTENCE 3: "Proven track record" — everyone says this. Zero specifics. Zero scale. Zero proof.
-SENTENCE 4: "Brings a collaborative mindset" — third-person. Never. Also filler.
-RESULT: Four sentences, zero specific details. Could describe anyone with an ops title. A recruiter skips this entirely.
+THE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" - it is not summary material, it is bullet material.
+PRESENT TENSE = ongoing scope = summary material
+"Manages $1M in vendor spend"
+"Coordinates 5-8 concurrent projects"
+"Resolves escalations autonomously"
 
-RIGHT — MID-CAREER:
-"Operations coordinator with six years of progressive experience building the vendor relationships, procurement systems, and cross-functional processes that keep operations teams functional. Manages close to $1M in annual vendor spend, negotiates contracts independently, and resolves complex client escalations with a 90% same-day satisfaction rate. Built the operations onboarding program from scratch and led Asana adoption across 20 staff members."
+PAST TENSE = one-time accomplishment = bullet
+"Built the onboarding SOP from scratch"
+"Led Asana adoption across the office"
+"Redesigned the filing system"
 
-SENTENCE 1: Specific identity and tenure, not a job title, a description of what they actually do and for how long.
-SENTENCE 2: Ongoing metrics, the proof that sentence 1 is real.
-SENTENCE 3: The differentiator, what they built beyond the job description.
-RESULT: Three sentences. All specific. All about this one person. A recruiter stops skimming.
+Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
+
+SUMMARY EXAMPLES:
+
+STRONG SENTENCE 1 (Professional Identity & Scope):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+WHY IT WORKS: Establishes who they are and at what scale. The ending - "that keep mid-size offices running" - is specific, illustrative, and unexpected. A recruiter pictures a real person doing real work.
+
+WEAK SENTENCE 1 (weak, hollow and generic):
+"Results-driven operations professional with extensive experience in vendor management and cross-functional collaboration."
+WHY IT FAILS: So generic it could describe anyone with this job title. There is no scale, no specificity, nothing unexpected, nothing that makes a recruiter want to keep reading.
+
+STRONG SENTENCE 2 (Ongoing Actions & Results):
+"Manages close to $1M in annual vendor spend across 15-20 suppliers, coordinates 5-8 concurrent cross-departmental projects at any given time, and resolves client and internal escalations autonomously at a volume of 5-10 per week."
+WHY IT WORKS: Proves sentence 1 with specifics. Scope is visible. A recruiter now believes the claim in sentence 1.
+
+WEAK SENTENCE 2 (no results):
+"Passionate about driving operational excellence and building high-performing teams."
+WHY IT FAILS: "Passionate about" and "driving operational excellence" are hollow filler that say nothing specific about what this person actually does or delivers. This is a sentence about feelings, not scope.
+
+STRONG SENTENCE 3 (Hook & What They Deliver):
+"Brings the process discipline to build systems that last and the people fluency to get every department head on board with them."
+WHY IT WORKS: No accomplishment listed. No proof needed here. The bullets handle that. This is the line that makes a recruiter want to pick up the phone.
+
+WEAK SENTENCE 3 (accomplishments disguised as a hook):
+"Built the employee onboarding SOP from scratch, a process that has since onboarded 30-40 employees and remains the standard today, and led Asana adoption across the office, replacing an informal system of spreadsheets with a single source of project visibility for 35-40 active users."
+WHY IT FAILS: These are bullets, not a summary sentence. One-time accomplishments belong in experience where they can be read in context. This sentence lists achievements instead of answering the only question sentence 3 exists to answer: what does the employer GET when they hire this person?
+
+WEAK SENTENCE 3 (vague and unspecific):
+"Proven track record of improving efficiency and reducing costs."
+WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
+
+SUMMARY QUALITY CHECKPOINT:
+Read every sentence before outputting. For each one ask: does this describe the overall scope of their ongoing work and impact, or does it describe a specific project or one-time achievement?
+- Ongoing or overall scope = summary material
+- One-time project or achievement = bullet material
+
+No bullet material in the summary. Not even combined with others. Not even impressive ones.
+
+Trying to cram in all a candidate's accomplishments makes the summary weaker not stronger. Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver. That is it.
+
+TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. If any sentence or proof point wants to be past tense, either rewrite it in present tense or remove it.
+Present tense = ongoing scope = summary material. Past tense = one-time accomplishment = bullet material. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
 
 THE TEST:
 Read it back. Would a recruiter engage or skim?
 If it sounds like every other summary, it is not done.
-If any sentence jumps between two unrelated achievements or combines two separate thoughts that each deserve their own space, split it or cut the weaker one. "And" connecting related details within a single idea is fine. "And" stitching two separate unrelated achievements together is not.
 If any sentence contains operational detail, move it to a bullet.
 If any sentence could describe anyone with this title, rewrite it until it could not.
 
-THE EMPLOYER-FIRST RULE:
-Show employers what they get. Never state what the candidate wants.
-Right: "Event coordinator with 3 years of production experience bringing vendor management, budget oversight, and multi-stakeholder coordination to every project."
-Wrong: "Seeking an Event Coordinator role where I can apply my skills and grow professionally."
-Wrong: "Passionate professional looking for opportunities in event management."
-Wrong even if subtle: "Hoping to bring my background in events to a new team."
+WHEN MATERIAL IS THIN:
+When coaching is thin or experience is limited, write the strongest honest version of what exists. A summary built from limited material will score lower than one built from rich coaching — and that is correct. The score reflects how well the resume communicates the candidate's value. A thin candidate with a perfectly written thin summary scores appropriately. Never inflate, invent, or editorialize to compensate for limited material. Write what is real. Make it as specific and compelling as the evidence allows. Stop there.
+
 `
 
-  const hardRules = `
+ const hardRules = `
 HARD RULES — NON-NEGOTIABLE:
-- 3-4 sentences maximum. Count them. If you have 5, cut the weakest one.
+- 3 sentences exactly. No more, no less.
+- The entire summary is present tense. Past tense anywhere is a sign a bullet snuck in or stronger phrasing is available.
 - Open from the TARGET role identity, not their current title or school enrollment.
 - Lead with the strongest credibility signal available.
 - No operational detail in the summary. State the credential. The bullets prove it.
@@ -988,8 +1089,10 @@ HARD RULES — NON-NEGOTIABLE:
 - NEVER: "seeking," "looking for," "hoping to," "I am," "I bring," "passionate about," "results-driven," "proven track record," "detail-oriented," "team player," "go-getter"
 - NEVER: third-person constructions. No "she," "he," "brings" as third-person, "has" as third-person.
 - NEVER: candidate's age or any age-comparative language.
-- NEVER: specific company names.
+- NEVER: target company name (the company they hope to work for — their own employer names are fine).
 - NEVER: em dashes. Commas or periods only.
+- NEVER: one-time projects or accomplishments (these are bullets).
+- NEVER: more than 3 proof points in sentence 2.
 - Career changers: sentence 1 establishes the new identity. Sentence 2 explains why it is credible. Never combined.
 - Students and recent grads: open from professional identity, not school enrollment. The degree is evidence, not the opener.
 `
@@ -1017,7 +1120,7 @@ ${governingPrinciple}
 FOR JOB-SPECIFIC SUMMARIES:
 Position the summary specifically for this role and company.
 Open with a role descriptor that mirrors the job title as a noun.
-Name 2-3 skills from the JD requirements using the JD's exact language where possible — this improves ATS matching.
+Name 2-3 skills from the job description requirements using the job description's exact language where possible — this improves ATS matching.
 End with what the employer gains: outcomes, reliability, scope, expertise.
 
 ${hardRules}
@@ -1276,7 +1379,7 @@ export async function POST(request) {
       if (cleanedRewrite.startsWith('```')) {
         cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      const rewrittenResume = JSON.parse(cleanedRewrite)
+      console.log('EDUCATION DEBUG:', JSON.stringify(rewrittenResume.education, null, 2))
 
          // ── SUMMARY: Written last, from completed bullets ──
       const jsSummaryPrompt = buildSummaryPrompt({

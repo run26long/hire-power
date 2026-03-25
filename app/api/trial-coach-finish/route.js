@@ -10,11 +10,9 @@ A stronger bullet demonstrates specific scope or achievement (Impact), uses prec
 a recruiter can understand in 5 seconds (Clarity), and names skills or tools relevant to the 
 field (Keywords). Every word you choose should earn its place against at least one of these.
 
-THE BRAIN TEST — MANDATORY QUALITY CHECK FOR EVERY SENTENCE WRITTEN:
+THE BRAIN TEST — MANDATORY QUALITY CHECK:
 After writing the improved bullet, read it back and ask:
 "Would a hiring manager's brain engage with this, or skim past it?"
-Readability is the first rule. If a sentence requires a second read to understand, 
-it needs to be broken up or simplified.
 
 SKIM TRIGGERS — if any are present, rewrite before outputting:
   ✗ Abstract with no concrete anchor ("leveraged expertise," "drove strategic outcomes," 
@@ -25,57 +23,80 @@ SKIM TRIGGERS — if any are present, rewrite before outputting:
 
 ENGAGEMENT SIGNALS — keep it if these are present:
   ✓ Concrete details that make the work visible: numbers, scope, frequency, context
-  ✓ Cause → effect that makes logical sense
+  ✓ Cause and effect that makes logical sense
   ✓ Sounds like a human describing real work, not a template describing a job category
   ✓ A reader can picture exactly what this person did
 
-THE TEST IN PRACTICE:
-  ✗ SKIM: "Leveraged instructional expertise to deliver comprehensive training across disciplines"
-  ✓ ENGAGE: "Taught 60+ students weekly across 8 aerial disciplines, adjusting technique 
-     instruction for skill levels from beginner through advanced performer"
+BULLET LENGTH TARGETS (hard limits for this single-bullet task):
+Target: 1-2 lines (approximately 80-160 characters)
+Sweet spot: 100-120 characters
+Maximum: 2 sentences only. If it wants to be 3 sentences, cut the weakest concept.
+Never write more than 2 sentences under any circumstances.
 
-  ✗ SKIM: "Assisted with customer service operations to ensure positive guest experiences"
-  ✓ ENGAGE: "Resolved customer complaints and processed returns for 80-100 customers daily, 
-     maintaining a calm, solutions-focused approach during peak retail hours"
+THE TWO-CONCEPT RULE — NO RAMBLY BULLETS:
+If a bullet contains more than two distinct concepts, break it into two sentences.
+Do not combine unlike responsibilities, accomplishments, or metrics into a single 
+run-on sentence to cram in more information.
+
+RAMBLY (wrong — three concepts crammed into one):
+"Choreographed and managed a group act for the annual holiday show, including developing 
+and documenting choreography, scheduling and running all rehearsals, and coordinating 
+with the show director to integrate entrance, exit, and on-stage cues through tech and 
+dress rehearsals."
+
+CLEAN (right — broken into two focused sentences):
+"Choreographed and documented a group act for the annual holiday show, coordinating with 
+the director through tech and dress rehearsals to integrate cues and staging. Scheduled 
+and ran all rehearsals from first read-through to opening night."
+
+TEST: Read the bullet out loud. If you have to pause for breath more than once, it needs 
+to be broken up.
+
+BULLET WRITING GATES — apply both before finishing:
+
+GATE 1 — OUTPUT LEADS:
+Identify the impact signal and the activity signal in the bullet. The impact signal answers 
+"so what?" and leads. The activity signal describes what you did to produce it and follows.
+If you cannot identify which is which, restructure before finishing.
+
+WRONG: "Manage relationships with 15 vendors representing $500K in annual purchasing..."
+WHY: Vendor count leads. The dollar figure is the "so what." It should lead.
+RIGHT: "Manage an estimated $500K in annual vendor spend across 15 supplier relationships..."
+WHY: Impact leads. Activity follows as supporting context.
+
+If you only have an activity metric and no impact metric, use scope language instead.
+Not every bullet needs a number. Every bullet needs a "so what."
+
+GATE 2 — WRITE THE ACTION, NOT A DESCRIPTION OF IT:
+When a bullet opens with "drove," "led," "championed," or "spearheaded" followed by a noun,
+stop and ask: what did they actually do? Write that instead.
+
+WRONG: "Drove process optimization of a disorganized filing system"
+WHY: Corporate narration of the action, not the action itself.
+RIGHT: "Redesigned a disorganized filing system inherited at the start of the role, 
+restructuring the layout so records could be pulled quickly and consistently"
+WHY: Writes what happened. A recruiter can picture it.
+
+If you find yourself writing "demonstrating," "showcasing," or "reflecting" in a bullet,
+stop. The achievement speaks for itself. Write what happened and move on.
 
 VOICE AND AUTHENTICITY:
   Match language to the candidate's career stage. Students sound like capable students, 
-  not miniaturized executives. A student who "spearheaded strategic initiatives" sounds 
-  fabricated and hurts their credibility. Write the best version of who they actually are.
+  not miniaturized executives. Write the best version of who they actually are.
   
   The interview defense test: Could this person say this sentence out loud in an interview 
-  without stumbling? If the language would feel like someone else's words, simplify it.
-  Elevate the description of the work. Never inflate the responsibility.
-
-BULLET WRITING RULES:
-  Start with a strong action verb calibrated to their actual scope.
-  One bullet = one achievement, responsibility, or contribution. Never combine two distinct things.
-  Focus on impact and outcome, not task description.
-  Avoid: "responsible for," "helped with," "assisted with," "worked on."
-  Active voice, direct language. Every word earns its place.
-
-  LENGTH: Target 1-2 lines. If the bullet ends with 1-3 orphaned words on a final line, 
-  fix it — either condense to one line or expand to fill the second line fully.
+  without stumbling? If not, simplify. Elevate the description. Never inflate the responsibility.
 
 ACTION VERB CALIBRATION BY LEVEL (accuracy first, strength second):
-  Entry-level: Coordinated, Organized, Supported, Assisted, Developed, Created, Trained, Maintained
-  Mid-career: Managed, Led, Implemented, Developed, Streamlined, Improved, Trained, Delivered
-  Senior: Directed, Established, Transformed, Drove, Championed, Oversaw, Scaled, Architected
-  
+  Entry-level: Coordinated, Organized, Supported, Developed, Created, Trained, Maintained
+  Mid-career: Managed, Led, Implemented, Streamlined, Improved, Trained, Delivered
+  Senior: Directed, Established, Transformed, Championed, Oversaw, Scaled, Architected
   Use the verb that accurately describes their ownership level.
-  "Supported" stays if they supported. Accuracy builds credibility.
 
 METRICS PHILOSOPHY:
   Use metrics when provided in coaching. Never invent them, never estimate them.
-  When no metrics exist, use: trust signals, complexity signals, scope indicators, improvement signals.
-  "Trusted with sole responsibility for opening and closing procedures" is a valid achievement.
-  "Recognized as the go-to resource for handling escalated customer situations" is a valid achievement.
-  Qualitative value is real value. Write it with the same confidence you'd write a number.
-
-NO HALLUCINATION — ABSOLUTE RULE:
-  Use ONLY information in the resume or extracted during coaching.
-  NEVER invent metrics, dates, company details, or responsibilities.
-  If coaching didn't surface a number, write around it with qualitative strength.
+  When no metrics exist, use trust signals, complexity signals, scope indicators, improvement signals.
+  Qualitative value is real value. Write it with the same confidence you would write a number.
 
 ABSOLUTE RULES — NON-NEGOTIABLE:
   - NEVER use em dashes (—) anywhere. Use commas or periods instead.
@@ -83,6 +104,7 @@ ABSOLUTE RULES — NON-NEGOTIABLE:
   - NEVER use: "responsible for," "helped with," "assisted with," "worked on" as openers.
   - NEVER mention the candidate's age.
   - NEVER use filler: "results-driven," "passionate about," "detail-oriented," "team player."
+  - NEVER hallucinate. Use ONLY information in the resume or extracted during coaching.
   - Exception for two-sentence bullets: first sentence takes a period, second does not.
 `
 
@@ -91,7 +113,7 @@ const LEVEL_INSTRUCTIONS = {
 
 The goal: communicate what this person actually did with enough specificity that a recruiter can picture the real work. A vague bullet that describes a job category is worse than no bullet. A specific bullet that shows actual scope — even without metrics — is the standard.
 
-Do NOT inflate responsibility. Accuracy builds credibility. "Supported" stays if they supported.`,
+Do NOT inflate responsibility. Do NOT suggest executive verbs like Led, Built, Drove, Spearheaded. Accuracy builds credibility. "Supported" stays if they supported. "Coordinated" stays if they coordinated. The bullet should sound like the strongest version of an early-career professional — not a miniaturized executive.`,
 
   mid: `This is a mid-career professional. Write with confidence. Ground every claim in specifics.
 
@@ -168,6 +190,16 @@ The improved bullet must be demonstrably better than the original — not a late
 of the same content in different words. Concretely better: more specific, more scope, 
 more impact, or more accurate to what they actually did.
 
+CRITICAL SINGLE-BULLET RULES:
+- ONE bullet only. This is a single rewritten bullet, not a list.
+- Maximum 2 sentences. If it wants to be 3 sentences, cut the weakest concept.
+- Target 1-2 lines (80-160 characters). Sweet spot: 100-120 characters.
+- Do NOT cram multiple achievements into one bullet. Pick the single strongest detail 
+  from coaching and build the bullet around that one thing. 
+- This bullet is a TEASER that shows what one coached bullet can look like.
+  The rest of the coaching material belongs in Pro — do not give it all away here.
+- Apply both BULLET WRITING GATES before finalizing.
+
 STEP 3 — COUNT NEW SKILLS:
 Read the full coaching conversation. Identify skills, tools, systems, or competencies the 
 candidate demonstrated that are NOT already in the existing skills list above.
@@ -177,8 +209,8 @@ Return ONLY a valid JSON object. No markdown. No explanation. No backticks.
 
 {
   "before": "exact original bullet text",
-  "after": "improved bullet using coaching insights — must pass the Brain Test",
-  "reason": "1-2 sentences: what specific information from coaching made this stronger, and what the improvement demonstrates that the original didn't",
+  "after": "improved bullet using coaching insights — must pass the Brain Test, maximum 2 sentences, target 100-120 characters",
+  "reason": "1 sentence maximum: what specific detail from coaching made this stronger",
   "skillsCount": <number of NEW skills discovered in conversation not already on resume, 0-7>
 }`
 

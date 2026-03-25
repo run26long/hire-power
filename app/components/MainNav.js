@@ -2,9 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
+import UpgradeModal from '@/app/components/UpgradeModal';
 
 export default function MainNav({ currentPage, userProfile }) {
   const router = useRouter();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
@@ -74,7 +77,7 @@ export default function MainNav({ currentPage, userProfile }) {
               )}
               {(!userProfile?.subscription_tier || userProfile?.subscription_tier === 'free') && (
                 <span
-                  onClick={(e) => { e.stopPropagation(); router.push('/#pricing'); }}
+                  onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(true); }}
                   className="text-[10px] font-bold text-purple-600 bg-white border border-purple-200 px-2 py-0.5 rounded-full cursor-pointer hover:border-purple-400 hover:shadow-sm transition-all"
                 >
                   Go Pro
@@ -102,8 +105,9 @@ export default function MainNav({ currentPage, userProfile }) {
               </button>
             </div>
           )}
-        </div>
+          </div>
       </div>
-    </div>
+     <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+     </div>
   );
 }

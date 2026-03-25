@@ -880,11 +880,15 @@ WEAKNESSES (3-5 areas needing improvement):
 - Do NOT penalize for missing career achievements or experience not yet accumulated
 - Do NOT critique summary length or formatting
 
-SUGGESTIONS (3-5 actionable recommendations):
-- Show specifically how to communicate existing experience more effectively
-- Provide concrete rewrites — not general advice
-- Only suggest adding content that is explicitly supported by what is already on the resume
-- Do NOT fabricate or infer achievements not present in the resume
+SUGGESTIONS (exactly 5 actionable recommendations — always provide exactly 5, no fewer):
+- Each suggestion identifies a specific gap and tells the candidate exactly what information to add
+- Format: state what is missing or vague, then instruct them to add the specific category of information that would fill it
+- NEVER invent specific numbers, outcomes, or details — name the type of information, not the answer
+- Example format: "Your vendor management bullet lacks scale. Add the number of vendors you manage and your approximate annual spend."
+- Example format: "Your Asana bullet doesn't show impact. Add what measurably improved after the rollout — project visibility, response time, or follow-up volume."
+- NEVER write example bullets with invented numbers or fabricated details
+- NEVER suggest content not supported by what is already on the resume
+- The goal is to show the candidate exactly what information they need to find — not to invent it for them
 
 CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 
