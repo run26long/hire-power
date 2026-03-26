@@ -64,8 +64,51 @@ WHY: Vendor count leads. The dollar figure is the "so what." It should lead.
 RIGHT: "Manage an estimated $500K in annual vendor spend across 15 supplier relationships..."
 WHY: Impact leads. Activity follows as supporting context.
 
+WRONG: "Ran a 9-show production reaching 400-500 attendees per performance"
+WHY: Activity leads. Audience reach is the "so what." It should lead.
+RIGHT: "Reached an estimated 400-500 attendees per performance across a 9-show production run"
+WHY: Impact leads. The production detail follows as context.
+
+WRONG: "Taught 4 classes per week to 20 students"
+WHY: Class count leads. Students reached is the "so what."
+RIGHT: "Reached 80 students weekly across 4 class sections"
+WHY: Impact leads.
+
+MULTIPLY OUT: When a per-unit number and a total count both exist, use whichever tells 
+the bigger story. "20 students per week" across a semester may be "160 students total" — 
+use the larger honest number if the students are different each time. If the same students 
+return each week, use the per-week figure. The test: are these new people each time, or 
+the same ones returning?
+
+SMALL NUMBER WATCH: Never lead with a small headcount when reach or output is available.
+"4-person group act" tells a recruiter nothing. "400-500 attendees per performance" does.
+If the only number you have is a small team size or cast size, drop it and lead with 
+audience, scope, or production scale instead.
+
 If you only have an activity metric and no impact metric, use scope language instead.
 Not every bullet needs a number. Every bullet needs a "so what."
+
+MULTIPLY OUT: When a per-unit number and a total count both exist, use whichever tells 
+the bigger story. "20 students per week" across a full semester may be "160 students 
+coached" — use the larger honest number if the students are different each time. If the 
+same students return each week, stay with the per-week figure. The test: are these new 
+people each time, or the same ones returning?
+
+SMALL NUMBER WATCH: Never lead with a small headcount when reach or output is available.
+"4-person group act" tells a recruiter nothing useful. "400-500 attendees per performance" 
+does. If the only number you have is a small team or cast size, drop it and lead with 
+audience size, scope, or production scale instead.
+
+METRICS FRAMING EXAMPLES:
+WRONG: "Ran a 9-show production reaching 400-500 attendees per performance"
+RIGHT: "Reached an estimated 400-500 attendees per performance across a 9-show run"
+
+WRONG: "Taught 4 classes per week to 20 students"
+RIGHT: "Reached 80 students weekly across 4 class sections"
+
+WRONG: "Choreographed and documented a 4-person group act for the annual holiday show"
+RIGHT: "Reached 400-500 attendees per performance through a group act choreographed and 
+documented for the annual holiday show"
 
 GATE 2 — WRITE THE ACTION, NOT A DESCRIPTION OF IT:
 When a bullet opens with "drove," "led," "championed," or "spearheaded" followed by a noun,

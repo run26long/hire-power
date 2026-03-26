@@ -225,6 +225,35 @@ CONCISE LANGUAGE: every word earns its place. No filler, no redundancy, no throa
 Strong: "Negotiated vendor contracts, reducing annual spend 18%"
 Weak: "Was responsible for the negotiation of vendor contracts which resulted in reductions to annual spending"
 
+BULLET LENGTH: Bullets should be long enough to communicate meaningful detail, typically 1-2 full lines (approximately 100-160 characters). Bullets under 80 characters almost always lack specificity, scope, or context and will be penalized in the Writing Technique score. Likewise, a bullet that exceeds 3 lines and combines unrelated concepts is likely doing too much and should be split into two separate bullets (see Cramming and Run-On Bullets below).
+
+Strong: "Oversee an estimated $500K in annual vendor spend across approximately 15 supplier relationships, resolving delivery failures before they reach leadership"
+
+Weak: "Responsible for managing all HR functions for a manufacturing company"
+
+The weak example above is both too short AND a duty description. 
+
+CRAMMING AND RUN-ON BULLETS: One idea per bullet. When a bullet contains more than two distinct UNRELATED concepts, break it into two. 
+
+The test: are these concepts part of the same work, or are they different responsibilities happening to share a sentence?
+
+RELATED concepts that belong together (do NOT split): 
+
+- Scope + activity + outcome for the same responsibility: 
+"Oversee an estimated $500K in annual vendor spend across approximately 15 supplier relationships, resolving delivery failures and sourcing alternatives before disruptions reach leadership". This is one responsibility described completely. The scope, the activity, and the outcome are inseparable. Do not flag this as cramming.
+
+- An action and its direct result: 
+"Implemented Asana for 10 staff members, cutting project status interruptions by half". The action and outcome belong together.
+
+Strong (two separate bullets):
+"Managed onboarding for 10-15 new hires annually, coordinating equipment setup, system access, and orientation logistics end-to-end"
+"Resolved 3-4 customer escalations per week independently, consistently handling issues through to resolution without requiring management involvement"
+
+UNRELATED concepts that should be split (DO flag as cramming):
+
+Weak (one bullet cramming in two separate ideas):
+"Managed new hire onboarding including equipment and system setup while also handling customer escalations and complaints on a regular basis and making sure they were resolved quickly without always needing to involve management in the process"
+
 HOLLOW LANGUAGE: watch for language that sounds impressive but says nothing specific. "Leveraged synergies," "drove transformation," "spearheaded innovative solutions," "championed strategic initiatives" with no supporting specifics score low on clarity regardless of level. Specific, direct language about real work scores high regardless of how executive it sounds. For the bullet-level application of this rule including the write-the-action gate, see BULLET WRITING GATES in RESUME ELEMENTS.
 
 GRAMMAR CHECK: TENSE AND PERSON. Bullets and job summaries use first-person implied. No pronouns, no third-person conjugation. Present tense for current roles, past tense for past roles. Never use third-person conjugation (teaches, manages, coordinates). These read as if someone else is describing the candidate.
@@ -738,59 +767,100 @@ NEVER INCLUDE ON ANY RESUME:
 // ─────────────────────────────────────────────
 const LEVEL_WRITING_INSTRUCTIONS = {
   entry: `
-WRITING FOR ENTRY-LEVEL / STUDENT:
+WRITING FOR EARLY CAREER / ENTRY LEVEL:
+Career Length: Student, recent grad, or early career (under 5 years)
+Job Level: Entry Level — individual contributor, no management responsibility expected
+
 This resume should sound like the strongest version of an early-career candidate — 
-not a junior executive. Authentic, specific, and impressive for their stage.
+not a miniaturized executive. Authentic, specific, and impressive for their stage.
 
 Prioritize:
-- Relevant experience and what they actually did
-- Skills demonstrated through work, school, and activities  
-- Growth signals (initiative, learning, responsibility earned)
+- Relevant experience and what they actually did — specific, not general
+- Scope and scale metrics where they exist — how many, how often, how large
+- Skills demonstrated through work, school, and activities
+- Results metrics as a bonus when present — never required, always valuable
 - Academic achievements when they strengthen the picture
 
 Do NOT:
 - Use strategic or executive language
 - Inflate simple responsibilities
 - Add metrics that were not provided
-- Mention how young the candidate was in any role
+- Ask for or imply management evidence — not expected at this level
+- Mention the candidate's age or imply youth in any way
 
 The goal: A recruiter reads this and thinks "this is a prepared, capable candidate for this level."
 `,
   mid: `
-WRITING FOR MID-CAREER PROFESSIONAL:
-This resume should sound like a confident professional who has earned their expertise.
-Specific, grounded, and evidence-based.
+WRITING FOR MID-CAREER / MANAGEMENT LEVEL:
+Career Length: Mid-Career (5-15 years) — determine job level before writing
 
-Prioritize:
-- Growth and expanding responsibility over time
-- Leadership activities (training, mentoring, project ownership)
-- Process improvements and operational contributions
-- Metrics for roles that produce them; trust/complexity signals for roles that do not
+READ THE RESUME FIRST. Determine which applies:
 
-Do NOT:
-- Write at entry-level (undersells their experience)
-- Write at executive level (oversells their scope)
-- Use vague claims without grounding them in specifics
+INDIVIDUAL CONTRIBUTOR (mid-career, no management responsibility):
+Examples: experienced nurse, veteran coordinator, skilled tradesperson, senior analyst.
+- Write to depth of expertise and scope of work — not organizational authority
+- Scope and scale metrics expected and should be consistent
+- Results metrics where the role produces them
+- Process improvements and contributions beyond the job description
+- Do NOT use management-level language if they don't manage others
+- Do NOT ask for or imply team leadership evidence
+
+MANAGEMENT LEVEL (responsible for others' output):
+Examples: team lead, supervisor, manager, department head at coordinator level.
+- Write to team ownership, process development, accountability for others
+- Team size, results achieved through the team, how they developed others
+- Scope of budget, territory, or project responsibility
+- Results the team achieved — not just what they personally did
+- Do NOT write at executive scale — management, not strategy
+
+For both:
+- Specific, grounded, evidence-based
+- No vague claims without specifics
+- No hollow executive language
 
 The goal: A recruiter reads this and thinks "this person knows their field and gets results."
 `,
   senior: `
-WRITING FOR SENIOR / EXECUTIVE:
-This resume should reflect organizational scope and strategic leadership.
-Authoritative, specific about scale, and outcome-focused.
+WRITING FOR ESTABLISHED CAREER / SENIOR LEVEL:
+Career Length: Established Career (15+ years) — determine job level before writing
+
+READ THE RESUME FIRST. Determine which track applies:
+
+TRACK A — ESTABLISHED CAREER INDIVIDUAL CONTRIBUTOR:
+Long-tenured specialists, subject matter experts, veteran practitioners.
+Examples: 20-year nurse, veteran technical writer, experienced accountant, master tradesperson.
 
 Prioritize:
-- Organizational impact (programs built, transformations led)
-- Leadership at scale (team size, budget responsibility, cross-functional influence)
-- Strategic initiatives with business outcomes
-- Developing other leaders, not just doing the work
+- Depth and scope of expertise built over time
+- Scale of the work — how many, how large, how complex
+- Sustained reliability and trusted responsibilities
+- Any influence beyond their immediate role — mentoring, training, go-to expert status
+- Process contributions that outlasted their direct involvement
+- Results metrics where the role produces them; scope and complexity for others
 
 Do NOT:
-- Describe tasks — describe outcomes and influence
+- Use organizational transformation language unless the resume explicitly shows it
+- Imply management of large teams if they are an individual contributor
+- Reference industry influence, advisory roles, or board service unless it exists
+- Write at executive scale when they operate at expert-practitioner scale
+
+TRACK B — SENIOR BY ORGANIZATIONAL RANK:
+Directors, VPs, C-suite, Department Heads with significant team and budget responsibility.
+
+Prioritize:
+- Organizational impact — programs built, company-wide changes, transformations led
+- Leadership at scale — team size, budget responsibility, cross-functional influence
+- Strategic initiatives they personally drove or architected
+- Developing other leaders, not just managing direct reports
+- Quantified results for Zone 1 roles; organizational transformation evidence for others
+- Industry influence where it genuinely exists
+
+Do NOT:
+- Describe tasks — describe outcomes and organizational influence
 - Use hollow strategic language without specifics
 - Understate genuine executive scope
 
-The goal: A recruiter reads this and immediately understands the scale of leadership this person operates at.
+The goal: A recruiter reads this and immediately understands the depth and scale this person operates at.
 `
 }
 

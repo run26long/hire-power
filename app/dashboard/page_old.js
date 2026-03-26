@@ -550,7 +550,7 @@ const searchParams = useSearchParams();
                         ))}
                       </div>
                      
-                      <div className="mt-auto pt-6">
+                      <div className="mt-auto">
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push('/my-career'); }}
                           className="w-full text-white text-xs font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"

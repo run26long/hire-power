@@ -1174,9 +1174,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 
  {journeyStep === 'review' && (
         <>
-          <h3 className="font-semibold text-lg mb-3">📝 Review Your Resume</h3>
+          <h3 className="font-semibold text-lg -mt-3 mb-3">📝 Review Your Resume</h3>
           
-          <p className="text-xs text-gray-700 mb-4">
+          <p className="text-xs text-gray-700 mb-3">
             AI parsing isn't perfect, so things occasionally land in the wrong spot. Take a quick look at your resume, and make sure everything's where it should be. Click any section to edit or move content around.
           </p>
 
@@ -1818,8 +1818,7 @@ const getMessageText = (msg) => {
   const isTrialCoachingComplete = coachingMessages.some(msg =>
     msg.role === 'assistant' && (
       getMessageText(msg).toLowerCase().includes('click the button below') ||
-      getMessageText(msg).toLowerCase().includes('finish coaching') ||
-      getMessageText(msg).toLowerCase().includes('click below to view your improved bullet')
+      getMessageText(msg).toLowerCase().includes('finish coaching')
     )
   )
 
@@ -2171,8 +2170,8 @@ const getMessageText = (msg) => {
   }
 
   // ── Already used trial → upsell ──
-  if (trialCoachingUsed && !trialComplete) {
-    return (
+if (trialCoachingUsed && !trialComplete && userTier === 'free') {
+      return (
       <div className="space-y-2">
         <h3 className="font-semibold text-lg -mt-3">💬 Resume Coach</h3>
         <div className="bg-purple-50 rounded-lg p-2">
@@ -3266,7 +3265,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
       <h3 className="font-semibold text-lg">✏️ Improve Your Resume</h3>
       <p className="text-xs text-gray-700 text-center">Ready to tackle the rest? We'll walk you through the recommended changes one at a time below.</p>
       <p className="text-xs text-gray-500 text-center">
-        Want your entire resume coached?{' '}
+        Full resume coaching + we make the changes!       {' '}
         <button
           onClick={() => setShowUpgradeModal(true)}
           className="text-purple-600 font-medium hover:text-purple-700 underline"

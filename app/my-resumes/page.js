@@ -1317,9 +1317,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="flex items-center justify-center gap-6 text-xs text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
-    { color: '#e8853a', label: 'Developing' },
-    { color: '#ffc870', label: 'Strong' },
-    { color: '#81c784', label: 'Excellent' },
+    { color: '#ffc870', label: 'Developing' },
+    { color: '#81c784', label: 'Strong' },
+    { color: '#9333ea', label: 'Excellent' },
   ].map(({ color, label }) => (
     <div key={label} className="flex items-center gap-1">
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
