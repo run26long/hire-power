@@ -105,7 +105,7 @@ export default function MyCareerPage() {
       if (saveErr) throw saveErr;
 
       localStorage.setItem('hp_career_modal_seen', 'true');
-      router.push(`/my-career/detail?resumeId=${savedResume.id}`);
+      router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
     } catch (err) {
       console.error('Upload error:', err);
       setUploadError('Upload failed. Please try again.');
@@ -115,7 +115,7 @@ export default function MyCareerPage() {
 
   const handleContinueWithExisting = () => {
     localStorage.setItem('hp_career_modal_seen', 'true');
-    router.push(`/my-career/detail?resumeId=${existingResume.id}`);
+    router.push(`/career-coach/detail?resumeId=${existingResume.id}`);
   };
 
   const handleStartConversation = async () => {
@@ -125,7 +125,7 @@ export default function MyCareerPage() {
       .eq('resume_type', 'core')
       .order('updated_at', { ascending: false }).limit(1);
     if (resumes && resumes.length > 0) {
-      router.push(`/my-career/detail?resumeId=${resumes[0].id}`);
+      router.push(`/career-coach/detail?resumeId=${resumes[0].id}`);
     } else {
       // No resume yet — show modal
       setShowModal(true);
@@ -223,7 +223,7 @@ export default function MyCareerPage() {
 
       {/* Main Content Area */}
       <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
-        <MainNav currentPage="my-career" userProfile={userProfile} />
+        <MainNav currentPage="career-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
@@ -588,7 +588,7 @@ export default function MyCareerPage() {
                         <button
                           onClick={() => {
                             localStorage.setItem('hp_career_modal_seen', 'true');
-                            router.push('/my-career/build');
+                            router.push('/career-coach/build');
                           }}
                           className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
                         >

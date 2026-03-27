@@ -9,11 +9,17 @@ export default function MainNav({ currentPage, userProfile }) {
   const router = useRouter();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  const tier = userProfile?.subscription_tier;
+  const isVaultTier = tier === 'vault' || tier === 'maintenance';
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', path: '/dashboard' },
-    { id: 'my-career', label: 'Career Coach', path: '/my-career' },
-    { id: 'my-resumes', label: 'Resume Coach', path: '/my-resumes' },
-    { id: 'my-interviews', label: 'Interview Coach', path: '/my-interviews' },
+    { id: 'dashboard',       label: 'Dashboard',       path: '/dashboard' },
+    { id: 'career-coach',    label: 'Career Coach',    path: '/career-coach' },
+    { id: 'my-resumes',      label: 'Resume Coach',    path: '/my-resumes' },
+    { id: 'interview-coach', label: 'Interview Coach', path: '/interview-coach' },
+    isVaultTier
+      ? { id: 'career-vault', label: 'Career Vault', path: '/career-vault' }
+      : { id: 'job-tracker',  label: 'Job Tracker',  path: '/job-tracker' },
   ];
 
   const handleLogout = async () => {
@@ -69,13 +75,16 @@ export default function MainNav({ currentPage, userProfile }) {
               onClick={() => router.push('/profile')}
               className="flex items-center gap-2 text-gray-700 hover:text-purple-600"
             >
-             {userProfile?.subscription_tier === 'pro' && (
+              {tier === 'pro' && (
                 <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
               )}
-              {userProfile?.subscription_tier === 'maintenance' && (
-                <span className="text-[10px] font-bold text-white bg-gray-500 px-2 py-0.5 rounded-full">MAINTENANCE</span>
+              {tier === 'vault' && (
+                <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
               )}
-              {(!userProfile?.subscription_tier || userProfile?.subscription_tier === 'free') && (
+              {tier === 'maintenance' && (
+                <span className="text-[10px] font-bold text-white bg-gray-500 px-2 py-0.5 rounded-full">VAULT</span>
+              )}
+              {(!tier || tier === 'free') && (
                 <span
                   onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(true); }}
                   className="text-[10px] font-bold text-purple-600 bg-white border border-purple-200 px-2 py-0.5 rounded-full cursor-pointer hover:border-purple-400 hover:shadow-sm transition-all"
@@ -105,9 +114,9 @@ export default function MainNav({ currentPage, userProfile }) {
               </button>
             </div>
           )}
-          </div>
+        </div>
       </div>
-     <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
-     </div>
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+    </div>
   );
 }

@@ -416,6 +416,11 @@ if (data.ai_analysis) {
     if (data.coaching_conversation && data.coaching_conversation.length > 0) {
       setCoachingMessages(data.coaching_conversation)
     }
+
+    // Load remaining gaps if coaching is complete
+    if (data.remaining_gaps && data.remaining_gaps.length > 0) {
+      setRemainingGaps(data.remaining_gaps)
+    }
     // Initialize history
     const initialData = JSON.parse(JSON.stringify(data.resume_data || {}))
     setHistory([initialData])
@@ -667,6 +672,7 @@ if (showCtaModal) {
                     edge: 'Open Sans',
                   }
                   setSelectedFont(templateDefaultFonts[t] || 'Lato')
+                  setHasUnsavedChanges(true)
                 }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
@@ -688,7 +694,7 @@ if (showCtaModal) {
               <span className="font-bold">A</span>
               <select
                 value={selectedFont}
-                onChange={(e) => setSelectedFont(e.target.value)}
+                onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
                <option value="EB Garamond">EB Garamond</option>
@@ -704,7 +710,7 @@ if (showCtaModal) {
               <span>⚙️</span>
               <select
                 value={selectedSize}
-                onChange={(e) => setSelectedSize(Number(e.target.value))}
+                onChange={(e) => { setSelectedSize(Number(e.target.value)); setHasUnsavedChanges(true) }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
               >
                 {[10, 11, 12].map(size => (
@@ -718,7 +724,7 @@ if (showCtaModal) {
               <span>📅</span>
               <select
                 value={dateFormat}
-                onChange={(e) => setDateFormat(e.target.value)}
+                onChange={(e) => { setDateFormat(e.target.value); setHasUnsavedChanges(true) }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer"
               >
                 <option value="short">MM/YYYY</option>
@@ -982,7 +988,7 @@ fontFamily: selectedFont,
           setRecoachAttempts={setRecoachAttempts}
           setShowUpgradeModal={setShowUpgradeModal}
           setCoachingSamplesUsed={setCoachingSamplesUsed}
-        />
+            />
           </div>
         </div>
       </div>
@@ -1076,7 +1082,8 @@ fontFamily: selectedFont,
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed }) {  const isJobSpecific = resume?.resume_type === 'job_specific'
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed }) {  
+  const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
   const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
@@ -1189,20 +1196,22 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             </div>
           </div>
 
-          <div className="flex justify-center">
-  <button 
-   onClick={() => handleReassess()}
-    disabled={isAnalyzing}
-    className={`bg-purple-600 text-white rounded-lg px-6 py-2 font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-      isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
-    }`}
-  >
-    {isAnalyzing && (
-      <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-    )}
-    {isAnalyzing ? 'Analyzing...' : 'Looks Good → Assess Resume'}
-  </button>
-</div>
+          {!score && (
+            <div className="flex justify-center">
+              <button 
+                onClick={() => handleReassess()}
+                disabled={isAnalyzing}
+                className={`bg-purple-600 text-white rounded-lg px-6 py-2 font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                  isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                }`}
+              >
+                {isAnalyzing && (
+                  <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                )}
+                {isAnalyzing ? 'Analyzing...' : 'Looks Good → Assess Resume'}
+              </button>
+            </div>
+          )}
         </>
       )}
       {(journeyStep === 'start' || currentIndex < 0) && (
@@ -1518,13 +1527,13 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               {((resume?.coaching_complete === true
   ? (analysisResults?.analysis?.weaknesses || []).filter(w => ![
       /weak verb/i, /action verb/i, /passive/i, /vague language/i,
-      /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
-      /word choice/i, /tone/i, /clarity/i, /formatting/i, /grammar/i,
+      /filler/i, /rephrase/i, /reword/i, /stronger language/i,
+      /word choice/i, /clarity/i, /grammar/i,
       /spelling/i, /punctuation/i, /sentence structure/i, /break up/i,
-      /split/i, /combine/i, /bullet/i, /rewrite/i, /restructure/i,
-      /specific term/i, /field term/i, /terminology/i, /stronger verb/i,
-      /replace.*verb/i, /strengthen.*verb/i, /ownership verb/i,
-      /stronger action verb/i, /need stronger/i
+      /split/i, /combine/i, /rewrite/i, /restructure/i,
+      /stronger verb/i, /replace.*verb/i, /strengthen.*verb/i,
+      /ownership verb/i, /stronger action verb/i, /need stronger/i,
+      /concise/i, /streamline/i, /wordy/i, /redundant/i
     ].some(p => p.test(w)))
   : (analysisResults?.analysis?.weaknesses || [])
 ) || [
@@ -1550,13 +1559,13 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               {((resume?.coaching_complete === true
   ? (analysisResults?.analysis?.suggestions || []).filter(s => ![
       /weak verb/i, /action verb/i, /passive/i, /vague language/i,
-      /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
-      /word choice/i, /tone/i, /clarity/i, /formatting/i, /grammar/i,
+      /filler/i, /rephrase/i, /reword/i, /stronger language/i,
+      /word choice/i, /clarity/i, /grammar/i,
       /spelling/i, /punctuation/i, /sentence structure/i, /break up/i,
-      /split/i, /combine/i, /bullet/i, /rewrite/i, /restructure/i,
-      /specific term/i, /field term/i, /terminology/i, /stronger verb/i,
-      /replace.*verb/i, /strengthen.*verb/i, /ownership verb/i,
-      /stronger action verb/i, /need stronger/i
+      /split/i, /combine/i, /rewrite/i, /restructure/i,
+      /stronger verb/i, /replace.*verb/i, /strengthen.*verb/i,
+      /ownership verb/i, /stronger action verb/i, /need stronger/i,
+      /concise/i, /streamline/i, /wordy/i, /redundant/i
     ].some(p => p.test(s)))
   : (analysisResults?.analysis?.suggestions || [])
 ) || [
@@ -1658,39 +1667,41 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 )}
               </div>
             ) : (
-              // PRO TIER - Start coaching
-              <button 
-                onClick={async () => {
-                  setIsUpdatingJourney(true)
-                  try {
-                    const { error } = await supabase
-                      .from('resumes')
-                      .update({ 
-                        journey_step: 'coach',
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('id', params.id)
-                    if (error) {
-                      alert('Failed to start coaching. Please try again.')
-                    } else {
-                      setResume(prev => ({ ...prev, journey_step: 'coach' }))
+              // PRO TIER - Start coaching (only show if not yet coached)
+              !resume?.coaching_complete && (
+                <button 
+                  onClick={async () => {
+                    setIsUpdatingJourney(true)
+                    try {
+                      const { error } = await supabase
+                        .from('resumes')
+                        .update({ 
+                          journey_step: 'coach',
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('id', params.id)
+                      if (error) {
+                        alert('Something went wrong. Please try again.')
+                      } else {
+                        setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                      }
+                    } catch (err) {
+                      alert('Something went wrong. Please try again.')
+                    } finally {
+                      setIsUpdatingJourney(false)
                     }
-                  } catch (err) {
-                    alert('Something went wrong. Please try again.')
-                  } finally {
-                    setIsUpdatingJourney(false)
-                  }
-                }}
-                disabled={isUpdatingJourney}
-                className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors flex items-center gap-2 ${
-                  isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
-                }`}
-              >
-                {isUpdatingJourney && (
-                  <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                )}
-                {isUpdatingJourney ? 'Starting...' : 'Start Coaching →'}
-              </button>
+                  }}
+                  disabled={isUpdatingJourney}
+                  className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors flex items-center gap-2 ${
+                    isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+                  }`}
+                >
+                  {isUpdatingJourney && (
+                    <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                  )}
+                  {isUpdatingJourney ? 'Loading...' : 'Start Coaching →'}
+                </button>
+              )
             )}
             
                 </div>
@@ -1700,6 +1711,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
       {journeyStep === 'coach' && (
               <CoachStep
           resumeData={resumeData}
+          coachingComplete={resume?.coaching_complete || false}
           careerContext={careerContext}
           detectedLevel={detectedLevel}
           userName={userName}
@@ -1725,6 +1737,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setPostCoachingAnalysis={setPostCoachingAnalysis}
           setRemainingGaps={setRemainingGaps}
           setCoachingSamplesUsed={setCoachingSamplesUsed}
+          changesAccepted={resume?.changes_accepted || false}
+          remainingGaps={remainingGaps}
+          score={score}
         />
       )}
 
@@ -1757,6 +1772,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           userProfile={userProfile}
           detectedLevel={detectedLevel}
           setShowUpgradeModal={setShowUpgradeModal}
+          changesAccepted={resume?.changes_accepted || false}
         />
       )}
 
@@ -1787,8 +1803,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed }) {  const [userInput, setUserInput] = useState('')
-  const [sending, setSending] = useState(false)
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score }) {  const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [userTier, setUserTier] = useState(userTierProp || null)
   const [trialComplete, setTrialComplete] = useState(false)
@@ -1991,16 +2006,13 @@ const getMessageText = (msg) => {
         const writingQualityPatterns = [
   // Verb and language quality — AI's job
   /weak verb/i, /action verb/i, /passive/i, /vague language/i,
-  /filler/i, /generic/i, /rephrase/i, /reword/i, /stronger language/i,
-  /word choice/i, /tone/i, /clarity/i,
+  /filler/i, /rephrase/i, /reword/i, /stronger language/i,
+  /word choice/i, /clarity/i,
   // Formatting and structure — AI's job
-  /formatting/i, /grammar/i, /spelling/i, /punctuation/i,
+  /grammar/i, /spelling/i, /punctuation/i,
   /sentence structure/i, /break up/i, /split/i, /combine/i,
-  /bullet/i, /rewrite/i, /restructure/i,
-  // Terminology and keywords — AI's job
-  /specific term/i, /field term/i, /terminology/i, /specific language/i,
-  /ats/i, /keyword/i, /phrase/i, /add.*term/i, /include.*term/i,
-  /such as/i, /for example/i, /like '/i
+  /rewrite/i, /restructure/i,
+  /concise/i, /streamline/i, /wordy/i, /redundant/i
 ]
 
         const isWritingQuality = (text) =>
@@ -2066,6 +2078,7 @@ const getMessageText = (msg) => {
           rewritten_resume: finalResume,
           resume_changes: finalChanges,
           coaching_complete: true,
+          remaining_gaps: gaps,
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
@@ -2168,7 +2181,110 @@ const getMessageText = (msg) => {
       .eq('id', params.id)
     setResume(prev => ({ ...prev, journey_step: 'improve' }))
   }
+// ── Already generated → lock and show recoach prompt ──
+  if (coachingComplete && !trialComplete && userTier !== 'free') {
+    const showPushHarder = changesAccepted && score < 85 && remainingGaps?.length > 0
+    const showFormatFinish = changesAccepted
 
+    return (
+      <div className="space-y-3">
+
+        {/* Unified score card */}
+        <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
+          
+          {/* Purple header */}
+          <div
+            className="px-4 py-3 flex items-center gap-3"
+            style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)' }}
+          >
+            <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
+            <div>
+              <p className="font-bold text-white text-sm leading-tight">Coaching Complete!</p>
+              <p className="text-purple-100 text-xs leading-tight">
+                {changesAccepted
+                  ? "Here are the rewrite results after your coaching session."
+                  : "Your resume has been rewritten and is ready to review."}
+              </p>
+            </div>
+          </div>
+
+          {/* Scores */}
+          {scoreBeforeCoaching && score && (
+            <>
+              <div className="bg-white flex justify-center gap-6 pt-6 pb-3 px-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">Before</p>
+                  <p className={`text-6xl font-bold ${
+                    scoreBeforeCoaching >= 85 ? 'text-purple-300' :
+                    scoreBeforeCoaching >= 75 ? 'text-green-300' :
+                    scoreBeforeCoaching >= 60 ? 'text-yellow-300' :
+                    'text-red-300'
+                  }`}>{scoreBeforeCoaching}</p>
+                </div>
+                <div className="flex items-center justify-center mt-5">
+                 <span style={{ fontSize: '2rem', color: '#9ca3af', fontWeight: 500, lineHeight: 1 }}>➜</span>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">After</p>
+                  <p className="text-6xl font-bold text-purple-600">{score}</p>
+                </div>
+              </div>
+              {score > scoreBeforeCoaching ? (
+                <div className="bg-green-50 border-t border-green-100 py-2 text-center">
+                  <p className="text-xs font-semibold text-green-600">
+                    +{score - scoreBeforeCoaching} points from coaching
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border-t border-gray-100 py-2 text-center">
+                  <p className="text-xs text-gray-500">
+                    Your resume was already well-optimized.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Buttons */}
+        {!changesAccepted ? (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={advanceToImprove}
+              className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Review My Changes →
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2 justify-center pt-1">
+            {showPushHarder && (
+              <button
+                onClick={advanceToImprove}
+                className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors"
+              >
+                Push for a higher score →
+              </button>
+            )}
+            {showFormatFinish && (
+              <button
+                onClick={async () => {
+                  await supabase
+                    .from('resumes')
+                    .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                    .eq('id', params.id)
+                  setResume(prev => ({ ...prev, journey_step: 'format' }))
+                }}
+                className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+              >
+                Format & Finish →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
   // ── Already used trial → upsell ──
 if (trialCoachingUsed && !trialComplete && userTier === 'free') {
       return (
@@ -2487,7 +2603,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal }) {  const [accepting, setAccepting] = useState(false)
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted }) {  const [accepting, setAccepting] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
   const [acceptedChanges, setAcceptedChanges] = useState([])
@@ -2533,6 +2649,94 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
+  // RETURNING VISITOR VIEW — changes already accepted, don't show accept/review UI again
+  if (changesAccepted && userTier !== 'free') {
+    const showPushHarder = score < 85 && remainingGaps?.length > 0 && recoachAttempts < 2
+
+    return (
+      <div className="space-y-3">
+     
+        {/* Unified score card */}
+        {scoreBeforeCoaching && score && (
+          <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
+
+            {/* Purple header */}
+            <div
+              className="px-4 py-3 flex items-center gap-3"
+              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)' }}
+            >
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
+              <div>
+                <p className="font-bold text-white text-sm leading-tight">Improvements Applied!</p>
+                <p className="text-purple-100 text-xs leading-tight">
+                  Here's what your reviewed changes did for your resume.
+                </p>
+              </div>
+            </div>
+
+            {/* Scores */}
+            <div className="bg-white flex items-center justify-center gap-6 pt-6 pb-3 px-2">
+              <div className="text-center">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">Before</p>
+                <p className={`text-6xl font-bold ${
+                    scoreBeforeCoaching >= 85 ? 'text-purple-300' :
+                    scoreBeforeCoaching >= 75 ? 'text-green-300' :
+                    scoreBeforeCoaching >= 60 ? 'text-yellow-300' :
+                    'text-red-300'
+                  }`}>{scoreBeforeCoaching}</p>
+              </div>
+              <div className="flex items-center justify-center mt-5">
+                  <span style={{ fontSize: '2rem', color: '#9ca3af', fontWeight: 500, lineHeight: 1 }}>➜</span>
+                </div>
+              <div className="text-center">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">After</p>
+                <p className="text-6xl font-bold text-purple-600">{score}</p>
+              </div>
+            </div>
+
+            {score > scoreBeforeCoaching ? (
+              <div className="bg-green-50 border-t border-green-100 py-2 text-center">
+                <p className="text-xs font-semibold text-green-600">
+                  +{score - scoreBeforeCoaching} points from coaching
+                </p>
+              </div>
+            ) : (
+                <div className="bg-gray-50 border-t border-gray-100 py-2 text-center">
+                  <p className="text-xs text-gray-500">
+                    Your resume was already well-optimized.
+                  </p>
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex gap-2 justify-center pt-1">
+          {showPushHarder && (
+            <button
+              onClick={() => setShowGapsModal(true)}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              Push for a higher score →
+            </button>
+          )}
+          <button
+            onClick={async () => {
+              await supabase
+                .from('resumes')
+                .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                .eq('id', params.id)
+              setResume(prev => ({ ...prev, journey_step: 'format' }))
+            }}
+            className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+          >
+            Format & Finish →
+          </button>
+        </div>
       </div>
     )
   }
@@ -2609,7 +2813,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       <div className="flex items-center justify-center gap-4 mb-2">
                         <div className="text-center">
                           <p className="text-xs text-gray-500 mb-1">Before</p>
-                          <p className="text-5xl font-bold text-gray-400">{scoreBeforeCoaching}</p>
+                          <p className={`text-5xl font-bold ${
+                          scoreBeforeCoaching >= 85 ? 'text-purple-300' :
+                          scoreBeforeCoaching >= 75 ? 'text-green-300' :
+                          scoreBeforeCoaching >= 60 ? 'text-yellow-300' :
+                          'text-red-300'
+                        }`}>{scoreBeforeCoaching}</p>
                         </div>
                         <div className="text-2xl text-purple-300">→</div>
                         <div className="text-center">
@@ -2700,10 +2909,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
     try {
       await supabase
         .from('resumes')
-        .update({ resume_data: rewrittenResume, updated_at: new Date().toISOString() })
+        .update({ resume_data: rewrittenResume, changes_accepted: true, updated_at: new Date().toISOString() })
         .eq('id', params.id)
 
-      setResume(prev => ({ ...prev, resume_data: rewrittenResume }))
+      setResume(prev => ({ ...prev, resume_data: rewrittenResume, changes_accepted: true }))
       await handleReassess(rewrittenResume)
       setShowRevealModal(true)
     } catch (err) {
@@ -2730,10 +2939,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 
       await supabase
         .from('resumes')
-        .update({ resume_data: finalData, updated_at: new Date().toISOString() })
+        .update({ resume_data: finalData, changes_accepted: true, updated_at: new Date().toISOString() })
         .eq('id', params.id)
 
-      setResume(prev => ({ ...prev, resume_data: finalData }))
+      setResume(prev => ({ ...prev, resume_data: finalData, changes_accepted: true }))
       await handleReassess(finalData)
       setReviewMode(false)
       setShowRevealModal(true)
@@ -3095,7 +3304,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     <div className="flex items-center justify-center gap-4 mb-2">
                       <div className="text-center">
                         <p className="text-xs text-gray-500 mb-1">Before</p>
-                        <p className="text-5xl font-bold text-gray-400">{scoreBeforeCoaching}</p>
+                        <p className={`text-5xl font-bold ${
+                          scoreBeforeCoaching >= 85 ? 'text-purple-300' :
+                          scoreBeforeCoaching >= 75 ? 'text-green-300' :
+                          scoreBeforeCoaching >= 60 ? 'text-yellow-300' :
+                          'text-red-300'
+                        }`}>{scoreBeforeCoaching}</p>
                       </div>
                       <div className="text-2xl text-purple-300">→</div>
                       <div className="text-center">
@@ -3605,7 +3819,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
         </div>
 
         <div className="p-4 border-t border-gray-100 flex-shrink-0">
-          {!isTrialCoachingComplete ? (
+          {!isComplete ? (
             <div className="flex gap-2 items-center">
               <textarea
                 ref={inputRef}
@@ -3629,7 +3843,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
             </div>
           ) : (
             <button
-              onClick={finishTrialCoaching}
+              onClick={finishTargetedCoach}
               disabled={isFinishing}
               className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center justify-center gap-2 transition-colors"
             >
@@ -3733,7 +3947,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
       <h3 className="font-semibold text-lg">⭐ Resume Complete!</h3>
 
       <p className="text-sm text-gray-500">
-        {firstName ? `${firstName}'s ` : ''}{resumeName} is application-ready.
+        Your resume is application-ready.
       </p>
 
       <p className="text-sm text-gray-700">

@@ -43,7 +43,11 @@ Return this exact JSON structure (use empty arrays/strings/null if sections don'
   "education": [
     {
       "school": "",
-      "lines": ["Bachelor of Science in Major", "GPA: 3.8 | May 2027"]
+      "degree": "Bachelor of Science",
+      "field": "Major Name",
+      "graduationDate": "YYYY-MM",
+      "location": null,
+      "lines": ["GPA: 3.8", "Dean's List", "Relevant Coursework: Course 1, Course 2"]
     }
   ],
   "skillsCategories": {
@@ -80,7 +84,10 @@ Return this exact JSON structure (use empty arrays/strings/null if sections don'
 CRITICAL INSTRUCTIONS:
 - experience.bullets: Break job descriptions into array of achievement bullets (NOT a text paragraph)
 - experience.summary: Optional paragraph before bullets (only if resume has one)
-- education.lines: Flexible array of lines (degree on line 1, dates/GPA on line 2, honors on line 3, etc.)
+- education.degree: The degree name only (e.g., "Bachelor of Science", "Master of Arts", "Associate Degree"). Empty string if not present.
+- education.field: The field of study only (e.g., "Computer Science", "Business Administration", "Entertainment Management"). Empty string if not present.
+- education.graduationDate: Graduation or expected graduation date in YYYY-MM format. Null if not present.
+- education.lines: Supplementary info ONLY — GPA, honors, relevant coursework, honor societies, expected graduation note. Do NOT put degree name or field of study in lines[]. Those go in degree and field above.
 - skillsCategories: ALWAYS categorize skills into "Technical Skills" and "Professional Skills". Technical = programming languages, software, tools, technical abilities. Professional = soft skills, leadership, communication, management. If you can't categorize, use "Skills" as single category.
 - projects: Extract any personal projects, side projects, or portfolio work. Include project name, brief description, and link if available.
 - certifications: Extract professional certifications, licenses, or credentials. Format as "name" and "details" (organization | date).

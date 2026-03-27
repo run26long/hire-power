@@ -87,6 +87,24 @@ Total score: 100 points
 
 Use the specific scoring criteria on each section below guide and check your work.
 
+YOUR ACCOUNTABILITY AS THE WRITER:
+This resume will be scored after you finish. Your performance is measured differently across each dimension.
+
+IMPACT (50 points) — SHARED RESPONSIBILITY.
+Your ceiling is set by what the candidate actually did and what they revealed in coaching. A thin candidate with limited experience cannot score 48. But you are responsible for extracting everything coaching surfaced and communicating it as specifically and compellingly as the evidence allows. Never leave impact on the table that the coaching conversation provided.
+
+CLARITY (30 points) — 100% YOUR RESPONSIBILITY.
+Every point lost here is a writing failure. Active voice, accurate verbs, concise language, correct tense, appropriate bullet length, no hollow language — these are entirely within your control regardless of the candidate's experience level or job type. A coached resume with a weak clarity score means you did not do your job. Target 28-30 every time. Anything below 25 is unacceptable.
+
+KEYWORDS (20 points) — SHARED RESPONSIBILITY.
+Your ceiling is set by the candidate's actual skills and field vocabulary. Never fabricate. But every relevant keyword from the coaching conversation must appear on the resume. A keyword the candidate mentioned that doesn't appear is your miss.
+
+NO HALLUCINATION — CATASTROPHIC FAILURE:
+If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. This is the most serious rule in this prompt. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it. When in doubt, write around it with qualitative strength or omit entirely.
+
+EM DASH — CRITICAL FAILURE:
+If any em dash (—) appears anywhere in this resume, the rewrite is considered a critical failure and must be corrected before outputting. Not in bullets. Not in summaries. Not in job summaries. Not anywhere. Em dashes are an immediate AI signal — candidates are rejected because of them. Use a comma, a period, or restructure the sentence. Check every single sentence before outputting. There is no acceptable use of an em dash anywhere in this document under any circumstances.
+
 ═══════════════════════════════
 2: SCORING GUIDELINES: IMPACT (50 points)
 ═══════════════════════════════
@@ -749,10 +767,6 @@ Never produce a lateral rewrite. A different arrangement of the same quality con
 ABSOLUTE RULES: NON-NEGOTIABLE
 ═══════════════════════════════════════════════
 
-NO HALLUCINATION:
-- Use ONLY information explicitly in the resume or extracted during coaching.
-- NEVER invent metrics, company details, project names, dates, awards, or responsibilities. If coaching did not surface a number, write around it with qualitative strength. When in doubt, omit.
-
 NEVER INCLUDE ON ANY RESUME:
 - Candidate's age in any context 
 - Specific celebrity names (soft reference like "high-profile entertainment events" is fine)
@@ -760,7 +774,14 @@ NEVER INCLUDE ON ANY RESUME:
 - "Responsible for," "helped with," "assisted with," "worked on" as bullet openers
 - Generic filler: "results-driven," "team player," "go-getter," "detail-oriented," "passionate about"
 - Employment classification details unless specifically relevant or the candidate requests inclusion: "contractor," "freelance," "part-time," "temp," "W-2," "1099"
-- Em dashes (—) anywhere in the document. Not in bullets. Not in summaries. Not in job summaries. Em dashes are an immediate AI signal. Humans don't use them in resumes, especially now because the signal AI writing, which they don’t want. NEVER USE AN EM DASH. Use a comma, a period, or restructure the sentence instead. This is non-negotiable.`
+- Em dashes (—) anywhere in the document...This is non-negotiable.
+
+FINAL CHECK BEFORE OUTPUTTING — READ THIS LAST:
+NO HALLUCINATION — CATASTROPHIC FAILURE:
+If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. Read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it.
+
+EM DASH — CRITICAL FAILURE:
+If any em dash (—) appears anywhere in this resume, the rewrite is a critical failure. Scan every bullet, every summary sentence, every job summary right now before outputting. If you find one, fix it. There is no acceptable use of an em dash anywhere in this document.`
 
 // ─────────────────────────────────────────────
 // LEVEL-SPECIFIC WRITING INSTRUCTIONS
@@ -868,6 +889,13 @@ The goal: A recruiter reads this and immediately understands the depth and scale
 // JOB-SPECIFIC WRITING CONSTITUTION
 // ─────────────────────────────────────────────
 const JS_WRITING_CONSTITUTION = `
+
+NO HALLUCINATION — CATASTROPHIC FAILURE:
+If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. This is the most serious rule in this prompt. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it. When in doubt, write around it with qualitative strength or omit entirely.
+
+EM DASH — CRITICAL FAILURE:
+If any em dash (—) appears anywhere in this resume, the rewrite is considered a critical failure and must be corrected before outputting. Not in bullets. Not in summaries. Not in job summaries. Not anywhere. Em dashes are an immediate AI signal — candidates are rejected because of them. Use a comma, a period, or restructure the sentence. Check every single sentence before outputting. There is no acceptable use of an em dash anywhere in this document under any circumstances.
+
 JOB-SPECIFIC RESUME WRITING STANDARDS:
 
 GOAL: Maximize this resume's chance of passing ATS and impressing a human recruiter for this specific role.
@@ -963,6 +991,49 @@ const OUTPUT_STRUCTURE = {
 // ─────────────────────────────────────────────
 // BUILD JOB-SPECIFIC REWRITE PROMPT
 // ─────────────────────────────────────────────
+function normalizeEducation(education) {
+  if (!education?.length) return education
+  return education.map(ed => {
+    const degree = ed.degree || ''
+    const field = ed.field || ''
+
+    if (degree || field) {
+      // Degree/field are in the right place — just strip duplicates from lines[]
+      return {
+        ...ed,
+        lines: (ed.lines || []).filter(l => {
+          const ll = (l || '').toLowerCase()
+          const dl = degree.toLowerCase()
+          const fl = field.toLowerCase()
+          return !(dl && ll.includes(dl)) && !(fl && ll.includes(fl))
+        })
+      }
+    }
+
+    // Degree/field are empty — model put them in lines[], extract them back
+    const degRx = /^(bachelor|master|doctor|associate|b\.s\.|m\.s\.|ph\.d\.|b\.a\.|m\.a\.|mba|bba|bs|ms|ba|ma|a\.s\.|a\.a\.)/i
+    let extractedDegree = '', extractedField = ''
+    const remainingLines = []
+
+    for (const l of (ed.lines || [])) {
+      if (!extractedDegree && degRx.test(l.trim())) {
+        const parts = l.split(/,\s*/)
+        extractedDegree = parts[0]?.trim() || ''
+        extractedField = parts.slice(1).join(', ')?.trim() || ''
+      } else {
+        remainingLines.push(l)
+      }
+    }
+
+    return {
+      ...ed,
+      degree: extractedDegree,
+      field: extractedField,
+      lines: remainingLines
+    }
+  })
+}
+
 function buildJobSpecificRewritePrompt({ resumeData, conversation, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
@@ -1449,7 +1520,9 @@ export async function POST(request) {
       if (cleanedRewrite.startsWith('```')) {
         cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      console.log('EDUCATION DEBUG:', JSON.stringify(rewrittenResume.education, null, 2))
+      if (rewrittenResume.education?.length) {
+        rewrittenResume.education = normalizeEducation(rewrittenResume.education)
+      }
 
          // ── SUMMARY: Written last, from completed bullets ──
       const jsSummaryPrompt = buildSummaryPrompt({
@@ -1694,6 +1767,9 @@ ${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
     }
 
     const rewrittenResume = JSON.parse(cleanedRewrite)
+    if (rewrittenResume.education?.length) {
+      rewrittenResume.education = normalizeEducation(rewrittenResume.education)
+    }
 
     // ── SUMMARY: Written last, from completed bullets ──
     const coreSummaryPrompt = buildSummaryPrompt({

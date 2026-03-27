@@ -369,14 +369,14 @@ const supabase = createClient();
       <section className="hero">
         <div className="hero-left">
           <div style={{marginLeft:'48px'}}>
-          <p style={{fontFamily:"'Fraunces',serif",fontSize:'22px',fontWeight:400,fontStyle:'italic',color:'#9ca3af',letterSpacing:'-0.5px',marginBottom:'8px'}}>Job hunting is small talk.</p>
-          <h1>Your career<br/>deserves a<br/><em>conversation.</em></h1>
-          <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would, pulling out everything worth saying that you forgot to include.</p>
+          <p style={{fontFamily:"'Fraunces',serif",fontSize:'22px',fontWeight:400,fontStyle:'italic',color:'#9ca3af',letterSpacing:'-0.5px',marginBottom:'8px'}}>One 20-minute conversation now.</p>
+          <h1>Never write your<br/>resume <em>again.</em></h1>
+          <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would. We don&apos;t just tell you how to improve your resume. We do it for you. Then we keep building it in the background as your career grows.</p>
          
          <div style={{display:'flex',alignItems:'center',gap:'24px',margin:'0 0 24px',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{width:'3px',height:'36px',background:'var(--purple)',borderRadius:'2px',flexShrink:0}}/>
-              <p style={{fontFamily:"'Fraunces',serif",fontSize:'18px',fontWeight:700,fontStyle:'italic',color:'#1a1033',lineHeight:1.3,margin:0}}>You&apos;re only one conversation away<br/>from a resume that gets results.</p>
+              <p style={{fontFamily:"'Fraunces',serif",fontSize:'18px',fontWeight:700,fontStyle:'italic',color:'#1a1033',lineHeight:1.3,margin:0}}>Job hunting is small talk.<br/>Your career deserves a conversation.</p>
             </div>
             <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'var(--purple)',color:'white',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(108,99,255,0.35)',transition:'all 0.2s',flexShrink:0}}>Start now for free</button>
           </div>
@@ -540,7 +540,7 @@ const supabase = createClient();
                 <div style={{width:'20px',height:'20px',background:'rgba(255,255,255,0.2)',borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                   <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
                 </div>
-                <span style={{fontFamily:"'Fraunces',serif",fontSize:'14px',fontWeight:700,color:'white',fontStyle:'italic'}}>We saw Boeing and asked what it meant.</span>
+                <span style={{fontFamily:"'Fraunces',serif",fontSize:'14px',fontWeight:700,color:'white',fontStyle:'italic'}}>We saw Boeing and discovered the real story.</span>
               </div>
               <div style={{padding:'20px 22px',display:'flex',flexDirection:'column',gap:'18px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
@@ -880,7 +880,7 @@ const supabase = createClient();
               </div>
             </div>
 
-            {/* MAINTENANCE2 */}
+            {/* MAINTENANCE */}
             <div className="tier-card">
               <div className="tier-os-tag">Keep the OS Running</div>
               <div className="tier-name">Vault</div>

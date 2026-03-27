@@ -65,12 +65,16 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
             <SH title="Education" />
             {resumeData.education.map((ed, i) => (
               <View key={i} style={{ marginBottom: i < resumeData.education.length - 1 ? Math.round(12*sp) : 0 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, flex: 1 }}>{ed.school || ''}</Text>
-                  <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDate(ed.graduationDate, dateFormat)}</Text>
+                <View style={{ flexDirection: 'column' }}>
+                  <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{ed.school || ''}</Text>
+                  <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(4*sp) }}>{[[ed.degree, ed.field].filter(Boolean).join(', '), ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
                 </View>
-                <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(4*sp) }}>{[ed.degree, ed.field].filter(Boolean).join(', ')}</Text>
-                {ed.lines?.map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
+                {ed.lines?.filter(l => {
+                  const ll = (l || '').toLowerCase()
+                  const dl = (ed.degree || '').toLowerCase()
+                  const fl = (ed.field || '').toLowerCase()
+                  return !(dl && ll.includes(dl)) && !(fl && ll.includes(fl))
+                }).map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
               </View>
             ))}
           </View>

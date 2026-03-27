@@ -27,7 +27,7 @@ export async function POST(req) {
       const userId = session.client_reference_id;
       const priceId = session.metadata?.priceId;
 
-      const tier = priceId === process.env.STRIPE_PRO_PRICE_ID ? 'pro' : 'maintenance';
+      const tier = priceId === process.env.STRIPE_PRO_PRICE_ID ? 'pro' : 'vault';
 
       await supabase
         .from('profiles')

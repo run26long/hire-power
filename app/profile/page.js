@@ -75,24 +75,41 @@ export default function Profile() {
   async function handleDowngrade() {
     try {
       setProcessing(true)
+      const response = await fetch('/api/stripe/downgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
       const { error } = await supabase.from('profiles')
-        .update({ subscription_tier: TIERS.VAULT, downgrade_scheduled_date: new Date().toISOString() })
+        .update({ subscription_tier: 'vault', downgrade_scheduled_date: new Date().toISOString() })
         .eq('id', user.id)
       if (error) throw error
       setShowDowngradeModal(false)
       await loadProfile()
+      router.push('/career-vault')
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
   async function handleCancel() {
     try {
       setProcessing(true)
+      const response = await fetch('/api/stripe/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, feedback: cancelFeedback })
+      })
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
       const { error } = await supabase.from('profiles')
-        .update({ subscription_tier: TIERS.FREE, cancelled_at: new Date().toISOString(), cancellation_feedback: cancelFeedback })
+        .update({ cancelled_at: new Date().toISOString(), cancellation_feedback: cancelFeedback })
         .eq('id', user.id)
       if (error) throw error
-      setShowCancelModal(false); setCancelFeedback('')
+      setShowCancelModal(false)
+      setCancelFeedback('')
       await loadProfile()
+      router.push('/dashboard')
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
@@ -127,9 +144,9 @@ export default function Profile() {
   }
 
   const tierLabel = { [TIERS.FREE]: 'Free', [TIERS.PRO]: 'Pro', [TIERS.VAULT]: 'Vault' }
-  const tierColor = { [TIERS.FREE]: '#6b7280', [TIERS.PRO]: '#7c3aed', [TIERS.VAULT]: '#0369a1' }
-  const tierBg    = { [TIERS.FREE]: '#f3f4f6', [TIERS.PRO]: '#faf5ff', [TIERS.VAULT]: '#f0f9ff' }
-  const tierBorder = { [TIERS.FREE]: '#e5e7eb', [TIERS.PRO]: '#e9d5ff', [TIERS.VAULT]: '#bae6fd' }
+  const tierColor = { [TIERS.FREE]: '#6b7280', [TIERS.PRO]: '#7c3aed', [TIERS.VAULT]: '#7c3aed' }
+  const tierBg    = { [TIERS.FREE]: '#f3f4f6', [TIERS.PRO]: '#faf5ff', [TIERS.VAULT]: '#faf5ff' }
+  const tierBorder = { [TIERS.FREE]: '#e5e7eb', [TIERS.PRO]: '#e9d5ff', [TIERS.VAULT]: '#e9d5ff' }
 
   const cardBase = {
     background: '#fff',
@@ -469,7 +486,7 @@ export default function Profile() {
             <div style={modalBody}>
               {tier === TIERS.PRO && (
                 <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', marginBottom: 3 }}>Consider Maintenance instead ($4.99/month)</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', marginBottom: 3 }}>Consider Vault instead ($4.99/month)</p>
                   <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.4 }}>Keep your work safe between searches. Upgrade back to Pro anytime.</p>
                 </div>
               )}
@@ -483,7 +500,7 @@ export default function Profile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {tier === TIERS.PRO && (
                   <button onClick={() => { setShowCancelModal(false); setShowDowngradeModal(true) }} style={{ ...btnPurple, width: '100%' }}>
-                    Switch to Maintenance Instead
+                    Switch to Vault Instead
                   </button>
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
