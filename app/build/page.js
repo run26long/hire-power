@@ -15,7 +15,7 @@ export default function BuildPage() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
-  const [fromPage, setFromPage] = useState('my-career');
+  const [fromPage, setFromPage] = useState('career-coach');
   const [resumeId, setResumeId] = useState(null);
   
   // Resume data
@@ -96,7 +96,7 @@ export default function BuildPage() {
 
     // Get URL params
     const params = new URLSearchParams(window.location.search);
-    setFromPage(params.get('from') || 'my-career');
+    setFromPage(params.get('from') || 'career-coach');
     setResumeId(params.get('resumeId'));
 
     setLoading(false);
@@ -140,9 +140,9 @@ useEffect(() => {
 
       if (error) throw error;
 
-      if (fromPage === 'my-career') {
-        router.push(`/my-career/detail?resumeId=${savedResume.id}`);
-      } else if (fromPage === 'my-resumes') {
+      if (fromPage === 'career-coach') {
+        router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
+      } else if (fromPage === 'resume-coach') {
        router.push(`/resume/${savedResume.id}`);
       } else {
         router.push('/dashboard');
@@ -161,7 +161,7 @@ useEffect(() => {
   }
 
   const breadcrumbItems = [
-    { label: fromPage === 'my-career' ? 'My Career' : 'My Resumes', path: `/${fromPage}` },
+    { label: fromPage === 'career-coach' ? 'My Career' : 'My Resumes', path: `/${fromPage}` },
     { label: 'Build Resume' }
   ];
 

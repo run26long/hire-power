@@ -72,8 +72,8 @@ export default function ResumePDF({
           color: '#1a1a1a',
           paddingTop: 36,
           paddingBottom: 36,
-          paddingLeft: 56,
-          paddingRight: 56,
+          paddingLeft: 36,
+          paddingRight: 36,
           backgroundColor: '#ffffff'
         }}
       >

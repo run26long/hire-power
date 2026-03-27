@@ -151,7 +151,7 @@ const handleResumeUpdate = async (updatedData) => {
         }
       } else {
         // No resume ID - redirect back to My Career
-        router.push('/my-career');
+        router.push('/career-coach');
         return;
       }
 
@@ -221,7 +221,7 @@ const handleResumeUpdate = async (updatedData) => {
     setIsAIThinking(true);
 
     try {
-      const response = await fetch('/api/my-career', {
+      const response = await fetch('/api/career-coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -256,7 +256,7 @@ const handleResumeUpdate = async (updatedData) => {
  const handleConversationComplete = async () => {
     // Career context already saved by API
     // Redirect to My Resumes
-    router.push('/my-resumes');
+    router.push('/resume-coach');
   };
 
   if (loading) {
@@ -268,13 +268,13 @@ const handleResumeUpdate = async (updatedData) => {
   }
 
   const breadcrumbItems = [
-    { label: 'Career Coach', path: '/my-career' },
+    { label: 'Career Coach', path: '/career-coach' },
     { label: 'Career Conversation' }
   ];
 
  return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <MainNav currentPage="my-career" userProfile={userProfile} />
+      <MainNav currentPage="career-coach" userProfile={userProfile} />
       <Breadcrumb items={breadcrumbItems} />
 
 {/* Conversation Mode */}

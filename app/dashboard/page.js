@@ -143,7 +143,9 @@ const searchParams = useSearchParams();
   const journeyStep = coreResume?.journey_step || null;
   const hasCareer = !!careerContext;
   const hasResume = !!coreResume;
-  const isPro = false;
+  const tier = userProfile?.subscription_tier;
+  const isPro = tier === 'pro';
+  const isVaultTier = tier === 'vault' || tier === 'maintenance';
 
   function StatusPill({ status }) {
     const map = {
@@ -196,10 +198,12 @@ const searchParams = useSearchParams();
   const resumeNext = getResumeNextStep();
 
   const sidebarSteps = [
-    { num: '01', label: 'Career Coach',    sub: 'Clarify your direction — same field, new field, or somewhere in between.', path: '/my-career'     },
-    { num: '02', label: 'Résumé Coach',    sub: 'Uncover the achievements and skills that never made it to the page.',      path: '/my-resumes'    },
+    { num: '01', label: 'Career Coach',    sub: 'Clarify your direction — same field, new field, or somewhere in between.', path: '/career-coach'     },
+    { num: '02', label: 'Résumé Coach',    sub: 'Uncover the achievements and skills that never made it to the page.',      path: '/resume-coach'    },
     { num: '03', label: 'Interview Coach', sub: 'Learn how to explain your experience with confidence.',                     path: '/my-interviews' },
-    { num: '04', label: 'Career Vault',    sub: 'Capture your wins as they happen — never start from scratch again!',       path: null             },
+    isVaultTier
+      ? { num: '04', label: 'Career Vault',  sub: 'Capture your wins as they happen — never start from scratch again!', path: '/career-vault' }
+      : { num: '04', label: 'Job Tracker',   sub: 'Track every application. One card per job. Nothing slips.',          path: '/job-tracker'  },
   ];
 
   const labelStyle = { fontSize: 11, fontWeight: 900, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' };
@@ -481,15 +485,15 @@ const searchParams = useSearchParams();
         <MainNav currentPage="dashboard" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="px-8 py-3 max-w-[1400px] mx-auto w-full">
+          <div className="px-8 py-1.5 max-w-[1400px] mx-auto w-full">
 
             {/* ROW 1 */}
-            <div className="grid gap-2.5 mb-2.5" style={{ gridTemplateColumns: '1fr 2.2fr' }}>
+            <div className="grid gap-2 mb-2" style={{ gridTemplateColumns: '1fr 2.2fr' }}>
 
               {/* ① CAREER COACH */}
               <div
                 className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => router.push('/my-career')}
+                onClick={() => router.push('/career-coach')}
               >
                 <div className="p-2.5 pb-2 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -550,10 +554,10 @@ const searchParams = useSearchParams();
                         ))}
                       </div>
                      
-                      <div className="mt-auto pt-2">
+                      <div className="pt-1 flex justify-center">
                         <button
-                          onClick={(e) => { e.stopPropagation(); router.push('/my-career'); }}
-                          className="w-full text-white text-xs font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                          onClick={(e) => { e.stopPropagation(); router.push('/career-coach'); }}
+                          className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
                           style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                         >
                           Start the Conversation →
@@ -567,7 +571,7 @@ const searchParams = useSearchParams();
               {/* ② RESUME COACH — two columns: value prop + next step */}
               <div
                 className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => router.push('/my-resumes')}
+                onClick={() => router.push('/resume-coach')}
               >
                 <div className="p-2.5 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -623,7 +627,7 @@ const searchParams = useSearchParams();
             </div>
 
             {/* ROW 2 */}
-            <div className="grid gap-2.5" style={{ gridTemplateColumns: '2.2fr 1fr' }}>
+            <div className="grid gap-2" style={{ gridTemplateColumns: '2.2fr 1fr' }}>
 
               {/* ③ INTERVIEW COACH — two columns: power concepts + next step */}
               <div
@@ -676,40 +680,88 @@ const searchParams = useSearchParams();
                 </div>
               </div>
 
-              {/* ④ CAREER VAULT */}
-              <div className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all">
-                <div className="p-3 flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <div className="text-xl font-bold text-gray-900 tracking-tight">
-                      <span style={numStyle}>04</span>Career Vault
-                    </div>
-                    <span className="ml-auto"><StatusPill status={vaultStatus} /></span>
-                  </div>
-                  <div className="text-[13px] font-normal text-purple-600 mb-2">Track your wins before you forget them.</div>
-
-                  <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(99,102,241,0.04))', border: '1.5px solid rgba(124,58,237,0.12)' }}>
-                    <p className="text-[12px] font-bold italic text-gray-900 leading-snug mb-1" style={{ letterSpacing: '-0.03em' }}>
-                      "Three years from now, you won't remember what you accomplished today."
-                    </p>
-                    <p className="text-[11px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.02em' }}>
-                      Keep building your career archive between job searches. When opportunity knocks, you'll be ready.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-0.5 mb-1.5">
-                    {['Led Q3 launch across 3 teams', 'Promoted to Senior in 18 months', 'Cut onboarding from 3 weeks to 5 days'].map((win, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
-                        <span className="text-[11px] text-gray-500">{win}</span>
+              {/* ④ JOB TRACKER (Pro/Free) or CAREER VAULT (Vault tier) */}
+              {isVaultTier ? (
+                <div className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer" onClick={() => router.push('/career-vault')}>
+                  <div className="p-3 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className="text-xl font-bold text-gray-900 tracking-tight">
+                        <span style={numStyle}>04</span>Career Vault
                       </div>
-                    ))}
+                      <span className="ml-auto"><StatusPill status={vaultStatus} /></span>
+                    </div>
+                    <div className="text-[13px] font-normal text-purple-600 mb-2">Track your wins before you forget them.</div>
+                    <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(99,102,241,0.04))', border: '1.5px solid rgba(124,58,237,0.12)' }}>
+                      <p className="text-[12px] font-bold italic text-gray-900 leading-snug mb-1" style={{ letterSpacing: '-0.03em' }}>
+                        "Three years from now, you won't remember what you accomplished today."
+                      </p>
+                      <p className="text-[11px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                        Keep building your career archive between job searches. When opportunity knocks, you'll be ready.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-0.5 mb-1.5">
+                      {['Led Q3 launch across 3 teams', 'Promoted to Senior in 18 months', 'Cut onboarding from 3 weeks to 5 days'].map((win, i) => (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
+                          <span className="text-[11px] text-gray-500">{win}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[12px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.01em' }}>
+                      Your career OS, running in the background between searches.
+                    </p>
                   </div>
-
-                  <p className="text-[12px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.01em' }}>
-                    Job search complete? Activate Vault so your next resume builds itself while you live your career.
-                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm hover:border-purple-300 hover:shadow-md transition-all cursor-pointer" onClick={() => router.push('/job-tracker')}>
+                  <div className="p-3 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className="text-xl font-bold text-gray-900 tracking-tight">
+                        <span style={numStyle}>04</span>Job Tracker
+                      </div>
+                      <span className="ml-auto"><StatusPill status="Not Started" /></span>
+                    </div>
+                    <div className="text-[13px] font-normal text-purple-600 mb-2">Every application. One place. Nothing slips.</div>
+
+                    <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(99,102,241,0.04))', border: '1.5px solid rgba(124,58,237,0.12)' }}>
+                      <p className="text-[12px] font-bold italic text-gray-900 leading-snug mb-1" style={{ letterSpacing: '-0.03em' }}>
+                        "One card per job. Nothing lost."
+                      </p>
+                      <p className="text-[11px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                        One card per job. Your resume, interview practice, and application status — all in one place.
+                      </p>
+                    </div>
+
+                    {/* Kanban column preview */}
+                    <div className="flex gap-1 mb-2">
+                      {['Resume', 'Applied', 'Interview', 'Hired'].map((col, i) => (
+                        <div key={i} className="flex-1 rounded-md px-1 py-0.5 text-center" style={{ background: i === 3 ? 'rgba(21,128,61,0.06)' : 'rgba(124,58,237,0.04)', border: i === 3 ? '1px solid rgba(21,128,61,0.2)' : '1px solid rgba(124,58,237,0.12)' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: i === 3 ? '#15803d' : '#7c3aed' }}>{col}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col gap-px mb-2">
+                      {['Tailored resume linked to every job', 'Interview practice tied to each application', 'Hired cards saved to your Vault'].map((item, i) => (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-px bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.5 }}>
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
+                          <span className="text-[11px] text-gray-500">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-1 flex justify-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); router.push('/job-tracker'); }}
+                        className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                        style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                      >
+                        Start Tracking →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>

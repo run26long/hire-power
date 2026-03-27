@@ -76,7 +76,7 @@ const handleAutoFit = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser()
     const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
-    const minSize = 9.5
+    const minSize = 10
     const maxSize = 12
     let testSize = selectedSize
 
@@ -135,35 +135,57 @@ const handleAutoFit = async () => {
       setSelectedSpacing(bestSpacing)
       setResumeExceedsPage(false)
       isAutoFitJustRanRef.current = true
-      await save()
+      await save({ fontSize: bestSize, spacing: bestSpacing })
     } else {
-      // Too long — step down until it fits
+      // Too long — step down font size first
       testSize = Math.round((testSize - 0.5) * 10) / 10
       let fitted = false
+      let fittedSpacing = 1
       while (testSize >= minSize) {
-        const result = await checkSize(testSize)
+        const result = await checkSize(testSize, 1)
         if (result.pageCount === 1) {
-          setSelectedSize(testSize)
           fitted = true
-          isAutoFitJustRanRef.current = true
-          await save()
+          fittedSpacing = 1
           break
         }
         testSize = Math.round((testSize - 0.5) * 10) / 10
       }
+      // If font bottomed out, try tightening line spacing at min font size
       if (!fitted) {
-        setSelectedSize(minSize)
-        setShowTooLongModal(true)
-      } else {
+        testSize = minSize
+        let trySpacing = 1.2
+        while (trySpacing >= 1.0) {
+          const result = await checkSize(testSize, trySpacing)
+          if (result.pageCount === 1) {
+            fitted = true
+            fittedSpacing = trySpacing
+            break
+          }
+          trySpacing = Math.round((trySpacing - 0.05) * 100) / 100
+        }
+      }
+      if (fitted) {
+        setSelectedSize(testSize)
+        setSelectedSpacing(fittedSpacing)
         setResumeExceedsPage(false)
+        isAutoFitJustRanRef.current = true
+        await save({ fontSize: testSize, spacing: fittedSpacing })
+      } else {
+        // Couldn't fit — apply tightest values anyway, then show modal
+        // This gets them as close as possible before they manually trim content
+        setSelectedSize(minSize)
+        setSelectedSpacing(1.0)
+        setResumeExceedsPage(true)
+        isAutoFitJustRanRef.current = true
+        await save({ fontSize: minSize, spacing: 1.0 })
+        setShowTooLongModal(true)
       }
     }
- } catch (error) {
+  } catch (error) {
     console.error('Auto-fit error:', error)
     alert('Auto-fit failed. Please try again.')
   } finally {
     setIsAutoFitting(false)
-    setResumeExceedsPage(false)
   }
 }
 
@@ -332,18 +354,46 @@ function formatDate(dateString, format = dateFormat) {
     }
   }, [userProfile])
 
+ const pageCheckTimerRef = useRef(null)
+
+  const triggerPageCheck = () => {
+    if (pageCheckTimerRef.current) clearTimeout(pageCheckTimerRef.current)
+    pageCheckTimerRef.current = setTimeout(async () => {
+      if (isAutoFitJustRanRef.current) {
+        isAutoFitJustRanRef.current = false
+        return
+      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+        const response = await fetch('/api/generate-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeData: resume.resume_data,
+            templateName: templateForApi,
+            fontSize: selectedSize,
+            font: selectedFont,
+            accentColor: accentColor,
+            spacing: selectedSpacing,
+            action: 'check',
+            userId: user.id
+          })
+        })
+        if (response.ok) {
+          const { pageCount } = await response.json()
+          setResumeExceedsPage(pageCount > 1)
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    }, 1500)
+  }
+
   useEffect(() => {
-    if (isAutoFitJustRanRef.current) {
-      isAutoFitJustRanRef.current = false
-      return
-    }
-    const resumeEl = document.querySelector('[data-resume-content="true"]')
-    if (resumeEl) {
-      const pageHeight = (11 * 96) * 1.08
-      const isOver = resumeEl.scrollHeight > pageHeight
-      setResumeExceedsPage(isOver)
-    }
-  }, [resume?.resume_data])
+    if (!resume) return
+    triggerPageCheck()
+  }, [resume?.resume_data, selectedSize, selectedSpacing, selectedTemplate, selectedFont])
 
   useEffect(() => {
    const templateFonts = {
@@ -377,7 +427,7 @@ function formatDate(dateString, format = dateFormat) {
 
     if (error) {
       console.error('Error loading resume:', error)
-      router.push('/my-resumes')
+      router.push('/resume-coach')
       return
     }
 
@@ -491,16 +541,17 @@ if (data.ai_analysis) {
     }
   }
 
-  async function save() {
+  async function save(overrides = {}) {
     const { error } = await supabase
       .from('resumes')
       .update({ 
         resume_data: resume.resume_data,
         template_id: selectedTemplate,
         font_family: selectedFont,
-        font_size: selectedSize,
+        font_size: overrides.fontSize ?? selectedSize,
         date_format: dateFormat,
         accent_color: accentColor,
+        spacing: overrides.spacing ?? selectedSpacing,
         updated_at: new Date().toISOString()
       })
       .eq('id', params.id)
@@ -513,14 +564,6 @@ if (data.ai_analysis) {
     setHasUnsavedChanges(false)
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 2000)
-
-    // Check if resume exceeds one page (fast browser check, no API call)
-    const resumeEl = document.querySelector('[data-resume-content="true"]')
-    
-    if (resumeEl) {
-      const pageHeight = 11 * 96
-      setResumeExceedsPage(resumeEl.scrollHeight > pageHeight)
-    }
   }
 if (showCtaModal) {
     return (
@@ -614,7 +657,7 @@ if (showCtaModal) {
         <div className="text-center">
           <p className="text-gray-600">Resume not found</p>
           <button
-            onClick={() => router.push('/my-resumes')}
+            onClick={() => router.push('/resume-coach')}
             className="mt-4 text-purple-600 hover:text-purple-700"
           >
             ← Back to My Resumes
@@ -641,10 +684,10 @@ if (showCtaModal) {
           >×</button>
         </div>
       )}
-      <MainNav currentPage="my-resumes" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
+      <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
       <Breadcrumb items={[
-        { label: 'Resume Coach', path: '/my-resumes' },
+        { label: 'Resume Coach', path: '/resume-coach' },
         { label: resume.display_name || 'Core Resume' }
       ]} />
 
@@ -1317,7 +1360,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           })()}
           <div className="text-center mt-3">
             <button
-              onClick={() => window.location.href = '/my-resumes'}
+              onClick={() => window.location.href = '/resume-coach'}
               className="text-gray-400 text-xs hover:text-gray-600"
             >
               ← Back to My Resumes
@@ -3960,7 +4003,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
           <div className="flex flex-col gap-2" style={{ minWidth: '220px' }}>
             {!isJobSpecific && (
               <button
-                onClick={() => window.location.href = `/my-resumes?action=new-job-specific&from=${params.id}`}
+                onClick={() => window.location.href = `/resume-coach?action=new-job-specific&from=${params.id}`}
                 className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
               >
                 {userTier === 'free' ? '📊 Check Match Score for Any Job' : '🎯 Tailor for a Specific Job'}
@@ -3974,7 +4017,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
             </button>
           </div>
           <button
-            onClick={() => window.location.href = '/my-resumes'}
+            onClick={() => window.location.href = '/resume-coach'}
             className="text-gray-400 text-xs hover:text-gray-600"
           >
             ← Back to My Resumes

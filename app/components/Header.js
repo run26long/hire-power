@@ -14,7 +14,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/my-resumes', label: 'My Resumes' },
+    { href: '/resume-coach', label: 'My Resumes' },
     { href: '/profile', label: 'Profile' }
   ]
 

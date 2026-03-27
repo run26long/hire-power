@@ -72,7 +72,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setJobModalSourceId(fromId);
       setShowJobModal(true);
       // Clean URL without reload
-      window.history.replaceState({}, '', '/my-resumes');
+      window.history.replaceState({}, '', '/resume-coach');
     }
   }, []);
 
@@ -94,7 +94,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         return;
       }
 
-      const response = await fetch('/api/my-resumes/data', {
+      const response = await fetch('/api/resume-coach/data', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -573,7 +573,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
         {/* Main Content */}
         <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
-          <MainNav currentPage="my-resumes" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
+          <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
           <div className="flex-1 overflow-y-auto">
             <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
@@ -703,7 +703,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
       {/* Main Content Area */}
       <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
-        <MainNav currentPage="my-resumes" userProfile={userProfile} />
+        <MainNav currentPage="resume-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
@@ -1287,7 +1287,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         <p className="text-[10px] text-gray-500 text-center mt-1.5">
                           No resume?{' '}
                           <button
-                            onClick={() => router.push('/build?from=my-resumes')}
+                            onClick={() => router.push('/build?from=resume-coach')}
                             className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
                           >
                             Build from scratch →
@@ -1427,7 +1427,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     <p className="text-xs text-gray-500 text-center mt-2">
                       Don't have a resume yet?{' '}
                       <button
-                        onClick={() => router.push('/build?from=my-resumes')}
+                        onClick={() => router.push('/build?from=resume-coach')}
                         className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
                       >
                         Click here to build one
@@ -1772,7 +1772,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         <button
                           onClick={() => {
                             handleCompleteTour();
-                            router.push('/build?from=my-resumes');
+                            router.push('/build?from=resume-coach');
                           }}
                           className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
                         >

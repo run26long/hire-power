@@ -30,7 +30,7 @@ export default function MyResumesPage() {
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await fetch('/api/my-resumes/data', {
+      const response = await fetch('/api/resume-coach/data', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -95,7 +95,7 @@ export default function MyResumesPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <MainNav currentPage="my-resumes" userProfile={userProfile} />
+      <MainNav currentPage="resume-coach" userProfile={userProfile} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-8 py-6 max-w-[1400px] mx-auto w-full">
@@ -329,7 +329,7 @@ export default function MyResumesPage() {
                 Start by having a career conversation with our AI coach.
               </p>
               <button
-                onClick={() => router.push('/my-career')}
+                onClick={() => router.push('/career-coach')}
                 className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
               >
                 Start Career Conversation

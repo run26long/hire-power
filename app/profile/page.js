@@ -366,7 +366,7 @@ export default function Profile() {
               <div style={cardBase}>
                 <div style={cardHeader()}>
                   <span style={cardTitle}>Career Context</span>
-                  <button onClick={() => router.push('/my-career')} style={btnOutline}>Update in Career Coach</button>
+                  <button onClick={() => router.push('/career-coach')} style={btnOutline}>Update in Career Coach</button>
                 </div>
                 <div style={{ ...cardBody, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div>
