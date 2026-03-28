@@ -377,6 +377,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const handleDeleteResume = async (resumeId) => {
     try {
       setDeletingId(resumeId);
+      const { error: childError } = await supabase
+        .from('resumes')
+        .delete()
+        .eq('parent_resume_id', resumeId)
+        .eq('user_id', user.id);
+      if (childError) throw childError;
+
       const { error } = await supabase
         .from('resumes')
         .delete()
@@ -386,7 +393,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setConfirmDeleteId(null);
       await loadData();
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('Delete error:', error?.message || error?.code || JSON.stringify(error));
       alert('Could not delete resume. Please try again.');
     } finally {
       setDeletingId(null);

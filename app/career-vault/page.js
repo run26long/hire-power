@@ -73,21 +73,11 @@ export default function CareerVaultPage() {
   // Current job entry (from hired job card)
   const [currentJobEntry, setCurrentJobEntry] = useState(null);
 
-  // Archived job cards (mock for shell)
-  const [archivedCards] = useState([
-    {
-      id: '1', jobTitle: 'Marketing Coordinator', jobCompany: 'Acme Corp',
-      status: 'rejected', appliedDate: '2026-01-15', resumeLink: true, practiceCount: 3
-    },
-    {
-      id: '2', jobTitle: 'Event Manager', jobCompany: 'Summit Events',
-      status: 'hired', appliedDate: '2025-11-02', resumeLink: true, practiceCount: 5
-    },
-    {
-      id: '3', jobTitle: 'Project Coordinator', jobCompany: 'TechStart',
-      status: 'rejected', appliedDate: '2025-10-18', resumeLink: true, practiceCount: 2
-    },
-  ]);
+  // Archive state
+  const [archivedCards, setArchivedCards] = useState([]);
+  const [archivedCoreResumes, setArchivedCoreResumes] = useState([]);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, type: 'card' | 'core' }
+  const [archiveActionLoading, setArchiveActionLoading] = useState(false);
 
   const logInputRef = useRef(null);
 
@@ -115,8 +105,39 @@ export default function CareerVaultPage() {
         .from('resumes')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('resume_type', 'core');
+        .eq('resume_type', 'core')
+        .eq('is_active', true);
       setResumeCount(resumeCount || 0);
+
+      // Load archived job cards
+      const { data: archivedApps } = await supabase
+        .from('applications')
+        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
+        .eq('user_id', user.id)
+        .eq('application_status', 'archived')
+        .order('updated_at', { ascending: false });
+      setArchivedCards(archivedApps || []);
+
+      // Load archived core resumes (is_active = false)
+      const { data: inactiveCores } = await supabase
+        .from('resumes')
+        .select('id, display_name, created_at, updated_at, current_score, resume_power_score')
+        .eq('user_id', user.id)
+        .eq('resume_type', 'core')
+        .eq('is_active', false)
+        .order('updated_at', { ascending: false });
+      setArchivedCoreResumes(inactiveCores || []);
+
+      // Load current job entry from hired card
+      const { data: hiredCard } = await supabase
+        .from('applications')
+        .select('title, company, hired_at, application_date')
+        .eq('user_id', user.id)
+        .eq('application_status', 'hired')
+        .order('hired_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (hiredCard) setCurrentJobEntry(hiredCard);
 
       setLoading(false);
     }
@@ -166,6 +187,31 @@ export default function CareerVaultPage() {
     setAccomplishments(prev => prev.filter(a => a.id !== id));
   }
 
+  async function handleRestoreCore(resumeId) {
+    setArchiveActionLoading(true);
+    await supabase
+      .from('resumes')
+      .update({ is_active: true })
+      .eq('id', resumeId);
+    setArchivedCoreResumes(prev => prev.filter(r => r.id !== resumeId));
+    setResumeCount(prev => prev + 1);
+    setArchiveActionLoading(false);
+  }
+
+  async function handleHardDelete() {
+    if (!confirmDelete) return;
+    setArchiveActionLoading(true);
+    if (confirmDelete.type === 'core') {
+      await supabase.from('resumes').delete().eq('id', confirmDelete.id);
+      setArchivedCoreResumes(prev => prev.filter(r => r.id !== confirmDelete.id));
+    } else {
+      await supabase.from('applications').delete().eq('id', confirmDelete.id);
+      setArchivedCards(prev => prev.filter(c => c.id !== confirmDelete.id));
+    }
+    setConfirmDelete(null);
+    setArchiveActionLoading(false);
+  }
+
   function formatDate(dateString) {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -199,46 +245,49 @@ export default function CareerVaultPage() {
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Career Vault</h1>
           <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
-            Track your wins as they happen.
+            Job hunting is small talk.
           </p>
           <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
-            Stay ready between job searches.
+            Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
-          <p className="text-[15px] font-bold text-white leading-tight tracking-tight mt-3">
-            Three years from now, you won't remember what you accomplished today.
+          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
+            Three years from now, you won't remember today's achievements. 
+          </p>
+          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
+            But Hire Power will.
           </p>
         </div>
 
-        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
+        <div className="flex-1 px-6 pt-2 pb-6 flex flex-col justify-between">
           <div>
             <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">WHAT VAULT DOES</h4>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHAT VAULT DOES</h4>
               <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Log wins in 30 seconds</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Save your current job entry</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Log wins in 30 seconds</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Access all your resumes</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Run job match scores</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Generic interview practice</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Basic interview practice</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Browse your archive</span></li>
               </ul>
             </div>
 
-            <div className="mb-4">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">WHEN YOU'RE READY</h4>
+            <div className="mb-3">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHEN YOU'RE READY</h4>
               <ul className="space-y-1.5 text-sm">
                 <li className="flex items-start"><span className="mr-2">•</span><span>Upgrade to Pro</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>We coach everything you logged</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes  with your coach</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
               </ul>
             </div>
           </div>
 
           <div className="mt-auto">
-            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
+            <div className="mb-4 border-b border-gray-400 border-opacity-10"></div>
             <div>
               <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-                The OS running in the background between active sessions.
+                While you're building your career, we're already building your next resume.
               </p>
               <div className="flex items-center gap-2.5 text-white">
                 <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
@@ -258,12 +307,12 @@ export default function CareerVaultPage() {
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
 
-            <div className="grid grid-cols-12 gap-6">
+            <div className="grid grid-cols-12 gap-6 items-start">
 
               {/* LEFT: Accomplishments (8 cols) */}
               <div className="col-span-8 space-y-4">
 
-                {/* Current Job Entry */}
+                {/* Current Job Section */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Current Job</h2>
@@ -276,15 +325,76 @@ export default function CareerVaultPage() {
                     Your current role — accomplishments you log here attach to this job entry and feed directly into your next resume.
                   </p>
 
-                  {currentJobEntry ? (
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                      <p className="text-sm font-semibold text-gray-900">{currentJobEntry.title}</p>
-                      <p className="text-xs text-gray-500">{currentJobEntry.company}</p>
-                    </div>
-                  ) : (
+                  {currentJobEntry ? (() => {
+                    const start = currentJobEntry.hired_at
+                      ? new Date(currentJobEntry.hired_at)
+                      : currentJobEntry.application_date
+                      ? new Date(currentJobEntry.application_date)
+                      : null;
+                    let tenureStr = '';
+                    let sinceStr = '';
+                    if (start) {
+                      const now = new Date();
+                      const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+                      const years = Math.floor(totalMonths / 12);
+                      const months = totalMonths % 12;
+                      if (years > 0 && months > 0) tenureStr = `${years} yr ${months} mo`;
+                      else if (years > 0) tenureStr = `${years} yr`;
+                      else if (months > 0) tenureStr = `${months} mo`;
+                      else tenureStr = 'Just started';
+                      sinceStr = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    }
+                    return (
+                      <div className="flex gap-3 w-full">
+                        {/* Left: Job card — clickable */}
+                        <button
+                          onClick={() => {}}
+                          className="flex-1 bg-gray-50 rounded-lg border border-gray-200 p-3 hover:border-purple-300 hover:shadow-sm transition-all text-left group flex items-center gap-3"
+                        >
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '2px solid #86efac' }}>
+                            <span className="text-xl">🏆</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">{currentJobEntry.title}</p>
+                            <p className="text-xs text-gray-500 truncate">{currentJobEntry.company}</p>
+                            
+                          </div>
+                          <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors flex-shrink-0">→</span>
+                        </button>
+
+                        {/* Middle: Tenure card */}
+                        <div className="bg-gray-50 rounded-lg border border-gray-100 px-4 py-3 flex flex-col items-center justify-center text-center flex-shrink-0">
+                          {sinceStr && (
+                            <>
+                              <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider leading-none">Since</p>
+                              <p className="text-sm font-bold text-gray-700 mt-1 whitespace-nowrap">{sinceStr}</p>
+                              {tenureStr && tenureStr !== 'Just started' && (
+                                <p className="text-[10px] text-gray-400 mt-1 whitespace-nowrap">{tenureStr} in role</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Right: Wins card */}
+                        <div className="flex-1 bg-gray-50 rounded-lg border border-gray-100 p-3 flex items-center justify-between">
+                          <div className="flex flex-col items-center flex-1">
+                            <p className="text-3xl font-bold text-purple-600 leading-none">{accomplishments.length}</p>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Wins Logged</p>
+                          </div>
+                          <button
+                            onClick={() => setShowLogModal(true)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors"
+                          >
+                            <span>+</span> Log a Win
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })() : (
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50">
-                      <p className="text-xs text-gray-500 mb-3">
-                        No current job set. Mark a job card as Hired, and it appears here automatically. Or, add info below.
+                      <p className="text-xs text-gray-500 mb-2">
+                        No current job set. Mark a job card as Hired and it appears here automatically.
                       </p>
                       <button className="text-xs text-purple-600 font-semibold hover:text-purple-700">
                         Set current job manually →
@@ -294,27 +404,24 @@ export default function CareerVaultPage() {
                 </div>
 
                 {/* Accomplishments Log */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 pb-10">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
-                    <span className="text-xs text-gray-400">{accomplishments.length} logged</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-400">{accomplishments.length} logged</span>
+                      {accomplishments.length > 0 && (
+                        <button
+                          onClick={() => setShowLogModal(true)}
+                          className="text-xs text-purple-600 font-semibold hover:text-purple-700"
+                        >
+                          + Add
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500 mb-4">
                     Log wins as they happen — promotions, projects, metrics, skills, anything worth remembering.
                   </p>
-
-                  {/* Log New Button */}
-                  <button
-                    onClick={() => setShowLogModal(true)}
-                    className="w-full border-2 border-dashed border-purple-300 rounded-lg p-3 hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-center gap-3 mb-4 group"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center transition-colors">
-                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-900">Log a Win</span>
-                  </button>
 
                   {/* Accomplishment List */}
                   {accomplishments.length > 0 ? (
@@ -367,9 +474,9 @@ export default function CareerVaultPage() {
                       {[
                         { label: 'Logged',   value: accomplishments.length, icon: '🏆' },
                         { label: 'Resumes',  value: resumeCount,            icon: '📄' },
-                        { label: 'Archived', value: archivedCards.length,   icon: '📁' },
+                        { label: 'Archived', value: archivedCards.length + archivedCoreResumes.length, icon: '📁' },
                       ].map((item) => (
-                        <div key={item.label} className="text-center p-2 bg-gray-50 rounded-lg">
+                        <div key={item.label} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-100 select-none">
                           <div className="text-base">{item.icon}</div>
                           <div className="text-lg font-bold text-gray-700">{item.value}</div>
                           <div className="text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
@@ -381,28 +488,31 @@ export default function CareerVaultPage() {
                       </div>
                     <div className="space-y-1.5">
                       <button onClick={() => router.push('/resume-coach')}
-                        className="w-full flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-200 transition-colors text-left">
+                        className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">📄</span>
-                        <div>
+                        <div className="flex-1">
                           <p className="text-xs font-semibold text-gray-800">Resume Coach</p>
                           <p className="text-[10px] text-gray-400">View, format, download</p>
                         </div>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
                       </button>
                       <button onClick={() => router.push('/interview-coach')}
-                        className="w-full flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-200 transition-colors text-left">
+                        className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">🎤</span>
-                        <div>
+                        <div className="flex-1">
                           <p className="text-xs font-semibold text-gray-800">Interview Practice</p>
                           <p className="text-[10px] text-gray-400">Generic practice, always free</p>
                         </div>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
                       </button>
                       <button onClick={() => setShowArchiveModal(true)}
-                        className="w-full flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-200 transition-colors text-left">
+                        className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">📁</span>
-                        <div>
+                        <div className="flex-1">
                           <p className="text-xs font-semibold text-gray-800">View Archive</p>
-                          <p className="text-[10px] text-gray-400">{archivedCards.length} past job cards</p>
+                          <p className="text-[10px] text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
                         </div>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
                       </button>
                     </div>
                   </div>
@@ -484,12 +594,36 @@ export default function CareerVaultPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Approximate date <span className="font-normal text-gray-400">(optional)</span></label>
-                <input
-                  type="month"
-                  value={logDate}
-                  onChange={e => setLogDate(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={logDate ? logDate.split('-')[1] : ''}
+                    onChange={e => {
+                      const year = logDate ? logDate.split('-')[0] : new Date().getFullYear().toString();
+                      setLogDate(e.target.value ? `${year}-${e.target.value}` : '');
+                    }}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Month</option>
+                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
+                      <option key={m} value={m}>
+                        {['January','February','March','April','May','June','July','August','September','October','November','December'][i]}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={logDate ? logDate.split('-')[0] : ''}
+                    onChange={e => {
+                      const month = logDate ? logDate.split('-')[1] : '01';
+                      setLogDate(e.target.value ? `${e.target.value}-${month}` : '');
+                    }}
+                    className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Year</option>
+                    {Array.from({length: 10}, (_, i) => new Date().getFullYear() - i).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {logError && <p className="text-xs text-red-600">{logError}</p>}
@@ -545,63 +679,118 @@ export default function CareerVaultPage() {
             {/* Header */}
             <div
               style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
-              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+              className="px-6 py-5 relative"
             >
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
-                  <h2 className="text-base font-bold text-white">Job Archive</h2>
-                  <p className="text-purple-100 text-xs">{archivedCards.length} past applications — resumes and practices preserved</p>
+                  <h2 className="text-xl font-bold text-white">Job Archive</h2>
+                  <p className="text-purple-100 text-xs">{archivedCards.length + archivedCoreResumes.length} archived items — resumes and history preserved</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowArchiveModal(false)}
-                className="text-white hover:text-gray-200 text-4xl leading-none font-light w-8 h-8 flex items-center justify-center"
-              >×</button>
             </div>
 
-            {/* Scrollable card list */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-3">
-              {archivedCards.length > 0 ? archivedCards.map((card) => (
-                <div
-                  key={card.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-gray-900">{card.jobTitle}</p>
-                        <StatusBadge status={card.status} />
-                      </div>
-                      <p className="text-xs text-gray-500 mb-2">{card.jobCompany} · Applied {formatDate(card.appliedDate)}</p>
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-                      {/* Links row */}
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {card.resumeLink && (
-                          <button className="text-[10px] text-purple-600 font-semibold hover:text-purple-700 flex items-center gap-1">
-                            <span>📄</span> View Resume
-                          </button>
-                        )}
-                        {card.practiceCount > 0 && (
-                          <button className="text-[10px] text-purple-600 font-semibold hover:text-purple-700 flex items-center gap-1">
-                            <span>🎤</span> {card.practiceCount} Interview Practice{card.practiceCount !== 1 ? 's' : ''}
-                          </button>
-                        )}
-                        {card.status === 'hired' && (
-                          <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                            <span>🔒</span> JD saved to Vault
-                          </span>
-                        )}
+              {/* Section 1: Archived Core Resumes */}
+              {archivedCoreResumes.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Core Resumes</p>
+                  <div className="space-y-2">
+                    {archivedCoreResumes.map((resume) => (
+                      <div key={resume.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900 mb-0.5">{resume.display_name || 'Untitled Resume'}</p>
+                            <p className="text-xs text-gray-400">Archived {formatDate(resume.updated_at)}{resume.current_score ? ` · Score: ${resume.current_score}` : ''}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => router.push(`/resume/${resume.id}`)}
+                              className="text-[10px] text-purple-600 font-semibold hover:text-purple-700 flex items-center gap-1"
+                            >
+                              <span>📄</span> View
+                            </button>
+                            <button
+                              onClick={() => handleRestoreCore(resume.id)}
+                              disabled={archiveActionLoading}
+                              className="text-[10px] text-green-600 font-semibold hover:text-green-700 disabled:opacity-50"
+                            >
+                              Restore
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete({ id: resume.id, type: 'core' })}
+                              className="text-[10px] text-red-400 font-semibold hover:text-red-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              )) : (
-                <div className="text-center py-10 text-gray-400">
-                  <div className="text-4xl mb-2">📁</div>
-                  <p className="text-sm">No archived jobs yet</p>
-                </div>
               )}
+
+              {/* Section 2: Archived Job Cards */}
+              <div>
+                {archivedCoreResumes.length > 0 && (
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Past Applications</p>
+                )}
+                {archivedCards.length > 0 ? (
+                  <div className="space-y-2">
+                    {archivedCards.map((card) => (
+                      <div key={card.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-semibold text-gray-900">{card.title}</p>
+                              <StatusBadge status={card.application_status} />
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2">
+                              {card.company}{card.application_date ? ` · Applied ${formatDate(card.application_date)}` : ''}
+                            </p>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {card.resumes && (
+                                <button
+                                  onClick={() => router.push(`/resume/${card.resumes.id}`)}
+                                  className="text-[10px] text-purple-600 font-semibold hover:text-purple-700 flex items-center gap-1"
+                                >
+                                  <span>📄</span> View Resume
+                                </button>
+                              )}
+                              {card.application_status === 'hired' && (
+                                <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                  <span>🔒</span> JD saved to Vault
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setConfirmDelete({ id: card.id, type: 'card' })}
+                            className="text-[10px] text-red-400 font-semibold hover:text-red-600 flex-shrink-0"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : archivedCoreResumes.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <div className="text-4xl mb-2">📁</div>
+                    <p className="text-sm">No archived items yet</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 text-center py-4">No past applications yet</p>
+                )}
+              </div>
+
             </div>
 
             <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">

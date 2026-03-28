@@ -2041,6 +2041,8 @@ const getMessageText = (msg) => {
       const attemptOneScore = scoreCheckData?.score ?? null
 
       // Store post-coaching analysis for targeted recoach
+      let gaps = []
+
       if (scoreCheckData?.analysis) {
         setPostCoachingAnalysis(scoreCheckData.analysis)
 

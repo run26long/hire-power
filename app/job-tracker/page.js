@@ -51,7 +51,7 @@ export default function JobTrackerPage() {
 
       const { data: apps } = await supabase
         .from('applications')
-        .select('*, resumes(display_name, current_score)')
+        .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
         .eq('user_id', user.id)
         .not('application_status', 'eq', 'archived')
         .order('sort_order', { ascending: true });
@@ -110,10 +110,30 @@ export default function JobTrackerPage() {
       .update({ application_status: columnId, updated_at: new Date().toISOString() })
       .eq('id', dragCard.id);
 
-    // Auto-archive hired and rejected after brief delay so user sees it land
-    if (columnId === 'hired' || columnId === 'rejected') {
-      setTimeout(() => {
-        setArchivedCards(prev => [...prev, { ...dragCard, application_status: columnId }]);
+    // Auto-archive rejected after brief delay so user sees it land
+    if (columnId === 'rejected') {
+      setTimeout(async () => {
+        await supabase
+          .from('applications')
+          .update({ application_status: 'archived', updated_at: new Date().toISOString() })
+          .eq('id', dragCard.id);
+        setArchivedCards(prev => [...prev, { ...dragCard, application_status: 'archived' }]);
+        setApplications(prev => prev.filter(a => a.id !== dragCard.id));
+      }, 1800);
+    }
+
+    // Hired: write hired_at, set search_status on profile, remove from board
+    if (columnId === 'hired') {
+      const hiredAt = new Date().toISOString();
+      setTimeout(async () => {
+        await supabase
+          .from('applications')
+          .update({ hired_at: hiredAt, updated_at: hiredAt })
+          .eq('id', dragCard.id);
+        await supabase
+          .from('profiles')
+          .update({ search_status: 'hired' })
+          .eq('id', user.id);
         setApplications(prev => prev.filter(a => a.id !== dragCard.id));
       }, 1800);
     }
@@ -144,7 +164,7 @@ export default function JobTrackerPage() {
         application_date: new Date().toISOString().split('T')[0],
         sort_order: applications.length,
       })
-      .select('*, resumes(display_name, current_score)')
+      .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
       .single();
 
     if (error) {
@@ -315,7 +335,9 @@ export default function JobTrackerPage() {
                       className="flex-1 rounded-b-xl p-2 overflow-y-auto flex flex-col gap-2 transition-colors"
                       style={{
                         background: isOver ? col.bg : '#f9fafb',
-                        border: `1px solid ${isOver ? col.color : '#e5e7eb'}`,
+                        borderLeft: `1px solid ${isOver ? col.color : '#e5e7eb'}`,
+                        borderRight: `1px solid ${isOver ? col.color : '#e5e7eb'}`,
+                        borderBottom: `1px solid ${isOver ? col.color : '#e5e7eb'}`,
                         borderTop: 'none',
                         minHeight: 200,
                       }}

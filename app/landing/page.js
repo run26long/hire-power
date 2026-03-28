@@ -251,6 +251,7 @@ const supabase = createClient();
 
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .hero-left > * { animation: fadeUp 0.7s ease both; }
         .hero-eyebrow { animation-delay: 0.1s; }
         .hero h1 { animation-delay: 0.2s; }
@@ -683,6 +684,9 @@ const supabase = createClient();
         </div>
       </section>
 
+      {/* FINISH LINE SECTION */}
+      <FinishLineSection />
+
       {/* INTERVIEW MOMENT */}
       <section className="interview-moment">
         <div className="interview-moment-inner">
@@ -933,6 +937,334 @@ const supabase = createClient();
         <div className="footer-copy">© 2026 Hire Power. All rights reserved.</div>
       </footer>
       </div>
+    </>
+  );
+}
+function FinishLineSection() {
+  const [openIndex, setOpenIndex] = useState(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+
+  const problems = [
+    {
+      label: 'No Clear Process',
+      hook: 'Features scattered everywhere. Spent an hour just finding everything. No clear workflow. Never knew if we\'d tried everything or when we were actually done.',
+      solution: 'Guided journey from start to finish. Start, Assess, Coach, Improve, Polish, Save. You always know exactly where you are, what comes next, and when you\'re done.',
+    },
+    {
+      label: 'Broken Scoring',
+      hook: 'Scoring penalized things that aren\'t negative. Worse, it held every resume to the same standard — expecting students to have executive-level achievements. A strong student resume scored poorly because it wasn\'t a senior leader\'s resume.',
+      solution: 'Smart scoring calibrated to career level. Students are judged as students. Mid-career professionals as mid-career professionals. The rubric adapts to who you are and where you\'re going.',
+    },
+    {
+      label: 'Suggestion Overload',
+      hook: 'Competitors gave us 50+ suggestions per resume. So many it became impossible to figure out what actually mattered. We\'d spend an hour reviewing and leave with no better resume than we started with.',
+      solution: 'We don\'t give suggestions. We do the rewriting for you. One conversation, finished resume. You review and approve — but you never have to figure out how to implement 50 separate changes.',
+    },
+    {
+      label: 'AI Fiction',
+      hook: 'AI tools made things up. Created accomplishments we never mentioned. Added metrics we never provided. The resume looked impressive but was complete fiction.',
+      solution: 'We ask questions. We extract your story through conversation. Every number, every achievement, every skill on your resume is something you actually said. Nothing invented. Everything defensible in an interview.',
+    },
+    {
+      label: 'No Results',
+      hook: 'Other tools can only work with what\'s already on the page. If your best achievements never made it onto your resume in the first place, the tool can\'t help. It just polishes what you wrote — which might not be your strongest material.',
+      solution: 'We go beyond what\'s already there. Through conversation, we find achievements you forgot, skills you didn\'t realize mattered, and accomplishments you didn\'t think to include. We\'re not improving your resume. We\'re building a better one from your whole story.',
+    },
+  ];
+
+  const gridTemplate = openIndex !== null
+    ? problems.map((_, i) => i === openIndex ? '3fr' : '0.6fr').join(' ')
+    : 'repeat(5, 1fr)';
+
+  return (
+    <>
+    <section style={{
+      background: '#ffffff',
+      padding: '80px 0',
+      borderTop: '1px solid rgba(0,0,0,0.06)',
+      borderBottom: '1px solid rgba(0,0,0,0.06)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Radial glow */}
+      <div style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '900px', height: '600px',
+        background: 'radial-gradient(ellipse, rgba(147,51,234,0.045) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', position: 'relative' }}>
+
+        {/* Headline */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: '#9333ea', marginBottom: '16px'
+          }}>
+            Why We Built This
+          </div>
+          <h2 style={{
+            fontFamily: "'Fraunces', serif",
+            fontWeight: 400,
+            fontSize: 'clamp(20px,2vw,26px)',
+            color: '#9ca3af',
+            letterSpacing: '-0.5px',
+            margin: '0 0 6px',
+          }}>
+            Most tools give you features.
+          </h2>
+          <h2 style={{
+            fontFamily: "'Fraunces', serif",
+            fontWeight: 900,
+            fontSize: 'clamp(36px,4.5vw,60px)',
+            color: '#0D0D0D',
+            letterSpacing: '-2px',
+            lineHeight: 1.0,
+            margin: '0 0 24px',
+          }}>
+            We give you a <span style={{ color: '#9333ea', fontStyle: 'italic' }}>finish line.</span>
+          </h2>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '17px', color: '#6B7280',
+            lineHeight: 1.6, maxWidth: '800px', margin: '0 auto',
+          }}>
+            Ever spent an hour reviewing AI suggestions and walked away with the exact same resume you started with? We built Hire Power after living through every one of these. Here&apos;s what we fixed.
+          </p>
+        </div>
+
+        {/* Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: gridTemplate,
+          gap: '12px',
+          alignItems: 'stretch',
+          marginBottom: '-24px',
+        }}>
+          {problems.map((p, i) => {
+            const isOpen = openIndex === i;
+            const isHovered = hoveredIndex === i;
+            const isCollapsed = openIndex !== null && !isOpen;
+
+            return (
+              <button
+                key={i}
+                onClick={() => setOpenIndex(isOpen ? null : i)}
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                style={{
+                  background: isOpen
+                    ? '#ffffff'
+                    : isHovered
+                    ? '#f0e9ff'
+                    : 'linear-gradient(135deg, #faf5ff 0%, #f5f0ff 100%)',
+                  borderTop: `1.5px solid ${isOpen ? '#c4b5fd' : isHovered ? '#9333ea' : '#e9d5ff'}`,
+                  borderRight: `1.5px solid ${isOpen ? '#c4b5fd' : isHovered ? '#9333ea' : '#e9d5ff'}`,
+                  borderBottom: `1.5px solid ${isOpen ? '#c4b5fd' : isHovered ? '#9333ea' : '#e9d5ff'}`,
+                  borderLeft: `3px solid ${isOpen ? '#9333ea' : isHovered ? '#9333ea' : '#c4b5fd'}`,
+                  borderRadius: '14px',
+                  padding: isOpen ? '28px 32px' : '28px 18px',
+                  cursor: 'pointer',
+                  textAlign: isOpen ? 'left' : 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: isOpen ? 'flex-start' : 'center',
+                  justifyContent: isOpen ? 'flex-start' : 'center',
+                  gap: isOpen ? '0' : '10px',
+                  boxShadow: isOpen
+                    ? '0 4px 24px rgba(147,51,234,0.10)'
+                    : isHovered
+                    ? '0 4px 20px rgba(147,51,234,0.12)'
+                    : '0 1px 4px rgba(147,51,234,0.06)',
+                  opacity: isCollapsed ? 0.5 : 1,
+                  overflow: 'hidden',
+                  minHeight: '180px',
+                }}
+              >
+                {isOpen ? (
+                  <div style={{ animation: 'panelFadeUp 0.25s ease both', width: '100%' }}>
+                    {/* Header row */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between', marginBottom: '16px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{
+                          fontFamily: "'Fraunces', serif",
+                          fontSize: '48px', fontWeight: 900,
+                          color: '#c4b5fd',
+                          lineHeight: 1,
+                          letterSpacing: '-2px',
+                          flexShrink: 0,
+                        }}>
+                          {String(i + 1).padStart(2, '0')}
+                        </div>
+                        <div style={{
+                          fontFamily: "'Fraunces', serif",
+                          fontSize: '20px', fontWeight: 700,
+                          color: '#1a1033', lineHeight: 1.2,
+                          letterSpacing: '-0.3px',
+                        }}>
+                          {p.label}
+                        </div>
+                      </div>
+                      {/* Close button */}
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        background: '#ede9fe',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, marginLeft: '16px',
+                      }}>
+                        <span style={{ fontSize: '18px', color: '#7c3aed', fontWeight: 300, lineHeight: 1, marginTop: '-1px' }}>−</span>
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div style={{ height: '1px', background: '#c4b5fd', marginBottom: '20px' }} />
+
+                    {/* Two column content */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                      <div>
+                        <div style={{
+                          fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em',
+                          textTransform: 'uppercase', marginBottom: '10px',
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          color: '#e57373',
+                        }}>
+                          <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#e57373', flexShrink: 0 }} />
+                          The Problem
+                        </div>
+                        <p style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: '14px', fontWeight: 500,
+                          color: '#374151',
+                          lineHeight: 1.5, margin: 0,
+                        }}>
+                          {p.hook}
+                        </p>
+                      </div>
+                      <div>
+                        <div style={{
+                          fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em',
+                          textTransform: 'uppercase', marginBottom: '10px',
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          color: '#81c784',
+                        }}>
+                          <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#81c784', flexShrink: 0 }} />
+                          How Hire Power Fixes It
+                        </div>
+                        <p style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: '14px', fontWeight: 500,
+                          color: '#374151',
+                          lineHeight: 1.5, margin: 0,
+                        }}>
+                          {p.solution}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                   <div style={{
+                      fontFamily: "'Fraunces', serif",
+                      fontSize: isCollapsed ? '28px' : '36px',
+                      fontWeight: 900, lineHeight: 1,
+                      color: isHovered ? '#7c3aed' : '#9333ea',
+                      letterSpacing: '-1px', transition: 'color 0.2s, font-size 0.2s',
+                    }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </div>
+                    <div style={{
+                      fontFamily: "'Fraunces', serif",
+                      fontSize: isCollapsed ? '12px' : '15px',
+                      fontWeight: 700,
+                      color: isHovered ? '#7c3aed' : '#1a1033',
+                      lineHeight: 1.25, letterSpacing: '-0.2px',
+                      transition: 'color 0.2s, font-size 0.2s',
+                      overflow: 'hidden',
+                      width: '100%',
+                      textAlign: 'center',
+                      minHeight: '2.5em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {p.label}
+                    </div>
+                    <div style={{
+                      width: '24px', height: '24px', borderRadius: '50%',
+                      background: isHovered ? '#9333ea' : '#e9d5ff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.2s', flexShrink: 0, marginTop: '4px',
+                    }}>
+                      <span style={{
+                        fontSize: '16px', fontWeight: 300,
+                        color: isHovered ? 'white' : '#9333ea',
+                        lineHeight: 1, marginTop: '-1px',
+                      }}>+</span>
+                    </div>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+     </div>
+    </section>
+
+    {/* Transition callout */}
+    <div style={{
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '0 48px 80px',
+      marginTop: '-4px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        display: 'flex',
+        gap: '0',
+        justifyContent: 'center',
+      }}>
+       
+        {/* Text */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1px',
+          maxWidth: '900px',
+        }}>
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '18px',
+            fontWeight: 400,
+            color: '#9ca3af',
+            lineHeight: 1.4,
+            margin: 0,
+          }}>
+            Every one of these problems costs you interviews. We fixed them so you can focus on what comes next.
+          </p>
+          
+          <p style={{
+            fontFamily: "'Fraunces', serif",
+            fontSize: 'clamp(22px,2.5vw,32px)',
+            fontWeight: 900,
+            color: '#9333ea',
+            fontStyle: 'italic',
+            lineHeight: 1.1,
+            letterSpacing: '-0.5px',
+            margin: 0,
+          }}>
+            Because your resume is only half the conversation.
+          </p>
+        </div>
+      </div>
+    </div>
     </>
   );
 }
