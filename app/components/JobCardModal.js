@@ -1,0 +1,466 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+function StatusBadge({ status }) {
+  const config = {
+    resume_in_progress: { label: 'Resume Ready', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
+    applied:            { label: 'Applied',       bg: '#fefce8', border: '#fde047', text: '#854d0e' },
+    interview:          { label: 'Interview',     bg: '#eff6ff', border: '#93c5fd', text: '#1e40af' },
+    hired:              { label: 'Hired',         bg: '#f0fdf4', border: '#86efac', text: '#166534' },
+    rejected:           { label: 'Rejected',      bg: '#fef2f2', border: '#fca5a5', text: '#991b1b' },
+    archived:           { label: 'Archived',      bg: '#f9fafb', border: '#d1d5db', text: '#6b7280' },
+  };
+  const c = config[status] || config.applied;
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide"
+      style={{ background: c.bg, borderColor: c.border, color: c.text }}>
+      {c.label}
+    </span>
+  );
+}
+
+export default function JobCardModal({
+  card,
+  onClose,
+  onArchive,
+  onSaveNotes,
+  onLogWin,
+  onLinkResume,
+  onScheduleInterview,
+  jsResumes = [],
+  interviewRounds = [],
+  context = 'tracker',
+  accomplishmentsCount = 0,
+}) {
+  const router = useRouter();
+  const [showJdModal, setShowJdModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+  const [scheduleVenue, setScheduleVenue] = useState('');
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [notesValue, setNotesValue] = useState(card.notes || '');
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+  }
+
+  const notesChanged = notesValue !== (card.notes || '');
+
+  return (
+    <>
+      {/* ── MAIN CARD MODAL ── */}
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+        onClick={onClose}
+      >
+        <div
+          className="bg-white shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+          style={{ borderRadius: '12px', maxHeight: '90vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+            className="px-6 py-5 relative flex-shrink-0"
+          >
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+            >×</button>
+            <div className="flex items-center gap-3">
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h2 className="text-xl font-bold text-white">{card.title}</h2>
+                  <StatusBadge status={card.application_status} />
+                </div>
+                <p className="text-purple-100 text-xs">{card.company}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+            {/* Date row */}
+            {(card.application_date || card.follow_up_date || card.interview_date || card.hired_at) && (
+              <div className="flex gap-2 flex-wrap">
+                {card.application_date && (
+                  <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Applied</p>
+                    <p className="text-xs font-semibold text-gray-700">{formatDate(card.application_date)}</p>
+                  </div>
+                )}
+                {card.follow_up_date && card.application_status === 'applied' && (
+                  <div className="bg-blue-50 rounded-lg px-3 py-2 border border-blue-100 text-center">
+                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wide">Follow Up</p>
+                    <p className="text-xs font-semibold text-blue-700">{formatDate(card.follow_up_date)}</p>
+                  </div>
+                )}
+                {card.interview_date && (
+                  <div className="bg-amber-50 rounded-lg px-3 py-2 border border-amber-100 text-center">
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Interview</p>
+                    <p className="text-xs font-semibold text-amber-800">{formatDate(card.interview_date)}</p>
+                  </div>
+                )}
+                {card.hired_at && (
+                  <div className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center">
+                    <p className="text-[10px] font-bold text-green-500 uppercase tracking-wide">Hired</p>
+                    <p className="text-xs font-semibold text-green-800">{formatDate(card.hired_at)}</p>
+                  </div>
+                )}
+                {interviewRounds.map((round, i) => (
+                  <div key={round.id} className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center">
+                    <p className="text-[10px] font-bold text-green-500 uppercase tracking-wide">Interview {i + 1}</p>
+                    <p className="text-xs font-semibold text-green-800">
+                      {new Date(round.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                    <p className="text-[9px] text-green-600">{round.venue || ''}</p>
+                  </div>
+                ))}
+                {card.resumes?.current_score && (
+                  <div className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100 text-center">
+                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wide">Score</p>
+                    <p className="text-xs font-semibold text-purple-700">{card.resumes.current_score}</p>
+                  </div>
+                )}
+                {context === 'vault' && (
+                  <div className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100 text-center">
+                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wide">Wins</p>
+                    <p className="text-xs font-semibold text-purple-700">{accomplishmentsCount}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Documents */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Documents</p>
+
+              {card.resumes ? (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">📄</span>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">JS Resume</p>
+                      <p className="text-[10px] text-gray-400">{card.resumes.display_name}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/resume/${card.resume_id}`)}
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                  >Open →</button>
+                </div>
+              ) : (
+                <div className="p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm">📄</span>
+                    <p className="text-xs text-gray-400">No resume linked yet</p>
+                  </div>
+                  {jsResumes.length > 0 && (
+                    <select
+                      defaultValue=""
+                      onChange={e => { if (e.target.value) onLinkResume?.(card.id, e.target.value); }}
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                    >
+                      <option value="">Link a JS resume...</option>
+                      {jsResumes.map(r => (
+                        <option key={r.id} value={r.id}>{r.display_name || 'Untitled'}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {card.cover_letter_id && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">✉️</span>
+                    <p className="text-xs font-semibold text-gray-800">Cover Letter</p>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/cover-letter/${card.cover_letter_id}`)}
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                  >Open →</button>
+                </div>
+              )}
+
+              {card.description && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">📋</span>
+                    <p className="text-xs font-semibold text-gray-800">Job Description</p>
+                  </div>
+                  <button
+                    onClick={() => setShowJdModal(true)}
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                  >View →</button>
+                </div>
+              )}
+            </div>
+
+            {/* Action prompts — tracker only, contextual to status */}
+            {context === 'tracker' && card.application_status !== 'hired' && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Actions</p>
+
+                {card.application_status === 'resume_in_progress' && (
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div>
+                      <p className="text-xs font-semibold text-purple-800">Build Cover Letter</p>
+                      <p className="text-[10px] text-purple-500">Tailored to this job</p>
+                    </div>
+                    <span className="text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                  </div>
+                )}
+
+                {card.application_status === 'applied' && (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800">Send Follow-Up</p>
+                        <p className="text-[10px] text-blue-500">Draft a follow-up email in one click</p>
+                      </div>
+                      <span className="text-[10px] text-blue-300 font-semibold">Coming soon</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                      <div>
+                        <p className="text-xs font-semibold text-purple-800">Prep for Interview</p>
+                        <p className="text-[10px] text-purple-500">Practice questions for this role</p>
+                      </div>
+                      <span className="text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                    </div>
+                  </>
+                )}
+
+                {card.application_status === 'interview' && (
+                  <>
+                    <div
+                      className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100 cursor-pointer hover:border-green-300 transition-colors"
+                      onClick={() => setShowScheduleModal(true)}
+                    >
+                      <div>
+                        <p className="text-xs font-semibold text-green-800">
+                          {interviewRounds.length === 0 ? 'Schedule Interview' : `Schedule Interview ${interviewRounds.length + 1}`}
+                        </p>
+                        <p className="text-[10px] text-green-600">Date, time, and format</p>
+                      </div>
+                      <span className="text-xs font-semibold text-green-500">+ Add →</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                      <div>
+                        <p className="text-xs font-semibold text-purple-800">Practice Interview</p>
+                        <p className="text-[10px] text-purple-500">AI-spoken questions for this role</p>
+                      </div>
+                      <span className="text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                      <div>
+                        <p className="text-xs font-semibold text-green-800">Write Thank-You Note</p>
+                        <p className="text-[10px] text-green-500">Send within 24 hours to stand out</p>
+                      </div>
+                      <span className="text-[10px] text-green-300 font-semibold">Coming soon</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Notes */}
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Notes</p>
+              <textarea
+                value={notesValue}
+                onChange={e => { setNotesValue(e.target.value); setNotesSaved(false); }}
+                placeholder="Recruiter name, referral source, interview notes..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-none"
+              />
+              {notesChanged && (
+                <button
+                  onClick={async () => {
+                    setNotesSaving(true);
+                    await onSaveNotes?.(card.id, notesValue);
+                    setNotesSaving(false);
+                    setNotesSaved(true);
+                  }}
+                  disabled={notesSaving}
+                  className="mt-1 text-[10px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                >
+                  {notesSaving ? 'Saving...' : notesSaved ? 'Saved ✓' : 'Save notes'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+            {context === 'tracker' && (
+              <button
+                onClick={() => onArchive?.(card.id)}
+                className="flex-1 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Remove from Board
+              </button>
+            )}
+            {context === 'vault' && onLogWin && (
+              <button
+                onClick={onLogWin}
+                className="flex-1 py-2 border border-purple-200 rounded-lg text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors"
+              >
+                + Log a Win
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="flex-1 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
+              style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── SCHEDULE INTERVIEW MODAL ── */}
+      {showScheduleModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowScheduleModal(false)}
+        >
+          <div
+            className="bg-white shadow-2xl w-full max-w-sm overflow-hidden"
+            style={{ borderRadius: '12px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+              className="px-6 py-5 relative"
+            >
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {interviewRounds.length === 0 ? 'Schedule Interview' : `Schedule Interview ${interviewRounds.length + 1}`}
+                  </h2>
+                  <p className="text-purple-100 text-xs">{card.title} · {card.company}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={e => setScheduleDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Time</label>
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={e => setScheduleTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Format</label>
+                <select
+                  value={scheduleVenue}
+                  onChange={e => setScheduleVenue(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Select format...</option>
+                  <option value="Phone">Phone</option>
+                  <option value="Zoom">Zoom</option>
+                  <option value="In Person">In Person</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="flex justify-center pt-1">
+                <button
+                  onClick={async () => {
+                    if (!scheduleDate) return;
+                    setScheduleSaving(true);
+                    const eventDate = scheduleTime
+                      ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString()
+                      : new Date(scheduleDate).toISOString();
+                    await onScheduleInterview?.(card.id, {
+                      event_date: eventDate,
+                      venue: scheduleVenue,
+                      status: 'interview_scheduled',
+                    });
+                    setScheduleSaving(false);
+                    setShowScheduleModal(false);
+                    setScheduleDate('');
+                    setScheduleTime('');
+                    setScheduleVenue('');
+                  }}
+                  disabled={scheduleSaving || !scheduleDate}
+                  className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                  style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                >
+                  {scheduleSaving ? 'Saving...' : 'Save Interview'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── JD MODAL ── */}
+      {showJdModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowJdModal(false)}
+        >
+          <div
+            className="bg-white shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
+            style={{ borderRadius: '12px', maxHeight: '85vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">{card.title}</h3>
+                <p className="text-xs text-gray-500">{card.company} · Job Description</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigator.clipboard.writeText(card.description)}
+                  className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                >Copy</button>
+                <button
+                  onClick={() => setShowJdModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >×</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{card.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

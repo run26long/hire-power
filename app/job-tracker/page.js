@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import JobCardModal from '../components/JobCardModal';
 
 const COLUMNS = [
   { id: 'resume_in_progress', label: 'Resume Ready', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
@@ -22,6 +23,7 @@ export default function JobTrackerPage() {
   const [applications, setApplications] = useState([]);
   const [archivedCards, setArchivedCards] = useState([]);
   const [jsResumes, setJsResumes] = useState([]);
+  const [interviewRounds, setInterviewRounds] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -67,7 +69,7 @@ export default function JobTrackerPage() {
 
       const { data: resumes } = await supabase
         .from('resumes')
-        .select('id, display_name, current_score')
+        .select('id, display_name, current_score, job_title, job_company, job_description')
         .eq('user_id', user.id)
         .eq('resume_type', 'job_specific')
         .order('updated_at', { ascending: false });
@@ -182,6 +184,32 @@ export default function JobTrackerPage() {
     setAddLoading(false);
   };
 
+  const handleScheduleInterview = async (cardId, eventData) => {
+    const { data } = await supabase
+      .from('application_events')
+      .insert({
+        application_id: cardId,
+        ...eventData,
+      })
+      .select()
+      .single();
+    if (data) {
+      setInterviewRounds(prev => [...prev, data]);
+    }
+  };
+
+  const handleLinkResume = async (cardId, resumeId) => {
+    await supabase
+      .from('applications')
+      .update({ resume_id: resumeId, updated_at: new Date().toISOString() })
+      .eq('id', cardId);
+    const resume = jsResumes.find(r => r.id === resumeId);
+    setApplications(prev => prev.map(a =>
+      a.id === cardId ? { ...a, resume_id: resumeId, resumes: resume || null } : a
+    ));
+    setSelectedCard(prev => prev ? { ...prev, resume_id: resumeId, resumes: resume || null } : prev);
+  };
+
   const handleArchiveCard = async (cardId) => {
     const card = applications.find(a => a.id === cardId);
     await supabase
@@ -216,68 +244,46 @@ export default function JobTrackerPage() {
       >
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 tracking-tight">Job Tracker</h1>
-          <p className="text-[13px] text-white leading-tight mb-0.5">Every application.</p>
-          <p className="text-[13px] text-white leading-tight">One place. Nothing slips.</p>
+          <p className="text-[13px] text-white leading-tight mb-0.5">Job hunting is small talk.</p>
+          <p className="text-[13px] text-white leading-tight">Your career deserves a conversation.</p>
           <div className="mt-4 border-b border-white border-opacity-10"></div>
+          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
+            Every application in one place. Nothing slips through the cracks.
+          </p>
         </div>
 
-        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
+        <div className="flex-1 px-6 pt-2 pb-6 flex flex-col justify-between">
           <div>
-            {/* Stats */}
             <div className="mb-5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white opacity-70 mb-2">YOUR SEARCH</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
-                  <div className="text-2xl font-bold text-white">{totalActive}</div>
-                  <div className="text-[10px] text-white opacity-70">Active</div>
-                </div>
-                <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
-                  <div className="text-2xl font-bold text-white">{totalInterviews}</div>
-                  <div className="text-[10px] text-white opacity-70">Interviews</div>
-                </div>
-              </div>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHAT TRACKER DOES</h4>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-start"><span className="mr-2">•</span><span>Track every application</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Move cards as you progress</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Link your resume & cover letter</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Store and view the job posting</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Log notes along the way</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Stay organized start to finish</span></li>
+              </ul>
             </div>
 
-            {/* Column counts */}
-            <div className="mb-5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white opacity-70 mb-2">BOARD</h4>
-              <div className="space-y-1.5">
-                {COLUMNS.map(col => (
-                  <div key={col.id} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-white opacity-50 flex-shrink-0"></div>
-                    <span className="text-xs text-white opacity-80">{col.label}</span>
-                    <span className="ml-auto text-xs font-bold text-white opacity-50">
-                      {getColumnCards(col.id).length}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-2">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="w-full text-white text-xs font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity text-left flex items-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.15)' }}
-              >
-                <span>+</span> Add Job Card
-              </button>
-              <button
-                onClick={() => setShowArchiveModal(true)}
-                className="w-full text-white text-xs font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity text-left flex items-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.10)' }}
-              >
-                <span>📁</span> View Archive ({archivedCards.length})
-              </button>
+            <div className="mb-3">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHEN YOU GET HIRED</h4>
+              <ul className="space-y-1.5 text-sm">
+                <li className="flex items-start"><span className="mr-2">•</span><span>Card moves to Career Vault</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Job description saved</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Track wins from day one</span></li>
+              </ul>
             </div>
           </div>
 
           <div className="mt-auto">
-            <div className="mb-3 border-b border-white border-opacity-10"></div>
+            <div className="mb-4 border-b border-white border-opacity-10"></div>
+            <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
+              While you're building your career, we're already building your next resume.
+            </p>
             <div className="flex items-center gap-2.5 text-white">
               <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
-              <p className="text-xs font-medium leading-tight opacity-90">Hired cards save to your Vault.</p>
+              <p className="text-sm font-medium leading-tight">Saves to Vault when hired.</p>
             </div>
           </div>
         </div>
@@ -356,32 +362,44 @@ export default function JobTrackerPage() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, card)}
                           onDragEnd={handleDragEnd}
-                          onClick={() => { setSelectedCard(card); setShowCardModal(true); }}
-                          className="bg-white rounded-lg p-2.5 shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:border-purple-300 hover:shadow-md transition-all"
-                          style={{ opacity: dragCard?.id === card.id ? 0.4 : 1 }}
+                          onClick={async () => {
+            setSelectedCard(card);
+            setShowCardModal(true);
+            if (card.application_status === 'interview' || card.application_status === 'hired') {
+              const { data } = await supabase
+                .from('application_events')
+                .select('*')
+                .eq('application_id', card.id)
+                .eq('status', 'interview_scheduled')
+                .order('event_date', { ascending: true });
+              setInterviewRounds(data || []);
+            } else {
+              setInterviewRounds([]);
+            }
+          }}
+                          className="bg-white rounded-lg p-2.5 shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:border-purple-300 hover:shadow-md transition-all flex flex-col"
+                          style={{ opacity: dragCard?.id === card.id ? 0.4 : 1, height: '100px' }}
                         >
-                          <p className="text-xs font-bold text-gray-900 leading-tight mb-0.5">{card.title}</p>
-                          <p className="text-[11px] text-gray-500 mb-1.5">{card.company}</p>
+                          <p className="text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
+                          <p className="text-[11px] text-gray-500">{card.company}</p>
 
-                          {card.resumes && (
-                            <div className="mb-1">
+                          <div className="mt-auto pt-1 flex flex-wrap gap-1">
+                            {card.resumes && (
                               <span className="text-[9px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded-md font-semibold">
                                 Resume linked
                               </span>
-                            </div>
-                          )}
+                            )}
 
-                          {card.interview_date && (
-                            <div className="mb-1">
+                            {card.interview_date && (
                               <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded-md font-semibold">
                                 📅 {new Date(card.interview_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                               </span>
-                            </div>
-                          )}
+                            )}
 
-                          {card.notes && (
-                            <p className="text-[10px] text-gray-400 mt-1 leading-tight line-clamp-2">{card.notes}</p>
-                          )}
+                            {card.notes && (
+                              <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">{card.notes}</p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -406,7 +424,35 @@ export default function JobTrackerPage() {
                 <button onClick={() => setShowAddModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
             </div>
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-4 space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Link to JS Resume</label>
+                <p className="text-[10px] text-gray-400 mb-1">Select a JS resume to auto-fill the job details, or fill them in manually below.</p>
+                <select
+                  value={newResumeId}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setNewResumeId('');
+                      setNewTitle('');
+                      setNewCompany('');
+                    } else {
+                      const selected = jsResumes.find(r => r.id === val);
+                      setNewResumeId(val);
+                      const nameParts = (selected?.display_name || '').split(' at ');
+                      setNewTitle(selected?.job_title || nameParts[0] || '');
+                      setNewCompany(selected?.job_company || nameParts[1] || '');
+                      setNewDescription(selected?.job_description || '');
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">No resume linked — fill in manually</option>
+                  {jsResumes.map(r => (
+                    <option key={r.id} value={r.id}>{r.display_name || 'Untitled'}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Job Title *</label>
                 <input
@@ -415,7 +461,6 @@ export default function JobTrackerPage() {
                   onChange={e => setNewTitle(e.target.value)}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  autoFocus
                 />
               </div>
               <div>
@@ -429,17 +474,14 @@ export default function JobTrackerPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Link to JS Resume</label>
-                <select
-                  value={newResumeId}
-                  onChange={e => setNewResumeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">No resume linked yet</option>
-                  {jsResumes.map(r => (
-                    <option key={r.id} value={r.id}>{r.display_name || 'Untitled'}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Job Description</label>
+                <textarea
+                  value={newDescription}
+                  onChange={e => setNewDescription(e.target.value)}
+                  placeholder="Paste the job description here..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Notes</label>
@@ -451,17 +493,11 @@ export default function JobTrackerPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                 />
               </div>
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-center pt-1">
                 <button
                   onClick={handleAddCard}
                   disabled={!newTitle || !newCompany || addLoading}
-                  className="flex-1 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+                  className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                   style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                 >
                   {addLoading ? 'Adding...' : 'Add Card'}
@@ -474,88 +510,20 @@ export default function JobTrackerPage() {
 
       {/* Card Detail Modal */}
       {showCardModal && selectedCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-white">{selectedCard.title}</h2>
-                  <p className="text-purple-100 text-xs">{selectedCard.company}</p>
-                </div>
-                <button onClick={() => setShowCardModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
-              </div>
-            </div>
-            <div className="px-6 py-5 space-y-3">
-
-              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs font-bold text-gray-500 mb-0.5 uppercase tracking-wide">Status</p>
-                <p className="text-sm font-semibold text-gray-900 capitalize">{selectedCard.application_status?.replace(/_/g, ' ')}</p>
-              </div>
-
-              {selectedCard.resumes && (
-                <div className="flex items-center justify-between p-2.5 bg-purple-50 rounded-lg border border-purple-100">
-                  <div>
-                    <p className="text-xs font-bold text-purple-700">Linked Resume</p>
-                    <p className="text-xs text-purple-600">{selectedCard.resumes.display_name}</p>
-                  </div>
-                  <button
-                    onClick={() => router.push(`/resume/${selectedCard.resume_id}`)}
-                    className="text-xs font-bold text-purple-600 hover:text-purple-800"
-                  >
-                    Open →
-                  </button>
-                </div>
-              )}
-
-              {selectedCard.interview_date && (
-                <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100">
-                  <p className="text-xs font-bold text-amber-700 mb-0.5">Interview Date</p>
-                  <p className="text-sm font-semibold text-amber-900">
-                    {new Date(selectedCard.interview_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </p>
-                </div>
-              )}
-
-              {selectedCard.notes && (
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs font-bold text-gray-500 mb-0.5 uppercase tracking-wide">Notes</p>
-                  <p className="text-sm text-gray-700">{selectedCard.notes}</p>
-                </div>
-              )}
-
-              {isPro && (
-                <div className="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg border border-amber-100">
-                  <div>
-                    <p className="text-xs font-bold text-amber-700">Interview Coach</p>
-                    <p className="text-[10px] text-amber-600">Practice for this specific job</p>
-                  </div>
-                  <button
-                    onClick={() => router.push('/interview-coach')}
-                    className="text-xs font-bold text-amber-700 hover:text-amber-900"
-                  >
-                    Practice →
-                  </button>
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => handleArchiveCard(selectedCard.id)}
-                  className="flex-1 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50"
-                >
-                  Archive
-                </button>
-                <button
-                  onClick={() => setShowCardModal(false)}
-                  className="flex-1 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <JobCardModal
+          card={selectedCard}
+          onClose={() => setShowCardModal(false)}
+          onArchive={handleArchiveCard}
+          onSaveNotes={async (cardId, notes) => {
+            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            setApplications(prev => prev.map(a => a.id === cardId ? { ...a, notes } : a));
+          }}
+          onLinkResume={handleLinkResume}
+          onScheduleInterview={handleScheduleInterview}
+          jsResumes={jsResumes}
+          interviewRounds={interviewRounds}
+          context="tracker"
+        />
       )}
 
       {/* Archive Modal */}

@@ -16,7 +16,7 @@ export default function CurrentTemplate({ resumeData, font, fontSize, spacing = 
       fontSize: `${base}pt`,
       lineHeight: '1.25',
       color: '#1a1a1a',
-      padding: `${px(36)} ${px(56)}`,
+      padding: `${px(43)} ${px(43)}`,
       background: '#fff',
       width: '100%',
       boxSizing: 'border-box',

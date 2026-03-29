@@ -317,6 +317,18 @@ export async function GET(req) {
       console.error('Versions error:', versionsError);
     }
     
+    // Get cover letters
+    const { data: coverLetters, error: coverLettersError } = await supabase
+      .from('cover_letters')
+      .select('id, job_title, job_company, linked_resume_id, created_at')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (coverLettersError) {
+      console.error('Cover letters error:', coverLettersError);
+    }
+
     // Check if user has completed Career Coach
     const { data: careerContext } = await supabase
       .from('career_context')
@@ -345,6 +357,7 @@ export async function GET(req) {
       version_name: v.display_name,
       job_title: v.job_title,
       job_company: v.job_company,
+      job_description: v.job_description,
       match_score: v.current_score,
       updated_at: v.updated_at,
       journey_step: v.journey_step,
@@ -364,6 +377,7 @@ export async function GET(req) {
       },
       coreResume: coreResumeData,
       resumeVersions: resumeVersionsData,
+      coverLetters: coverLetters || [],
       stats: {
         hasCoreResume: !!coreResume,
         hasCareerContext: !!careerContext?.completed_at,

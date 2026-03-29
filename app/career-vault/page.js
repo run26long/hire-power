@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import JobCardModal from '../components/JobCardModal';
 
 // Status badge colors — muted to avoid clashing with HP purple
 function StatusBadge({ status }) {
@@ -73,6 +74,10 @@ export default function CareerVaultPage() {
   // Current job entry (from hired job card)
   const [currentJobEntry, setCurrentJobEntry] = useState(null);
 
+  // Job card modal
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [jsResumes, setJsResumes] = useState([]);
+
   // Archive state
   const [archivedCards, setArchivedCards] = useState([]);
   const [archivedCoreResumes, setArchivedCoreResumes] = useState([]);
@@ -131,13 +136,22 @@ export default function CareerVaultPage() {
       // Load current job entry from hired card
       const { data: hiredCard } = await supabase
         .from('applications')
-        .select('title, company, hired_at, application_date')
+        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
         .eq('user_id', user.id)
         .eq('application_status', 'hired')
         .order('hired_at', { ascending: false })
         .limit(1)
         .single();
       if (hiredCard) setCurrentJobEntry(hiredCard);
+
+      // Load JS resumes for linking
+      const { data: jsResumesData } = await supabase
+        .from('resumes')
+        .select('id, display_name, current_score')
+        .eq('user_id', user.id)
+        .eq('resume_type', 'job_specific')
+        .order('updated_at', { ascending: false });
+      setJsResumes(jsResumesData || []);
 
       setLoading(false);
     }
@@ -275,11 +289,19 @@ export default function CareerVaultPage() {
 
             <div className="mb-3">
               <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHEN YOU'RE READY</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Upgrade to Pro</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes  with your coach</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
-              </ul>
+              {isPro ? (
+                <ul className="space-y-1.5 text-sm">
+                  <li className="flex items-start"><span className="mr-2">•</span><span>Jump back into Resume Coach</span></li>
+                  <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes with your coach</span></li>
+                  <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
+                </ul>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  <li className="flex items-start"><span className="mr-2">•</span><span>Upgrade to Pro</span></li>
+                  <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes with your coach</span></li>
+                  <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
+                </ul>
+              )}
             </div>
           </div>
 
@@ -348,7 +370,7 @@ export default function CareerVaultPage() {
                       <div className="flex gap-3 w-full">
                         {/* Left: Job card — clickable */}
                         <button
-                          onClick={() => {}}
+                          onClick={() => setShowJobModal(true)}
                           className="flex-1 bg-gray-50 rounded-lg border border-gray-200 p-3 hover:border-purple-300 hover:shadow-sm transition-all text-left group flex items-center gap-3"
                         >
                           <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -519,21 +541,42 @@ export default function CareerVaultPage() {
 
                   {/* Upgrade CTA */}
                   <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-3 pb-6">
-                    <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
-                    <p className="text-xs text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                      <p className="text-xs text-gray-700 leading-snug">
-                        You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Upgrade so your coach can apply them to your resume.
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleUpgrade}
-                      disabled={upgrading}
-                      className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {upgrading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-                      {upgrading ? 'Redirecting...' : 'Upgrade to Pro — $29.99/mo'}
-                    </button>
+                    {isPro ? (
+                      <>
+                        <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
+                        <p className="text-xs text-gray-500 mb-1.5">Your coach is ready to turn everything you've logged into resume bullets.</p>
+                        <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
+                          <p className="text-xs text-gray-700 leading-snug">
+                            You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Your coach remembers all of it.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => router.push('/resume-coach')}
+                          className="w-full text-white rounded-lg py-2 text-xs font-semibold hover:opacity-90 transition-opacity"
+                          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                        >
+                          Go to Resume Coach →
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
+                        <p className="text-xs text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
+                        <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
+                          <p className="text-xs text-gray-700 leading-snug">
+                            You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Upgrade so your coach can apply them to your resume.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleUpgrade}
+                          disabled={upgrading}
+                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {upgrading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+                          {upgrading ? 'Redirecting...' : 'Upgrade to Pro — $29.99/mo'}
+                        </button>
+                      </>
+                    )}
                   </div>
 
                 </div>
@@ -541,6 +584,27 @@ export default function CareerVaultPage() {
           </div>
         </div>
       </div>
+
+      {/* ── JOB CARD MODAL ── */}
+      {showJobModal && currentJobEntry && (
+        <JobCardModal
+          card={currentJobEntry}
+          onClose={() => setShowJobModal(false)}
+          onSaveNotes={async (cardId, notes) => {
+            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            setCurrentJobEntry(prev => ({ ...prev, notes }));
+          }}
+          onLogWin={() => { setShowJobModal(false); setShowLogModal(true); }}
+          onLinkResume={async (cardId, resumeId) => {
+            await supabase.from('applications').update({ resume_id: resumeId }).eq('id', cardId);
+            const resume = jsResumes.find(r => r.id === resumeId);
+            setCurrentJobEntry(prev => ({ ...prev, resume_id: resumeId, resumes: resume || null }));
+          }}
+          jsResumes={jsResumes}
+          context="vault"
+          accomplishmentsCount={accomplishments.length}
+        />
+      )}
 
       {/* ── LOG WIN MODAL ── */}
       {showLogModal && (
@@ -556,20 +620,20 @@ export default function CareerVaultPage() {
           >
             {/* Header */}
             <div
-              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
-              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-5 relative flex-shrink-0"
             >
+              <button
+                onClick={() => { setShowLogModal(false); setLogText(''); setLogDate(''); setLogError(null); }}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
-                  <h2 className="text-base font-bold text-white">Log a Win</h2>
+                  <h2 className="text-xl font-bold text-white">Log a Win</h2>
                   <p className="text-purple-100 text-xs">30 seconds now. Hours saved later.</p>
                 </div>
               </div>
-              <button
-                onClick={() => { setShowLogModal(false); setLogText(''); setLogDate(''); setLogError(null); }}
-                className="text-white hover:text-gray-200 text-4xl leading-none font-light w-8 h-8 flex items-center justify-center"
-              >×</button>
             </div>
 
             {/* Body */}
@@ -654,7 +718,8 @@ export default function CareerVaultPage() {
               <button
                 onClick={handleSaveAccomplishment}
                 disabled={logSaving || !logText.trim()}
-                className="w-full bg-purple-600 text-white rounded-lg py-2.5 font-semibold text-sm hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="text-white rounded-lg py-2 px-6 font-bold text-xs hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2 mx-auto"
+                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
               >
                 {logSaving && <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
                 {logSaving ? 'Saving...' : 'Save to Vault'}

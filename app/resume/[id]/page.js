@@ -1042,43 +1042,35 @@ fontFamily: selectedFont,
         resumeId={params.id}
       />
 
-      {/* Too Long Modal */}
       {showTooLongModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
           onClick={() => setShowTooLongModal(false)}
         >
           <div
-            className="bg-white shadow-2xl max-w-md w-full overflow-hidden border border-gray-200"
-            onClick={(e) => e.stopPropagation()}
-            style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', borderRadius: '8px' }}
+            onClick={e => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl overflow-hidden"
+            style={{ width: '364px' }}
           >
-            <div
-              style={{ background: 'linear-gradient(to bottom right, rgb(147 51 234), rgb(37 99 235))' }}
-              className="px-6 py-5 relative"
-            >
-              <button
-                onClick={() => setShowTooLongModal(false)}
-                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
-              >×</button>
-              <div className="flex items-center gap-3">
-                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-                <div>
-                  <h2 className="text-xl font-bold text-white">Resume Too Long</h2>
-                  <p className="text-purple-100 text-xs">Auto-fit couldn't squeeze everything onto one page.</p>
-                </div>
+            <div className="px-6 py-6 relative" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <button onClick={() => setShowTooLongModal(false)} className="absolute top-3 right-4 text-white hover:opacity-70 text-2xl leading-none font-light">×</button>
+              <div className="flex flex-col items-center text-center gap-2">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-16 w-auto mb-1" />
+                <h2 className="text-xl font-bold text-white leading-tight">Resume Too Long</h2>
+                <p className="text-purple-100" style={{ fontSize: '14px' }}>Auto-fit couldn't squeeze everything onto one page.</p>
               </div>
             </div>
             <div className="px-6 py-5">
-              <p className="text-gray-700 mb-3">Your resume has more content than can fit on one page, even at the smallest font size.</p>
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-5">
-                <p className="text-sm text-gray-800">Try removing older jobs, trimming bullets to your most impactful ones, or shortening your summary.</p>
+              <p className="text-sm text-gray-700 mb-3 leading-snug">Your resume has more content than can fit on one page, even at the smallest font size.</p>
+              <div className="bg-purple-50 border-l-4 border-purple-600 p-2.5 rounded-r mb-4">
+                <p className="text-sm text-gray-800 leading-snug">Try removing older jobs, trimming bullets to your most impactful ones, or shortening your summary.</p>
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-center">
                 <button
                   onClick={() => setShowTooLongModal(false)}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-semibold"
+                  className="rounded-lg py-2.5 px-8 text-sm font-semibold"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
                 >
                   Got it
                 </button>

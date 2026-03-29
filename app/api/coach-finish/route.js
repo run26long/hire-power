@@ -1411,15 +1411,17 @@ Sentence 1: Professional Identity & Scope - Who they are professionally and at w
 
 Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
 
+Sentence 2 must address scope as a high-level overview using only the most important metrics and detail. Using unimportant metrics and detail impairs readability and lowers the scores. Hard rule: No more than 4 metrics in sentence 2.
+
 The test for every proof point: could this appear as a bullet in their experience section? If yes, it belongs there, not here.
 
 RIGHT (ongoing scope):
-"Manages close to $1M in annual vendor spend, coordinates 5-8 concurrent cross-departmental projects at any given time, and resolves client escalations autonomously at a volume of 5-10 per week."
+"Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually."
 
 WRONG (one-time accomplishments disguised as scope):
 "Built the onboarding SOP from scratch, led Asana adoption across the office, and redesigned the filing system."
 
-THE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" - it is not summary material, it is bullet material.
+THE TENSE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" - it is not summary material, it is bullet material.
 PRESENT TENSE = ongoing scope = summary material
 "Manages $1M in vendor spend"
 "Coordinates 5-8 concurrent projects"
@@ -1443,8 +1445,18 @@ WEAK SENTENCE 1 (weak, hollow and generic):
 WHY IT FAILS: So generic it could describe anyone with this job title. There is no scale, no specificity, nothing unexpected, nothing that makes a recruiter want to keep reading.
 
 STRONG SENTENCE 2 (Ongoing Actions & Results):
-"Manages close to $1M in annual vendor spend across 15-20 suppliers, coordinates 5-8 concurrent cross-departmental projects at any given time, and resolves client and internal escalations autonomously at a volume of 5-10 per week."
-WHY IT WORKS: Proves sentence 1 with specifics. Scope is visible. A recruiter now believes the claim in sentence 1.
+"Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually."
+WHY IT WORKS: Proves sentence 1 with specifics. Scope is visible. Uses concise writing. Only 3 metrics. A recruiter now believes the claim in sentence 1.
+
+WEAK SENTENCE 2 (fails conciseness test - filler words, wrong number format, too much operational detail):
+"Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year."
+WHY IT FAILS:
+- "an estimated" - delete, not necessary
+- "10 to 15" should be "10-15" — number ranges use hyphens, not "to"
+- "supplier relationships" after "vendor spend" — repetitive; don't waste words saying both
+- "at any given time" — filler. Replace with "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR" — too much operational detail for a summary; this is bullet material
+- "at a volume of 150 to 200 per year" — too many words. Should be "150-200 annually"
 
 WEAK SENTENCE 2 (no results):
 "Passionate about driving operational excellence and building high-performing teams."
@@ -1456,11 +1468,64 @@ WHY IT WORKS: No accomplishment listed. No proof needed here. The bullets handle
 
 WEAK SENTENCE 3 (accomplishments disguised as a hook):
 "Built the employee onboarding SOP from scratch, a process that has since onboarded 30-40 employees and remains the standard today, and led Asana adoption across the office, replacing an informal system of spreadsheets with a single source of project visibility for 35-40 active users."
-WHY IT FAILS: These are bullets, not a summary sentence. One-time accomplishments belong in experience where they can be read in context. This sentence lists achievements instead of answering the only question sentence 3 exists to answer: what does the employer GET when they hire this person?
+WHY IT FAILS: These are bullets, not a summary sentence. One-time accomplishments belong in experience where they can be read in context.
 
 WEAK SENTENCE 3 (vague and unspecific):
 "Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
+
+═══════════════════════════════════════════════
+CONCISENESS RULES — APPLY TO EVERY WORD
+═══════════════════════════════════════════════
+
+Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
+
+CONTENT — WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate's experience, impact, and differentiating qualities. Cut the rest.
+
+QUALITY — HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said in one. Read every sentence and remove filler words on the first pass. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. A sentence is done when removing one more word would change what it says.
+
+FILLER TO CUT:
+- "at any given time" → replace with "simultaneously"
+- "at a volume of [N] per year" → replace with "[N] annually"
+- "an estimated" / "close to" / "approximately" → use the range instead: "$500K-$1M" not "close to $1M"
+- "concurrent" when used with a number → the number already implies simultaneity; "3-4 concurrent projects" → "3-4 projects simultaneously" or just "3-4 cross-departmental projects"
+- "supplier relationships" after "vendor spend" → pick one, not both
+- Number ranges: always use a hyphen — "150-200" not "150 to 200"
+- Operational detail like department lists ("spanning operations, finance, IT, facilities, and HR") belongs in bullets, not the summary
+
+FAILS THE CONCISENESS TEST:
+Operations coordinator with six years of experience managing the vendor relationships, cross-departmental workflows, and client-facing processes that keep mid-size offices running without escalating to management. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
+
+Problems:
+- "an estimated" — cut
+- "10 to 15" — should be "10-15"
+- "supplier relationships" after "vendor spend" — redundant
+- "3 to 4 concurrent" — should be "3-4"
+- "at any given time" — cut; use "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR" — operational detail, not summary material
+- "at a volume of 150 to 200 per year" — should be "150-200 annually"
+
+PASSES THE CONCISENESS TEST:
+Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
+
+═══════════════════════════════════════════════
+SUMMARY LENGTH
+═══════════════════════════════════════════════
+
+TOO LONG — DO NOT WRITE LIKE THIS:
+Operations coordinator with six years of experience managing the vendor relationships,
+cross-departmental workflows, and client escalations that keep mid-size service operations running
+without disruption. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier
+relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning up to
+five teams, and resolves client escalations independently at a volume of 150 to 200 per year. Brings the
+operational range to handle everything from procurement to onboarding to project coordination, and the
+independent judgment to keep things moving without waiting to be told what to do next.
+
+PERFECT LENGTH — WRITE LIKE THIS EVERY TIME:
+Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
+
+TOO SHORT — DO NOT WRITE LIKE THIS:
+Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
 
 SUMMARY QUALITY CHECKPOINT:
 Read every sentence before outputting. For each one ask: does this describe the overall scope of their ongoing work and impact, or does it describe a specific project or one-time achievement?
@@ -1469,30 +1534,20 @@ Read every sentence before outputting. For each one ask: does this describe the 
 
 No bullet material in the summary. Not even combined with others. Not even impressive ones.
 
-Trying to cram in all a candidate's accomplishments makes the summary weaker not stronger. Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver. That is it.
-
-TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. If any sentence or proof point wants to be past tense, either rewrite it in present tense or remove it.
-Present tense = ongoing scope = summary material. Past tense = one-time accomplishment = bullet material. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
-
-THE TEST:
-Read it back. Would a recruiter engage or skim?
-If it sounds like every other summary, it is not done.
-If any sentence contains operational detail, move it to a bullet.
-If any sentence could describe anyone with this title, rewrite it until it could not.
+TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
 
 WHEN MATERIAL IS THIN:
-When coaching is thin or experience is limited, write the strongest honest version of what exists. A summary built from limited material will score lower than one built from rich coaching — and that is correct. The score reflects how well the resume communicates the candidate's value. A thin candidate with a perfectly written thin summary scores appropriately. Never inflate, invent, or editorialize to compensate for limited material. Write what is real. Make it as specific and compelling as the evidence allows. Stop there.
-
+When coaching is thin or experience is limited, write the strongest honest version of what exists. Never inflate, invent, or editorialize to compensate for limited material. Write what is real. Make it as specific and compelling as the evidence allows. Stop there.
 `
 
- const hardRules = `
+  const hardRules = `
 HARD RULES — NON-NEGOTIABLE:
 - 3 sentences exactly. No more, no less.
 - The entire summary is present tense. Past tense anywhere is a sign a bullet snuck in or stronger phrasing is available.
 - Open from the TARGET role identity, not their current title or school enrollment.
 - Lead with the strongest credibility signal available.
 - No operational detail in the summary. State the credential. The bullets prove it.
-- Do NOT repeat bullet points verbatim. Use the bullets as source material, not copy-paste.
+- DO NOT repeat bullet points verbatim. Use the bullets as source material, not copy-paste.
 - NEVER address the employer: no "For a [team], that means..." No "Someone who understands..."
 - NEVER editorialize about what hiring this person means. The recruiter draws their own conclusions.
 - NEVER: "seeking," "looking for," "hoping to," "I am," "I bring," "passionate about," "results-driven," "proven track record," "detail-oriented," "team player," "go-getter"
@@ -1502,6 +1557,8 @@ HARD RULES — NON-NEGOTIABLE:
 - NEVER: em dashes. Commas or periods only.
 - NEVER: one-time projects or accomplishments (these are bullets).
 - NEVER: more than 3 proof points in sentence 2.
+- NEVER: number ranges written as "X to Y" — always use a hyphen: "X-Y"
+- NEVER: filler phrases. "at any given time" = "simultaneously". "at a volume of X per year" = "X annually". "an estimated" = cut it. "close to $X" = use the range "$X-$Y".
 - Career changers: sentence 1 establishes the new identity. Sentence 2 explains why it is credible. Never combined.
 - Students and recent grads: open from professional identity, not school enrollment. The degree is evidence, not the opener.
 `

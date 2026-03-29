@@ -68,12 +68,12 @@ export default function ResumePDF({
         style={{
           fontFamily: resolvedFont,
           fontSize: base,
-          lineHeight: 1.25,
+          lineHeight: 1.2,
           color: '#1a1a1a',
-          paddingTop: 36,
-          paddingBottom: 36,
-          paddingLeft: 36,
-          paddingRight: 36,
+          paddingTop: 43,
+          paddingBottom: 43,
+          paddingLeft: 43,
+          paddingRight: 43,
           backgroundColor: '#ffffff'
         }}
       >
