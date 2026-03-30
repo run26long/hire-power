@@ -66,7 +66,7 @@ function CoverLetterPDF({ coverLetterData, font, fontSize, spacing, templateName
   const styles = StyleSheet.create({
     page: {
       paddingTop: 54,
-      paddingBottom: 54,
+      paddingBottom: 46,
       paddingLeft: 54,
       paddingRight: 54,
       fontFamily: font === 'Helvetica' ? 'Helvetica' : font,
@@ -132,25 +132,56 @@ function CoverLetterPDF({ coverLetterData, font, fontSize, spacing, templateName
     <Document>
       <Page size="LETTER" style={styles.page}>
 
-        {/* Header — Current template: name centered, rules sandwiching contact */}
-        <View style={{ alignItems: 'center', marginBottom: Math.round(4 * spacing) }}>
-          <Text style={styles.name}>{cl.candidateName || ''}</Text>
-        </View>
-        <View style={{ borderBottomWidth: 1, borderBottomColor: '#bbbbbb' }} />
-        <View style={{ paddingTop: Math.round(6 * spacing), paddingBottom: Math.round(6 * spacing) }}>
-          <Text style={{ ...styles.contact, textAlign: 'center' }}>{contactLine}</Text>
-        </View>
-        <View style={{ borderBottomWidth: 1, borderBottomColor: '#bbbbbb', marginBottom: Math.round(20 * spacing) }} />
+        {/* Header — varies by template */}
+        {templateName === 'Vibe' ? (
+          <View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(2 * spacing) }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', letterSpacing: 1.5, textTransform: 'uppercase', color: '#1a1a1a', lineHeight: 1.1 }}>{cl.candidateName || ''}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                {[cl.email, cl.phone && cl.location ? `${cl.phone} | ${cl.location}` : (cl.phone || cl.location), cl.linkedin].filter(Boolean).map((line, i) => (
+                  <Text key={i} style={{ fontSize, color: '#555555', lineHeight: 1.4 }}>{line}</Text>
+                ))}
+              </View>
+            </View>
+            <View style={{ borderBottomWidth: 1, borderBottomColor: '#aaaaaa', marginBottom: Math.round(20 * spacing) }} />
+          </View>
+          
+        ) : templateName === 'Sharp' ? (
+          <View style={{ marginBottom: Math.round(8 * spacing) }}>
+            <Text style={{ fontFamily: font, fontSize: 22, fontWeight: 'bold', color: '#111111', marginBottom: Math.round(4 * spacing) }}>{cl.candidateName || ''}</Text>
+            <View style={{ height: 2, backgroundColor: '#111111', marginBottom: Math.round(4 * spacing) }} />
+            <Text style={{ fontFamily: font, fontSize: fontSize, color: '#444444', marginBottom: Math.round(8 * spacing) }}>{contactLine}</Text>
+          </View>
+        ) : (
+          <>
+            <View style={{ alignItems: 'center', marginBottom: Math.round(4 * spacing) }}>
+              <Text style={styles.name}>{cl.candidateName || ''}</Text>
+            </View>
+            <View style={{ borderBottomWidth: 1, borderBottomColor: '#bbbbbb' }} />
+            <View style={{ paddingTop: Math.round(6 * spacing), paddingBottom: Math.round(6 * spacing) }}>
+              <Text style={{ ...styles.contact, textAlign: 'center' }}>{contactLine}</Text>
+            </View>
+            <View style={{ borderBottomWidth: 1, borderBottomColor: '#bbbbbb', marginBottom: Math.round(20 * spacing) }} />
+          </>
+        )}
 
         {/* Date */}
-        <View style={styles.block}>
+        <View style={{ marginTop: Math.round(30 * spacing), marginBottom: Math.round(12 * spacing) }}>
           <Text style={styles.paragraph}>{cl.date || ''}</Text>
         </View>
 
-        {/* Company + Re line */}
-        <View style={styles.block}>
-          <Text style={{ fontSize, lineHeight, marginBottom: 4 }}>{cl.companyName || ''}</Text>
-          <Text style={styles.paragraph}>Re: {cl.jobTitle || ''}</Text>
+        {/* Memo block — To / Re */}
+        <View style={{ marginBottom: Math.round(16 * spacing) }}>
+          <View style={{ flexDirection: 'row', marginBottom: Math.round(12 * spacing) }}>
+            <Text style={{ fontSize, lineHeight, color: '#555555', marginRight: 4 }}>To:</Text>
+            <Text style={{ fontSize, lineHeight }}>{cl.recipientName || 'Hiring Manager'}</Text>
+          </View>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={{ fontSize, lineHeight, color: '#555555', marginRight: 4 }}>Re:</Text>
+            <Text style={{ fontSize, lineHeight }}>{cl.jobTitle || ''}{cl.companyName ? ` position at ${cl.companyName}` : ''}</Text>
+          </View>
         </View>
 
         {/* Opening */}
@@ -167,13 +198,12 @@ function CoverLetterPDF({ coverLetterData, font, fontSize, spacing, templateName
           </View>
         ))}
 
-        {/* Closing */}
-        {cl.closing ? <Text style={{ ...styles.paragraph, marginTop: 16 }}>{cl.closing}</Text> : null}
+        {cl.closing ? <Text style={styles.paragraph}>{cl.closing}</Text> : null}
 
         {/* Signature */}
         <View>
           <Text style={styles.signatureLine}>Sincerely,</Text>
-          <Text style={styles.signatureName}>{cl.candidateName || ''}</Text>
+          <Text style={{ ...styles.signatureName, fontWeight: 'normal' }}>{cl.candidateName || ''}</Text>
         </View>
 
       </Page>

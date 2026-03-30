@@ -25,6 +25,7 @@ export default function CoverLetterPage() {
   const [showTooLongModal, setShowTooLongModal] = useState(false)
   const isAutoFitJustRanRef = useRef(false)
   const pageCheckTimerRef = useRef(null)
+  const cardLinkRanRef = useRef(false)
 
   // Toolbar state
   const [selectedTemplate, setSelectedTemplate] = useState('current')
@@ -36,12 +37,12 @@ export default function CoverLetterPage() {
 
   const templateFonts = {
     crisp: 'Source Serif 4',
-    sharp: 'Helvetica',
+    sharp: 'Open Sans',
     current: 'Lato',
     command: 'Lato',
     prestige: 'EB Garamond',
     signature: 'EB Garamond',
-    vibe: 'Source Serif 4',
+    vibe: 'Lato',
     edge: 'Open Sans',
   }
 
@@ -63,6 +64,8 @@ export default function CoverLetterPage() {
 
   useEffect(() => {
     if (!coverLetter) return
+    if (cardLinkRanRef.current) return
+    cardLinkRanRef.current = true
     autoLinkJobCard()
   }, [coverLetter?.id])
 
@@ -70,36 +73,49 @@ export default function CoverLetterPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Check if a card already has this cover letter linked
-    const { data: existing } = await supabase
+    // Check if an active card already has this cover letter linked
+    const { data: existingCards } = await supabase
       .from('applications')
       .select('id')
       .eq('cover_letter_id', coverLetter.id)
       .eq('user_id', user.id)
-      .maybeSingle()
+      .neq('application_status', 'archived')
+      .limit(1)
 
-    if (existing) return // already linked, nothing to do
+    if (existingCards?.[0]) return // already linked, nothing to do
 
-    // Check if a card exists for the linked JS resume
+    // Check if a card exists for the linked JS resume (only if it's job-specific)
     if (coverLetter.linked_resume_id) {
-      const { data: resumeCard } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('resume_id', coverLetter.linked_resume_id)
-        .eq('user_id', user.id)
-        .maybeSingle()
+      const { data: linkedResume } = await supabase
+        .from('resumes')
+        .select('id, resume_type')
+        .eq('id', coverLetter.linked_resume_id)
+        .single()
 
-      if (resumeCard) {
-        // Link this cover letter to the existing card
-        await supabase
+      const isJobSpecific = linkedResume?.resume_type === 'job_specific'
+
+      if (isJobSpecific) {
+        const { data: resumeCards } = await supabase
           .from('applications')
-          .update({ cover_letter_id: coverLetter.id })
-          .eq('id', resumeCard.id)
-        return
+          .select('id')
+          .eq('resume_id', coverLetter.linked_resume_id)
+          .eq('user_id', user.id)
+          .neq('application_status', 'archived')
+          .limit(1)
+
+        const resumeCard = resumeCards?.[0] || null
+
+        if (resumeCard) {
+          await supabase
+            .from('applications')
+            .update({ cover_letter_id: coverLetter.id })
+            .eq('id', resumeCard.id)
+          return
+        }
       }
     }
 
-    // No existing card — create one
+    // No existing card — create one (never link a core resume to a job card)
     await supabase
       .from('applications')
       .insert({
@@ -108,7 +124,7 @@ export default function CoverLetterPage() {
         company: coverLetter.job_company || 'Unknown Company',
         description: coverLetter.job_description || '',
         cover_letter_id: coverLetter.id,
-        resume_id: coverLetter.linked_resume_id || null,
+        resume_id: null,
         application_status: 'resume_in_progress',
         application_date: new Date().toISOString().split('T')[0],
       })
@@ -155,7 +171,7 @@ export default function CoverLetterPage() {
         cover_letter_data: coverLetter.cover_letter_data,
         template_id: selectedTemplate,
         font_family: selectedFont,
-        font_size: overrides.fontSize ?? selectedSize,
+        font_size: Math.round(overrides.fontSize ?? selectedSize),
         spacing: overrides.spacing ?? selectedSpacing,
         updated_at: new Date().toISOString()
       })
@@ -420,7 +436,6 @@ export default function CoverLetterPage() {
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
                 <option value="EB Garamond">EB Garamond</option>
-                <option value="Helvetica">Helvetica</option>
                 <option value="Lato">Lato</option>
                 <option value="Open Sans">Open Sans</option>
                 <option value="Source Serif 4">Source Serif 4</option>

@@ -10,9 +10,27 @@ const COLUMNS = [
   { id: 'resume_in_progress', label: 'Resume Ready', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
   { id: 'applied',            label: 'Applied',      color: '#1d4ed8', bg: 'rgba(29,78,216,0.06)',   border: 'rgba(29,78,216,0.2)'   },
   { id: 'interview',          label: 'Interview',    color: '#92400e', bg: 'rgba(146,64,14,0.06)',   border: 'rgba(146,64,14,0.2)'   },
-  { id: 'hired',              label: 'Hired 🎉',     color: '#15803d', bg: 'rgba(21,128,61,0.06)',   border: 'rgba(21,128,61,0.2)'   },
   { id: 'rejected',           label: 'Rejected',     color: '#6b7280', bg: 'rgba(107,114,128,0.06)', border: 'rgba(107,114,128,0.2)' },
+  { id: 'hired',              label: 'Hired',        color: '#15803d', bg: 'rgba(21,128,61,0.06)',   border: 'rgba(21,128,61,0.2)'   },
 ];
+
+function StatusBadge({ status }) {
+  const config = {
+    resume_in_progress: { label: 'Resume Ready', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
+    applied:            { label: 'Applied',       bg: '#fefce8', border: '#fde047', text: '#854d0e' },
+    interview:          { label: 'Interview',     bg: '#eff6ff', border: '#93c5fd', text: '#1e40af' },
+    hired:              { label: 'Hired',         bg: '#f0fdf4', border: '#86efac', text: '#166534' },
+    rejected:           { label: 'Rejected',      bg: '#fef2f2', border: '#fca5a5', text: '#991b1b' },
+    archived:           { label: 'Archived',      bg: '#f9fafb', border: '#d1d5db', text: '#6b7280' },
+  };
+  const c = config[status] || config.applied;
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide"
+      style={{ background: c.bg, borderColor: c.border, color: c.text }}>
+      {c.label}
+    </span>
+  );
+}
 
 export default function JobTrackerPage() {
   const router = useRouter();
@@ -28,8 +46,12 @@ export default function JobTrackerPage() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [cardOpenedFromArchive, setCardOpenedFromArchive] = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
+ const [showHiredModal, setShowHiredModal] = useState(false);
+  const [hiredCard, setHiredCard] = useState(null);
+  const [rejectedPromptCard, setRejectedPromptCard] = useState(null);
 
   const [dragCard, setDragCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -61,7 +83,7 @@ export default function JobTrackerPage() {
 
       const { data: archived } = await supabase
         .from('applications')
-        .select('*')
+        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
         .eq('user_id', user.id)
         .eq('application_status', 'archived')
         .order('updated_at', { ascending: false });
@@ -101,6 +123,8 @@ export default function JobTrackerPage() {
       setDragOverColumn(null);
       return;
     }
+    const droppedCard = dragCard;
+    const previousStatus = dragCard.application_status;
 
     // Optimistic update
     setApplications(prev => prev.map(a =>
@@ -112,32 +136,49 @@ export default function JobTrackerPage() {
       .update({ application_status: columnId, updated_at: new Date().toISOString() })
       .eq('id', dragCard.id);
 
-    // Auto-archive rejected after brief delay so user sees it land
+    // Rejected: show prompt to archive or keep on board
     if (columnId === 'rejected') {
-      setTimeout(async () => {
-        await supabase
-          .from('applications')
-          .update({ application_status: 'archived', updated_at: new Date().toISOString() })
-          .eq('id', dragCard.id);
-        setArchivedCards(prev => [...prev, { ...dragCard, application_status: 'archived' }]);
-        setApplications(prev => prev.filter(a => a.id !== dragCard.id));
-      }, 1800);
+      setTimeout(() => {
+        setRejectedPromptCard({ ...droppedCard, previousStatus });
+      }, 600);
     }
 
-    // Hired: write hired_at, set search_status on profile, remove from board
+   // Hired: archive any existing hired card, write hired_at, show celebration
     if (columnId === 'hired') {
       const hiredAt = new Date().toISOString();
-      setTimeout(async () => {
+
+      // Find and archive any existing hired card — exclude the card we just moved
+      const { data: existingHired } = await supabase
+        .from('applications')
+        .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
+        .eq('user_id', user.id)
+        .eq('application_status', 'hired')
+        .neq('id', dragCard.id)
+        .maybeSingle();
+
+      if (existingHired) {
         await supabase
           .from('applications')
-          .update({ hired_at: hiredAt, updated_at: hiredAt })
-          .eq('id', dragCard.id);
-        await supabase
-          .from('profiles')
-          .update({ search_status: 'hired' })
-          .eq('id', user.id);
-        setApplications(prev => prev.filter(a => a.id !== dragCard.id));
-      }, 1800);
+          .update({ application_status: 'archived', last_active_status: 'hired', updated_at: hiredAt })
+          .eq('id', existingHired.id);
+        setApplications(prev => prev.filter(a => a.id !== existingHired.id));
+        setArchivedCards(prev => [...prev, { ...existingHired, application_status: 'archived', last_active_status: 'hired' }]);
+      }
+
+      // Set new card as hired
+      await supabase
+        .from('applications')
+        .update({ hired_at: hiredAt, updated_at: hiredAt })
+        .eq('id', dragCard.id);
+
+      await supabase
+        .from('profiles')
+        .update({ search_status: 'hired' })
+        .eq('id', user.id);
+
+      setUserProfile(prev => ({ ...prev, search_status: 'hired' }));
+      setShowHiredModal(true);
+      setHiredCard(dragCard);
     }
 
     setDragCard(null);
@@ -214,12 +255,19 @@ export default function JobTrackerPage() {
     const card = applications.find(a => a.id === cardId);
     await supabase
       .from('applications')
-      .update({ application_status: 'archived', updated_at: new Date().toISOString() })
+      .update({ application_status: 'archived', last_active_status: card.application_status, updated_at: new Date().toISOString() })
       .eq('id', cardId);
-    setArchivedCards(prev => [...prev, { ...card, application_status: 'archived' }]);
+    setArchivedCards(prev => [...prev, { ...card, application_status: 'archived', last_active_status: card.application_status }]);
     setApplications(prev => prev.filter(a => a.id !== cardId));
     setShowCardModal(false);
   };
+
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+  }
 
   const tier = userProfile?.subscription_tier;
   const isPro = tier === 'pro';
@@ -299,13 +347,21 @@ export default function JobTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
               <p className="text-xs text-gray-500">Drag cards between columns as your search progresses</p>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-            >
-              + Add Job
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowArchiveModal(true)}
+                className="text-xs font-semibold py-1.5 px-4 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                📁 Archive ({archivedCards.length})
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+              >
+                + Add Job
+              </button>
+            </div>
           </div>
 
           {/* Kanban */}
@@ -512,7 +568,13 @@ export default function JobTrackerPage() {
       {showCardModal && selectedCard && (
         <JobCardModal
           card={selectedCard}
-          onClose={() => setShowCardModal(false)}
+          onClose={() => {
+            setShowCardModal(false);
+            if (cardOpenedFromArchive) {
+              setShowArchiveModal(true);
+              setCardOpenedFromArchive(false);
+            }
+          }}
           onArchive={handleArchiveCard}
           onSaveNotes={async (cardId, notes) => {
             await supabase.from('applications').update({ notes }).eq('id', cardId);
@@ -523,47 +585,308 @@ export default function JobTrackerPage() {
           jsResumes={jsResumes}
           interviewRounds={interviewRounds}
           context="tracker"
+          isPro={isPro}
         />
       )}
 
-      {/* Archive Modal */}
-      {showArchiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
-              <div className="flex items-center justify-between">
+      {/* Rejected Archive Prompt */}
+      {rejectedPromptCard && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <div
+            className="bg-white shadow-2xl overflow-hidden"
+            style={{ width: '364px', borderRadius: '12px' }}
+          >
+            <div
+              className="px-6 py-5 relative"
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
-                  <h2 className="text-lg font-bold text-white">Archive</h2>
-                  <p className="text-purple-100 text-xs">{archivedCards.length} past applications</p>
+                  <h2 className="text-base font-bold text-white">Move to Archive?</h2>
+                  <p className="text-purple-100 text-xs">{rejectedPromptCard.title} · {rejectedPromptCard.company}</p>
                 </div>
-                <button onClick={() => setShowArchiveModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
             </div>
-            <div className="px-6 py-4 max-h-96 overflow-y-auto">
-              {archivedCards.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-8">No archived cards yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {archivedCards.map(card => (
-                    <div key={card.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{card.title}</p>
-                        <p className="text-xs text-gray-500">{card.company}</p>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        card.application_status === 'hired'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {card.application_status === 'hired' ? '🎉 Hired' : 'Archived'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="px-6 py-5">
+              <p className="text-sm text-gray-700 mb-5 leading-snug">
+                Do you want to archive this application? It will move out of your Job Tracker board but will always be accessible from your Career Archive.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => {
+                    setRejectedPromptCard(null);
+                  }}
+                  className="px-5 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Keep on Board
+                </button>
+                <button
+                  onClick={async () => {
+                    await supabase
+                      .from('applications')
+                      .update({ application_status: 'archived', last_active_status: 'rejected', updated_at: new Date().toISOString() })
+                      .eq('id', rejectedPromptCard.id);
+                    setArchivedCards(prev => [...prev, { ...rejectedPromptCard, application_status: 'archived', last_active_status: 'rejected' }]);
+                    setApplications(prev => prev.filter(a => a.id !== rejectedPromptCard.id));
+                    setRejectedPromptCard(null);
+                  }}
+                  className="px-5 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
+                  style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                >
+                  Archive It
+                </button>
+              </div>
             </div>
-            <div className="px-6 py-3 border-t border-gray-100 flex justify-end">
-              <button onClick={() => setShowArchiveModal(false)} className="text-xs font-semibold text-gray-500 hover:text-gray-700">Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Hired Celebration Modal */}
+      {showHiredModal && hiredCard && (
+        <>
+          <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,900;1,900&family=DM+Sans:wght@400;500;600&display=swap');
+          `}</style>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+          >
+            <div
+              className="flex flex-col items-center text-center overflow-hidden relative"
+              style={{
+                borderRadius: '20px',
+                maxWidth: '440px',
+                width: '100%',
+                background: '#1a1033',
+                border: '1px solid rgba(147,51,234,0.25)',
+                boxShadow: '0 40px 120px rgba(0,0,0,0.6), 0 0 80px rgba(147,51,234,0.15)',
+              }}
+            >
+              {/* Radial glow */}
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '500px', height: '350px',
+                background: 'radial-gradient(ellipse, rgba(147,51,234,0.2) 0%, transparent 70%)',
+                pointerEvents: 'none',
+                zIndex: 0,
+              }} />
+
+              {/* Content */}
+              <div className="relative flex flex-col items-center px-10 py-10" style={{ zIndex: 1 }}>
+
+                {/* Checkmark */}
+                <div
+                  className="flex items-center justify-center mb-5"
+                  style={{
+                    width: '44px', height: '44px', borderRadius: '50%',
+                    background: 'rgba(147,51,234,0.2)',
+                    border: '1px solid rgba(147,51,234,0.4)',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+
+                {/* Eyebrow */}
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: '#a78bfa',
+                  marginBottom: '12px',
+                }}>Congratulations</p>
+
+                {/* Headline */}
+                <div style={{ marginBottom: '4px' }}>
+                  <span style={{
+                    fontFamily: "'Fraunces', serif",
+                    fontSize: 'clamp(28px,4vw,42px)',
+                    fontWeight: 900,
+                    lineHeight: 1.0,
+                    letterSpacing: '-1.5px',
+                    color: 'white',
+                  }}>You got the </span>
+                  <span style={{
+                    fontFamily: "'Fraunces', serif",
+                    fontSize: 'clamp(28px,4vw,42px)',
+                    fontWeight: 900,
+                    fontStyle: 'italic',
+                    lineHeight: 1.0,
+                    letterSpacing: '-1.5px',
+                    color: '#9333ea',
+                  }}>job.</span>
+                </div>
+
+                {/* Role + Company */}
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.4)',
+                  marginBottom: '16px',
+                  marginTop: '8px',
+                  lineHeight: 1.4,
+                }}>
+                  {hiredCard.title} · {hiredCard.company}
+                </p>
+
+                {/* Divider */}
+                <div style={{ width: '32px', height: '1px', background: 'rgba(147,51,234,0.4)', marginBottom: '16px' }} />
+
+                {/* Body copy */}
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '15px',
+                  fontWeight: 400,
+                  color: 'rgba(255,255,255,0.65)',
+                  lineHeight: 1.45,
+                  marginBottom: '20px',
+                  maxWidth: '340px',
+                }}>
+                  Three years from now, you won't remember what you accomplished today. But Hire Power will. 
+                </p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  color: 'rgba(255,255,255,0.9)',
+                  lineHeight: 1.45,
+                  marginBottom: '36px',
+                  maxWidth: '340px',
+                }}>
+                  Career Vault builds your next resume while you're building your career. Keeping you prepared anytime great opportunities arise.
+                </p>
+
+                {/* CTA */}
+                <button
+                  onClick={() => {
+                    setShowHiredModal(false);
+                    router.push('/career-vault');
+                  }}
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'white',
+                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 24px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 24px rgba(102,126,234,0.4)',
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseOver={e => e.target.style.opacity = '0.9'}
+                  onMouseOut={e => e.target.style.opacity = '1'}
+                >
+                  Open Career Vault →
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── ARCHIVE MODAL ── */}
+      {showArchiveModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowArchiveModal(false)}
+        >
+          <div
+            className="bg-white shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
+            style={{ borderRadius: '12px', height: '80vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+              className="px-6 py-5 relative flex-shrink-0"
+            >
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                className="absolute top-3 right-4 text-white hover:opacity-70 text-2xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Job Archive</h2>
+                  <p className="text-purple-100 text-xs">{archivedCards.length} past application{archivedCards.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+              {/* Archived Job Cards */}
+              <div>
+                {archivedCards.length > 0 ? (
+                  <div className="space-y-2">
+                    {archivedCards.map((card) => (
+                      <div key={card.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors cursor-pointer" onClick={async () => {
+                        setShowArchiveModal(false);
+                        setCardOpenedFromArchive(true);
+                        setSelectedCard(card);
+                        setShowCardModal(true);
+                        if (card.application_status === 'interview' || card.application_status === 'hired') {
+                          const { data } = await supabase
+                            .from('application_events')
+                            .select('*')
+                            .eq('application_id', card.id)
+                            .eq('status', 'interview_scheduled')
+                            .order('event_date', { ascending: true });
+                          setInterviewRounds(data || []);
+                        } else {
+                          setInterviewRounds([]);
+                        }
+                      }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <p className="text-sm font-semibold text-gray-900">{card.title}</p>
+                              <StatusBadge status={card.last_active_status || card.application_status} />
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2">
+                              {card.company}{card.application_date ? ` · Applied ${formatDate(card.application_date)}` : ''}
+                            </p>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {card.resumes && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); router.push(`/resume/${card.resumes.id}`); }}
+                                  className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
+                                >📄 View Resume</button>
+                              )}
+                              {card.application_status === 'hired' && (
+                                <span className="text-[10px] text-gray-400">🔒 JD saved to Vault</span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: card.id, type: 'card' }); }}
+                            className="text-[10px] text-red-400 font-semibold hover:text-red-600 flex-shrink-0"
+                          >Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-gray-400">
+                    <div className="text-4xl mb-2">📁</div>
+                    <p className="text-sm">No archived items yet</p>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         </div>

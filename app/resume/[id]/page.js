@@ -36,6 +36,7 @@ const [isLoadingPreview, setIsLoadingPreview] = useState(false)
  const [isDownloading, setIsDownloading] = useState(false)
  const [showColorPicker, setShowColorPicker] = useState(false)
 const isAutoFitJustRanRef = useRef(false)
+  const cardCreationRanRef = useRef(false)
 
   // Analysis state
   const [analysisResults, setAnalysisResults] = useState(null)
@@ -255,58 +256,107 @@ document.body.removeChild(a)
 const handleReassess = async (overrideData = null) => {
   setIsAnalyzing(true)
   try {
-    const response = await fetch('/api/analyze-resume', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        resumeData: overrideData || resume.resume_data,
+    const isJobSpecific = resume.resume_type === 'job_specific'
+
+    if (isJobSpecific) {
+      // JS resume: job match analysis
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+      const response = await fetch('/api/job-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: overrideData || resume.resume_data,
+          jobDescription: resume.job_description,
+          jobTitle: resume.job_title,
+          jobCompany: resume.job_company,
+          userId: currentUser?.id
+        })
       })
-    })
 
-    if (!response.ok) {
-      throw new Error('Analysis failed')
+      if (!response.ok) throw new Error('Analysis failed')
+
+      const result = await response.json()
+
+      // Wrap to match how ai_analysis is read on load (analysisResults.analysis = raw job-analyze result)
+      setAnalysisResults({ analysis: result })
+
+      const { error } = await supabase
+        .from('resumes')
+        .update({
+          current_score: result.matchScore,
+          last_assessed_at: new Date().toISOString(),
+          ai_analysis: result
+        })
+        .eq('id', params.id)
+
+      if (error) console.error('Error saving score:', error.message)
+
+      setResume(prev => ({ ...prev, current_score: result.matchScore }))
+      setScoreAfterCoaching(result.matchScore)
+
+      // Update job card match score if one exists
+      if (currentUser) {
+        const { data: existingCard } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('resume_id', params.id)
+          .eq('user_id', currentUser.id)
+          .maybeSingle()
+
+        if (existingCard) {
+          await supabase
+            .from('applications')
+            .update({ match_score: result.matchScore })
+            .eq('id', existingCard.id)
+        }
+      }
+
+    } else {
+      // Core resume: quality analysis
+      const response = await fetch('/api/analyze-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: overrideData || resume.resume_data
+        })
+      })
+
+      if (!response.ok) throw new Error('Analysis failed')
+
+      const result = await response.json()
+
+      setAnalysisResults(result)
+      setDetectedLevel(result.detectedLevel || 'entry')
+
+      const updateData = {
+        current_score: result.score,
+        last_assessed_at: new Date().toISOString(),
+        ai_analysis: result.analysis,
+        score_breakdown: result.analysis?.breakdown
+      }
+
+      // Advance from review to assess on first run only
+      if (resume.journey_step === 'review') {
+        updateData.journey_step = 'assess'
+      }
+
+      const { error } = await supabase
+        .from('resumes')
+        .update(updateData)
+        .eq('id', params.id)
+
+      if (error) console.error('Error saving score:', error.message)
+
+      setResume(prev => ({
+        ...prev,
+        current_score: result.score,
+        journey_step: prev.journey_step === 'review' ? 'assess' : prev.journey_step
+      }))
+
+      setScoreAfterCoaching(result.score)
     }
 
-    const result = await response.json()
- 
-    // Store analysis results
-    setAnalysisResults(result)
-setDetectedLevel(result.detectedLevel || 'entry')
-    
-    // Update resume score in database
-// Update database with score and journey step if first assessment
-const updateData = {
-  current_score: result.score,
-  last_assessed_at: new Date().toISOString(),
-  ai_analysis: result.analysis,
-  score_breakdown: result.analysis?.breakdown,
-}
-    
-    // If coming from review, also update journey_step
-    if (resume.journey_step === 'review' || resume.journey_step === 'assess') {
-      updateData.journey_step = 'coach'
-    }
-    
-    const { error } = await supabase
-      .from('resumes')
-      .update(updateData)
-      .eq('id', params.id)
-
-  if (error) {
-      console.error('Error saving score:', error.message)
-    }
-    
-  // Update local resume state and journey step if this is first assessment
-    setResume(prev => ({
-      ...prev,
-      current_score: result.score,
-      journey_step: prev.journey_step === 'review' ? 'assess' : prev.journey_step
-    }))
-
-    setScoreAfterCoaching(result.score)
-    
   } catch (error) {
     console.error('Error analyzing resume:', error)
     alert('Failed to analyze resume. Please try again.')
@@ -339,6 +389,58 @@ function formatDate(dateString, format = dateFormat) {
     loadResume()
     loadUserProfile()
   }, [params.id])
+
+  useEffect(() => {
+    if (!resume || resume.resume_type !== 'job_specific') return
+    if (cardCreationRanRef.current) return
+    cardCreationRanRef.current = true
+
+    async function createJobCard() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: resumeCards } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('resume_id', resume.id)
+        .eq('user_id', user.id)
+        .neq('application_status', 'archived')
+        .limit(1)
+
+      const cardByResume = resumeCards?.[0] || null
+
+      const { data: jobCards } = !cardByResume && resume.job_title && resume.job_company
+        ? await supabase
+            .from('applications')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('title', resume.job_title)
+            .eq('company', resume.job_company)
+            .neq('application_status', 'archived')
+            .limit(1)
+        : { data: null }
+
+      const existingCard = cardByResume || jobCards?.[0] || null
+
+      if (!existingCard) {
+        await supabase
+          .from('applications')
+          .insert({
+            user_id: user.id,
+            title: resume.job_title || 'Untitled Role',
+            company: resume.job_company || 'Unknown Company',
+            description: resume.job_description || '',
+            application_status: 'resume_in_progress',
+            resume_id: resume.id,
+            match_score: resume.current_score || null,
+            application_date: new Date().toISOString().split('T')[0],
+            sort_order: 0,
+          })
+      }
+    }
+
+    createJobCard()
+  }, [resume?.id])
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -398,12 +500,12 @@ function formatDate(dateString, format = dateFormat) {
   useEffect(() => {
    const templateFonts = {
       crisp: 'Source Serif 4',
-      sharp: 'Helvetica',
+      sharp: 'Open Sans',
       current: 'Lato',
       command: 'Lato',
       prestige: 'EB Garamond',
       signature: 'EB Garamond',
-      vibe: 'Source Serif 4',
+      vibe: 'Lato',
       edge: 'Open Sans',
     }
     if (templateFonts[selectedTemplate]) {
@@ -438,12 +540,12 @@ if (data.ai_analysis) {
 }
    const templateFonts = {
       crisp: 'Source Serif 4',
-      sharp: 'Helvetica',
+      sharp: 'Open Sans',
       current: 'Lato',
       command: 'Lato',
       prestige: 'EB Garamond',
       signature: 'EB Garamond',
-      vibe: 'Source Serif 4',
+      vibe: 'Lato',
       edge: 'Open Sans',
     }
    const loadedTemplate = data.template_id || 'current'
@@ -711,7 +813,7 @@ if (showCtaModal) {
                     command: 'Lato',
                     prestige: 'EB Garamond',
                     signature: 'EB Garamond',
-                    vibe: 'Source Serif 4',
+                    vibe: 'Helvetica',
                     edge: 'Open Sans',
                   }
                   setSelectedFont(templateDefaultFonts[t] || 'Lato')
@@ -741,7 +843,6 @@ if (showCtaModal) {
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
                <option value="EB Garamond">EB Garamond</option>
-                <option value="Helvetica">Helvetica</option>
                 <option value="Lato">Lato</option>
                 <option value="Open Sans">Open Sans</option>
                 <option value="Source Serif 4">Source Serif 4</option>
@@ -1838,8 +1939,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score }) {  const [sending, setSending] = useState(false)
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score }) {
+  const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
+  const [userInput, setUserInput] = useState('')
   const [userTier, setUserTier] = useState(userTierProp || null)
   const [trialComplete, setTrialComplete] = useState(false)
   const [trialResult, setTrialResult] = useState(null)

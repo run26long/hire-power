@@ -36,69 +36,149 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
 
   return (
     <div style={{
-      padding: '57px',
+      padding: selectedTemplate === 'sharp' || selectedTemplate === 'vibe' ? '48px' : '57px',
       fontFamily: font,
       fontSize: `${base}pt`,
-      lineHeight: '1.6',
+      lineHeight: '1.3',
       color: '#1a1a1a',
       minHeight: '1056px',
       boxSizing: 'border-box',
       backgroundColor: '#fff',
     }}>
 
-      {/* Header — Current style: centered name, rules sandwiching contact */}
-      <div style={{ textAlign: 'center', marginBottom: 0 }}>
-        <div
-          contentEditable
-          suppressContentEditableWarning
-          className={editableClass}
-          style={{
-            fontFamily: font,
-            fontSize: `${base + 6}pt`,
-            fontWeight: '700',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            color: '#1a1a1a',
-            marginBottom: '4px',
-            lineHeight: '1.1',
-            display: 'block',
-          }}
-          onBlur={e => update('candidateName', e.currentTarget.textContent)}
-        >{clData.candidateName || 'Your Name'}</div>
-      </div>
-
-      <hr style={{ border: 'none', borderBottom: '1px solid #bbb', margin: '0' }} />
-
-      <div
-        contentEditable
-        suppressContentEditableWarning
-        className={editableClass}
-        style={{
-          fontFamily: font,
-          fontSize: `${base - 1}pt`,
-          color: '#555',
-          textAlign: 'center',
-          lineHeight: '1.3',
-          letterSpacing: '0.2px',
-          padding: '6px 0',
-          display: 'block',
-        }}
-        onBlur={e => {
-          const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
-          onUpdate({
-            ...clData,
-            location: parts[0] || clData.location,
-            phone: parts[1] || clData.phone,
-            email: parts[2] || clData.email,
-            linkedin: parts[3] || clData.linkedin,
-          })
-        }}
-      >{contactLine || 'City, State | Phone | Email'}</div>
-
-      <hr style={{ border: 'none', borderBottom: '1px solid #bbb', margin: '0 0 20px 0' }} />
+      {/* Header — varies by template */}
+      {selectedTemplate === 'vibe' ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px', paddingBottom: '2px' }}>
+            <div style={{ flex: 1 }}>
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                className={editableClass}
+                style={{
+                  fontFamily: font,
+                  fontSize: '24pt',
+                  fontWeight: '700',
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase',
+                  color: '#1a1a1a',
+                  lineHeight: '1.1',
+                  display: 'block',
+                  marginBottom: '6px',
+                }}
+                onBlur={e => update('candidateName', e.currentTarget.textContent)}
+              >{clData.candidateName || 'Your Name'}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              {[clData.email, clData.phone && clData.location ? `${clData.phone} | ${clData.location}` : (clData.phone || clData.location), clData.linkedin].filter(Boolean).map((line, i) => (
+                <div key={i} style={{
+                  fontFamily: font,
+                  fontSize: `${base}pt`,
+                  color: '#555',
+                  lineHeight: '1.4',
+                }}>{line}</div>
+              ))}
+            </div>
+          </div>
+          <hr style={{ border: 'none', borderBottom: '1px solid #aaaaaa', margin: '2px 0 20px 0' }} />
+        </>
+      ) : selectedTemplate === 'sharp' ? (
+        <>
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className={editableClass}
+            style={{
+              fontFamily: font,
+              fontSize: '22pt',
+              fontWeight: '700',
+              letterSpacing: '0.5px',
+              color: '#111',
+              lineHeight: '1.2',
+              display: 'block',
+              borderBottom: '2px solid #111',
+              paddingBottom: '6px',
+              marginBottom: '4px',
+            }}
+            onBlur={e => update('candidateName', e.currentTarget.textContent)}
+          >{clData.candidateName || 'Your Name'}</div>
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className={editableClass}
+            style={{
+              fontFamily: font,
+              fontSize: `${base}pt`,
+              color: '#444',
+              lineHeight: '1.3',
+              display: 'block',
+              marginBottom: '20px',
+            }}
+            onBlur={e => {
+              const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
+              onUpdate({
+                ...clData,
+                location: parts[0] || clData.location,
+                phone: parts[1] || clData.phone,
+                email: parts[2] || clData.email,
+                linkedin: parts[3] || clData.linkedin,
+              })
+            }}
+          >{contactLine || 'City, State | Phone | Email'}</div>
+        </>
+      ) : (
+        <>
+          <div style={{ textAlign: 'center', marginBottom: 0 }}>
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              className={editableClass}
+              style={{
+                fontFamily: font,
+                fontSize: `${base + 6}pt`,
+                fontWeight: '700',
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                color: '#1a1a1a',
+                marginBottom: '4px',
+                lineHeight: '1.1',
+                display: 'block',
+              }}
+              onBlur={e => update('candidateName', e.currentTarget.textContent)}
+            >{clData.candidateName || 'Your Name'}</div>
+          </div>
+          <hr style={{ border: 'none', borderBottom: '1px solid #bbb', margin: '0' }} />
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className={editableClass}
+            style={{
+              fontFamily: font,
+              fontSize: `${base - 1}pt`,
+              color: '#555',
+              textAlign: 'center',
+              lineHeight: '1.3',
+              letterSpacing: '0.2px',
+              padding: '6px 0',
+              display: 'block',
+            }}
+            onBlur={e => {
+              const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
+              onUpdate({
+                ...clData,
+                location: parts[0] || clData.location,
+                phone: parts[1] || clData.phone,
+                email: parts[2] || clData.email,
+                linkedin: parts[3] || clData.linkedin,
+              })
+            }}
+          >{contactLine || 'City, State | Phone | Email'}</div>
+          <hr style={{ border: 'none', borderBottom: '1px solid #bbb', margin: '0 0 20px 0' }} />
+        </>
+      )}
 
       {/* Date */}
-      <div style={{ ...body, marginBottom: '16px' }}>
+      <div style={{ ...body, marginBottom: '36px', marginTop: '60px' }}>
         <span
           contentEditable
           suppressContentEditableWarning
@@ -107,23 +187,38 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
         >{clData.date || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
       </div>
 
-      {/* Company + Re line */}
-      <div style={{ ...body, marginBottom: '20px' }}>
-        <div
-          contentEditable
-          suppressContentEditableWarning
-          className={editableClass}
-          style={{ display: 'block', marginBottom: '4px' }}
-          onBlur={e => update('companyName', e.currentTarget.textContent)}
-        >{clData.companyName || 'Company Name'}</div>
+      {/* Memo block — To / Re */}
+      <div style={{ ...body, marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+          <span style={{ color: '#555', flexShrink: 0 }}>To:</span>
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              className={editableClass}
+              onBlur={e => update('recipientName', e.currentTarget.textContent)}
+            >{clData.recipientName || 'Hiring Manager'}</span>
+            <span
+              title="💡 Replace with the hiring manager's name if you have it. Check the job posting or LinkedIn."
+              style={{ cursor: 'help', background: '#ede9fe', color: '#7c3aed', fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '999px', flexShrink: 0, letterSpacing: '0.2px' }}
+            >edit</span>
+          </div>
+        </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-          <span style={{ color: '#555' }}>Re:</span>
+          <span style={{ color: '#555', flexShrink: 0 }}>Re:</span>
           <span
             contentEditable
             suppressContentEditableWarning
             className={editableClass}
             onBlur={e => update('jobTitle', e.currentTarget.textContent)}
           >{clData.jobTitle || 'Position Title'}</span>
+          <span style={{ color: '#555' }}>position at</span>
+          <span
+            contentEditable
+            suppressContentEditableWarning
+            className={editableClass}
+            onBlur={e => update('companyName', e.currentTarget.textContent)}
+          >{clData.companyName || 'Company Name'}</span>
         </div>
       </div>
 
@@ -182,11 +277,12 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
       {/* Signature */}
       <div style={body}>
         <div style={{ marginBottom: '4px' }}>Sincerely,</div>
-        <div style={{ marginTop: '24px', fontWeight: '600' }}>
+        <div style={{ marginTop: '36px' }}>
           <span
             contentEditable
             suppressContentEditableWarning
             className={editableClass}
+            style={{ fontWeight: '400' }}
             onBlur={e => update('candidateName', e.currentTarget.textContent)}
           >{clData.candidateName || 'Your Name'}</span>
         </div>

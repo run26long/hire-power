@@ -1302,7 +1302,7 @@ function normalizeEducation(education) {
   })
 }
 
-function buildJobSpecificRewritePrompt({ resumeData, conversation, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords }) {
+function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
 - Target roles: ${careerContext.target_roles?.join(', ') || jobTitle || 'not specified'}
@@ -1310,7 +1310,9 @@ CAREER CONTEXT:
 - Transferable skills: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
 ` : ''
 
-  return `${JS_WRITING_CONSTITUTION}
+  return `${WRITING_CONSTITUTION}
+
+${JS_WRITING_CONSTITUTION}
 
 ${levelInstructions}
 
@@ -1845,11 +1847,12 @@ export async function POST(request) {
       if (cleanedRewrite.startsWith('```')) {
         cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
+      let rewrittenResume = JSON.parse(cleanedRewrite)
       if (rewrittenResume.education?.length) {
         rewrittenResume.education = normalizeEducation(rewrittenResume.education)
       }
 
-         // ── SUMMARY: Written last, from completed bullets ──
+      // ── SUMMARY: Written last, from completed bullets ──
       const jsSummaryPrompt = buildSummaryPrompt({
         rewrittenResume,
         conversation,

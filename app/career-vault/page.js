@@ -76,6 +76,8 @@ export default function CareerVaultPage() {
 
   // Job card modal
   const [showJobModal, setShowJobModal] = useState(false);
+  const [showArchiveCardModal, setShowArchiveCardModal] = useState(false);
+  const [selectedArchiveCard, setSelectedArchiveCard] = useState(null);
   const [jsResumes, setJsResumes] = useState([]);
 
   // Archive state
@@ -85,6 +87,16 @@ export default function CareerVaultPage() {
   const [archiveActionLoading, setArchiveActionLoading] = useState(false);
 
   const logInputRef = useRef(null);
+
+  // Set current job manually
+  const [showSetJobModal, setShowSetJobModal] = useState(false);
+  const [setJobTitle, setSetJobTitle] = useState('');
+  const [setJobCompany, setSetJobCompany] = useState('');
+  const [setJobDescription, setSetJobDescription] = useState('');
+  const [setJobResumeId, setSetJobResumeId] = useState('');
+  const [setJobHiredDate, setSetJobHiredDate] = useState('');
+  const [setJobSaving, setSetJobSaving] = useState(false);
+  const [setJobError, setSetJobError] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -97,14 +109,28 @@ export default function CareerVaultPage() {
       setUserProfile(profile);
       setTier(profile?.subscription_tier || 'vault');
 
-      // Load accomplishments from achievements table
-      const { data: accs } = await supabase
-        .from('achievements')
-        .select('*')
+      // Load hired card first so we can filter accomplishments by it
+      const { data: hiredCard } = await supabase
+        .from('applications')
+        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
         .eq('user_id', user.id)
-        .eq('source', 'career_archive')
-        .order('created_at', { ascending: false });
-      if (accs) setAccomplishments(accs);
+        .eq('application_status', 'hired')
+        .order('hired_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (hiredCard) setCurrentJobEntry(hiredCard);
+
+      // Load accomplishments tied to current hired card only
+      if (hiredCard?.id) {
+        const { data: accs } = await supabase
+          .from('achievements')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('source', 'career_archive')
+          .eq('application_id', hiredCard.id)
+          .order('created_at', { ascending: false });
+        if (accs) setAccomplishments(accs);
+      }
 
       const { count: resumeCount } = await supabase
         .from('resumes')
@@ -121,7 +147,12 @@ export default function CareerVaultPage() {
         .eq('user_id', user.id)
         .eq('application_status', 'archived')
         .order('updated_at', { ascending: false });
-      setArchivedCards(archivedApps || []);
+
+      const statusPriority = { hired: 0, interview: 1, applied: 2, resume_in_progress: 3, rejected: 4, archived: 5 };
+      const sortedApps = (archivedApps || []).sort((a, b) =>
+        (statusPriority[a.application_status] ?? 5) - (statusPriority[b.application_status] ?? 5)
+      );
+      setArchivedCards(sortedApps);
 
       // Load archived core resumes (is_active = false)
       const { data: inactiveCores } = await supabase
@@ -133,18 +164,7 @@ export default function CareerVaultPage() {
         .order('updated_at', { ascending: false });
       setArchivedCoreResumes(inactiveCores || []);
 
-      // Load current job entry from hired card
-      const { data: hiredCard } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
-        .eq('user_id', user.id)
-        .eq('application_status', 'hired')
-        .order('hired_at', { ascending: false })
-        .limit(1)
-        .single();
-      if (hiredCard) setCurrentJobEntry(hiredCard);
-
-      // Load JS resumes for linking
+            // Load JS resumes for linking
       const { data: jsResumesData } = await supabase
         .from('resumes')
         .select('id, display_name, current_score')
@@ -177,6 +197,7 @@ export default function CareerVaultPage() {
           source: 'career_archive',
           raw_description: logText.trim(),
           status: 'approved',
+          application_id: currentJobEntry?.id || null,
           created_at: logDate
             ? new Date(logDate).toISOString()
             : new Date().toISOString(),
@@ -199,6 +220,56 @@ export default function CareerVaultPage() {
   async function handleDeleteAccomplishment(id) {
     await supabase.from('achievements').delete().eq('id', id);
     setAccomplishments(prev => prev.filter(a => a.id !== id));
+  }
+
+  async function handleSetCurrentJobManually() {
+    if (!setJobTitle.trim() || !setJobCompany.trim()) {
+      setSetJobError('Job title and company are required.');
+      return;
+    }
+    setSetJobSaving(true);
+    setSetJobError(null);
+    try {
+      const hiredAt = setJobHiredDate
+        ? new Date(setJobHiredDate).toISOString()
+        : new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          title: setJobTitle.trim(),
+          company: setJobCompany.trim(),
+          description: setJobDescription.trim() || null,
+          application_status: 'hired',
+          hired_at: hiredAt,
+          application_date: setJobHiredDate || new Date().toISOString().split('T')[0],
+          resume_id: setJobResumeId || null,
+          sort_order: 0,
+        })
+        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
+        .single();
+
+      if (error) throw error;
+
+      await supabase
+        .from('profiles')
+        .update({ search_status: 'hired' })
+        .eq('id', user.id);
+
+      setCurrentJobEntry(data);
+      setShowSetJobModal(false);
+      setSetJobTitle('');
+      setSetJobCompany('');
+      setSetJobDescription('');
+      setSetJobResumeId('');
+      setSetJobHiredDate('');
+    } catch (err) {
+      console.error('Error setting current job:', err);
+      setSetJobError('Something went wrong. Please try again.');
+    } finally {
+      setSetJobSaving(false);
+    }
   }
 
   async function handleRestoreCore(resumeId) {
@@ -418,7 +489,10 @@ export default function CareerVaultPage() {
                       <p className="text-xs text-gray-500 mb-2">
                         No current job set. Mark a job card as Hired and it appears here automatically.
                       </p>
-                      <button className="text-xs text-purple-600 font-semibold hover:text-purple-700">
+                      <button
+                        onClick={() => setShowSetJobModal(true)}
+                        className="text-xs text-purple-600 font-semibold hover:text-purple-700"
+                      >
                         Set current job manually →
                       </button>
                     </div>
@@ -473,11 +547,22 @@ export default function CareerVaultPage() {
                   ) : (
                     <div className="text-center py-3 border border-dashed border-gray-200 rounded-lg bg-gray-50">
                       <div className="text-4xl mb-2">🏆</div>
-                      <p className="text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
-                      <p className="text-xs text-gray-400 text-center leading-relaxed">
-                        The next time something good happens at work, log it here.<br />
-                        Takes 30 seconds. Saves hours later.
-                      </p>
+                      {!currentJobEntry ? (
+                        <>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">No current job set</p>
+                          <p className="text-xs text-gray-400 text-center leading-relaxed">
+                            Mark a job as Hired and wins you log will attach to that role automatically.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
+                          <p className="text-xs text-gray-400 text-center leading-relaxed">
+                            The next time something good happens at work, log it here.<br />
+                            Takes 30 seconds. Saves hours later.
+                          </p>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -506,15 +591,17 @@ export default function CareerVaultPage() {
                       ))}
                     </div>
                     <div className="border-t border-gray-100 pt-1 mt-1 mb-2 text-center">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Quick Actions Still Available in Vault</p>
-                      </div>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        {isPro ? 'Quick Actions' : 'Quick Actions Still Available in Vault'}
+                      </p>
+                    </div>
                     <div className="space-y-1.5">
                       <button onClick={() => router.push('/resume-coach')}
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">📄</span>
                         <div className="flex-1">
                           <p className="text-xs font-semibold text-gray-800">Resume Coach</p>
-                          <p className="text-[10px] text-gray-400">View, format, download</p>
+                          <p className="text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
                         </div>
                         <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
                       </button>
@@ -523,7 +610,7 @@ export default function CareerVaultPage() {
                         <span className="text-sm">🎤</span>
                         <div className="flex-1">
                           <p className="text-xs font-semibold text-gray-800">Interview Practice</p>
-                          <p className="text-[10px] text-gray-400">Generic practice, always free</p>
+                          <p className="text-[10px] text-gray-400">{isPro ? 'Job-specific prep, always ready' : 'Generic practice, always free'}</p>
                         </div>
                         <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
                       </button>
@@ -603,10 +690,11 @@ export default function CareerVaultPage() {
           jsResumes={jsResumes}
           context="vault"
           accomplishmentsCount={accomplishments.length}
+          isPro={isPro}
         />
       )}
 
-      {/* ── LOG WIN MODAL ── */}
+     {/* ── LOG WIN MODAL ── */}
       {showLogModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -729,26 +817,26 @@ export default function CareerVaultPage() {
         </div>
       )}
 
-      {/* ── ARCHIVE MODAL ── */}
+    {/* ── ARCHIVE MODAL ── */}
       {showArchiveModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
           onClick={() => setShowArchiveModal(false)}
         >
           <div
-            className="bg-white shadow-2xl w-full max-w-2xl border border-gray-200 flex flex-col"
-            style={{ borderRadius: '8px', maxHeight: '80vh' }}
+            className="bg-white shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
+            style={{ borderRadius: '12px', height: '80vh' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
             <div
-              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
-              className="px-6 py-5 relative"
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+              className="px-6 py-5 relative flex-shrink-0"
             >
               <button
                 onClick={() => setShowArchiveModal(false)}
-                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+                className="absolute top-3 right-4 text-white hover:opacity-70 text-2xl leading-none font-light"
               >×</button>
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
@@ -770,30 +858,24 @@ export default function CareerVaultPage() {
                     {archivedCoreResumes.map((resume) => (
                       <div key={resume.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-900 mb-0.5">{resume.display_name || 'Untitled Resume'}</p>
-                            <p className="text-xs text-gray-400">Archived {formatDate(resume.updated_at)}{resume.current_score ? ` · Score: ${resume.current_score}` : ''}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 mb-0.5 truncate">{resume.display_name || 'Untitled Resume'}</p>
+                            <p className="text-[10px] text-gray-400">Archived {formatDate(resume.updated_at)}{resume.current_score ? ` · Score: ${resume.current_score}` : ''}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <button
                               onClick={() => router.push(`/resume/${resume.id}`)}
-                              className="text-[10px] text-purple-600 font-semibold hover:text-purple-700 flex items-center gap-1"
-                            >
-                              <span>📄</span> View
-                            </button>
+                              className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
+                            >View</button>
                             <button
                               onClick={() => handleRestoreCore(resume.id)}
                               disabled={archiveActionLoading}
                               className="text-[10px] text-green-600 font-semibold hover:text-green-700 disabled:opacity-50"
-                            >
-                              Restore
-                            </button>
+                            >Restore</button>
                             <button
                               onClick={() => setConfirmDelete({ id: resume.id, type: 'core' })}
                               className="text-[10px] text-red-400 font-semibold hover:text-red-600"
-                            >
-                              Delete
-                            </button>
+                            >Delete</button>
                           </div>
                         </div>
                       </div>
@@ -810,12 +892,15 @@ export default function CareerVaultPage() {
                 {archivedCards.length > 0 ? (
                   <div className="space-y-2">
                     {archivedCards.map((card) => (
-                      <div key={card.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors">
+                      <div key={card.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors cursor-pointer" onClick={() => {
+                        setSelectedArchiveCard(card);
+                        setShowArchiveCardModal(true);
+                      }}>
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <p className="text-sm font-semibold text-gray-900">{card.title}</p>
-                              <StatusBadge status={card.application_status} />
+                              <StatusBadge status={card.last_active_status || card.application_status} />
                             </div>
                             <p className="text-xs text-gray-500 mb-2">
                               {card.company}{card.application_date ? ` · Applied ${formatDate(card.application_date)}` : ''}
@@ -823,25 +908,19 @@ export default function CareerVaultPage() {
                             <div className="flex items-center gap-3 flex-wrap">
                               {card.resumes && (
                                 <button
-                                  onClick={() => router.push(`/resume/${card.resumes.id}`)}
-                                  className="text-[10px] text-purple-600 font-semibold hover:text-purple-700 flex items-center gap-1"
-                                >
-                                  <span>📄</span> View Resume
-                                </button>
+                                  onClick={(e) => { e.stopPropagation(); router.push(`/resume/${card.resumes.id}`); }}
+                                  className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
+                                >📄 View Resume</button>
                               )}
                               {card.application_status === 'hired' && (
-                                <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                                  <span>🔒</span> JD saved to Vault
-                                </span>
+                                <span className="text-[10px] text-gray-400">🔒 JD saved to Vault</span>
                               )}
                             </div>
                           </div>
                           <button
-                            onClick={() => setConfirmDelete({ id: card.id, type: 'card' })}
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: card.id, type: 'card' }); }}
                             className="text-[10px] text-red-400 font-semibold hover:text-red-600 flex-shrink-0"
-                          >
-                            Delete
-                          </button>
+                          >Delete</button>
                         </div>
                       </div>
                     ))}
@@ -856,14 +935,130 @@ export default function CareerVaultPage() {
                 )}
               </div>
 
+           </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ARCHIVE CARD MODAL ── */}
+      {showArchiveCardModal && selectedArchiveCard && (
+        <JobCardModal
+          card={selectedArchiveCard}
+          onClose={() => { setShowArchiveCardModal(false); setSelectedArchiveCard(null); }}
+          onSaveNotes={async (cardId, notes) => {
+            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            setArchivedCards(prev => prev.map(c => c.id === cardId ? { ...c, notes } : c));
+          }}
+          jsResumes={jsResumes}
+          context="vault"
+          isPro={isPro}
+        />
+      )}
+
+    {/* ── SET CURRENT JOB MODAL ── */}
+      {showSetJobModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => { setShowSetJobModal(false); setSetJobError(null); }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                  <div>
+                    <h2 className="text-base font-bold text-white">Set Current Job</h2>
+                    <p className="text-purple-100 text-xs">Wins you log will attach to this role and feed into your next resume.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowSetJobModal(false); setSetJobError(null); }}
+                  className="text-white hover:opacity-70 text-2xl leading-none font-light"
+                >×</button>
+              </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+            <div className="p-6 space-y-4">
+              {jsResumes.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Link a JS Resume <span className="font-normal text-gray-400">(optional)</span></label>
+                  <select
+                    value={setJobResumeId}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setSetJobResumeId('');
+                      } else {
+                        const selected = jsResumes.find(r => r.id === val);
+                        setSetJobResumeId(val);
+                        if (selected?.display_name) {
+                          const parts = selected.display_name.split(' at ');
+                          if (!setJobTitle) setSetJobTitle(parts[0] || '');
+                          if (!setJobCompany) setSetJobCompany(parts[1] || '');
+                        }
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">No resume linked</option>
+                    {jsResumes.map(r => (
+                      <option key={r.id} value={r.id}>{r.display_name || 'Untitled'}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Title *</label>
+                <input
+                  type="text"
+                  value={setJobTitle}
+                  onChange={e => setSetJobTitle(e.target.value)}
+                  placeholder="e.g. Operations Coordinator"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Company *</label>
+                <input
+                  type="text"
+                  value={setJobCompany}
+                  onChange={e => setSetJobCompany(e.target.value)}
+                  placeholder="e.g. Freeman"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Start Date <span className="font-normal text-gray-400">(optional)</span></label>
+                <input
+                  type="date"
+                  value={setJobHiredDate}
+                  onChange={e => setSetJobHiredDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Description <span className="font-normal text-gray-400">(optional but recommended)</span></label>
+                <textarea
+                  value={setJobDescription}
+                  onChange={e => setSetJobDescription(e.target.value)}
+                  placeholder="Paste the job description — your coach will use this when it's time to build your next resume."
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+              {setJobError && <p className="text-xs text-red-600">{setJobError}</p>}
               <button
-                onClick={() => setShowArchiveModal(false)}
-                className="w-full bg-gray-100 text-gray-600 rounded-lg py-2 text-xs font-medium hover:bg-gray-200 transition-colors"
+                onClick={handleSetCurrentJobManually}
+                disabled={setJobSaving || !setJobTitle.trim() || !setJobCompany.trim()}
+                className="w-full rounded-lg py-2.5 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 hover:opacity-90"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
               >
-                Close
+                {setJobSaving && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />}
+                {setJobSaving ? 'Saving...' : 'Set as Current Job →'}
               </button>
             </div>
           </div>

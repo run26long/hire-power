@@ -2,12 +2,12 @@ import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
 import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
 
-export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
+export default function ResumePDFSharp({ resumeData, font = 'Open Sans', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
   if (!resumeData) return null
   const skills = getSkillsDisplay(resumeData)
   const base = fontSize
   const sp = spacing
-  const f = (font === 'Arial' || font === 'Helvetica') ? 'Lato' : (font || 'Lato')
+  const f = font || 'Open Sans'
 
   const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
@@ -17,10 +17,11 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#111111', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#111111', paddingTop: 36, paddingBottom: 28, paddingLeft: 36, paddingRight: 36, backgroundColor: '#ffffff' }}>
 
-        <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', color: '#111111', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
-        <View style={{ borderBottomWidth: 1, borderBottomColor: '#111111', marginBottom: Math.round(4*sp) }} />
+        <View style={{ borderBottomWidth: 2, borderBottomColor: '#111111', paddingBottom: Math.round(6*sp), marginBottom: Math.round(4*sp) }}>
+          <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', color: '#111111' }}>{resumeData.fullName || ''}</Text>
+        </View>
         <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(8*sp) }}>{contactParts.join(' | ')}</Text>
 
         {resumeData.summary && !resumeData.hideSummary && (
@@ -37,10 +38,10 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
               if (!resumeData.experience?.length) return null
               const [firstJob, ...restJobs] = resumeData.experience
               return (
-                <View key="experience" style={{ marginTop: Math.round(14*sp) }}>
+                <View key="experience" style={{ marginTop: Math.round(12*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.experience || 'Experience'} />
-                    <View style={{ marginBottom: restJobs.length > 0 ? Math.round(10*sp) : 0 }}>
+                    <View style={{ marginBottom: restJobs.length > 0 ? Math.round(8*sp) : 0 }}>
                       <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{firstJob.title || ''}</Text>
                       <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(2*sp) }}>{[firstJob.company, firstJob.location, formatDateRange(firstJob.startDate, firstJob.endDate, firstJob.current, dateFormat)].filter(Boolean).join(' | ')}</Text>
                       {firstJob.summary && !firstJob.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(2*sp) }}>{firstJob.summary}</Text>}
@@ -53,7 +54,7 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
                     </View>
                   </View>
                   {restJobs.map((job, i) => (
-                    <View key={i+1} style={{ marginBottom: i < restJobs.length - 1 ? Math.round(10*sp) : 0 }}>
+                    <View key={i+1} style={{ marginBottom: i < restJobs.length - 1 ? Math.round(8*sp) : 0 }}>
                       <View wrap={false}>
                         <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{job.title || ''}</Text>
                         <Text style={{ fontFamily: f, fontSize: base, color: '#555555', marginBottom: Math.round(2*sp) }}>{[job.company, job.location, formatDateRange(job.startDate, job.endDate, job.current, dateFormat)].filter(Boolean).join(' | ')}</Text>
@@ -75,10 +76,10 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
               if (!resumeData.education?.length) return null
               const [firstEd, ...restEd] = resumeData.education
               return (
-                <View key="education" style={{ marginTop: Math.round(14*sp) }}>
+                <View key="education" style={{ marginTop: Math.round(12*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.education || 'Education'} />
-                    <View style={{ marginBottom: restEd.length > 0 ? Math.round(10*sp) : 0 }}>
+                    <View style={{ marginBottom: restEd.length > 0 ? Math.round(8*sp) : 0 }}>
                       <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{firstEd.school || ''}</Text>
                       <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[[firstEd.degree, firstEd.field].filter(Boolean).join(', '), firstEd.graduationDate ? formatDate(firstEd.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
                       {firstEd.lines?.filter(l => {
@@ -90,7 +91,7 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
                     </View>
                   </View>
                   {restEd.map((ed, i) => (
-                    <View key={i+1} wrap={false} style={{ marginBottom: i < restEd.length - 1 ? Math.round(10*sp) : 0 }}>
+                    <View key={i+1} wrap={false} style={{ marginBottom: i < restEd.length - 1 ? Math.round(8*sp) : 0 }}>
                       <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, color: '#111111' }}>{ed.school || ''}</Text>
                       <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[[ed.degree, ed.field].filter(Boolean).join(', '), ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
                       {ed.lines?.filter(l => {
@@ -133,7 +134,7 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
               if (!resumeData.certifications?.length) return null
               const [firstCert, ...restCerts] = resumeData.certifications
               return (
-                <View key="certifications" style={{ marginTop: Math.round(14*sp) }}>
+                <View key="certifications" style={{ marginTop: Math.round(12*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.certifications || 'Certifications'} />
                     <View style={{ marginBottom: restCerts.length > 0 ? Math.round(6*sp) : 0 }}>
@@ -153,7 +154,7 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
               if (!resumeData.volunteer?.length) return null
               const [firstVol, ...restVol] = resumeData.volunteer
               return (
-                <View key="volunteer" style={{ marginTop: Math.round(14*sp) }}>
+                <View key="volunteer" style={{ marginTop: Math.round(12*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.volunteer || 'Volunteer Experience'} />
                     <View style={{ marginBottom: restVol.length > 0 ? Math.round(6*sp) : 0 }}>
@@ -175,7 +176,7 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
               if (!resumeData.projects?.length) return null
               const [firstProj, ...restProj] = resumeData.projects
               return (
-                <View key="projects" style={{ marginTop: Math.round(14*sp) }}>
+                <View key="projects" style={{ marginTop: Math.round(12*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.projects || 'Projects'} />
                     <View style={{ marginBottom: restProj.length > 0 ? Math.round(6*sp) : 0 }}>
@@ -197,7 +198,7 @@ export default function ResumePDFSharp({ resumeData, font = 'Helvetica', fontSiz
               if (!resumeData.additionalInfo?.length) return null
               const [firstInfo, ...restInfo] = resumeData.additionalInfo
               return (
-                <View key="additionalInfo" style={{ marginTop: Math.round(14*sp) }}>
+                <View key="additionalInfo" style={{ marginTop: Math.round(12*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.additionalInfo || 'Additional Information'} />
                     <View style={{ marginBottom: Math.round(3*sp) }}>

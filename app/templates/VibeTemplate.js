@@ -7,7 +7,7 @@ export default function VibeTemplate({ resumeData, font, fontSize, spacing = 1, 
   const base = fontSize || 11;
   const sp = spacing || 1;
   const color = accentColor || '#5b4fcf';
-  const fontFamily = font || 'Source Serif 4';
+  const fontFamily = font || 'Helvetica';
   const px = (n) => `${Math.round(n * sp)}px`;
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || '';
 
@@ -17,7 +17,7 @@ export default function VibeTemplate({ resumeData, font, fontSize, spacing = 1, 
       fontSize: `${base}pt`,
       lineHeight: '1.2',
       color: '#1a1a1a',
-      padding: `${px(36)} ${px(52)}`,
+      padding: `${px(48)} ${px(48)}`,
       background: '#fff',
       width: '100%',
       boxSizing: 'border-box',
@@ -45,7 +45,7 @@ export default function VibeTemplate({ resumeData, font, fontSize, spacing = 1, 
       letterSpacing: '1.5px',
       textTransform: 'uppercase',
       color: '#1a1a1a',
-      marginBottom: px(3),
+      marginBottom: px(2),
       lineHeight: '1.1',
     },
     title: {
@@ -61,7 +61,7 @@ export default function VibeTemplate({ resumeData, font, fontSize, spacing = 1, 
       alignItems: 'center',
       gap: px(8),
       marginBottom: px(8),
-      marginTop: px(18),
+      marginTop: px(14),
     },
     shLine: {
       flex: 1,

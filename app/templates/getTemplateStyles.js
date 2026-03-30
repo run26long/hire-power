@@ -9,19 +9,19 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
   // Template default fonts — overridden by user font selection if provided
   const templateFonts = {
     crisp: '"Source Serif 4", "Times New Roman", serif',
-    sharp: 'Helvetica, Arial, sans-serif',
+    sharp: 'Open Sans, Arial, sans-serif',
     current: 'Lato, Arial, sans-serif',
     command: 'Lato',
     prestige: 'EB Garamond, "Times New Roman", serif',
     signature: 'EB Garamond, "Times New Roman", serif',
-    vibe: '"Source Serif 4"',
+    vibe: 'Lato, Arial, sans-serif',
     edge: 'Open Sans, Arial, sans-serif',
   }
 
   // Use user-selected font if provided, otherwise use template default
   const rawFont = font || templateFonts[template] || 'Lato, Arial, sans-serif'
   const ff = rawFont === 'Source Serif 4' ? '"Source Serif 4"' : rawFont
- const sharpWeight = (template === 'sharp' && (ff.includes('Arial') || ff.includes('Helvetica'))) ? '600' : '800'
+  const sharpWeight = '700'
 
   const defaults = {
     page: {
@@ -30,6 +30,7 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       lineHeight: '1.15',
       color: '#1a1a1a',
       background: '#fff',
+      padding: '57px',
     },
     name: {
       fontFamily: ff,
@@ -132,8 +133,8 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
     case 'sharp':
       return {
         ...defaults,
-        page: { ...defaults.page },
-        name: { ...defaults.name, fontWeight: sharpWeight, letterSpacing: '0.5px', textAlign: 'left', fontSize: '22pt', borderBottom: '2px solid #111', paddingTop: '0', paddingBottom: '4px', paddingLeft: '0', paddingRight: '0', marginBottom: '4px' },
+        page: { ...defaults.page, padding: '48px' },
+        name: { ...defaults.name, fontWeight: sharpWeight, letterSpacing: '0.5px', textAlign: 'left', fontSize: '22pt', borderBottom: '2px solid #111', paddingTop: '0', paddingBottom: '6px', paddingLeft: '0', paddingRight: '0', marginBottom: '4px' },
         contact: { ...defaults.contact, textAlign: 'left' },
         headerArea: { ...defaults.headerArea },
         sectionHeader: {
@@ -160,12 +161,12 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
           background: accent,
           paddingTop: '18px',
           paddingBottom: '14px',
-          paddingLeft: '24px',
-          paddingRight: '24px',
+          paddingLeft: '57px',
+          paddingRight: '57px',
           marginBottom: '12px',
-          marginLeft: '-24px',
-          marginRight: '-24px',
-          marginTop: '0',
+          marginLeft: '-57px',
+          marginRight: '-57px',
+          marginTop: '-57px',
         },
         name: { ...defaults.name, color: '#ffffff', fontWeight: '700', letterSpacing: '1px' },
         contact: { ...defaults.contact, color: 'rgba(255,255,255,0.88)' },
@@ -275,7 +276,7 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
     case 'vibe':
       return {
         ...defaults,
-        page: { ...defaults.page, lineHeight: '1.2' },
+        page: { ...defaults.page, lineHeight: '1.2', padding: '48px' },
         name: { ...defaults.name, fontSize: '24pt', fontWeight: '700', textAlign: 'left', letterSpacing: '1.5px', textTransform: 'uppercase' },
         contact: { ...defaults.contact, textAlign: 'right', lineHeight: '1.4' },
         professionalTitle: { fontFamily: ff, fontSize: `${base}pt`, fontWeight: '400', textAlign: 'left', color: '#555', letterSpacing: '0.5px', marginBottom: '0', lineHeight: '1.2' },

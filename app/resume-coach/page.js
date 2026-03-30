@@ -81,13 +81,27 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
  useEffect(() => {
     loadData();
-    // Check for job-specific creation trigger from SaveStep
     const params = new URLSearchParams(window.location.search);
+
+    // Check for job-specific creation trigger from SaveStep
     if (params.get('action') === 'new-job-specific') {
       const fromId = params.get('from');
       setJobModalSourceId(fromId);
       setShowJobModal(true);
-      // Clean URL without reload
+      window.history.replaceState({}, '', '/resume-coach');
+    }
+
+    // Check for cover letter creation trigger from JobCardModal
+    if (params.get('action') === 'new-cover-letter') {
+      const jobTitle = params.get('jobTitle') || '';
+      const jobCompany = params.get('jobCompany') || '';
+      const jobDescription = params.get('jobDescription') || '';
+      const resumeId = params.get('resumeId') || '';
+      setClJobTitle(jobTitle);
+      setClCompany(jobCompany);
+      setClJobDescription(jobDescription);
+      setClSelectedJSId(resumeId);
+      setShowCLModal(true);
       window.history.replaceState({}, '', '/resume-coach');
     }
   }, []);

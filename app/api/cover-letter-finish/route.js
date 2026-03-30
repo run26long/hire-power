@@ -147,6 +147,7 @@ Return ONLY valid JSON. No markdown. No backticks. No explanation.
   "opening": "the full opening paragraph as a single string -- 3 sentences only",
   "bridge": "the single bridge sentence that opens the second paragraph",
   "bulletsIntro": "Highlights of how my experience aligns with this role include:",
+  "recipientName": "Hiring Manager",
   "bullets": [
     "bullet 1 as a string",
     "bullet 2 as a string",

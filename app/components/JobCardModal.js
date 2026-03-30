@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import UpgradeModal from './UpgradeModal';
 
 function StatusBadge({ status }) {
   const config = {
@@ -33,9 +34,11 @@ export default function JobCardModal({
   interviewRounds = [],
   context = 'tracker',
   accomplishmentsCount = 0,
+  isPro = true,
 }) {
   const router = useRouter();
   const [showJdModal, setShowJdModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
@@ -79,11 +82,11 @@ export default function JobCardModal({
             <div className="flex items-center gap-3">
               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
               <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h2 className="text-xl font-bold text-white">{card.title}</h2>
+                <h2 className="text-xl font-bold text-white leading-tight mb-1">{card.title}</h2>
+                <div className="flex items-center gap-2">
+                  <p className="text-purple-100 text-xs">{card.company}</p>
                   <StatusBadge status={card.application_status} />
                 </div>
-                <p className="text-purple-100 text-xs">{card.company}</p>
               </div>
             </div>
           </div>
@@ -146,7 +149,7 @@ export default function JobCardModal({
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Documents</p>
 
-              {card.resumes ? (
+             {card.resumes ? (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📄</span>
@@ -160,26 +163,41 @@ export default function JobCardModal({
                     className="text-xs font-semibold text-purple-600 hover:text-purple-800"
                   >Open →</button>
                 </div>
-              ) : (
-                <div className="p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm">📄</span>
-                    <p className="text-xs text-gray-400">No resume linked yet</p>
-                  </div>
-                  {jsResumes.length > 0 && (
-                    <select
-                      defaultValue=""
-                      onChange={e => { if (e.target.value) onLinkResume?.(card.id, e.target.value); }}
-                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+              ) : context === 'tracker' ? (
+                <>
+                  {isPro ? (
+                    <div
+                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          action: 'new-job-specific',
+                          ...(card.title && { jobTitle: card.title }),
+                          ...(card.company && { jobCompany: card.company }),
+                          ...(card.description && { jobDescription: card.description }),
+                        })
+                        router.push(`/resume-coach?${params.toString()}`)
+                      }}
                     >
-                      <option value="">Link a JS resume...</option>
-                      {jsResumes.map(r => (
-                        <option key={r.id} value={r.id}>{r.display_name || 'Untitled'}</option>
-                      ))}
-                    </select>
+                      <div>
+                        <p className="text-xs font-semibold text-purple-800">Create JS Resume</p>
+                        <p className="text-[10px] text-purple-500">Tailored to this job</p>
+                      </div>
+                      <span className="text-xs font-semibold text-purple-500">+ Create →</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                      onClick={() => setShowUpgradeModal(true)}
+                    >
+                      <div>
+                        <p className="text-xs font-semibold text-purple-800">Tailor Resume for This Job</p>
+                        <p className="text-[10px] text-purple-500">Upgrade to Pro to unlock</p>
+                      </div>
+                      <span className="text-xs font-semibold text-purple-500">Pro →</span>
+                    </div>
                   )}
-                </div>
-              )}
+                </>
+              ) : null}
 
               {card.cover_letter_id && (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -213,13 +231,25 @@ export default function JobCardModal({
               <div className="space-y-2">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Actions</p>
 
-                {card.application_status === 'resume_in_progress' && (
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                {card.application_status === 'resume_in_progress' && !card.cover_letter_id && (
+                  <div
+                    className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        action: 'new-cover-letter',
+                        ...(card.title && { jobTitle: card.title }),
+                        ...(card.company && { jobCompany: card.company }),
+                        ...(card.description && { jobDescription: card.description }),
+                        ...(card.resume_id && { resumeId: card.resume_id }),
+                      });
+                      router.push(`/resume-coach?${params.toString()}`);
+                    }}
+                  >
                     <div>
                       <p className="text-xs font-semibold text-purple-800">Build Cover Letter</p>
                       <p className="text-[10px] text-purple-500">Tailored to this job</p>
                     </div>
-                    <span className="text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                    <span className="text-xs font-semibold text-purple-500">+ Create →</span>
                   </div>
                 )}
 
@@ -245,16 +275,16 @@ export default function JobCardModal({
                 {card.application_status === 'interview' && (
                   <>
                     <div
-                      className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100 cursor-pointer hover:border-green-300 transition-colors"
+                      className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100 cursor-pointer hover:border-amber-200 transition-colors"
                       onClick={() => setShowScheduleModal(true)}
                     >
                       <div>
-                        <p className="text-xs font-semibold text-green-800">
+                        <p className="text-xs font-semibold text-amber-800">
                           {interviewRounds.length === 0 ? 'Schedule Interview' : `Schedule Interview ${interviewRounds.length + 1}`}
                         </p>
-                        <p className="text-[10px] text-green-600">Date, time, and format</p>
+                        <p className="text-[10px] text-amber-600">Date, time, and format</p>
                       </div>
-                      <span className="text-xs font-semibold text-green-500">+ Add →</span>
+                      <span className="text-xs font-semibold text-amber-500">+ Add →</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
                       <div>
@@ -309,7 +339,7 @@ export default function JobCardModal({
                 onClick={() => onArchive?.(card.id)}
                 className="flex-1 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
               >
-                Remove from Board
+                Remove & Add to Archive
               </button>
             )}
             {context === 'vault' && onLogWin && (
@@ -461,6 +491,10 @@ export default function JobCardModal({
           </div>
         </div>
       )}
+    <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </>
   );
 }

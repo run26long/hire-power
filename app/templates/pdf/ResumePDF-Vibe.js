@@ -2,16 +2,16 @@ import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
 import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
 
-export default function ResumePDFVibe({ resumeData, font = 'Source Serif 4', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
+export default function ResumePDFVibe({ resumeData, font = 'Lato', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
   if (!resumeData) return null
   const skills = getSkillsDisplay(resumeData)
   const base = fontSize
   const sp = spacing
-  const f = font === 'Arial' ? 'Helvetica' : (font || 'Source Serif 4')
+  const f = font || 'Lato'
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
 
   const SH = ({ title, first = false }) => (
-    <View wrap={false} style={{ flexDirection: 'row', alignItems: 'center', marginTop: first ? 0 : Math.round(18*sp), marginBottom: Math.round(8*sp) }}>
+    <View wrap={false} style={{ flexDirection: 'row', alignItems: 'center', marginTop: first ? 0 : Math.round(14*sp), marginBottom: Math.round(8*sp) }}>
       <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#aaaaaa' }} />
       <Text style={{ fontFamily: f, fontSize: base, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginLeft: 8, marginRight: 8 }}>{title}</Text>
       <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#aaaaaa' }} />
@@ -30,12 +30,12 @@ export default function ResumePDFVibe({ resumeData, font = 'Source Serif 4', fon
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 52, paddingRight: 52, backgroundColor: '#ffffff' }}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 28, paddingLeft: 36, paddingRight: 36, backgroundColor: '#ffffff' }}>
 
         {/* Two-column header */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(10*sp), paddingBottom: Math.round(8*sp) }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(4*sp), paddingBottom: Math.round(4*sp) }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: f, fontSize: 24, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
+            <Text style={{ fontFamily: f, fontSize: 24, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: Math.round(12*sp) }}>{resumeData.fullName || ''}</Text>
             {professionalTitle ? <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{professionalTitle}</Text> : null}
           </View>
           <View style={{ alignItems: 'flex-end' }}>

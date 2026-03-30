@@ -847,12 +847,12 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   return (
     <div style={ts.page || {}}>
       {/* Header */}
-      <div className="mb-6 p-2 rounded" style={ts.headerArea || {}}>
+      <div className="mb-6 rounded" style={ts.headerArea || {}}>
         {selectedTemplate === 'vibe' ? (
           <>
             <div style={{ flex: 1 }}>
               <h1
-                className={`${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`}
+                className={`${!readOnly && 'cursor-text hover:bg-purple-100 px-1 -mx-1 rounded'}`}
                 style={ts.name || {}}
                 contentEditable={!readOnly}
                 suppressContentEditableWarning
@@ -884,7 +884,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         ) : (
           <>
             <h1
-              className={`text-3xl font-bold text-center mb-1 ${!readOnly && `cursor-text hover:bg-purple-100 px-2 ${selectedTemplate !== 'sharp' ? 'rounded' : ''}`}`}
+              className={`text-3xl font-bold text-center mb-1 ${!readOnly && `cursor-text hover:bg-purple-100 px-2 -mx-2 ${selectedTemplate !== 'sharp' ? 'rounded' : ''}`}`}
               style={ts.name || {}}
               contentEditable={!readOnly}
               suppressContentEditableWarning
@@ -901,7 +901,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             )}
             <div style={ts.contactBand || {}}>
               <p
-                className={`text-sm text-gray-600 mt-1 text-center ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
+                className={`text-sm text-gray-600 mt-1 text-center ${!readOnly && 'cursor-text hover:bg-purple-50 px-1 -mx-1 rounded'}`}
                 style={ts.contact || {}}
                 contentEditable={!readOnly}
                 suppressContentEditableWarning
