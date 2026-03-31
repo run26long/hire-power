@@ -333,11 +333,11 @@ export default function JobCardModal({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
-            {context === 'tracker' && (
+          <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 justify-center">
+            {context === 'tracker' && card.application_status !== 'archived' && (
               <button
                 onClick={() => onArchive?.(card.id)}
-                className="flex-1 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                className="py-2 px-5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 Remove & Add to Archive
               </button>
@@ -345,14 +345,14 @@ export default function JobCardModal({
             {context === 'vault' && onLogWin && (
               <button
                 onClick={onLogWin}
-                className="flex-1 py-2 border border-purple-200 rounded-lg text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors"
+                className="py-2 px-5 border border-purple-200 rounded-lg text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors"
               >
                 + Log a Win
               </button>
             )}
             <button
               onClick={onClose}
-              className="flex-1 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
+              className="py-2 px-8 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
               style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
             >
               Done

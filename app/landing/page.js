@@ -372,7 +372,7 @@ const supabase = createClient();
           <div style={{marginLeft:'48px'}}>
           <p style={{fontFamily:"'Fraunces',serif",fontSize:'22px',fontWeight:400,fontStyle:'italic',color:'#9ca3af',letterSpacing:'-0.5px',marginBottom:'8px'}}>One 20-minute conversation now.</p>
           <h1>Never write your<br/>resume <em>again.</em></h1>
-          <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would. We don&apos;t just tell you how to improve your resume. We do it for you. Then we keep building it in the background as your career grows.</p>
+          <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would. And we don&apos;t just tell you how to improve your resume. We actually do it for you. Then we keep building it in the background as your career grows.</p>
          
          <div style={{display:'flex',alignItems:'center',gap:'24px',margin:'0 0 24px',flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>

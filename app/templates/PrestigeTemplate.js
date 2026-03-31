@@ -16,7 +16,7 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
     page: {
       fontFamily,
       fontSize: `${base}pt`,
-      lineHeight: '1.3',
+      lineHeight: '1.2',
       color: '#1a1a1a',
       background: '#fff',
       width: '100%',
@@ -46,11 +46,12 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
     band: {
       background: bandBg,
       borderTop: `2px solid ${color}`,
-      borderBottom: `1px solid ${color}33`,
+      
       padding: `${px(6)} ${px(52)}`,
       fontSize: `${base}pt`,
       color: '#444',
       display: 'flex',
+      alignItems: 'flex-start',
       gap: px(20),
       flexWrap: 'wrap',
       lineHeight: '1.1',

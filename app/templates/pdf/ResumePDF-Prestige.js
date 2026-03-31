@@ -1,6 +1,6 @@
 import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
-import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
+import { formatDate, formatDateRange, getSkillsDisplay, hexToRgba } from '../templateUtils'
 
 export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
   if (!resumeData) return null
@@ -22,7 +22,7 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', backgroundColor: '#ffffff', paddingTop: Math.round(20*sp), paddingBottom: Math.round(36*sp) }}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', backgroundColor: '#ffffff', paddingTop: Math.round(20*sp), paddingBottom: Math.round(36*sp) }}>
 
         {/* Name block */}
         <View style={{ marginTop: -Math.round(20*sp), paddingTop: Math.round(30*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp) }}>
@@ -31,7 +31,7 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
         </View>
 
         {/* Contact band */}
-        <View style={{ backgroundColor: '#f0eeff', borderTopWidth: 2, borderTopColor: color, borderBottomWidth: 1, borderBottomColor: color, paddingTop: Math.round(6*sp), paddingBottom: Math.round(6*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp), marginBottom: Math.round(8*sp) }}>
+        <View style={{ backgroundColor: hexToRgba(color, 0.094), borderTopWidth: 2, borderTopColor: color, paddingTop: Math.round(6*sp), paddingBottom: Math.round(6*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp), marginBottom: Math.round(8*sp) }}>
           <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{contactParts.join('  |  ')}</Text>
         </View>
 
@@ -65,7 +65,7 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
                         {firstJob.bullets?.map((b, k) => (
                           <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                             <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                           <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                           </View>
                         ))}
                       </View>
@@ -83,7 +83,7 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
                         {job.bullets?.map((b, k) => (
                           <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                             <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                           </View>
                         ))}
                       </View>

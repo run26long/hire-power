@@ -50,7 +50,7 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       paddingBottom: '0',
       paddingLeft: '0',
       paddingRight: '0',
-      marginBottom: '8px',
+      marginBottom: '10px',
     },
     contact: {
       fontFamily: ff,
@@ -134,7 +134,7 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       return {
         ...defaults,
         page: { ...defaults.page, padding: '48px' },
-        name: { ...defaults.name, fontWeight: sharpWeight, letterSpacing: '0.5px', textAlign: 'left', fontSize: '22pt', borderBottom: '2px solid #111', paddingTop: '0', paddingBottom: '6px', paddingLeft: '0', paddingRight: '0', marginBottom: '4px' },
+        name: { ...defaults.name, fontWeight: sharpWeight, letterSpacing: '0.5px', textAlign: 'left', fontSize: '22pt', paddingTop: '0', marginBottom: '6px' },
         contact: { ...defaults.contact, textAlign: 'left' },
         headerArea: { ...defaults.headerArea },
         sectionHeader: {
@@ -188,9 +188,9 @@ export function getTemplateStyles(template, accentColor = '#5b4fcf', fontSize = 
       return {
         ...defaults,
         page: { ...defaults.page },
-        name: { ...defaults.name, fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '4px' },
+        name: { ...defaults.name, fontWeight: '700', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '4px', textAlign: 'left' },
         headerArea: { background: 'transparent', paddingTop: '0', paddingBottom: '0', paddingLeft: '0', paddingRight: '0', marginBottom: '0' },
-        professionalTitle: { fontFamily: ff, fontStyle: 'normal', fontWeight: '700', color: accent, fontSize: `${base}pt`, letterSpacing: '1px', textAlign: 'center', marginBottom: '6px', lineHeight: '1.15' },
+        professionalTitle: { fontFamily: ff, fontStyle: 'normal', fontWeight: '700', color: accent, fontSize: `${base}pt`, letterSpacing: '1px', textAlign: 'left', marginBottom: '6px', marginLeft: '0', paddingLeft: '0', lineHeight: '1.15' },
         contactBand: { background: accent + '18', borderTop: `2px solid ${accent}`, borderBottom: `1px solid ${accent}33`, paddingTop: '5px', paddingBottom: '5px', paddingLeft: '8px', paddingRight: '8px', marginBottom: '12px' },
         contact: { ...defaults.contact, color: '#555' },
         sectionHeader: {

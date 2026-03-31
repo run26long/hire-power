@@ -1,5 +1,5 @@
 // SignatureTemplate.js — Airy centered, shaded section bands | Pro tier
-import { formatDate, formatDateRange, getSkillsDisplay } from './templateUtils';
+import { formatDate, formatDateRange, getSkillsDisplay, hexToRgba } from './templateUtils';
 
 export default function SignatureTemplate({ resumeData, font, fontSize, spacing = 1, accentColor, dateFormat = 'short' }) {
   if (!resumeData) return null;
@@ -18,9 +18,9 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
     page: {
       fontFamily,
       fontSize: `${base}pt`,
-      lineHeight: '1.3',
+      lineHeight: '1.2',
       color: '#1a1a1a',
-      padding: `${px(40)} ${px(56)}`,
+      padding: `${px(36)} ${px(43)}`,
       background: '#fff',
       width: '100%',
       boxSizing: 'border-box',
@@ -73,7 +73,7 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
       letterSpacing: '0.5px',
       textTransform: 'uppercase',
       color: '#1a1a1a',
-      background: color + '22',
+      background: hexToRgba(color, 0.133),
       padding: `${px(3)} ${px(6)}`,
       textAlign: 'center',
       marginBottom: px(8),
@@ -85,9 +85,9 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
     jt: { fontFamily, fontWeight: '700', fontSize: `${base}pt`, lineHeight: '1.2', color: '#1a1a1a' },
     dt: { fontFamily, fontSize: `${base}pt`, color: '#555', lineHeight: '1.2' },
     co: { fontFamily, fontSize: `${base}pt`, color: '#555', marginBottom: px(4), lineHeight: '1.2' },
-    li: { fontFamily, margin: `${px(2)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.3' },
-    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(3)} 0`, lineHeight: '1.3' },
-    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(4)}`, lineHeight: '1.3' },
+    li: { fontFamily, margin: `${px(2)} 0`, fontSize: `${base}pt`, display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.2' },
+    sm: { fontFamily, fontSize: `${base}pt`, color: '#444', margin: `${px(3)} 0`, lineHeight: '1.2' },
+    body: { fontFamily, fontSize: `${base}pt`, color: '#333', margin: `0 0 ${px(4)}`, lineHeight: '1.2' },
   };
 
   const contactParts = [

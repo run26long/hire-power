@@ -9,19 +9,21 @@ export default function ResumePDFSharp({ resumeData, font = 'Open Sans', fontSiz
   const sp = spacing
   const f = font || 'Open Sans'
 
-  const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
+  const contactParts = [resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
   const SH = ({ title }) => (
-    <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', borderBottomWidth: 1.5, borderBottomColor: '#111111', paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp), color: '#111111' }}>{title}</Text>
+    <View wrap={false}>
+      <Text style={{ fontFamily: f, fontSize: base+2, fontWeight: 'bold', textTransform: 'uppercase', color: '#111111', marginBottom: Math.round(4*sp) }}>{title}</Text>
+      <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#111111', marginBottom: Math.round(5*sp) }} />
+    </View>
   )
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
       <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#111111', paddingTop: 36, paddingBottom: 28, paddingLeft: 36, paddingRight: 36, backgroundColor: '#ffffff' }}>
 
-        <View style={{ borderBottomWidth: 2, borderBottomColor: '#111111', paddingBottom: Math.round(6*sp), marginBottom: Math.round(4*sp) }}>
-          <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', color: '#111111' }}>{resumeData.fullName || ''}</Text>
-        </View>
+        <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', color: '#111111', marginBottom: Math.round(18*sp) }}>{resumeData.fullName || ''}</Text>
+        <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#111111', marginBottom: Math.round(4*sp) }} />
         <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(8*sp) }}>{contactParts.join(' | ')}</Text>
 
         {resumeData.summary && !resumeData.hideSummary && (

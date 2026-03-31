@@ -821,16 +821,15 @@ if (showCtaModal) {
                 }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
-                <option value="crisp">Crisp (Free)</option>
-                <option value="current">Current (Free)</option>
-                <option value="sharp">Sharp (Free)</option>
-                
-                <option value="command">Command ✦ Pro</option>
-                <option value="edge">Edge ✦ Pro</option>
-                <option value="prestige">Prestige ✦ Pro</option>
-                <option value="signature">Signature ✦ Pro</option>
-                <option value="vibe">Vibe ✦ Pro</option>
-                
+                <option value="command">Command</option>
+                <option value="crisp">Crisp</option>
+                <option value="current">Current</option>               
+                <option value="edge">Edge</option>
+                <option value="prestige">Prestige</option>
+                <option value="signature">Signature</option>
+                <option value="sharp">Sharp (Compact)</option>
+                <option value="vibe">Vibe (Compact) </option>
+
               </select>
             </div>
 
@@ -895,8 +894,8 @@ if (showCtaModal) {
               </div>
             </div>
 
-          {/* Color picker - Pro templates only */}
-            {['command','prestige','signature','vibe','edge'].includes(selectedTemplate) && (
+         {/* Color picker */}
+            {(
               <div className="relative group/colorpick">
                 <button
                   style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}

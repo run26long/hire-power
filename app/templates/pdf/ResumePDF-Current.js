@@ -24,7 +24,7 @@ function SectionHeader({ title, font, base, sp }) {
         fontWeight: 'bold',
         textTransform: 'uppercase',
         color: '#1a1a1a',
-        marginBottom: Math.round(8 * sp),
+        marginBottom: Math.round(5 * sp),
         lineHeight: 1.2
       }}>
         {title}
@@ -54,9 +54,9 @@ export default function ResumePDF({
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
 
   const contactParts = [
+    resumeData.location,
     resumeData.phone,
     resumeData.email,
-    resumeData.location,
     resumeData.linkedin,
     resumeData.portfolio,
   ].filter(Boolean)
@@ -179,7 +179,7 @@ export default function ResumePDF({
                       {firstJob.bullets?.map((bullet, k) => (
                         <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1 * sp) }}>
                           <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, width: 10, flexShrink: 0 }}>{'\u2022 '}</Text>
-                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, flex: 1 }}>{bullet}</Text>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, flex: 1 }}>{(bullet || '').trim()}</Text>
                         </View>
                       ))}
                     </View>
@@ -197,7 +197,7 @@ export default function ResumePDF({
                       {job.bullets?.map((bullet, k) => (
                         <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1 * sp) }}>
                           <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, width: 10, flexShrink: 0 }}>{'\u2022 '}</Text>
-                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, flex: 1 }}>{bullet}</Text>
+                          <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, flex: 1 }}>{(bullet || '').trim()}</Text>
                         </View>
                       ))}
                     </View>

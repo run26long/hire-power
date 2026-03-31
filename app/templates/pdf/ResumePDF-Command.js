@@ -10,7 +10,7 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
   const color = accentColor
   const f = font === 'Arial' ? 'Helvetica' : (font || 'Lato')
 
-  const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
+  const contactParts = [resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
@@ -18,8 +18,8 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
 
         {/* Color header */}
         <View style={{ backgroundColor: color, marginTop: -Math.round(20*sp), paddingTop: Math.round(24*sp), paddingBottom: Math.round(18*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp) }}>
-          <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', color: '#ffffff', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
-          <Text style={{ fontFamily: f, fontSize: base, color: 'rgba(255,255,255,0.9)' }}>{contactParts.join(' | ')}</Text>
+          <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', textAlign: 'center', color: '#ffffff', marginBottom: Math.round(14*sp) }}>{resumeData.fullName || ''}</Text>
+          <Text style={{ fontFamily: f, fontSize: base, textAlign: 'center', color: 'rgba(255,255,255,0.9)' }}>{contactParts.join(' | ')}</Text>
         </View>
 
         {/* Body */}
@@ -52,7 +52,7 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
                         {firstJob.bullets?.map((b, k) => (
                           <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                             <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                           </View>
                         ))}
                       </View>
@@ -70,7 +70,7 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
                         {job.bullets?.map((b, k) => (
                           <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                             <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                           </View>
                         ))}
                       </View>

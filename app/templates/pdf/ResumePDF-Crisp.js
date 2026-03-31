@@ -9,7 +9,7 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
   const sp = spacing
   const f = font === 'Arial' ? 'Helvetica' : (font || 'Source Serif 4')
 
-  const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
+  const contactParts = [resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
   const SH = ({ title }) => (
     <View>
@@ -20,10 +20,10 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 64, paddingRight: 64, backgroundColor: '#ffffff' }}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 43, paddingRight: 43, backgroundColor: '#ffffff' }}>
 
-        <Text style={{ fontFamily: f, fontSize: 20, fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
-        <Text style={{ fontFamily: f, fontSize: base, color: '#444444', textAlign: 'center', marginBottom: Math.round(8*sp) }}>{contactParts.join(' \u2022 ')}</Text>
+        <Text style={{ fontFamily: f, fontSize: 20, fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', marginBottom: Math.round(13*sp) }}>{resumeData.fullName || ''}</Text>
+        <Text style={{ fontFamily: f, fontSize: base, color: '#444444', textAlign: 'center', marginBottom: Math.round(5*sp) }}>{contactParts.join(' \u2022 ')}</Text>
 
         {resumeData.summary && !resumeData.hideSummary && (
           <View style={{ marginTop: Math.round(6*sp) }}>
@@ -42,7 +42,7 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
                 <View key="experience" style={{ marginTop: Math.round(14*sp) }}>
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.experience || 'Experience'} />
-                    <View style={{ marginBottom: restJobs.length > 0 ? Math.round(10*sp) : 0 }}>
+                    <View style={{ marginBottom: restJobs.length > 0 ? Math.round(7*sp) : 0 }}>
                       <View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                           <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, flex: 1 }}>{firstJob.title || ''}</Text>
@@ -54,13 +54,13 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
                       {firstJob.bullets?.map((b, k) => (
                         <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                           <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                         </View>
                       ))}
                     </View>
                   </View>
                   {restJobs.map((job, i) => (
-                    <View key={i+1} style={{ marginBottom: i < restJobs.length - 1 ? Math.round(10*sp) : 0 }}>
+                    <View key={i+1} style={{ marginBottom: i < restJobs.length - 1 ? Math.round(7*sp) : 0 }}>
                       <View wrap={false}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                           <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, flex: 1 }}>{job.title || ''}</Text>
@@ -72,7 +72,7 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
                       {job.bullets?.map((b, k) => (
                         <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                           <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                         </View>
                       ))}
                     </View>

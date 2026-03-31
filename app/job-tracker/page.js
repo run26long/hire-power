@@ -564,31 +564,6 @@ export default function JobTrackerPage() {
         </div>
       )}
 
-      {/* Card Detail Modal */}
-      {showCardModal && selectedCard && (
-        <JobCardModal
-          card={selectedCard}
-          onClose={() => {
-            setShowCardModal(false);
-            if (cardOpenedFromArchive) {
-              setShowArchiveModal(true);
-              setCardOpenedFromArchive(false);
-            }
-          }}
-          onArchive={handleArchiveCard}
-          onSaveNotes={async (cardId, notes) => {
-            await supabase.from('applications').update({ notes }).eq('id', cardId);
-            setApplications(prev => prev.map(a => a.id === cardId ? { ...a, notes } : a));
-          }}
-          onLinkResume={handleLinkResume}
-          onScheduleInterview={handleScheduleInterview}
-          jsResumes={jsResumes}
-          interviewRounds={interviewRounds}
-          context="tracker"
-          isPro={isPro}
-        />
-      )}
-
       {/* Rejected Archive Prompt */}
       {rejectedPromptCard && (
         <div
@@ -834,7 +809,6 @@ export default function JobTrackerPage() {
                   <div className="space-y-2">
                     {archivedCards.map((card) => (
                       <div key={card.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors cursor-pointer" onClick={async () => {
-                        setShowArchiveModal(false);
                         setCardOpenedFromArchive(true);
                         setSelectedCard(card);
                         setShowCardModal(true);
@@ -890,6 +864,31 @@ export default function JobTrackerPage() {
             </div>
           </div>
         </div>
+      )}
+
+    {/* Card Detail Modal */}
+      {showCardModal && selectedCard && (
+        <JobCardModal
+          card={selectedCard}
+          onClose={() => {
+            setShowCardModal(false);
+            if (cardOpenedFromArchive) {
+              setShowArchiveModal(true);
+              setCardOpenedFromArchive(false);
+            }
+          }}
+          onArchive={handleArchiveCard}
+          onSaveNotes={async (cardId, notes) => {
+            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            setApplications(prev => prev.map(a => a.id === cardId ? { ...a, notes } : a));
+          }}
+          onLinkResume={handleLinkResume}
+          onScheduleInterview={handleScheduleInterview}
+          jsResumes={jsResumes}
+          interviewRounds={interviewRounds}
+          context="tracker"
+          isPro={isPro}
+        />
       )}
 
     </div>

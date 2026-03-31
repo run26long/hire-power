@@ -79,7 +79,7 @@ export default function CurrentTemplate({ resumeData, font, fontSize, spacing = 
       letterSpacing: '1.5px',
       textTransform: 'uppercase',
       color: '#1a1a1a',
-      marginBottom: px(8),
+      marginBottom: px(5),
       marginTop: '0',
       lineHeight: '1.2',
     },

@@ -33,6 +33,7 @@ export default function CoverLetterPage() {
   const [selectedSize, setSelectedSize] = useState(11)
   const [selectedSpacing, setSelectedSpacing] = useState(1)
   const [zoom, setZoom] = useState(100)
+  const [accentColor, setAccentColor] = useState('#5b4fcf')
   const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
 
   const templateFonts = {
@@ -416,14 +417,15 @@ export default function CoverLetterPage() {
                 }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
-                <option value="crisp">Crisp (Free)</option>
-                <option value="current">Current (Free)</option>
-                <option value="sharp">Sharp (Free)</option>
-                <option value="command">Command ✦ Pro</option>
-                <option value="edge">Edge ✦ Pro</option>
-                <option value="prestige">Prestige ✦ Pro</option>
-                <option value="signature">Signature ✦ Pro</option>
-                <option value="vibe">Vibe ✦ Pro</option>
+                <option value="command">Command</option>
+                <option value="crisp">Crisp</option>
+                <option value="current">Current</option>               
+                <option value="edge">Edge</option>
+                <option value="prestige">Prestige</option>
+                <option value="signature">Signature</option>
+                <option value="sharp">Sharp (Compact)</option>
+                <option value="vibe">Vibe (Compact) </option>
+                
               </select>
             </div>
 
@@ -463,6 +465,39 @@ export default function CoverLetterPage() {
                 {[75, 100, 125, 150].map(z => (
                   <button key={z} onClick={() => setZoom(z)} className={`w-full text-left px-3 py-1 text-xs hover:bg-purple-50 ${zoom === z ? 'text-purple-600 font-semibold' : 'text-gray-700'}`}>{z}%</button>
                 ))}
+              </div>
+            </div>
+
+            {/* Color picker */}
+            <div className="relative group/colorpick">
+              <button
+                style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
+                title="Change accent color"
+              />
+              <div className="absolute left-0 top-full z-50 hidden group-hover/colorpick:block pt-1" style={{ minWidth: '120px' }}>
+                <div className="bg-white border border-gray-200 rounded shadow-lg p-2">
+                  <div className="flex gap-1 items-center mb-2 flex-wrap">
+                    {['#5b4fcf','#1e3a5f','#7a1e3a','#1e6b6b','#1e5f3a','#8b3a1e','#2d2d2d','#2d4a6b'].map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setAccentColor(c)}
+                        title={c}
+                        style={{
+                          width: '20px', height: '20px', borderRadius: '4px', background: c,
+                          border: accentColor === c ? '2px solid #1a1a1a' : '2px solid #e5e7eb',
+                          cursor: 'pointer', padding: 0, flexShrink: 0
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    style={{ width: '100%', height: '24px', border: 'none', cursor: 'pointer', borderRadius: '4px', padding: 0 }}
+                    title="Custom color"
+                  />
+                </div>
               </div>
             </div>
 

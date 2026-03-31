@@ -1,6 +1,6 @@
 import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
-import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
+import { formatDate, formatDateRange, getSkillsDisplay, hexToRgba } from '../templateUtils'
 
 export default function ResumePDFEdge({ resumeData, font = 'Open Sans', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
   if (!resumeData) return null
@@ -11,10 +11,10 @@ export default function ResumePDFEdge({ resumeData, font = 'Open Sans', fontSize
   const f = font === 'Arial' ? 'Helvetica' : (font || 'Open Sans')
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
 
-  const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
+  const contactParts = [resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
   const SH = ({ title, first = false }) => (
-    <View wrap={false} style={{ backgroundColor: color + '33', borderRadius: 20, paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(10*sp), paddingRight: Math.round(10*sp), marginTop: first ? 0 : Math.round(12*sp), marginBottom: Math.round(6*sp), alignItems: 'center' }}>
+    <View wrap={false} style={{ backgroundColor: hexToRgba(color, 0.2), borderRadius: 20, paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(10*sp), paddingRight: Math.round(10*sp), marginTop: first ? 0 : Math.round(12*sp), marginBottom: Math.round(6*sp), alignItems: 'center' }}>
       <Text style={{ fontFamily: f, fontSize: base, fontWeight: 'bold', textTransform: 'uppercase', fontStyle: 'italic', color: '#1a1a1a', textAlign: 'center' }}>{title}</Text>
     </View>
   )

@@ -252,7 +252,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     return resumeData.sectionTitles?.[key] || defaultSectionTitles[key]
   }
 
-  const edgeSectionOrder = ['skills', 'experience', 'education', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
+  const edgeSectionOrder = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
   const defaultSectionOrder = selectedTemplate === 'edge' ? edgeSectionOrder : ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
 
   function moveSectionUp(sectionName) {
@@ -881,10 +881,35 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               }
             </div>
           </>
+        ) : selectedTemplate === 'sharp' ? (
+          <>
+            <h1
+              className={`font-bold ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 -mx-1'}`}
+              style={ts.name || {}}
+              contentEditable={!readOnly}
+              suppressContentEditableWarning
+              onBlur={(e) => updateField('fullName', e.currentTarget.textContent)}
+            >{resumeData.fullName || 'Your Name'}</h1>
+            <div style={{ borderBottom: '1.5px solid #111', marginBottom: '8px' }} />
+            <div style={ts.contactBand || {}}>
+              <p
+                className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-50 px-1 -mx-1 rounded'}`}
+                style={ts.contact || {}}
+                contentEditable={!readOnly}
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  if (isUndoingRef.current) return
+                  const parts = e.currentTarget.textContent.split('|').map(p => p.trim())
+                  const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
+                  onUpdate(newData)
+                }}
+              >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
+            </div>
+          </>
         ) : (
           <>
             <h1
-              className={`text-3xl font-bold text-center mb-1 ${!readOnly && `cursor-text hover:bg-purple-100 px-2 -mx-2 ${selectedTemplate !== 'sharp' ? 'rounded' : ''}`}`}
+              className={`text-3xl font-bold text-center ${!readOnly && 'cursor-text hover:bg-purple-100 px-2 -mx-2 rounded'}`}
               style={ts.name || {}}
               contentEditable={!readOnly}
               suppressContentEditableWarning

@@ -1,7 +1,15 @@
 import React from 'react'
-import { renderToBuffer, Font, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import path from 'path'
+import CoverLetterPDFCommand from '../../templates/cover-letter-pdf/cover-letter-PDF-Command'
+import CoverLetterPDFCrisp from '../../templates/cover-letter-pdf/cover-letter-PDF-Crisp'
+import CoverLetterPDFCurrent from '../../templates/cover-letter-pdf/cover-letter-PDF-Current'
+import CoverLetterPDFEdge from '../../templates/cover-letter-pdf/cover-letter-PDF-Edge'
+import CoverLetterPDFPrestige from '../../templates/cover-letter-pdf/cover-letter-PDF-Prestige'
+import CoverLetterPDFSharp from '../../templates/cover-letter-pdf/cover-letter-PDF-Sharp'
+import CoverLetterPDFSignature from '../../templates/cover-letter-pdf/cover-letter-PDF-Signature'
+import CoverLetterPDFVibe from '../../templates/cover-letter-pdf/cover-letter-PDF-Vibe'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -58,159 +66,6 @@ function countPDFPages(buffer) {
   return matches ? matches.length : 1
 }
 
-function CoverLetterPDF({ coverLetterData, font, fontSize, spacing, templateName }) {
-  const cl = coverLetterData || {}
-  const isBoldDivider = ['Sharp', 'Command', 'Edge'].includes(templateName)
-  const lineHeight = spacing * 1.3
-
-  const styles = StyleSheet.create({
-    page: {
-      paddingTop: 54,
-      paddingBottom: 46,
-      paddingLeft: 54,
-      paddingRight: 54,
-      fontFamily: font === 'Helvetica' ? 'Helvetica' : font,
-      fontSize,
-      color: '#1a1a1a',
-    },
-    name: {
-      fontSize: fontSize + 6,
-      fontWeight: 'bold',
-      letterSpacing: 2,
-      textAlign: 'center',
-      marginBottom: Math.round(3 * spacing),
-    },
-    contact: {
-      fontSize,
-      color: '#4a5568',
-    },
-    headerDivider: {
-      borderBottomWidth: isBoldDivider ? 2 : 0.75,
-      borderBottomColor: isBoldDivider ? '#1a1a1a' : '#d1d5db',
-      paddingBottom: 12,
-      marginBottom: 16,
-    },
-    block: {
-      marginBottom: 16,
-      lineHeight,
-    },
-    paragraph: {
-      fontSize,
-      lineHeight,
-      marginBottom: 16,
-    },
-    bulletRow: {
-      flexDirection: 'row',
-      marginBottom: 8,
-      paddingLeft: 8,
-    },
-    bulletDot: {
-      fontSize,
-      marginRight: 8,
-      lineHeight,
-    },
-    bulletText: {
-      flex: 1,
-      fontSize,
-      lineHeight,
-    },
-    signatureLine: {
-      fontSize,
-      lineHeight,
-    },
-    signatureName: {
-      fontSize,
-      fontWeight: 'bold',
-      marginTop: 24,
-    },
-  })
-
-  const contactLine = [cl.location, cl.phone, cl.email, cl.linkedin].filter(Boolean).join(' | ')
-  const bulletsIntro = cl.bulletsIntro || 'Highlights of how my experience aligns with this role include:'
-
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-
-        {/* Header — varies by template */}
-        {templateName === 'Vibe' ? (
-          <View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(2 * spacing) }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 24, fontWeight: 'bold', letterSpacing: 1.5, textTransform: 'uppercase', color: '#1a1a1a', lineHeight: 1.1 }}>{cl.candidateName || ''}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                {[cl.email, cl.phone && cl.location ? `${cl.phone} | ${cl.location}` : (cl.phone || cl.location), cl.linkedin].filter(Boolean).map((line, i) => (
-                  <Text key={i} style={{ fontSize, color: '#555555', lineHeight: 1.4 }}>{line}</Text>
-                ))}
-              </View>
-            </View>
-            <View style={{ borderBottomWidth: 1, borderBottomColor: '#aaaaaa', marginBottom: Math.round(20 * spacing) }} />
-          </View>
-          
-        ) : templateName === 'Sharp' ? (
-          <View style={{ marginBottom: Math.round(8 * spacing) }}>
-            <Text style={{ fontFamily: font, fontSize: 22, fontWeight: 'bold', color: '#111111', marginBottom: Math.round(4 * spacing) }}>{cl.candidateName || ''}</Text>
-            <View style={{ height: 2, backgroundColor: '#111111', marginBottom: Math.round(4 * spacing) }} />
-            <Text style={{ fontFamily: font, fontSize: fontSize, color: '#444444', marginBottom: Math.round(8 * spacing) }}>{contactLine}</Text>
-          </View>
-        ) : (
-          <>
-            <View style={{ alignItems: 'center', marginBottom: Math.round(4 * spacing) }}>
-              <Text style={styles.name}>{cl.candidateName || ''}</Text>
-            </View>
-            <View style={{ borderBottomWidth: 1, borderBottomColor: '#bbbbbb' }} />
-            <View style={{ paddingTop: Math.round(6 * spacing), paddingBottom: Math.round(6 * spacing) }}>
-              <Text style={{ ...styles.contact, textAlign: 'center' }}>{contactLine}</Text>
-            </View>
-            <View style={{ borderBottomWidth: 1, borderBottomColor: '#bbbbbb', marginBottom: Math.round(20 * spacing) }} />
-          </>
-        )}
-
-        {/* Date */}
-        <View style={{ marginTop: Math.round(30 * spacing), marginBottom: Math.round(12 * spacing) }}>
-          <Text style={styles.paragraph}>{cl.date || ''}</Text>
-        </View>
-
-        {/* Memo block — To / Re */}
-        <View style={{ marginBottom: Math.round(16 * spacing) }}>
-          <View style={{ flexDirection: 'row', marginBottom: Math.round(12 * spacing) }}>
-            <Text style={{ fontSize, lineHeight, color: '#555555', marginRight: 4 }}>To:</Text>
-            <Text style={{ fontSize, lineHeight }}>{cl.recipientName || 'Hiring Manager'}</Text>
-          </View>
-          <View style={{ flexDirection: 'row' }}>
-            <Text style={{ fontSize, lineHeight, color: '#555555', marginRight: 4 }}>Re:</Text>
-            <Text style={{ fontSize, lineHeight }}>{cl.jobTitle || ''}{cl.companyName ? ` position at ${cl.companyName}` : ''}</Text>
-          </View>
-        </View>
-
-        {/* Opening */}
-        {cl.opening ? <Text style={styles.paragraph}>{cl.opening}</Text> : null}
-
-        {/* Bullets intro */}
-        {bulletsIntro ? <Text style={{ ...styles.paragraph, marginBottom: 8 }}>{bulletsIntro}</Text> : null}
-
-        {/* Bullets */}
-        {(cl.bullets || []).filter(b => b?.trim()).map((bullet, i) => (
-          <View key={i} style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>{'\u2022'}</Text>
-            <Text style={styles.bulletText}>{bullet}</Text>
-          </View>
-        ))}
-
-        {cl.closing ? <Text style={styles.paragraph}>{cl.closing}</Text> : null}
-
-        {/* Signature */}
-        <View>
-          <Text style={styles.signatureLine}>Sincerely,</Text>
-          <Text style={{ ...styles.signatureName, fontWeight: 'normal' }}>{cl.candidateName || ''}</Text>
-        </View>
-
-      </Page>
-    </Document>
-  )
-}
-
 export async function POST(request) {
   try {
     const {
@@ -228,16 +83,26 @@ export async function POST(request) {
       'EB Garamond': 'EB Garamond',
       'Open Sans': 'Open Sans',
       'Source Serif 4': 'Source Serif 4',
-      'Helvetica': 'Helvetica',
     }
     const fontToUse = fontMap[font] || 'Lato'
 
-    const element = React.createElement(CoverLetterPDF, {
+    const templateComponents = {
+      Command: CoverLetterPDFCommand,
+      Crisp: CoverLetterPDFCrisp,
+      Current: CoverLetterPDFCurrent,
+      Edge: CoverLetterPDFEdge,
+      Prestige: CoverLetterPDFPrestige,
+      Sharp: CoverLetterPDFSharp,
+      Signature: CoverLetterPDFSignature,
+      Vibe: CoverLetterPDFVibe,
+    }
+    const TemplateComponent = templateComponents[templateName] || CoverLetterPDFCurrent
+
+    const element = React.createElement(TemplateComponent, {
       coverLetterData,
       font: fontToUse,
       fontSize: fontSize || 11,
       spacing: spacing || 1,
-      templateName: templateName || 'Current'
     })
 
     const pdfBuffer = await renderToBuffer(element)
@@ -256,7 +121,6 @@ export async function POST(request) {
       })
     }
 
-    // Download — upload to storage and return URL
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const candidateName = coverLetterData?.candidateName || 'Cover_Letter'
     const nameParts = candidateName.split(' ')

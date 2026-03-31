@@ -115,8 +115,18 @@ export async function POST(request) {
     }
     const TemplateComponent = templateComponents[templateName] || ResumePDFCurrent
 
+    const sanitizedData = JSON.parse(JSON.stringify(resumeData))
+    if (sanitizedData.summary) sanitizedData.summary = sanitizedData.summary.trim()
+    if (sanitizedData.experience) {
+      sanitizedData.experience = sanitizedData.experience.map(job => ({
+        ...job,
+        summary: job.summary ? job.summary.trim() : job.summary,
+        bullets: job.bullets ? job.bullets.map(b => (b || '').trim()).filter(b => b.length > 0) : job.bullets
+      }))
+    }
+
     const element = React.createElement(TemplateComponent, {
-      resumeData,
+      resumeData: sanitizedData,
       font: fontToUse,
       fontSize: fontSize || 11,
       spacing: spacing || 1,

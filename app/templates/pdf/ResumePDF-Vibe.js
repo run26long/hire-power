@@ -33,7 +33,7 @@ export default function ResumePDFVibe({ resumeData, font = 'Lato', fontSize = 11
       <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 28, paddingLeft: 36, paddingRight: 36, backgroundColor: '#ffffff' }}>
 
         {/* Two-column header */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(4*sp), paddingBottom: Math.round(4*sp) }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Math.round(10*sp), paddingBottom: Math.round(8*sp) }}>
           <View style={{ flex: 1 }}>
             <Text style={{ fontFamily: f, fontSize: 24, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: Math.round(12*sp) }}>{resumeData.fullName || ''}</Text>
             {professionalTitle ? <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{professionalTitle}</Text> : null}
@@ -67,7 +67,7 @@ export default function ResumePDFVibe({ resumeData, font = 'Lato', fontSize = 11
                       {firstJob.bullets?.map((b, k) => (
                         <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                           <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                         </View>
                       ))}
                     </View>
@@ -82,7 +82,7 @@ export default function ResumePDFVibe({ resumeData, font = 'Lato', fontSize = 11
                       {job.bullets?.map((b, k) => (
                         <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
                           <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                         </View>
                       ))}
                     </View>

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
-import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
+import { formatDate, formatDateRange, getSkillsDisplay, hexToRgba } from '../templateUtils'
 
 export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', fontSize = 11, spacing = 1, accentColor = '#5b4fcf', dateFormat = 'short' }) {
   if (!resumeData) return null
@@ -11,17 +11,17 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
   const f = font === 'Arial' ? 'Helvetica' : (font || 'EB Garamond')
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || ''
 
-  const contactParts = [resumeData.phone, resumeData.email, resumeData.location, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
+  const contactParts = [resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean)
 
   const SH = ({ title }) => (
-    <View wrap={false} style={{ backgroundColor: color + '22', paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(6*sp), paddingRight: Math.round(6*sp), marginBottom: Math.round(8*sp), alignItems: 'center' }}>
+    <View wrap={false} style={{ backgroundColor: hexToRgba(color, 0.133), paddingTop: Math.round(3*sp), paddingBottom: Math.round(3*sp), paddingLeft: Math.round(6*sp), paddingRight: Math.round(6*sp), marginBottom: Math.round(8*sp), alignItems: 'center' }}>
       <Text style={{ fontFamily: f, fontSize: base, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', textAlign: 'center' }}>{title}</Text>
     </View>
   )
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', paddingTop: 40, paddingBottom: 40, paddingLeft: 56, paddingRight: 56, backgroundColor: '#ffffff' }}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 43, paddingRight: 43, backgroundColor: '#ffffff' }}>
 
         {/* Header */}
         <View style={{ alignItems: 'center', paddingBottom: Math.round(10*sp), marginBottom: Math.round(4*sp) }}>
@@ -52,7 +52,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
                 {job.bullets?.map((b, k) => (
                   <View key={k} style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
                     <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-                    <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                    <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
                   </View>
                 ))}
               </View>

@@ -1,5 +1,5 @@
 // EdgeTemplate.js — Accent pill headers, skills near top | Pro tier
-import { formatDate, formatDateRange, getSkillsDisplay } from './templateUtils';
+import { formatDate, formatDateRange, getSkillsDisplay, hexToRgba } from './templateUtils';
 
 export default function EdgeTemplate({ resumeData, font, fontSize, spacing = 1, accentColor, dateFormat = 'short' }) {
   if (!resumeData) return null;
@@ -57,7 +57,7 @@ export default function EdgeTemplate({ resumeData, font, fontSize, spacing = 1, 
       lineHeight: '1.3',
     },
     pill: {
-      background: color + '33',
+      background: hexToRgba(color, 0.2),
       borderRadius: '20px',
       padding: `${px(3)} ${px(10)}`,
       marginBottom: px(6),
@@ -150,8 +150,6 @@ export default function EdgeTemplate({ resumeData, font, fontSize, spacing = 1, 
     </div>
   );
 
-  const allSkillValues = Object.values(skills).flat();
-
   return (
     <div style={s.page}>
       {/* Header */}
@@ -167,23 +165,6 @@ export default function EdgeTemplate({ resumeData, font, fontSize, spacing = 1, 
           <SH title={resumeData.sectionTitles?.summary || 'Summary'} />
           <div style={s.sectionBody}>
             <p style={s.body}>{resumeData.summary}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Skills — near top, 3-column grid if single category */}
-      {allSkillValues.length > 0 && (
-        <div style={s.section}>
-          <SH title="Skills" />
-          <div style={s.sectionBody}>
-            {Object.entries(skills).map(([cat, items]) => (
-              <div key={cat} style={{ marginBottom: px(4) }}>
-                {Object.keys(skills).length > 1 && (
-                  <span style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt` }}>{cat}: </span>
-                )}
-                <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span>
-              </div>
-            ))}
           </div>
         </div>
       )}
