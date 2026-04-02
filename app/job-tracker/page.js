@@ -322,6 +322,7 @@ export default function JobTrackerPage() {
                 <li className="flex items-start"><span className="mr-2">•</span><span>Track wins from day one</span></li>
               </ul>
             </div>
+            
           </div>
 
           <div className="mt-auto">
@@ -347,7 +348,8 @@ export default function JobTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
               <p className="text-xs text-gray-500">Drag cards between columns as your search progresses</p>
             </div>
-            <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2">
+              
               <button
                 onClick={() => setShowArchiveModal(true)}
                 className="text-xs font-semibold py-1.5 px-4 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"

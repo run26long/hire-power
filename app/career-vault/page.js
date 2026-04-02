@@ -46,6 +46,7 @@ export default function CareerVaultPage() {
  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
   const [upgrading, setUpgrading] = useState(false);
+  const [showNewSearchModal, setShowNewSearchModal] = useState(false);
 
   const handleUpgrade = async () => {
     setUpgrading(true);
@@ -71,6 +72,14 @@ export default function CareerVaultPage() {
     }
   };
 
+  const handleStartNewSearch = async () => {
+    await supabase
+      .from('profiles')
+      .update({ search_status: 'actively_searching' })
+      .eq('id', user.id);
+    router.push('/resume-coach');
+  };
+
   // Current job entry (from hired job card)
   const [currentJobEntry, setCurrentJobEntry] = useState(null);
 
@@ -83,6 +92,7 @@ export default function CareerVaultPage() {
   // Archive state
   const [archivedCards, setArchivedCards] = useState([]);
   const [archivedCoreResumes, setArchivedCoreResumes] = useState([]);
+  const [activeApplications, setActiveApplications] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, type: 'card' | 'core' }
   const [archiveActionLoading, setArchiveActionLoading] = useState(false);
 
@@ -164,7 +174,15 @@ export default function CareerVaultPage() {
         .order('updated_at', { ascending: false });
       setArchivedCoreResumes(inactiveCores || []);
 
-            // Load JS resumes for linking
+           // Load active application counts
+      const { data: activeApps } = await supabase
+        .from('applications')
+        .select('application_status')
+        .eq('user_id', user.id)
+        .not('application_status', 'eq', 'archived');
+      setActiveApplications(activeApps || []);
+
+      // Load JS resumes for linking
       const { data: jsResumesData } = await supabase
         .from('resumes')
         .select('id, display_name, current_score')
@@ -400,10 +418,10 @@ export default function CareerVaultPage() {
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
 
-            <div className="grid grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-12 gap-6 items-stretch">
 
               {/* LEFT: Accomplishments (8 cols) */}
-              <div className="col-span-8 space-y-4">
+             <div className="col-span-8 flex flex-col gap-4">
 
                 {/* Current Job Section */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
@@ -415,7 +433,7 @@ export default function CareerVaultPage() {
                     }
                   </div>
                   <p className="text-xs text-gray-500 mb-4">
-                    Your current role — accomplishments you log here attach to this job entry and feed directly into your next resume.
+                    The saved job description and any accomplishments you log here attach to this job entry to create your next resume.
                   </p>
 
                   {currentJobEntry ? (() => {
@@ -500,7 +518,7 @@ export default function CareerVaultPage() {
                 </div>
 
                 {/* Accomplishments Log */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
                     <div className="flex items-center gap-3">
@@ -628,7 +646,7 @@ export default function CareerVaultPage() {
 
                   {/* Upgrade CTA */}
                   <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-3 pb-6">
-                    {isPro ? (
+                   {isPro ? (
                       <>
                         <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
                         <p className="text-xs text-gray-500 mb-1.5">Your coach is ready to turn everything you've logged into resume bullets.</p>
@@ -638,11 +656,11 @@ export default function CareerVaultPage() {
                           </p>
                         </div>
                         <button
-                          onClick={() => router.push('/resume-coach')}
+                          onClick={() => setShowNewSearchModal(true)}
                           className="w-full text-white rounded-lg py-2 text-xs font-semibold hover:opacity-90 transition-opacity"
                           style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                         >
-                          Go to Resume Coach →
+                          Start new search →
                         </button>
                       </>
                     ) : (
@@ -1060,6 +1078,85 @@ export default function CareerVaultPage() {
                 {setJobSaving && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />}
                 {setJobSaving ? 'Saving...' : 'Set as Current Job →'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    {/* NEW SEARCH MODAL */}
+      {showNewSearchModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowNewSearchModal(false)}
+        >
+          <div
+            className="bg-white shadow-2xl w-full overflow-hidden"
+            style={{ maxWidth: '364px', borderRadius: '12px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+              className="px-6 py-5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.2)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Ready to search again?</h2>
+                  <p className="text-purple-100 text-xs">Your vault stays exactly where it is.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                Your Resume Coach will walk you through incorporating everything you've logged: your wins, skills, and the role you landed, all building a stronger starting point for your next search.
+              </p>
+
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2">
+                {[
+                  'Your Career Vault and logged wins are kept',
+                  'Your resumes and coaching history are kept',
+                  'Job Tracker replaces Career Vault in your nav',
+                ].map(item => (
+                  <div key={item} className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span className="text-xs text-gray-600">{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <button
+                  onClick={() => { setShowNewSearchModal(false); router.push('/resume-coach'); }}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium bg-transparent border-none cursor-pointer p-0"
+                >
+                  Just want to view or download your resume? Go to Resume Coach →
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowNewSearchModal(false)}
+                  className="flex-1 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Not yet
+                </button>
+                <button
+                  onClick={handleStartNewSearch}
+                  className="flex-1 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                >
+                  Start new search →
+                </button>
+              </div>
             </div>
           </div>
         </div>

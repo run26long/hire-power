@@ -10,7 +10,7 @@ export default function MainNav({ currentPage, userProfile }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const tier = userProfile?.subscription_tier;
-  const isVaultTier = tier === 'vault' || tier === 'maintenance' || userProfile?.search_status === 'hired';
+  const isVaultTier = tier === 'vault' || tier === 'maintenance' || (tier === 'pro' && userProfile?.search_status === 'hired');
 
   const navItems = [
     { id: 'dashboard',       label: 'Dashboard',       path: '/dashboard' },

@@ -145,7 +145,7 @@ const searchParams = useSearchParams();
   const hasResume = !!coreResume;
   const tier = userProfile?.subscription_tier;
   const isPro = tier === 'pro';
-  const isVaultTier = tier === 'vault' || tier === 'maintenance';
+ const isVaultTier = tier === 'vault' || tier === 'maintenance' || (tier === 'pro' && userProfile?.search_status === 'hired');
 
   function StatusPill({ status }) {
     const map = {
@@ -631,7 +631,8 @@ const searchParams = useSearchParams();
 
               {/* ③ INTERVIEW COACH — two columns: power concepts + next step */}
               <div
-                className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm"
+                className="bg-white border border-gray-300 rounded-2xl overflow-hidden flex flex-col shadow-sm cursor-pointer hover:border-purple-300 hover:shadow-md transition-all"
+                onClick={() => window.location.href = '/interview-coach'}
               >
                 <div className="p-3 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-0.5">

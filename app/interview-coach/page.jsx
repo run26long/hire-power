@@ -75,18 +75,18 @@ export default function MyInterviewsPage() {
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
           <p className="text-[15px] font-bold text-white leading-tight tracking-tight mt-3">
-            Practice interviews. Build real confidence.
+            AI-spoken interview practice that mimics a real interview
           </p>
         </div>
 
-        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col justify-between">
+        <div className="flex-1 px-6 pt-1 pb-6 flex flex-col justify-between">
           <div>
             {/* Free Features */}
             <div className="mb-5">
               <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">FREE</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Unlimited generic practice</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>1 job-specific session</span></li>
+              <ul className="space-y-1 text-sm">
+                <li className="flex items-start"><span className="mr-2">•</span><span>General - unlimited practice</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Job-specific - 1 practice</span></li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
                   <span>Power Analysis reveal <span className="text-[10px] text-white text-opacity-60">(view only)</span></span>
@@ -97,13 +97,14 @@ export default function MyInterviewsPage() {
             {/* Pro Features */}
             <div className="mb-4">
               <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">PRO</h4>
-              <ul className="space-y-1.5 text-sm">
+              <ul className="space-y-1 text-sm">
                 <li className="flex items-start"><span className="mr-2">•</span><span>Pre-interview coaching</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Power Analysis for every job</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Company research integration</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Unlimited job-specific sessions</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>AI-spoken questions</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Video feedback</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Post-practice feedback</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Gamified progression</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Core Power, Hidden Power, Power Gaps</span></li>
+                
               </ul>
             </div>
           </div>
@@ -111,8 +112,8 @@ export default function MyInterviewsPage() {
           <div className="mt-auto">
             <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
             <div>
-              <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-                Users who reach Level 5 on a practice interview are significantly more likely to land the job. Coming soon.
+              <p className="text-xs text-white text-opacity-90 leading-snug mb-5">
+                Interview Coach prepares you to present your experience with confidence, for every role you pursue
               </p>
               <div className="flex items-center gap-2.5 text-white">
                 <img

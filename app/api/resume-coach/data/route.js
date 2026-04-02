@@ -263,7 +263,7 @@ export async function GET(req) {
     // Get user profile with subscription tier
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('subscription_tier, display_name, photo_url')
+      .select('subscription_tier, display_name, photo_url, search_status')
       .eq('id', user.id)
       .single();
     
@@ -373,7 +373,8 @@ export async function GET(req) {
       userProfile: {
         display_name: profile.display_name,
         photo_url: profile.photo_url,
-        subscription_tier: profile.subscription_tier
+        subscription_tier: profile.subscription_tier,
+        search_status: profile.search_status
       },
       coreResume: coreResumeData,
       resumeVersions: resumeVersionsData,

@@ -651,9 +651,9 @@ const supabase = createClient();
 
             {/* Editorial panel */}
             <div style={{paddingTop:'8px'}}>
-              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(14px,1.4vw,17px)',fontWeight:700,color:'white',lineHeight:1.35,margin:'0 0 20px',fontStyle:'italic'}}>
+              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(14px,1.4vw,17px)',fontWeight:700,color:'#a78bfa',lineHeight:1.35,margin:'0 0 20px',fontStyle:'italic'}}>
                 Hire Power is the AI that interviews you like a professional resume writer would.{' '}
-                <span style={{color:'#a78bfa'}}>Because your resume needs facts, not fiction.</span>
+                <span style={{color:'white'}}>Because your resume needs facts, not fiction.</span>
               </p>
               <p style={{fontSize:'14px',color:'rgba(255,255,255,0.7)',lineHeight:1.5,margin:'0 0 10px'}}>We recognized a VP who landed a $10M deal with Boeing Aerospace.</p>
               <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into an intern (or a flight attendant — we can&apos;t quite tell!)</p>
@@ -669,8 +669,8 @@ const supabase = createClient();
                   <div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.6)',lineHeight:1.4,marginTop:'4px'}}>offer<br/>within the month</div>
                 </div>
               </div>
-              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(15px,1.6vw,18px)',fontWeight:700,fontStyle:'italic',color:'white',lineHeight:1.3,margin:'0 0 28px'}}>
-                Same candidate. Two tools.<br/>One wrote fiction.<br/><span style={{color:'#a78bfa'}}>The other uncovered the facts that got him hired.</span>
+              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(15px,1.6vw,18px)',fontWeight:700,fontStyle:'italic',color:'#a78bfa',lineHeight:1.3,margin:'0 0 28px'}}>
+                Same candidate. Two tools.<br/>One wrote fiction.<br/><span style={{color:'white'}}>The other uncovered the facts that got him hired.</span>
               </p>
               <button onClick={() => setShowSignupModal(true)} style={{display:'inline-block',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',fontWeight:700,padding:'12px 24px',borderRadius:'10px',border:'none',cursor:'pointer',letterSpacing:'-0.01em',boxShadow:'0 4px 20px rgba(102,126,234,0.4)'}}>
                 Start for free — reveal your best resume →
@@ -679,7 +679,7 @@ const supabase = createClient();
           </div>
 
           <div className="problem-truth" style={{marginTop:'56px'}}>
-            <p>&quot;Every number is real. Every word is defensible.<br/>Because when an interviewer asks you to back it up —<br/>and <strong>they will</strong> — <em>&apos;the AI wrote that&apos; isn&apos;t an answer.</em>&quot;</p>
+            <p>&quot;Every number is real. Every word is defensible.<br/>Because when an interviewer asks you to back it up -<br/>and <strong>they will</strong> - <em>&apos;the AI wrote that&apos; isn&apos;t an answer.</em>&quot;</p>
           </div>
         </div>
       </section>
@@ -700,7 +700,7 @@ const supabase = createClient();
         <div className="container">
           <div className="section-eyebrow">How It Works</div>
           <h2 className="section-title">Three conversations.<br/>One complete picture.</h2>
-          <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other — so nothing falls through the cracks.</p>
+          <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other, so nothing falls through the cracks.</p>
           <div className="how-grid">
             <div className="how-steps">
               {[
@@ -720,7 +720,7 @@ const supabase = createClient();
             </div>
             <div className="how-visual">
               <div className="coaches-row">
-                {[{icon:'🧭',name:'Career Coach',desc:'Direction & goals'},{icon:'📄',name:'Resume Coach',desc:'Achievement extraction'},{icon:'🎯',name:'Interview Coach',desc:'Practice & power'}].map(c=>(
+                {[{icon:'🧭',name:'Career Coach',desc:'Direction & goals'},{icon:'📄',name:'Resume Coach',desc:'Your full story'},{icon:'🎯',name:'Interview Coach',desc:'Practice & power'}].map(c=>(
                   <div key={c.name} className="coach-pill">
                     <div className="coach-pill-icon">{c.icon}</div>
                     <h5>{c.name}</h5>
@@ -756,7 +756,7 @@ const supabase = createClient();
       <section className="manifesto">
         <div className="manifesto-inner">
           <div className="manifesto-eyebrow">Our Belief</div>
-          <p><strong>Most tools help you find a job.</strong> Ours helps you build a career. Hire Power is your <em>lifelong career coach</em> — turning career management from a crisis into an ongoing conversation. Through AI-powered coaching, we help you bulletproof your resume, level up your interviews, and build a career archive that grows with you. <strong>From entry-level to executive suite — we help you power through the&nbsp;entire&nbsp;journey.</strong></p>
+          <p><strong>Most tools help you find a job.</strong> Ours helps you build a career. Hire Power is your <em>lifelong career coach</em>, turning career management from a crisis into an ongoing conversation. Through AI-powered coaching, we help you bulletproof your resume, level up your interviews, and build a career archive that grows with you. <strong>From entry-level to executive suite — we help you power through the&nbsp;entire&nbsp;journey.</strong></p>
         </div>
       </section>
 
@@ -766,7 +766,7 @@ const supabase = createClient();
         <div style={{position:'relative',maxWidth:'900px',margin:'0 auto'}}>
           <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:'#9333ea',marginBottom:'32px'}}>The part nobody talks about</div>
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(56px,7vw,100px)',fontWeight:900,lineHeight:1.0,letterSpacing:'-3px',color:'#0f0f0f',margin:0}}>Never start from<br/><em style={{fontStyle:'italic',color:'#9333ea'}}>scratch</em> again.</h2>
-          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:'18px',color:'#6b7280',lineHeight:1.65,maxWidth:'560px',margin:'32px auto 0'}}>Three years from now, you won&apos;t remember what you accomplished today. Hire Power will.</p>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:'18px',color:'#6b7280',lineHeight:1.65,maxWidth:'560px',margin:'32px auto 0'}}>Three years from now, you won&apos;t remember what you accomplished today. But Hire Power will.</p>
         </div>
       </section>
 
@@ -777,8 +777,8 @@ const supabase = createClient();
             <div>
               <div className="section-eyebrow">Hire Power Vault · $4.99/mo</div>
               <h2 className="section-title">The OS that keeps<br/>running between<br/><em>job searches.</em></h2>
-              <p className="vault-body">Once your job search is complete, most people go dark — until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move — your resume is basically already written.</p>
-              <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Stay ready for any opportunity. Never start from scratch again.&quot;</div>
+              <p className="vault-body">Once your job search is complete, most people go dark — until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move, your resume is basically already written.</p>
+              <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Be ready for any opportunity. And never start from scratch again.&quot;</div>
               <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
             </div>
             <div className="vault-visual">
@@ -838,12 +838,14 @@ const supabase = createClient();
                 </li>
                <li><span className="check">✓</span> Resume coaching trial</li>
                 <li><span className="check">✓</span> Unlimited downloads</li>
-                <li><span className="check">✓</span> 2 ATS-optimized templates</li>
+                <li><span className="check">✓</span> ATS-optimized templates</li>
+                <li><span className="check">✓</span> Cover letter generator</li>
+                <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Coach</li>
-                <li><span className="check">✓</span> Unlimited practice with general questions</li>
                 <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
-                <li><span className="check">✓</span> 1 job-specific interview practice session</li>
-                <li><span className="check">✓</span> Power Analysis reveal after your session — see what Pro prepares you with first</li>
+                <li><span className="check">✓</span> Unlimited with general questions</li>
+                <li><span className="check">✓</span> 1 session with job-specific questions</li>
+                <li><span className="check">✓</span> 1 Power Analysis reveal after your job-specific session — see what Pro prepares you with before each interview</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => setShowSignupModal(true)} className="tier-btn ghost" style={{width:'100%',cursor:'pointer',border:'1.5px solid rgba(0,0,0,0.12)'}}>Get started free</button>
@@ -858,7 +860,7 @@ const supabase = createClient();
               <div className="tier-price">$29.99<span>/mo</span></div>
               <p className="tier-desc">The complete Career OS. Every coach, every conversation, fully unlocked.</p>
               <ul className="tier-features">
-                <li><span className="check">✓</span> Everything included in Free Tier, PLUS:</li>
+                <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Coach</li>
                 <li><span className="check">✓</span> Core resume + unlimited job-specific resumes</li>
                 <li>
@@ -869,28 +871,31 @@ const supabase = createClient();
                 </li>
                 <li><span className="check">✓</span> Tailored resume for every application</li>
                 <li><span className="check">✓</span> Unlimited downloads</li>
-                <li><span className="check">✓</span> 5 ATS-optimized templates</li>
+                <li><span className="check">✓</span> ATS-optimized templates</li>
+                <li><span className="check">✓</span> Cover letter generator</li>
                 <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Coach</li>
-                <li><span className="check">✓</span> Unlimited coaching + practice</li>
-                <li><span className="check">✓</span> Learn how to best present your experience for each specific role</li>
-                <li><span className="check">✓</span> Company research integration</li>
                 <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
-                <li><span className="check">✓</span> Video recording &amp; performance feedback</li>
-                <li><span className="check">✓</span> Level up before your interview — gamified practice progression</li>
+                <li><span className="check">✓</span> Power Analysis and Interview Coaching: Learn how to best present your experience for each specific role</li>
+                <li><span className="check">✓</span> Unlimited coaching + practice</li>
+                <li><span className="check">✓</span> Post-practice performance feedback</li>
+                <li><span className="check">✓</span> Company research integration</li>
+                <li><span className="check">✓</span> Level up before your interview with gamified practice progression</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => setShowSignupModal(true)} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none'}}>Go Pro — $29.99/mo</button>
               </div>
             </div>
 
-            {/* MAINTENANCE */}
+            {/* VAULT */}
             <div className="tier-card">
               <div className="tier-os-tag">Keep the OS Running</div>
               <div className="tier-name">Vault</div>
               <div className="tier-price">$4.99<span>/mo</span></div>
-              <p className="tier-desc">Between job searches. Track wins, stay ready. Your career doesn&apos;t pause — neither should your OS.</p>
-              <ul className="tier-features">
+              <p className="tier-desc">Stay ready between searches. Your career doesn&apos;t pause. Neither should your OS.</p>
+               <ul className="tier-features">
+                <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
+               <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.1)',fontWeight:600,color:'var(--dark)'}}>Vault</li>
                 <li><span className="check">✓</span> Save job description from the role you landed as the foundation of your next resume</li>
                 <li><span className="check">✓</span> Track achievements as they happen</li>
                 <li><span className="check">✓</span> Add new training, education, and skills in real time</li>
@@ -905,8 +910,8 @@ const supabase = createClient();
 
           </div>
           <p className="pricing-note">
-            All plans include no credit card required to start &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp;{' '}
-            <a href="#universities" style={{color:'var(--purple)',textDecoration:'none'}}>University licensing available →</a>
+            No credit card required &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; Upgrade or downgrade anytime{' '}
+            
           </p>
         </div>
       </section>
@@ -920,22 +925,6 @@ const supabase = createClient();
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer>
-        <Link href="/" className="footer-logo">
-          <div className="footer-logo-icon">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
-          </div>
-          <div className="footer-logo-text">HIRE <span>POWER</span></div>
-        </Link>
-        <div className="footer-links">
-          <Link href="/privacy" className="footer-link">Privacy</Link>
-          <Link href="/terms" className="footer-link">Terms</Link>
-          <Link href="/universities" className="footer-link">Universities</Link>
-          <Link href="/contact" className="footer-link">Contact</Link>
-        </div>
-        <div className="footer-copy">© 2026 Hire Power. All rights reserved.</div>
-      </footer>
       </div>
     </>
   );
@@ -948,27 +937,27 @@ function FinishLineSection() {
     {
       label: 'No Clear Process',
       hook: 'Features scattered everywhere. Spent an hour just finding everything. No clear workflow. Never knew if we\'d tried everything or when we were actually done.',
-      solution: 'Guided journey from start to finish. Start, Assess, Coach, Improve, Polish, Save. You always know exactly where you are, what comes next, and when you\'re done.',
+      solution: 'Hire Power delivers a guided, 6-step journey - Review, Assess, Coach, Improve, Format, Save. You always know exactly where you are, what comes next, and when you\'re done.',
     },
     {
       label: 'Broken Scoring',
-      hook: 'Scoring penalized things that aren\'t negative. Worse, it held every resume to the same standard — expecting students to have executive-level achievements. A strong student resume scored poorly because it wasn\'t a senior leader\'s resume.',
-      solution: 'Smart scoring calibrated to career level. Students are judged as students. Mid-career professionals as mid-career professionals. The rubric adapts to who you are and where you\'re going.',
+      hook: 'Most tools don\'t consider who you are. A strong student resume tanks because it\'s graded like a senior executive\'s because every resume is held to the same standard. That\'s not a score. That\'s a broken system.',
+      solution: 'Hire Power uses adaptive scoring calibrated to Career Length, Job Level, and Job Type. Each candidate is judged by the right standard for where they are and where they\'re going in their career.',
     },
     {
       label: 'Suggestion Overload',
-      hook: 'Competitors gave us 50+ suggestions per resume. So many it became impossible to figure out what actually mattered. We\'d spend an hour reviewing and leave with no better resume than we started with.',
-      solution: 'We don\'t give suggestions. We do the rewriting for you. One conversation, finished resume. You review and approve — but you never have to figure out how to implement 50 separate changes.',
+      hook: 'Other tools gave us 50+ suggestions per resume - so many that it became impossible to figure out how to make them all. We spent an hour reviewing and left with the same resume we started with.',
+      solution: 'We don\'t give suggestions. We do the rewriting for you. One 20-minute conversation - finished resume in 2 minutes. You review and approve, but you never have to figure out how to implement 50 separate changes.',
     },
     {
       label: 'AI Fiction',
-      hook: 'AI tools made things up. Created accomplishments we never mentioned. Added metrics we never provided. The resume looked impressive but was complete fiction.',
-      solution: 'We ask questions. We extract your story through conversation. Every number, every achievement, every skill on your resume is something you actually said. Nothing invented. Everything defensible in an interview.',
+      hook: 'Other AI resume tools made things up. Created accomplishments we never achieved. Added metrics we never provided. The resume looked impressive but was complete fiction.',
+      solution: 'We ask questions. We extract your story through conversation. Every number, every achievement, every skill on your resume is something you actually said. Nothing invented.',
     },
     {
       label: 'No Results',
-      hook: 'Other tools can only work with what\'s already on the page. If your best achievements never made it onto your resume in the first place, the tool can\'t help. It just polishes what you wrote — which might not be your strongest material.',
-      solution: 'We go beyond what\'s already there. Through conversation, we find achievements you forgot, skills you didn\'t realize mattered, and accomplishments you didn\'t think to include. We\'re not improving your resume. We\'re building a better one from your whole story.',
+      hook: 'Other tools only work with what\'s already on the page. If your best achievements never made it, other tools can\'t help much. They just polish what you wrote, which might not be your strongest material.',
+      solution: 'We go beyond what\'s already there. Through conversation, we find wins you forgot and skills you didn\'t think mattered. We\'re not improving your resume. We\'re building a better one from your whole story.',
     },
   ];
 
