@@ -234,7 +234,7 @@ export default function MyCareerPage() {
               <div className="col-span-8">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <h2 className="text-lg font-semibold text-gray-900">Career Profile</h2>
-                  <p className="text-xs text-gray-500 mb-4">Your career direction guides everything Resume Coach and Interview Coach does</p>
+                  <p className="text-xs text-gray-500 mb-4">The context that makes your resume and interviews sharper.</p>
 
                   {/* Profile Grid */}
                   <div className="grid grid-cols-2 gap-4 mb-5">
@@ -335,13 +335,14 @@ export default function MyCareerPage() {
                       <p className="text-xs text-gray-700 leading-snug">
                         {hasContext
                           ? 'Your career direction is set. Resume Coach and Interview Coach will use this to tailor everything to your goals.'
-                          : "Answer a few quick questions about where you want to go. Takes 5 minutes and makes everything else better."
+                          : "Tell us where you're headed and we'll tailor everything to get you there. Five minutes here saves hours everywhere else."
                         }
                       </p>
                     </div>
                     <button
                       onClick={handleStartConversation}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex-shrink-0"
+                      className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm whitespace-nowrap flex-shrink-0"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       {hasContext ? 'Update Goals →' : 'Start Conversation →'}
                     </button>
@@ -465,7 +466,7 @@ export default function MyCareerPage() {
           >
             {/* Modal Header */}
             <div
-              style={{ background: 'linear-gradient(to bottom right, rgb(147 51 234), rgb(37 99 235))', borderRadius: '8px 8px 0 0' }}
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
               className="px-6 py-5 relative flex-shrink-0"
             >
               <button
@@ -502,13 +503,13 @@ export default function MyCareerPage() {
                     <p className="font-bold text-gray-900 text-base">Why start with Career Coach?</p>
 
                     <p className="text-sm text-gray-700">
-                      Most resume tools optimize for where you've been, not where you're trying to go.
+                      Most resume tools optimize for where you've been, not where you're trying to go. If you’re targeting a new role, changing industries, or applying to something your current title doesn’t reflect, a resume tool that doesn’t know this can’t help you get there.
                     </p>
                     <p className="text-sm text-gray-700">
-                      If you’re targeting a new role, changing industries, or applying to something your current title doesn’t reflect, a resume tool can’t help much without context. That's why Career Coach starts by understanding where you want to go.
+                       That's why Career Coach starts by understanding where you want to go.
                     </p>
                     <p className="text-sm text-gray-700">
-                      In a quick conversation, we learn about your goals, your direction, and the skills you have that aren’t obvious on paper. Everything we learn here powers the rest of Hire Power - your resume, your interviews, your entire job search.
+                      In a quick conversation, we learn about your goals, direction, and the skills you have that aren’t obvious on paper. Everything we learn here powers the rest of Hire Power - your resume, your interviews, your entire job search.
                     </p>
 
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
@@ -518,10 +519,11 @@ export default function MyCareerPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center mt-5">
+                  <div className="flex justify-center mt-auto pt-12">
                     <button
                       onClick={() => setModalScreen(2)}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs"
+                      className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       Start the Conversation
                     </button>
@@ -549,7 +551,8 @@ export default function MyCareerPage() {
                         </div>
                         <button
                           onClick={handleContinueWithExisting}
-                          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs whitespace-nowrap"
+                          className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs whitespace-nowrap"
+                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                         >
                           Use This Resume →
                         </button>
@@ -565,7 +568,7 @@ export default function MyCareerPage() {
                           className="hidden"
                           disabled={uploading}
                         />
-                        <div className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs cursor-pointer flex items-center justify-center gap-2">
+                        <div className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center justify-center gap-2" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
                           {uploading ? (
                             <>
                               <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>

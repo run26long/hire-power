@@ -679,7 +679,7 @@ if (showCtaModal) {
         >
           {/* Header */}
           <div
-            style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+           style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)'}}
             className="px-6 py-5"
           >
             <div className="flex items-center gap-3">
@@ -722,7 +722,8 @@ if (showCtaModal) {
                 setShowCtaModal(false)
                 // Wire to Stripe later
               }}
-              className="w-full py-2.5 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors mb-3"
+              className="block mx-auto py-2.5 px-8 rounded-md text-sm font-semibold text-white transition-opacity hover:opacity-90 mb-3"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Upgrade to Pro — $29.99/mo
             </button>
@@ -1051,11 +1052,10 @@ if (showCtaModal) {
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 ${
-                  isDownloading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 text-white transition-opacity ${
+                  isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
               >
                 {isDownloading && (
                   <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
@@ -1131,6 +1131,8 @@ fontFamily: selectedFont,
           setRecoachAttempts={setRecoachAttempts}
           setShowUpgradeModal={setShowUpgradeModal}
           setCoachingSamplesUsed={setCoachingSamplesUsed}
+          handleDownload={handleDownload}
+          isDownloading={isDownloading}
             />
           </div>
         </div>
@@ -1162,9 +1164,9 @@ fontFamily: selectedFont,
               </div>
             </div>
             <div className="px-6 py-5">
-              <p className="text-sm text-gray-700 mb-3 leading-snug">Your resume has more content than can fit on one page, even at the smallest font size.</p>
+              <p className="text-sm text-gray-700 mb-3 leading-snug">Your resume has more content than can fit on one page, even at the smallest font size. For fit purposes, EB Garamond & Lato are the most compact fonts. Sharp & Edge are the most compact templates.</p>
               <div className="bg-purple-50 border-l-4 border-purple-600 p-2.5 rounded-r mb-4">
-                <p className="text-sm text-gray-800 leading-snug">Try removing older jobs, trimming bullets to your most impactful ones, or shortening your summary.</p>
+                <p className="text-sm text-gray-800 leading-snug">If your resume still exceeds one page, try removing older jobs, trimming bullets, or shortening your summary. </p>
               </div>
               <div className="flex justify-center">
                 <button
@@ -1184,10 +1186,11 @@ fontFamily: selectedFont,
       {showPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-8">
           <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div>
-                <h3 className="text-lg font-semibold">Resume Preview</h3>
-                <p className="text-sm text-gray-500 mt-0.5">Need help with page fit? Use <span className="font-medium text-purple-600">⚡ Auto-fit</span> in the toolbar. It automatically adjusts font size and spacing to best fill one page, whether your resume is too long or too short.</p>
+                <h3 className="text-lg font-semibold text-white">Resume Preview</h3>
+                <p className="text-sm text-purple-100 mt-0.5">Need help with page fit? Use Auto-fit in the toolbar to automatically adjust font size and spacing to best fill one page.</p>
+                <p className="text-sm text-purple-100 mt-0.5">⚡Fit Tip: templates & fonts make a difference. Compact templates: Sharp & Vibe. Compact fonts: EB Garamond & Lato.</p>
               </div>
               <button
                 onClick={() => {
@@ -1195,7 +1198,7 @@ fontFamily: selectedFont,
                   if (previewUrl) window.URL.revokeObjectURL(previewUrl)
                   setPreviewUrl(null)
                 }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-white hover:opacity-70 text-2xl leading-none font-light ml-4"
               >
                 ×
               </button>
@@ -1217,7 +1220,7 @@ fontFamily: selectedFont,
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed }) {  
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading }) { 
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -1270,8 +1273,11 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         <div className={`relative ${isJobSpecific && userTier === 'free' ? 'hidden' : ''}`}>
           <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
             <div 
-              className="h-full bg-purple-600 transition-all duration-300"
-              style={{ width: `${maxStepIndex >= 0 ? (maxStepIndex / (steps.length - 1)) * 100 : 0}%` }}
+              className="h-full transition-all duration-300"
+              style={{ 
+                width: `${maxStepIndex >= 0 ? (maxStepIndex / (steps.length - 1)) * 100 : 0}%`,
+                background: 'linear-gradient(to right, #667eea, #764ba2)'
+              }}
             />
           </div>
           
@@ -1285,11 +1291,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                   }}
                   className={`
                     w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10
-                   ${index < currentIndex ? 'bg-purple-600 text-white cursor-pointer hover:bg-purple-800 transition-colors' : 
-                    index === currentIndex ? 'bg-purple-600 text-white' :
-                    index <= maxStepIndex ? 'bg-purple-600 text-white cursor-pointer hover:bg-purple-800 transition-colors' :
+                   ${index < currentIndex ? 'text-white cursor-pointer transition-colors' : 
+                    index === currentIndex ? 'text-white' :
+                    index <= maxStepIndex ? 'text-white cursor-pointer transition-colors' :
                     'bg-white border-2 border-gray-300 text-gray-400'}
-                  `}>
+                  `}
+                  style={index <= maxStepIndex ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
                  {index < currentIndex ? '✓' : index === currentIndex ? '●' : index <= maxStepIndex ? '✓' : '○'}
                 </div>
                 <span
@@ -1336,9 +1343,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               <button 
                 onClick={() => handleReassess()}
                 disabled={isAnalyzing}
-                className={`bg-purple-600 text-white rounded-lg px-6 py-2 font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                  isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                className={`text-white rounded-lg px-6 py-2 font-medium text-sm transition-opacity flex items-center justify-center gap-2 ${
+                  isAnalyzing ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
               >
                 {isAnalyzing && (
                   <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
@@ -1433,7 +1441,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           <p className="text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap — so your resume becomes a stronger match for this specific job.</p>
           <button
             onClick={() => setShowUpgradeModal(true)}
-            className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+            className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Close the Gap on This Job →
           </button>
@@ -1513,7 +1522,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             }
           }}
           disabled={isUpdatingJourney}
-          className="block mx-auto bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+          className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90"
+        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           Start Job Coaching →
         </button>
@@ -1731,9 +1741,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                   <>
                     <button
                       onClick={() => setShowUpgradeModal(true)}
-                      className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                      className="block mx-auto text-white rounded-lg py-2 px-4 text-xs font-semibold transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
-                      Upgrade to Pro. We'll rewrite your entire resume for you.
+                      Upgrade to Pro — we'll find the missing details and rewrite everything for you.
                     </button>
                     <p className="text-xs text-gray-500 text-center">
                       Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
@@ -1762,12 +1773,22 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         disabled={isUpdatingJourney}
                         className="text-xs text-gray-400 hover:text-gray-600"
                       >
-                        I'll make these changes myself →
+                        Make changes myself →
                       </button>
                     </div>
                   </>
                 ) : (
                   <>
+                    <button
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="block mx-auto text-white rounded-lg py-2 px-4 text-xs font-semibold transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                    >
+                      Upgrade to Pro — we'll find the missing details and rewrite everything for you.
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">
+                      Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
+                    </p>
                     <button
                       onClick={async () => {
                         setIsUpdatingJourney(true)
@@ -1789,15 +1810,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         }
                       }}
                       disabled={isUpdatingJourney}
-                      className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors -mt-1 ${
-                        isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+                      className={`block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-xs font-semibold hover:bg-purple-50 transition-colors ${
+                        isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : ''
                       }`}
                     >
-                      Start Free Coaching Trial →
+                      Try a free coaching session →
                     </button>
-                    <p className="text-xs text-gray-500 text-center">
-                      Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
-                    </p>
                   </>
                 )}
               </div>
@@ -1827,9 +1845,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     }
                   }}
                   disabled={isUpdatingJourney}
-                  className={`mx-auto block bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-colors flex items-center gap-2 ${
-                    isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:bg-purple-700'
+                  className={`mx-auto block text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity flex items-center gap-2 ${
+                    isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-90'
                   }`}
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                 >
                   {isUpdatingJourney && (
                     <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
@@ -1930,6 +1949,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           params={params}
           isJobSpecific={isJobSpecific}
           userTier={userTier}
+          handleDownload={handleDownload}
+          isDownloading={isDownloading}
         />
       )}
     </div>
@@ -2334,7 +2355,7 @@ const getMessageText = (msg) => {
           {/* Purple header */}
           <div
             className="px-4 py-3 flex items-center gap-3"
-            style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)' }}
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
           >
             <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
             <div>
@@ -2390,7 +2411,8 @@ const getMessageText = (msg) => {
           <div className="flex justify-center pt-1">
             <button
               onClick={advanceToImprove}
-              className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Review My Changes →
             </button>
@@ -2414,7 +2436,8 @@ const getMessageText = (msg) => {
                     .eq('id', params.id)
                   setResume(prev => ({ ...prev, journey_step: 'format' }))
                 }}
-                className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
               >
                 Format & Finish →
               </button>
@@ -2450,7 +2473,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           <div className="flex justify-center mb-2">
             <button
               onClick={() => setShowUpgradeModal(true)}
-              className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+              className="text-white rounded-lg px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Upgrade to Pro →
             </button>
@@ -2594,9 +2618,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
             <button
               onClick={finishTrialCoaching}
               disabled={isFinishing}
-              className={`px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors ${
-                isFinishing ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'
-              }`}
+              className="px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
               {isFinishing ? 'Analyzing your session...' : '⚡ Reveal My Coached Bullet →'}
@@ -2618,7 +2641,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           >
             {/* Purple-only gradient header — matches improve modal exactly */}
             <div
-              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
               className="px-6 py-4 flex items-center justify-between flex-shrink-0"
             >
               <div className="flex items-center gap-3">
@@ -2717,7 +2740,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   )}
                   <button
                     onClick={() => setShowUpgradeModal(true)}
-                    className="bg-purple-600 text-white rounded-lg px-6 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                    className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
                     Upgrade to Pro → Coach My Entire Resume
                   </button>
@@ -2806,11 +2830,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             {/* Purple header */}
             <div
               className="px-4 py-3 flex items-center gap-3"
-              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)' }}
-            >
-              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
-              <div>
-                <p className="font-bold text-white text-sm leading-tight">Improvements Applied!</p>
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+          >
+            <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
+            <div>
+              <p className="font-bold text-white text-sm leading-tight">Improvements Applied!</p>
                 <p className="text-purple-100 text-xs leading-tight">
                   Here's what your reviewed changes did for your resume.
                 </p>
@@ -2871,7 +2895,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 .eq('id', params.id)
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
-            className="bg-purple-600 text-white rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+            className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Format & Finish →
           </button>
@@ -2939,15 +2964,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 style={{ width: '380px', borderRadius: '0px', border: '1px solid #e5e7eb', zIndex: 10, left: '320px', top: '50%', transform: 'translateY(-50%)' }}
               >
                 <div
-                  style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '0' }}
-                  className="px-6 py-5 text-center"
-                >
-                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
-                  <h2 className="text-xl font-bold text-white">Improvement Complete.</h2>
-                </div>
+                 style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '0' }}
+                className="px-6 py-5 text-center"
+              >
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
+                <h2 className="text-xl font-bold text-white">Improvement Complete.</h2>
+              </div>
 
-                <div className="p-6 text-center">
-                  {scoreBeforeCoaching && scoreAfterCoaching ? (
+              <div className="p-6 text-center">
+                {scoreBeforeCoaching && scoreAfterCoaching ? (
                     <div className="mb-4">
                       <div className="flex items-center justify-center gap-4 mb-2">
                         <div className="text-center">
@@ -2992,7 +3017,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           .eq('id', params.id)
                         setResume(prev => ({ ...prev, journey_step: 'format' }))
                       }}
-                      className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 transition-colors"
+                      className="text-white rounded-lg py-2 px-8 font-semibold text-xs transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       Format My Resume →
                     </button>
@@ -3214,10 +3240,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               onClick={e => e.stopPropagation()}
             >
               <div
-                style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
-                className="px-6 py-4 flex items-center justify-between flex-shrink-0"
-              >
-                <div className="flex items-center gap-3">
+                style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+            >
+              <div className="flex items-center gap-3">
                   <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
                     <span className="text-purple-600 font-bold text-lg">⚡</span>
                   </div>
@@ -3340,7 +3366,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       }
                       // Modal stays open for next change
                     }}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors"
+                    className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
                     ✓ Apply Change
                   </button>
@@ -3430,7 +3457,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               style={{ width: '380px', borderRadius: '0px', border: '1px solid #e5e7eb', zIndex: 10, left: '320px', top: '50%', transform: 'translateY(-50%)' }}
             >
               <div
-                style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '0' }}
+                style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '0' }}
                 className="px-6 py-5 text-center"
               >
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
@@ -3487,7 +3514,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       .eq('id', params.id)
                     setResume(prev => ({ ...prev, journey_step: 'format' }))
                   }}
-                  className="w-full bg-purple-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-purple-700 transition-colors mb-3"
+                  className="block mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm transition-opacity hover:opacity-90 mb-3"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                 >
                   Format My Resume →
                 </button>
@@ -3521,7 +3549,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             style={{ borderRadius: '8px' }}
           >
             <div
-              style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
               className="px-6 py-4"
             >
               <div className="flex items-center gap-3">
@@ -3555,7 +3583,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     setShowGapsModal(false)
                     setShowTargetedRecoach(true)
                   }}
-                  className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                  className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                 >
                   I have more to share — let's do it →
                 </button>
@@ -3617,15 +3646,6 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
     <div className="space-y-2 -mt-2">
       <h3 className="font-semibold text-lg">✏️ Improve Your Resume</h3>
       <p className="text-xs text-gray-700 text-center">Ready to tackle the rest? We'll walk you through the recommended changes one at a time below.</p>
-      <p className="text-xs text-gray-500 text-center">
-        Full resume coaching + we make the changes!       {' '}
-        <button
-          onClick={() => setShowUpgradeModal(true)}
-          className="text-purple-600 font-medium hover:text-purple-700 underline"
-        >
-          Upgrade to Pro →
-        </button>
-      </p>
 
       {!isDone ? (
         <div className="space-y-2">
@@ -3668,13 +3688,13 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
 
           <div className="mt-5 space-y-2">
             <div className="flex gap-2">
-              <button
+             <button
                 onClick={() => setShowUpgradeModal(true)}
                 className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 font-semibold text-xs hover:bg-purple-50 transition-colors"
               >
                 Let Us Rewrite It
               </button>
-              <button
+             <button
                 onClick={async () => {
                   const isLast = currentIndex === suggestions.length - 1
                   if (isLast) {
@@ -3687,7 +3707,9 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
                   }
                 }}
                 disabled={isChecking}
-className="flex-1 bg-purple-600 text-white rounded-lg py-2 px-3 font-semibold text-xs hover:bg-purple-700 transition-colors flex items-center justify-center gap-1 disabled:opacity-75 whitespace-nowrap"            >
+                className="flex-1 text-white rounded-lg py-2 px-3 font-semibold text-xs transition-opacity hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1 whitespace-nowrap"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+              >
               {isChecking
                 ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Checking...</>
                 : currentIndex === suggestions.length - 1 ? 'Check My Score →' : 'Next Improvement →'}
@@ -3715,9 +3737,10 @@ className="flex-1 bg-purple-600 text-white rounded-lg py-2 px-3 font-semibold te
           <div className="flex flex-col items-center gap-2 mt-5">
             <button
               onClick={() => setShowUpgradeModal(true)}
-              className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 font-semibold text-xs hover:bg-purple-50 transition-colors"
-              >
-                Let Us Rewrite It
+              className="flex-1 text-white rounded-lg py-2 px-3 font-semibold text-xs transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              Let Us Rewrite It
             </button>
             <button
               onClick={async () => {
@@ -3740,7 +3763,8 @@ className="flex-1 bg-purple-600 text-white rounded-lg py-2 px-3 font-semibold te
                 .eq('id', params.id)
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
-            className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 transition-colors"
+            className="text-white rounded-lg py-2 px-8 font-semibold text-xs transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Format My Resume →
             </button>
@@ -3904,7 +3928,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
         style={{ borderRadius: '8px', maxHeight: '80vh' }}
       >
         <div
-          style={{ background: 'linear-gradient(to bottom right, #9333ea, #6b21a8)', borderRadius: '8px 8px 0 0' }}
+          style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
           className="px-6 py-4 flex items-center justify-between flex-shrink-0"
         >
           <div className="flex items-center gap-3">
@@ -3984,7 +4008,8 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
             <button
               onClick={finishTargetedCoach}
               disabled={isFinishing}
-              className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 disabled:opacity-75 flex items-center justify-center gap-2 transition-colors"
+              className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold disabled:opacity-75 flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
               {isFinishing ? 'Updating your resume...' : '✨ Update My Resume →'}
@@ -4012,10 +4037,10 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
 
       <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
         <div className="text-xs text-purple-900 space-y-1.5">
-          <div>⚡ Run <strong>Auto-fit</strong> to optimize font size and spacing for one perfect page</div>
+          <div>✓ Run ⚡<strong>Auto-fit</strong> to optimize font size and spacing for one perfect page</div>
           <div>✓ Try different templates from the toolbar</div>
           <div>✓ Adjust font or size if you prefer</div>
-          <div>✓ Preview to see exactly how it will look when downloaded</div>
+          <div>✓ Preview how the PDF download will look</div>
         </div>
       </div>
 
@@ -4044,7 +4069,8 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
             }
           }}
           disabled={advancing}
-          className="bg-purple-600 text-white rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-700 disabled:opacity-75 flex items-center gap-2 transition-colors"
+          className="text-white rounded-lg py-2 px-8 font-semibold text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           {advancing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
           {advancing ? 'Saving...' : 'Ready to Save →'}
@@ -4057,7 +4083,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
 // ─────────────────────────────────────────────
 // SAVE STEP
 // ─────────────────────────────────────────────
-function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
+function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handleDownload, isDownloading }) {
   const firstName = userName ? userName.split(' ')[0] : null
 
   useEffect(() => {
@@ -4085,36 +4111,46 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier }) {
     <div className="space-y-2 -mt-2">
       <h3 className="font-semibold text-lg">⭐ Resume Complete!</h3>
 
-      <p className="text-sm text-gray-500">
-        Your resume is application-ready.
-      </p>
+      <p className="text-sm text-gray-500">Your resume is application-ready. Click below to save it as a PDF.</p>
 
-      <p className="text-sm text-gray-700">
-        Use the <strong>Download</strong> button in the toolbar to save your resume as a PDF.
-      </p>
+      <div className="flex justify-center pt-1">
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+        >
+          {isDownloading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+          {isDownloading ? 'Generating...' : '⬇️ Download Your Resume'}
+        </button>
+      </div>
 
-      <div className="pt-2">
-        <p className="text-sm text-gray-500 mb-4">Ready to put it to use?</p>
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex flex-col gap-2" style={{ minWidth: '220px' }}>
-            {!isJobSpecific && (
-              <button
-                onClick={() => window.location.href = `/resume-coach?action=new-job-specific&from=${params.id}`}
-                className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
-              >
-                {userTier === 'free' ? '📊 Check Match Score for Any Job' : '🎯 Tailor for a Specific Job'}
-              </button>
-            )}
+      <div className="pt-2 border-t border-gray-200">
+        <p className="text-sm text-gray-500 mb-3">Ready to put it to use?</p>
+        <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
+          {!isJobSpecific && (
             <button
-              onClick={() => window.location.href = '/my-interviews'}
-              className="w-full bg-purple-600 text-white rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-700 transition-colors"
+              onClick={() => window.location.href = `/resume-coach?action=new-job-specific&from=${params.id}`}
+              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
             >
-              🎤 Start Interview Prep
+              {userTier === 'free' ? '📊 Check Match Score for Any Job' : '🎯 Tailor for a Specific Job'}
             </button>
-          </div>
+          )}
+          <button
+            onClick={() => window.location.href = '/resume-coach?action=new-cover-letter'}
+            className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
+          >
+            ✉️ Create a Cover Letter
+          </button>
+          <button
+            onClick={() => window.location.href = '/interview-coach'}
+            className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
+          >
+            🎤 Start Interview Prep
+          </button>
           <button
             onClick={() => window.location.href = '/resume-coach'}
-            className="text-gray-400 text-xs hover:text-gray-600"
+            className="text-gray-400 text-xs hover:text-gray-600 mt-1"
           >
             ← Back to My Resumes
           </button>

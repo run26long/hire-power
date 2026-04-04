@@ -205,11 +205,16 @@ export async function POST(request) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier')
+      .select('subscription_tier, jms_count')
       .eq('id', userId)
       .single();
 
     const userTier = profile?.subscription_tier || 'free';
+
+    const isFree = !profile?.subscription_tier || profile?.subscription_tier === 'free'
+    if (isFree && (profile?.jms_count ?? 0) >= 3) {
+      return Response.json({ error: 'JMS_LIMIT_REACHED' }, { status: 403 })
+    }
 
     const resumeText = convertResumeToText(resumeData);
 
@@ -225,8 +230,13 @@ Apply the scoring rubric above. Be consistent — the same resume against the sa
 
 CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 
+You MUST score each dimension separately first, then sum them for matchScore. Do not guess a holistic score. Work through each rubric, assign a number within the stated range, then add them.
+
 {
-  "matchScore": <number 0-100>,
+  "keywordScore": <number 0-50, scored against the keyword rubric above>,
+  "experienceScore": <number 0-30, scored against the experience rubric above>,
+  "credentialScore": <number 0-20, scored against the credentials rubric above>,
+  "matchScore": <keywordScore + experienceScore + credentialScore>,
   "matchedKeywords": [<meaningful skill/vocabulary terms from JD present on resume>],
   "missingKeywords": [<terms from JD genuinely absent from resume and not covered by hiddenPower>],
   "hiddenPower": [<"Resume skill → JD requirement" strings>],
@@ -245,8 +255,18 @@ CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble
     const cleanText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     const analysis = JSON.parse(cleanText);
 
+    if (isFree && userId) {
+      await supabase
+        .from('profiles')
+        .update({ jms_count: (profile.jms_count ?? 0) + 1 })
+        .eq('id', userId)
+    }
+
+    const computedScore = (analysis.keywordScore ?? 0) + (analysis.experienceScore ?? 0) + (analysis.credentialScore ?? 0)
+    const matchScore = computedScore > 0 ? computedScore : analysis.matchScore
+
     return Response.json({
-      matchScore: analysis.matchScore,
+      matchScore,
       matchedKeywords: analysis.matchedKeywords,
       missingKeywords: analysis.missingKeywords,
       hiddenPower: analysis.hiddenPower,

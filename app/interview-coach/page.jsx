@@ -135,15 +135,15 @@ export default function MyInterviewsPage() {
         <MainNav currentPage="interview-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
+          <div className="px-6 py-2 max-w-[1400px] mx-auto w-full">
 
-            <div className="grid grid-cols-12 gap-6">
+            <div className="grid grid-cols-12 gap-3">
 
               {/* LEFT: Practice History (8 cols) */}
-              <div className="col-span-8 space-y-4">
+              <div className="col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Practices</h2>
                     <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Coming Soon</span>
@@ -151,9 +151,9 @@ export default function MyInterviewsPage() {
                   <p className="text-xs text-gray-500 mb-5">Your saved practice sessions will appear here — each one tied to a specific job</p>
 
                   {/* New Practice Button */}
-                  <button
+                 <button
                     onClick={() => setShowComingSoonModal(true)}
-                    className="w-full border-2 border-dashed border-purple-300 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-center gap-3 mb-5 group"
+                    className="w-full border-2 border-dashed border-purple-300 rounded-lg p-3 hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-center gap-3 mb-3 group"
                   >
                     <div className="w-8 h-8 rounded-full bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center transition-colors">
                       <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,18 +167,16 @@ export default function MyInterviewsPage() {
                   </button>
 
                   {/* Empty State */}
-                  <div className="text-center py-10 border border-dashed border-gray-200 rounded-lg bg-gray-50">
-                    <div className="text-5xl mb-3">🎤</div>
+                  <div className="text-center py-4 border border-dashed border-gray-200 rounded-lg bg-gray-50">
+                    <div className="text-3xl mb-1">🎤</div>
                     <p className="text-sm font-semibold text-gray-700 mb-1">Your practice sessions will live here</p>
                     <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
                       Each practice is tied to a specific job — with a level badge, score history, and coaching notes so you can track improvement over time.
                     </p>
-
-                    {/* Level preview */}
-                    <div className="flex items-center justify-center gap-3 mt-5">
+                    <div className="flex items-center justify-center gap-3 mt-3">
                       {[1, 2, 3, 4, 5].map((level) => (
                         <div key={level} className="flex flex-col items-center gap-1">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                             level === 1 ? 'border-purple-300 bg-purple-50 text-purple-500' : 'border-gray-200 bg-white text-gray-300'
                           }`}>
                             {level}
@@ -187,7 +185,6 @@ export default function MyInterviewsPage() {
                         </div>
                       ))}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-2">Practice for each job to unlock levels and track your confidence</p>
                   </div>
                 </div>
 
@@ -214,56 +211,75 @@ export default function MyInterviewsPage() {
               </div>
 
               {/* RIGHT: Stats + Readiness (4 cols) */}
-              <div className="col-span-4 space-y-4">
+              <div className="col-span-4 space-y-2">
 
                 {/* Practice Stats */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
-                  <p className="text-xs text-gray-500 mb-4">Your interview training at a glance</p>
+                  <p className="text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">Total Sessions</p>
-                        <p className="text-[10px] text-gray-400">Across all jobs</p>
-                      </div>
-                      <span className="text-2xl font-bold text-gray-300">0</span>
+                  {isPro ? (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { label: 'Total Sessions', sub: 'Across all jobs', val: '0' },
+                        { label: 'Best Level', sub: 'Max L5 per job', val: '--' },
+                        { label: 'Practice Streak', sub: 'Consecutive days', val: '0' },
+                        { label: 'Jobs Practiced', sub: 'Unique targets', val: '0' },
+                      ].map((stat) => (
+                        <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="text-xs font-medium text-gray-700">{stat.label}</p>
+                            <p className="text-[10px] text-gray-400">{stat.sub}</p>
+                          </div>
+                          <span className="text-2xl font-bold text-gray-300">{stat.val}</span>
+                        </div>
+                      ))}
                     </div>
-
-                    <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">Best Level Reached</p>
-                        <p className="text-[10px] text-gray-400">Max L5 per job</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[
+                          { label: 'Total Sessions', sub: 'Across all jobs', val: '0' },
+                          { label: 'Practice Streak', sub: 'Consecutive days', val: '0' },
+                        ].map((stat) => (
+                          <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">{stat.label}</p>
+                              <p className="text-[10px] text-gray-400">{stat.sub}</p>
+                            </div>
+                            <span className="text-2xl font-bold text-gray-300">{stat.val}</span>
+                          </div>
+                        ))}
                       </div>
-                      <span className="text-2xl font-bold text-gray-300">--</span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">Practice Streak</p>
-                        <p className="text-[10px] text-gray-400">Consecutive days</p>
+                      <div className="flex items-center justify-between p-2.5 bg-purple-50 border border-purple-200 rounded-lg gap-3">
+                        <p className="text-xs text-purple-800 leading-snug">Unlock Power Analysis, job-specific sessions, and gamified progression.</p>
+                        <button
+                          onClick={() => setShowComingSoonModal(true)}
+                          className="text-white rounded-md py-1.5 px-3 text-[11px] font-semibold flex-shrink-0 transition-opacity hover:opacity-90"
+                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                        >
+                          Go Pro
+                        </button>
                       </div>
-                      <span className="text-2xl font-bold text-gray-300">0</span>
                     </div>
+                  )}
 
-                    <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">Jobs Practiced</p>
-                        <p className="text-[10px] text-gray-400">Unique job targets</p>
-                      </div>
-                      <span className="text-2xl font-bold text-gray-300">0</span>
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-gray-400 text-center mt-3">Start practicing to see your stats here</p>
+                  <p className="text-[10px] text-gray-400 text-center mt-2">Start practicing to see your stats here</p>
                 </div>
 
+                {/* Practice out loud callout */}
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-2.5 rounded-r">
+                  <p className="text-xs text-gray-700 leading-snug">
+                    Candidates who practice out loud - not just in their head - are significantly more confident and articulate in real interviews.
+                  </p>
+                </div>
+               
                 {/* Interview Readiness Checklist */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {[
                       { label: 'Resume reviewed and current', key: 'resume' },
                       { label: 'Researched the company', key: 'research' },
@@ -274,44 +290,9 @@ export default function MyInterviewsPage() {
                       <ChecklistItem key={item.key} label={item.label} />
                     ))}
                   </div>
-
-                  <div className="mt-4 bg-purple-50 border-l-4 border-purple-600 p-2.5 rounded-r">
-                    <p className="text-xs text-gray-700 leading-snug">
-                      Candidates who practice out loud — not just in their head — are significantly more confident and articulate in real interviews.
-                    </p>
-                  </div>
                 </div>
 
-                {/* Pro Upgrade Card (free users only) */}
-                {!isPro && (
-                  <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-5">
-                    <h2 className="text-base font-semibold text-gray-900 mb-1">Unlock Pro Interview Coaching</h2>
-                    <p className="text-xs text-gray-500 mb-3">Coming soon with Pro</p>
-
-                    <div className="space-y-2 mb-4">
-                      {[
-                        'Pre-interview Power Analysis',
-                        'Core Power, Hidden Power, Power Gaps',
-                        'AI-spoken practice questions',
-                        'Unlimited job-specific sessions',
-                        'Gamified level progression',
-                        'Video feedback',
-                      ].map((feature) => (
-                        <div key={feature} className="flex items-center gap-2 text-xs text-gray-600">
-                          <span className="text-purple-500 flex-shrink-0">✓</span>
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => setShowComingSoonModal(true)}
-                      className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
-                    >
-                      Upgrade to Pro
-                    </button>
-                  </div>
-                )}
+            
               </div>
             </div>
           </div>
@@ -394,7 +375,7 @@ function ChecklistItem({ label }) {
   return (
     <button
       onClick={() => setChecked(!checked)}
-      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+      className="w-full flex items-center gap-3 p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-left"
     >
       <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
         checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'

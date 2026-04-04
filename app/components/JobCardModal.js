@@ -154,7 +154,9 @@ export default function JobCardModal({
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📄</span>
                     <div>
-                      <p className="text-xs font-semibold text-gray-800">JS Resume</p>
+                      <p className="text-xs font-semibold text-gray-800">
+                        {card.resumes.resume_type === 'job_specific' ? 'Tailored Resume' : 'Resume'}
+                      </p>
                       <p className="text-[10px] text-gray-400">{card.resumes.display_name}</p>
                     </div>
                   </div>
@@ -179,7 +181,7 @@ export default function JobCardModal({
                       }}
                     >
                       <div>
-                        <p className="text-xs font-semibold text-purple-800">Create JS Resume</p>
+                        <p className="text-xs font-semibold text-purple-800">Create Tailored Resume</p>
                         <p className="text-[10px] text-purple-500">Tailored to this job</p>
                       </div>
                       <span className="text-xs font-semibold text-purple-500">+ Create →</span>

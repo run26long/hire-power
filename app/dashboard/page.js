@@ -200,7 +200,7 @@ const searchParams = useSearchParams();
   const sidebarSteps = [
     { num: '01', label: 'Career Coach',    sub: 'Clarify your direction — same field, new field, or somewhere in between.', path: '/career-coach'     },
     { num: '02', label: 'Résumé Coach',    sub: 'Uncover the achievements and skills that never made it to the page.',      path: '/resume-coach'    },
-    { num: '03', label: 'Interview Coach', sub: 'Learn how to explain your experience with confidence.',                     path: '/my-interviews' },
+    { num: '03', label: 'Interview Coach', sub: 'Learn how to explain your experience with confidence.',                     path: '/interview-coach' },
     isVaultTier
       ? { num: '04', label: 'Career Vault',  sub: 'Capture your wins as they happen — never start from scratch again!', path: '/career-vault' }
       : { num: '04', label: 'Job Tracker',   sub: 'Track every application. One card per job. Nothing slips.',          path: '/job-tracker'  },
@@ -241,7 +241,7 @@ const searchParams = useSearchParams();
           >
             {/* Header */}
             <div
-              style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+             style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)'}}
               className="px-6 py-5"
             >
               <div className="flex items-center gap-3">
@@ -303,7 +303,8 @@ const searchParams = useSearchParams();
                     <button
                       type="submit"
                       disabled={loginLoading}
-                      className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                      className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       {loginLoading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -320,7 +321,7 @@ const searchParams = useSearchParams();
                     >
                       Forgot password?
                     </button>
-                    <button onClick={() => router.push('/landing')} className="text-xs text-gray-400 hover:underline bg-transparent border-none cursor-pointer">
+                    <button onClick={() => router.push('/landing?signup=true')} className="text-xs text-gray-400 hover:underline bg-transparent border-none cursor-pointer">
                       Sign up free
                     </button>
                   </div>
@@ -357,7 +358,8 @@ const searchParams = useSearchParams();
                         <button
                           type="submit"
                           disabled={resetLoading}
-                          className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                          className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                         >
                           {resetLoading ? 'Sending...' : 'Send reset link'}
                         </button>
@@ -414,7 +416,8 @@ const searchParams = useSearchParams();
                         <button
                           type="submit"
                           disabled={resetLoading}
-                          className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                          className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                         >
                           {resetLoading ? 'Updating...' : 'Update password'}
                         </button>
@@ -545,23 +548,13 @@ const searchParams = useSearchParams();
                     </>
                   ) : (
                     <>
-                      <div className="flex flex-col gap-px mb-1.5">
+                      <div className="flex flex-col gap-1 mb-1.5">
                         {['Direction set', 'Target roles identified', 'Experience connected to your goals'].map((item, i) => (
-                          <div key={i} className="flex items-center gap-1.5 px-2 py-px bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
+                          <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
                             <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
                             <span className="text-[11px] text-gray-500">{item}</span>
                           </div>
                         ))}
-                      </div>
-                     
-                      <div className="pt-1 flex justify-center">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); router.push('/career-coach'); }}
-                          className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
-                          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-                        >
-                          Start the Conversation →
-                        </button>
                       </div>
                     </>
                   )}
@@ -587,16 +580,47 @@ const searchParams = useSearchParams();
                   <div className="grid grid-cols-2 gap-3 flex-1">
                     {/* Left: what it does */}
                     <div style={{ background: '#faf9ff', border: '1px solid #ede9fe', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {[
-                        { label: 'Not a form.', body: 'A conversation. The same questions a $500 resume writer would ask — powered by AI.' },
-                        { label: 'Not generation.', body: 'Extraction. We surface your real achievements, then help you say them right.' },
-                        { label: 'Not one-time.', body: 'Coach it once, customize forever. Every job version builds on this foundation.' },
-                      ].map(({ label, body }) => (
-                        <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
-                          <span style={{ fontWeight: 800, color: '#5b21b6' }}>{label}</span>
-                          {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
-                        </div>
-                      ))}
+                      {isPro ? (
+                        <>
+                          {[
+                            { label: 'Not a form.', body: 'A conversation. The same questions a $500 resume writer would ask.' },
+                            { label: 'Not generation.', body: 'Extraction. We surface your real achievements, then make sure they make it to the page.' },
+                            { label: 'Not suggestions.', body: 'Improvements. No figuring out what to add where. We do it for you in under 2 minutes.' },
+                            { label: 'Not one-time.', body: 'Forever. Every job version builds on this foundation. Never start from scratch again.' },
+                          ].map(({ label, body }) => (
+                            <div key={label} style={{ fontSize: 11, lineHeight: 1.2 }}>
+                              <span style={{ fontWeight: 800, color: '#5b21b6' }}>{label}</span>
+                              {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
+                            </div>
+                          ))}
+                        </>
+                      ) : isVaultTier ? (
+                        <>
+                          {[
+                            { label: 'Core resume on file.', body: 'Your resume is saved and downloadable anytime.' },
+                            { label: 'Unlimited downloads.', body: 'All templates available, no restrictions.' },
+                            { label: 'Job tracking.', body: 'Keep your application history in one place between searches.' },
+                          ].map(({ label, body }) => (
+                            <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                              <span style={{ fontWeight: 800, color: '#5b21b6' }}>{label}</span>
+                              {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {[
+                            { label: 'Core resume.', body: 'AI analysis, Resume Power Score, and a detailed Action Plan to guide you through making improvements.' },
+                            { label: 'Coaching trial.', body: 'One job, one conversation, one bullet rewritten. See how the coaching process makes the changes for you' },
+                            { label: 'Job match and cover letters.', body: '3 job match scores and 3 custom cover letters included.' },
+                          ].map(({ label, body }) => (
+                            <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                              <span style={{ fontWeight: 800, color: '#5b21b6' }}>{label}</span>
+                              {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
 
                     {/* Right: next step */}
@@ -648,17 +672,49 @@ const searchParams = useSearchParams();
                   <div className="grid grid-cols-2 gap-3 flex-1">
                     {/* Left: power analysis concepts */}
                     <div style={{ background: '#faf9ff', border: '1px solid #ede9fe', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', lineHeight: 1.4, paddingBottom: 6, borderBottom: '1px solid #ede9fe' }}>Your Interview Coach will prepare you to discuss:</div>
-                      {[
-                        { label: 'Core Power.', color: '#15803d', body: 'The strengths you already have that directly match the job.' },
-                        { label: 'Hidden Power.', color: '#92400e', body: "Transferable skills you didn't know you had — until we ask the right questions." },
-                        { label: 'Power Gaps.', color: '#b91c1c', body: "What's missing — and exactly how to address it without apologizing." },
-                      ].map(({ label, color, body }) => (
-                        <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
-                          <span style={{ fontWeight: 800, color }}>{label}</span>
-                          {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
-                        </div>
-                      ))}
+                      {isPro ? (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', lineHeight: 1.4, paddingBottom: 6, borderBottom: '1px solid #ede9fe' }}>Learn how to tell your strongest story for each specific job. Your Interview Coach will prepare you to discuss:</div>
+                          {[
+                            { label: 'Core Power.', color: '#15803d', body: 'The strengths you already have that directly match the job.' },
+                            { label: 'Hidden Power.', color: '#92400e', body: "Transferable skills you didn't know you had, until we ask the right questions." },
+                            { label: 'Power Gaps.', color: '#b91c1c', body: "What's missing, and exactly how to address it without apologizing." },
+                          ].map(({ label, color, body }) => (
+                            <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                              <span style={{ fontWeight: 800, color }}>{label}</span>
+                              {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
+                            </div>
+                          ))}
+                        </>
+                      ) : isVaultTier ? (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', lineHeight: 1.4, paddingBottom: 6, borderBottom: '1px solid #ede9fe' }}>What you get:</div>
+                          {[
+                            { label: 'General practice.', color: '#15803d', body: 'Unlimited AI-spoken interview practice with common questions, anytime.' },
+                            { label: 'Stay sharp.', color: '#92400e', body: 'Keep your interview instincts fresh between job searches.' },
+                            { label: 'Ready when you are.', color: '#7c3aed', body: 'Upgrade to Pro when your next search starts to unlock job-specific coaching.' },
+                          ].map(({ label, color, body }) => (
+                            <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                              <span style={{ fontWeight: 800, color }}>{label}</span>
+                              {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', lineHeight: 1.4, paddingBottom: 6, borderBottom: '1px solid #ede9fe' }}>What you get:</div>
+                          {[
+                            { label: 'Unlimited general practice.', color: '#15803d', body: 'AI-spoken interview questions anytime, no job description needed.' },
+                            { label: 'One job-specific session.', color: '#92400e', body: 'Upload a job description and practice with questions built from your resume and the role.' },
+                            { label: 'Power Analysis reveal.', color: '#7c3aed', body: 'After your job-specific session, see your Core Power, Hidden Power, and Power Gaps.' },
+                          ].map(({ label, color, body }) => (
+                            <div key={label} style={{ fontSize: 11, lineHeight: 1.4 }}>
+                              <span style={{ fontWeight: 800, color }}>{label}</span>
+                              {' '}<span style={{ fontWeight: 400, color: '#6b7280' }}>{body}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
 
                     {/* Right: next step */}
@@ -668,9 +724,13 @@ const searchParams = useSearchParams();
                         Practice before it counts.
                       </div>
                       <div style={{ fontSize: 12, color: '#4c1d95', lineHeight: 1.45, fontWeight: 400 }}>
-                        {coreResume?.completed_at
-                          ? "Upload a job description and start a real practice session — AI-spoken questions built from the role and your actual experience."
-                          : "Finish your resume first — your Interview Coach uses it to build questions specific to your experience and the job you're targeting."}
+                        {isVaultTier
+                          ? "Jump into general practice anytime. Stay sharp between searches."
+                          : !coreResume?.completed_at
+                          ? "Finish your resume first. Interview Coach uses it to tailor questions to your experience and the job you're targeting."
+                          : isPro
+                          ? "Upload a job description and your Interview Coach builds questions from your actual resume and the role."
+                          : "You get one job-specific session with a Power Analysis reveal after. Unlimited general practice anytime."}
                       </div>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'auto', paddingTop: 12 }}>
                         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#d1d5db', flexShrink: 0 }} />
@@ -700,7 +760,7 @@ const searchParams = useSearchParams();
                         Keep building your career archive between job searches. When opportunity knocks, you'll be ready.
                       </p>
                     </div>
-                    <div className="flex flex-col gap-0.5 mb-1.5">
+                    <div className="flex flex-col gap-1.5 mb-2.5">
                       {['Led Q3 launch across 3 teams', 'Promoted to Senior in 18 months', 'Cut onboarding from 3 weeks to 5 days'].map((win, i) => (
                         <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.4 }}>
                           <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
@@ -722,14 +782,14 @@ const searchParams = useSearchParams();
                       </div>
                       <span className="ml-auto"><StatusPill status="Not Started" /></span>
                     </div>
-                    <div className="text-[13px] font-normal text-purple-600 mb-2">Every application. One place. Nothing slips.</div>
+                    <div className="text-[13px] font-normal text-purple-600 mb-2">Every application. One place. Nothing gets missed.</div>
 
                     <div className="rounded-xl p-2.5 mb-2" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.04), rgba(99,102,241,0.04))', border: '1.5px solid rgba(124,58,237,0.12)' }}>
-                      <p className="text-[12px] font-bold italic text-gray-900 leading-snug mb-1" style={{ letterSpacing: '-0.03em' }}>
-                        "One card per job. Nothing lost."
+                      <p className="text-[12px] font-bold italic text-gray-900 leading-snug" style={{ letterSpacing: '-0.03em' }}>
+                        "Most people track jobs in a spreadsheet, a notes app, and their memory. Something always gets forgotten."
                       </p>
-                      <p className="text-[11px] text-gray-500 leading-tight" style={{ letterSpacing: '-0.02em' }}>
-                        One card per job. Your resume, interview practice, and application status — all in one place.
+                      <p className="text-[11px] text-gray-500 leading-tight mt-1" style={{ letterSpacing: '-0.02em' }}>
+                        One card per job keeps your resume, interview practice, and application status all in one place.
                       </p>
                     </div>
 
@@ -742,23 +802,13 @@ const searchParams = useSearchParams();
                       ))}
                     </div>
 
-                    <div className="flex flex-col gap-px mb-2">
+                    <div className="flex flex-col gap-1 mb-1.5">
                       {['Tailored resume linked to every job', 'Interview practice tied to each application', 'Hired cards saved to your Vault'].map((item, i) => (
-                        <div key={i} className="flex items-center gap-1.5 px-2 py-px bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.5 }}>
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg" style={{ opacity: 0.5 }}>
                           <div className="w-1.5 h-1.5 rounded-full bg-purple-600 flex-shrink-0"></div>
                           <span className="text-[11px] text-gray-500">{item}</span>
                         </div>
                       ))}
-                    </div>
-
-                    <div className="pt-1 flex justify-center">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); router.push('/job-tracker'); }}
-                        className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
-                        style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-                      >
-                        Start Tracking →
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -590,24 +590,23 @@ export default function CoverLetterPage() {
             <h3 className="font-semibold text-sm text-gray-900 mb-3">
               Cover Letter
             </h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-gray-500 mb-2">
               {coverLetter.job_title}{coverLetter.job_company ? ` at ${coverLetter.job_company}` : ''}
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
                 <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">How to edit</p>
                 <p className="text-xs text-gray-700 leading-snug">Click any section to edit directly. Your changes save automatically when you click Save.</p>
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">Tips</p>
-                <ul className="space-y-2">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Tips</p>
+                <ul className="space-y-1">
                   {[
                     'Keep the opening focused on what you bring to them, not what you want from them.',
                     'Each bullet should lead with a result or specific proof, not a category label.',
-                    'The closing should answer what they get when they hire you.',
-                    'Run Auto-fit to make sure the letter fills one page cleanly.',
+                    'Run Auto-fit to fit your letter on one pages.',
                     'Match the template to your resume for a cohesive application package.',
                   ].map((tip, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
@@ -619,14 +618,16 @@ export default function CoverLetterPage() {
               </div>
 
               <div className="pt-2 border-t border-gray-100">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">When you're done</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2 text-center">When you're done</p>
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={handleDownload}
                     disabled={isDownloading}
-                    className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                    className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
-                    Download PDF
+                    {isDownloading && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                    {isDownloading ? 'Generating...' : 'Download PDF'}
                   </button>
                   <button
                     onClick={() => router.push('/resume-coach')}

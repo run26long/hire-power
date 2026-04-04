@@ -57,6 +57,14 @@ const supabase = createClient();
     }
   };
 
+ useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('signup') === 'true') {
+      setShowSignupModal(true);
+      window.history.replaceState({}, '', '/landing');
+    }
+  }, []);
+
   useEffect(() => {
     async function loadUser() {
       const supabase = createClient();
@@ -275,7 +283,7 @@ const supabase = createClient();
           >
             {/* Header */}
             <div
-              style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+              style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)'}}
               className="px-6 py-5 relative"
             >
               <button
@@ -338,7 +346,8 @@ const supabase = createClient();
                     <button
                       type="submit"
                       disabled={signupLoading}
-                      className="w-full py-2 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                      className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       {signupLoading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -379,7 +388,7 @@ const supabase = createClient();
               <div style={{width:'3px',height:'36px',background:'var(--purple)',borderRadius:'2px',flexShrink:0}}/>
               <p style={{fontFamily:"'Fraunces',serif",fontSize:'18px',fontWeight:700,fontStyle:'italic',color:'#1a1033',lineHeight:1.3,margin:0}}>Job hunting is small talk.<br/>Your career deserves a conversation.</p>
             </div>
-            <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'var(--purple)',color:'white',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(108,99,255,0.35)',transition:'all 0.2s',flexShrink:0}}>Start now for free</button>
+           <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'linear-gradient(to right, #667eea, #764ba2)',color:'white',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(108,99,255,0.35)',transition:'opacity 0.2s',flexShrink:0}}>Start now for free</button>
           </div>
           </div>
           <div className="hero-trust">
@@ -478,7 +487,7 @@ const supabase = createClient();
 
           {/* Improvement Complete card */}
           <div style={{width:'210px',flexShrink:0,marginLeft:'-16px',background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 20px 60px rgba(147,51,234,0.22), 0 4px 20px rgba(0,0,0,0.1)',border:'1px solid rgba(147,51,234,0.1)',position:'relative',zIndex:2}}>
-            <div style={{background:'#9333ea',padding:'18px 16px 14px',textAlign:'center'}}>
+            <div style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)',padding:'18px 16px 14px',textAlign:'center'}}>
               <div style={{width:'36px',height:'36px',background:'rgba(255,255,255,0.2)',borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px'}}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10.5 2L4 10h5.5L7.5 16l7-8h-5.5L10.5 2z" fill="white"/></svg>
               </div>
@@ -501,7 +510,7 @@ const supabase = createClient();
                 <div style={{fontSize:'11px',color:'#6b7280',marginTop:'1px'}}>12 bullets improved</div>
                 <div style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>7 new skills identified</div>
               </div>
-              <div style={{background:'#9333ea',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+              <div style={{background:'linear-gradient(to right, #667eea, #764ba2)',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'12px',fontWeight:700,color:'white'}}>Format My Resume →</div>
               </div>
             </div>
@@ -515,7 +524,7 @@ const supabase = createClient();
           <div className="section-eyebrow">The Dirty Secret</div>
           <h2 className="section-title">AI tools are <em>making up</em><br/>your resume.</h2>
           <p className="section-sub" style={{maxWidth:'760px'}}>
-            A VP of Business Development with 20+ years selling to aerospace and defense. Tried two resume tools — theirs and ours. Here&apos;s a sample bullet from his resume and what each tool did with it:{' '}
+            A VP of Business Development with 20+ years selling to aerospace and defense. Tried two resume tools, theirs and ours. Here&apos;s a sample bullet from his resume and what each tool did with it:{' '}
             <strong><em style={{color:'rgba(255,255,255,0.92)'}}>&quot;Built strategic relationships with high-profile commercial customers including Boeing, managing long-cycle sales for complex technology packages.&quot;</em></strong>
           </p>
 
@@ -656,7 +665,7 @@ const supabase = createClient();
                 <span style={{color:'white'}}>Because your resume needs facts, not fiction.</span>
               </p>
               <p style={{fontSize:'14px',color:'rgba(255,255,255,0.7)',lineHeight:1.5,margin:'0 0 10px'}}>We recognized a VP who landed a $10M deal with Boeing Aerospace.</p>
-              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into an intern (or a flight attendant — we can&apos;t quite tell!)</p>
+              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into an intern (or a flight attendant; we can&apos;t quite tell!)</p>
               <div style={{height:'1px',background:'rgba(255,255,255,0.1)',marginBottom:'18px'}}/>
               <p style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',lineHeight:1.6,margin:'0 0 14px',fontWeight:600}}>After working with Hire Power, Robert landed:</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'24px'}}>
@@ -673,7 +682,7 @@ const supabase = createClient();
                 Same candidate. Two tools.<br/>One wrote fiction.<br/><span style={{color:'white'}}>The other uncovered the facts that got him hired.</span>
               </p>
               <button onClick={() => setShowSignupModal(true)} style={{display:'inline-block',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',fontWeight:700,padding:'12px 24px',borderRadius:'10px',border:'none',cursor:'pointer',letterSpacing:'-0.01em',boxShadow:'0 4px 20px rgba(102,126,234,0.4)'}}>
-                Start for free — reveal your best resume →
+                Start for free & reveal your best resume →
               </button>
             </div>
           </div>
@@ -701,19 +710,19 @@ const supabase = createClient();
           <div className="section-eyebrow">How It Works</div>
           <h2 className="section-title">Three conversations.<br/>One complete picture.</h2>
           <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other, so nothing falls through the cracks.</p>
-          <div className="how-grid">
-            <div className="how-steps">
+          <div className="how-grid" style={{marginTop: '36px'}}>
+            <div className="how-steps" style={{gap: '4px', paddingTop: '0px'}}>
               {[
                 {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. Free for everyone, unlimited."},
                 {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
-                {n:'3',title:'Interview Coach prepares you to defend it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice — with AI-spoken questions that simulate a real interview."},
-                {n:'4',title:'Career Archive keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
+                {n:'3',title:'Interview Coach prepares you to defend it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
+                {n:'4',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(
-                <div key={step.n} className="how-step">
+                <div key={step.n} className="how-step" style={{marginBottom: '8px'}}>
                   <div className="step-num">{step.n}</div>
                   <div className="step-content">
-                    <h4>{step.title}</h4>
-                    <p>{step.body}</p>
+                   <h4 style={{marginBottom: '4px'}}>{step.title}</h4>
+                    <p style={{lineHeight: '1.4'}}>{step.body}</p>
                   </div>
                 </div>
               ))}
@@ -756,7 +765,7 @@ const supabase = createClient();
       <section className="manifesto">
         <div className="manifesto-inner">
           <div className="manifesto-eyebrow">Our Belief</div>
-          <p><strong>Most tools help you find a job.</strong> Ours helps you build a career. Hire Power is your <em>lifelong career coach</em>, turning career management from a crisis into an ongoing conversation. Through AI-powered coaching, we help you bulletproof your resume, level up your interviews, and build a career archive that grows with you. <strong>From entry-level to executive suite — we help you power through the&nbsp;entire&nbsp;journey.</strong></p>
+          <p><strong>Most tools help you find a job.</strong> Ours helps you build a career. Hire Power is your <em>lifelong career coach</em>, turning career management from a crisis into an ongoing conversation. Through AI-powered coaching, we help you bulletproof your resume, level up your interviews, and build a career archive that grows with you. <strong>From entry-level to executive suite, we help you power through the&nbsp;entire&nbsp;journey.</strong></p>
         </div>
       </section>
 
@@ -777,12 +786,12 @@ const supabase = createClient();
             <div>
               <div className="section-eyebrow">Hire Power Vault · $4.99/mo</div>
               <h2 className="section-title">The OS that keeps<br/>running between<br/><em>job searches.</em></h2>
-              <p className="vault-body">Once your job search is complete, most people go dark — until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move, your resume is basically already written.</p>
+              <p className="vault-body">Once your job search is complete, most people go dark - until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move, your resume is basically already written.</p>
               <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Be ready for any opportunity. And never start from scratch again.&quot;</div>
               <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
             </div>
             <div className="vault-visual">
-              <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',marginBottom:'24px'}}>Career Archive · Live</div>
+              <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',marginBottom:'24px'}}>Career  · Live</div>
               <div className="vault-timeline">
                 {[
                   {dot:'🏆',bg:'rgba(16,185,129,0.15)',title:'Led Q3 product launch',desc:'Coordinated 4 teams, delivered 2 weeks ahead of schedule',date:'Mar 10'},
@@ -816,7 +825,7 @@ const supabase = createClient();
             <div className="section-eyebrow" style={{textAlign:'center'}}>Pricing</div>
             <h2 className="section-title" style={{textAlign:'center'}}>One platform.<br/><em>Your whole career.</em></h2>
           </div>
-          <p className="pricing-os-line"><strong>Free</strong> — Try the OS &nbsp;·&nbsp; <strong>Pro</strong> — Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong> — Keep the OS running between upgrades</p>
+          <p className="pricing-os-line"><strong>Free</strong>: Try the OS &nbsp;·&nbsp; <strong>Pro</strong>: Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong>: Keep the OS running between searches</p>
           <div className="pricing-tiers">
 
             {/* FREE */}
@@ -826,9 +835,9 @@ const supabase = createClient();
               <div className="tier-price">$0</div>
               <p className="tier-desc">Get a real feel for conversation-based coaching. No credit card. No expiration.</p>
               <ul className="tier-features">
-                <li><span className="check">✓</span> Career Coach — full access, unlimited</li>
+                <li><span className="check">✓</span> Career Coach - full access, unlimited</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Coach</li>
-                <li><span className="check">✓</span> 1 resume with AI analysis</li>
+                <li><span className="check">✓</span> Core resume with AI analysis</li>
                 <li><span className="check">✓</span> Resume Power Score</li>
                 <li>
                   <span className="check">✓</span>
@@ -837,15 +846,16 @@ const supabase = createClient();
                   </span>
                 </li>
                <li><span className="check">✓</span> Resume coaching trial</li>
-                <li><span className="check">✓</span> Unlimited downloads</li>
                 <li><span className="check">✓</span> ATS-optimized templates</li>
-                <li><span className="check">✓</span> Cover letter generator</li>
+                <li><span className="check">✓</span> Unlimited downloads</li>
+                <li><span className="check">✓</span> 3 job match scores</li>
+                <li><span className="check">✓</span> 3 custom cover letters</li>
                 <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Coach</li>
                 <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
                 <li><span className="check">✓</span> Unlimited with general questions</li>
                 <li><span className="check">✓</span> 1 session with job-specific questions</li>
-                <li><span className="check">✓</span> 1 Power Analysis reveal after your job-specific session — see what Pro prepares you with before each interview</li>
+                <li><span className="check">✓</span> 1 Power Analysis reveal after your job-specific session: see what Pro prepares you with before each interview</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => setShowSignupModal(true)} className="tier-btn ghost" style={{width:'100%',cursor:'pointer',border:'1.5px solid rgba(0,0,0,0.12)'}}>Get started free</button>
@@ -862,7 +872,8 @@ const supabase = createClient();
               <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Coach</li>
-                <li><span className="check">✓</span> Core resume + unlimited job-specific resumes</li>
+                <li><span className="check">✓</span> Core resume with AI analysis + coaching</li>
+                 <li><span className="check">✓</span> Resume Power Score</li>
                 <li>
                   <span className="check">✓</span>
                   <span>Improvement Action Plan
@@ -870,10 +881,12 @@ const supabase = createClient();
                   </span>
                 </li>
                 <li><span className="check">✓</span> Tailored resume for every application</li>
+               <li><span className="check">✓</span> ATS-optimized templates</li>
                 <li><span className="check">✓</span> Unlimited downloads</li>
-                <li><span className="check">✓</span> ATS-optimized templates</li>
-                <li><span className="check">✓</span> Cover letter generator</li>
+                <li><span className="check">✓</span> Unlimited job match scores</li>
+                <li><span className="check">✓</span> Custom cover letter for each application</li>
                 <li><span className="check">✓</span> Job application tracking</li>
+                <li><span className="check">✓</span> Career Vault: log wins between searches</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Coach</li>
                 <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
                 <li><span className="check">✓</span> Power Analysis and Interview Coaching: Learn how to best present your experience for each specific role</li>
@@ -883,7 +896,7 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Level up before your interview with gamified practice progression</li>
               </ul>
               <div className="tier-cta">
-                <button onClick={() => setShowSignupModal(true)} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none'}}>Go Pro — $29.99/mo</button>
+                <button onClick={() => setShowSignupModal(true)} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none',background:'linear-gradient(to right, #667eea, #764ba2)'}}>Go Pro: $29.99/mo</button>
               </div>
             </div>
 
@@ -904,7 +917,7 @@ const supabase = createClient();
                 <li><span className="check">✓</span> 5 premium templates</li>
               </ul>
               <div style={{marginTop:'auto',paddingTop:'24px',fontSize:'13px',color:'var(--gray)',fontStyle:'italic',lineHeight:1.5}}>
-                Available after your job search — so you never have to start from scratch again.
+                Available after your job search, so you never have to start from scratch again.
               </div>
             </div>
 
@@ -919,7 +932,7 @@ const supabase = createClient();
       {/* FINAL CTA */}
       <section className="final-cta">
         <h2>Your career deserves<br/>a <em>real conversation.</em></h2>
-        <p>Start with Career Coach — free, unlimited, and the most valuable five minutes of your job search.</p>
+        <p>Start with Career Coach - free, unlimited, and the most valuable five minutes of your job search.</p>
         <div className="final-cta-actions">
           <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'white',color:'#0D0D0D',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>Start now for free</button>
         </div>

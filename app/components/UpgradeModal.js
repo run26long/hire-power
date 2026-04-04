@@ -57,7 +57,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          style={{background:'linear-gradient(to bottom right, #9333ea, #6b21a8)'}}
+          style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)'}}
           className="px-6 py-5 relative"
         >
           <button
@@ -82,10 +82,10 @@ export default function UpgradeModal({ isOpen, onClose, resumeId }) {
 
           <div className="space-y-3 mb-5">
             {[
-              { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
-              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite your bullets. Pro does it for you in under 2 minutes.' },
-              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific versions, each coached and optimized for the role.' },
-              { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + AI-spoken practice built from your actual resume and target role.' },
+              { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer would, uncovering achievements you forgot to include and skills that never made the page.' },
+              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to strengthen your summary and rewrite your bullets. Pro does it for you in under 2 minutes.' },
+              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific resumes, each coached and optimized for the role with a custom cover letter to match.' },
+              { icon: '🎤', title: 'Interview Coach included', desc: 'Pre-interview coaching + AI-spoken practice built from your actual resume and target role - so you walk in knowing exactly how to tell your story.' },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">
                 <span className="text-xl flex-shrink-0">{item.icon}</span>
@@ -106,7 +106,8 @@ export default function UpgradeModal({ isOpen, onClose, resumeId }) {
           <button
             onClick={handleUpgrade}
             disabled={loading}
-            className="w-full py-2.5 px-4 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors mb-3"
+           className="block mx-auto py-2 px-6 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-opacity mb-3"
+            style={{background:'linear-gradient(to right, #667eea, #764ba2)'}}
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -118,7 +119,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId }) {
 
           <button
             onClick={onClose}
-            className="w-full text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
+            className="block mx-auto text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
           >
             Continue with Free
           </button>

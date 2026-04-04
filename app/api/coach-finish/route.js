@@ -1302,7 +1302,7 @@ function normalizeEducation(education) {
   })
 }
 
-function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords }) {
+function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
 - Target roles: ${careerContext.target_roles?.join(', ') || jobTitle || 'not specified'}
@@ -1369,6 +1369,25 @@ YOUR REWRITE INSTRUCTIONS:
    on what a bullet demonstrates — write what happened and let it speak for itself.
 
    No em dashes anywhere. No hallucination. No "responsible for" as a bullet opener.
+
+${retryInstruction ? `⚠️ RETRY INSTRUCTION — READ THIS BEFORE ANYTHING ELSE:\n${retryInstruction}\n` : ''}
+
+${careerContext?.is_career_changer === true ? `
+CAREER PIVOT INSTRUCTION:
+This candidate is transitioning from ${careerContext.previous_field || 'their previous field'} to ${careerContext.target_roles?.join(' / ') || jobTitle || 'this target role'}.
+
+Every decision serves the target field, not the previous one.
+
+BULLETS: For every bullet ask "does this help them land a ${jobTitle || careerContext.target_roles?.[0] || 'target'} role?" If yes — keep and strengthen. Actively reframe experience using the job description's language where the underlying experience genuinely maps to it. If no — cut or condense.
+
+MISSING KEYWORDS: For career changers, pay extra attention to missing keywords. These candidates often have the underlying experience but haven't framed it in the target field's language. The coaching conversation may have surfaced transferable experience — use the job description's exact phrasing to surface it.
+
+SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer to this role go last or get cut entirely.
+
+SUMMARY: Opens from the target role identity. Previous experience becomes evidence, not identity. Name 2-3 skills from the job description requirements in sentence 2.
+` : ''}
+
+${retryInstruction ? `⚠️ RETRY INSTRUCTION — READ THIS BEFORE ANYTHING ELSE:\n${retryInstruction}\n` : ''}
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
@@ -1834,7 +1853,8 @@ export async function POST(request) {
         jobTitle,
         jobCompany,
         matchedKeywords: matchedKeywords || [],
-        missingKeywords: missingKeywords || []
+        missingKeywords: missingKeywords || [],
+        retryInstruction: retryInstruction || null
       })
 
       const rewriteMessage = await anthropic.messages.create({

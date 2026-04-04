@@ -438,8 +438,32 @@ export default function JobTrackerPage() {
                           className="bg-white rounded-lg p-2.5 shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:border-purple-300 hover:shadow-md transition-all flex flex-col"
                           style={{ opacity: dragCard?.id === card.id ? 0.4 : 1, height: '100px' }}
                         >
-                          <p className="text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
-                          <p className="text-[11px] text-gray-500">{card.company}</p>
+                          <div className="flex items-start justify-between gap-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
+                              <p className="text-[11px] text-gray-500">{card.company}</p>
+                            </div>
+                            {card.match_score && (
+                              <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                                <svg width="32" height="32" style={{ transform: 'rotate(-90deg)' }}>
+                                  <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+                                  <circle
+                                    cx="16" cy="16" r="12"
+                                    stroke={card.match_score >= 85 ? '#9333ea' : card.match_score >= 75 ? '#81c784' : card.match_score >= 60 ? '#ffc870' : '#e57373'}
+                                    strokeWidth="2.5" fill="none"
+                                    strokeDasharray={`${2 * Math.PI * 12}`}
+                                    strokeDashoffset={`${2 * Math.PI * 12 * (1 - card.match_score / 100)}`}
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="text-[8px] font-bold" style={{ color: card.match_score >= 85 ? '#9333ea' : card.match_score >= 75 ? '#81c784' : card.match_score >= 60 ? '#ffc870' : '#e57373' }}>
+                                    {card.match_score}%
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
 
                           <div className="mt-auto pt-1 flex flex-wrap gap-1">
                             {card.resumes && (
@@ -719,53 +743,119 @@ export default function JobTrackerPage() {
                 <div style={{ width: '32px', height: '1px', background: 'rgba(147,51,234,0.4)', marginBottom: '16px' }} />
 
                 {/* Body copy */}
-                <p style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '15px',
-                  fontWeight: 400,
-                  color: 'rgba(255,255,255,0.65)',
-                  lineHeight: 1.45,
-                  marginBottom: '20px',
-                  maxWidth: '340px',
-                }}>
-                  Three years from now, you won't remember what you accomplished today. But Hire Power will. 
-                </p>
-                <p style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  color: 'rgba(255,255,255,0.9)',
-                  lineHeight: 1.45,
-                  marginBottom: '36px',
-                  maxWidth: '340px',
-                }}>
-                  Career Vault builds your next resume while you're building your career. Keeping you prepared anytime great opportunities arise.
-                </p>
-
-                {/* CTA */}
-                <button
-                  onClick={() => {
-                    setShowHiredModal(false);
-                    router.push('/career-vault');
-                  }}
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 24px',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 24px rgba(102,126,234,0.4)',
-                    transition: 'opacity 0.2s',
-                  }}
-                  onMouseOver={e => e.target.style.opacity = '0.9'}
-                  onMouseOut={e => e.target.style.opacity = '1'}
-                >
-                  Open Career Vault →
-                </button>
+                {isPro ? (
+                  <>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '15px',
+                      fontWeight: 400,
+                      color: 'rgba(255,255,255,0.65)',
+                      lineHeight: 1.45,
+                      marginBottom: '20px',
+                      maxWidth: '340px',
+                    }}>
+                      Three years from now, you won't remember what you accomplished today. But Hire Power will.
+                    </p>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: 'rgba(255,255,255,0.9)',
+                      lineHeight: 1.45,
+                      marginBottom: '36px',
+                      maxWidth: '340px',
+                    }}>
+                      Career Vault builds your next resume while you're building your career. Keeping you prepared anytime great opportunities arise.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setShowHiredModal(false);
+                        router.push('/career-vault');
+                      }}
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: 'white',
+                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '8px 24px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 24px rgba(102,126,234,0.4)',
+                        transition: 'opacity 0.2s',
+                      }}
+                      onMouseOver={e => e.target.style.opacity = '0.9'}
+                      onMouseOut={e => e.target.style.opacity = '1'}
+                    >
+                      Open Career Vault →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '15px',
+                      fontWeight: 400,
+                      color: 'rgba(255,255,255,0.65)',
+                      lineHeight: 1.45,
+                      marginBottom: '20px',
+                      maxWidth: '340px',
+                    }}>
+                      Now the real work begins — and the wins start stacking up. Don't let them get lost.
+                    </p>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: 'rgba(255,255,255,0.9)',
+                      lineHeight: 1.45,
+                      marginBottom: '36px',
+                      maxWidth: '340px',
+                    }}>
+                      Upgrade to Vault and we'll track your achievements as they happen — so your next resume writes itself.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <button
+                        onClick={() => {
+                          setShowHiredModal(false);
+                          router.push('/resume-coach');
+                        }}
+                        style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: 'white',
+                          background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '8px 24px',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 24px rgba(102,126,234,0.4)',
+                          transition: 'opacity 0.2s',
+                        }}
+                        onMouseOver={e => e.target.style.opacity = '0.9'}
+                        onMouseOut={e => e.target.style.opacity = '1'}
+                      >
+                        Upgrade to Vault — $4.99/mo →
+                      </button>
+                      <button
+                        onClick={() => setShowHiredModal(false)}
+                        style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          color: 'rgba(255,255,255,0.4)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Stay in Job Tracker
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -848,7 +938,13 @@ export default function JobTrackerPage() {
                             </div>
                           </div>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setConfirmDelete({ id: card.id, type: 'card' }); }}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm('Delete this archived card? This cannot be undone.')) {
+                                await supabase.from('applications').delete().eq('id', card.id);
+                                setArchivedCards(prev => prev.filter(a => a.id !== card.id));
+                              }
+                            }}
                             className="text-[10px] text-red-400 font-semibold hover:text-red-600 flex-shrink-0"
                           >Delete</button>
                         </div>

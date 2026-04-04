@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -22,11 +23,50 @@ The cover letter is NOT the candidate’s life story. It is the most concise and
 WRITING REQUIREMENTS: WHAT MAKES AN EXCEPTIONAL COVER LETTER
 ═══════════════════════════════════════════════
 
-A cover letter is never about what the candidate wants. It is always about what they can offer to the company. Every sentence must be written to appeal to a recruiter or hiring manager looking for that perfect candidate. A good cover letter will paint the picture of what this candidate would bring to their company if hired for this role - what problem does this person solve, what pain points would they alleviate, how would they complement existing teams and workflows, and what would be BETTER about their team with this candidate on it.
+A cover letter is never about what the candidate wants. It is always about what they can offer to the company. Every sentence must be written to appeal to a recruiter or hiring manager looking for that perfect candidate. It must be human in tone, use clear, simple language, and show the candidate’s unique impact and value in a memorable unexpected way.  
+
+A good cover letter will paint the picture of what this candidate would bring to their company if hired for this role - what problem does this person solve, what pain points would they alleviate, how would they complement existing teams and workflows, and what would be BETTER about their team with this candidate on it.
 
 A cover letter is not a second resume. It is not a list of accomplishments with transitions. It is not a declaration of enthusiasm. It is not about what the candidate is looking for. It is a direct, specific answer to the question every hiring manager is silently asking: "Why should I hire this person above all the others?"
 
 The problem-solution frame is the foundation. Read the job description as a set of problems the company is trying to solve, then demonstrate, specifically and credibly based solely off facts in the resume, that this candidate has solved them before in a way that is stronger, more relevant, or more unique than any other candidate.
+
+THE BRAIN TEST
+
+A recruiter moving through a stack of 200 cover letters is looking for a reason to stop. Your job is to give them one. Every sentence should be written with the same intention a great author brings to an opening line. Make them need to keep reading. Make them feel like they've found their candidate. A resume full of duty descriptions and hollow language blends into the stack. A resume full of specific, compelling, human writing stands apart from it. That is the standard.
+
+After writing every sentence, apply this test before moving on:
+
+"If a hiring manager read this sentence, would their brain engage or skim past it?"
+
+SKIM TRIGGERS: 
+  ✗ Abstract with no concrete anchor ("innovative solutions," "synergistic approaches," "leveraged best practices," "drove strategic outcomes")
+  ✗ More than one vague buzzword per bullet
+  ✗ No specifics: no numbers, no names, no context, nothing a reader can picture
+ ✗ Too many specifics: too many metrics than are appropriate for each sentence or bullet; inclusion of metrics that are not important to the impact.
+ ✗ Long, rambling sentences that try to cram in all information provided whether relevant or not. Edit, and keep only what is important.
+✗ Sentences that use more words than they need to; phrases like “at any given time” that can be eliminated or replaced by single words like “simultaneously”. Filler words that do not contribute to meaning.
+  ✗ Could describe anyone in this role. Nothing specific to this person's work
+  ✗ Duty, not impact ("Responsible for managing client relationships")
+
+ENGAGEMENT SIGNALS: keep it if these are present:
+  ✓ Concrete details that make the work visible: numbers, names, scope, frequency
+  ✓ Cause and effect that makes logical sense
+  ✓ A reader can picture exactly what this person did and what happened because of it
+  ✓ Sounds like a human describing real work, not a template describing a job category
+
+THE TEST IN PRACTICE: same situation, two versions:
+
+  ✗ SKIM: "Leveraged instructional expertise to deliver comprehensive training across multiple disciplines"
+  ✓ ENGAGE: "Taught 60+ students weekly across 8 aerial disciplines, tailoring instruction from beginner fundamentals through advanced performer technique"
+
+  ✗ SKIM: "Managed social media presence across various platforms to increase brand visibility and engagement"
+  ✓ ENGAGE: "Grew Instagram following from 800 to 4,200 in 6 months by posting original content 5x weekly and engaging daily with 3 fitness communities"
+
+  ✗ SKIM: "Coordinated events and managed logistics to ensure successful execution of programming"
+  ✓ ENGAGE: "Coordinated 15+ campus events annually with 200-500 attendees each, managing vendor relationships and $15K budgets from planning through close"
+
+If a sentence makes you skim when you read it back, it is not finished. Find the specific detail that makes it real, unique, and interesting and add it. Tell the best possible version of each candidate’s story.
 
 ═══════════════════════════════════════════════
 STEP 1: READ THE JOB DESCRIPTION BEFORE WRITING ANYTHING
@@ -141,27 +181,14 @@ RULE 11: GRAMMAR MUST BE FLAWLESS.
 Clean grammar and spelling, active voice and implied first-person tense throughout, accurate verbs calibrated to actual ownership level, consistent tense, complete sentences, concise wording – no run on or overly long sentences that should be separated into two. SPELLING, GRAMMAR, AND PUNCTUATION: clean and correct clean throughout. 
 
 RULE 12: CONCISE LANGUAGE IS CRITICAL: 
-Wordy writing is weak writing. Writing must be concise. Use the fewest words possible to convey maximum impact. Every word earns its place. No filler, no redundancy, no unimportant details. Those weaken the writing, decrease readability, and your reader will be bored. You WILL NOT and SHOULD NOT include every detail. You must determine which details are critical to convey the candidate's impact and experience and cut the rest. 
+Wordy writing is weak writing. Writing must be concise. Use the fewest words possible to convey maximum impact. Every word earns its place. No filler, no redundancy, no unimportant details. Those weaken the writing, decrease readability, and your reader will be bored. You WILL NOT and SHOULD NOT include every detail. You must determine which details are critical to convey the candidate's impact and experience and cut the rest. One comma-separated series per sentence, maximum. A sentence containing two lists is two sentences trying to be one. Split them or cut one entirely.
 
 Strong: " Reduced annual spend 18% by negotiating vendor contracts"
 Weak: "Was responsible for the negotiation of vendor contracts which resulted in reductions to annual spending"
 
 Never use predicate nominative constructions. These are sentences where a noun or noun clause 
 follows "is," "are," "was," or "were" to define or rename the subject. They are indirect, wordy, 
-and weak regardless of how they are phrased.
-
-WRONG: "The standard I hold myself to is that nothing surfaces as someone else's problem."
-WRONG: "The goal is that every issue gets caught early."
-WRONG: "What defines this work is the ability to stay ahead of problems."
-WRONG: "The result is a process that runs without management intervention."
-
-In every case, find what comes after the linking verb, make it the active subject of a direct 
-statement, and cut everything before it.
-
-RIGHT: "Nothing surfaces as someone else's problem."
-RIGHT: "Every issue gets caught early."
-RIGHT: "This work runs ahead of problems."
-RIGHT: "The process runs without management intervention."
+and weak regardless of how they are phrased. 
 
 RULE 13: WRITING NUMBER RANGES
 Number ranges are always written with a hyphen, never with "to." Write "150-200" not "150 to 200." Write "$500K-$1M" not "$500K to $1M." This applies everywhere in the letter.
@@ -295,7 +322,6 @@ Identified a fragmented tracking workflow, selected and built out Asana end-to-e
 RIGHT:
 Managed $500K-$1M in annual spend across 10-15 supplier relationships, monitoring billing, flagging fulfillment errors, and resolving disputes before they reached management.
 
-
 WRONG:
 "Operations and Process Optimization: Led end-to-end manufacturing operations applying Lean principles..."
 
@@ -337,33 +363,49 @@ Choreographed and documented a group act for the annual holiday production, coor
 PASSES THE CONCISENESS TEST:
 Produced a group act for a 9-show performance reaching over 3,600 attendees; created choreography, managed rehearsals, and integrated cues into main production at tech and dress rehearsals
 
-PART 3: CLOSING (2 sentences, warm, specific, confident)
+BULLET SELF-CHECK: RUN BEFORE OUTPUTTING:
+For each bullet, ask three questions:
+1. Does this bullet contain any number or metric that already appeared in the opening paragraph? Answer must be “no”. If “yes”, rewrite it to take a different angle on the same experience.
 
-The closing must advance the argument, not restate it. Neither should reference any statements made in the opening paragraph or the bullets. The opening established who the candidate is. The bullets show examples of their impact. The closing answers what comes next.
+2. Does this bullet use the same structure and opening words as the corresponding resume bullet? Answer must be “no”. If “yes”, reframe it. Lead with the result instead of the action, or lead with the scope instead of the method.
 
-Sentence 1: A genuine, specific statement of interest in this role, including why it fits where the candidate is in their career – aspirational, not arrogant or presumtuous. One specific reason drawn from the job description or their own work. Not a declaration of what they deliver. Not a claim about fit. A human sentence that sounds like a real person who has thought about this. One specific, forward-looking reason this role is the right next step. Not a summary of their experience. Not a restatement  of alignment already made in the opening.
+3. Would a recruiter who already read the resume feel like they are reading the same sentence twice? Answer must be “no”. If “yes”, rewrite it.
 
-Sentence 2: A confident, warm, forward-looking ask. Not pleading. Not generic. Something that sounds like a person who is genuinely interested and expects a conversation. This is the one place it may be acceptable to begin a sentence with “I”. Should reference the company name or job title. If job title is references in Sentence 3 of the opening, reference the company name in Sentence 2 of the closing. If company name is references in Sentence 3 of the opening, reference the job title in Sentence 2 of the closing. USE ONLY THE JOB TITLE OR THE COMPANY NAME – NEVER BOTH. 
+All three questions must be answered “NO” before the bullet is final.
 
-INCORRECT:
-Any sentence containing information already used in the cover letter.
+PART 3: CLOSING (1-2 sentences, warm, specific, confident)
+
+The closing can be more personal than the rest of the letter while still remaining completely professional. This is the one place it is acceptable to begin a sentence with "I". The candidate should express their interest in the position as well as subtly expressing interest in further discussing (in an interview) how their skills could benefit the company in this role.
+
+It must be concise and read like a human sentence that sounds like a real person who has put a lot of time into considering this opportunity and why it is right for them.
+
+The closing should reference the company name or job title, whichever was NOT used in Sentence 3 of the opening. USE ONLY THE JOB TITLE OR THE COMPANY NAME IN THE CLOSING. NEVER BOTH.
+
+INCORRECT: 
+- Any sentence containing information already stated anywhere else in the cover letter.
+- Any declaration of what they deliver. 
+- Any claim about fit. 
+- Any summary of experience. 
+- Any restatement of alignment already made in the opening. 
 
 CORRECT:
-This role would be a natural next step for me because it takes the client management, process ownership,
-and cross-functional coordination I have built at Brightfield and adds the team leadership and
-multi-account scope I am ready to grow into. I would genuinely enjoy talking with you about my background and how it connects to what Cornerstone is working on.
+Taking the vendor oversight, process work, and cross-functional coordination I have been doing into a larger operation feels like the natural next move. I would genuinely enjoy meeting to discuss how I can add value in this role.
 
 CORRECT:
-The administrative, financial, and coordination scope of this role sits squarely in the work I have been doing, and the branch-level accountability to a financial manager is a structure I operate well within. I would welcome a conversation about how my background fits what Penske is looking to add to the team.
+I would welcome the opportunity to contribute my technical writing expertise while continuing to build on a growing, hands-on interest in AI through this role and look forward to discussing the position further with the XAI team.
+
+CORRECT:
+I would welcome the opportunity to discuss how my experience leading manufacturing operations, improving processes through Lean principles, and supporting R&D and product commercialization could contribute to your team. I look forward to the possibility of meeting to explore how I can add value to Disruptor in this role.
 
 CLOSING RULES:
-- 2 sentences that say 2 different things.
-- Closing MUST NOT repeat any information stated at any other place in the cover letter. 
-- Both sentences must be complete sentences. No fragments. "Looking forward to a conversation" and "Happy to discuss" standing alone are not sentences. They must be attached to a complete thought or restructured entirely.
+- 1 strong sentence or 2 only if they say genuinely different things and neither repeats anything from the opening or bullets.
+- Closing MUST NOT repeat any information stated anywhere else in the cover letter.
+- Both sentences must be complete sentences. No fragments.
 - Never: "I would welcome the opportunity." (stiff)
 - Never: "I look forward to hearing from you." (generic)
 - Never: "Thank you for your consideration." (weak)
 - Never: "[Company] gets a professional who..." (presumptuous)
+- Never reference both company name and job title in the closing.
 
 ═══════════════════════════════════════════════
 ABSOLUTE RULES: FINAL CHECK BEFORE OUTPUTTING
@@ -373,7 +415,7 @@ Read the complete letter before outputting and verify every item:
 
 NO EM DASHES: Scan every sentence. If any em dash appears, fix it before outputting.
 
-NO SENTENCE STARTS WITH "I": Read the first word of every sentence. Any that starts with "I" must be restructured.
+NO SENTENCE STARTS WITH "I" EXCEPT IN THE CLOSING: Read the first word of every sentence. Any that starts with "I" must be restructured.
 
 NO COMPANY ASSUMPTIONS: Every claim about the company can be traced to a specific line in the job description. If it cannot, remove it.
 
@@ -385,7 +427,7 @@ NO HOLLOW LANGUAGE: Every sentence earns its place. Nothing that could appear in
 
 NUMBER RANGES: Always written with a hyphen, never with "to." Write "150-200" not "150 to 200." Write "$500K-$1M" not "$500K to $1M." This applies everywhere in the letter.
 
-NO FRAGMENTS: Read the closing sentences. Both must be grammatically complete. Any fragment must be restructured before outputting.
+NO FRAGMENTS: Read the sentences. All must be grammatically complete. Any fragment must be restructured before outputting.
 
 NO REPEATED CONTENT: The opening paragraph sets up the argument. The bullets prove it. If a specific metric or achievement appears in the opening, it must not appear again in the bullets. State everything once, in the strongest place.
 
@@ -415,7 +457,7 @@ Return ONLY valid JSON. No markdown. No backticks. No explanation.
   "phone": "phone from resume",
   "location": "location from resume",
   "linkedin": "linkedin from resume or empty string",
-  "date": "today's date formatted as Month DD, YYYY",
+ "date": "${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}",
   "companyName": "${jobCompany || 'company name'}",
   "jobTitle": "${jobTitle}",
   "opening": "the full opening paragraph as a single string — 3 sentences only",
@@ -433,13 +475,30 @@ Return ONLY valid JSON. No markdown. No backticks. No explanation.
 
 export async function POST(request) {
   try {
-    const { resumeData, jobTitle, jobCompany, jobDescription } = await request.json()
+    const { resumeData, jobTitle, jobCompany, jobDescription, userId } = await request.json()
 
     if (!resumeData || !jobDescription) {
       return NextResponse.json(
         { error: 'resumeData and jobDescription are required' },
         { status: 400 }
       )
+    }
+
+    // Free tier CL limit check
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier, cl_count')
+      .eq('id', userId)
+      .single()
+
+    const isFree = !profile?.subscription_tier || profile?.subscription_tier === 'free'
+    if (isFree && (profile?.cl_count ?? 0) >= 3) {
+      return NextResponse.json({ error: 'CL_LIMIT_REACHED' }, { status: 403 })
     }
 
     const prompt = buildCoverLetterPrompt({ resumeData, jobTitle, jobCompany, jobDescription })
@@ -484,6 +543,13 @@ export async function POST(request) {
     coverLetterData.opening = stripEmDashes(coverLetterData.opening)
     coverLetterData.closing = stripEmDashes(coverLetterData.closing)
     coverLetterData.bullets = coverLetterData.bullets?.map(stripEmDashes)
+
+    if (isFree && userId) {
+      await supabase
+        .from('profiles')
+        .update({ cl_count: (profile.cl_count ?? 0) + 1 })
+        .eq('id', userId)
+    }
 
     return NextResponse.json({ coverLetterData })
 

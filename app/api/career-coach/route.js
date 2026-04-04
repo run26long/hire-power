@@ -115,7 +115,7 @@ Once you have covered all 4 steps, provide:
    [Button will appear below to continue]"
 
 3. **Signal completion** by including this EXACT phrase in your response:
-   "Click the Continue to Resume Coach button below"
+   "Click the "Continue to Resume Coach" button below."
 
 This phrase triggers the UI to show the completion button.
 

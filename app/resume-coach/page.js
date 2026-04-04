@@ -137,7 +137,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       const resData = await response.json();
       setData(resData);
       setUserProfile(resData.userProfile);
-      setRetryCount(0); // Reset retry count on success
+      setRetryCount(0); 
+      // Reset retry count on success
       
       // Check if we should show tour (only if no resume)
       // Small delay to let page render before showing modal
@@ -546,7 +547,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           resumeData: sourceResume?.resume_data,
           jobTitle,
           jobCompany,
-          jobDescription
+          jobDescription,
+          userId: user?.id
         })
       });
 
@@ -727,6 +729,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   const isPro = data?.userTier === TIERS.PRO;
+  const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
+  const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
   const score = data?.coreResume?.current_score || null;
   const journeyStep = data?.coreResume?.journey_step || 'review';
   
@@ -773,7 +777,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               AI knows how to write a great résumé. The problem is, it doesn't know you.
             </p>
             <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4, marginBottom: 0 }}>
-              Most AI tools can only work with what's on the page. Resume Coach asks what's missing — just like a professional résumé writer would.
+              Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a professional résumé writer would.
             </p>
           </div>
 
@@ -788,6 +792,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 { label: 'Achievement Discovery', pro: true },
                 { label: 'Skill Identification', pro: true },
                 { label: 'Auto Improvements', pro: true },
+                { label: 'Cover Letters' },
                 { label: 'Match Score' },
                 { label: 'Job-Specific Resumes', pro: true },
               ].map(({ label, pro }) => (
@@ -1100,11 +1105,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             
                             return (
                               <div key={step} className="flex flex-col items-center">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 ${
-                                  isPast ? 'bg-purple-600 text-white' : 
-                                  isActive ? 'bg-purple-600 text-white' : 
-                                  'bg-white border border-gray-300 text-gray-400'
-                                }`}>
+                               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 ${
+                  isPast ? 'text-white' : 
+                  isActive ? 'text-white' : 
+                  'bg-white border border-gray-300 text-gray-400'
+                }`}
+                style={(isPast || isActive) ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
                                   {isPast ? '✓' : isActive ? '●' : '○'}
                                 </div>
                                 <span className={`text-xs mt-1 ${
@@ -1132,7 +1138,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <button 
                         onClick={handleStartCoaching}
                         disabled={isDownloading && (data.coreResume.journey_step === 'save')}
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        style={{background:'linear-gradient(to right, #667eea, #764ba2)'}}
                       >
                         {isDownloading && (data.coreResume.journey_step === 'save') ? (
                           <>
@@ -1221,12 +1228,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </div>
                               ))}
                               {data.resumeVersions.length > 2 && (
-                                <button
-                                  onClick={() => setShowOlderJSModal(true)}
-                                  className="w-full text-center py-1 text-xs text-purple-600 hover:text-purple-700 font-medium hover:bg-purple-50 rounded-lg transition-colors"
-                                >
-                                  See {data.resumeVersions.length - 2} older version{data.resumeVersions.length - 2 > 1 ? 's' : ''} →
-                                </button>
+                                <div className="pt-2 border-t border-gray-100">
+                                  <button
+                                    onClick={() => setShowOlderJSModal(true)}
+                                    className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 rounded-lg transition-colors"
+                                  >
+                                    See {data.resumeVersions.length - 2} older version{data.resumeVersions.length - 2 > 1 ? 's' : ''} →
+                                  </button>
+                                </div>
                               )}
                             </>
                           ) : (
@@ -1240,94 +1249,114 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </>
                     ) : (
                       <>
-                        <h2 className="text-base font-semibold text-gray-900">Job Match Scores</h2>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <h2 className="text-base font-semibold text-gray-900">Job Match Scores</h2>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            jmsLimitReached ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {Math.max(0, 3 - (data?.userProfile?.jms_count ?? 0))} of 3 remaining
+                          </span>
+                        </div>
                         <p className="text-xs text-gray-500 mb-2">Upload a job description to see how well you match</p>
-                        <div className="space-y-2">
-                          <button
-                            onClick={() => { setJobModalSourceId(data?.coreResume?.id || null); setShowJobModal(true); }}
-                            className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                          >
-                            <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                            </div>
-                            <div className="text-sm font-semibold text-gray-900">Upload Job Description</div>
-                          </button>
+                        <div className="space-y-1.5">
+                          {(() => {
+                            const versions = data.resumeVersions || []
+                            const slots = [0, 1, 2]
+                            return slots.map((slotIndex) => {
+                              const version = versions[slotIndex]
+                              const isFirstEmpty = slotIndex === versions.length
+                              const isUsed = !!version
 
-                          {data.resumeVersions && data.resumeVersions.length > 0 && (
-                            <>
-                              {data.resumeVersions.slice(0, 2).map((version) => (
-                                <div
-                                  key={version.id}
-                                  className="group bg-white border border-gray-200 rounded-lg p-2.5 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer"
+                              if (isUsed) {
+                                return (
+                                  <div
+                                    key={version.id}
+                                    className="group bg-white border border-gray-200 rounded-lg px-3 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer flex items-center"
+                                  style={{ height: '44px' }}
                                   onClick={() => router.push(`/resume/${version.id}`)}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
-                                      <div className="text-[11px] text-gray-500 truncate">{version.job_company}</div>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(version.id); }}
-                                        className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
-                                        title="Delete"
-                                      >
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                      </button>
-                                      <div className="relative w-10 h-10">
-                                        <svg className="w-10 h-10 transform -rotate-90">
-                                          <circle cx="20" cy="20" r="16" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
-                                          <circle
-                                            cx="20" cy="20" r="16"
-                                            stroke={getCircleColor(version.match_score)}
-                                            strokeWidth="2.5" fill="none"
-                                            strokeDasharray={`${2 * Math.PI * 16}`}
-                                            strokeDashoffset={`${2 * Math.PI * 16 * (1 - version.match_score / 100)}`}
-                                            strokeLinecap="round"
-                                          />
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          <div className="text-[11px] font-bold" style={{ color: getCircleColor(version.match_score) }}>
-                                            {version.match_score}%
+                                  >
+                                    <div className="flex items-center justify-between w-full">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
+                                        <div className="text-[10px] text-gray-500 truncate">{version.job_company}</div>
+                                      </div>
+                                      <div className="flex items-center gap-1 ml-2 flex-shrink-0 ml-auto">
+                                        {isPro && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(version.id); }}
+                                            className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                                            title="Delete"
+                                          >
+                                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                          </button>
+                                        )}
+                                        <div className="relative w-8 h-8">
+                                          <svg className="w-8 h-8 transform -rotate-90">
+                                            <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+                                            <circle
+                                              cx="16" cy="16" r="12"
+                                              stroke={getCircleColor(version.match_score)}
+                                              strokeWidth="2.5" fill="none"
+                                              strokeDasharray={`${2 * Math.PI * 12}`}
+                                              strokeDashoffset={`${2 * Math.PI * 12 * (1 - version.match_score / 100)}`}
+                                              strokeLinecap="round"
+                                            />
+                                          </svg>
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="text-[9px] font-bold" style={{ color: getCircleColor(version.match_score) }}>
+                                              {version.match_score}%
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
+                                )
+                              }
+
+                            if (isFirstEmpty && versions.length < 3) {
+                                return (
+                                  <button
+                                    key={`upload-${slotIndex}`}
+                                    onClick={() => { setJobModalSourceId(data?.coreResume?.id || null); setShowJobModal(true); }}
+                                    className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                    style={{ height: '44px' }}
+                                  >
+                                    <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      </svg>
+                                    </div>
+                                    <div className="text-xs font-semibold text-gray-700">Click to upload a job description</div>
+                                  </button>
+                                )
+                              }
+
+                              return (
+                                <div
+                                  key={`empty-${slotIndex}`}
+                                  className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
+                                  style={{ height: '44px' }}
+                                >
+                                  <div className="text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Job Match Score {slotIndex + 1}</div>
                                 </div>
-                              ))}
-                            </>
-                          )}
+                              )
+                            })
+                          })()}
 
-                          {data.coreResume.journey_step === 'improve' && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-1">
-                              <div className="text-xs font-semibold text-gray-900 mb-1">Pro users don't type - they talk. AI does the rest.</div>
-                              <p className="text-[11px] text-gray-600 mb-2">Try coaching free on 1 job →</p>
-                              <button
-                                onClick={() => showStubMessage("Free Coaching Trial", "Free coaching trial coming soon!")}
-                                className="w-full bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors font-medium text-xs"
-                              >
-                                Try Free Coaching
-                              </button>
+                          {/* Upgrade CTA slot */}
+                          <button
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="w-full border-2 border-dashed border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                            style={{ height: '44px' }}
+                          >
+                            <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-[10px]">🔒</span>
                             </div>
-                          )}
-
-                          {data.coreResume.journey_step !== 'improve' && (
-                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-1">
-                              <div className="text-xs font-semibold text-gray-900 mb-1">Stop matching. Start customizing.</div>
-                              <p className="text-[11px] text-gray-600 mb-2">Pro users create unlimited job-specific resumes optimized for each role.</p>
-                              <button
-                                onClick={() => setShowUpgradeModal(true)}
-                                className="w-full bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition-colors font-medium text-xs"
-                              >
-                                Upgrade to Pro
-                              </button>
-                            </div>
-                          )}
+                            <div className="text-xs font-semibold text-purple-600">Go Pro to tailor your resume to each job</div>
+                          </button>
                         </div>
                       </>
                     )}
@@ -1335,67 +1364,99 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                  {/* Card 2: Cover Letters */}
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ flex: '1 1 0' }}>
-                    <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
-                    <p className="text-xs text-gray-500 mb-2">AI-written and matched to the role</p>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setShowCLModal(true)}
-                        className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                      >
-                        <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
-                          <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </div>
-                        <div className="text-xs font-semibold text-gray-900">Create New</div>
-                      </button>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        clLimitReached ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {Math.max(0, 3 - (data?.userProfile?.cl_count ?? 0))} of 3 remaining
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">Written for this job, not every job.</p>
+                    <div className="space-y-1.5">
+                      {(() => {
+                        const letters = data.coverLetters || []
+                        const slots = [0, 1, 2]
+                        return slots.map((slotIndex) => {
+                          const cl = letters[slotIndex]
+                          const isFirstEmpty = slotIndex === letters.length
+                          const isUsed = !!cl
 
-                      {data.coverLetters && data.coverLetters.length > 0 ? (
-                        <>
-                          {data.coverLetters.slice(0, 2).map((cl) => (
-                            <div
-                              key={cl.id}
-                              className="group bg-white border border-gray-300 rounded-lg p-2 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer"
-                              onClick={() => router.push(`/cover-letter/${cl.id}`)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                          if (isUsed) {
+                            return (
+                              <div
+                                key={cl.id}
+                                className="group bg-white border border-gray-200 rounded-lg px-3 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer flex items-center"
+                                style={{ height: '44px' }}
+                                onClick={() => router.push(`/cover-letter/${cl.id}`)}
+                              >
+                                <div className="flex items-center gap-2">
                                   <div className="w-6 h-6 rounded bg-purple-50 flex items-center justify-center flex-shrink-0">
                                     <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                   </div>
-                                  <div className="min-w-0">
+                                  <div className="flex-1 min-w-0">
                                     <div className="text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
                                     <div className="text-[10px] text-gray-500 truncate">{cl.job_company}</div>
                                   </div>
+                                 {isPro && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteCLId(cl.id); }}
+                                      className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+                                      title="Delete"
+                                    >
+                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  )}
                                 </div>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteCLId(cl.id); }}
-                                  className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all ml-2 flex-shrink-0"
-                                  title="Delete"
-                                >
-                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
                               </div>
-                            </div>
-                          ))}
-                          {data.coverLetters.length > 2 && (
-                            <button
-                              onClick={() => setShowOlderCLModal(true)}
-                              className="w-full text-center py-1 text-xs text-purple-600 hover:text-purple-700 font-medium hover:bg-purple-50 rounded-lg transition-colors"
+                            )
+                          }
+
+                          if (isFirstEmpty && letters.length < 3) {
+                            return (
+                              <button
+                                key={`cl-upload-${slotIndex}`}
+                                onClick={() => setShowCLModal(true)}
+                                className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                style={{ height: '44px' }}
+                              >
+                                <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                  <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                </div>
+                                <div className="text-xs font-semibold text-gray-700">Click to create a cover letter</div>
+                              </button>
+                            )
+                          }
+
+                          return (
+                            <div
+                              key={`cl-empty-${slotIndex}`}
+                              className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
+                              style={{ height: '44px' }}
                             >
-                              See {data.coverLetters.length - 2} older {data.coverLetters.length - 2 > 1 ? 'letters' : 'letter'} →
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <div className="text-center py-4 text-gray-400">
-                          <p className="text-xs">No cover letters yet.</p>
+                              <div className="text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Cover Letter {slotIndex + 1}</div>
+                            </div>
+                          )
+                        })
+                      })()}
+
+                      {/* Upgrade CTA slot */}
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="w-full border-2 border-dashed border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                        style={{ height: '44px' }}
+                      >
+                        <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px]">🔒</span>
                         </div>
-                      )}
+                        <div className="text-xs font-semibold text-purple-600">Go Pro for unlimited cover letters</div>
+                      </button>
                     </div>
                   </div>
 
@@ -1585,7 +1646,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           disabled={uploading}
                         />
                         <button
-                          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                           disabled={uploading}
                           onClick={(e) => {
                             if (!uploading) {
@@ -1637,7 +1699,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ flex: '0 0 calc(50% - 12px)' }}>
                     <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
-                    <p className="text-xs text-gray-500 mb-4">AI-written and matched to the role</p>
+                    <p className="text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
                     <div className="text-center py-6 text-gray-400">
                       <div className="text-3xl mb-2">✉️</div>
                       <p className="text-xs">Complete your core resume first</p>
@@ -1668,8 +1730,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     <span className="text-lg">🎯</span>
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-white">Tailor for a Specific Job</h2>
-                    <p className="text-purple-100 text-xs">{isPro ? "We'll analyze the match and coach your resume for this role." : "We'll analyze the match and see how closely your resume aligns with this role."}</p>
+                    <h2 className="text-base font-bold text-white">{isPro ? 'Tailor for a Specific Job' : 'Check Your Job Match Score'}</h2>
+                    <p className="text-purple-100 text-xs">{isPro ? "We'll analyze the match and coach your resume for this role." : "We'll analyze how closely your resume aligns with this role."}</p>
                   </div>
                 </div>
                 <button
@@ -1720,7 +1782,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={handleCreateJobSpecific}
                 disabled={creatingJob}
-                className="w-full rounded-lg py-2.5 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
               >
                 {creatingJob && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
@@ -1751,7 +1813,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           >
             {/* Purple header - EXACT sidebar gradient */}
             <div 
-              style={{ background: 'linear-gradient(to bottom right, rgb(147 51 234), rgb(37 99 235))' }} 
+             style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }} 
               className="px-6 py-5 relative flex-shrink-0"
             >
               {tourScreen < 3 && (
@@ -1827,7 +1889,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   <div className="flex justify-center mt-5">
                     <button
                       onClick={handleNextTourScreen}
-                      className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
+                      className="text-white px-10 py-2.5 rounded-md transition-opacity hover:opacity-90 font-semibold shadow-sm text-sm"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       Continue
                     </button>
@@ -1901,9 +1964,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                   
                   <div className="flex justify-center mt-3">
-                    <button
+                   <button
                       onClick={handleNextTourScreen}
-                      className="bg-purple-600 text-white px-10 py-2.5 rounded-md hover:bg-purple-700 transition-colors font-semibold shadow-sm text-sm"
+                      className="text-white px-10 py-2.5 rounded-md transition-opacity hover:opacity-90 font-semibold shadow-sm text-sm"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       Continue
                     </button>
@@ -1934,7 +1998,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           className="hidden"
                           disabled={uploading}
                         />
-                        <div className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs cursor-pointer flex items-center justify-center gap-2">
+                        <div className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center justify-center gap-2" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
                           {uploading ? (
                             <>
                               <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
@@ -2030,7 +2094,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-white">Create Cover Letter</h2>
-                    <p className="text-purple-100 text-xs">AI-written and matched to the role. Edit and download when ready.</p>
+                    <p className="text-purple-100 text-xs">Stand out by showing how your skills align. Edit and download when ready.</p>
                   </div>
                 </div>
                 <button
@@ -2046,6 +2110,36 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               {isPro && data?.resumeVersions && data.resumeVersions.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Select a job-specific resume if you created one for this job. If not, add the details below.</label>
+                  <select
+                    value={clSelectedJSId || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setClSelectedJSId('');
+                        setClJobTitle('');
+                        setClCompany('');
+                        setClJobDescription('');
+                      } else {
+                        const selected = data.resumeVersions.find(v => v.id === val);
+                        setClSelectedJSId(val);
+                        setClJobTitle(selected?.job_title || '');
+                        setClCompany(selected?.job_company || '');
+                        setClJobDescription(selected?.job_description || '');
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Start fresh</option>
+                    {data.resumeVersions.map(v => (
+                      <option key={v.id} value={v.id}>{v.job_title} at {v.job_company}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!isPro && data?.resumeVersions && data.resumeVersions.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Use a saved job match score to auto-fill the details below.</label>
                   <select
                     value={clSelectedJSId || ''}
                     onChange={e => {
@@ -2106,8 +2200,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={handleCreateCoverLetter}
                 disabled={creatingCL}
-                className="w-full rounded-lg py-2.5 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
+                className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto'}}
               >
                 {creatingCL && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
                 {creatingCL ? 'Creating...' : 'Create Cover Letter →'}

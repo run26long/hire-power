@@ -340,7 +340,7 @@ const handleResumeUpdate = async (updatedData) => {
               </div>
 
                      {/* Messages */}
-              <div className="space-y-3 mb-4">
+              <div className="space-y-3 mb-1">
               {messages.map((msg, index) => (
                   <div key={index}>
                     {msg.role === 'assistant' ? (
@@ -403,16 +403,17 @@ const handleResumeUpdate = async (updatedData) => {
               </div>
               {/* Input & Button */}
             {isConversationComplete ? (
-                <div className="flex justify-center border-t pt-4">
+                <div className="flex justify-center border-t pt-4 pb-4">
                   <button
                     onClick={handleConversationComplete}
-                    className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-xs"
+                    className="text-white py-2 px-8 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
                     Continue to Resume Coach →
                   </button>
                 </div>
               ) : (
-               <div className="border-t pt-4">
+               <div className="sticky bottom-0 bg-white border-t pt-3 pb-4">
                   <textarea
                     ref={inputRef}
                     value={userInput}
@@ -427,18 +428,21 @@ const handleResumeUpdate = async (updatedData) => {
                     placeholder="Type your response..."
                     disabled={isAIThinking}
                     rows="2"
-                    className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none mb-2"
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none mb-"
                   />
-                  <button
-                    onClick={() => {
-                      handleSendMessage(userInput);
-                      setUserInput('');
-                    }}
-                    disabled={!userInput.trim() || isAIThinking}
-                    className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-                  >
-                    Send
-                  </button>
+                 <div className="flex justify-center mt-1">
+                    <button
+                      onClick={() => {
+                        handleSendMessage(userInput);
+                        setUserInput('');
+                      }}
+                      disabled={!userInput.trim() || isAIThinking}
+                      className="text-white px-8 py-1 rounded-md transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                    >
+                      Send
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
