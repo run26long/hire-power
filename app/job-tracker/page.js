@@ -817,9 +817,30 @@ export default function JobTrackerPage() {
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                       <button
-                        onClick={() => {
+                        onClick={async () => {
+                          try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) return;
+                            const { data: profile } = await supabase
+                              .from('profiles')
+                              .select('email')
+                              .eq('id', user.id)
+                              .single();
+                            const response = await fetch('/api/stripe/checkout', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+                                userId: user.id,
+                                email: profile?.email || user.email,
+                              })
+                            });
+                            const data = await response.json();
+                            if (data.url) window.location.href = data.url;
+                          } catch (err) {
+                            console.error('Vault checkout error:', err);
+                          }
                           setShowHiredModal(false);
-                          router.push('/resume-coach');
                         }}
                         style={{
                           fontFamily: "'DM Sans', sans-serif",

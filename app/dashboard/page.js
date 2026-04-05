@@ -38,6 +38,14 @@ function DashboardContent() {
         .from('profiles').select('*').eq('id', user.id).single();
       setUserProfile(profile);
 
+      // First-time user routing
+      const createdAt = new Date(user.created_at);
+      const isNewUser = (Date.now() - createdAt.getTime()) < 30000; // within 30 seconds
+      if (isNewUser) {
+        router.push('/career-coach');
+        return;
+      }
+
       const { data: context } = await supabase
         .from('career_context').select('*').eq('user_id', user.id).maybeSingle();
       setCareerContext(context);
