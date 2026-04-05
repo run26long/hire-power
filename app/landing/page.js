@@ -17,6 +17,7 @@ const [signupLoading, setSignupLoading] = useState(false);
 const [signupError, setSignupError] = useState('');
 const [signupSuccess, setSignupSuccess] = useState(false);
 const [signupAccountExists, setSignupAccountExists] = useState(false);
+const [mobilePricingOpen, setMobilePricingOpen] = useState('pro');
 
 const supabase = createClient();
 
@@ -261,6 +262,56 @@ const supabase = createClient();
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+          .hero { grid-template-columns: 1fr !important; padding: 80px 24px 48px !important; min-height: auto !important; }
+          .hero-visual { display: none !important; }
+          .hero h1 { font-size: 38px !important; letter-spacing: -1px !important; }
+          .hero-inner-pad { margin-left: 0 !important; }
+          .hero-actions { flex-direction: column !important; align-items: flex-start !important; }
+
+          .container { padding: 0 24px !important; }
+
+          .problem { padding: 60px 0 !important; }
+          .problem-comparison-grid { grid-template-columns: 1fr !important; }
+          .problem-chat-grid { grid-template-columns: 1fr !important; }
+          .problem-chat-grid-chat { display: none !important; }
+          .problem-truth { padding: 28px 20px !important; }
+
+          .interview-moment-inner { padding: 0 24px !important; }
+
+          .how-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .how-grid .how-visual { order: 2; }
+          .how-grid .how-steps { order: 1; }
+          .coaches-row { grid-template-columns: 1fr 1fr 1fr !important; }
+
+          .manifesto { padding: 60px 24px !important; }
+
+          .never-start-section { padding: 60px 24px !important; }
+
+          .vault { padding: 60px 0 !important; }
+          .vault-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+
+          .pricing { padding: 60px 0 !important; }
+          .pricing-tiers { display: none !important; }
+          .pricing-mobile { display: flex !important; flex-direction: column !important; gap: 12px !important; }
+
+          .final-cta { padding: 60px 24px !important; }
+          .final-cta-actions { flex-direction: column !important; align-items: center !important; }
+
+          footer { flex-direction: column !important; align-items: center !important; gap: 20px !important; padding: 32px 24px !important; text-align: center !important; }
+          .footer-links { flex-wrap: wrap !important; justify-content: center !important; }
+          .landing-page { width: 100% !important; }
+          .section-title br, .hero h1 br, .final-cta h2 br { display: none !important; }
+          .section-title { font-size: 32px !important; letter-spacing: -1px !important; }
+          .never-start-heading { font-size: 42px !important; letter-spacing: -1px !important; }
+          .never-start-heading br { display: none !important; }
+          .hero h1 { font-size: 34px !important; }
+          .final-cta h2 { font-size: 36px !important; }
+          .manifesto p { font-size: 18px !important; }
+          .mobile-nav { display: flex !important; }
+          .desktop-nav { display: none !important; }
+        }
         .hero-left > * { animation: fadeUp 0.7s ease both; }
         .hero-eyebrow { animation-delay: 0.1s; }
         .hero h1 { animation-delay: 0.2s; }
@@ -450,15 +501,28 @@ const supabase = createClient();
       )}
 
       {/* NAV */}
-      <MainNav currentPage="landing" userProfile={userProfile} />
+      <div className="desktop-nav">
+        <MainNav currentPage="landing" userProfile={userProfile} />
+      </div>
+      <div className="mobile-nav" style={{display:'none',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',background:'white',borderBottom:'1px solid rgba(0,0,0,0.06)',position:'sticky',top:0,zIndex:40}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          <div style={{width:'28px',height:'28px',background:'linear-gradient(135deg,#9333ea,#6b21a8)',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
+          </div>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontWeight:800,fontSize:'15px',color:'#0D0D0D'}}>HIRE <span style={{color:'#9333ea'}}>POWER</span></span>
+        </div>
+        <button onClick={() => { setSignupAsPro(false); setShowSignupModal(true); }} style={{background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',padding:'8px 16px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer'}}>
+          Get started
+        </button>
+      </div>
 
       <div className="landing-page">
       {/* HERO */}
       <section className="hero">
         <div className="hero-left">
-          <div style={{marginLeft:'48px'}}>
+          <div className="hero-inner-pad" style={{marginLeft:'48px'}}>
           <p style={{fontFamily:"'Fraunces',serif",fontSize:'22px',fontWeight:400,fontStyle:'italic',color:'#9ca3af',letterSpacing:'-0.5px',marginBottom:'8px'}}>One 20-minute conversation now.</p>
-          <h1>Never write your<br/>resume <em>again.</em></h1>
+          <h1>Never write your<br/> resume <em>again.</em></h1>
           <p className="hero-sub">AI knows how to write a great resume. The problem is, it doesn&apos;t know you. Hire Power interviews you like a professional resume writer would. And we don&apos;t just tell you how to improve your resume. We actually do it for you. Then we keep building it in the background as your career grows.</p>
          
          <div style={{display:'flex',alignItems:'center',gap:'24px',margin:'0 0 24px',flexWrap:'wrap'}}>
@@ -600,14 +664,14 @@ const supabase = createClient();
       <section className="problem" id="problem">
         <div className="container">
           <div className="section-eyebrow">The Dirty Secret</div>
-          <h2 className="section-title">AI tools are <em>making up</em><br/>your resume.</h2>
+          <h2 className="section-title">AI tools are <em> making up </em><br/>your resume.</h2>
           <p className="section-sub" style={{maxWidth:'760px'}}>
             A VP of Business Development with 20+ years selling to aerospace and defense. Tried two resume tools, theirs and ours. Here&apos;s a sample bullet from his resume and what each tool did with it:{' '}
             <strong><em style={{color:'rgba(255,255,255,0.92)'}}>&quot;Built strategic relationships with high-profile commercial customers including Boeing, managing long-cycle sales for complex technology packages.&quot;</em></strong>
           </p>
 
           {/* Side-by-side comparison */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginTop:'24px',marginBottom:'64px'}}>
+          <div className="problem-comparison-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginTop:'24px',marginBottom:'64px'}}>
             <div style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 8px 40px rgba(0,0,0,0.25)'}}>
               <div style={{background:'#374151',padding:'16px 22px',display:'flex',alignItems:'center',gap:'8px'}}>
                 <span style={{fontSize:'16px'}}>⚠️</span>
@@ -649,10 +713,10 @@ const supabase = createClient();
           </div>
 
           {/* Chat + Editorial panel */}
-          <div style={{display:'grid',gridTemplateColumns:'520px 1fr',gap:'36px',alignItems:'start'}}>
+          <div className="problem-chat-grid" style={{display:'grid',gridTemplateColumns:'520px 1fr',gap:'36px',alignItems:'start'}}>
 
             {/* Chat card */}
-            <div style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.15)',border:'1px solid rgba(0,0,0,0.06)'}}>
+            <div className="problem-chat-grid-chat" style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.15)',border:'1px solid rgba(0,0,0,0.06)'}}>
               {/* Header */}
               <div style={{background:'linear-gradient(to right,#667eea,#764ba2)',padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
@@ -786,7 +850,7 @@ const supabase = createClient();
       <section className="how" id="how">
         <div className="container">
           <div className="section-eyebrow">How It Works</div>
-          <h2 className="section-title">Three conversations.<br/>One complete picture.</h2>
+          <h2 className="section-title">Three conversations.<br/> One complete picture.</h2>
           <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other, so nothing falls through the cracks.</p>
           <div className="how-grid" style={{marginTop: '36px'}}>
             <div className="how-steps" style={{gap: '4px', paddingTop: '0px'}}>
@@ -848,11 +912,11 @@ const supabase = createClient();
       </section>
 
       {/* NEVER START OVER */}
-      <section style={{background:'white',padding:'100px 80px',textAlign:'center',position:'relative',overflow:'hidden'}}>
+      <section className="never-start-section" style={{background:'white',padding:'100px 80px',textAlign:'center',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:'800px',height:'800px',background:'radial-gradient(circle, rgba(147,51,234,0.05) 0%, transparent 70%)',pointerEvents:'none'}}/>
         <div style={{position:'relative',maxWidth:'900px',margin:'0 auto'}}>
           <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:'#9333ea',marginBottom:'32px'}}>The part nobody talks about</div>
-          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(56px,7vw,100px)',fontWeight:900,lineHeight:1.0,letterSpacing:'-3px',color:'#0f0f0f',margin:0}}>Never start from<br/><em style={{fontStyle:'italic',color:'#9333ea'}}>scratch</em> again.</h2>
+          <h2 className="never-start-heading" style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(56px,7vw,100px)',fontWeight:900,lineHeight:1.0,letterSpacing:'-3px',color:'#0f0f0f',margin:0}}>Never start from <em style={{fontStyle:'italic',color:'#9333ea'}}>scratch</em> again.</h2>
           <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:'18px',color:'#6b7280',lineHeight:1.65,maxWidth:'560px',margin:'32px auto 0'}}>Three years from now, you won&apos;t remember what you accomplished today. But Hire Power will.</p>
         </div>
       </section>
@@ -863,7 +927,7 @@ const supabase = createClient();
           <div className="vault-grid">
             <div>
               <div className="section-eyebrow">Hire Power Vault · $4.99/mo</div>
-              <h2 className="section-title">The OS that keeps<br/>running between<br/><em>job searches.</em></h2>
+              <h2 className="section-title">The OS that keeps<br/> running between<br/><em> job searches.</em></h2>
               <p className="vault-body">Once your job search is complete, most people go dark - until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move, your resume is basically already written.</p>
               <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Be ready for any opportunity. And never start from scratch again.&quot;</div>
               <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
@@ -901,7 +965,7 @@ const supabase = createClient();
         <div className="container">
           <div className="pricing-header">
             <div className="section-eyebrow" style={{textAlign:'center'}}>Pricing</div>
-            <h2 className="section-title" style={{textAlign:'center'}}>One platform.<br/><em>Your whole career.</em></h2>
+            <h2 className="section-title" style={{textAlign:'center'}}>One platform. <br/><em>Your whole career.</em></h2>
           </div>
           <p className="pricing-os-line"><strong>Free</strong>: Try the OS &nbsp;·&nbsp; <strong>Pro</strong>: Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong>: Keep the OS running between searches</p>
           <div className="pricing-tiers">
@@ -1001,15 +1065,156 @@ const supabase = createClient();
 
           </div>
           <p className="pricing-note">
-            No credit card required &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; Upgrade or downgrade anytime{' '}
-            
+            No credit card required &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; Upgrade or downgrade anytime
           </p>
+
+          {/* MOBILE PRICING ACCORDION */}
+          <div className="pricing-mobile" style={{display:'none'}}>
+            {[
+              {
+                id: 'free',
+                name: 'Free',
+                price: '$0',
+                tag: 'Try the OS',
+                desc: 'Get a real feel for conversation-based coaching. No credit card. No expiration.',
+                cta: 'Get started free',
+                ctaStyle: {border:'1.5px solid rgba(0,0,0,0.12)',background:'white',color:'#0D0D0D'},
+                onCta: () => setShowSignupModal(true),
+                featured: false,
+                features: [
+                  'Career Coach: full access, unlimited',
+                  'Core resume with AI analysis',
+                  'Resume Power Score',
+                  'Improvement Action Plan (you apply the changes)',
+                  'Resume coaching trial',
+                  'ATS-optimized templates',
+                  'Unlimited downloads',
+                  '3 job match scores',
+                  '3 custom cover letters',
+                  'Job application tracking',
+                  'AI-spoken interview practice',
+                  '1 job-specific interview session',
+                  '1 Power Analysis reveal',
+                ]
+              },
+              {
+                id: 'pro',
+                name: 'Pro',
+                price: '$29.99',
+                priceSuffix: '/mo',
+                tag: 'Full Power',
+                desc: 'The complete Career OS. Every coach, every conversation, fully unlocked.',
+                cta: 'Go Pro: $29.99/mo',
+                ctaStyle: {background:'linear-gradient(to right, #667eea, #764ba2)',color:'white',border:'none'},
+                onCta: () => { setSignupAsPro(true); setShowSignupModal(true); },
+                featured: true,
+                features: [
+                  'Everything in Free, plus:',
+                  'Full resume coaching conversation',
+                  'Improvements applied automatically',
+                  'Unlimited job-specific resumes',
+                  'Unlimited job match scores',
+                  'Unlimited cover letters',
+                  'Career Vault: log wins between searches',
+                  'Power Analysis before every interview',
+                  'Unlimited interview coaching and practice',
+                  'Post-practice performance feedback',
+                  'Company research integration',
+                  'Gamified practice progression',
+                ]
+              },
+              {
+                id: 'vault',
+                name: 'Vault',
+                price: '$4.99',
+                priceSuffix: '/mo',
+                tag: 'Keep the OS Running',
+                desc: 'Stay ready between searches. Available after your job search ends.',
+                cta: null,
+                ctaStyle: {},
+                onCta: null,
+                featured: false,
+                features: [
+                  'Everything in Free, plus:',
+                  'Save job description from your hired role',
+                  'Track achievements as they happen',
+                  'Add training, education, skills in real time',
+                  'Complete career archive access',
+                  'Unlimited resume downloads',
+                  '5 premium templates',
+                ]
+              }
+            ].map(tier => {
+              const isOpen = mobilePricingOpen === tier.id;
+              return (
+                <div
+                  key={tier.id}
+                  style={{
+                    borderRadius: '16px',
+                    border: tier.featured ? '2px solid #9333ea' : '1.5px solid rgba(0,0,0,0.08)',
+                    background: tier.featured ? '#1a1033' : 'white',
+                    overflow: 'hidden',
+                    boxShadow: tier.featured ? '0 8px 32px rgba(108,99,255,0.2)' : 'none',
+                    position: 'relative',
+                  }}
+                >
+                  {tier.featured && (
+                    <div style={{background:'#9333ea',color:'white',fontSize:'11px',fontWeight:700,textAlign:'center',padding:'6px',letterSpacing:'0.05em'}}>
+                      MOST POPULAR
+                    </div>
+                  )}
+                  {/* Always-visible header */}
+                  <div style={{padding:'20px 20px 16px'}}>
+                    <div style={{fontSize:'11px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:tier.featured?'rgba(165,180,252,0.8)':'#9333ea',marginBottom:'6px'}}>{tier.tag}</div>
+                    <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'6px'}}>
+                      <div>
+                        <div style={{fontFamily:"'Fraunces',serif",fontSize:'28px',fontWeight:900,color:tier.featured?'white':'#0D0D0D',lineHeight:1}}>{tier.name}</div>
+                        <div style={{fontSize:'28px',fontWeight:700,color:tier.featured?'white':'#0D0D0D',lineHeight:1,marginTop:'4px'}}>
+                          {tier.price}{tier.priceSuffix && <span style={{fontSize:'14px',fontWeight:400,color:tier.featured?'rgba(255,255,255,0.5)':'#6B7280'}}>{tier.priceSuffix}</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setMobilePricingOpen(isOpen ? null : tier.id)}
+                        style={{width:'32px',height:'32px',borderRadius:'50%',background:tier.featured?'rgba(255,255,255,0.15)':'#f5f3ff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
+                      >
+                        <span style={{fontSize:'20px',color:tier.featured?'white':'#9333ea',fontWeight:300,lineHeight:1}}>{isOpen ? '−' : '+'}</span>
+                      </button>
+                    </div>
+                    <p style={{fontSize:'13px',color:tier.featured?'rgba(255,255,255,0.5)':'#6B7280',lineHeight:1.4,margin:'0 0 14px'}}>{tier.desc}</p>
+                    {/* CTA always visible */}
+                    {tier.cta && (
+                      <button
+                        onClick={tier.onCta}
+                        style={{width:'100%',padding:'12px',borderRadius:'10px',fontSize:'14px',fontWeight:600,cursor:'pointer',textAlign:'center',...tier.ctaStyle}}
+                      >
+                        {tier.cta}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Expandable feature list */}
+                  {isOpen && (
+                    <div style={{padding:'0 20px 20px',borderTop:tier.featured?'1px solid rgba(255,255,255,0.1)':'1px solid rgba(0,0,0,0.06)',paddingTop:'16px'}}>
+                      <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:'10px'}}>
+                        {tier.features.map((f,i) => (
+                          <li key={i} style={{display:'flex',alignItems:'flex-start',gap:'8px',fontSize:'13px',color:tier.featured?'rgba(255,255,255,0.75)':'#374151',lineHeight:1.4}}>
+                            <span style={{color:'#10b981',flexShrink:0,marginTop:'1px'}}>✓</span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* FINAL CTA */}
       <section className="final-cta">
-        <h2>Your career deserves<br/>a <em>real conversation.</em></h2>
+        <h2>Your career deserves <br/>a <em>real conversation.</em></h2>
         <p>Start with Career Coach - free, unlimited, and the most valuable five minutes of your job search.</p>
         <div className="final-cta-actions">
           <button onClick={() => { setSignupAsPro(false); setShowSignupModal(true); }} style={{display:'inline-flex',alignItems:'center',background:'white',color:'#0D0D0D',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>Start now for free</button>
@@ -1023,6 +1228,14 @@ const supabase = createClient();
 function FinishLineSection() {
   const [openIndex, setOpenIndex] = useState(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const problems = [
     {
@@ -1052,7 +1265,9 @@ function FinishLineSection() {
     },
   ];
 
-  const gridTemplate = openIndex !== null
+  const gridTemplate = isMobile
+    ? '1fr'
+    : openIndex !== null
     ? problems.map((_, i) => i === openIndex ? '3fr' : '0.6fr').join(' ')
     : 'repeat(5, 1fr)';
 
@@ -1160,7 +1375,7 @@ function FinishLineSection() {
                     : isHovered
                     ? '0 4px 20px rgba(147,51,234,0.12)'
                     : '0 1px 4px rgba(147,51,234,0.06)',
-                  opacity: isCollapsed ? 0.5 : 1,
+                  opacity: isCollapsed && !isMobile ? 0.5 : 1,
                   overflow: 'hidden',
                   minHeight: '180px',
                 }}
@@ -1207,7 +1422,7 @@ function FinishLineSection() {
                     <div style={{ height: '1px', background: '#c4b5fd', marginBottom: '20px' }} />
 
                     {/* Two column content */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '20px' : '32px' }}>
                       <div>
                         <div style={{
                           fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em',
