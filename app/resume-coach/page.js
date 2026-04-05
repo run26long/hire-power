@@ -1138,7 +1138,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <button 
                         onClick={handleStartCoaching}
                         disabled={isDownloading && (data.coreResume.journey_step === 'save')}
-                        className="text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className={`text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${(data.coreResume.journey_step || 'review') === 'review' ? 'animate-pulse hover:animate-none' : ''}`}
                         style={{background:'linear-gradient(to right, #667eea, #764ba2)'}}
                       >
                         {isDownloading && (data.coreResume.journey_step === 'save') ? (

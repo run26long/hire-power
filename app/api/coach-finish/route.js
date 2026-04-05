@@ -100,7 +100,7 @@ KEYWORDS (20 points) — SHARED RESPONSIBILITY.
 Your ceiling is set by the candidate's actual skills and field vocabulary. Never fabricate. But every relevant keyword from the coaching conversation must appear on the resume. A keyword the candidate mentioned that doesn't appear is your miss.
 
 NO HALLUCINATION — CATASTROPHIC FAILURE:
-If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. This is the most serious rule in this prompt. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it. When in doubt, write around it with qualitative strength or omit entirely.
+If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. This is the most serious rule in this prompt. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it. When in doubt, write around it with qualitative strength or omit entirely. Industry-standard practices that were not explicitly described in the conversation are hallucinations. Do not add inferred responsibilities because they are typical for the role.
 
 EM DASH — CRITICAL FAILURE:
 If any em dash (—) appears anywhere in this resume, the rewrite is considered a critical failure and must be corrected before outputting. Not in bullets. Not in summaries. Not in job summaries. Not anywhere. Em dashes are an immediate AI signal — candidates are rejected because of them. Use a comma, a period, or restructure the sentence. Check every single sentence before outputting. There is no acceptable use of an em dash anywhere in this document under any circumstances.
@@ -510,6 +510,47 @@ Mid-Career, Established Career, and Management Level: sound like a confident pro
 Senior Level: reflect organizational scope and strategic leadership. Authoritative, specific about scale, and outcome-focused. Do not describe tasks. Describe outcomes and influence. Do not use hollow strategic language without specifics. Do not understate genuine executive scope. The goal: a recruiter reads this and immediately understands the scale this person operates at.
 
 ═══════════════════════════════════════════════
+PLACEMENT FRAMEWORK: WHERE THINGS BELONG
+═══════════════════════════════════════════════
+
+The same experience can go in three places. Putting it in the wrong one is the most common resume writing failure.
+
+THREE PIECES OF INFORMATION. THREE PLACEMENTS.
+
+Example: A candidate performed 750+ shows at EPCOT, called cues at a few competitions, and used MindBody to manage her class schedule.
+
+IN THE SUMMARY: "750+ shows across a 15-month EPCOT engagement" as part of sentence 2.
+The credential stated cleanly. Scale and identity only. No operational detail in the summary. Ever.
+
+IN A BULLET: "Performed 750+ shows across a 15-month EPCOT engagement, executing daily apparatus inspections, between-show resets, and music cue coordination for every performance"
+
+The credential proven. Scope and operational detail live here, not in the summary.
+
+IN SKILLS: Cue Calling (Motor & Music) • MindBody
+
+Cue calling at a few competitions has no scope for a bullet. MindBody is a scheduling tool, not an achievement. Both are ATS keywords. Both belong in skills only.
+
+BULLET TEST: all three must be true before writing a bullet:
+1. Did they DO this, not just USE something to do it?
+2. Does it have scope, context, or impact worth stating?
+3. Would a recruiter for the target role care about this specifically?
+If any answer is no, extract the keyword to skills. Do not write a bullet.
+
+PLACEMENT RULES:
+- Summary: sustained credential only showing scope, scale and identity. No operational detail.
+- Bullet: specific, meaningful work with scope, context, and impact relevant to target role.
+- Skills: every ATS keyword, including those already in bullets.
+- Operational detail in the summary → move it to a bullet.
+- Bullet about using a tool → move it to skills.
+- Something that happened once or twice without meaningful scope → skills or cut.
+
+KEYWORD DUPLICATION STRATEGY:
+The skills section is the ATS safety net. If a keyword appears in a bullet, it still goes in skills. ATS systems weight keywords appearing in multiple sections higher. Never duplicate within the same section. Always include in skills regardless of where else it appears.
+
+SKILLS EXTRACTION HAPPENS FIRST:
+Before writing any bullets, extract ALL skills from the resume and coaching conversation into skillsCategories. It is your job to find skills in the existing resume and coaching conversation that translate to ATS keyword strength on their resume. You should find skills they didn’t even know they had or didn’t know were important to list. These go in skillsCategories. Then write bullets for what remains that genuinely warrants bullet-level treatment. 
+
+═══════════════════════════════════════════════
 RESUME ELEMENTS 1: WRITING GUIDELINES FOR PROFESSIONAL SUMMARY (REQUIRED SECTION)
 ═══════════════════════════════════════════════
 
@@ -522,6 +563,8 @@ A great summary does these three things, so each sentence has a purpose:
 Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
 Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
+
+CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 
 RIGHT (ongoing scope):
 "Manages $1M in annual vendor spend, coordinates 5-8 cross-departmental projects simultaneously, and independently resolves 150+ client escalations annually."
@@ -723,11 +766,19 @@ TOO SHORT – DO NOT WRITE LIKE THIS:
 Produced a group act for a holiday show, managing choreography, rehearsals and performances
 
 BULLET COUNT: 
-The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula.
+The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula. 
 
-General starting point: Current or most recent role: 4-6 bullets. Previous roles: 3-4 bullets. Older or less relevant roles: 1-2 bullets. Roles held more than 10 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable.
+Bullet point guidelines: 
 
-Adjust based on the candidate: Senior and executive candidates with long tenures in highly relevant roles may warrant more bullets. Follow the substance, not the formula. A prior role can and should have more bullets than the current role if it is more relevant to the target position or if the candidate is early in a new role with limited tenure. Very long-term roles with deep relevant experience may exceed standard bullet counts when the evidence genuinely supports it. Entry and early career candidates should stay at the lower end of the range. Focus on quality over quantity.
+Current or most recent role: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets
+
+Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
+
+Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable, or title, company, dates and job summary only.
+
+Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
+
+Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates may have more. Early Career and Entry Level may have fewer.
 
 BULLET ORDER: Within each role, order bullets from strongest to most relevant for the target role first, weakest or least relevant last. A recruiter who stops reading halfway through should have seen the most compelling evidence first. Never bury the strongest bullet at the bottom of a list.
 
@@ -1036,6 +1087,7 @@ ABSOLUTE RULES: NON-NEGOTIABLE
 
 NEVER INCLUDE ON ANY RESUME:
 - Candidate's age in any context 
+- Reference to candidate’s Career Length, Job Level, or Job Type. Those are internal references only.
 - Specific celebrity names (soft reference like "high-profile entertainment events" is fine)
 - Third-person pronouns anywhere in the document
 - "Responsible for," "helped with," "assisted with," "worked on" as bullet openers
@@ -1049,6 +1101,7 @@ If any metric, achievement, company detail, date, credential, or responsibility 
 
 EM DASH — CRITICAL FAILURE:
 If any em dash (—) appears anywhere in this resume, the rewrite is a critical failure. Scan every bullet, every summary sentence, every job summary right now before outputting. If you find one, fix it. There is no acceptable use of an em dash anywhere in this document.
+
 `
 
 // ─────────────────────────────────────────────
@@ -1270,10 +1323,21 @@ function normalizeEducation(education) {
       return {
         ...ed,
         lines: (ed.lines || []).filter(l => {
-          const ll = (l || '').toLowerCase()
+          const ll = (l || '').toLowerCase().trim()
           const dl = degree.toLowerCase()
           const fl = field.toLowerCase()
-          return !(dl && ll.includes(dl)) && !(fl && ll.includes(fl))
+          if (dl && ll.includes(dl)) return false
+          if (fl && ll.includes(fl)) return false
+          // Filter out lines that are just a graduation date duplicate
+          if (ed.graduationDate) {
+            const yearMatch = ed.graduationDate.match(/^(\d{4})/)
+            if (yearMatch) {
+              const year = yearMatch[1]
+              if (/^(expected\s+)?[a-z]+ \d{4}$/.test(ll) && ll.includes(year)) return false
+              if (/^\d{1,2}\/\d{4}$/.test(ll) && ll.includes(year)) return false
+            }
+          }
+          return true
         })
       }
     }
@@ -1330,6 +1394,15 @@ ${matchedKeywords.length > 0 ? matchedKeywords.map(k => `• ${k}`).join('\n') :
 MISSING — these are your primary targets to work in naturally:
 ${missingKeywords.length > 0 ? missingKeywords.map(k => `• ${k}`).join('\n') : '• (none identified — resume is a strong match already)'}
 
+CONTENT FILTER — APPLY BEFORE WRITING ANYTHING:
+The coaching conversation is raw material, not a list of everything to add. You MUST determine what is critically relevant to helping this candidate get interviews for THIS specific role.
+
+INCLUDE: Demonstrates a skill, achievement, or responsibility relevant to this job description that can be defined in terms of impact, scope, scale, or results.
+EXCLUDE: Personal anecdotes, colorful details, or impressive-sounding facts that don't serve this specific role.
+EXCLUDE: Small, one-time accomplishments that minimize the scope of their experience.
+EXCLUDE: Small or irrelevant metrics. Do not add numbers just to have numbers. Find the real impact. Producing a 4-person group act is unimpressive. Reaching 4,500 attendees across a 9-show run is impressive. Cast size damages the resume. Audience size strengthens it.
+EXCLUDE: Skills hiding inside a story — extract those to skillsCategories, not a bullet.
+
 COACHING CONVERSATION (everything the candidate revealed — use all of it):
 ${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}
 
@@ -1370,8 +1443,6 @@ YOUR REWRITE INSTRUCTIONS:
 
    No em dashes anywhere. No hallucination. No "responsible for" as a bullet opener.
 
-${retryInstruction ? `⚠️ RETRY INSTRUCTION — READ THIS BEFORE ANYTHING ELSE:\n${retryInstruction}\n` : ''}
-
 ${careerContext?.is_career_changer === true ? `
 CAREER PIVOT INSTRUCTION:
 This candidate is transitioning from ${careerContext.previous_field || 'their previous field'} to ${careerContext.target_roles?.join(' / ') || jobTitle || 'this target role'}.
@@ -1387,7 +1458,11 @@ SKILLS: Weight toward target field vocabulary. Previous-field-specific skills th
 SUMMARY: Opens from the target role identity. Previous experience becomes evidence, not identity. Name 2-3 skills from the job description requirements in sentence 2.
 ` : ''}
 
-${retryInstruction ? `⚠️ RETRY INSTRUCTION — READ THIS BEFORE ANYTHING ELSE:\n${retryInstruction}\n` : ''}
+DUPLICATE CHECK — MANDATORY BEFORE OUTPUTTING:
+Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
+
+BULLET COUNT CHECK — MANDATORY BEFORE OUTPUTTING:
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. Senior with broad scope and 15+ years' experience: up to 7. Average: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
@@ -1400,7 +1475,8 @@ ${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
 function buildSummaryPrompt({ rewrittenResume, conversation, careerContext, level, isJobSpecific, jobDescription, jobTitle, jobCompany }) {
 
   const levelVoice = {
-    entry: `Entry-level candidate. Sound like the strongest version of an early-career professional, not a junior executive. Authentic and specific for their stage.`,
+    entry: `Sound like the strongest version of a capable, prepared candidate at this stage. Authentic and specific. Never inflate language or responsibilities to sound more senior. Never use career length or level descriptors like "early-career," "entry-level," or "emerging" anywhere in the summary.`,
+
     mid: `Mid-career professional. Confident expert who delivers results. Specific, grounded, evidence-based.`,
     senior: `Senior/executive candidate. Organizational scope and strategic leadership. Authoritative, outcome-focused, specific about scale.`
   }
@@ -1431,6 +1507,8 @@ A great summary does these three things, so each sentence has a purpose:
 Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
 Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
+
+CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 
 Sentence 2 must address scope as a high-level overview using only the most important metrics and detail. Using unimportant metrics and detail impairs readability and lowers the scores. Hard rule: No more than 4 metrics in sentence 2.
 
@@ -1562,7 +1640,7 @@ When coaching is thin or experience is limited, write the strongest honest versi
 `
 
   const hardRules = `
-HARD RULES — NON-NEGOTIABLE:
+HARD RULES: NON-NEGOTIABLE:
 - 3 sentences exactly. No more, no less.
 - The entire summary is present tense. Past tense anywhere is a sign a bullet snuck in or stronger phrasing is available.
 - Open from the TARGET role identity, not their current title or school enrollment.
@@ -1583,6 +1661,7 @@ HARD RULES — NON-NEGOTIABLE:
 - Career changers: sentence 1 establishes the new identity. Sentence 2 explains why it is credible. Never combined.
 - Students and recent grads: open from professional identity, not school enrollment. The degree is evidence, not the opener.
 `
+ const isInternshipOrJunior = /intern(ship)?|junior|assistant\b/i.test(jobTitle || '')
 
   if (isJobSpecific && jobDescription) {
     return `You are writing the professional summary for a job-specific resume.
@@ -1605,10 +1684,24 @@ ${conversationBlock}
 ${governingPrinciple}
 
 FOR JOB-SPECIFIC SUMMARIES:
-Position the summary specifically for this role and company.
-Open with a role descriptor that mirrors the job title as a noun.
-Name 2-3 skills from the job description requirements using the job description's exact language where possible — this improves ATS matching.
-End with what the employer gains: outcomes, reliability, scope, expertise.
+Position the summary specifically for this role and company but do not mention either by name.
+
+Follow the standard 3-sentence summary formula for core resumes, but tailor each sentence toward this role type as much as possible. 
+
+Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level aligned as closely as possible with the target role without overstating their experience. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. Should end with something specific and unexpected that makes a recruiter want to keep reading. Keep this short, simple and concise. No extra words or phrases.
+
+Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum) that the candidate has the skills required for the target role. These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time? Keep this short, simple and concise. No more than one comma-delineated phrase.
+
+Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean, simple sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that. 
+
+THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
+
+Do not claim that the candidate IS the target title if the candidate does not currently hold it. Instead, show how their current skills would transfer and be an asset in this role.
+
+In the summary, organically add 2-3 skills from the job description when possible, but only if the candidate genuinely has those skills. This improves ATS matching for this specific role.
+
+CONCISENESS:
+Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
 
 ${hardRules}
 
@@ -1635,9 +1728,12 @@ Lead with the strongest credibility signal from the finalized bullets.
 The target role determines sentence 1. If career context or coaching established a target, open from that angle, not from their current title.
 For career changers: the summary opens from the new identity. Their previous experience becomes evidence, not identity.
 
+CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 ${hardRules}
 
-Return ONLY the summary paragraph. No JSON. No label. No explanation. Just the text.`
+Return ONLY the summary paragraph. No JSON. No label. No explanation. Just the text.
+
+`
 }
 
 // ─────────────────────────────────────────────
@@ -1703,18 +1799,28 @@ ${JSON.stringify(rewrittenResume, null, 2)}
 
 ENHANCEMENT RULES:
 1. Find the bullets that relate to the gaps above
-2. If the conversation provided new specific information, enhance those bullets with it
+2. If the conversation provided new specific information, enhance those bullets with it. DO NOT ADD new information if it does NOT improve the bullet.
 3. If the conversation did not surface new information for a gap, leave those bullets exactly as they are
 4. DO NOT rewrite bullets that are unrelated to the gaps
 5. DO NOT remove anything
 6. DO NOT change the summary unless the new information is directly relevant to the opening positioning
-7. DO NOT change the skills section unless new skills were explicitly mentioned
+7. DO NOT change the skills section unless new skills were explicitly mentioned in the follow-up conversation. If this is a career changer, any new skills added must serve the TARGET role vocabulary. Do not add previous-field-specific technical skills that don't transfer to the target role. Those belong at the bottom of the skills section or not at all. When in doubt, leave the skills section exactly as it is.
 
-The goal is surgical improvement — not a new rewrite. Most of the resume should be identical 
+The goal is surgical improvement, not a new rewrite. Most of the resume should be identical 
 to what you received. Only the bullets where new specific material was provided should change.
 
 Apply all Writing Constitution rules to any bullets you do enhance.
-No em dashes. No orphaned words. No hallucination.
+No em dashes. No hallucination.
+
+WHAT "BETTER" MEANS IN THIS CONTEXT:
+A bullet is improved only if at least one of these is true after the change:
+- IMPACT: A specific number, scope indicator, or result is now present that wasn't before
+- CLARITY: The writing is more concise, the verb is more accurate, or the "so what" is clearer
+- KEYWORDS: A field-relevant term from the coaching conversation is now captured this will improve the resume’s ability to pass ATS
+
+If none of these are true, the bullet was not improved — it was just reworded. Rewording for its own sake is not an enhancement. Leave it alone.
+
+Before finalizing any change, ask: would a recruiter for the target role find this bullet more compelling than the version they started with? If the answer is not a clear yes, revert to the original.
 
 OUTPUT: Return ONLY valid JSON matching the exact same structure as the input resume.
 No markdown. No explanation. No backticks.`
@@ -1945,12 +2051,12 @@ VALIDATION CHECK: Before outputting, verify that at least 3 of the gaps/action i
 are visibly addressed in your rewrite. If they are not, you have not finished the job.
 ` : ''
 
- const rewritePrompt = `You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with — one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance. You never include anything that doesn't serve the candidate's target role. Good enough is not good enough.
+ const rewritePrompt = `You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with, one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance. You never include anything that doesn't serve the candidate's target role. Good enough is not good enough.
 
 THE GOVERNING PHILOSOPHY:
-The goal is the smallest resume that makes the strongest case. Not comprehensive. Not complete. Focused. A resume that tries to say everything says nothing. Every bullet, every skill, every word is there because it serves the target role — or it is cut.
+The goal is the smallest resume that makes the strongest case. Not comprehensive. Not complete. Focused. A resume that tries to say everything says nothing. Every bullet, every skill, every word is there because it serves the target role or it is cut.
 
-WHERE THINGS BELONG — READ THIS BEFORE WRITING ANYTHING:
+WHERE THINGS BELONG: READ THIS BEFORE WRITING ANYTHING:
 
 The same experience can go in three places. Putting it in the wrong one is the most common resume writing failure.
 
@@ -1963,7 +2069,7 @@ The credential stated cleanly. Scale and identity only. This is who she is.
 No operational detail in the summary. Ever.
 
 IN A BULLET: "Performed 750+ shows across a 15-month EPCOT engagement, executing daily apparatus inspections, between-show resets, and music cue coordination for every performance"
-The credential proven. Scope and operational detail live here — not in the summary.
+The credential proven. Scope and operational detail live here, not in the summary.
 
 IN SKILLS: Cue Calling (motor and music) • MindBody
 Cue calling at a few competitions has no scope for a bullet.
@@ -1974,11 +2080,11 @@ BULLET TEST — all three must be true before writing a bullet:
 1. Did they DO this, not just USE something to do it?
 2. Does it have scope, context, or impact worth stating?
 3. Would a recruiter for the target role care about this specifically?
-If any answer is no — extract the keyword to skills. Do not write a bullet.
+If any answer is no, extract the keyword to skills. Do not write a bullet.
 
 PLACEMENT RULES:
-- Summary: sustained credential only. Scale and identity. No operational detail.
-- Bullet: meaningful work with scope, context, and impact relevant to target role.
+- Summary: sustained credential only in Sentence 2. Scale and identity. No operational detail.
+- Bullet: meaningful work with scope, context, and impact. Put bullets relevant to target role before those not relevant to target role. If someone with an administrative background is getting started in marketing, of course you will include the administrative experience in the bullets. But, any bullets showing marketing skills should appear first.
 - Skills: every ATS keyword, including those already in bullets.
 - Operational detail in the summary → move it to a bullet.
 - Bullet about using a tool → move it to skills.
@@ -2000,8 +2106,6 @@ ${contextBlock}
 
 ${assessmentBlock}
 
-${retryInstruction ? `⚠️ RETRY INSTRUCTION — READ THIS BEFORE ANYTHING ELSE:\n${retryInstruction}\n` : ''}
-
 COACHING CONVERSATION (everything extracted — use all of it):
 ${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}
 
@@ -2014,27 +2118,33 @@ This candidate is transitioning from ${careerContext.previous_field || 'their pr
 
 Every decision — summary, bullets, skills, section order — serves the target field, not the previous one.
 
-SUMMARY: Opens from the target role identity. Their previous experience becomes evidence, not identity.
-BULLETS: For every bullet ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" If yes — keep and strengthen. If no — reframe or cut.
+SUMMARY: Opens from the target role identity. Their previous experience becomes evidence, not identity. sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in coaching that they want less emphasis on a specific type of work, that work must not appear as a proof point in sentence 2 under any circumstances. Find the best proof points that serve the target role instead.
+
+BULLETS: For every bullet ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" If yes, keep and strengthen. If no, reframe or put towards the bottom of the list. Put bullets relevant to target role before those not relevant to target role. If someone with an administrative background is getting started in marketing, of course you will include the administrative experience in the bullets. But, any bullets showing marketing skills should appear first.
+
 SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer go last or get cut.
 CUTTING: For career changers, the no-removal default is suspended. Build the strongest case for where they're going, not a complete record of where they've been.
 ` : ''}
 
-STEP 1 — ASSESS THE RESUME:
+STEP 1: ASSESS THE RESUME:
 Strong resume (multiple bullets per role, relevant content): Enhancement mode. Preserve what works. Improve what's weak. Add what's missing.
-Bare-bones resume (vague descriptions, thin content): Build mode. The coaching conversation IS the resume. Most of this gets written from scratch.
+Bare-bones resume (vague descriptions, thin content): Build mode. Use both the existing resume AND the coaching conversation to improve the resume. Improve where you can. Write from scratch when needed.
 
-STEP 2 — FILTER THE COACHING CONVERSATION:
-The conversation is raw material, not a script. Apply this filter:
-✓ Demonstrates a skill, achievement, or responsibility relevant to target role → include it
-✗ Celebrity name, personal anecdote, or colorful detail → reframe or omit
-✗ Impressive-sounding fact that doesn't help their job search → cut it
-Skill hiding inside a story → extract to skillsCategories, not a bullet
+STEP 2: FILTER THE COACHING CONVERSATION:
+The conversation is raw material, not a comprehensive list of everything to add to the resume. You MUST determine what is critically relevant to helping the candidate get interviews for jobs in their target rule and apply ONLY that information to the resume. You MUST not use all the information provided if it isn’t all relevant and critical to their goal. Including irrelevant information will hurt the resume score and the candidate’s changes to get an interview.
 
-STEP 3 — EXTRACT SKILLS FIRST (before writing any bullets):
-Read every bullet, job summary, and coaching answer. Ask: "What skill is this person demonstrating that they have not explicitly listed?" These go in skillsCategories.
+Apply this filter:
+INCLUDE: Demonstrates a notable skill, achievement, or responsibility relevant to target role that can be defined in terms of impact, scope, scale, or results → include it
+EXCLUDE: Celebrity name, personal anecdote, or colorful detail → reframe or omit
+EXCLUDE: Impressive-sounding fact that doesn't help their job search → cut it
+EXCLUDE: Small, one-time accomplishments that minimize the scope of their experience.
+EXCLUDE: Small, unimportant metrics. Do not add any number just to add numbers. Small or irrelevant metrics hurt a resume more than they help it. Find the real impact. Producing a 4-person group act for the holiday show is unimpressive. Reaching 4500 audience members over a 9-show run is impressive. Including cast size damages the resume. Including the audience size shows the real impact and strengthens the resume.
+EXCLUDE: Skill hiding inside a story → extract to skillsCategories, not a bullet
 
-STEP 4 — WRITE THE RESUME:
+STEP 3: EXTRACT SKILLS FIRST (before writing any bullets):
+Read every bullet, job summary, and coaching answer. Ask: "What skill is this person demonstrating that they have not explicitly listed?" It is your job to find skills in the existing resume and coaching conversation that translate to ATS keyword strength on their resume. You should find skills they didn’t even know they had or didn’t know were important to list. These go in skillsCategories.
+
+STEP 4: WRITE THE RESUME:
 
 PROFESSIONAL SUMMARY:
 Set summary to an empty string: "".
@@ -2042,25 +2152,40 @@ The summary is written in a dedicated second pass. Do not write it here under an
 
 EXPERIENCE:
 
-Triage every existing bullet before writing anything:
+Assess every existing bullet before writing anything:
+
 STRONG (passes all): calibrated verb, specific detail, passes Brain Test, accurate ownership level → do not rewrite. Enhance only if coaching adds something new.
-WEAK (fails any): vague, duty-focused, no specifics, fails Brain Test → rewrite using coaching material.
 
-For every strong bullet: "Is there one thing from coaching that makes this undeniable?" If yes — enhance it. If no — leave it exactly as written.
+WEAK (fails any): vague, duty-focused, no specifics, fails Brain Test → rewrite using resume content PLUS coaching material. 
 
-BULLET COUNT — TENURE-PROPORTIONAL:
-Most recent role: 4-6 bullets. Senior with broad scope: up to 7.
-Second role: proportional to tenure. 9-year VP role = 5-6. 2-year role = 3-4.
-Third role: 2-3 maximum.
-Fourth role and beyond: 1-2 bullets or title/company/dates only.
-After writing each role: count. If over — "Would a recruiter for the target role notice this was gone?" If no — cut it.
+For every strong bullet: "Is there anything from coaching that makes this story stronger?" If yes, enhance it. If no, leave it exactly as written.
+
+Only use relevant impact when strengthening. Do not add meaningless metrics just to put more numbers on the page. Find the real impact. Producing a 4-person group act for the holiday show is unimpressive. Reaching 4500 audience members over a 9-show run is impressive. Including cast size damages the resume. Including the audience size shows the real impact and strengthens the resume.
+
+BULLET COUNT: TENURE-PROPORTIONAL:
+
+The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula. 
+
+Bullet point guidelines: 
+
+Current or most recent role: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets
+
+Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
+
+Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable, or title, company, dates and job summary only.
+
+Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
+
+Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates may have more. Early Career and Entry Level may have fewer.
+
+After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
 
 BULLET ORDER WITHIN EACH ROLE:
 Most target-relevant bullets first. A recruiter scanning for 5 seconds reads the first two. Make them count.
 
 THE NO-REMOVAL DEFAULT:
 Before removing any content: Does the coaching conversation give a specific reason to remove this? Is it genuinely redundant or irrelevant to the target role? Am I replacing it with something strictly better?
-If not clearly YES on all three — preserve it.
+If not clearly YES on all three, preserve it.
 
 ADMIN EXPERIENCE: Never remove admin bullets for student or early-career resumes. Internship and coordinator roles explicitly require evidence of admin capability.
 
@@ -2079,11 +2204,17 @@ Strong skill set that titles don't convey → Skills may precede experience.
 AGE DISCRIMINATION PROTECTION:
 20+ years experience: drop graduation year, condense pre-2005 roles to title/company/dates or cut entirely. Never list more than 20 years of work history without a compelling reason.
 
-PRE-OUTPUT — THE GOVERNING TEST:
+PRE-OUTPUT: THE GOVERNING TEST:
 Before outputting, ask one question: "Is every word here earning its place for the target role?"
 Not "did I capture everything?" Not "did I address all the gaps?" Just: does this serve the target role, or not?
 
-If you cannot point to specific, meaningful improvements in at least two of impact, clarity, and keywords — you have not finished the job. Return to the coaching conversation and find what you missed.
+If you cannot point to specific, meaningful improvements in at least two of impact, clarity, and keywords, you have not finished the job. Return to the coaching conversation and find what you missed.
+
+DUPLICATE CHECK: MANDATORY BEFORE OUTPUTTING:
+Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
+
+BULLET COUNT CHECK: MANDATORY BEFORE OUTPUTTING:
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. Senior with broad scope and 15+ years’ experience: up to 7. Average: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:

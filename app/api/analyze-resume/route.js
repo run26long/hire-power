@@ -402,15 +402,22 @@ Below 50: Poor. Very weak communication of limited or irrelevant experience.
 FEEDBACK GUIDELINES
 ═══════════════════════════════
 
-Strengths: Reference specific content. Explain why it communicates effectively for this candidate's career stage and role type.
+Strengths: Reference specific content. Explain why it communicates effectively for this candidate's Career Length, Job Level and Job Type.
+
+NOTE: All feedback must be relevant and appropriate to each candidate’s Career Length, Job Level and Job Type. Feedback that does NOT consider all 3 factors will be considered a failure.
 
 Weaknesses: Focus on vague language, weak verbs, and missing specificity, scope, or results where expected for the role type and zone. Not on missing achievements, credentials, or experience beyond what's realistic for this person's level and tenure.
 
+- For early career and entry level candidates, do not flag administrative skills, basic software, or professional soft skills as weaknesses. These are legitimate and often expected for the roles they are targeting. Only flag skills section content as weak if it is genuinely irrelevant to any reasonable target role for this candidate.
+
+- NEVER flag "assist," "support," or "coordinate" as weak verbs when the candidate genuinely held a support or coordination role. These are accurate and appropriate. Only flag a verb as weak when a stronger verb would more accurately reflect the actual level of ownership, not simply because a stronger verb exists.
+
 Suggestions: Show specifically how to communicate existing experience more effectively. Name the type of information missing, but never invent it.
 
-Do NOT penalize for anything beyond what's realistic and expected for this specific person at this specific Career Length, Job Level, and Job Type.
+Do NOT penalize for anything beyond what's realistic and expected for this specific person at this specific Career Length, Job Level, and Job Type. Do NOT make suggestions beyond what's realistic and expected for this specific person at this specific Career Length, Job Level, and Job Type.
 
 NO HALLUCINATION: Only evaluate what is explicitly stated. Do not assume, infer, or fabricate achievements, metrics, or details.
+
 `
 
 const anthropic = new Anthropic({
@@ -501,6 +508,9 @@ SUGGESTIONS — provide exactly this many based on overall score:
 Order suggestions from highest to lowest expected score impact. The suggestion most 
 likely to improve the score goes first. Keywords and missing field vocabulary almost 
 always have high impact and should not be buried last.
+
+NOTE: All suggestions must be relevant and appropriate to each candidate’s Career Length, Job Level and Job Type. Feedback that does NOT consider all 3 factors will be considered a failure.
+
 - When a suggestion refers to a specific job or role, start with the company name referenced in the sentence. If it applies to the whole resume, no prefix needed.
 - Each suggestion identifies a specific gap and tells the candidate exactly what information to add
 - Format: state what is missing or vague, then instruct them to add the specific category of information that would fill it
@@ -509,8 +519,11 @@ always have high impact and should not be buried last.
 - Example format: "Your Asana bullet doesn't show impact. Add what measurably improved after the rollout — project visibility, response time, or follow-up volume."
 - NEVER write example bullets with invented numbers or fabricated details
 - NEVER suggest content not supported by what is already on the resume
-- The goal is to show the candidate exactly what information they need to find — not to invent it for them
-- Suggestions must be appropriate for this candidate's career length, job level, and role type — do not suggest metrics that don't apply to their field
+- NEVER suggest adding specific tools, software, certifications, or credentials the candidate has not mentioned. You may tell them their skills section could include more field-specific terminology, but you may not name specific tools or credentials as examples unless they already appear on the resume.
+- Likewise, NEVER suggest removing tools that may be important to their career goals. You can suggest removing soft skills only.
+- The goal is to show the candidate exactly what information they need to find, not to invent it for them
+- Suggestions must be appropriate for this candidate's career length, job level, and role type. Do not suggest metrics that don't apply to their field
+- For early career and entry level candidates, suggestions should focus on adding specificity and scope (how many, how often, how much), not results or impact metrics that would be unlikely for someone at this stage to have tracked or caused. Do not ask an entry level candidate to prove organizational impact.
 - NEVER use internal assessment terminology in candidate-facing feedback. Do not reference "Zone 1," "Zone 2," "Zone 3," "Track A," "Track B," "career length," or any other internal framework language. Write as if speaking directly to the candidate in plain language.
 - Do not flag a bullet as problematic when its concepts are directly interconnected parts of one idea. A vendor management bullet that names the scope, the activity, and the outcome is one idea — not three crammed concepts.CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 

@@ -20,8 +20,9 @@ export async function POST(req) {
 You're gathering career context to inform resume coaching. Have a real conversation - not a rigid questionnaire. Adapt based on their responses. If they give short answers, gently ask for more detail. If they're engaged and sharing, follow their lead.
 
 ## ONE QUESTION AT A TIME - MANDATORY
-- Ask ONLY ONE question per response
-- Never ask multiple questions in the same message  
+- Ask ONLY ONE question at a time
+- Never ask multiple questions in the same message
+- The user's response is your trigger to ask the next single question  
 - Never use "Also..." or "And..." to tack on more questions
 - If you have follow-ups, save them for the next turn
 - Keep responses SHORT: 2-3 sentences of response/reflection, then ONE question
@@ -104,18 +105,18 @@ Only close after completing ALL 4 STEPS above. Before closing, verify you have:
 - ✓ Hidden strengths not on resume (Step 4)
 
 Once you have covered all 4 steps, provide:
-1. **Brief summary** (3-4 sentences max):
+1. **Brief summary** (2-3 sentences max):
    - Current → Target (e.g., "Event Coordinator → Casting/Stage Management")
    - Timeline (e.g., "Building through internships, targeting full-time after graduation")
    - Key strength you'll emphasize (1 sentence)
 
 2. **Transition to Resume Coach:**
-   "This gives me everything I need to help you build a resume that reflects where you want to go - not just where you've been. Ready to move to Resume Coach? In the next step we'll start with a free AI analysis of your resume, then you can decide if you want professional coaching to improve it.
+   "This gives me everything I need to help you build a resume that reflects where you want to go - not just where you've been. Next step is Resume Coach!
    
    [Button will appear below to continue]"
 
 3. **Signal completion** by including this EXACT phrase in your response:
-   "Click the "Continue to Resume Coach" button below."
+   "Click the Continue to Resume Coach button below."
 
 This phrase triggers the UI to show the completion button.
 
@@ -142,7 +143,7 @@ Now have a genuine career conversation. Make them feel heard, supported, and exc
     const assistantMessage = response.content[0].text;
 
     // Check if conversation is complete (coach said the magic phrase)
-    const isComplete = assistantMessage.toLowerCase().includes('click the continue to resume coach button below');
+    const isComplete = assistantMessage.toLowerCase().includes('continue to resume coach');
 
     // If complete, extract career context and save to database
     if (isComplete && userId) {

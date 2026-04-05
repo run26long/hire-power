@@ -180,7 +180,7 @@ export default function Profile() {
   const btnOrange  = { background: '#fff', color: '#6b7280', border: '1.5px solid #e5e7eb', borderRadius: 7, padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }
 
   const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }
-  const modalBox     = { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, boxShadow: '0 25px 50px rgba(0,0,0,0.2)', overflow: 'hidden' }
+  const modalBox     = { background: '#fff', borderRadius: 12, width: '100%', maxWidth: 420, boxShadow: '0 25px 50px rgba(0,0,0,0.2)', overflow: 'hidden' }
   const modalHead    = (grad) => ({ background: grad || 'linear-gradient(135deg,#9333ea,#6b21a8)', padding: '18px 22px' })
   const modalBody    = { padding: '20px 22px' }
   const modalTitle   = { fontSize: 16, fontWeight: 800, color: '#fff', margin: 0 }
@@ -457,7 +457,8 @@ export default function Profile() {
               <p style={modalTitle}>Switch to Vault</p>
               <p style={modalSub}>$4.99/month between job searches</p>
             </div>
-            <div style={modalBody}>
+           <div style={modalBody}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#6b21a8', marginBottom: 14 }}>Three years from now, you won't remember today's achievements. But Hire Power will.</p>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You'll lose:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
                 <li>Resume coaching and job customization</li>
@@ -465,11 +466,14 @@ export default function Profile() {
                 <li>New resume generation</li>
               </ul>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You'll keep:</p>
-              <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 18, lineHeight: 1.8 }}>
+              <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 10, lineHeight: 1.8 }}>
                 <li>All resumes and coaching conversations</li>
                 <li>Career Vault achievement tracking</li>
                 <li>Unlimited downloads and premium templates</li>
               </ul>
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 18 }}>
+                <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.5 }}>Vault keeps everything safe between searches and builds your next resume while you build your career. Getting back to Pro takes one click.</p>
+              </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowDowngradeModal(false)} disabled={processing} style={{ ...btnGhost, flex: 1 }}>Keep Pro</button>
                 <button onClick={handleDowngrade} disabled={processing} style={{ ...btnPurple, flex: 1, opacity: processing ? 0.6 : 1 }}>
@@ -493,7 +497,7 @@ export default function Profile() {
               {tier === TIERS.PRO && (
                 <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', marginBottom: 3 }}>Consider Vault instead ($4.99/month)</p>
-                  <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.4 }}>Keep your work safe between searches. Upgrade back to Pro anytime.</p>
+                 <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.4 }}>For less than a latte, never start from scratch again! Vault keeps your career history safe and lets you track wins in real time. This means while you're out building your career, we're already building your next resume.</p>
                 </div>
               )}
               <p style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>Why are you cancelling? (optional)</p>
@@ -506,7 +510,7 @@ export default function Profile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {tier === TIERS.PRO && (
                   <button onClick={() => { setShowCancelModal(false); setShowDowngradeModal(true) }} style={{ ...btnPurple, width: '100%' }}>
-                    Switch to Vault Instead
+                    Switch to Vault & Never Start from Scratch Again
                   </button>
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -525,7 +529,7 @@ export default function Profile() {
       {showExportModal && (
         <div style={modalOverlay}>
           <div style={modalBox}>
-            <div style={modalHead('linear-gradient(135deg,#c2410c,#9a3412)')}>
+            <div style={modalHead()}>
               <p style={modalTitle}>Export Your Data</p>
               <p style={modalSub}>Download everything we have on file.</p>
             </div>
