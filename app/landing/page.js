@@ -10,6 +10,7 @@ export default function LandingPage() {
   const router = useRouter();
   const [userProfile, setUserProfile] = useState(null);
 const [showSignupModal, setShowSignupModal] = useState(false);
+const [signupAsPro, setSignupAsPro] = useState(false);
 const [signupEmail, setSignupEmail] = useState('');
 const [signupPassword, setSignupPassword] = useState('');
 const [signupLoading, setSignupLoading] = useState(false);
@@ -274,7 +275,7 @@ const supabase = createClient();
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{backgroundColor:'rgba(0,0,0,0.5)'}}
-          onClick={() => setShowSignupModal(false)}
+          onClick={() => { setShowSignupModal(false); setSignupAsPro(false); }}
         >
           <div
             className="bg-white shadow-2xl w-full overflow-hidden"
@@ -287,14 +288,20 @@ const supabase = createClient();
               className="px-6 py-5 relative"
             >
               <button
-                onClick={() => setShowSignupModal(false)}
+                onClick={() => { setShowSignupModal(false); setSignupAsPro(false); }}
                 className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
               >×</button>
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
-                  <h2 className="text-xl font-bold text-white">Start your free account</h2>
-                  <p className="text-purple-100 text-xs">No credit card required. Free forever plan.</p>
+                  <h2 className="text-xl font-bold text-white">
+                    {signupAsPro ? 'Start with Pro' : 'Start your free account'}
+                  </h2>
+                  <p className="text-purple-100 text-xs">
+                    {signupAsPro
+                      ? 'Free tells you what\'s wrong. Pro fixes it for you.'
+                      : 'No credit card required. Free forever plan.'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -303,15 +310,21 @@ const supabase = createClient();
             <div className="px-6 py-5">
               {signupSuccess ? (
                 <div className="text-center py-4">
-                  <div className="text-4xl mb-3">📧</div>
-                  <p className="font-semibold text-gray-900 mb-2">Check your email!</p>
-                  <p className="text-sm text-gray-600">Click the confirmation link and you'll be signed in automatically and taken straight to your account.</p>
+                  <div className="text-4xl mb-3">
+                    {signupAsPro ? '⚡' : '📧'}
+                  </div>
+                  <p className="font-semibold text-gray-900 mb-2">
+                    {signupAsPro ? 'Account created! Taking you to checkout...' : 'Check your email!'}
+                  </p>
+                  {!signupAsPro && (
+                    <p className="text-sm text-gray-600">Click the confirmation link and you'll be signed in automatically and taken straight to your account.</p>
+                  )}
                 </div>
               ) : (
                 <>
                   {signupAccountExists && (
                     <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm mb-4">
-                      👋 Account already exists! Redirecting to login...
+                      Account already exists. <a href="/login" className="underline font-medium">Log in instead</a>
                     </div>
                   )}
                   {signupError && (
@@ -319,7 +332,44 @@ const supabase = createClient();
                       {signupError}
                     </div>
                   )}
-                  <form onSubmit={handleSignup} className="space-y-4">
+                  <form onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (signupAsPro) {
+                      // Pro path: auto-confirm + Stripe
+                      setSignupLoading(true)
+                      setSignupError(null)
+                      try {
+                        const res = await fetch('/api/auth/signup-pro', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: signupEmail, password: signupPassword })
+                        })
+                        const data = await res.json()
+                        if (!res.ok) {
+                          if (data.error === 'ACCOUNT_EXISTS') {
+                            setSignupAccountExists(true)
+                          } else {
+                            setSignupError(data.error || 'Something went wrong. Please try again.')
+                          }
+                          return
+                        }
+                        // Sign them in client-side
+                        const { createClient } = await import('@/utils/supabase/client')
+                        const supabase = createClient()
+                        await supabase.auth.signInWithPassword({ email: signupEmail, password: signupPassword })
+                        setSignupSuccess(true)
+                        // Redirect to Stripe
+                        setTimeout(() => { window.location.href = data.checkoutUrl }, 800)
+                      } catch (err) {
+                        setSignupError('Something went wrong. Please try again.')
+                      } finally {
+                        setSignupLoading(false)
+                      }
+                    } else {
+                      // Free path: normal signup
+                      handleSignup(e)
+                    }
+                  }} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
                       <input
@@ -343,6 +393,37 @@ const supabase = createClient();
                         minLength={6}
                       />
                     </div>
+
+                    {/* Pro checkbox */}
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={signupAsPro}
+                        onChange={(e) => setSignupAsPro(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
+                      />
+                      <span className="text-sm text-gray-700 leading-snug">
+                        Start with Pro. Get the full conversation from day one. Your best resume. Improvements automatically applied.
+                      </span>
+                    </label>
+
+                    {/* Pro callout — only when checked */}
+                    {signupAsPro && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 space-y-1.5">
+                        {[
+                          'Coaching conversation that rewrites your resume for you',
+                          'Unlimited job-specific resumes and cover letters',
+                          'Unlimited coaching before every interview',
+                        ].map((item) => (
+                          <div key={item} className="flex items-start gap-2 text-xs text-purple-900">
+                            <span className="text-purple-500 flex-shrink-0 mt-0.5">✓</span>
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                        <p className="text-[10px] text-purple-600 font-semibold pt-1">$29.99/mo. Cancel anytime.</p>
+                      </div>
+                    )}
+
                     <button
                       type="submit"
                       disabled={signupLoading}
@@ -352,17 +433,14 @@ const supabase = createClient();
                       {signupLoading ? (
                         <span className="flex items-center justify-center gap-2">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/>
-                          Creating account...
+                          {signupAsPro ? 'Creating account...' : 'Creating account...'}
                         </span>
-                      ) : 'Create free account'}
+                      ) : signupAsPro ? 'Create account and go Pro. $29.99/mo' : 'Create free account'}
                     </button>
                   </form>
                   <p className="text-center text-xs text-gray-400 mt-4">
                     Already have an account?{' '}
                     <a href="/login" className="text-purple-600 hover:underline font-medium">Log in</a>
-                  </p>
-                  <p className="text-center mt-3">
-                    <a href="/login?plan=pro" className="text-purple-600 text-xs hover:underline">Ready for the real conversation? Start with Pro.</a>
                   </p>
                 </>
               )}
@@ -896,7 +974,7 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Level up before your interview with gamified practice progression</li>
               </ul>
               <div className="tier-cta">
-                <button onClick={() => setShowSignupModal(true)} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none',background:'linear-gradient(to right, #667eea, #764ba2)'}}>Go Pro: $29.99/mo</button>
+                <button onClick={() => { setSignupAsPro(true); setShowSignupModal(true); }} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none',background:'linear-gradient(to right, #667eea, #764ba2)'}}>Go Pro: $29.99/mo</button>
               </div>
             </div>
 
@@ -934,7 +1012,7 @@ const supabase = createClient();
         <h2>Your career deserves<br/>a <em>real conversation.</em></h2>
         <p>Start with Career Coach - free, unlimited, and the most valuable five minutes of your job search.</p>
         <div className="final-cta-actions">
-          <button onClick={() => setShowSignupModal(true)} style={{display:'inline-flex',alignItems:'center',background:'white',color:'#0D0D0D',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>Start now for free</button>
+          <button onClick={() => { setSignupAsPro(false); setShowSignupModal(true); }} style={{display:'inline-flex',alignItems:'center',background:'white',color:'#0D0D0D',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>Start now for free</button>
         </div>
       </section>
 

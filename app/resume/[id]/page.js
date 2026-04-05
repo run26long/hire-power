@@ -404,7 +404,6 @@ function formatDate(dateString, format = dateFormat) {
         .select('id')
         .eq('resume_id', resume.id)
         .eq('user_id', user.id)
-        .neq('application_status', 'archived')
         .limit(1)
 
       const cardByResume = resumeCards?.[0] || null
@@ -416,7 +415,6 @@ function formatDate(dateString, format = dateFormat) {
             .eq('user_id', user.id)
             .eq('title', resume.job_title)
             .eq('company', resume.job_company)
-            .neq('application_status', 'archived')
             .limit(1)
         : { data: null }
 
@@ -4078,10 +4076,10 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
   }, [params.id])
 
   return (
-    <div className="space-y-2 -mt-2">
-      <h3 className="font-semibold text-lg">⭐ Resume Complete!</h3>
+    <div className="space-y-1.5 -mt-2">
+      <h3 className="font-semibold text-lg -mt-3">⭐ Resume Complete!</h3>
 
-      <p className="text-sm text-gray-500">Your resume is application-ready. Click below to save it as a PDF.</p>
+      <p className="text-xs text-gray-500">Your resume is application-ready.</p>
 
       <div className="flex justify-center pt-1">
         <button
@@ -4095,9 +4093,17 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
         </button>
       </div>
 
-      <div className="pt-2 border-t border-gray-200">
-        <p className="text-sm text-gray-500 mb-3">Ready to put it to use?</p>
+      <div className="pt-1 border-t border-gray-200">
+        <p className="text-xs text-gray-500 mb-3">Ready to put it to use?</p>
         <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
+          {isJobSpecific && (
+            <button
+              onClick={() => window.location.href = '/job-tracker'}
+              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              📋 View in Job Tracker →
+            </button>
+          )}
           {!isJobSpecific && (
             <button
               onClick={() => window.location.href = `/resume-coach?action=new-job-specific&from=${params.id}`}

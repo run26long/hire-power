@@ -471,20 +471,22 @@ export default function JobCardModal({
             style={{ borderRadius: '12px', maxHeight: '85vh' }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-              <div>
-                <h3 className="text-sm font-bold text-gray-900">{card.title}</h3>
-                <p className="text-xs text-gray-500">{card.company} · Job Description</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigator.clipboard.writeText(card.description)}
-                  className="text-xs font-semibold text-purple-600 hover:text-purple-800"
-                >Copy</button>
-                <button
-                  onClick={() => setShowJdModal(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                >×</button>
+            <div className="px-6 py-5 relative flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-white">{card.title}</h3>
+                  <p className="text-purple-100 text-xs mt-0.5">{card.company} · Job Description</p>
+                </div>
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(card.description)}
+                    className="text-xs font-semibold text-white hover:opacity-70 transition-opacity"
+                  >Copy</button>
+                  <button
+                    onClick={() => setShowJdModal(false)}
+                    className="text-white hover:opacity-70 text-2xl leading-none font-light"
+                  >×</button>
+                </div>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6">

@@ -304,26 +304,48 @@ export async function GET(req) {
       }
     }
     
-   // Get job-specific resumes
-    const { data: versions, error: versionsError } = await supabase
+   // Get archived card resume/CL IDs so we can hide them from resume-coach
+    const { data: archivedCards } = await supabase
+      .from('applications')
+      .select('resume_id, cover_letter_id')
+      .eq('user_id', user.id)
+      .eq('application_status', 'archived');
+
+    const archivedResumeIds = (archivedCards || []).map(c => c.resume_id).filter(Boolean);
+    const archivedCLIds = (archivedCards || []).map(c => c.cover_letter_id).filter(Boolean);
+
+    // Get job-specific resumes (excluding those belonging to archived cards)
+    let versionsQuery = supabase
       .from('resumes')
       .select('*')
       .eq('user_id', user.id)
       .eq('resume_type', 'job_specific')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
-    
+
+    if (userTier === 'pro' && archivedResumeIds.length > 0) {
+      versionsQuery = versionsQuery.not('id', 'in', `(${archivedResumeIds.join(',')})`);
+    }
+
+    const { data: versions, error: versionsError } = await versionsQuery;
+
     if (versionsError) {
       console.error('Versions error:', versionsError);
     }
-    
-    // Get cover letters
-    const { data: coverLetters, error: coverLettersError } = await supabase
+
+    // Get cover letters (excluding those belonging to archived cards)
+    let clQuery = supabase
       .from('cover_letters')
       .select('id, job_title, job_company, linked_resume_id, created_at')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
+
+    if (userTier === 'pro' && archivedCLIds.length > 0) {
+      clQuery = clQuery.not('id', 'in', `(${archivedCLIds.join(',')})`);
+    }
+
+    const { data: coverLetters, error: coverLettersError } = await clQuery;
 
     if (coverLettersError) {
       console.error('Cover letters error:', coverLettersError);

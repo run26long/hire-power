@@ -251,6 +251,16 @@ export default function JobTrackerPage() {
     setSelectedCard(prev => prev ? { ...prev, resume_id: resumeId, resumes: resume || null } : prev);
   };
 
+  const handleRestoreCard = async (cardId) => {
+    const card = archivedCards.find(a => a.id === cardId);
+    await supabase
+      .from('applications')
+      .update({ application_status: 'resume_in_progress', last_active_status: null, updated_at: new Date().toISOString() })
+      .eq('id', cardId);
+    setApplications(prev => [...prev, { ...card, application_status: 'resume_in_progress', last_active_status: null }]);
+    setArchivedCards(prev => prev.filter(a => a.id !== cardId));
+  };
+
   const handleArchiveCard = async (cardId) => {
     const card = applications.find(a => a.id === cardId);
     await supabase
@@ -958,16 +968,25 @@ export default function JobTrackerPage() {
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              if (confirm('Delete this archived card? This cannot be undone.')) {
-                                await supabase.from('applications').delete().eq('id', card.id);
-                                setArchivedCards(prev => prev.filter(a => a.id !== card.id));
-                              }
-                            }}
-                            className="text-[10px] text-red-400 font-semibold hover:text-red-600 flex-shrink-0"
-                          >Delete</button>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await handleRestoreCard(card.id);
+                              }}
+                              className="text-[10px] text-purple-500 font-semibold hover:text-purple-700"
+                            >Restore</button>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (confirm('Delete this archived card? This cannot be undone.')) {
+                                  await supabase.from('applications').delete().eq('id', card.id);
+                                  setArchivedCards(prev => prev.filter(a => a.id !== card.id));
+                                }
+                              }}
+                              className="text-[10px] text-red-400 font-semibold hover:text-red-600"
+                            >Delete</button>
+                          </div>
                         </div>
                       </div>
                     ))}

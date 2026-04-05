@@ -74,13 +74,12 @@ export default function CoverLetterPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Check if an active card already has this cover letter linked
+    // Check if any card (including archived) already has this cover letter linked
     const { data: existingCards } = await supabase
       .from('applications')
       .select('id')
       .eq('cover_letter_id', coverLetter.id)
       .eq('user_id', user.id)
-      .neq('application_status', 'archived')
       .limit(1)
 
     if (existingCards?.[0]) return // already linked, nothing to do
@@ -101,7 +100,6 @@ export default function CoverLetterPage() {
           .select('id')
           .eq('resume_id', coverLetter.linked_resume_id)
           .eq('user_id', user.id)
-          .neq('application_status', 'archived')
           .limit(1)
 
         const resumeCard = resumeCards?.[0] || null
@@ -629,12 +627,20 @@ export default function CoverLetterPage() {
                     {isDownloading && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
                     {isDownloading ? 'Generating...' : 'Download PDF'}
                   </button>
-                  <button
-                    onClick={() => router.push('/resume-coach')}
-                    className="w-full text-center text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    ← Back to Resume Coach
-                  </button>
+                 <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push('/resume-coach')}
+                      className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-purple-50 transition-colors"
+                    >
+                      ← Resume Coach
+                    </button>
+                    <button
+                      onClick={() => router.push('/job-tracker')}
+                      className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-purple-50 transition-colors"
+                    >
+                      Job Tracker →
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
