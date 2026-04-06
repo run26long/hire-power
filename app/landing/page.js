@@ -264,7 +264,7 @@ const supabase = createClient();
         @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (max-width: 768px) {
-          .hero { grid-template-columns: 1fr !important; padding: 80px 24px 48px !important; min-height: auto !important; }
+          .hero { grid-template-columns: 1fr !important; padding: 32px 24px 48px !important; min-height: auto !important; }
           .hero-visual { display: none !important; }
           .hero h1 { font-size: 38px !important; letter-spacing: -1px !important; }
           .hero-inner-pad { margin-left: 0 !important; }
@@ -308,22 +308,30 @@ const supabase = createClient();
           footer { flex-direction: column !important; align-items: center !important; gap: 20px !important; padding: 32px 24px !important; text-align: center !important; }
           .footer-links { flex-wrap: wrap !important; justify-content: center !important; }
           .landing-page { width: 100% !important; }
-          .section-title br, .hero h1 br, .final-cta h2 br { display: none !important; }
+          .hero h1 br, .final-cta h2 br { display: none !important; }
           .section-title { font-size: 32px !important; letter-spacing: -1px !important; }
           .never-start-heading { font-size: 42px !important; letter-spacing: -1px !important; }
           .never-start-section { padding: 48px 24px !important; }
           .mobile-reduce-top { margin-top: 24px !important; }
           .finish-line-section { padding: 40px 0 !important; }
           .finish-line-callout { padding: 0 24px 40px !important; }
-          .pricing-os-line { margin-bottom: 16px !important; font-size: 13px !important; }
+          .pricing-os-line { display: none !important; }
           .pricing-header { margin-bottom: 8px !important; }
           .pricing-note-upgrade { display: none !important; }
           .pricing-note { margin-top: 12px !important; margin-bottom: 16px !important; }
+          .pricing-header { margin-bottom: 4px !important; }
+          .pricing .section-title { margin-bottom: 8px !important; }
           .hide-on-mobile { display: none !important; }
           .never-start-heading br { display: none !important; }
           .hero h1 { font-size: 34px !important; }
           .final-cta h2 { font-size: 36px !important; }
           .manifesto p { font-size: 18px !important; }
+          .we-just-asked-gap { margin-bottom: 24px !important; }
+          .editorial-headline { font-size: 16px !important; }
+          .editorial-body { font-size: 15px !important; }
+          .editorial-quote { font-size: 17px !important; }
+          .desktop-break { display: none !important; }
+          .mobile-break { display: inline !important; }
           .mobile-nav { display: flex !important; }
           .desktop-nav { display: none !important; }
         }
@@ -520,11 +528,8 @@ const supabase = createClient();
         <MainNav currentPage="landing" userProfile={userProfile} />
       </div>
       <div className="mobile-nav" style={{display:'none',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',background:'white',borderBottom:'1px solid rgba(0,0,0,0.06)',position:'sticky',top:0,zIndex:40}}>
-        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={{width:'28px',height:'28px',background:'linear-gradient(135deg,#9333ea,#6b21a8)',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
-          </div>
-          <span style={{fontFamily:"'DM Sans',sans-serif",fontWeight:800,fontSize:'15px',color:'#0D0D0D'}}>HIRE <span style={{color:'#9333ea'}}>POWER</span></span>
+        <div style={{display:'flex',alignItems:'center'}}>
+          <img src="/images/HirePower_logo.png" alt="Hire Power" style={{height:'32px',width:'auto'}} />
         </div>
         <button onClick={() => { setSignupAsPro(false); setShowSignupModal(true); }} style={{background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',padding:'8px 16px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer'}}>
           Get started
@@ -721,7 +726,7 @@ const supabase = createClient();
           </div>
 
           {/* Transition */}
-          <div style={{textAlign:'center',marginBottom:'56px'}}>
+          <div className="we-just-asked-gap" style={{textAlign:'center',marginBottom:'56px'}}>
             <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(22px,2.8vw,36px)',fontWeight:700,color:'white',lineHeight:1.3,fontStyle:'italic'}}>
               How did we get all that information?<span style={{color:'#a78bfa'}}> We just asked.</span>
             </p>
@@ -817,12 +822,12 @@ const supabase = createClient();
 
             {/* Editorial panel */}
             <div style={{paddingTop:'8px'}}>
-              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(14px,1.4vw,17px)',fontWeight:700,color:'#a78bfa',lineHeight:1.35,margin:'0 0 20px',fontStyle:'italic'}}>
+              <p className="editorial-headline" style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(14px,1.4vw,17px)',fontWeight:700,color:'#a78bfa',lineHeight:1.35,margin:'0 0 20px',fontStyle:'italic'}}>
                 Hire Power is the AI that interviews you like a professional resume writer would.{' '}
                 <span style={{color:'white'}}>Because your resume needs facts, not fiction.</span>
               </p>
-              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.7)',lineHeight:1.5,margin:'0 0 10px'}}>We recognized a VP who landed a $10M deal with Boeing Aerospace.</p>
-              <p style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into an intern (or a flight attendant; we can&apos;t quite tell!)</p>
+              <p className="editorial-body" style={{fontSize:'14px',color:'rgba(255,255,255,0.7)',lineHeight:1.5,margin:'0 0 10px'}}>We recognized a VP who landed a $10M deal with Boeing Aerospace.</p>
+              <p className="editorial-body" style={{fontSize:'14px',color:'rgba(255,255,255,0.5)',lineHeight:1.5,margin:'0 0 20px',fontStyle:'italic'}}>The competitor saw &quot;Boeing&quot; and turned him into an intern (or a flight attendant; we can&apos;t quite tell!)</p>
               <div style={{height:'1px',background:'rgba(255,255,255,0.1)',marginBottom:'18px'}}/>
               <p style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',lineHeight:1.6,margin:'0 0 14px',fontWeight:600}}>After working with Hire Power, Robert landed:</p>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'24px'}}>
@@ -835,8 +840,8 @@ const supabase = createClient();
                   <div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.6)',lineHeight:1.4,marginTop:'4px'}}>offer<br/>within the month</div>
                 </div>
               </div>
-              <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(15px,1.6vw,18px)',fontWeight:700,fontStyle:'italic',color:'#a78bfa',lineHeight:1.3,margin:'0 0 28px'}}>
-                Same candidate. Two tools.<br/>One wrote fiction.<br/><span style={{color:'white'}}>The other uncovered the facts that got him hired.</span>
+              <p className="editorial-quote" style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(15px,1.6vw,18px)',fontWeight:700,fontStyle:'italic',color:'#a78bfa',lineHeight:1.3,margin:'0 0 28px'}}>
+                Same candidate. Two tools. One wrote fiction.<br className="desktop-break"/> <span style={{color:'white'}}>The other got him hired.</span>
               </p>
               <button onClick={() => setShowSignupModal(true)} style={{display:'inline-block',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',fontFamily:"'DM Sans',sans-serif",fontSize:'14px',fontWeight:700,padding:'12px 24px',borderRadius:'10px',border:'none',cursor:'pointer',letterSpacing:'-0.01em',boxShadow:'0 4px 20px rgba(102,126,234,0.4)'}}>
                 Start for free & reveal your best resume →
@@ -872,7 +877,7 @@ const supabase = createClient();
               {[
                 {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. Free for everyone, unlimited."},
                 {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
-                {n:'3',title:'Interview Coach prepares you to defend it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
+                {n:'3',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
                 {n:'4',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(
                 <div key={step.n} className="how-step" style={{marginBottom: '8px'}}>
@@ -932,7 +937,7 @@ const supabase = createClient();
         <div style={{position:'relative',maxWidth:'900px',margin:'0 auto'}}>
           <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase',color:'#9333ea',marginBottom:'32px'}}>The part nobody talks about</div>
           <h2 className="never-start-heading" style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(56px,7vw,100px)',fontWeight:900,lineHeight:1.0,letterSpacing:'-3px',color:'#0f0f0f',margin:0}}>Never start from <em style={{fontStyle:'italic',color:'#9333ea'}}>scratch</em> again.</h2>
-          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:'18px',color:'#6b7280',lineHeight:1.65,maxWidth:'560px',margin:'32px auto 0'}}>Three years from now, you won&apos;t remember what you accomplished today. But Hire Power will.</p>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:'18px',color:'#6b7280',lineHeight:1.65,maxWidth:'560px',margin:'32px auto 0'}}>Three years from now, you won&apos;t remember what you accomplished today. Hire Power will.</p>
         </div>
       </section>
 
@@ -945,7 +950,7 @@ const supabase = createClient();
               <h2 className="section-title">The OS that keeps<br/> running between<br/><em> job searches.</em></h2>
               <p className="vault-body">Once your job search is complete, most people go dark - until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move, your resume is basically already written.</p>
               <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Be ready for any opportunity. And never start from scratch again.&quot;</div>
-              <p style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
+              <p className="hide-on-mobile" style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
             </div>
             <div className="vault-visual">
               <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',marginBottom:'24px'}}>Career  · Live</div>
@@ -980,7 +985,7 @@ const supabase = createClient();
         <div className="container">
           <div className="pricing-header">
             <div className="section-eyebrow" style={{textAlign:'center'}}>Pricing</div>
-            <h2 className="section-title" style={{textAlign:'center'}}>One platform. <br/><em>Your whole career.</em></h2>
+            <h2 className="section-title" style={{textAlign:'center'}}>One platform.<br/><em>Your whole career.</em></h2>
           </div>
           <p className="pricing-os-line"><strong>Free</strong>: Try the OS &nbsp;·&nbsp; <strong>Pro</strong>: Run the OS at full power &nbsp;·&nbsp; <strong>Vault</strong>: Keep the OS running between searches</p>
           <div className="pricing-tiers">
@@ -1317,7 +1322,7 @@ function FinishLineSection() {
           }}>
             Why We Built This
           </div>
-          <h2 style={{
+         <h2 style={{
             fontFamily: "'Fraunces', serif",
             fontWeight: 400,
             fontSize: 'clamp(20px,2vw,26px)',
@@ -1336,7 +1341,7 @@ function FinishLineSection() {
             lineHeight: 1.0,
             margin: '0 0 24px',
           }}>
-            We give you a <span style={{ color: '#9333ea', fontStyle: 'italic' }}>finish line.</span>
+            We give you a <br className="mobile-break" style={{display:'none'}}/><span style={{ color: '#9333ea', fontStyle: 'italic' }}>finish line.</span>
           </h2>
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -1557,12 +1562,12 @@ function FinishLineSection() {
             lineHeight: 1.4,
             margin: 0,
           }}>
-            Every one of these problems costs you interviews. We fixed them so you can focus on what comes next.
+            Each of these costs you interviews. We fixed them so you can focus on what comes next.
           </p>
           
           <p style={{
             fontFamily: "'Fraunces', serif",
-            fontSize: 'clamp(22px,2.5vw,32px)',
+            fontSize: 'clamp(24px,2.5vw,32px)',
             fontWeight: 900,
             color: '#9333ea',
             fontStyle: 'italic',
