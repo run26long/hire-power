@@ -272,7 +272,13 @@ const supabase = createClient();
 
           .container { padding: 0 24px !important; }
 
-          .problem { padding: 60px 0 !important; }
+          .problem { padding: 48px 0 !important; }
+          .how { padding: 48px 0 !important; }
+          .manifesto { padding: 48px 24px !important; }
+          .vault { padding: 48px 0 !important; }
+          .pricing { padding: 48px 0 !important; }
+          .final-cta { padding: 48px 24px !important; }
+          .interview-moment { padding: 40px 0 !important; }
           .problem-comparison-grid { grid-template-columns: 1fr !important; }
           .problem-chat-grid { grid-template-columns: 1fr !important; }
           .problem-chat-grid-chat { display: none !important; }
@@ -305,6 +311,15 @@ const supabase = createClient();
           .section-title br, .hero h1 br, .final-cta h2 br { display: none !important; }
           .section-title { font-size: 32px !important; letter-spacing: -1px !important; }
           .never-start-heading { font-size: 42px !important; letter-spacing: -1px !important; }
+          .never-start-section { padding: 48px 24px !important; }
+          .mobile-reduce-top { margin-top: 24px !important; }
+          .finish-line-section { padding: 40px 0 !important; }
+          .finish-line-callout { padding: 0 24px 40px !important; }
+          .pricing-os-line { margin-bottom: 16px !important; font-size: 13px !important; }
+          .pricing-header { margin-bottom: 8px !important; }
+          .pricing-note-upgrade { display: none !important; }
+          .pricing-note { margin-top: 12px !important; margin-bottom: 16px !important; }
+          .hide-on-mobile { display: none !important; }
           .never-start-heading br { display: none !important; }
           .hero h1 { font-size: 34px !important; }
           .final-cta h2 { font-size: 36px !important; }
@@ -535,7 +550,7 @@ const supabase = createClient();
           </div>
           <div className="hero-trust">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L9.854 5.757L15 6.292L11.25 9.773L12.382 15L8 12.35L3.618 15L4.75 9.773L1 6.292L6.146 5.757L8 1Z" fill="currentColor"/></svg>
-            No credit card required &nbsp;·&nbsp; Free forever plan &nbsp;·&nbsp; Built by a professional resume writer
+            No credit card required &nbsp;·&nbsp; Free forever plan <span className="hide-on-mobile">&nbsp;·&nbsp; Built by a professional resume writer</span>
           </div>
         </div>
 
@@ -708,7 +723,7 @@ const supabase = createClient();
           {/* Transition */}
           <div style={{textAlign:'center',marginBottom:'56px'}}>
             <p style={{fontFamily:"'Fraunces',serif",fontSize:'clamp(22px,2.8vw,36px)',fontWeight:700,color:'white',lineHeight:1.3,fontStyle:'italic'}}>
-              How did we get all that information?<br/><span style={{color:'#a78bfa'}}>We just asked.</span>
+              How did we get all that information?<span style={{color:'#a78bfa'}}> We just asked.</span>
             </p>
           </div>
 
@@ -829,8 +844,8 @@ const supabase = createClient();
             </div>
           </div>
 
-          <div className="problem-truth" style={{marginTop:'56px'}}>
-            <p>&quot;Every number is real. Every word is defensible.<br/>Because when an interviewer asks you to back it up -<br/>and <strong>they will</strong> - <em>&apos;the AI wrote that&apos; isn&apos;t an answer.</em>&quot;</p>
+          <div className="problem-truth mobile-reduce-top" style={{marginTop:'56px'}}>
+            <p>&quot;Every number is real. Every word is defensible. Because when an interviewer asks you to back it up - and <strong>they will</strong> - <em>&apos;the AI wrote that&apos; isn&apos;t an answer.</em>&quot;</p>
           </div>
         </div>
       </section>
@@ -1065,7 +1080,7 @@ const supabase = createClient();
 
           </div>
           <p className="pricing-note">
-            No credit card required &nbsp;·&nbsp; Free forever &nbsp;·&nbsp; Upgrade or downgrade anytime
+           No credit card required &nbsp;·&nbsp; Free forever <span className="pricing-note-upgrade">&nbsp;·&nbsp; Upgrade or downgrade anytime</span>
           </p>
 
           {/* MOBILE PRICING ACCORDION */}
@@ -1273,7 +1288,7 @@ function FinishLineSection() {
 
   return (
     <>
-    <section style={{
+    <section className="finish-line-section" style={{
       background: '#ffffff',
       padding: '80px 0',
       borderTop: '1px solid rgba(0,0,0,0.06)',
@@ -1514,7 +1529,7 @@ function FinishLineSection() {
     </section>
 
     {/* Transition callout */}
-    <div style={{
+    <div className="finish-line-callout" style={{
       maxWidth: '1200px',
       margin: '0 auto',
       padding: '0 48px 80px',
