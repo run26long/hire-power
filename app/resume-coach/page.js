@@ -738,7 +738,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const journeyStep = data?.coreResume?.journey_step || 'review';
   
   // Show placeholder scores in review OR assess steps (before assessment runs) OR when no score exists
-  const showPlaceholder = journeyStep === 'review' || journeyStep === 'assess' || !score;
+  const showPlaceholder = (journeyStep === 'review' || journeyStep === 'assess') && !score;
 
   // Journey steps for progress bar (tier-specific)
  const steps = isPro 
@@ -868,7 +868,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <div className="w-full h-full flex items-center justify-center bg-gray-50">
                                   <div className="text-center">
                                     <div className="text-3xl mb-1">📄</div>
-                                    <div className="text-sm text-gray-500">Ava Long</div>
+                                    <div className="text-sm text-gray-500">{data.coreResume.resume_data?.fullName || 'Resume'}</div>
                                   </div>
                                 </div>
                               )}
@@ -942,7 +942,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           
                           {/* Single-line footer - subtle */}
                           <div className="mt-2 text-center text-xs text-gray-500">
-                            Ava Long • Edited {formatDate(data.coreResume.updated_at).split(',')[0]}
+                            {data.coreResume.resume_data?.fullName || 'Resume'} • Edited {formatDate(data.coreResume.updated_at).split(',')[0]}
                           </div>
                         </div>
                       </div>
