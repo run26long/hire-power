@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import UpgradeModal from '../components/UpgradeModal';
 import ErrorToast from '../components/ErrorToast';
+import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
 
 export default function MyResumesPage() {
@@ -298,6 +299,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (saveError) throw new Error('SAVE_FAILED');
 
       // 5. Redirect to resume detail page
+      track('resume_uploaded', { method: 'upload' })
+      track('resume_uploaded', { method: 'upload' })
       router.push(`/resume/${savedResume.id}`);
 
     } catch (error) {
@@ -439,6 +442,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setJobModalSourceId(resumeId);
       setShowJobModal(true);
     } else {
+      track('upgrade_clicked', { source: 'resume_coach' })
       setShowUpgradeModal(true);
     }
   };

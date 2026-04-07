@@ -10,6 +10,7 @@ import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
 import ErrorToast from '../../components/ErrorToast'
+import { track } from '../../utils/analytics'
 
 const styles = `
   [contenteditable][data-placeholder]:empty:before {
@@ -246,6 +247,7 @@ document.body.appendChild(a)
 a.click()
 document.body.removeChild(a)
 // Clean up blob URL
+    track('resume_downloaded', { resume_type: resume?.resume_type || 'core' })
     window.URL.revokeObjectURL(blobUrl)
     
  } catch (error) {
@@ -1837,6 +1839,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                       if (error) {
                         setErrorToast('Something went wrong. Please try again.')
                       } else {
+                        track('assessment_completed', { score: score || 0 })
                         setResume(prev => ({ ...prev, journey_step: 'coach' }))
                       }
                     } catch (err) {
@@ -2057,6 +2060,7 @@ const getMessageText = (msg) => {
       })
       const data = await response.json()
       if (!data.response) throw new Error('No response from coach API')
+      track('coaching_started', { tier: tier })
       const initialMessages = [{ role: 'assistant', content: data.response }]
       setCoachingMessages(initialMessages)
 

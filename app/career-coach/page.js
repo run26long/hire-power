@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import Breadcrumb from '../components/Breadcrumb';
+import { track } from '../utils/analytics';
 
 export default function MyCareerPage() {
   const router = useRouter();
@@ -104,6 +105,7 @@ export default function MyCareerPage() {
         }).select().single();
       if (saveErr) throw saveErr;
 
+      track('resume_uploaded', { method: 'upload', source: 'career_coach' })
       localStorage.setItem('hp_career_modal_seen', 'true');
       router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
     } catch (err) {

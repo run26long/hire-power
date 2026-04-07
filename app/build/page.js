@@ -7,6 +7,7 @@ import MainNav from '../components/MainNav';
 import Breadcrumb from '../components/Breadcrumb';
 import ResumeContent from '../components/ResumeContent';
 import ErrorToast from '../components/ErrorToast';
+import { track } from '../utils/analytics';
 
 export default function BuildPage() {
   const router = useRouter();
@@ -142,6 +143,7 @@ useEffect(() => {
 
       if (error) throw error;
 
+      track('resume_uploaded', { method: 'build' })
       if (fromPage === 'career-coach') {
         router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
       } else if (fromPage === 'resume-coach') {
