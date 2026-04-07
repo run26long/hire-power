@@ -9,6 +9,7 @@ import UpgradeModal from '@/app/components/UpgradeModal'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
+import ErrorToast from '../../components/ErrorToast'
 
 const styles = `
   [contenteditable][data-placeholder]:empty:before {
@@ -52,6 +53,7 @@ const [coachingMessages, setCoachingMessages] = useState([])
 const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
 const [showCtaModal, setShowCtaModal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
   const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
   const [remainingGaps, setRemainingGaps] = useState([])
   const [recoachAttempts, setRecoachAttempts] = useState(0)
@@ -185,7 +187,7 @@ const handleAutoFit = async () => {
     }
   } catch (error) {
     console.error('Auto-fit error:', error)
-    alert('Auto-fit failed. Please try again.')
+    setErrorToast('Auto-fit failed. Please try again.')
   } finally {
     setIsAutoFitting(false)
   }
@@ -248,7 +250,7 @@ document.body.removeChild(a)
     
  } catch (error) {
     console.error('Error downloading PDF:', error)
-    alert('Failed to generate PDF. Please try again.')
+    setErrorToast('Failed to generate PDF. Please try again.')
   } finally {
     setIsDownloading(false)
   }
@@ -360,7 +362,7 @@ const handleReassess = async (overrideData = null) => {
 
   } catch (error) {
     console.error('Error analyzing resume:', error)
-    alert('Failed to analyze resume. Please try again.')
+    setErrorToast('Failed to analyze resume. Please try again.')
   } finally {
     setIsAnalyzing(false)
   }
@@ -674,7 +676,7 @@ if (data.ai_analysis) {
 
     if (error) {
       console.error('Error saving:', error)
-      alert('Changes could not be saved. Please check your connection and try again.')
+      setErrorToast('Changes could not be saved. Please check your connection and try again.')
       return
     }
 
@@ -1153,6 +1155,8 @@ fontFamily: selectedFont,
         </div>
       </div>
       </div>
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
@@ -1248,6 +1252,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     : ['review', 'assess', 'coach', 'improve', 'format', 'save']
   const currentIndex = steps.indexOf(journeyStep)
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
   const [maxStepIndex, setMaxStepIndex] = useState(currentIndex)
 
   useEffect(() => {
@@ -1764,7 +1769,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                             setResume(prev => ({ ...prev, journey_step: 'improve' }))
                           } catch (err) {
                             console.error('Error:', err)
-                            alert('Something went wrong. Please try again.')
+                            setErrorToast('Something went wrong. Please try again.')
                           } finally {
                             setIsUpdatingJourney(false)
                           }
@@ -1801,15 +1806,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                             .eq('id', params.id)
                           if (error) throw error
                           setResume(prev => ({ ...prev, journey_step: 'coach' }))
-                        } catch (err) {
-                          console.error('Error:', err)
-                          alert('Something went wrong. Please try again.')
-                        } finally {
-                          setIsUpdatingJourney(false)
-                        }
-                      }}
-                      disabled={isUpdatingJourney}
-                      className={`block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-xs font-semibold hover:bg-purple-50 transition-colors ${
+                       } catch (err) {
+                        console.error('Error:', err)
+                        setErrorToast('Something went wrong. Please try again.')
+                      } finally {
+                        setIsUpdatingJourney(false)
+                      }
+                    }}
+                    disabled={isUpdatingJourney}
+                    className={`block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-xs font-semibold hover:bg-purple-50 transition-colors ${
                         isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : ''
                       }`}
                     >
@@ -1830,12 +1835,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
                         .eq('id', params.id)
                       if (error) {
-                        alert('Something went wrong. Please try again.')
+                        setErrorToast('Something went wrong. Please try again.')
                       } else {
                         setResume(prev => ({ ...prev, journey_step: 'coach' }))
                       }
                     } catch (err) {
-                      alert('Something went wrong. Please try again.')
+                      setErrorToast('Something went wrong. Please try again.')
                     } finally {
                       setIsUpdatingJourney(false)
                     }
@@ -1940,7 +1945,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   />
 )}
 
-     {journeyStep === 'save' && (
+     <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
+      {journeyStep === 'save' && (
         <SaveStep
           resumeName={resumeName}
           userName={userName}
@@ -1960,6 +1967,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
   const [userInput, setUserInput] = useState('')
   const [userTier, setUserTier] = useState(userTierProp || null)
   const [trialComplete, setTrialComplete] = useState(false)
@@ -2243,7 +2251,7 @@ const getMessageText = (msg) => {
 
     } catch (err) {
       console.error('Error finishing coaching:', err)
-      alert('Something went wrong generating your resume. Please try again.')
+      setErrorToast('Something went wrong generating your resume. Please try again.')
     } finally {
       setIsFinishing(false)
     }
@@ -2294,7 +2302,7 @@ const getMessageText = (msg) => {
       setShowTrialRevealModal(true)
     } catch (err) {
       console.error('Error finishing trial:', err)
-      alert('Something went wrong. Please try again.')
+      setErrorToast('Something went wrong. Please try again.')
     } finally {
       setIsFinishing(false)
     }
@@ -2747,6 +2755,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         </div>
       )}
    
+   <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
    <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
@@ -2760,6 +2770,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext }) {  const [accepting, setAccepting] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
   const [acceptedChanges, setAcceptedChanges] = useState([])
   const [rejectedChanges, setRejectedChanges] = useState([])
@@ -3064,7 +3075,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error accepting changes:', err)
-      alert('Something went wrong. Please try again.')
+      setErrorToast('Something went wrong. Please try again.')
     } finally {
       setAccepting(false)
     }
@@ -3095,7 +3106,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error finishing review:', err)
-      alert('Something went wrong. Please try again.')
+      setErrorToast('Something went wrong. Please try again.')
     } finally {
       setAccepting(false)
       setIsPreparingReveal(false)
@@ -3588,6 +3599,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         </div>
       )}
 
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
       {/* Targeted Recoach */}
       {showTargetedRecoach && (
        <TargetedRecoachStep
@@ -3764,6 +3777,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const hasStartedRef = useRef(false)
@@ -3899,7 +3913,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
       onClose()
     } catch (err) {
       console.error('Error finishing targeted coach:', err)
-      alert('Something went wrong. Please try again.')
+      setErrorToast('Something went wrong. Please try again.')
     } finally {
       setIsFinishing(false)
     }
@@ -3967,6 +3981,8 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
         <div className="p-4 border-t border-gray-100 flex-shrink-0">
           {!isComplete ? (

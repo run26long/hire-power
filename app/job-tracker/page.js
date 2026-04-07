@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import JobCardModal from '../components/JobCardModal';
+import ErrorToast from '../components/ErrorToast';
 
 const COLUMNS = [
   { id: 'resume_in_progress', label: 'Resume Ready', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
@@ -55,6 +56,7 @@ export default function JobTrackerPage() {
 
   const [deleteConfirmCard, setDeleteConfirmCard] = useState(null);
   const [toast, setToast] = useState(null);
+  const [errorToast, setErrorToast] = useState(null);
   const [dragCard, setDragCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
@@ -237,7 +239,7 @@ export default function JobTrackerPage() {
 
     if (error) {
       console.error('Job card insert error:', error);
-      alert('Error: ' + error.message);
+      setErrorToast('Could not add job card. Please try again.');
     } else if (data) {
       setApplications(prev => [...prev, data]);
       setShowAddModal(false);
@@ -1125,6 +1127,8 @@ export default function JobTrackerPage() {
           >×</button>
         </div>
       )}
+
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
       {/* Card Detail Modal */}
       {showCardModal && selectedCard && (

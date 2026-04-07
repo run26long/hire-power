@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import UpgradeModal from '../components/UpgradeModal';
+import ErrorToast from '../components/ErrorToast';
 import { TIERS } from '@/lib/subscription';
 
 export default function MyResumesPage() {
@@ -204,6 +205,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
   // Modal state and handlers
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [errorToast, setErrorToast] = useState(null);
 
   // Tour handlers
   const handleNextTourScreen = () => {
@@ -399,7 +401,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       
     } catch (error) {
       console.error('Error downloading resume:', error);
-      alert('There was a problem downloading your resume. Please try again.');
+      setErrorToast('There was a problem downloading your resume. Please try again.');
     } finally {
       setDownloadingResumeId(null); // Clear downloading state
     }
@@ -425,7 +427,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       await loadData();
     } catch (error) {
       console.error('Delete error:', error?.message || error?.code || JSON.stringify(error));
-      alert('Could not delete resume. Please try again.');
+      setErrorToast('Could not delete resume. Please try again.');
     } finally {
       setDeletingId(null);
     }
@@ -596,7 +598,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       await loadData();
     } catch (error) {
       console.error('Delete CL error:', error);
-      alert('Could not delete cover letter. Please try again.');
+      setErrorToast('Could not delete cover letter. Please try again.');
     } finally {
       setDeletingCLId(null);
     }
@@ -2410,6 +2412,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           </div>
         </div>
       )}
+
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
       <UpgradeModal
         isOpen={showUpgradeModal}

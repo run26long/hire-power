@@ -336,7 +336,7 @@ export default function CoverLetterPage() {
       window.URL.revokeObjectURL(blobUrl)
     } catch (error) {
       console.error('Download error:', error)
-      alert('Failed to generate PDF. Please try again.')
+      setErrorToast('Failed to generate PDF. Please try again.')
     } finally {
       setIsDownloading(false)
     }

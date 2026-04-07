@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import JobCardModal from '../components/JobCardModal';
+import ErrorToast from '../components/ErrorToast';
 
 // Status badge colors — muted to avoid clashing with HP purple
 function StatusBadge({ status }) {
@@ -68,7 +69,7 @@ export default function CareerVaultPage() {
       window.location.href = data.url;
     } catch (err) {
       console.error('Upgrade error:', err);
-      alert('Something went wrong. Please try again or contact hired@hirepowerai.com.');
+      setErrorToast('Something went wrong. Please try again or contact hired@hirepowerai.com.');
       setUpgrading(false);
     }
   };
@@ -96,6 +97,7 @@ export default function CareerVaultPage() {
   const [activeApplications, setActiveApplications] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, type: 'card' | 'core' }
   const [archiveActionLoading, setArchiveActionLoading] = useState(false);
+  const [errorToast, setErrorToast] = useState(null);
 
   const logInputRef = useRef(null);
 
@@ -239,7 +241,7 @@ export default function CareerVaultPage() {
   async function handleDeleteAccomplishment(id) {
     const { error } = await supabase.from('achievements').delete().eq('id', id);
     if (error) {
-      alert('Could not delete. Please try again.');
+      setErrorToast('Could not delete. Please try again.');
       return;
     }
     setAccomplishments(prev => prev.filter(a => a.id !== id));
@@ -322,7 +324,7 @@ export default function CareerVaultPage() {
       setConfirmDelete(null);
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Could not delete. Please try again.');
+      setErrorToast('Could not delete. Please try again.');
     } finally {
       setArchiveActionLoading(false);
     }
@@ -1096,7 +1098,9 @@ export default function CareerVaultPage() {
         </div>
       )}
 
-    {/* NEW SEARCH MODAL */}
+    <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
+      {/* NEW SEARCH MODAL */}
       {showNewSearchModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
