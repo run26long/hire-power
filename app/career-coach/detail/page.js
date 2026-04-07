@@ -249,6 +249,7 @@ const handleResumeUpdate = async (updatedData) => {
       setIsAIThinking(false);
     } catch (error) {
       console.error('Error:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending your message again." }]);
       setIsAIThinking(false);
     }
   };

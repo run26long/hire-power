@@ -258,11 +258,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (uploadError) throw new Error('UPLOAD_FAILED');
 
       // 2. Parse the file (extract text)
+     const { data: { session: uploadSession } } = await supabase.auth.getSession()
       const parseResponse = await fetch('/api/parse-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadSession.access_token}` },
         body: JSON.stringify({ filePath })
-      });
+      })
 
       if (!parseResponse.ok) {
         throw new Error('PARSE_FAILED');
@@ -273,7 +274,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       // 3. Extract structured data
       const extractResponse = await fetch('/api/extract-resume-structure', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadSession.access_token}` },
         body: JSON.stringify({ parsedText: text })
       });
 
@@ -364,10 +365,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       const templateForApi = templateName.charAt(0).toUpperCase() + templateName.slice(1);
 
       // Call PDF generation API
+      const { data: { session: dlSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${dlSession.access_token}`
         },
         body: JSON.stringify({
           resumeData: resume,
@@ -489,9 +492,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (insertError) throw insertError;
 
       // Run job analysis
+      const { data: { session: jobSession } } = await supabase.auth.getSession()
       const analysisRes = await fetch('/api/job-analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jobSession.access_token}`
+        },
         body: JSON.stringify({
           resumeData: sourceResume.resume_data,
           jobDescription,
@@ -547,9 +554,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .eq('id', sourceResumeId)
         .single();
 
+      const { data: { session: clSession } } = await supabase.auth.getSession()
       const generateRes = await fetch('/api/cover-letter-finish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${clSession.access_token}`
+        },
         body: JSON.stringify({
           resumeData: sourceResume?.resume_data,
           jobTitle,
@@ -740,7 +751,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
   const score = data?.coreResume?.current_score || null;
   const journeyStep = data?.coreResume?.journey_step || 'review';
-  
+  const displayStep = (journeyStep === 'assess' && score) ? 'coach' : journeyStep;
+
   // Show placeholder scores in review OR assess steps (before assessment runs) OR when no score exists
   const showPlaceholder = (journeyStep === 'review' || journeyStep === 'assess') && !score;
 
@@ -748,7 +760,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
  const steps = isPro 
     ? ['review', 'assess', 'coach', 'improve', 'format', 'save']
     : ['review', 'assess', 'coach', 'improve', 'format', 'save'];
-  const currentIndex = data?.coreResume?.journey_step ? steps.indexOf(data.coreResume.journey_step) : -1;
+  const currentIndex = displayStep ? steps.indexOf(displayStep) : -1;
   const totalSteps = steps.length;
 
   return (
@@ -1143,7 +1155,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <div className="flex-1">
                         <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
                         <p className="text-xs text-gray-700 leading-snug">
-                          {getJourneyMessage(data.coreResume.journey_step || 'review')}
+                          {getJourneyMessage(displayStep)}
                         </p>
                       </div>
                       <button 
@@ -1162,7 +1174,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </>
                         ) : (
                           <>
-                            {getButtonText(data.coreResume.journey_step || 'review')} {(data.coreResume.journey_step || 'review') !== 'save' && '→'}
+                            {getButtonText(displayStep)} {displayStep !== 'save' && '→'}
                           </>
                         )}
                       </button>

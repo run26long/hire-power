@@ -5,6 +5,16 @@ import mammoth from 'mammoth'
 
 export async function POST(request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== process.env.INTERNAL_API_SECRET) {
+      const { createClient: createAuthClient } = await import('@supabase/supabase-js')
+      const authSupabase = createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: { user }, error: authError } = await authSupabase.auth.getUser(token)
+      if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { filePath } = await request.json()
     const supabase = await createClient()
     

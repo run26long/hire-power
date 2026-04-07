@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
+import UpgradeModal from '../components/UpgradeModal';
 
 // Status badge colors — muted to avoid clashing with HP purple
 function StatusBadge({ status }) {
@@ -46,33 +47,8 @@ export default function CareerVaultPage() {
   // Archive modal
  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
-  const [upgrading, setUpgrading] = useState(false);
   const [showNewSearchModal, setShowNewSearchModal] = useState(false);
-
-  const handleUpgrade = async () => {
-    setUpgrading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from('profiles').select('email').eq('id', user.id).single();
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
-          userId: user.id,
-          email: profile?.email || user.email,
-        })
-      });
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      window.location.href = data.url;
-    } catch (err) {
-      console.error('Upgrade error:', err);
-      setErrorToast('Something went wrong. Please try again or contact hired@hirepowerai.com.');
-      setUpgrading(false);
-    }
-  };
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleStartNewSearch = async () => {
     await supabase
@@ -195,6 +171,11 @@ export default function CareerVaultPage() {
       setJsResumes(jsResumesData || []);
 
       setLoading(false);
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('downgraded') === 'true') {
+        setErrorToast("You've switched to Vault. Career history saved. Ready to log wins!");
+        window.history.replaceState({}, '', '/career-vault');
+      }
     }
     loadData();
   }, [supabase, router]);
@@ -687,13 +668,11 @@ export default function CareerVaultPage() {
                             You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Upgrade so your coach can apply them to your resume.
                           </p>
                         </div>
-                        <button
-                          onClick={handleUpgrade}
-                          disabled={upgrading}
-                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                       <button
+                          onClick={() => setShowUpgradeModal(true)}
+                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
                         >
-                          {upgrading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-                          {upgrading ? 'Redirecting...' : 'Upgrade to Pro — $29.99/mo'}
+                          Upgrade to Pro — $29.99/mo
                         </button>
                       </>
                     )}
@@ -1179,6 +1158,11 @@ export default function CareerVaultPage() {
         </div>
       )}
 
+   <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        currentTier={tier}
+      />
     </div>
   );
 }

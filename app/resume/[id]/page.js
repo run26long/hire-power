@@ -86,9 +86,10 @@ const handleAutoFit = async () => {
     let testSize = selectedSize
 
     const checkSize = async (size, spacing = 1) => {
+      const { data: { session: autoFitSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/generate-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${autoFitSession.access_token}` },
         body: JSON.stringify({
           resumeData: resume.resume_data,
           templateName: templateForApi,
@@ -203,10 +204,12 @@ const handleDownload = async () => {
     // Capitalize template name for API
     const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
     
+    const { data: { session: pdfSession } } = await supabase.auth.getSession()
     const response = await fetch('/api/generate-pdf', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${pdfSession.access_token}`
       },
       body: JSON.stringify({
   resumeData: resume.resume_data,
@@ -260,6 +263,7 @@ document.body.removeChild(a)
 
 const handleReassess = async (overrideData = null) => {
   setIsAnalyzing(true)
+  setErrorToast(null)
   try {
     const isJobSpecific = resume.resume_type === 'job_specific'
 
@@ -267,9 +271,13 @@ const handleReassess = async (overrideData = null) => {
       // JS resume: job match analysis
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
+      const { data: { session: jobAnalyzeSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/job-analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jobAnalyzeSession.access_token}`
+        },
         body: JSON.stringify({
           resumeData: overrideData || resume.resume_data,
           jobDescription: resume.job_description,
@@ -319,9 +327,13 @@ const handleReassess = async (overrideData = null) => {
 
     } else {
       // Core resume: quality analysis
+     const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/analyze-resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData: overrideData || resume.resume_data
         })
@@ -471,9 +483,10 @@ function formatDate(dateString, format = dateFormat) {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+        const { data: { session: checkSession } } = await supabase.auth.getSession()
         const response = await fetch('/api/generate-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${checkSession.access_token}` },
           body: JSON.stringify({
             resumeData: resume.resume_data,
             templateName: templateForApi,
@@ -978,9 +991,10 @@ if (showCtaModal) {
                   try {
                     const { data: { user } } = await supabase.auth.getUser()
                     const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                    const { data: { session: previewSession } } = await supabase.auth.getSession()
                     const response = await fetch('/api/generate-pdf', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
                       body: JSON.stringify({
                         resumeData: resume.resume_data,
                         templateName: templateForApi,
@@ -2028,7 +2042,15 @@ const getMessageText = (msg) => {
       setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
-      if ((coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current) {
+      const isProWithTrialMessages = tier !== 'free' && hasRealMessages && !coachingComplete
+
+      if (isProWithTrialMessages && !hasStartedCoaching.current) {
+        // Pro user has trial messages — start fresh pro session with trial as context
+        hasStartedCoaching.current = true
+        const capturedTrialTranscript = [...coachingMessages]
+        setCoachingMessages([])
+        await startCoaching(tier, capturedTrialTranscript)
+      } else if ((coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current) {
         hasStartedCoaching.current = true
         await startCoaching(tier)
       }
@@ -2036,16 +2058,21 @@ const getMessageText = (msg) => {
     init()
   }, [])
 
-  async function startCoaching(tier) {
+ async function startCoaching(tier, trialTranscript = null) {
     setSending(true)
     try {
+     const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
-            _analysisResults: analysisResults?.analysis || null
+            _analysisResults: analysisResults?.analysis || null,
+            _trialTranscript: trialTranscript || ((tier !== 'free' && coachingMessages?.length > 0) ? coachingMessages : null)
           },
           careerContext,
           detectedLevel,
@@ -2087,9 +2114,13 @@ const getMessageText = (msg) => {
     setSending(true)
 
     try {
-     const response = await fetch('/api/coach', {
+     const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
@@ -2146,18 +2177,26 @@ const getMessageText = (msg) => {
         missingKeywords: analysisResults?.analysis?.missingKeywords || []
       }
 
+      const { data: { session: finishSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/coach-finish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${finishSession.access_token}`
+        },
         body: JSON.stringify(coachFinishPayload)
       })
       const data = await response.json()
       if (!data.rewrittenResume) throw new Error('Rewrite failed')
 
       // ── SCORE CHECK: Analyze the rewritten resume ──
+      const { data: { session: coachSession } } = await supabase.auth.getSession()
       const scoreCheckResponse = await fetch('/api/analyze-resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${coachSession.access_token}`
+        },
         body: JSON.stringify({ resumeData: data.rewrittenResume })
       })
       const scoreCheckData = await scoreCheckResponse.json()
@@ -2206,7 +2245,10 @@ const getMessageText = (msg) => {
 
         const retryResponse = await fetch('/api/coach-finish', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${finishSession.access_token}`
+          },
           body: JSON.stringify({
             ...coachFinishPayload,
             retryInstruction: `Your first attempt produced a resume that scored ${attemptOneScore}, which did not improve on the original score of ${scoreBeforeCoaching}. This means your rewrite was too conservative or did not fully use the coaching conversation. Try again. Go deeper into the coaching material. Find every specific detail, every scope indicator, every trust signal, every skill mentioned — and make sure it appears in the resume. The standard is: every bullet should pass the Brain Test, and the overall resume must score higher than ${scoreBeforeCoaching}.`
@@ -2218,7 +2260,10 @@ const getMessageText = (msg) => {
           // Score the retry and use whichever attempt scored higher
           const retryScoreResponse = await fetch('/api/analyze-resume', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${coachSession.access_token}`
+            },
             body: JSON.stringify({ resumeData: retryData.rewrittenResume })
           })
           const retryScoreData = await retryScoreResponse.json()
@@ -2264,9 +2309,13 @@ const getMessageText = (msg) => {
   async function finishTrialCoaching() {
     setIsFinishing(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/trial-coach-finish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData,
           conversation: coachingMessages,
@@ -3811,9 +3860,13 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
   async function startTargetedCoach() {
     setSending(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
@@ -3848,9 +3901,13 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
     setUserInput('')
     setSending(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
@@ -3880,9 +3937,13 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
   async function finishTargetedCoach() {
     setIsFinishing(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/coach-finish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           resumeData: {
             ...resumeData,

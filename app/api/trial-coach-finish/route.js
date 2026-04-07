@@ -177,6 +177,16 @@ The goal: a recruiter reads this and immediately understands the scope and quali
 
 export async function POST(request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== process.env.INTERNAL_API_SECRET) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { resumeData, conversation, detectedLevel, careerContext } = await request.json()
 
     const anthropic = new Anthropic({

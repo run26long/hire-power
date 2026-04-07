@@ -676,7 +676,9 @@ WHAT TO SKIP ENTIRELY:
 - This is a targeted gap-closing session only
 
 RULES:
-- Ask ONE question at a time
+- Ask ONE question at a time. Never combine two questions in one message.
+- SELF-CHECK BEFORE SENDING: Count the question marks in your message. If there is more than one, delete every question except the most important one.
+- Never ask a two-part question where yes or no means something different for each part. Bad: "Are you a U.S. citizen and do you have any reason to believe you'd have difficulty obtaining a clearance?" Good: "Are you a U.S. citizen?"
 - Keep responses to 2-3 sentences max
 - Never invent details not in the resume or conversation
 - When you have enough to reframe/strengthen their resume for this role, end with exactly:
@@ -1087,6 +1089,28 @@ If ready, respond with EXACTLY this (triggers the Finish button):
 "Excellent work, ${userName}! We've uncovered a lot of great material that's going to make your resume significantly stronger. Click the finish coaching button below — your improved resume will be ready in 1-2 minutes."`
 
   const analysis = resumeData?._analysisResults || null
+  const trialTranscript = resumeData?._trialTranscript || null
+
+  const trialBlock = trialTranscript?.length > 0 ? `
+TRIAL COACHING CONTEXT — ALREADY COVERED:
+This candidate completed a free trial coaching session before upgrading to Pro.
+The conversation below was already conducted. You have this information.
+
+DO NOT re-ask anything already covered in the trial session.
+DO NOT re-introduce yourself or ask them to describe their role again if it was covered.
+DO pick up naturally from where the trial left off — acknowledge briefly that you are continuing, then move to the next uncovered area.
+
+TRIAL SESSION TRANSCRIPT:
+${trialTranscript.map(m => `${m.role === 'assistant' ? 'Coach' : 'Candidate'}: ${typeof m.content === 'string' ? m.content : ''}`).join('\n')}
+
+What the trial covered: targeted questions on 1-3 bullets from their first job — whichever yielded the strongest material for one rewrite. Some bullets on that job may not have been explored yet, and all subsequent jobs are untouched.
+
+CRITICAL — READ THE TRANSCRIPT ABOVE BEFORE ASKING ANYTHING:
+Every question already asked and every answer already given is in the transcript. Do NOT repeat a question that was already asked. Do NOT ask for information that was already given.
+
+If you want to go deeper on something from the trial, you may — but only if you explicitly acknowledge what was already shared and build directly on it. For example: "You mentioned the modular content work saved time — do you have a sense of the total hours saved across the full library?" That is acceptable. Asking "have you seen any time savings from modular content?" as if it was never discussed is not.
+
+Pick up by completing any remaining unexplored bullets on the first job using what you already know, then continue through each role in order.` : ''
 
   return `${extractionPhilosophy}
 
@@ -1095,6 +1119,8 @@ ${levelInstructions[level] || levelInstructions.mid}
 ${contextBlock}
 
 ${analysisBlock(analysis)}
+
+${trialBlock}
 
 RESUME CONTENT (reference this, never invent beyond it):
 ${resumeText}
@@ -1113,6 +1139,16 @@ const anthropic = new Anthropic({
 
 export async function POST(request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== process.env.INTERNAL_API_SECRET) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const {
       resumeData,
       resumeText,
