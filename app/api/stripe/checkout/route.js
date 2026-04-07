@@ -19,6 +19,7 @@ export async function POST(req) {
       cancel_url: resumeId
         ? `${process.env.NEXT_PUBLIC_SITE_URL}/resume/${resumeId}`
         : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+      allow_promotion_codes: true,
       metadata: { userId, priceId },
     };
 

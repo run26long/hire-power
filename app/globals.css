@@ -24,3 +24,7 @@ body {
   color: var(--foreground);
   font-family: Lato;
 }
+
+footer {
+  display: flex;
+}

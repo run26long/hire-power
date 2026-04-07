@@ -58,6 +58,7 @@ const [showCtaModal, setShowCtaModal] = useState(false)
 
   // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
+  const resumeDataRef = useRef(null)
   
   // Toolbar states
   const [selectedTemplate, setSelectedTemplate] = useState('current')
@@ -368,7 +369,7 @@ function formatDate(dateString, format = dateFormat) {
     if (!dateString) return ''
     
     const [year, month] = dateString.split('-')
-    if (!year || !month) return dateString
+    if (!year || !month || isNaN(parseInt(month))) return dateString
     
     const monthNum = parseInt(month)
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
@@ -573,6 +574,7 @@ if (data.ai_analysis) {
     }
     // Initialize history
     const initialData = JSON.parse(JSON.stringify(data.resume_data || {}))
+    resumeDataRef.current = initialData
     setHistory([initialData])
     setHistoryIndex(0)
     
@@ -618,6 +620,15 @@ if (data.ai_analysis) {
       ...prevResume, 
       resume_data: clonedData 
     }))
+    // Auto-remove empty education lines
+    if (clonedData.education) {
+      clonedData.education = clonedData.education.map(edu => ({
+        ...edu,
+        lines: (edu.lines || []).filter(l => l && l.trim() !== '')
+      }))
+    }
+
+    resumeDataRef.current = clonedData
     
     setHasUnsavedChanges(true)
   }
@@ -642,10 +653,15 @@ if (data.ai_analysis) {
   }
 
   async function save(overrides = {}) {
+    // Commit any active contentEditable field before saving
+    if (document.activeElement && document.activeElement.isContentEditable) {
+      document.activeElement.blur()
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
     const { error } = await supabase
       .from('resumes')
       .update({ 
-        resume_data: resume.resume_data,
+        resume_data: resumeDataRef.current || resume.resume_data,
         template_id: selectedTemplate,
         font_family: selectedFont,
         font_size: overrides.fontSize ?? selectedSize,

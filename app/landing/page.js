@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MainNav from '../components/MainNav';
+import Footer from '../components/Footer';
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -249,16 +250,6 @@ const supabase = createClient();
         .final-cta p { font-size: 18px; color: rgba(255,255,255,0.55); max-width: 500px; margin: 0 auto 48px; line-height: 1.6; position: relative; }
         .final-cta-actions { display: flex; align-items: center; justify-content: center; gap: 16px; position: relative; }
 
-        footer { background: #0A0A14; padding: 48px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.06); }
-        .footer-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-        .footer-logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg,#9333ea,#6b21a8); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
-        .footer-logo-text { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 16px; color: white; }
-        .footer-logo-text span { color: #a78bfa; }
-        .footer-links { display: flex; gap: 24px; }
-        .footer-link { font-size: 13px; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
-        .footer-link:hover { color: rgba(255,255,255,0.7); }
-        .footer-copy { font-size: 13px; color: rgba(255,255,255,0.25); }
-
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -305,8 +296,6 @@ const supabase = createClient();
           .final-cta { padding: 60px 24px !important; }
           .final-cta-actions { flex-direction: column !important; align-items: center !important; }
 
-          footer { flex-direction: column !important; align-items: center !important; gap: 20px !important; padding: 32px 24px !important; text-align: center !important; }
-          .footer-links { flex-wrap: wrap !important; justify-content: center !important; }
           .landing-page { width: 100% !important; }
           .hero h1 br, .final-cta h2 br { display: none !important; }
           .section-title { font-size: 32px !important; letter-spacing: -1px !important; }
@@ -950,7 +939,7 @@ const supabase = createClient();
               <h2 className="section-title">The OS that keeps<br/> running between<br/><em> job searches.</em></h2>
               <p className="vault-body">Once your job search is complete, most people go dark - until the next scramble. By then, they can&apos;t remember what they accomplished two years ago. <strong>Career Vault keeps your career story developing in between.</strong> Log a win in 30 seconds. Note a new skill. Save a glowing email from your manager. When you&apos;re ready to move, your resume is basically already written.</p>
               <div className="vault-quote">&quot;Get hired. Log your wins along the way. We build your next resume while you build your career. Be ready for any opportunity. And never start from scratch again.&quot;</div>
-              <p className="hide-on-mobile" style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background  between job searches so you're always prepared and never panicked.</p>
+              <p className="hide-on-mobile" style={{marginTop:'20px',fontSize:'14px',color:'rgba(255,255,255,0.35)'}}>Nobody turns off their operating system. They just use it more intensively at certain times. Hire Power keeps running in the background between job searches so you're always prepared and never panicked.</p>
             </div>
             <div className="vault-visual">
               <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(255,255,255,0.35)',marginBottom:'24px'}}>Career  · Live</div>
@@ -1242,6 +1231,7 @@ const supabase = createClient();
       </section>
 
       </div>
+      <Footer />
     </>
   );
 }

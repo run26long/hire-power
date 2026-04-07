@@ -53,6 +53,7 @@ export default function JobTrackerPage() {
   const [hiredCard, setHiredCard] = useState(null);
   const [rejectedPromptCard, setRejectedPromptCard] = useState(null);
 
+  const [deleteConfirmCard, setDeleteConfirmCard] = useState(null);
   const [dragCard, setDragCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
@@ -894,6 +895,57 @@ export default function JobTrackerPage() {
       )}
 
       {/* ── ARCHIVE MODAL ── */}
+      {deleteConfirmCard && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setDeleteConfirmCard(null)}
+        >
+          <div
+            className="bg-white shadow-2xl overflow-hidden"
+            style={{ width: '364px', borderRadius: '12px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div
+              className="px-6 py-5 relative"
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-base font-bold text-white">Delete this card?</h2>
+                  <p className="text-purple-100 text-xs">{deleteConfirmCard.title} · {deleteConfirmCard.company}</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-gray-600 mb-5 leading-snug">
+                This will permanently remove the card from your archive. This cannot be undone.
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setDeleteConfirmCard(null)}
+                  className="px-5 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await supabase.from('applications').delete().eq('id', deleteConfirmCard.id);
+                    setArchivedCards(prev => prev.filter(a => a.id !== deleteConfirmCard.id));
+                    setDeleteConfirmCard(null);
+                  }}
+                  className="px-5 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
+                  style={{ background: '#e57373' }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showArchiveModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -977,12 +1029,9 @@ export default function JobTrackerPage() {
                               className="text-[10px] text-purple-500 font-semibold hover:text-purple-700"
                             >Restore</button>
                             <button
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('Delete this archived card? This cannot be undone.')) {
-                                  await supabase.from('applications').delete().eq('id', card.id);
-                                  setArchivedCards(prev => prev.filter(a => a.id !== card.id));
-                                }
+                                setDeleteConfirmCard(card);
                               }}
                               className="text-[10px] text-red-400 font-semibold hover:text-red-600"
                             >Delete</button>

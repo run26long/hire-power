@@ -216,28 +216,18 @@ export default function ResumePDF({
                     <View style={{ marginBottom: restEd.length > 0 ? Math.round(10 * sp) : 0 }}>
                       <View style={{ flexDirection: 'column' }}>
                         <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.2, color: '#1a1a1a' }}>{firstEd.school || ''}</Text>
-                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[[firstEd.degree, firstEd.field].filter(Boolean).join(', '), firstEd.graduationDate ? formatDate(firstEd.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
+                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{firstEd.degreeDisplay || [[firstEd.degree, firstEd.field].filter(Boolean).join(', '), firstEd.graduationDate ? formatDate(firstEd.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
                       </View>
-                      {firstEd.lines?.filter(line => {
-                        const lineLower = (line || '').toLowerCase()
-                        const degreeLower = (firstEd.degree || '').toLowerCase()
-                        const fieldLower = (firstEd.field || '').toLowerCase()
-                        return !(degreeLower && lineLower.includes(degreeLower)) && !(fieldLower && lineLower.includes(fieldLower))
-                      }).map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
+                      {firstEd.lines?.filter(l => l && l.trim() !== '').map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
                     </View>
                   </View>
                   {restEd.map((ed, i) => (
                     <View key={i+1} wrap={false} style={{ marginBottom: i < restEd.length - 1 ? Math.round(10 * sp) : 0 }}>
                       <View style={{ flexDirection: 'column' }}>
                         <Text style={{ fontFamily: resolvedFont, fontWeight: 'bold', fontSize: base, lineHeight: 1.2, color: '#1a1a1a' }}>{ed.school || ''}</Text>
-                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{[[ed.degree, ed.field].filter(Boolean).join(', '), ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
+                        <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#555555', marginBottom: Math.round(2 * sp), lineHeight: 1.2 }}>{ed.degreeDisplay || [[ed.degree, ed.field].filter(Boolean).join(', '), ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
                       </View>
-                      {ed.lines?.filter(line => {
-                        const lineLower = (line || '').toLowerCase()
-                        const degreeLower = (ed.degree || '').toLowerCase()
-                        const fieldLower = (ed.field || '').toLowerCase()
-                        return !(degreeLower && lineLower.includes(degreeLower)) && !(fieldLower && lineLower.includes(fieldLower))
-                      }).map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
+                      {ed.lines?.filter(l => l && l.trim() !== '').map((line, k) => <Text key={k} style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{line}</Text>)}
                     </View>
                   ))}
                 </View>

@@ -295,7 +295,14 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       }
     }
     const lastKey = keys[keys.length - 1]
-    current[lastKey] = value
+    const lastArrayMatch = lastKey.match(/(\w+)\[(\d+)\]/)
+    if (lastArrayMatch) {
+      const [, arrayName, index] = lastArrayMatch
+      if (!current[arrayName]) current[arrayName] = []
+      current[arrayName][parseInt(index)] = value
+    } else {
+      current[lastKey] = value
+    }
     onUpdate(newData)
   }
 
@@ -596,14 +603,14 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 </div>
               ) : <button onClick={() => setConfirmingDelete(`education-${eduIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete education">🗑️</button>)}
             </div>
-            {(!readOnly || edu.degree || edu.field || edu.graduationDate) && (
-              <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={ts.company || ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => {
-                const parts = e.currentTarget.textContent.split(',').map(p => p.trim())
+           {(!readOnly || edu.degree || edu.field || edu.graduationDate || edu.degreeDisplay) && (
+              <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={ts.company || ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning 
+              onBlur={(e) => {
                 const newData = JSON.parse(JSON.stringify(resumeData))
-                newData.education[eduIndex].degree = parts[0] || ''
-                newData.education[eduIndex].field = parts.slice(1).join(', ') || ''
+                newData.education[eduIndex].degreeDisplay = e.currentTarget.textContent
                 onUpdate(newData)
-              }}>{[[edu.degree, edu.field].filter(Boolean).join(', '), edu.graduationDate ? formatDate(edu.graduationDate) : null].filter(Boolean).join(' | ')}</p>
+              }}
+              >{edu.degreeDisplay || [[edu.degree, edu.field].filter(Boolean).join(', '), edu.graduationDate ? formatDate(edu.graduationDate) : null].filter(Boolean).join(' | ')}</p>
             )}
             {edu.lines?.map((line, lineIndex) => (
               <div key={lineIndex} className="flex items-start gap-2 group/line">

@@ -89,26 +89,16 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
                       <View style={{ marginBottom: restEd.length > 0 ? Math.round(10*sp) : 0 }}>
                         <View style={{ flexDirection: 'column' }}>
                           <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{firstEd.school || ''}</Text>
-                          <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[firstEd.degree, firstEd.field, firstEd.graduationDate ? formatDate(firstEd.graduationDate, dateFormat) : null].filter(Boolean).join(', ')}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{firstEd.degreeDisplay || [firstEd.degree, firstEd.field, firstEd.graduationDate ? formatDate(firstEd.graduationDate, dateFormat) : null].filter(Boolean).join(', ')}</Text>
                         </View>
-                        {firstEd.lines?.filter(l => {
-                          const ll = (l || '').toLowerCase()
-                          const dl = (firstEd.degree || '').toLowerCase()
-                          const fl = (firstEd.field || '').toLowerCase()
-                          return !(dl && ll.includes(dl)) && !(fl && ll.includes(fl))
-                        }).map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
+                        {firstEd.lines?.filter(l => l && l.trim() !== '').map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
                       </View>
                     </View>
                     {restEd.map((ed, i) => (
                       <View key={i+1} wrap={false} style={{ marginBottom: i < restEd.length - 1 ? Math.round(10*sp) : 0 }}>
                         <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, flex: 1 }}>{ed.school || ''}</Text>
-                        <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{[ed.degree, ed.field, ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(', ')}</Text>
-                        {ed.lines?.filter(l => {
-                          const ll = (l || '').toLowerCase()
-                          const dl = (ed.degree || '').toLowerCase()
-                          const fl = (ed.field || '').toLowerCase()
-                          return !(dl && ll.includes(dl)) && !(fl && ll.includes(fl))
-                        }).map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
+                        <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{ed.degreeDisplay || [ed.degree, ed.field, ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(', ')}</Text>
+                        {ed.lines?.filter(l => l && l.trim() !== '').map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
                       </View>
                     ))}
                   </View>
