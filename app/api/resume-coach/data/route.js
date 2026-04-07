@@ -362,6 +362,7 @@ export async function GET(req) {
     const coreResumeData = coreResume ? {
       id: coreResume.id,
       display_name: coreResume.display_name || 'Core Resume',
+      resume_data: coreResume.resume_data,
       current_score: coreResume.current_score,
       initial_score: coreResume.initial_resume_power_score,
       score_improvement: coreResume.current_score && coreResume.initial_resume_power_score 
