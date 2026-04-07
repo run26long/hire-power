@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import MainNav from '@/app/components/MainNav'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import CoverLetterContent from '@/app/components/CoverLetterContent'
+import ErrorToast from '@/app/components/ErrorToast'
 
 export default function CoverLetterPage() {
   const params = useParams()
@@ -35,6 +36,7 @@ export default function CoverLetterPage() {
   const [zoom, setZoom] = useState(100)
   const [accentColor, setAccentColor] = useState('#5b4fcf')
   const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
 
   const templateFonts = {
     crisp: 'Source Serif 4',
@@ -176,7 +178,7 @@ export default function CoverLetterPage() {
       })
       .eq('id', params.id)
 
-    if (error) { console.error('Save error:', error); return }
+    if (error) { console.error('Save error:', error); setErrorToast('Changes could not be saved. Please check your connection and try again.'); return }
     setHasUnsavedChanges(false)
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 2000)
@@ -294,7 +296,7 @@ export default function CoverLetterPage() {
       }
     } catch (error) {
       console.error('Auto-fit error:', error)
-      alert('Auto-fit failed. Please try again.')
+      setErrorToast('Auto-fit failed. Please try again.')
     } finally {
       setIsAutoFitting(false)
     }
@@ -665,6 +667,8 @@ export default function CoverLetterPage() {
           </div>
         </div>
       )}
+
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
       {/* Too Long Modal */}
       {showTooLongModal && (

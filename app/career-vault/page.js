@@ -68,6 +68,7 @@ export default function CareerVaultPage() {
       window.location.href = data.url;
     } catch (err) {
       console.error('Upgrade error:', err);
+      alert('Something went wrong. Please try again or contact hired@hirepowerai.com.');
       setUpgrading(false);
     }
   };
@@ -236,7 +237,11 @@ export default function CareerVaultPage() {
   }
 
   async function handleDeleteAccomplishment(id) {
-    await supabase.from('achievements').delete().eq('id', id);
+    const { error } = await supabase.from('achievements').delete().eq('id', id);
+    if (error) {
+      alert('Could not delete. Please try again.');
+      return;
+    }
     setAccomplishments(prev => prev.filter(a => a.id !== id));
   }
 
@@ -304,15 +309,23 @@ export default function CareerVaultPage() {
   async function handleHardDelete() {
     if (!confirmDelete) return;
     setArchiveActionLoading(true);
-    if (confirmDelete.type === 'core') {
-      await supabase.from('resumes').delete().eq('id', confirmDelete.id);
-      setArchivedCoreResumes(prev => prev.filter(r => r.id !== confirmDelete.id));
-    } else {
-      await supabase.from('applications').delete().eq('id', confirmDelete.id);
-      setArchivedCards(prev => prev.filter(c => c.id !== confirmDelete.id));
+    try {
+      if (confirmDelete.type === 'core') {
+        const { error } = await supabase.from('resumes').delete().eq('id', confirmDelete.id);
+        if (error) throw error;
+        setArchivedCoreResumes(prev => prev.filter(r => r.id !== confirmDelete.id));
+      } else {
+        const { error } = await supabase.from('applications').delete().eq('id', confirmDelete.id);
+        if (error) throw error;
+        setArchivedCards(prev => prev.filter(c => c.id !== confirmDelete.id));
+      }
+      setConfirmDelete(null);
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Could not delete. Please try again.');
+    } finally {
+      setArchiveActionLoading(false);
     }
-    setConfirmDelete(null);
-    setArchiveActionLoading(false);
   }
 
   function formatDate(dateString) {

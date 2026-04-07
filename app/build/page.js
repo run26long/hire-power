@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import Breadcrumb from '../components/Breadcrumb';
 import ResumeContent from '../components/ResumeContent';
+import ErrorToast from '../components/ErrorToast';
 
 export default function BuildPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function BuildPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [fromPage, setFromPage] = useState('career-coach');
   const [resumeId, setResumeId] = useState(null);
+  const [errorToast, setErrorToast] = useState(null);
   
   // Resume data
   const [resumeData, setResumeData] = useState({
@@ -149,6 +151,7 @@ useEffect(() => {
       }
     } catch (error) {
       console.error('Error saving resume:', error);
+      setErrorToast('Something went wrong saving your resume. Please try again.');
     }
   };
 
@@ -254,6 +257,7 @@ useEffect(() => {
 
         </div>
       </div>
+    <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
     </div>
   );
 }

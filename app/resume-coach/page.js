@@ -494,6 +494,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           userId: user.id
         })
       });
+      if (!analysisRes.ok) throw new Error('Analysis failed');
       const analysis = await analysisRes.json();
 
       // Save analysis to new resume

@@ -674,6 +674,7 @@ if (data.ai_analysis) {
 
     if (error) {
       console.error('Error saving:', error)
+      alert('Changes could not be saved. Please check your connection and try again.')
       return
     }
 
@@ -2055,8 +2056,9 @@ const getMessageText = (msg) => {
         .from('resumes')
         .update({ coaching_conversation: initialMessages })
         .eq('id', params.id)
-    } catch (err) {
+   } catch (err) {
       console.error('Error starting coaching:', err)
+      setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh the page and try again." }])
     } finally {
       setSending(false)
       setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100)
@@ -2102,6 +2104,7 @@ const getMessageText = (msg) => {
         .eq('id', params.id)
     } catch (err) {
       console.error('Error sending message:', err)
+      setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending your message again." }])
     } finally {
       setSending(false)
       setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100)

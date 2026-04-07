@@ -54,6 +54,7 @@ export default function JobTrackerPage() {
   const [rejectedPromptCard, setRejectedPromptCard] = useState(null);
 
   const [deleteConfirmCard, setDeleteConfirmCard] = useState(null);
+  const [toast, setToast] = useState(null);
   const [dragCard, setDragCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
@@ -132,10 +133,33 @@ export default function JobTrackerPage() {
       a.id === dragCard.id ? { ...a, application_status: columnId } : a
     ));
 
-    await supabase
+    const { error } = await supabase
       .from('applications')
       .update({ application_status: columnId, updated_at: new Date().toISOString() })
       .eq('id', dragCard.id);
+
+    if (error) {
+      // Revert optimistic update
+      setApplications(prev => prev.map(a =>
+        a.id === droppedCard.id ? { ...a, application_status: previousStatus } : a
+      ));
+      setToast({ type: 'error', message: 'Move failed. Please try again.', card: null });
+      setTimeout(() => setToast(null), 4000);
+      setDragCard(null);
+      setDragOverColumn(null);
+      return;
+    }
+
+    // Show toast for applied and interview moves
+    if (columnId === 'applied') {
+      const updatedCard = { ...droppedCard, application_status: 'applied' };
+      setToast({ type: 'info', message: "Moved to Applied. Open the card to schedule a follow-up or start interview prep.", card: updatedCard });
+      setTimeout(() => setToast(null), 5000);
+    } else if (columnId === 'interview') {
+      const updatedCard = { ...droppedCard, application_status: 'interview' };
+      setToast({ type: 'info', message: "Moved to Interview. Open the card to save your interview date and practice questions.", card: updatedCard });
+      setTimeout(() => setToast(null), 5000);
+    }
 
     // Rejected: show prompt to archive or keep on board
     if (columnId === 'rejected') {
@@ -1053,7 +1077,56 @@ export default function JobTrackerPage() {
         </div>
       )}
 
-    {/* Card Detail Modal */}
+    {/* Toast */}
+      {toast && (
+        <div
+          className="fixed bottom-6 left-1/2 z-[70] flex items-center gap-4 px-5 py-3.5 shadow-2xl"
+          style={{
+            transform: 'translateX(-50%)',
+            borderRadius: '12px',
+            background: toast.type === 'error' ? '#1a1a2e' : '#1a1033',
+            border: toast.type === 'error' ? '1px solid rgba(229,115,115,0.3)' : '1px solid rgba(147,51,234,0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            minWidth: '340px',
+            maxWidth: '480px',
+          }}
+        >
+          <div
+            className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ background: toast.type === 'error' ? 'rgba(229,115,115,0.15)' : 'rgba(147,51,234,0.2)' }}
+          >
+            {toast.type === 'error' ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e57373" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 13l4 4L19 7"/>
+              </svg>
+            )}
+          </div>
+          <p className="text-xs text-white flex-1" style={{ opacity: 0.85, lineHeight: 1.4 }}>{toast.message}</p>
+          {toast.card && (
+            <button
+              onClick={() => {
+                setSelectedCard(toast.card);
+                setShowCardModal(true);
+                setToast(null);
+              }}
+              className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white' }}
+            >
+              Open Card
+            </button>
+          )}
+          <button
+            onClick={() => setToast(null)}
+            className="flex-shrink-0 text-white hover:opacity-60 transition-opacity text-lg leading-none font-light ml-1"
+          >×</button>
+        </div>
+      )}
+
+      {/* Card Detail Modal */}
       {showCardModal && selectedCard && (
         <JobCardModal
           card={selectedCard}
