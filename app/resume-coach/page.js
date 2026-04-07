@@ -8,6 +8,7 @@ import UpgradeModal from '../components/UpgradeModal';
 import ErrorToast from '../components/ErrorToast';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
+import ResumeContent from '../components/ResumeContent';
 
 export default function MyResumesPage() {
   const router = useRouter();
@@ -299,7 +300,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (saveError) throw new Error('SAVE_FAILED');
 
       // 5. Redirect to resume detail page
-      track('resume_uploaded', { method: 'upload' })
       track('resume_uploaded', { method: 'upload' })
       router.push(`/resume/${savedResume.id}`);
 
@@ -862,17 +862,21 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             className="w-full group cursor-pointer"
                           >
                             <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200" style={{ aspectRatio: '8.5/11' }}>
-                              {data.coreResume.thumbnail_url ? (
-                                <img 
-                                  src={data.coreResume.thumbnail_url} 
-                                  alt="Resume preview"
-                                  className="w-full h-full object-cover"
-                                />
+                              {data.coreResume.resume_data ? (
+                                <div style={{ transform: 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: 0 }}>
+                                  <ResumeContent
+                                    resumeData={data.coreResume.resume_data}
+                                    onUpdate={() => {}}
+                                    isUndoingRef={{ current: false }}
+                                    formatDate={(d) => d || ''}
+                                    readOnly={true}
+                                  />
+                                </div>
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gray-50">
                                   <div className="text-center">
                                     <div className="text-3xl mb-1">📄</div>
-                                    <div className="text-sm text-gray-500">{data.coreResume.resume_data?.fullName || 'Resume'}</div>
+                                    <div className="text-sm text-gray-500">Resume</div>
                                   </div>
                                 </div>
                               )}
