@@ -1835,6 +1835,16 @@ const anthropic = new Anthropic({
 
 export async function POST(request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== process.env.INTERNAL_API_SECRET) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const {
       resumeData,
       conversation,
@@ -1892,7 +1902,10 @@ export async function POST(request) {
       // Score check — if no improvement, retry with stronger instruction
       const scoreCheckResponse = await fetch(new URL('/api/analyze-resume', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.INTERNAL_API_SECRET}`
+        },
         body: JSON.stringify({ resumeData: enhancedResume })
       })
       const scoreCheckData = await scoreCheckResponse.json()

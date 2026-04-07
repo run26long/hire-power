@@ -191,9 +191,10 @@ export default function CoverLetterPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+        const { data: { session: checkSession } } = await supabase.auth.getSession()
         const response = await fetch('/api/generate-cover-letter-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${checkSession.access_token}` },
           body: JSON.stringify({
             coverLetterData: coverLetter.cover_letter_data,
             templateName: templateForApi,
@@ -216,6 +217,7 @@ export default function CoverLetterPage() {
     setIsAutoFitting(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session: autoFitSession } } = await supabase.auth.getSession()
       const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
       const minSize = 10
       const maxSize = 12
@@ -224,7 +226,7 @@ export default function CoverLetterPage() {
       const checkSize = async (size, spacing = 1) => {
         const response = await fetch('/api/generate-cover-letter-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${autoFitSession.access_token}` },
           body: JSON.stringify({
             coverLetterData: coverLetter.cover_letter_data,
             templateName: templateForApi,
@@ -307,9 +309,10 @@ export default function CoverLetterPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+      const { data: { session: dlSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/generate-cover-letter-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${dlSession.access_token}` },
         body: JSON.stringify({
           coverLetterData: coverLetter.cover_letter_data,
           templateName: templateForApi,
@@ -347,9 +350,10 @@ export default function CoverLetterPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+      const { data: { session: prevSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/generate-cover-letter-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${prevSession.access_token}` },
         body: JSON.stringify({
           coverLetterData: coverLetter.cover_letter_data,
           templateName: templateForApi,

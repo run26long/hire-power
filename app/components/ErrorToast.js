@@ -1,6 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
+
 export default function ErrorToast({ message, onClose }) {
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [message]);
+
   if (!message) return null;
   return (
     <div

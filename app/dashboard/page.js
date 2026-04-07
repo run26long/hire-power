@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import ErrorToast from '../components/ErrorToast';
 
 function DashboardContent() {
   const router = useRouter();
@@ -27,6 +28,7 @@ function DashboardContent() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -63,6 +65,11 @@ function DashboardContent() {
       if (jsResumes) setJobResumes(jsResumes);
 
       setLoading(false);
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('cancelled') === 'true') {
+        setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
+        window.history.replaceState({}, '', '/dashboard');
+      }
     }
     loadData();
   }, []);
@@ -826,6 +833,7 @@ const searchParams = useSearchParams();
           </div>
         </div>
       </div>
+      <ErrorToast message={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

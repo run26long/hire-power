@@ -75,9 +75,10 @@ export default function Profile() {
   async function handleDowngrade() {
     try {
       setProcessing(true)
+      const { data: { session: downgradeSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/stripe/downgrade', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${downgradeSession.access_token}` },
         body: JSON.stringify({ userId: user.id })
       })
       const data = await response.json()
@@ -88,16 +89,17 @@ export default function Profile() {
       if (error) throw error
       setShowDowngradeModal(false)
       await loadProfile()
-      router.push('/career-vault')
+      router.push('/career-vault?downgraded=true')
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
   async function handleCancel() {
     try {
       setProcessing(true)
+      const { data: { session: cancelSession } } = await supabase.auth.getSession()
       const response = await fetch('/api/stripe/cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cancelSession.access_token}` },
         body: JSON.stringify({ userId: user.id, feedback: cancelFeedback })
       })
       const data = await response.json()
@@ -109,7 +111,7 @@ export default function Profile() {
       setShowCancelModal(false)
       setCancelFeedback('')
       await loadProfile()
-      router.push('/dashboard')
+      router.push('/dashboard?cancelled=true')
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
@@ -459,20 +461,23 @@ export default function Profile() {
             </div>
            <div style={modalBody}>
               <p style={{ fontSize: 16, fontWeight: 700, color: '#6b21a8', marginBottom: 14 }}>Three years from now, you won't remember today's achievements. But Hire Power will.</p>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You'll lose:</p>
-              <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
-                <li>Resume coaching and job customization</li>
-                <li>Interview practice and AI feedback</li>
-                <li>New resume generation</li>
-              </ul>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You'll keep:</p>
+             
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Switching to Vault, you'll keep:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 10, lineHeight: 1.8 }}>
                 <li>All resumes and coaching conversations</li>
                 <li>Career Vault achievement tracking</li>
                 <li>Unlimited downloads and premium templates</li>
               </ul>
+             
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You just won't have access to:</p>
+              <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
+                <li>Resume coaching and job customization</li>
+                <li>Interview practice and AI feedback</li>
+                <li>New resume generation</li>
+              </ul>
+             
               <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 18 }}>
-                <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.5 }}>Vault keeps everything safe between searches and builds your next resume while you build your career. Getting back to Pro takes one click.</p>
+                <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.5 }}>Vault builds your next resume while you build your career. Getting back to Pro takes one click whenever you are job searching again.</p>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setShowDowngradeModal(false)} disabled={processing} style={{ ...btnGhost, flex: 1 }}>Keep Pro</button>
@@ -491,7 +496,7 @@ export default function Profile() {
           <div style={modalBox}>
             <div style={modalHead()}>
               <p style={modalTitle}>Cancel Subscription?</p>
-              <p style={modalSub}>You'll move to the Free plan immediately.</p>
+              <p style={modalSub}>You'll keep Pro access until the end of your billing period.</p>
             </div>
             <div style={modalBody}>
               {tier === TIERS.PRO && (

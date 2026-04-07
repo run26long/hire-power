@@ -1,4 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 // Convert structured resume data to plain text for analysis
 function convertStructuredToText(data) {
@@ -427,6 +433,15 @@ const anthropic = new Anthropic({
 export async function POST(request) {
   try {
     console.log('=== ANALYZE RESUME API CALLED ===')
+
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== process.env.INTERNAL_API_SECRET) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { resumeText, resumeData } = await request.json()
     
     // Handle both formats: plain text OR structured data

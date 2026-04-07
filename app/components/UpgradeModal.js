@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
-export default function UpgradeModal({ isOpen, onClose, resumeId }) {
+export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -20,9 +20,13 @@ export default function UpgradeModal({ isOpen, onClose, resumeId }) {
         .eq('id', user.id)
         .single()
 
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
           userId: user.id,
@@ -121,7 +125,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId }) {
             onClick={onClose}
             className="block mx-auto text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
           >
-            Continue with Free
+            {currentTier === 'vault' ? 'Stay on Vault' : 'Continue with Free'}
           </button>
         </div>
       </div>
