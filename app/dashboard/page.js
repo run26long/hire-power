@@ -33,6 +33,7 @@ function HomeCard({ active, onClick, num, numColor, children }) {
   const lit = active || hovered;
   return (
     <div
+      className="hp-card"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -48,7 +49,7 @@ function HomeCard({ active, onClick, num, numColor, children }) {
       }}
     >
       {active && <WhereBadge />}
-      <div style={{
+      <div className="hp-card-num" style={{
         fontFamily: "'Fraunces', serif", fontWeight: 900,
         fontSize: 'clamp(80px,8vw,108px)',
         lineHeight: 1, letterSpacing: '-7px',
@@ -190,8 +191,8 @@ function DashboardContent() {
   const c4label = isVaultTier ? 'Career Vault' : 'Job Tracker';
   const c4path  = isVaultTier ? '/career-vault' : '/job-tracker';
   const c4desc  = isVaultTier
-    ? "Log a win in 30 seconds. Three years from now you won't remember what you accomplished today. Your Vault will — and your next resume starts here."
-    : 'Every application gets one card — your tailored resume, cover letter, interview practice, and status. Hired cards feed your next search.';
+    ? "Three years from now you won't remember what you accomplished today. Hire Power will. Log wins between job searches, so your resume is ready when opportunities arise."
+    : 'Easily track all applications with job cards that store: resume, cover letter, job description, interview times and practice. Schedule automated follows ups and messages!';
   const c4cta = isVaultTier ? 'Log a win' : 'Track your first application';
 
   const firstName = userProfile?.display_name
@@ -211,6 +212,29 @@ function DashboardContent() {
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,900;1,9..144,900&family=DM+Sans:wght@400;500;600;700&display=swap');
         @keyframes hp-pulse{0%,100%{opacity:1}50%{opacity:0.3}}
         @keyframes hp-spin{to{transform:rotate(360deg)}}
+        @media (max-width: 768px) {
+          .hp-page { height: auto !important; min-height: calc(100vh - 56px); overflow: auto !important; grid-template-rows: auto auto !important; }
+          .hp-welcome { padding: 4px 20px 0 !important; }
+          .hp-hero-grid { grid-template-columns: 1fr !important; padding: 20px 20px 0 !important; }
+          .hp-hero-left { padding-bottom: 0 !important; padding-right: 0 !important; }
+          .hp-hero-right { padding-bottom: 20px !important; }
+          .hp-italic { font-size: 42px !important; letter-spacing: -2px !important; }
+          .hp-quote-box { margin-top: 14px !important; }
+          .hp-quote-p1 { display: inline !important; margin-bottom: 0 !important; }
+          .hp-quote-p2 { display: inline !important; }
+          .hp-cards-grid { grid-template-columns: 1fr !important; overflow: auto !important; }
+          .hp-card { display: grid !important; grid-template-columns: 1fr auto !important; grid-template-rows: auto auto auto auto !important; gap: 0 !important; border-right: none !important; border-bottom: 1px solid rgba(0,0,0,0.06) !important; padding: 14px 24px 12px !important; }
+          .hp-card-num { grid-column: 1 !important; grid-row: 1 !important; font-size: 64px !important; letter-spacing: -4px !important; line-height: 0.9 !important; margin-bottom: 0 !important; align-self: end; }
+          .hp-card > span { grid-column: 2 !important; grid-row: 1 !important; align-self: start !important; justify-self: end !important; margin-bottom: 0 !important; padding-top: 4px; }
+          .hp-card-title { grid-column: 1 / -1 !important; grid-row: 2 !important; margin-bottom: 0 !important; padding-top: 4px; padding-bottom: 8px; }
+          .hp-card > p { grid-column: 1 / -1 !important; grid-row: 3 !important; margin-top: 0 !important; }
+          .hp-card > div:last-of-type { grid-column: 1 / -1 !important; grid-row: 4 !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .hp-cards-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .hp-hero-grid { padding: 24px 32px 0 !important; grid-template-columns: 1fr 1fr !important; }
+          .hp-welcome { padding: 4px 32px 0 !important; }
+        }
       `}</style>
 
       {/* LOGIN MODAL */}
@@ -343,27 +367,27 @@ function DashboardContent() {
       <MainNav currentPage="dashboard" userProfile={userProfile} />
 
       {/* PAGE */}
-      <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: 'calc(100vh - 56px)', fontFamily: "'DM Sans', sans-serif", background: '#f7f6ff', overflow: 'hidden' }}>
+      <div className="hp-page" style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: 'calc(100vh - 56px)', fontFamily: "'DM Sans', sans-serif", background: '#f7f6ff', overflow: 'hidden' }}>
 
        {/* HERO */}
         <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'white', flexShrink: 0 }}>
-          <div style={{ padding: '4px 56px 0', textAlign: 'right', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9333ea', opacity: 0.65 }}>
+          <div className="hp-welcome" style={{ padding: '12px 56px 0', textAlign: 'right', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9333ea', opacity: 0.65 }}>
             {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
           </div>
-          <div style={{ padding: '32px 56px 0', display: 'grid', gridTemplateColumns: 'calc(50vw - 56px) 1fr', gap: 0, alignItems: 'end' }}>
-            <div style={{ paddingBottom: 20, paddingRight: 48 }}>
+          <div className="hp-hero-grid" style={{ padding: '32px 56px 0', display: 'grid', gridTemplateColumns: 'calc(50vw - 56px) 1fr', gap: 0, alignItems: 'end' }}>
+            <div className="hp-hero-left" style={{ paddingBottom: 20, paddingRight: 48 }}>
               <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, lineHeight: 1.0 }}>
                 <span style={{ fontSize: 'clamp(32px,3.2vw,46px)', color: '#0D0D0D', display: 'block', marginBottom: 2, letterSpacing: '-2px' }}>One platform.</span>
-                <em style={{ fontStyle: 'italic', color: '#9333ea', fontSize: 'clamp(52px,5.2vw,76px)', letterSpacing: '-3.5px' }}>Your whole career.</em>
+                <em className="hp-italic" style={{ fontStyle: 'italic', color: '#9333ea', fontSize: 'clamp(52px,5.2vw,76px)', letterSpacing: '-3.5px' }}>Your whole career.</em>
               </h1>
             </div>
-            <div style={{ paddingBottom: 32 }}>
-              <div style={{ background: 'rgba(147,51,234,0.05)', borderRadius: '0 12px 12px 0', padding: '16px 20px', borderLeft: '3px solid rgba(147,51,234,0.45)' }}>
-                <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontStyle: 'italic', fontSize: 'clamp(16px,1.5vw,18px)', color: '#0D0D0D', lineHeight: 1.25, letterSpacing: '-0.3px', marginBottom: 6 }}>
-                  Most tools help you find a job. Hire Power helps you build a career.
+            <div className="hp-hero-right" style={{ paddingBottom: 32 }}>
+              <div className="hp-quote-box" style={{ background: 'rgba(147,51,234,0.05)', borderRadius: '0 12px 12px 0', padding: '16px 20px', borderLeft: '3px solid rgba(147,51,234,0.45)' }}>
+                <p className="hp-quote-p1" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontStyle: 'italic', fontSize: 'clamp(16px,1.5vw,18px)', color: '#0D0D0D', lineHeight: 1.25, letterSpacing: '-0.3px', marginBottom: 6 }}>
+                  Most tools help you find a job. Hire Power helps you build a career. 
                 </p>
-                <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.25 }}>
-                  Stay ready for any opportunity, and never start from scratch again.
+                <p className="hp-quote-p2" style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.25 }}>
+                   {' '}Stay ready for any opportunity, and never start from scratch again.
                 </p>
               </div>
             </div>
@@ -371,15 +395,15 @@ function DashboardContent() {
         </div>
 
         {/* CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
+        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
 
           {/* 01 CAREER COACH */}
           <HomeCard active={activeCard === 'career'} onClick={() => router.push('/career-coach')} num="01">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.free }}>Free · Unlimited</span>
-                <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Set your direction before we touch your resume. Same field, new field, or figuring it out — five minutes that shape everything that follows.</p>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>The best 5-minute investment you can make in your career. Same field, new field, or figuring it out. The more know about your goals, the stronger your resume becomes.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', justifyContent: 'flex-end', gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{ccCta}</span>
                   <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
@@ -395,8 +419,8 @@ function DashboardContent() {
                 <span style={{ ...SP.base, ...(rcStatus === 'not-started' ? SP.start : rcStatus === 'in-progress' ? SP.prog : SP.done) }}>
                   {rcStatus === 'not-started' ? 'Not Started' : rcStatus === 'in-progress' ? 'In Progress' : 'Completed'}
                 </span>
-                <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>We ask the questions a $500 resume writer would ask. Your achievements extracted, your bullets rewritten — done for you in under two minutes.</p>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a $500 résumé writer would. Free tells you what's wrong. Pro fixes it for you.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{rcCta}</span>
                   <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
@@ -410,8 +434,8 @@ function DashboardContent() {
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
-                <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>The first time you answer an interview question shouldn't be in the interview. Your Coach knows your resume and prepares you for the specific role.</p>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>AI-spoken practice that mimics a real interview using your resume and the job description. Get coaching on how to present your experience for each specific job.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{icCta}</span>
                   <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
@@ -430,7 +454,7 @@ function DashboardContent() {
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
-                <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>{c4desc}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', borderRight: 'none' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{c4cta}</span>
