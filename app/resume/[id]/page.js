@@ -62,12 +62,14 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const isUndoingRef = useRef(false)
   const resumeDataRef = useRef(null)
   
-  // Toolbar states
+ // Toolbar states
   const [selectedTemplate, setSelectedTemplate] = useState('current')
 const [accentColor, setAccentColor] = useState('#5b4fcf')
   const [selectedFont, setSelectedFont] = useState('Lato')
   const [selectedSize, setSelectedSize] = useState(11)
   const [zoom, setZoom] = useState(100)
+  const [mobileScale, setMobileScale] = useState(1)
+  const resumePanelRef = useRef(null)
 const [dateFormat, setDateFormat] = useState('short')
 const [isAutoFitting, setIsAutoFitting] = useState(false)
 const [selectedSpacing, setSelectedSpacing] = useState(1)
@@ -77,6 +79,21 @@ const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
 const [mobilePanel, setMobilePanel] = useState('coach')
 const [mobileToolbar, setMobileToolbar] = useState(null)
 const [showEditTip, setShowEditTip] = useState(false)
+
+  useEffect(() => {
+    const updateMobileScale = () => {
+      if (window.innerWidth >= 768) {
+        setMobileScale(1)
+        return
+      }
+      if (!resumePanelRef.current) return
+      const containerWidth = resumePanelRef.current.offsetWidth
+      if (containerWidth > 0) setMobileScale(containerWidth / 816)
+    }
+    updateMobileScale()
+    window.addEventListener('resize', updateMobileScale)
+    return () => window.removeEventListener('resize', updateMobileScale)
+  }, [mobilePanel])
 
 const handleAutoFit = async () => {
   setIsAutoFitting(true)
@@ -1278,17 +1295,18 @@ if (data.ai_analysis) {
     {/* Main Content: Resume + Right Panel */}
          <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
-          <div className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
+          <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
         
             <div
               data-resume-content="true"
               style={{
-                transform: `scale(${zoom / 100})`,
+                transform: window.innerWidth < 768 ? `scale(${mobileScale})` : `scale(${zoom / 100})`,
                 transformOrigin: 'top left',
                 width: '816px',
                 position: 'relative',
-fontFamily: selectedFont,
+                fontFamily: selectedFont,
                 fontSize: `${selectedSize}pt`,
+                height: window.innerWidth < 768 ? `${816 * 1.294 * mobileScale}px` : 'auto',
               }}
             >
                 <ResumeContent
