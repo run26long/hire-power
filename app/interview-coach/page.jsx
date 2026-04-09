@@ -58,7 +58,7 @@ export default function MyInterviewsPage() {
 
       {/* Left Sidebar */}
       <div
-        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        className="hidden md:flex w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40"
         style={{
           background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
           height: '100vh',
@@ -131,16 +131,20 @@ export default function MyInterviewsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
         <MainNav currentPage="interview-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="px-6 py-2 max-w-[1400px] mx-auto w-full">
+          <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
+            <h1 className="text-lg font-bold text-gray-900">Interview Coach</h1>
+            <p className="text-xs text-gray-500">AI-spoken interview practice that mimics a real interview.</p>
+          </div>
+          <div className="px-4 md:px-6 py-2 max-w-[1400px] mx-auto w-full">
 
-            <div className="grid grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
 
               {/* LEFT: Practice History (8 cols) */}
-              <div className="col-span-8 space-y-2">
+              <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
@@ -148,7 +152,7 @@ export default function MyInterviewsPage() {
                     <h2 className="text-lg font-semibold text-gray-900">Interview Practices</h2>
                     <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Coming Soon</span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-5">Your saved practice sessions will appear here — each one tied to a specific job</p>
+                  <p className="text-xs text-gray-500 mb-5">Your saved practice sessions will appear here, each one tied to a specific job</p>
 
                   {/* New Practice Button */}
                  <button
@@ -171,7 +175,7 @@ export default function MyInterviewsPage() {
                     <div className="text-3xl mb-1">🎤</div>
                     <p className="text-sm font-semibold text-gray-700 mb-1">Your practice sessions will live here</p>
                     <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-                      Each practice is tied to a specific job — with a level badge, score history, and coaching notes so you can track improvement over time.
+                      Each practice is tied to a specific job, with a level badge, score history, and coaching notes so you can track improvement over time.
                     </p>
                     <div className="flex items-center justify-center gap-3 mt-3">
                       {[1, 2, 3, 4, 5].map((level) => (
@@ -197,11 +201,11 @@ export default function MyInterviewsPage() {
                   <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded-r mt-3">
                     <p className="text-sm text-gray-800 font-medium leading-relaxed">{questionOfTheDay}</p>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-1.5">
                     <p className="text-xs text-gray-500">Use the STAR method: Situation, Task, Action, Result</p>
                     <button
                       onClick={() => setShowComingSoonModal(true)}
-                      className="text-xs text-purple-600 font-semibold hover:text-purple-700"
+                     className="text-xs text-purple-600 font-semibold hover:text-purple-700 text-center md:text-right"
                     >
                       Practice this question →
                     </button>
@@ -211,7 +215,7 @@ export default function MyInterviewsPage() {
               </div>
 
               {/* RIGHT: Stats + Readiness (4 cols) */}
-              <div className="col-span-4 space-y-2">
+              <div className="col-span-1 md:col-span-4 space-y-2">
 
                 {/* Practice Stats */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
@@ -328,15 +332,15 @@ export default function MyInterviewsPage() {
               </div>
             </div>
 
-            <div className="px-6 py-5">
-              <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+           <div className="px-6 py-3">
+              <p className="text-sm text-gray-700 mb-3 leading-relaxed">
                 Interview Coach is being built during beta. When it launches, you'll get:
               </p>
 
-              <div className="space-y-3 mb-5">
+              <div className="space-y-2 mb-3">
                 {[
-                  { icon: '🔍', title: 'Pre-interview Power Analysis', desc: 'We analyze your resume against the job description to identify your Core Power, Hidden Power, and Power Gaps before you practice.' },
-                  { icon: '🎤', title: 'AI-spoken practice sessions', desc: 'A real conversational interview — AI asks the questions out loud, you answer. Unlimited practice for every job you apply to.' },
+                  { icon: '🔍', title: 'Pre-interview Power Analysis', desc: 'We analyze your resume against the job description to identify your strengths before you practice.' },
+                  { icon: '🎤', title: 'AI-spoken practice sessions', desc: 'A real conversational interview — AI asks the questions out loud, you answer. Unlimited practice for every job.' },
                   { icon: '🏆', title: 'Gamified level progression', desc: 'Level up your interview for each specific job. The more you practice, the more confident (and more hired) you become.' },
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-3">
@@ -349,15 +353,16 @@ export default function MyInterviewsPage() {
                 ))}
               </div>
 
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-4">
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-3">
                 <p className="text-sm text-gray-800 font-medium">
                   For now, use the Question of the Day to stay sharp — and your Resume Coach results are already feeding into what Interview Coach will know about you.
                 </p>
               </div>
 
-              <button
+             <button
                 onClick={() => setShowComingSoonModal(false)}
-                className="w-full bg-purple-600 text-white rounded-lg py-2 font-semibold text-sm hover:bg-purple-700 transition-colors"
+                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm transition-opacity hover:opacity-90 text-white"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
               >
                 Got it — I'll be ready
               </button>
