@@ -469,7 +469,7 @@ export default function MyCareerPage() {
             {/* Modal Header */}
             <div
               style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
-              className="px-6 py-5 relative flex-shrink-0"
+              className="px-6 py-4 relative flex-shrink-0"
             >
               <button
                 onClick={handleDismissModal}
@@ -496,7 +496,7 @@ export default function MyCareerPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="px-6 py-5 flex-1 flex flex-col" style={{ minHeight: '320px', maxHeight: '380px' }}>
+            <div className="px-6 py-4 flex-1 flex flex-col">
 
               {/* Screen 1 */}
               {modalScreen === 1 && (
@@ -521,7 +521,7 @@ export default function MyCareerPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center mt-auto pt-12">
+                  <div className="flex justify-center mt-auto pt-4">
                     <button
                       onClick={() => setModalScreen(2)}
                       className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs"
