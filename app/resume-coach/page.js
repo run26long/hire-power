@@ -1248,7 +1248,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                                       {isPro && <button
                                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(version.id); }}
-                                        className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                                        className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
                                         title="Delete"
                                       >
                                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1449,9 +1449,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                           <div className="text-[10px] text-gray-500 truncate">{cl.job_company}</div>
                                         </div>
                                       </div>
-                                      <button
+                                     <button
                                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteCLId(cl.id); }}
-                                        className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+                                        className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
                                         title="Delete"
                                       >
                                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2213,7 +2213,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
+           <div className="p-4 space-y-3">
               {isPro && data?.resumeVersions && data.resumeVersions.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Select a job-specific resume if you created one for this job. If not, add the details below.</label>
@@ -2299,7 +2299,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   value={clJobDescription}
                   onChange={e => setClJobDescription(e.target.value)}
                   placeholder="Paste the full job description here..."
-                  rows={5}
+                  rows={3}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
