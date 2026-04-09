@@ -501,7 +501,7 @@ export default function MyCareerPage() {
               {/* Screen 1 */}
               {modalScreen === 1 && (
                 <div className="flex flex-col h-full">
-                  <div className="flex-1 space-y-3">
+                  <div className="space-y-3">
                     <p className="font-bold text-gray-900 text-base">Why start with Career Coach?</p>
 
                     <p className="text-sm text-gray-700">
@@ -511,7 +511,7 @@ export default function MyCareerPage() {
                        That's why Career Coach starts by understanding where you want to go.
                     </p>
                     <p className="text-sm text-gray-700">
-                      In a quick conversation, we learn about your goals, direction, and the skills you have that aren’t obvious on paper. Everything we learn here powers the rest of Hire Power - your resume, your interviews, your entire job search.
+                      In a quick conversation, we learn about your goals, direction, and the skills you have that aren’t obvious on paper. Everything we learn here powers your resume, your interviews, your entire job search.
                     </p>
 
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
@@ -521,7 +521,7 @@ export default function MyCareerPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center mt-auto pt-4">
+                  <div className="flex justify-center mt-3">
                     <button
                       onClick={() => setModalScreen(2)}
                       className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs"

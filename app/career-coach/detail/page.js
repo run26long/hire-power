@@ -213,6 +213,7 @@ const handleResumeUpdate = async (updatedData) => {
   };
  // Handle conversation message
  const [isConversationComplete, setIsConversationComplete] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState('conversation');
 
   const handleSendMessage = async (message) => {
     // Add user message
@@ -276,14 +277,34 @@ const handleResumeUpdate = async (updatedData) => {
  return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <MainNav currentPage="career-coach" userProfile={userProfile} />
-      <Breadcrumb items={breadcrumbItems} />
+      <div className="hidden md:block">
+        <Breadcrumb items={breadcrumbItems} />
+      </div>
+
+      {/* Mobile toggle */}
+      <div className="md:hidden flex border-b border-gray-200 bg-white flex-shrink-0">
+        <button
+          onClick={() => setMobilePanel('conversation')}
+          className="flex-1 py-2.5 text-xs font-semibold transition-colors"
+          style={{ color: mobilePanel === 'conversation' ? '#7c3aed' : '#9ca3af', borderBottom: mobilePanel === 'conversation' ? '2px solid #7c3aed' : '2px solid transparent' }}
+        >
+          Conversation
+        </button>
+        <button
+          onClick={() => setMobilePanel('resume')}
+          className="flex-1 py-2.5 text-xs font-semibold transition-colors"
+          style={{ color: mobilePanel === 'resume' ? '#7c3aed' : '#9ca3af', borderBottom: mobilePanel === 'resume' ? '2px solid #7c3aed' : '2px solid transparent' }}
+        >
+          Resume
+        </button>
+      </div>
 
 {/* Conversation Mode */}
       {resumeId && (
         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
           <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
             {/* Left Column - Resume (70-75% width) */}
-            <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
+            <div className={`flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
               <div className="p-8">
                 <ResumeContent 
                  resumeData={resumeData}
@@ -295,7 +316,7 @@ const handleResumeUpdate = async (updatedData) => {
             </div>
 
 {/* Right Column - Conversation (25-30% width) */}
-            <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
+            <div className={`flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto ${mobilePanel === 'conversation' ? 'block' : 'hidden'} md:block`}>
             {/* Progress Section - STICKY */}
               <div className="sticky top-0 bg-white z-10 p-6 pb-4 mb-4 border-b border-gray-200">
                 <h3 className="text-center font-semibold text-sm mb-3">
