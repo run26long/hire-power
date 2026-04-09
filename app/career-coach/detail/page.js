@@ -313,10 +313,11 @@ const handleResumeUpdate = async (updatedData) => {
             <div className={`flex-[3] bg-gray-100 md:bg-transparent md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
               <div className="mx-3 my-3 bg-white shadow-sm rounded md:mx-0 md:my-0 md:shadow-none md:rounded-none md:p-8 p-4">
                 <ResumeContent 
-                 resumeData={resumeData}
-  onUpdate={handleResumeUpdate}
-  formatDate={formatDate}
-  readOnly={false}
+                  resumeData={resumeData}
+                  onUpdate={handleResumeUpdate}
+                  formatDate={formatDate}
+                  isUndoingRef={{ current: false }}
+                  readOnly={true}
                 />
               </div>
             </div>

@@ -62,7 +62,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
       >
         <div
           style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)'}}
-          className="px-6 py-5 relative"
+          className="px-4 py-3 md:px-6 md:py-5 relative"
         >
           <button
             onClick={onClose}
@@ -71,13 +71,13 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
           <div className="flex items-center gap-3">
             <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
             <div>
-              <h2 className="text-xl font-bold text-white">Unlock the full coaching experience</h2>
-              <p className="text-purple-100 text-xs">Everything Free has, plus the parts that do the work for you.</p>
+              <h2 className="text-base md:text-xl font-bold text-white">Unlock the full coaching experience</h2>
+              <p className="text-purple-100 text-xs">Free tells you what to fix. Pro fixes it for you.</p>
             </div>
           </div>
         </div>
 
-        <div className="px-6 py-5">
+        <div className="px-4 py-4 md:px-6 md:py-5">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
               {error}
@@ -86,10 +86,10 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
 
           <div className="space-y-3 mb-5">
             {[
-              { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer would, uncovering achievements you forgot to include and skills that never made the page.' },
-              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to strengthen your summary and rewrite your bullets. Pro does it for you in under 2 minutes.' },
-              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific resumes, each coached and optimized for the role with a custom cover letter to match.' },
-              { icon: '🎤', title: 'Interview Coach included', desc: 'Pre-interview coaching + AI-spoken practice built from your actual resume and target role - so you walk in knowing exactly how to tell your story.' },
+              { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
+              { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite your bullets. Pro does it for you in under a minute.' },
+              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific versions, each coached and optimized for the role.' },
+              { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + AI-spoken practice built from your actual resume and target role.' },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">
                 <span className="text-xl flex-shrink-0">{item.icon}</span>

@@ -52,7 +52,6 @@ const [rewrittenResume, setRewrittenResume] = useState(null)
 const [resumeChanges, setResumeChanges] = useState([])
 const [coachingMessages, setCoachingMessages] = useState([])
 const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
-const [showCtaModal, setShowCtaModal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
   const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
@@ -75,6 +74,9 @@ const [selectedSpacing, setSelectedSpacing] = useState(1)
 const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
 const [showTooLongModal, setShowTooLongModal] = useState(false)
 const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
+const [mobilePanel, setMobilePanel] = useState('coach')
+const [mobileToolbar, setMobileToolbar] = useState(null)
+const [showEditTip, setShowEditTip] = useState(false)
 
 const handleAutoFit = async () => {
   setIsAutoFitting(true)
@@ -597,12 +599,7 @@ if (data.ai_analysis) {
     
     setLoading(false)
 
-    // Show CTA modal on first visit to resume detail
-    const ctaSeen = localStorage.getItem('hp_resume_cta_seen')
-    if (!ctaSeen) {
-      setTimeout(() => setShowCtaModal(true), 500)
-    }
-  }
+      }
 
   async function loadUserProfile() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -699,81 +696,6 @@ if (data.ai_analysis) {
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 2000)
   }
-if (showCtaModal) {
-    return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{backgroundColor:'rgba(0,0,0,0.6)'}}
-      >
-        <div
-          className="bg-white shadow-2xl w-full overflow-hidden"
-          style={{maxWidth:'480px',borderRadius:'12px'}}
-        >
-          {/* Header */}
-          <div
-           style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)'}}
-            className="px-6 py-5"
-          >
-            <div className="flex items-center gap-3">
-              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-              <div>
-                <h2 className="text-xl font-bold text-white">Your resume is ready to improve.</h2>
-                <p className="text-purple-100 text-xs">Here's what Pro does that Free can't.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="px-6 py-5">
-            <div className="space-y-3 mb-5">
-              {[
-                { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
-                { icon: '⚡', title: 'Improvements applied automatically', desc: "No guessing how to rewrite your bullets. Pro does it for you in under a minute." },
-                { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific versions, each coached and optimized for the role.' },
-                { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + AI-spoken practice built from your actual resume and target role.' },
-              ].map((item) => (
-                <div key={item.title} className="flex items-start gap-3">
-                  <span className="text-xl flex-shrink-0">{item.icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                    <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mb-5">
-              <p className="text-sm text-gray-800 font-medium">
-                Free tells you what to fix. Pro fixes it for you.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                localStorage.setItem('hp_resume_cta_seen', 'true')
-                setShowCtaModal(false)
-                // Wire to Stripe later
-              }}
-              className="block mx-auto py-2.5 px-8 rounded-md text-sm font-semibold text-white transition-opacity hover:opacity-90 mb-3"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              Upgrade to Pro — $29.99/mo
-            </button>
-
-            <button
-              onClick={() => {
-                localStorage.setItem('hp_resume_cta_seen', 'true')
-                setShowCtaModal(false)
-              }}
-              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
-            >
-              Continue with Free
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   if (loading) {
     return (
@@ -821,15 +743,267 @@ if (showCtaModal) {
       )}
       <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
-      <Breadcrumb items={[
-        { label: 'Resume Coach', path: '/resume-coach' },
-        { label: resume.display_name || 'Core Resume' }
-      ]} />
+      <div className="hidden md:block">
+        <Breadcrumb items={[
+          { label: 'Resume Coach', path: '/resume-coach' },
+          { label: resume.display_name || 'Core Resume' }
+        ]} />
+      </div>
+
+{/* Mobile toggle */}
+      <div className="md:hidden flex flex-col bg-white border-b border-gray-200 flex-shrink-0">
+        {/* Row 1: Progress / Resume toggle */}
+        <div className="flex items-center gap-2 px-4 py-2">
+          <button
+            onClick={() => setMobilePanel('coach')}
+            className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+            style={{
+              color: mobilePanel === 'coach' ? '#7c3aed' : '#6b7280',
+              backgroundColor: mobilePanel === 'coach' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
+            }}
+          >
+            Progress
+          </button>
+          <button
+            onClick={() => {
+              setMobilePanel('resume')
+              setMobileToolbar(null)
+            }}
+            className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+            style={{
+              color: mobilePanel === 'resume' ? '#7c3aed' : '#6b7280',
+              backgroundColor: mobilePanel === 'resume' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
+            }}
+          >
+            Resume
+          </button>
+        </div>
+        {showEditTip && (
+          <div className="px-4 pb-1 text-xs text-amber-700 text-center">
+            Editing works best on desktop. Tap any section to try.
+          </div>
+        )}
+      </div>
+
+{/* Mobile Toolbar */}
+      {mobilePanel === 'resume' && (
+        <div className="md:hidden bg-white border-b border-gray-200 flex-shrink-0">
+          {/* Toolbar row */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
+            {/* Pencil — leftmost */}
+            <button
+              onClick={() => {
+                setShowEditTip(prev => !prev)
+                if (!showEditTip) setTimeout(() => setShowEditTip(false), 3000)
+              }}
+              className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+              style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+            >
+              ✏️
+            </button>
+            {/* Format */}
+            <button
+              onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
+              className="py-1 px-3 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              style={{
+                color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
+                backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+                border: mobileToolbar === 'format' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              📄 Format
+            </button>
+            {/* Actions */}
+            <button
+              onClick={() => setMobileToolbar(mobileToolbar === 'actions' ? null : 'actions')}
+              className="py-1 px-3 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              style={{
+                color: mobileToolbar === 'actions' ? '#7c3aed' : '#4b5563',
+                backgroundColor: mobileToolbar === 'actions' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+                border: mobileToolbar === 'actions' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              ⚡ Actions
+            </button>
+            {/* Score */}
+            {score && (
+              <div className={`py-1 px-2 rounded text-xs font-semibold flex-shrink-0 ${
+                score >= 85 ? 'bg-purple-100 text-purple-700' :
+                score >= 75 ? 'bg-green-100 text-green-700' :
+                score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                'bg-red-50 text-red-700'
+              }`}>
+                📊 {score}
+              </div>
+            )}
+          
+            {/* Download */}
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="flex-1 py-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Downloading...</> : '⬇️ Download'}
+            </button>
+          </div>
+
+          {/* Format panel */}
+          {mobileToolbar === 'format' && (
+            <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Template</label>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => {
+                    const t = e.target.value
+                    setSelectedTemplate(t)
+                    const fonts = { crisp: 'Source Serif 4', sharp: 'Open Sans', current: 'Lato', command: 'Lato', prestige: 'EB Garamond', signature: 'EB Garamond', vibe: 'Lato', edge: 'Open Sans' }
+                    setSelectedFont(fonts[t] || 'Lato')
+                    setHasUnsavedChanges(true)
+                  }}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                >
+                  <option value="command">Command</option>
+                  <option value="crisp">Crisp</option>
+                  <option value="current">Current</option>
+                  <option value="edge">Edge</option>
+                  <option value="prestige">Prestige</option>
+                  <option value="signature">Signature</option>
+                  <option value="sharp">Sharp</option>
+                  <option value="vibe">Vibe</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Font</label>
+                <select
+                  value={selectedFont}
+                  onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                >
+                  <option value="EB Garamond">EB Garamond</option>
+                  <option value="Lato">Lato</option>
+                  <option value="Open Sans">Open Sans</option>
+                  <option value="Source Serif 4">Source Serif 4</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Size</label>
+                <select
+                  value={selectedSize}
+                  onChange={(e) => { setSelectedSize(Number(e.target.value)); setHasUnsavedChanges(true) }}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                >
+                  {[10, 11, 12].map(s => <option key={s} value={s}>{s}pt</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Dates</label>
+                <select
+                  value={dateFormat}
+                  onChange={(e) => { setDateFormat(e.target.value); setHasUnsavedChanges(true) }}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                >
+                  <option value="short">MM/YYYY</option>
+                  <option value="full">Month YYYY</option>
+                  <option value="year">YYYY</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1 col-span-2">
+                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Accent Color</label>
+                <div className="flex items-center gap-1.5">
+                  {['#5b4fcf','#1e3a5f','#7a1e3a','#1e6b6b','#1e5f3a','#8b3a1e','#2d2d2d','#2d4a6b'].map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setAccentColor(c)}
+                      style={{
+                        width: '22px', height: '22px', borderRadius: '4px', background: c,
+                        border: accentColor === c ? '2px solid #1a1a1a' : '2px solid #e5e7eb',
+                        flexShrink: 0
+                      }}
+                    />
+                  ))}
+                  <button
+                    onClick={handleAutoFit}
+                    disabled={isAutoFitting}
+                    className={`flex-1 py-1 rounded text-xs font-semibold border transition-colors ${
+                      isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300' :
+                      resumeExceedsPage ? 'border-amber-400 bg-amber-50 text-amber-700' :
+                      'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions panel */}
+          {mobileToolbar === 'actions' && (
+            <div className="px-4 pt-2 pb-3 space-y-2">
+              {/* Single row: Re-assess / Preview / Undo / Save */}
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  onClick={() => handleReassess()}
+                  disabled={isAnalyzing || journeyStep === 'review'}
+                  className="py-1.5 border border-gray-300 rounded text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</> : 'Re-assess'}
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsLoadingPreview(true)
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                      const { data: { session: previewSession } } = await supabase.auth.getSession()
+                      const response = await fetch('/api/generate-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
+                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview', userId: user.id })
+                      })
+                      if (response.ok) {
+                        const blob = await response.blob()
+                        setPreviewUrl(window.URL.createObjectURL(blob))
+                        setShowPreview(true)
+                      }
+                    } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
+                  }}
+                  disabled={isLoadingPreview}
+                  className="py-1.5 border border-gray-300 rounded text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {isLoadingPreview ? '...' : 'Preview'}
+                </button>
+                <button
+                  onClick={undo}
+                  disabled={historyIndex <= 0}
+                  className="py-1.5 border border-gray-300 rounded text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
+                >
+                  ↶ Undo
+                </button>
+                <button
+                  onClick={save}
+                  className={`py-1.5 rounded text-xs font-semibold ${
+                    saveSuccess ? 'bg-green-600 text-white' :
+                    hasUnsavedChanges ? 'bg-purple-600 text-white' :
+                    'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
 {/* Toolbar - STICKY */}
-      <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible">
+      <div className={`bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible ${mobilePanel === 'coach' ? 'hidden md:block' : 'hidden md:block'}`}>
         <div className="px-6 pt-4 pb-2 max-w-7xl mx-auto w-full overflow-visible">
-          <div className="flex items-center gap-2 text-xs overflow-visible flex-nowrap">
+          <div className="flex items-center gap-2 text-xs flex-nowrap overflow-x-auto md:overflow-visible">
 
             {/* Template */}
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
@@ -1103,8 +1277,9 @@ if (showCtaModal) {
 
     {/* Main Content: Resume + Right Panel */}
          <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
-        <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
-          <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto relative">
+        <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
+          <div className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
+        
             <div
               data-resume-content="true"
               style={{
@@ -1127,7 +1302,7 @@ fontFamily: selectedFont,
             </div>
           </div>
 
-   <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto px-6 pb-6">
+ <div className={`flex-1 bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col md:px-6 ${mobilePanel === 'coach' ? 'flex' : 'hidden'} md:flex`}>
        <RightPanel 
               journeyStep={journeyStep}
               score={score}
@@ -1219,13 +1394,11 @@ fontFamily: selectedFont,
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-8">
-          <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-8" style={{backgroundColor:'rgba(0,0,0,0.6)'}} onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}>
+          <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div>
-                <h3 className="text-lg font-semibold text-white">Resume Preview</h3>
-                <p className="text-sm text-purple-100 mt-0.5">Need help with page fit? Use Auto-fit in the toolbar to automatically adjust font size and spacing to best fill one page.</p>
-                <p className="text-sm text-purple-100 mt-0.5">⚡Fit Tip: templates & fonts make a difference. Compact templates: Sharp & Vibe. Compact fonts: EB Garamond & Lato.</p>
+                <p className="text-xs md:text-sm text-purple-100 mt-0.5">Need help with page fit? Use Auto-fit in the toolbar. Compact templates: Sharp & Vibe. Compact fonts: EB Garamond & Lato.</p>
               </div>
               <button
                 onClick={() => {
@@ -1241,7 +1414,7 @@ fontFamily: selectedFont,
             <div className="flex-1 overflow-hidden">
               {previewUrl && (
                 <iframe
-                  src={`${previewUrl}#toolbar=0`}
+                 src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
                   className="w-full h-full"
                   title="Resume Preview"
                 />
@@ -1286,9 +1459,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   }, [journeyStep])
 
  return (
-    <div ref={panelRef} className="overflow-y-auto overflow-x-hidden h-full pr-3">
+   <div ref={panelRef} className="overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6">
       
-  <div className={`sticky top-0 bg-white -mx-6 px-6 pt-6 z-10 ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 shadow-sm' : 'mb-6 pb-4 shadow-sm'}`}>
+ <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 pt-4 md:pt-6 z-10 ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : 'mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-100'}`}>
  {isJobSpecific ? (
         <div className="mb-3 text-center">
           <h3 className="font-bold text-sm text-gray-900 leading-tight">{resumeName}</h3>
