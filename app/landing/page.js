@@ -503,7 +503,7 @@ const supabase = createClient();
                   </form>
                   <p className="text-center text-xs text-gray-400 mt-4">
                     Already have an account?{' '}
-                    <button onClick={() => { setShowSignupModal(false); setSignupAsPro(false); setShowLoginModal(true); }} className="text-purple-600 hover:underline font-medium bg-transparent border-none cursor-pointer p-0">Log in</button>
+                    <button onClick={() => router.push('/dashboard')} className="text-purple-600 hover:underline font-medium bg-transparent border-none cursor-pointer p-0">Log in</button>
                   </p>
                 </>
               )}

@@ -141,7 +141,7 @@ export default function Profile() {
         .eq('id', user.id)
       if (error) throw error
       await supabase.auth.signOut()
-      router.push('/login?deleted=true')
+      router.push('/landing')
     } catch (e) { console.error(e) } finally { setProcessing(false) }
   }
 
@@ -454,11 +454,7 @@ export default function Profile() {
 
           </div>
         </div>
-        {/* Mobile bottom bar */}
-        <div className="hp-mobile-bottom" style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', padding: '12px 20px', alignItems: 'center', gap: 10 }}>
-          <img src="/images/Hire_Power_icon.png" alt="Lightning" style={{ height: 20, width: 'auto', flexShrink: 0 }} />
-          <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: 0 }}>Your lifelong career coach.</p>
-        </div>
+        
       </div>
 
       <style>{`
@@ -470,7 +466,6 @@ export default function Profile() {
           .hp-row { grid-template-columns: 1fr !important; }
           .hp-career-grid { grid-template-columns: 1fr !important; }
           .hp-mobile-top { display: block !important; }
-          .hp-mobile-bottom { display: flex !important; margin-top: auto; }
         }
         @media (min-width: 769px) {
           .hp-mobile-top { display: none !important; }
