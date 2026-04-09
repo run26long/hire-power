@@ -75,6 +75,7 @@ const [selectedSpacing, setSelectedSpacing] = useState(1)
 const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
 const [showTooLongModal, setShowTooLongModal] = useState(false)
 const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
+  const [mobilePanel, setMobilePanel] = useState('coach')
 
 const handleAutoFit = async () => {
   setIsAutoFitting(true)
@@ -821,15 +822,41 @@ if (showCtaModal) {
       )}
       <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
-      <Breadcrumb items={[
-        { label: 'Resume Coach', path: '/resume-coach' },
-        { label: resume.display_name || 'Core Resume' }
-      ]} />
+      <div className="hidden md:block">
+        <Breadcrumb items={[
+          { label: 'Resume Coach', path: '/resume-coach' },
+          { label: resume.display_name || 'Core Resume' }
+        ]} />
+      </div>
+
+{/* Mobile toggle */}
+      <div className="md:hidden flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 flex-shrink-0">
+        <button
+          onClick={() => setMobilePanel('coach')}
+          className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+          style={{
+            color: mobilePanel === 'coach' ? '#7c3aed' : '#6b7280',
+            backgroundColor: mobilePanel === 'coach' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
+          }}
+        >
+          Progress
+        </button>
+        <button
+          onClick={() => setMobilePanel('resume')}
+          className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+          style={{
+            color: mobilePanel === 'resume' ? '#7c3aed' : '#6b7280',
+            backgroundColor: mobilePanel === 'resume' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
+          }}
+        >
+          Resume
+        </button>
+      </div>
 
 {/* Toolbar - STICKY */}
-      <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible">
+      <div className={`bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible ${mobilePanel === 'coach' ? 'hidden md:block' : 'block'}`}>
         <div className="px-6 pt-4 pb-2 max-w-7xl mx-auto w-full overflow-visible">
-          <div className="flex items-center gap-2 text-xs overflow-visible flex-nowrap">
+          <div className="flex items-center gap-2 text-xs flex-nowrap overflow-x-auto md:overflow-visible">
 
             {/* Template */}
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
@@ -1103,8 +1130,8 @@ if (showCtaModal) {
 
     {/* Main Content: Resume + Right Panel */}
          <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
-        <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
-          <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto relative">
+        <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
+          <div className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
             <div
               data-resume-content="true"
               style={{
@@ -1127,7 +1154,7 @@ fontFamily: selectedFont,
             </div>
           </div>
 
-   <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto px-6 pb-6">
+  <div className={`flex-1 bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col ${mobilePanel === 'coach' ? 'flex' : 'hidden'} md:flex`}>
        <RightPanel 
               journeyStep={journeyStep}
               score={score}
@@ -1286,9 +1313,9 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   }, [journeyStep])
 
  return (
-    <div ref={panelRef} className="overflow-y-auto overflow-x-hidden h-full pr-3">
+   <div ref={panelRef} className="overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-3 md:pl-0 md:pr-3">
       
-  <div className={`sticky top-0 bg-white -mx-6 px-6 pt-6 z-10 ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 shadow-sm' : 'mb-6 pb-4 shadow-sm'}`}>
+  <div className={`sticky top-0 bg-white px-4 md:px-6 pt-4 md:pt-6 z-10 ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : 'mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-100'}`}>
  {isJobSpecific ? (
         <div className="mb-3 text-center">
           <h3 className="font-bold text-sm text-gray-900 leading-tight">{resumeName}</h3>
