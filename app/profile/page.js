@@ -265,12 +265,12 @@ export default function Profile() {
 
       {/* ── MAIN ── */}
       <div className="hp-profile-main ml-64 flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Mobile top bar */}
-        <div className="hp-mobile-top" style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', padding: '14px 20px 16px' }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 0 }}>Profile</h1>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>Update your account settings, personal info, and billing.</p>
-        </div>
         <MainNav currentPage="profile" userProfile={profile} />
+        {/* Mobile top bar */}
+        <div className="hp-mobile-top" style={{ padding: '14px 20px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'white' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0D0D0D', letterSpacing: '-0.5px', marginBottom: 2 }}>Profile</h1>
+          <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.4 }}>Update your account settings, personal info, and billing.</p>
+        </div>
 
         <div className="hp-profile-scroll flex-1 overflow-hidden">
           <div className="hp-profile-inner" style={{ padding: '16px 24px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}>
