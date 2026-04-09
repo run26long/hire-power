@@ -202,7 +202,7 @@ export default function Profile() {
 
       {/* ── SIDEBAR ── */}
       <div
-        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        className="hp-profile-sidebar w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
         style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', height: '100vh', overflowY: 'hidden' }}
       >
         {/* Header */}
@@ -264,14 +264,19 @@ export default function Profile() {
       </div>
 
       {/* ── MAIN ── */}
-      <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="hp-profile-main ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Mobile top bar */}
+        <div className="hp-mobile-top" style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', padding: '14px 20px 16px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: 0 }}>Profile</h1>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>Update your account settings, personal info, and billing.</p>
+        </div>
         <MainNav currentPage="profile" userProfile={profile} />
 
-        <div className="flex-1 overflow-hidden">
-          <div style={{ padding: '16px 24px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="hp-profile-scroll flex-1 overflow-hidden">
+          <div className="hp-profile-inner" style={{ padding: '16px 24px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* ROW 1: Personal Info + Plan */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
+            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
 
               {/* PERSONAL INFO */}
               <div style={cardBase}>
@@ -364,7 +369,7 @@ export default function Profile() {
             </div>
 
             {/* ROW 2: Career Context + Account + Danger Zone */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
+            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
 
               {/* CAREER CONTEXT */}
               <div style={{ ...cardBase, height: '100%' }}>
@@ -372,7 +377,7 @@ export default function Profile() {
                   <span style={cardTitle}>Career Context</span>
                 </div>
                 <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                 <div className="hp-career-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                     <div>
                       <label style={labelSm}>Current Role</label>
                       <p style={{ ...valueSm, color: profile?.current_role ? '#111827' : '#d1d5db' }}>
@@ -449,7 +454,29 @@ export default function Profile() {
 
           </div>
         </div>
+        {/* Mobile bottom bar */}
+        <div className="hp-mobile-bottom" style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', padding: '12px 20px', alignItems: 'center', gap: 10 }}>
+          <img src="/images/Hire_Power_icon.png" alt="Lightning" style={{ height: 20, width: 'auto', flexShrink: 0 }} />
+          <p style={{ fontSize: 14, fontWeight: 500, color: '#fff', margin: 0 }}>Your lifelong career coach.</p>
+        </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .hp-profile-sidebar { display: none !important; }
+          .hp-profile-main { margin-left: 0 !important; height: auto !important; overflow: auto !important; flex-direction: column !important; }
+          .hp-profile-scroll { overflow: visible !important; height: auto !important; }
+          .hp-profile-inner { height: auto !important; overflow: visible !important; }
+          .hp-row { grid-template-columns: 1fr !important; }
+          .hp-career-grid { grid-template-columns: 1fr !important; }
+          .hp-mobile-top { display: block !important; }
+          .hp-mobile-bottom { display: flex !important; margin-top: auto; }
+        }
+        @media (min-width: 769px) {
+          .hp-mobile-top { display: none !important; }
+          .hp-mobile-bottom { display: none !important; }
+        }
+      `}</style>
 
       {/* ── DOWNGRADE MODAL ── */}
       {showDowngradeModal && (
