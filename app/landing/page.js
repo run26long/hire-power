@@ -387,7 +387,7 @@ const supabase = createClient();
                 <>
                   {signupAccountExists && (
                     <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm mb-4">
-                      Account already exists. <a href="/login" className="underline font-medium">Log in instead</a>
+                      Account already exists. <button onClick={() => router.push('/dashboard')} className="underline font-medium bg-transparent border-none cursor-pointer text-blue-700 p-0">Log in instead</button>
                     </div>
                   )}
                   {signupError && (
@@ -503,7 +503,7 @@ const supabase = createClient();
                   </form>
                   <p className="text-center text-xs text-gray-400 mt-4">
                     Already have an account?{' '}
-                    <a href="/login" className="text-purple-600 hover:underline font-medium">Log in</a>
+                    <button onClick={() => { setShowSignupModal(false); setSignupAsPro(false); setShowLoginModal(true); }} className="text-purple-600 hover:underline font-medium bg-transparent border-none cursor-pointer p-0">Log in</button>
                   </p>
                 </>
               )}
