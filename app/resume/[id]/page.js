@@ -2622,29 +2622,31 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && (
-          <div className="flex gap-2 flex-shrink-0 items-center">
-            <textarea
-              ref={inputRef}
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  sendMessage()
-                }
-              }}
-              placeholder="Type your response..."
-              disabled={sending}
-              rows={2}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!userInput.trim() || sending}
-              className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end flex-shrink-0"
-            >
-              Send
-            </button>
+          <div className="sticky bottom-0 bg-white border-t pt-2 pb-1 -mx-3 px-3">
+            <div className="flex gap-2 items-center">
+              <textarea
+                ref={inputRef}
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
+                }}
+                placeholder="Type your response..."
+                disabled={sending}
+                rows={2}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!userInput.trim() || sending}
+                className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end flex-shrink-0"
+              >
+                Send
+              </button>
+            </div>
           </div>
         )}
 

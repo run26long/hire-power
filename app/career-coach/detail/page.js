@@ -282,18 +282,24 @@ const handleResumeUpdate = async (updatedData) => {
       </div>
 
       {/* Mobile toggle */}
-      <div className="md:hidden flex border-b border-gray-200 bg-white flex-shrink-0">
+      <div className="md:hidden flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 flex-shrink-0">
         <button
           onClick={() => setMobilePanel('conversation')}
-          className="flex-1 py-2.5 text-xs font-semibold transition-colors"
-          style={{ color: mobilePanel === 'conversation' ? '#7c3aed' : '#9ca3af', borderBottom: mobilePanel === 'conversation' ? '2px solid #7c3aed' : '2px solid transparent' }}
+          className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+          style={{
+            color: mobilePanel === 'conversation' ? '#7c3aed' : '#6b7280',
+            backgroundColor: mobilePanel === 'conversation' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
+          }}
         >
           Conversation
         </button>
         <button
           onClick={() => setMobilePanel('resume')}
-          className="flex-1 py-2.5 text-xs font-semibold transition-colors"
-          style={{ color: mobilePanel === 'resume' ? '#7c3aed' : '#9ca3af', borderBottom: mobilePanel === 'resume' ? '2px solid #7c3aed' : '2px solid transparent' }}
+          className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+          style={{
+            color: mobilePanel === 'resume' ? '#7c3aed' : '#6b7280',
+            backgroundColor: mobilePanel === 'resume' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
+          }}
         >
           Resume
         </button>
@@ -302,10 +308,10 @@ const handleResumeUpdate = async (updatedData) => {
 {/* Conversation Mode */}
       {resumeId && (
         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
-          <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
+          <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
             {/* Left Column - Resume (70-75% width) */}
-            <div className={`flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
-              <div className="p-8">
+            <div className={`flex-[3] bg-gray-100 md:bg-transparent md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
+              <div className="mx-3 my-3 bg-white shadow-sm rounded md:mx-0 md:my-0 md:shadow-none md:rounded-none md:p-8 p-4">
                 <ResumeContent 
                  resumeData={resumeData}
   onUpdate={handleResumeUpdate}
@@ -316,9 +322,9 @@ const handleResumeUpdate = async (updatedData) => {
             </div>
 
 {/* Right Column - Conversation (25-30% width) */}
-            <div className={`flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto ${mobilePanel === 'conversation' ? 'block' : 'hidden'} md:block`}>
+            <div className={`flex-1 bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 flex flex-col overflow-hidden ${mobilePanel === 'conversation' ? 'flex' : 'hidden'} md:flex`}>
             {/* Progress Section - STICKY */}
-              <div className="sticky top-0 bg-white z-10 p-6 pb-4 mb-4 border-b border-gray-200">
+              <div className="sticky top-0 bg-white z-10 p-4 md:p-6 pb-4 mb-4 border-b border-gray-200">
                 <h3 className="text-center font-semibold text-sm mb-3">
                   {userProfile?.display_name ? `${userProfile.display_name.split(' ')[0]}'s ` : ''}Career Conversation
                 </h3>                
@@ -362,7 +368,7 @@ const handleResumeUpdate = async (updatedData) => {
               </div>
 
                      {/* Messages */}
-              <div className="space-y-3 mb-1">
+              <div className="flex-1 overflow-y-auto px-4 md:px-6"><div className="space-y-3 mb-1">
               {messages.map((msg, index) => (
                   <div key={index}>
                     {msg.role === 'assistant' ? (
@@ -422,7 +428,7 @@ const handleResumeUpdate = async (updatedData) => {
                   </div>
               )}
                 {messages.some(m => m.role === 'user') && <div ref={messagesEndRef} />}
-              </div>
+              </div></div>
               {/* Input & Button */}
             {isConversationComplete ? (
                 <div className="flex justify-center border-t pt-4 pb-4">
@@ -435,32 +441,31 @@ const handleResumeUpdate = async (updatedData) => {
                   </button>
                 </div>
               ) : (
-               <div className="sticky bottom-0 bg-white border-t pt-3 pb-4">
-                  <textarea
-                    ref={inputRef}
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(userInput);
-                        setUserInput('');
-                      }
-                    }}
-                    placeholder="Type your response..."
-                    disabled={isAIThinking}
-                    rows="2"
-                    className="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none mb-"
-                  />
-                 <div className="flex justify-center mt-1">
+              <div className="sticky bottom-0 bg-white border-t pt-3 pb-4 px-4 md:px-6">
+                  <div className="flex gap-2 items-center">
+                    <textarea
+                      ref={inputRef}
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage(userInput);
+                          setUserInput('');
+                        }
+                      }}
+                      placeholder="Type your response..."
+                      disabled={isAIThinking}
+                      rows={2}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    />
                     <button
                       onClick={() => {
                         handleSendMessage(userInput);
                         setUserInput('');
                       }}
                       disabled={!userInput.trim() || isAIThinking}
-                      className="text-white px-8 py-1 rounded-md transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                      className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-center flex-shrink-0"
                     >
                       Send
                     </button>
