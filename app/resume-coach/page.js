@@ -713,7 +713,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
 
         {/* Main Content */}
-        <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+        <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
           <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
           <div className="flex-1 overflow-y-auto">
@@ -768,7 +768,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       
       {/* Left Sidebar */}
       <div 
-        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        className="hidden md:flex w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40"
         style={{ 
           background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
           height: '100vh',
@@ -847,27 +847,54 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       </div>
 
       {/* Main Content Area */}
-      <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
         <MainNav currentPage="resume-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
+          <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
+            <h1 className="text-lg font-bold text-gray-900">Resume Coach</h1>
+            <p className="text-xs text-gray-500">Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a professional résumé writer would.</p>
+          </div>
+          <div className="px-4 md:px-8 py-4 max-w-[1400px] mx-auto w-full">
             
             {/* Clean 2-Column Layout - NO OLD BANNER */}
             {data?.coreResume && (
-              <div className="grid grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
                 {/* Core Resume Card (8 cols) */}
-                <div className="col-span-8">
+                <div className="col-span-1 md:col-span-8">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                     <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
+                    {/* Mobile: 3 action buttons */}
+                    <div className="flex md:hidden gap-2 mb-4">
+                      <button
+                        onClick={() => router.push(`/resume/${data.coreResume.id}`)}
+                        className="flex-1 py-2 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        👁 View
+                      </button>
+                      <button
+                        onClick={() => handleDownloadResume(data.coreResume.id)}
+                        disabled={downloadingResumeId === data.coreResume.id}
+                        className="flex-1 py-2 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        {downloadingResumeId === data.coreResume.id ? '...' : '⬇️ Download'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(data.coreResume.id)}
+                        className="flex-1 py-2 border border-red-200 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        🗑 Delete
+                      </button>
+                    </div>
+
                     {/* Thumbnail LEFT | Score RIGHT */}
                     <div className="grid grid-cols-12 gap-4 mb-4">
                       
-                      {/* Left: Thumbnail (35%) */}
-                      <div className="col-span-4">
+                      {/* Left: Thumbnail (35%) — desktop only */}
+                      <div className="hidden md:block md:col-span-4">
                         <div className="relative">
                           <div
                             onClick={() => router.push(`/resume/${data.coreResume.id}`)}
@@ -968,7 +995,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       
                       {/* Right: Score Section (65%) */}
-                      <div className="col-span-8 flex flex-col justify-between py-3">
+                      <div className="col-span-12 md:col-span-8 flex flex-col justify-between py-3">
                         {/* Giant Score */}
                         <div className="text-center">
                           <div className="mb-3">
@@ -1151,7 +1178,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                     
                     {/* What This Means */}
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between gap-3">
+                    <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                       <div className="flex-1">
                         <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
                         <p className="text-xs text-gray-700 leading-snug">
@@ -1183,15 +1210,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
 
                 {/* Right Column: JS Resumes + Cover Letters */}
-                <div className="col-span-4 flex flex-col self-stretch">
+                <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
                   {/* Card 1: JS Resumes (Pro) / Job Match Scores (Free) */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ flex: '1 1 0', marginBottom: '16px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '267px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
                         <p className="text-xs text-gray-500 mb-2">Tailored versions optimized for specific applications</p>
-                       <div className="flex-1 overflow-y-auto min-h-0">
+                      <div>
                         <div className="space-y-2">
                           <button
                             onClick={handleCreateNew}
@@ -1251,14 +1278,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </div>
                               ))}
                               {data.resumeVersions.length > 2 && (
-                                <div className="pt-2 border-t border-gray-100">
-                                  <button
+                               <button
                                     onClick={() => setShowOlderJSModal(true)}
-                                    className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 rounded-lg transition-colors"
+                                    className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     See {data.resumeVersions.length - 2} older version{data.resumeVersions.length - 2 > 1 ? 's' : ''} →
                                   </button>
-                                </div>
                               )}
                             </>
                           ) : (
@@ -1384,12 +1409,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ flex: '1 1 0' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '267px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                         <p className="text-xs text-gray-500 mb-2">Written for this job, not every job.</p>
-                        <div className="flex-1 overflow-y-auto min-h-0">
+                        <div>
                           <div className="space-y-2">
                             <button
                               onClick={() => setShowCLModal(true)}
@@ -1409,6 +1434,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   <div
                                     key={cl.id}
                                     className="group bg-white border border-gray-300 rounded-lg p-2 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer"
+                                    style={{ minHeight: '52px' }}
                                     onClick={() => router.push(`/cover-letter/${cl.id}`)}
                                   >
                                     <div className="flex items-center justify-between">
@@ -1436,14 +1462,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   </div>
                                 ))}
                                 {data.coverLetters.length > 2 && (
-                                  <div className="pt-2 border-t border-gray-100">
-                                    <button
+                                  <button
                                       onClick={() => setShowOlderCLModal(true)}
-                                      className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 rounded-lg transition-colors"
+                                      className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                     >
                                       See {data.coverLetters.length - 2} older letter{data.coverLetters.length - 2 > 1 ? 's' : ''} →
                                     </button>
-                                  </div>
                                 )}
                               </>
                             ) : (
@@ -1549,9 +1573,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
             {/* Empty State - EXACT Same Layout, Just Empty */}
             {!data?.coreResume && (
-              <div className="grid grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Core Resume Card (8 cols) */}
-                <div className="col-span-8">
+                <div className="col-span-1 md:col-span-8">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                     <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
@@ -1762,8 +1786,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
 
                 {/* Right Column: JS Resumes + Cover Letters (empty state) */}
-                <div className="col-span-4 flex flex-col" style={{ height: '100%' }}>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ flex: '0 0 50%', marginBottom: '12px' }}>
+                <div className="col-span-1 md:col-span-4 flex flex-col" style={{ height: '100%' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '267px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -1780,7 +1804,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <p className="text-xs">Complete your core resume first</p>
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ flex: '0 0 calc(50% - 12px)' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '267px' }}>
                     <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                     <p className="text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
                     <div className="text-center py-6 text-gray-400">
