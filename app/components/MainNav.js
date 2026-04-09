@@ -33,21 +33,19 @@ export default function MainNav({ currentPage, userProfile }) {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="px-4 md:px-6 py-2 flex items-center justify-between">
 
-          {/* Logo */}
-          <button
-            onClick={() => router.push(userProfile ? '/dashboard' : '/landing')}
-            className="flex items-center gap-2"
-          >
-            <img
-              src="/images/HirePower_logo.png"
-              alt="Hire Power"
-              className="h-8 w-auto"
-            />
-          </button>
-
-          {/* Desktop: tagline + nav + profile */}
-          <div className="hidden md:flex items-center gap-3">
-            <span className="text-sm text-gray-500 border-l border-gray-300 pl-3">
+          {/* Logo + tagline */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push(userProfile ? '/dashboard' : '/landing')}
+              className="flex items-center gap-2"
+            >
+              <img
+                src="/images/HirePower_logo.png"
+                alt="Hire Power"
+                className="h-8 w-auto"
+              />
+            </button>
+            <span className="hidden md:block text-sm text-gray-500 border-l border-gray-300 pl-3">
               The operating system for your career
             </span>
           </div>
