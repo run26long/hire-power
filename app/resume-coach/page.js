@@ -863,7 +863,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3" style={{ height: '540px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[540px]">
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                       <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
@@ -1579,7 +1579,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5" style={{ height: '540px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 md:h-[540px]">
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                     <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
