@@ -9,6 +9,7 @@ import ErrorToast from '../components/ErrorToast';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
 import ResumeContent from '../components/ResumeContent';
+import Breadcrumb from '../components/Breadcrumb';
 
 export default function MyResumesPage() {
   const router = useRouter();
@@ -373,9 +374,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           'Authorization': `Bearer ${dlSession.access_token}`
         },
         body: JSON.stringify({
-          resumeData: resume,
+          resumeData: resume.resume_data,
           templateName: templateForApi,
-          fontSize: fontSizeForApi,
+          fontSize: resume.font_size || 11,
+          font: resume.font_family || 'Lato',
+          accentColor: resume.accent_color || '#5b4fcf',
+          spacing: resume.spacing || 1,
           action: 'download',
           versionId: null,
           isJobVersion: false,
@@ -851,11 +855,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         <MainNav currentPage="resume-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
-            <h1 className="text-lg font-bold text-gray-900">Resume Coach</h1>
-            <p className="text-xs text-gray-500">Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a professional résumé writer would.</p>
-          </div>
-          <div className="px-4 md:px-8 py-4 max-w-[1400px] mx-auto w-full">
+          <div className="px-4 md:px-8 py-2 md:py-4 max-w-[1400px] mx-auto w-full">
             
             {/* Clean 2-Column Layout - NO OLD BANNER */}
             {data?.coreResume && (
@@ -863,8 +863,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3" style={{ height: '540px' }}>
+                   <div className="flex items-center justify-between mb-1">
+                      <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
+                      <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
+                    </div>
                     <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
                     {/* Mobile: 3 action buttons */}
@@ -1213,7 +1216,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
                   {/* Card 1: JS Resumes (Pro) / Job Match Scores (Free) */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '267px', marginBottom: '16px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -1409,7 +1412,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '267px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
@@ -1576,7 +1579,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5" style={{ height: '540px' }}>
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                     <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
@@ -1787,7 +1790,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                 {/* Right Column: JS Resumes + Cover Letters (empty state) */}
                 <div className="col-span-1 md:col-span-4 flex flex-col" style={{ height: '100%' }}>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '267px', marginBottom: '16px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -1804,7 +1807,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <p className="text-xs">Complete your core resume first</p>
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '267px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px' }}>
                     <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                     <p className="text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
                     <div className="text-center py-6 text-gray-400">

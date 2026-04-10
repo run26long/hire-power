@@ -135,11 +135,7 @@ export default function MyInterviewsPage() {
         <MainNav currentPage="interview-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
-            <h1 className="text-lg font-bold text-gray-900">Interview Coach</h1>
-            <p className="text-xs text-gray-500">AI-spoken interview practice that mimics a real interview.</p>
-          </div>
-          <div className="px-4 md:px-6 py-2 max-w-[1400px] mx-auto w-full">
+          <div className="px-4 md:px-6 py-2 md:py-4 max-w-[1400px] mx-auto w-full">
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
 
@@ -147,12 +143,15 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Practices</h2>
-                    <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Coming Soon</span>
+                    <div className="flex items-center gap-2">
+                      <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
+                      <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Coming Soon</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-5">Your saved practice sessions will appear here, each one tied to a specific job</p>
+                  <p className="text-xs text-gray-500 mb-5">Your saved practice sessions will appear here, each tied to a specific job</p>
 
                   {/* New Practice Button */}
                  <button

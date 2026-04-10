@@ -760,12 +760,10 @@ if (data.ai_analysis) {
       )}
       <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
-      <div className="hidden md:block">
-        <Breadcrumb items={[
-          { label: 'Resume Coach', path: '/resume-coach' },
-          { label: resume.display_name || 'Core Resume' }
-        ]} />
-      </div>
+      <Breadcrumb items={[
+        { label: 'Resume Coach', path: '/resume-coach' },
+        { label: resume.display_name || 'Core Resume' }
+      ]} />
 
 {/* Mobile toggle */}
       <div className="md:hidden flex flex-col bg-white border-b border-gray-200 flex-shrink-0">
@@ -982,7 +980,7 @@ if (data.ai_analysis) {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
                         body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview', userId: user.id })
                       })
-                      if (response.ok) {
+                     if (response.ok) {
                         const blob = await response.blob()
                         setPreviewUrl(window.URL.createObjectURL(blob))
                         setShowPreview(true)
@@ -1412,7 +1410,7 @@ if (data.ai_analysis) {
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-8" style={{backgroundColor:'rgba(0,0,0,0.6)'}} onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-2 md:p-8" style={{backgroundColor:'rgba(0,0,0,0.6)'}} onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}>
           <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div>
@@ -1432,7 +1430,7 @@ if (data.ai_analysis) {
             <div className="flex-1 overflow-hidden">
               {previewUrl && (
                 <iframe
-                 src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                 src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
                   className="w-full h-full"
                   title="Resume Preview"
                 />
