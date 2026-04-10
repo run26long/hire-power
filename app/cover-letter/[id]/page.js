@@ -729,7 +729,7 @@ export default function CoverLetterPage() {
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
 
           {/* Cover Letter Display */}
-          <div ref={clPanelRef} className="flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative">
+          <div ref={clPanelRef} className="flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative" style={{ height: window.innerWidth < 768 ? `${816 * 1.294 * mobileScale}px` : 'auto' }}>
             <div
               style={{
                 transform: window.innerWidth < 768 ? `scale(${mobileScale})` : `scale(${zoom / 100})`,
@@ -738,7 +738,6 @@ export default function CoverLetterPage() {
                 position: 'relative',
                 fontFamily: selectedFont,
                 fontSize: `${selectedSize}pt`,
-                height: window.innerWidth < 768 ? `${816 * 1.294 * mobileScale}px` : 'auto',
               }}
             >
               <CoverLetterContent
@@ -830,7 +829,28 @@ export default function CoverLetterPage() {
               >×</button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {previewUrl && <iframe src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} className="w-full h-full" title="Cover Letter Preview" />}
+              {mobileScale < 1 ? (
+                <div className="w-full h-full overflow-y-auto bg-white">
+                  <div style={{
+                    transform: `scale(${mobileScale})`,
+                    transformOrigin: 'top left',
+                    width: '816px',
+                    pointerEvents: 'none'
+                  }}>
+                    <CoverLetterContent
+                      clData={clData}
+                      onUpdate={() => {}}
+                      selectedTemplate={selectedTemplate}
+                      selectedFont={selectedFont}
+                      selectedSize={selectedSize}
+                    />
+                  </div>
+                </div>
+              ) : (
+                previewUrl && (
+                  <iframe src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} className="w-full h-full" title="Cover Letter Preview" />
+                )
+              )}
             </div>
           </div>
         </div>
