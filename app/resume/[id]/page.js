@@ -1428,12 +1428,32 @@ if (data.ai_analysis) {
               </button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {previewUrl && (
-                <iframe
-                 src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
-                  className="w-full h-full"
-                  title="Resume Preview"
-                />
+              {mobileScale < 1 ? (
+                <div className="w-full h-full overflow-y-auto bg-white">
+                  <div style={{
+                    transform: `scale(${mobileScale})`,
+                    transformOrigin: 'top left',
+                    width: '816px',
+                    pointerEvents: 'none'
+                  }}>
+                    <ResumeContent
+                      resumeData={resumeData}
+                      onUpdate={() => {}}
+                      isUndoingRef={{ current: false }}
+                      formatDate={formatDate}
+                      templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
+                      selectedTemplate={selectedTemplate}
+                    />
+                  </div>
+                </div>
+              ) : (
+                previewUrl && (
+                  <iframe
+                    src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+                    className="w-full h-full"
+                    title="Resume Preview"
+                  />
+                )
               )}
             </div>
           </div>
