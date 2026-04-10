@@ -228,18 +228,17 @@ export default function MyCareerPage() {
         <MainNav currentPage="career-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
-            <h1 className="text-lg font-bold text-gray-900">Career Coach</h1>
-            <p className="text-xs text-gray-500">The best 5-minute investment you can make in your career.</p>
-          </div>
-          <div className="px-4 md:px-8 py-2 max-w-[1400px] mx-auto w-full">
+          <div className="px-4 md:px-8 py-2 md:py-4 max-w-[1400px] mx-auto w-full">
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
               {/* Career Profile Card - 8 cols */}
              <div className="col-span-1 md:col-span-8">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                  <h2 className="text-lg font-semibold text-gray-900">Career Profile</h2>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <h2 className="text-lg font-semibold text-gray-900">Career Profile</h2>
+                    <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Coach</span>
+                  </div>
                   <p className="text-xs text-gray-500 mb-4">The context that makes your resume and interviews sharper.</p>
 
                   {/* Profile Grid */}

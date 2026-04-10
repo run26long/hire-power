@@ -37,6 +37,10 @@ export default function CoverLetterPage() {
   const [accentColor, setAccentColor] = useState('#5b4fcf')
   const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
+  const [mobileToolbar, setMobileToolbar] = useState(null)
+  const [mobileScale, setMobileScale] = useState(1)
+  const [showEditTip, setShowEditTip] = useState(false)
+  const clPanelRef = useRef(null)
 
   const templateFonts = {
     crisp: 'Source Serif 4',
@@ -48,6 +52,21 @@ export default function CoverLetterPage() {
     vibe: 'Lato',
     edge: 'Open Sans',
   }
+
+  useEffect(() => {
+    const updateMobileScale = () => {
+      if (window.innerWidth >= 768) {
+        setMobileScale(1)
+        return
+      }
+      if (!clPanelRef.current) return
+      const containerWidth = clPanelRef.current.offsetWidth
+      if (containerWidth > 0) setMobileScale(containerWidth / 816)
+    }
+    updateMobileScale()
+    window.addEventListener('resize', updateMobileScale)
+    return () => window.removeEventListener('resize', updateMobileScale)
+  }, [])
 
   useEffect(() => {
     loadCoverLetter()
@@ -403,8 +422,150 @@ export default function CoverLetterPage() {
         { label: `Cover Letter — ${coverLetter.job_title || 'Draft'}` }
       ]} />
 
+      {/* Mobile Toolbar */}
+      <div className="md:hidden bg-white border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center gap-1.5 px-3 py-2.5 bg-gray-50 border-b border-gray-200">
+          {/* Pencil */}
+          <button
+            onClick={() => {
+              setShowEditTip(prev => !prev)
+              if (!showEditTip) setTimeout(() => setShowEditTip(false), 3000)
+            }}
+            className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+            style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+          >
+            ✏️
+          </button>
+          {/* Format */}
+          <button
+            onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
+            className="flex-1 py-1 px-1 text-xs font-medium rounded transition-colors"
+            style={{
+              color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
+              backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+              border: mobileToolbar === 'format' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}
+          >
+            📄 Format
+          </button>
+          {/* Save */}
+          <button
+            onClick={save}
+            className={`flex-1 py-1.5 rounded text-xs font-semibold ${
+              saveSuccess ? 'bg-green-600 text-white' :
+              hasUnsavedChanges ? 'bg-purple-600 text-white' :
+              'bg-gray-200 text-gray-500'
+            }`}
+          >
+            {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+          </button>
+          {/* Preview */}
+          <button
+            onClick={handlePreview}
+            disabled={isLoadingPreview}
+            className="flex-1 py-1 px-1 text-xs font-medium rounded disabled:opacity-50"
+            style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+          >
+            {isLoadingPreview ? '...' : 'Preview'}
+          </button>
+          {/* Download */}
+          <button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="flex-1 py-1 px-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+          >
+            {isDownloading ? '...' : '⬇️ Download'}
+          </button>
+        </div>
+        {showEditTip && (
+          <div className="px-4 pb-1 pt-1 text-xs text-amber-700 text-center">
+            Editing works best on desktop. Tap any section to try.
+          </div>
+        )}
+        {mobileToolbar === 'format' && (
+          <div className="px-4 pb-3 grid grid-cols-2 gap-2 pt-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 uppercase tracking-wide">Template</label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => {
+                  const t = e.target.value
+                  setSelectedTemplate(t)
+                  setSelectedFont(templateFonts[t] || 'Lato')
+                  setHasUnsavedChanges(true)
+                }}
+                className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+              >
+                <option value="command">Command</option>
+                <option value="crisp">Crisp</option>
+                <option value="current">Current</option>
+                <option value="edge">Edge</option>
+                <option value="prestige">Prestige</option>
+                <option value="signature">Signature</option>
+                <option value="sharp">Sharp</option>
+                <option value="vibe">Vibe</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 uppercase tracking-wide">Font</label>
+              <select
+                value={selectedFont}
+                onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
+                className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+              >
+                <option value="EB Garamond">EB Garamond</option>
+                <option value="Lato">Lato</option>
+                <option value="Open Sans">Open Sans</option>
+                <option value="Source Serif 4">Source Serif 4</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 uppercase tracking-wide">Size</label>
+              <select
+                value={selectedSize}
+                onChange={(e) => { setSelectedSize(Number(e.target.value)); setHasUnsavedChanges(true) }}
+                className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+              >
+                {[10, 11, 12].map(s => <option key={s} value={s}>{s}pt</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-gray-500 uppercase tracking-wide">Accent</label>
+              <div className="flex items-center gap-1 flex-wrap">
+                {['#5b4fcf','#1e3a5f','#7a1e3a','#1e6b6b','#1e5f3a','#8b3a1e','#2d2d2d','#2d4a6b'].map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setAccentColor(c)}
+                    style={{
+                      width: '20px', height: '20px', borderRadius: '4px', background: c,
+                      border: accentColor === c ? '2px solid #1a1a1a' : '2px solid #e5e7eb',
+                      flexShrink: 0
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <button
+                onClick={handleAutoFit}
+                disabled={isAutoFitting}
+                className={`w-full py-1.5 border rounded text-xs font-medium transition-colors ${
+                  isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300' :
+                  resumeExceedsPage ? 'border-amber-400 bg-amber-50 text-amber-700' :
+                  'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible">
+      <div className="hidden md:block bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible">
         <div className="px-6 pt-4 pb-2 max-w-7xl mx-auto w-full overflow-visible">
           <div className="flex items-center gap-2 text-xs overflow-visible flex-nowrap">
 
@@ -565,18 +726,19 @@ export default function CoverLetterPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
-        <div className="flex-1 flex gap-6 p-6 max-w-7xl mx-auto w-full">
+        <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
 
           {/* Cover Letter Display */}
-          <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto relative">
+          <div ref={clPanelRef} className="flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative">
             <div
               style={{
-                transform: `scale(${zoom / 100})`,
+                transform: window.innerWidth < 768 ? `scale(${mobileScale})` : `scale(${zoom / 100})`,
                 transformOrigin: 'top left',
                 width: '816px',
                 position: 'relative',
                 fontFamily: selectedFont,
                 fontSize: `${selectedSize}pt`,
+                height: window.innerWidth < 768 ? `${816 * 1.294 * mobileScale}px` : 'auto',
               }}
             >
               <CoverLetterContent
@@ -589,8 +751,8 @@ export default function CoverLetterPage() {
             </div>
           </div>
 
-          {/* Right Panel */}
-          <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto px-6 pb-6 pt-6">
+          {/* Right Panel - desktop only */}
+          <div className="hidden md:flex flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto flex-col px-6 pb-6 pt-6">
             <h3 className="font-semibold text-sm text-gray-900 mb-3">
               Cover Letter
             </h3>
@@ -656,17 +818,19 @@ export default function CoverLetterPage() {
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-8">
-          <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Cover Letter Preview</h3>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-2 md:p-8" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null) }}>
+          <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <div>
+                <p className="text-xs md:text-sm text-purple-100 mt-0.5">Need help with page fit? Use Auto-fit in the toolbar. Compact templates: Sharp & Vibe. Compact fonts: EB Garamond & Lato.</p>
+              </div>
               <button
                 onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null) }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-white hover:opacity-70 text-2xl leading-none font-light ml-4"
               >×</button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {previewUrl && <iframe src={`${previewUrl}#toolbar=0`} className="w-full h-full" title="Cover Letter Preview" />}
+              {previewUrl && <iframe src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} className="w-full h-full" title="Cover Letter Preview" />}
             </div>
           </div>
         </div>
