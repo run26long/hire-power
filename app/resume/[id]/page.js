@@ -1200,14 +1200,13 @@ if (data.ai_analysis) {
                         font: selectedFont,
                         accentColor: accentColor,
                         spacing: selectedSpacing,
-                        action: 'preview',
+                        action: 'preview-url',
                         userId: user.id
                       })
                     })
                     if (response.ok) {
-                      const blob = await response.blob()
-                      const url = window.URL.createObjectURL(blob)
-                      setPreviewUrl(url)
+                      const data = await response.json()
+                      setPreviewUrl(data.previewUrl)
                       setShowPreview(true)
                     }
                   } catch (e) {
@@ -1419,54 +1418,23 @@ if (data.ai_analysis) {
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-2 md:p-8" style={{backgroundColor:'rgba(0,0,0,0.6)'}} onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}>
-          <div className="bg-white rounded-lg h-full max-h-[90vh] flex flex-col shadow-2xl" style={{ width: '630px', maxWidth: '95vw' }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
-              <div>
-                <p className="text-xs md:text-sm text-purple-100 mt-0.5">Need help with page fit? Use Auto-fit in the toolbar. Compact templates: Sharp & Vibe. Compact fonts: EB Garamond & Lato.</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowPreview(false)
-                  if (previewUrl) window.URL.revokeObjectURL(previewUrl)
-                  setPreviewUrl(null)
-                }}
-                className="text-white hover:opacity-70 text-2xl leading-none font-light ml-4"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {window.innerWidth < 768 ? (
-                <div ref={previewModalRef} className="w-full h-full overflow-y-auto bg-white">
-                  <div style={{
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: 'top left',
-                    width: '816px',
-                    height: `${816 * 1.294 * previewScale}px`,
-                    pointerEvents: 'none'
-                  }}>
-                    <ResumeContent
-                      resumeData={resumeData}
-                      onUpdate={() => {}}
-                      isUndoingRef={{ current: false }}
-                      formatDate={formatDate}
-                      templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
-                      selectedTemplate={selectedTemplate}
-                      readOnly={true}
-                    />
-                  </div>
-                </div>
-              ) : (
-                previewUrl && (
-                  <iframe
-                    src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
-                    className="w-full h-full"
-                    title="Resume Preview"
-                  />
-                )
-              )}
-            </div>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 md:p-8" style={{ backgroundColor: 'rgba(255,255,255,0.85)' }}>
+          <div
+            className="relative rounded-lg shadow-2xl overflow-hidden"
+            style={{ height: '90vh', width: 'calc(90vh * 8.5 / 11)', maxWidth: '95vw' }}
+          >
+            <button
+              onClick={() => { setShowPreview(false); setPreviewUrl(null) }}
+              className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-900 text-xl leading-none font-light"
+              style={{ background: 'rgba(255,255,255,0.9)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}
+            >×</button>
+            {previewUrl && (
+              <iframe
+                src={`${previewUrl}#toolbar=0&view=Fit`}
+                className="w-full h-full"
+                title="Resume Preview"
+              />
+            )}
           </div>
         </div>
       )}

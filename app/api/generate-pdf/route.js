@@ -200,6 +200,22 @@ export async function POST(request) {
       })
     }
 
+    if (action === 'preview-url') {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const fileName = `${userId}/preview/resume_preview_${timestamp}.pdf`
+      const { error: uploadError } = await supabase.storage
+        .from('resume-pdfs')
+        .upload(fileName, pdfBuffer, {
+          contentType: 'application/pdf',
+          upsert: true
+        })
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage
+        .from('resume-pdfs')
+        .getPublicUrl(fileName)
+      return Response.json({ previewUrl: publicUrl })
+    }
+
     const downloadName = resumeData?.fullName
       ? `${resumeData.fullName.replace(/\s+/g, '_')}_Resume_Preview.pdf`
       : 'Resume_Preview.pdf'
