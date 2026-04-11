@@ -65,9 +65,12 @@ export default function CoverLetterPage() {
       const containerWidth = clPanelRef.current.offsetWidth
       if (containerWidth > 0) setMobileScale(containerWidth / 816)
     }
-    updateMobileScale()
+    const timer = setTimeout(updateMobileScale, 50)
     window.addEventListener('resize', updateMobileScale)
-    return () => window.removeEventListener('resize', updateMobileScale)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', updateMobileScale)
+    }
   }, [])
 
   useEffect(() => {
