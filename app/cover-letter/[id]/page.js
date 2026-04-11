@@ -22,8 +22,6 @@ export default function CoverLetterPage() {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
-  const previewModalRef = useRef(null)
-  const [previewScale, setPreviewScale] = useState(1)
   const [isAutoFitting, setIsAutoFitting] = useState(false)
   const [showTooLongModal, setShowTooLongModal] = useState(false)
   const isAutoFitJustRanRef = useRef(false)
@@ -65,20 +63,10 @@ export default function CoverLetterPage() {
       const containerWidth = clPanelRef.current.offsetWidth
       if (containerWidth > 0) setMobileScale(containerWidth / 816)
     }
-    const timer = setTimeout(updateMobileScale, 50)
+    updateMobileScale()
     window.addEventListener('resize', updateMobileScale)
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener('resize', updateMobileScale)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (showPreview && previewModalRef.current) {
-      const modalWidth = previewModalRef.current.offsetWidth
-      if (modalWidth > 0) setPreviewScale(modalWidth / 816)
-    }
-  }, [showPreview])
+    return () => window.removeEventListener('resize', updateMobileScale)
+  }, [loading])
 
   useEffect(() => {
     loadCoverLetter()
@@ -842,13 +830,12 @@ export default function CoverLetterPage() {
               >×</button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {window.innerWidth < 768 ? (
-                <div ref={previewModalRef} className="w-full h-full overflow-y-auto bg-white">
+              {mobileScale < 1 ? (
+                <div className="w-full h-full overflow-y-auto bg-white">
                   <div style={{
-                    transform: `scale(${previewScale})`,
+                    transform: `scale(${mobileScale})`,
                     transformOrigin: 'top left',
                     width: '816px',
-                    height: `${816 * 1.294 * previewScale}px`,
                     pointerEvents: 'none'
                   }}>
                     <CoverLetterContent
