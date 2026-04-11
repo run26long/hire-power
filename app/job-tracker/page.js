@@ -995,7 +995,7 @@ export default function JobTrackerPage() {
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
-                  <h2 className="text-xl font-bold text-white">Job Archive</h2>
+                  <h2 className="text-xl font-bold text-white">Career Archive</h2>
                   <p className="text-purple-100 text-xs">{archivedCards.length} past application{archivedCards.length !== 1 ? 's' : ''}</p>
                 </div>
               </div>

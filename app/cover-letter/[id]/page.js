@@ -22,6 +22,8 @@ export default function CoverLetterPage() {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const previewModalRef = useRef(null)
+  const [previewScale, setPreviewScale] = useState(1)
   const [isAutoFitting, setIsAutoFitting] = useState(false)
   const [showTooLongModal, setShowTooLongModal] = useState(false)
   const isAutoFitJustRanRef = useRef(false)
@@ -67,6 +69,13 @@ export default function CoverLetterPage() {
     window.addEventListener('resize', updateMobileScale)
     return () => window.removeEventListener('resize', updateMobileScale)
   }, [])
+
+  useEffect(() => {
+    if (showPreview && previewModalRef.current) {
+      const modalWidth = previewModalRef.current.offsetWidth
+      if (modalWidth > 0) setPreviewScale(modalWidth / 816)
+    }
+  }, [showPreview])
 
   useEffect(() => {
     loadCoverLetter()
@@ -729,7 +738,7 @@ export default function CoverLetterPage() {
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
 
           {/* Cover Letter Display */}
-          <div ref={clPanelRef} className="flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative" style={{ height: window.innerWidth < 768 ? `${816 * 1.294 * mobileScale}px` : 'auto' }}>
+          <div ref={clPanelRef} className="flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative">
             <div
               style={{
                 transform: window.innerWidth < 768 ? `scale(${mobileScale})` : `scale(${zoom / 100})`,
@@ -738,6 +747,7 @@ export default function CoverLetterPage() {
                 position: 'relative',
                 fontFamily: selectedFont,
                 fontSize: `${selectedSize}pt`,
+                height: window.innerWidth < 768 ? `${816 * 1.294 * mobileScale}px` : 'auto',
               }}
             >
               <CoverLetterContent
@@ -829,12 +839,13 @@ export default function CoverLetterPage() {
               >×</button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {mobileScale < 1 ? (
-                <div className="w-full h-full overflow-y-auto bg-white">
+              {window.innerWidth < 768 ? (
+                <div ref={previewModalRef} className="w-full h-full overflow-y-auto bg-white">
                   <div style={{
-                    transform: `scale(${mobileScale})`,
+                    transform: `scale(${previewScale})`,
                     transformOrigin: 'top left',
                     width: '816px',
+                    height: `${816 * 1.294 * previewScale}px`,
                     pointerEvents: 'none'
                   }}>
                     <CoverLetterContent

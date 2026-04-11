@@ -35,6 +35,8 @@ export default function ResumePage() {
  const [showPreview, setShowPreview] = useState(false)
 const [previewUrl, setPreviewUrl] = useState(null)
 const [isLoadingPreview, setIsLoadingPreview] = useState(false)
+const previewModalRef = useRef(null)
+const [previewScale, setPreviewScale] = useState(1)
  const [isDownloading, setIsDownloading] = useState(false)
  const [showColorPicker, setShowColorPicker] = useState(false)
 const isAutoFitJustRanRef = useRef(false)
@@ -425,6 +427,13 @@ function formatDate(dateString, format = dateFormat) {
     loadResume()
     loadUserProfile()
   }, [params.id])
+
+  useEffect(() => {
+    if (showPreview && previewModalRef.current) {
+      const modalWidth = previewModalRef.current.offsetWidth
+      if (modalWidth > 0) setPreviewScale(modalWidth / 816)
+    }
+  }, [showPreview])
 
   useEffect(() => {
     if (!resume || resume.resume_type !== 'job_specific') return
@@ -1411,7 +1420,7 @@ if (data.ai_analysis) {
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-2 md:p-8" style={{backgroundColor:'rgba(0,0,0,0.6)'}} onClick={() => { setShowPreview(false); if (previewUrl) window.URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}>
-          <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-lg h-full max-h-[90vh] flex flex-col shadow-2xl" style={{ width: '630px', maxWidth: '95vw' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div>
                 <p className="text-xs md:text-sm text-purple-100 mt-0.5">Need help with page fit? Use Auto-fit in the toolbar. Compact templates: Sharp & Vibe. Compact fonts: EB Garamond & Lato.</p>
@@ -1428,12 +1437,13 @@ if (data.ai_analysis) {
               </button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {mobileScale < 1 ? (
-                <div className="w-full h-full overflow-y-auto bg-white">
+              {window.innerWidth < 768 ? (
+                <div ref={previewModalRef} className="w-full h-full overflow-y-auto bg-white">
                   <div style={{
-                    transform: `scale(${mobileScale})`,
+                    transform: `scale(${previewScale})`,
                     transformOrigin: 'top left',
                     width: '816px',
+                    height: `${816 * 1.294 * previewScale}px`,
                     pointerEvents: 'none'
                   }}>
                     <ResumeContent
@@ -1443,6 +1453,7 @@ if (data.ai_analysis) {
                       formatDate={formatDate}
                       templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
                       selectedTemplate={selectedTemplate}
+                      readOnly={true}
                     />
                   </div>
                 </div>
