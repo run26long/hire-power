@@ -3171,11 +3171,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             className="fixed inset-0 z-50 flex items-center justify-center"
             style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
           >
-            <div className="relative flex items-center" style={{ width: '740px', height: '560px' }}>
+            <div className="relative flex items-center md:w-[740px] md:h-[560px] w-full px-4">
 
-              {/* Resume Thumbnail — left panel */}
+              {/* Resume Thumbnail — left panel, desktop only */}
               <div
-                className="absolute left-0 bg-white shadow-2xl overflow-hidden"
+                className="absolute left-0 bg-white shadow-2xl overflow-hidden hidden md:block"
                 style={{ width: '420px', height: '560px', borderRadius: '0px', border: '1px solid #e5e7eb' }}
               >
                 <div className="absolute inset-0 z-10" style={{ background: 'rgba(147, 51, 234, 0.06)' }} />
@@ -3199,18 +3199,18 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 </div>
               </div>
 
-              {/* Score Card — right, overlapping */}
+              {/* Score Card — full width on mobile, overlapping on desktop */}
               <div
-                className="absolute bg-white shadow-2xl flex flex-col"
-                style={{ width: '380px', borderRadius: '0px', border: '1px solid #e5e7eb', zIndex: 10, left: '320px', top: '50%', transform: 'translateY(-50%)' }}
+                className="bg-white shadow-2xl flex flex-col w-full md:absolute md:w-[380px]"
+                style={{ borderRadius: '8px', border: '1px solid #e5e7eb', zIndex: 10 }}
               >
                 <div
-                 style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '0' }}
-                className="px-6 py-5 text-center"
-              >
-                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
-                <h2 className="text-xl font-bold text-white">Improvement Complete.</h2>
-              </div>
+                  style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+                  className="md:[border-radius:0] px-6 py-5 text-center"
+                >
+                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
+                  <h2 className="text-xl font-bold text-white">Improvement Complete.</h2>
+                </div>
 
               <div className="p-6 text-center">
                 {scoreBeforeCoaching && scoreAfterCoaching ? (
@@ -3665,10 +3665,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
         >
-          <div className="relative flex items-center" style={{ width: '740px', height: '560px' }}>
+          <div className="relative flex items-center md:w-[740px] md:h-[560px] w-full px-4">
 
             <div
-              className="absolute left-0 bg-white shadow-2xl overflow-hidden"
+              className="absolute left-0 bg-white shadow-2xl overflow-hidden hidden md:block"
               style={{ width: '420px', height: '560px', borderRadius: '0px', border: '1px solid #e5e7eb' }}
             >
               <div className="absolute inset-0 z-10" style={{ background: 'rgba(147, 51, 234, 0.06)' }} />
@@ -3693,12 +3693,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             </div>
 
             <div
-              className="absolute bg-white shadow-2xl flex flex-col"
-              style={{ width: '380px', borderRadius: '0px', border: '1px solid #e5e7eb', zIndex: 10, left: '320px', top: '50%', transform: 'translateY(-50%)' }}
+              className="bg-white shadow-2xl flex flex-col w-full md:absolute md:w-[380px] md:left-[320px] md:top-1/2 md:-translate-y-1/2"
+              style={{ borderRadius: '8px', border: '1px solid #e5e7eb', zIndex: 10 }}
             >
               <div
-                style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '0' }}
-                className="px-6 py-5 text-center"
+                style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+                className="px-6 py-5 text-center rounded-t-lg md:rounded-none"
               >
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
                 <h2 className="text-xl font-bold text-white">Improvement Complete.</h2>

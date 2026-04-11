@@ -1138,9 +1138,9 @@ export default function CareerVaultPage() {
               <div>
                 <button
                   onClick={() => { setShowNewSearchModal(false); router.push('/resume-coach'); }}
-                  className="text-xs text-purple-600 hover:text-purple-700 font-medium bg-transparent border-none cursor-pointer p-0"
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium bg-transparent border-none cursor-pointer p-0 text-center block w-full"
                 >
-                  Just want to view or download your resume? Go to Resume Coach →
+                  Just want to view or download your resume? <br/>Go to Resume Coach →
                 </button>
               </div>
 

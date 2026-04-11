@@ -8,7 +8,7 @@ import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 
 const COLUMNS = [
-  { id: 'resume_in_progress', label: 'Resume Ready', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
+  { id: 'resume_in_progress', label: 'Prepping', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
   { id: 'applied',            label: 'Applied',      color: '#1d4ed8', bg: 'rgba(29,78,216,0.06)',   border: 'rgba(29,78,216,0.2)'   },
   { id: 'interview',          label: 'Interview',    color: '#92400e', bg: 'rgba(146,64,14,0.06)',   border: 'rgba(146,64,14,0.2)'   },
   { id: 'rejected',           label: 'Rejected',     color: '#6b7280', bg: 'rgba(107,114,128,0.06)', border: 'rgba(107,114,128,0.2)' },
@@ -17,7 +17,7 @@ const COLUMNS = [
 
 function StatusBadge({ status }) {
   const config = {
-    resume_in_progress: { label: 'Resume Ready', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
+    resume_in_progress: { label: 'Prepping', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
     applied:            { label: 'Applied',       bg: '#fefce8', border: '#fde047', text: '#854d0e' },
     interview:          { label: 'Interview',     bg: '#eff6ff', border: '#93c5fd', text: '#1e40af' },
     hired:              { label: 'Hired',         bg: '#f0fdf4', border: '#86efac', text: '#166534' },
@@ -54,6 +54,7 @@ export default function JobTrackerPage() {
   const [hiredCard, setHiredCard] = useState(null);
   const [rejectedPromptCard, setRejectedPromptCard] = useState(null);
 
+  const [mobileColumn, setMobileColumn] = useState('resume_in_progress');
   const [deleteConfirmCard, setDeleteConfirmCard] = useState(null);
   const [toast, setToast] = useState(null);
   const [errorToast, setErrorToast] = useState(null);
@@ -299,6 +300,68 @@ export default function JobTrackerPage() {
     setShowCardModal(false);
   };
 
+  const handleMoveCard = async (card, newStatus) => {
+    if (card.application_status === newStatus) return;
+    const previousStatus = card.application_status;
+    setApplications(prev => prev.map(a =>
+      a.id === card.id ? { ...a, application_status: newStatus } : a
+    ));
+    setShowCardModal(false);
+    const { error } = await supabase
+      .from('applications')
+      .update({ application_status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', card.id);
+    if (error) {
+      setApplications(prev => prev.map(a =>
+        a.id === card.id ? { ...a, application_status: previousStatus } : a
+      ));
+      setErrorToast('Move failed. Please try again.');
+      return;
+    }
+    setMobileColumn(newStatus);
+    if (newStatus === 'applied') {
+      const updatedCard = { ...card, application_status: 'applied' };
+      setToast({ type: 'info', message: "Moved to Applied. Open the card to schedule a follow-up or start interview prep.", card: updatedCard });
+      setTimeout(() => setToast(null), 5000);
+    } else if (newStatus === 'interview') {
+      const updatedCard = { ...card, application_status: 'interview' };
+      setToast({ type: 'info', message: "Moved to Interview. Open the card to save your interview date and practice questions.", card: updatedCard });
+      setTimeout(() => setToast(null), 5000);
+    }
+    if (newStatus === 'rejected') {
+      setTimeout(() => setRejectedPromptCard({ ...card, previousStatus }), 600);
+    }
+    if (newStatus === 'hired') {
+      const hiredAt = new Date().toISOString();
+      const { data: existingHired } = await supabase
+        .from('applications')
+        .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
+        .eq('user_id', user.id)
+        .eq('application_status', 'hired')
+        .neq('id', card.id)
+        .maybeSingle();
+      if (existingHired) {
+        await supabase
+          .from('applications')
+          .update({ application_status: 'archived', last_active_status: 'hired', updated_at: hiredAt })
+          .eq('id', existingHired.id);
+        setApplications(prev => prev.filter(a => a.id !== existingHired.id));
+        setArchivedCards(prev => [...prev, { ...existingHired, application_status: 'archived', last_active_status: 'hired' }]);
+      }
+      await supabase
+        .from('applications')
+        .update({ hired_at: hiredAt, updated_at: hiredAt })
+        .eq('id', card.id);
+      await supabase
+        .from('profiles')
+        .update({ search_status: 'hired' })
+        .eq('id', user.id);
+      setUserProfile(prev => ({ ...prev, search_status: 'hired' }));
+      setShowHiredModal(true);
+      setHiredCard(card);
+    }
+  };
+
   function formatDate(dateString) {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -324,7 +387,7 @@ export default function JobTrackerPage() {
 
       {/* Sidebar */}
       <div
-        className="w-64 text-white flex flex-col fixed left-0 top-0 shadow-lg z-40"
+        className="w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40 hidden md:flex"
         style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', height: '100vh', overflowY: 'hidden' }}
       >
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
@@ -376,26 +439,26 @@ export default function JobTrackerPage() {
       </div>
 
       {/* Main */}
-      <div className="ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
         <MainNav currentPage="job-tracker" userProfile={userProfile} />
 
         <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="px-6 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
+          {/* Desktop header */}
+          <div className="hidden md:flex px-6 pt-4 pb-2 items-center justify-between flex-shrink-0">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
-              <p className="text-xs text-gray-500">Drag cards between columns as your search progresses</p>
+              <p className="text-xs text-gray-500">Drag cards between columns as your search progresses.</p>
             </div>
-           <div className="flex items-center gap-2">
-              
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowArchiveModal(true)}
-                className="text-xs font-semibold py-1.5 px-4 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors whitespace-nowrap"
               >
                 📁 Archive ({archivedCards.length})
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="text-white text-xs font-bold py-1.5 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                className="text-white text-xs font-bold py-1.5 px-3 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
                 style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
               >
                 + Add Job
@@ -403,9 +466,51 @@ export default function JobTrackerPage() {
             </div>
           </div>
 
+          {/* Mobile header */}
+          <div className="md:hidden px-6 pt-4 pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
+              <span className="text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">Drag cards between columns as your search progresses.</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowArchiveModal(true)}
+                className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                📁 Archive ({archivedCards.length})
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="text-white text-xs font-bold py-1.5 px-3 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+              >
+                + Add Job
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile column picker */}
+          <div className="md:hidden flex gap-1.5 px-4 py-3 bg-white flex-shrink-0 justify-center">
+            {COLUMNS.map(col => (
+              <button
+                key={col.id}
+                onClick={() => setMobileColumn(col.id)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                style={{
+                  background: mobileColumn === col.id ? col.color : 'transparent',
+                  color: mobileColumn === col.id ? 'white' : col.color,
+                  border: `1px solid ${col.color}`,
+                }}
+              >
+                {col.label}
+              </button>
+            ))}
+          </div>
+
           {/* Kanban */}
           <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 pb-4">
-            <div className="flex gap-3 h-full" style={{ minWidth: 900 }}>
+            <div className="flex gap-3 h-full md:min-w-[900px]">
               {COLUMNS.map(col => {
                 const cards = getColumnCards(col.id);
                 const isOver = dragOverColumn === col.id;
@@ -413,7 +518,7 @@ export default function JobTrackerPage() {
                 return (
                   <div
                     key={col.id}
-                    className="flex flex-col flex-1 min-w-[170px]"
+                    className={`flex-col flex-1 min-w-[170px] ${mobileColumn === col.id ? 'flex' : 'hidden'} md:flex`}
                     onDragOver={(e) => handleDragOver(e, col.id)}
                     onDrop={(e) => handleDrop(e, col.id)}
                     onDragLeave={() => setDragOverColumn(null)}
@@ -433,7 +538,7 @@ export default function JobTrackerPage() {
 
                     {/* Column body */}
                     <div
-                      className="flex-1 rounded-b-xl p-2 overflow-y-auto flex flex-col gap-2 transition-colors"
+                      className="flex-1 rounded-b-xl p-2 pt-4 overflow-y-auto flex flex-col gap-2 transition-colors"
                       style={{
                         background: isOver ? col.bg : '#f9fafb',
                         borderLeft: `1px solid ${isOver ? col.color : '#e5e7eb'}`,
@@ -538,7 +643,7 @@ export default function JobTrackerPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Add Job Card</h2>
-                  <p className="text-purple-100 text-xs mt-0.5">Card starts in Resume Ready</p>
+                  <p className="text-purple-100 text-xs mt-0.5">Card starts in Prepping</p>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
@@ -1152,6 +1257,7 @@ export default function JobTrackerPage() {
           interviewRounds={interviewRounds}
           context="tracker"
           isPro={isPro}
+          onMoveCard={handleMoveCard}
         />
       )}
 

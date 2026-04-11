@@ -6,7 +6,7 @@ import UpgradeModal from './UpgradeModal';
 
 function StatusBadge({ status }) {
   const config = {
-    resume_in_progress: { label: 'Resume Ready', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
+    resume_in_progress: { label: 'Prepping', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
     applied:            { label: 'Applied',       bg: '#fefce8', border: '#fde047', text: '#854d0e' },
     interview:          { label: 'Interview',     bg: '#eff6ff', border: '#93c5fd', text: '#1e40af' },
     hired:              { label: 'Hired',         bg: '#f0fdf4', border: '#86efac', text: '#166534' },
@@ -30,6 +30,7 @@ export default function JobCardModal({
   onLogWin,
   onLinkResume,
   onScheduleInterview,
+  onMoveCard,
   jsResumes = [],
   interviewRounds = [],
   context = 'tracker',
@@ -91,6 +92,34 @@ export default function JobCardModal({
             </div>
           </div>
 
+          {/* Mobile Move to row */}
+          <div className="md:hidden px-6 py-3 border-b border-gray-100 flex-shrink-0">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Move to</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                { id: 'prepping',           label: 'Prepping',  color: '#7c3aed' },
+                { id: 'applied',            label: 'Applied',   color: '#1d4ed8' },
+                { id: 'interview',          label: 'Interview', color: '#92400e' },
+                { id: 'rejected',           label: 'Rejected',  color: '#6b7280' },
+                { id: 'hired',              label: 'Hired',     color: '#15803d' },
+              ].map(col => (
+                <button
+                  key={col.id}
+                  onClick={() => onMoveCard?.(card, col.id)}
+                  disabled={card.application_status === col.id}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    border: `1px solid ${col.color}`,
+                    color: card.application_status === col.id ? 'white' : col.color,
+                    background: card.application_status === col.id ? col.color : 'transparent',
+                  }}
+                >
+                  {col.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Scrollable body */}
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
@@ -149,7 +178,7 @@ export default function JobCardModal({
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Documents</p>
 
-             {card.resumes ? (
+              {card.resumes ? (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📄</span>
@@ -495,7 +524,8 @@ export default function JobCardModal({
           </div>
         </div>
       )}
-    <UpgradeModal
+
+      <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
