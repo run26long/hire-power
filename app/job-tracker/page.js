@@ -447,7 +447,7 @@ export default function JobTrackerPage() {
           <div className="hidden md:flex px-6 pt-4 pb-2 items-center justify-between flex-shrink-0">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
-              <p className="text-xs text-gray-500">Drag cards between columns as your search progresses.</p>
+              <p className="text-xs text-gray-500">Drag cards between boards as your search progresses.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -472,7 +472,7 @@ export default function JobTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
               <span className="text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
             </div>
-            <p className="text-xs text-gray-500 mb-2">Drag cards between columns as your search progresses.</p>
+            <p className="text-xs text-gray-500 mb-2">Tap a board to switch views. Open a card to move it to a different board.</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowArchiveModal(true)}

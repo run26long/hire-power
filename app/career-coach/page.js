@@ -566,75 +566,104 @@ export default function MyCareerPage() {
                 </div>
               )}
 
-              {/* Screen 2 — matches Resume modal screen 3 exactly */}
+          {/* Screen 2 — matches Resume modal screen 3 exactly */}
               {modalScreen === 2 && (
-                <div className="flex flex-col py-3">
-                  <div className="space-y-2">
-                    <p className="text-gray-800 text-sm leading-relaxed font-semibold text-center">
-                      Your resume shows the past. We focus on what’s next. 
-                    </p>
-                    <div className="text-gray-700 text-sm leading-relaxed text-center">
-                      <p className="mt-1">Upload your resume and we’ll use it as the starting point for a quick conversation about your goals and target roles.</p>
-                    </div>
+                <div className="flex flex-col py-2">
 
-                    {/* Existing Core Resume */}
-                    {existingResume && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-green-800">✓ Resume Found</p>
-                          <p className="text-xs text-green-700">Core Resume on file</p>
-                        </div>
-                        <button
-                          onClick={handleContinueWithExisting}
-                          className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs whitespace-nowrap"
-                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                        >
-                          Use This Resume →
-                        </button>
+                  {/* Existing Core Resume */}
+                  {existingResume && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-2 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-green-800">✓ Resume Found</p>
+                        <p className="text-xs text-green-700">Core Resume on file</p>
                       </div>
-                    )}
+                      <button
+                        onClick={handleContinueWithExisting}
+                        className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                      >
+                        Use This Resume →
+                      </button>
+                    </div>
+                  )}
 
-                    <div className="flex flex-col items-center mt-6">
-                      <label className="block cursor-pointer mb-3">
-                        <input
-                          type="file"
-                          accept=".pdf,.docx"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          disabled={uploading}
-                        />
-                        <div className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center justify-center gap-2" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
-                          {uploading ? (
-                            <>
-                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                              Uploading...
-                            </>
-                          ) : existingResume ? (
-                            'Upload a Different Resume'
-                          ) : (
-                            'Upload Resume'
-                          )}
-                        </div>
-                      </label>
+                  {/* Option 1 — Upload */}
+                  <div className="flex items-center gap-4 py-4">
+                    <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>1</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">Already have a resume?</p>
+                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it and we'll coach it into something stronger.</p>
+                    </div>
+                    <label className="block cursor-pointer flex-shrink-0">
+                      <input
+                        type="file"
+                        accept=".pdf,.docx"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                      <div
+                        className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                      >
+                        {uploading ? (
+                          <>
+                            <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                            Uploading...
+                          </>
+                        ) : existingResume ? (
+                          'Upload a Different Resume'
+                        ) : (
+                          'Upload Resume'
+                        )}
+                      </div>
+                    </label>
+                  </div>
 
-                      {uploadError && (
-                        <p className="text-xs text-red-600 mb-2">{uploadError}</p>
-                      )}
+                  {uploadError && (
+                    <p className="text-xs text-red-600 mb-2 text-center">{uploadError}</p>
+                  )}
 
-                      <p className="text-sm text-gray-600 text-center">
-                        No resume yet?{' '}
-                        <button
-                          onClick={() => {
-                            localStorage.setItem('hp_career_modal_seen', 'true');
-                            router.push('/career-coach/build');
-                          }}
-                          className="text-purple-600 hover:text-purple-700 font-semibold hover:underline"
-                        >
-                          Build from scratch
-                        </button>
-                      </p>
+                  {/* Divider */}
+                  <div className="border-t border-gray-100 mx-2" />
+
+                  {/* Option 2 — Resume Chat */}
+                  <div className="flex items-center gap-4 py-4">
+                    <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">Starting from scratch?</p>
+                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Just chat with Coach and we'll build your résumé from the conversation. Mobile friendly, no typing needed.</p>
+                    </div>
+                    <div className="flex-shrink-0 text-center">
+                      <button
+                        disabled
+                        className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 border-2 border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed whitespace-nowrap"
+                      >
+                        💬 Resume Chat
+                      </button>
+                      <p className="text-[10px] text-gray-400 mt-1">Coming Soon</p>
                     </div>
                   </div>
+
+                  {/* Builder link — desktop only */}
+                  <div className="hidden md:block text-center mt-2" style={{ lineHeight: '1' }}>
+                    <span className="block text-xs text-gray-400">Not feeling chatty?</span>
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('hp_career_modal_seen', 'true');
+                        router.push('/career-coach/build');
+                      }}
+                      className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline"
+                    >
+                      Use our form-based resume builder.
+                    </button>
+                  </div>
+
+                  {/* Mobile note */}
+                  <p className="md:hidden text-xs text-gray-400 text-center mt-2">
+                    Not feeling chatty? <br/> Use our form-based resume builder from your computer.
+                  </p>
+
                 </div>
               )}
             </div>

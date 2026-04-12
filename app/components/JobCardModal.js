@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import UpgradeModal from './UpgradeModal';
 
 function StatusBadge({ status }) {
@@ -38,7 +39,25 @@ export default function JobCardModal({
   isPro = true,
 }) {
   const router = useRouter();
+  const supabase = createClient();
   const [showJdModal, setShowJdModal] = useState(false);
+  const [cardWins, setCardWins] = useState([]);
+
+  useEffect(() => {
+    async function loadWins() {
+      if (!card?.id) return;
+      const isHired = card.application_status === 'hired' || card.last_active_status === 'hired';
+      if (!isHired) return;
+      const { data } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('application_id', card.id)
+        .eq('source', 'career_archive')
+        .order('created_at', { ascending: false });
+      if (data) setCardWins(data);
+    }
+    loadWins();
+  }, [card?.id]);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
@@ -333,6 +352,21 @@ export default function JobCardModal({
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Logged Wins (hired cards only) */}
+            {cardWins.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Wins Logged ({cardWins.length})</p>
+                <div className="space-y-1.5">
+                  {cardWins.map(win => (
+                    <div key={win.id} className="flex items-start gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
+                      <p className="text-xs text-gray-700 leading-snug">{win.raw_description}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
