@@ -2335,12 +2335,13 @@ const getMessageText = (msg) => {
 
   // Auto-scroll and re-focus after each exchange
   useEffect(() => {
-    const hasUserMessage = coachingMessages.some(m => m.role === 'user')
-    if (hasUserMessage && coachingMessages.length > previousMessageCount.current && previousMessageCount.current > 0) {
+    if (coachingMessages.length > previousMessageCount.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      setTimeout(() => {
-        inputRef.current?.focus({ preventScroll: true })
-      }, 100)
+      if (coachingMessages.some(m => m.role === 'user')) {
+        setTimeout(() => {
+          inputRef.current?.focus({ preventScroll: true })
+        }, 100)
+      }
     }
     previousMessageCount.current = coachingMessages.length
   }, [coachingMessages])
@@ -2936,7 +2937,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 </div>
               </div>
             )}
-            {coachingMessages.some(m => m.role === 'user') && <div ref={messagesEndRef} />}
+            <div ref={messagesEndRef} />
           </div>
           {!isChatComplete ? (
             <div className="sticky bottom-0 bg-white border-t pt-2 pb-1 -mx-3 px-3">
@@ -3048,32 +3049,30 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && (
-          <div className="sticky bottom-0 bg-white border-t pt-2 pb-1 -mx-3 px-3">
-            <div className="flex gap-2 items-center">
-              <textarea
-                ref={inputRef}
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    sendMessage()
-                  }
-                }}
-                placeholder="Type your response..."
-                disabled={sending}
-                rows={2}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!userInput.trim() || sending}
-                className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end flex-shrink-0"
-              >
-                Send
-              </button>
+          <div className="sticky bottom-0 border-t pt-2 pb-1 -mx-3 px-3" style={{ backgroundColor: 'white', zIndex: 10, position: 'sticky' }}>
+              <div className="relative">
+                <textarea
+                  ref={inputRef}
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendResumeChat() } }}
+                  placeholder="Type your response..."
+                  disabled={sending}
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+                <button
+                  onClick={sendResumeChat}
+                  disabled={!userInput.trim() || sending}
+                  className="absolute right-2 bottom-2 w-6 h-6 flex items-center justify-center rounded-full transition-colors disabled:opacity-30"
+                  style={{ background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db' }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-3 h-3">
+                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
         )}
 
         {/* Pro finish button */}
@@ -3346,11 +3345,11 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       <>
         <div className="space-y-4">
           <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
-            <div className="px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+            <div className="px-4 py-2 flex items-center gap-2" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
               <div>
                 <p className="font-bold text-white text-sm">Your Résumé is Ready!</p>
-                <p className="text-purple-100 text-xs">Coach built this from your conversation. Give it a look.</p>
+                
               </div>
             </div>
             {score && (
@@ -3368,6 +3367,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           </p>
           <div className="flex flex-col gap-2 items-center">
             <button
+              onClick={() => setShowConvTargetedRecoach(true)}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              Something's Off → Fix It
+            </button>
+            <button
               onClick={async () => {
                 await supabase.from('resumes').update({ changes_accepted: true, journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
                 setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
@@ -3377,19 +3382,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             >
               Looks Good → Format & Finish
             </button>
-            <button
-              onClick={() => setShowConvTargetedRecoach(true)}
-              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors"
-            >
-              Something's Off → Fix It
-            </button>
           </div>
         </div>
         {showConvTargetedRecoach && (
           <TargetedRecoachStep
             resumeData={resumeData}
             rewrittenResume={rewrittenResume}
-            remainingGaps={['Review the résumé with the user and correct anything they identify as wrong or inaccurate.']}
+            remainingGaps={[]}
             detectedLevel={detectedLevel}
             userName={userName}
             userProfile={userProfile}
@@ -3406,6 +3405,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             score={score}
             originalCoachingMessages={coachingMessages || []}
             careerContext={careerContext}
+            isConversationalFix={true}
             onClose={async () => {
               setShowConvTargetedRecoach(false)
               await supabase.from('resumes').update({ changes_accepted: true, updated_at: new Date().toISOString() }).eq('id', params.id)
@@ -4371,7 +4371,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
 // ─────────────────────────────────────────────
 // TARGETED RECOACH STEP
 // ─────────────────────────────────────────────
-function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detectedLevel, userName, userProfile, supabase, params, setResume, setRewrittenResume, setResumeChanges, targetedMessages, setTargetedMessages, handleReassess, setShowRevealModal, setRecoachAttempts, score, originalCoachingMessages, careerContext, onClose }) {
+function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detectedLevel, userName, userProfile, supabase, params, setResume, setRewrittenResume, setResumeChanges, targetedMessages, setTargetedMessages, handleReassess, setShowRevealModal, setRecoachAttempts, score, originalCoachingMessages, careerContext, onClose, isConversationalFix }) {
   const [userInput, setUserInput] = useState('')
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -4422,8 +4422,8 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           careerContext: careerContext || null,
           detectedLevel,
           displayName: userName,
-          tier: 'targeted',
-          conversation: [{ role: 'user', content: "I have more information to share." }]
+          tier: isConversationalFix ? 'conversational_fix' : 'targeted',
+          conversation: [{ role: 'user', content: isConversationalFix ? "I'd like to review my résumé." : "I have more information to share." }]
         })
       })
       const data = await response.json()
@@ -4545,8 +4545,8 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           <div className="flex items-center gap-3">
             <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
             <div>
-              <h2 className="text-base font-bold text-white">Let's push a little further.</h2>
-              <p className="text-purple-100 text-xs">5 minutes. Focused. Just the gaps.</p>
+              <h2 className="text-base font-bold text-white">{isConversationalFix ? 'Fix It' : "Let's push a little further."}</h2>
+              <p className="text-purple-100 text-xs">{isConversationalFix ? 'Tell Coach what to correct or add.' : '5 minutes. Focused. Just the gaps.'}</p>
             </div>
           </div>
           <button
@@ -4625,7 +4625,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-              {isFinishing ? 'Updating your resume...' : '✨ Update My Resume →'}
+              {isFinishing ? 'Updating your resume...' : isConversationalFix ? '✨ Update My Résumé →' : '✨ Update My Resume →'}
             </button>
           )}
         </div>

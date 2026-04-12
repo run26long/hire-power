@@ -562,7 +562,7 @@ A great summary does these three things, so each sentence has a purpose:
 
 Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
+Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time that makes them a strong candidate for their target job? Something they’ve done once doesn’t belong in the summary. Something that isn’t relevant to their current job doesn’t belong in the summary. 
 
 CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 
@@ -580,16 +580,38 @@ Manages $500K-$1M in annual spend across 10-15 vendors, coordinates 3-4 cross-de
 WRONG (redundant wording; too many unimportant details makes this hard to read)
 Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year.
 
-THE TENSE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" – it’s not summary material, it's bullet material.
-PRESENT TENSE = ongoing scope = summary material
-"Manages $1M in vendor spend"
-"Coordinates 5-8 concurrent projects"
-"Resolves escalations autonomously"
+THE TENSE CHECK: 
 
-PAST TENSE = one-time accomplishment = bullet
-"Built the onboarding SOP from scratch"
-"Led Asana adoption across the office"
-"Redesigned the filing system"
+Before including any proof point in sentence 2, ask two questions in order:
+
+Question 1: Proof points in sentence 2 of the summary MUST answer "yes" to AT LEAST one of the following questions.
+
+a. Is this experience highly relevant to the role they are pursuing?
+b. Does it represent the overall scope and trajectory of their career across multiple roles?
+c. Is this something they do consistently and at scale right now, as an ongoing part of their current role?
+
+If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Note: The 3 questions above are ordered by importance. A proof point that represents the overall scope and trajectory of a candidate's career across multiple roles that is highly relevant to their target job is WAY more important than something they do consistently at their current job that is not relevant to their career goal. Only include the MOST IMPORTANT proof points in summary sentence 2.
+
+Question 2: Can it be written in present tense naturally, without forcing it? If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Both questions must be yes. One is not enough.
+
+Loopholes are a failure: Converting a past accomplishment into present tense to make it appear like ongoing scope is a loophole and will be considered a failure in your writing. This is the most common summary error, and it produces summaries that misrepresent the candidate.
+
+Incorrect usage: "She grew Instagram followers from 1,200 to 2,000 in a job she left 3 years ago. I'll write it as 'grows Instagram followings' to make it present tense." That is using a loophole and is a failure because it misrepresents the candidate's experience.
+
+Correct usage: "This was a one-time result at a past employer. It is not what she does every day right now. It is a bullet under that previous job. It does not belong in the summary."
+
+Incorrect usage: "She managed a group act for the holiday show. I'll write it as 'manages group acts' to make it present tense."
+
+Correct usage: "This happened once. It is not ongoing scope. It is her strongest bullet. It does not belong in sentence 2."
+
+The summary proof points must describe what this person DOES at the current time that qualifies them for their specific job target. Do not include what they DID in the past, what they achieved once, what they accomplished in an area unrelated to their career goals, or what their most impressive moment was. Those belong in bullets where they can be read in context.
+
+PRESENT TENSE = ongoing scope = summary material
+PAST TENSE CONVERTED TO PRESENT = still a past accomplishment = still a bullet
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that. 
 
@@ -678,6 +700,39 @@ FOR CORE RESUME SUMMARIES: Position for a role type, not a specific company or j
 TENSE RULE
 Summary is written in present tense, as it defines who this person is professionally right now. Past tense in a summary is almost always a sign that a bullet has snuck in or that stronger phrasing is available.
 
+THE TENSE CHECK:
+
+Before including any proof point in sentence 2, ask two questions in order:
+
+Question 1: Proof points in sentence 2 of the summary MUST answer "yes" to AT LEAST one of the following questions.
+
+a. Is this experience highly relevant to the role they are pursuing?
+b. Does it represent the overall scope and trajectory of their career across multiple roles?
+c. Is this something they do consistently and at scale right now, as an ongoing part of their current role?
+
+If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Note: The 3 questions above are ordered by importance. A proof point that represents the overall scope and trajectory of a candidate's career across multiple roles that is highly relevant to their target job is WAY more important than something they do consistently at their current job that is not relevant to their career goal. Only include the MOST IMPORTANT proof points in summary sentence 2.
+
+Question 2: Can it be written in present tense naturally, without forcing it? If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Both questions must be yes. One is not enough.
+
+Loopholes are a failure: Converting a past accomplishment into present tense to make it appear like ongoing scope is a loophole and will be considered a failure in your writing. This is the most common summary error, and it produces summaries that misrepresent the candidate.
+
+Incorrect usage: "She grew Instagram followers from 1,200 to 2,000 in a job she left 3 years ago. I'll write it as 'grows Instagram followings' to make it present tense." That is using a loophole and is a failure because it misrepresents the candidate's experience.
+
+Correct usage: "This was a one-time result at a past employer. It is not what she does every day right now. It is a bullet under that previous job. It does not belong in the summary."
+
+Incorrect usage: "She managed a group act for the holiday show. I'll write it as 'manages group acts' to make it present tense."
+
+Correct usage: "This happened once. It is not ongoing scope. It is her strongest bullet. It does not belong in sentence 2."
+
+The summary proof points must describe what this person DOES at the current time that qualifies them for their specific job target. Do not include what they DID in the past, what they achieved once, what they accomplished in an area unrelated to their career goals, or what their most impressive moment was. Those belong in bullets where they can be read in context.
+
+PRESENT TENSE = ongoing scope = summary material
+PAST TENSE CONVERTED TO PRESENT = still a past accomplishment = still a bullet
+
 THE EMPLOYER-FIRST RULE: 
 Show employers what they get. Never state what the candidate wants.
 Right: "Event coordinator with 3 years of production experience bringing vendor management, budget oversight, and multi-stakeholder coordination to every project."
@@ -696,14 +751,14 @@ NEVER IN ANY SUMMARY:
 
 SUMMARY QUALITY CHECKPOINT 
 Read every sentence before outputting. For each one ask: does this describe the overall scope of their ongoing work and impact, or does it describe a specific project or one-time achievement?
-•	Ongoing or overall scope = summary material
-•	One-time project or achievement = bullet material
+• Ongoing or overall scope = summary material
+• One-time project or achievement = bullet material
 
 No bullet material in the summary. Not even combined with others. Not even impressive ones. 
 
 Trying to cram in all a candidate’s accomplishments makes the summary weaker not stronger. Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver. That is it.
 
-TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. If any sentence or proof point wants to be past tense, either rewrite it in present tense or remove it.
+TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. If any sentence or proof point wants to be past tense, either rewrite it in present tense or remove it. No loopholes!
 Present tense = ongoing scope = summary material. Past tense = one-time accomplishment = bullet material. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
 
 WHEN MATERIAL IS THIN
@@ -947,6 +1002,9 @@ Academic projects: Include only when the deliverable itself demonstrates a skill
 
 For experienced candidates (5+ years): education shrinks to institution name, degree, field of study, and graduation year only. No GPA, no coursework, no projects. The work experience carries the resume at this stage.
 
+INSTITUTION INCLUSION RULE:
+Only include an institution if it resulted in a completed degree or credential, OR if the coursework is directly and significantly relevant to the target role. Do NOT include transfer institutions where the candidate completed gen ed before moving on, community college attendance before transferring to a 4-year school, or any institution where no degree was earned and the coursework adds nothing to the target role. If a candidate started at Valencia and finished at UCF, list UCF only. If they earned a bachelor's from one school and a master's from another, list both.
+
 ═══════════════════════════════════════════════
 RESUME ELEMENTS 5: WRITING GUIDELINES FOR OPTIONAL SECTIONS 
 ═══════════════════════════════════════════════
@@ -962,7 +1020,7 @@ Examples:
 "CPR Certified | American Red Cross, 2024" 
 "Volunteer | Orlando Arts Council, Board Member 2022-Present"
   
-Give an item its own dedicated section only when there are 3+ items to justify it.
+Give an item its own dedicated section only when there are 3+ items to justify it. Do not create a standalone section for a single basic credential. A lone certification or single foreign language does not justify its own section. Fold single certifications or languages into the skills section as a skill entry. If multiple small items exist across certifications, languages, projects, and volunteer categories, that together justify a section, combine them all in Additional Information. The test: would a recruiter expect to see this as its own section, or does it look like resume padding?
 
 ═══════════════════════════════════════════════
 RESUME STRUCTURE 1: GUIDELINES FOR SECTION ORDER LOGIC
@@ -1504,13 +1562,13 @@ THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & 
 
 A great summary does these three things, so each sentence has a purpose:
 
-Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
+Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should be a short, concise sentence and it must end with something specific and unexpected that makes a recruiter want to keep reading. End on something strong. Do not add an extra phrase at the end. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
+Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum – more is NOT). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
 
 CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 
-Sentence 2 must address scope as a high-level overview using only the most important metrics and detail. Using unimportant metrics and detail impairs readability and lowers the scores. Hard rule: No more than 4 metrics in sentence 2.
+Sentence 2 must address scope as a high-level overview using only the most important metrics and detail. Using unimportant metrics and detail impairs readability and lowers the scores. Hard rule: No more than 4 metrics in sentence 2. No more than one comma-delineated phrase.
 
 The test for every proof point: could this appear as a bullet in their experience section? If yes, it belongs there, not here.
 
@@ -1520,16 +1578,38 @@ RIGHT (ongoing scope):
 WRONG (one-time accomplishments disguised as scope):
 "Built the onboarding SOP from scratch, led Asana adoption across the office, and redesigned the filing system."
 
-THE TENSE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" - it is not summary material, it is bullet material.
-PRESENT TENSE = ongoing scope = summary material
-"Manages $1M in vendor spend"
-"Coordinates 5-8 concurrent projects"
-"Resolves escalations autonomously"
+THE TENSE CHECK:
 
-PAST TENSE = one-time accomplishment = bullet
-"Built the onboarding SOP from scratch"
-"Led Asana adoption across the office"
-"Redesigned the filing system"
+Before including any proof point in sentence 2, ask two questions in order:
+
+Question 1: Proof points in sentence 2 of the summary MUST answer "yes" to AT LEAST one of the following questions.
+
+a. Is this experience highly relevant to the role they are pursuing?
+b. Does it represent the overall scope and trajectory of their career across multiple roles?
+c. Is this something they do consistently and at scale right now, as an ongoing part of their current role?
+
+If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Note: The 3 questions above are ordered by importance. A proof point that represents the overall scope and trajectory of a candidate's career across multiple roles that is highly relevant to their target job is WAY more important than something they do consistently at their current job that is not relevant to their career goal. Only include the MOST IMPORTANT proof points in summary sentence 2.
+
+Question 2: Can it be written in present tense naturally, without forcing it? If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Both questions must be yes. One is not enough.
+
+Loopholes are a failure: Converting a past accomplishment into present tense to make it appear like ongoing scope is a loophole and will be considered a failure in your writing. This is the most common summary error, and it produces summaries that misrepresent the candidate.
+
+Incorrect usage: "She grew Instagram followers from 1,200 to 2,000 in a job she left 3 years ago. I'll write it as 'grows Instagram followings' to make it present tense." That is using a loophole and is a failure because it misrepresents the candidate's experience.
+
+Correct usage: "This was a one-time result at a past employer. It is not what she does every day right now. It is a bullet under that previous job. It does not belong in the summary."
+
+Incorrect usage: "She managed a group act for the holiday show. I'll write it as 'manages group acts' to make it present tense."
+
+Correct usage: "This happened once. It is not ongoing scope. It is her strongest bullet. It does not belong in sentence 2."
+
+The summary proof points must describe what this person DOES at the current time that qualifies them for their specific job target. Do not include what they DID in the past, what they achieved once, what they accomplished in an area unrelated to their career goals, or what their most impressive moment was. Those belong in bullets where they can be read in context.
+
+PRESENT TENSE = ongoing scope = summary material
+PAST TENSE CONVERTED TO PRESENT = still a past accomplishment = still a bullet
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
@@ -1579,9 +1659,9 @@ CONCISENESS RULES — APPLY TO EVERY WORD
 
 Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
 
-CONTENT — WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate's experience, impact, and differentiating qualities. Cut the rest.
+CONTENT: WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate's experience, impact, and differentiating qualities. Cut the rest.
 
-QUALITY — HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said in one. Read every sentence and remove filler words on the first pass. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. A sentence is done when removing one more word would change what it says.
+QUALITY: HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said in one. Read every sentence and remove filler words on the first pass. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. No more than one comma-delineated phrase per sentence. A sentence is done when removing one more word would change what it says.
 
 FILLER TO CUT:
 - "at any given time" → replace with "simultaneously"
@@ -1596,13 +1676,13 @@ FAILS THE CONCISENESS TEST:
 Operations coordinator with six years of experience managing the vendor relationships, cross-departmental workflows, and client-facing processes that keep mid-size offices running without escalating to management. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
 Problems:
-- "an estimated" — cut
-- "10 to 15" — should be "10-15"
-- "supplier relationships" after "vendor spend" — redundant
-- "3 to 4 concurrent" — should be "3-4"
-- "at any given time" — cut; use "simultaneously"
-- "spanning operations, finance, IT, facilities, and HR" — operational detail, not summary material
-- "at a volume of 150 to 200 per year" — should be "150-200 annually"
+- "an estimated"- cut
+- "10 to 15" - should be "10-15"
+- "supplier relationships" after "vendor spend" - redundant
+- "3 to 4 concurrent" - should be "3-4"
+- "at any given time" - cut; use "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR" - operational detail, not summary material
+- "at a volume of 150 to 200 per year" - should be "150-200 annually"
 
 PASSES THE CONCISENESS TEST:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
@@ -1692,6 +1772,16 @@ Sentence 1: Professional Identity & Scope - Who they are professionally and at w
 
 Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum) that the candidate has the skills required for the target role. These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time? Keep this short, simple and concise. No more than one comma-delineated phrase.
 
+Before adding a proof point to sentence 2, you must be able to answer yes to one or more of these questions.
+
+a. Is this experience highly relevant to the role they are pursuing? 
+b. Does it represent the overall scope and trajectory of their career across multiple roles? 
+c. Is this something they do consistently and at scale right now, as an ongoing part of their current role?   
+
+If no, this proof point does NOT belong in the summary; it is likely a bullet. Stop here. Do not put it in the summary.
+
+Note: The 3 questions above are ordered by importance. A proof point that represents the overall scope and trajectory of a candidate's career across multiple roles that is highly relevant to their target job is WAY more important than something they do consistently at their current job that is not relevant to their career goal. Only include the MOST IMPORTANT proof points in summary sentence 2.
+
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean, simple sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that. 
 
 THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
@@ -1726,7 +1816,7 @@ FOR CORE SUMMARIES:
 Position for a role TYPE, not a specific job or company.
 Lead with the strongest credibility signal from the finalized bullets.
 The target role determines sentence 1. If career context or coaching established a target, open from that angle, not from their current title.
-For career changers: the summary opens from the new identity. Their previous experience becomes evidence, not identity.
+For career changers: the summary must align their previous experience with their target job. Their previous experience becomes evidence of their work and results, not their identity.
 
 CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 ${hardRules}
@@ -1735,6 +1825,8 @@ Return ONLY the summary paragraph. No JSON. No label. No explanation. Just the t
 
 `
 }
+
+
 
 // ─────────────────────────────────────────────
 // BUILD CHANGES PROMPT (shared by both paths)
@@ -1883,11 +1975,13 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
+    let authenticatedUserId = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       const { data: { user }, error: authError } = await supabase.auth.getUser(token)
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      authenticatedUserId = user.id
     }
 
     const {
@@ -2051,6 +2145,56 @@ export async function POST(request) {
         messages: [{ role: 'user', content: convSummaryPrompt }]
       })
       convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
+
+      // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
+      if (authenticatedUserId) {
+        try {
+          const careerContextExtractMsg = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 500,
+            temperature: 0,
+            messages: [{
+              role: 'user',
+              content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
+
+CONVERSATION:
+${convText}
+
+Return this exact structure:
+{
+  "current_role": "their most recent job title or null",
+  "target_roles": ["array of target job titles they mentioned"],
+  "career_goal": "same_field or career_change or exploring",
+  "is_career_changer": true or false,
+  "previous_field": "their previous field if career changer, otherwise null",
+  "transferable_skills": ["skills mentioned as transferable"],
+  "skills_not_on_resume": ["skills mentioned but not part of formal experience"],
+  "timeline": "actively_searching or passively_looking or not_searching or null",
+  "experience_level": "entry or mid or senior"
+}`
+            }]
+          })
+
+          let careerContextJson = careerContextExtractMsg.content[0].text.trim()
+          if (careerContextJson.startsWith('```')) {
+            careerContextJson = careerContextJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          }
+          const extractedContext = JSON.parse(careerContextJson)
+
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+          await supabaseWrite
+            .from('career_context')
+            .upsert({
+              user_id: authenticatedUserId,
+              ...extractedContext,
+              completed_at: new Date().toISOString(),
+              last_updated: new Date().toISOString()
+            }, { onConflict: 'user_id' })
+        } catch (e) {
+          console.error('Career context write failed (non-fatal):', e)
+        }
+      }
 
       return NextResponse.json({ rewrittenResume: convResume, changes: [], detectedLevel: convLevel })
     }
