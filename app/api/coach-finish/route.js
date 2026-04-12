@@ -1827,6 +1827,51 @@ No markdown. No explanation. No backticks.`
 }
 
 // ─────────────────────────────────────────────
+// CONVERSATIONAL RESUME BUILD PROMPT
+// ─────────────────────────────────────────────
+function buildConversationalRewritePrompt({ conversation, levelInstructions, careerContext }) {
+  const conversationText = conversation
+    .map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${typeof msg.content === 'string' ? msg.content : ''}`)
+    .join('\n\n')
+
+  const contextBlock = careerContext ? `
+CAREER CONTEXT:
+- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
+- Career changer: ${careerContext.is_career_changer ? `YES — from ${careerContext.previous_field}` : 'No'}
+` : ''
+
+  return `${WRITING_CONSTITUTION}
+
+${levelInstructions}
+
+${contextBlock}
+
+You are building a brand-new professional résumé from scratch. There is no existing résumé to improve. Your only source material is the intake conversation below. Every word on this résumé must come from that conversation.
+
+THE GOVERNING RULE:
+Every number, date, company name, title, achievement, and credential must appear explicitly in the conversation. If the candidate did not say it, it does not go on the résumé. No exceptions.
+
+INTAKE CONVERSATION (your only source material):
+${conversationText}
+
+YOUR TASK:
+1. Extract every piece of relevant information from the conversation above
+2. Apply the full Writing Constitution to every bullet, summary, and section
+3. Build a complete, polished résumé that would get this person interviews
+
+BEFORE WRITING ANYTHING:
+1. Extract ALL skills, tools, and field vocabulary to skillsCategories first
+2. Determine the correct section order based on their background
+3. Identify career length, job level, and job type to apply the right standards
+
+SUMMARY: Set summary to an empty string: "". It will be written in a dedicated second pass.
+
+OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
+Must match this exact structure:
+${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
+}
+
+// ─────────────────────────────────────────────
 // MAIN HANDLER
 // ─────────────────────────────────────────────
 const anthropic = new Anthropic({
@@ -1857,7 +1902,8 @@ export async function POST(request) {
       matchedKeywords,
       missingKeywords,
       retryInstruction,
-      isTargetedEnhancement
+      isTargetedEnhancement,
+      isConversationalSource
     } = await request.json()
 
     if (!resumeData || !conversation) {
@@ -1959,6 +2005,55 @@ export async function POST(request) {
 
     const level = detectedLevel || 'mid'
     const levelInstructions = LEVEL_WRITING_INSTRUCTIONS[level] || LEVEL_WRITING_INSTRUCTIONS.mid
+
+    // ── CONVERSATIONAL SOURCE PATH (Resume Chat) ──
+    if (isConversationalSource) {
+      const convText = conversation.map(m => typeof m.content === 'string' ? m.content : '').join(' ')
+      const levelDetectMsg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 10,
+        temperature: 0,
+        messages: [{ role: 'user', content: `Based on this career information, what career level is this person? Respond with ONLY one word: entry, mid, or senior\n\n${convText.slice(0, 2000)}` }]
+      })
+      const detectedLevelText = levelDetectMsg.content[0].text.trim().toLowerCase()
+      const convLevel = ['entry', 'mid', 'senior'].includes(detectedLevelText) ? detectedLevelText : (detectedLevel || 'mid')
+      const convLevelInstructions = LEVEL_WRITING_INSTRUCTIONS[convLevel] || LEVEL_WRITING_INSTRUCTIONS.mid
+
+      const convRewritePrompt = buildConversationalRewritePrompt({ conversation, levelInstructions: convLevelInstructions, careerContext })
+      const convRewriteMsg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: convRewritePrompt }]
+      })
+
+      let cleanedConvRewrite = convRewriteMsg.content[0].text.trim()
+      if (cleanedConvRewrite.startsWith('```')) {
+        cleanedConvRewrite = cleanedConvRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+      let convResume = JSON.parse(cleanedConvRewrite)
+      if (convResume.education?.length) {
+        convResume.education = normalizeEducation(convResume.education)
+      }
+
+      const convSummaryPrompt = buildSummaryPrompt({
+        rewrittenResume: convResume,
+        conversation,
+        careerContext,
+        level: convLevel,
+        isJobSpecific: false,
+        jobDescription: null,
+        jobTitle: null,
+        jobCompany: null
+      })
+      const convSummaryMsg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: convSummaryPrompt }]
+      })
+      convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
+
+      return NextResponse.json({ rewrittenResume: convResume, changes: [], detectedLevel: convLevel })
+    }
 
     // ── JOB-SPECIFIC REWRITE PATH ──
     if (isJobSpecific && jobDescription) {

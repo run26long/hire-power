@@ -225,6 +225,33 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     setShowTourModal(false);
   };
 
+  const handleStartResumeChat = async () => {
+    handleCompleteTour();
+    try {
+      const { data: { user: chatUser } } = await supabase.auth.getUser();
+      if (!chatUser) return;
+      const { data: newResume, error } = await supabase
+        .from('resumes')
+        .insert({
+          user_id: chatUser.id,
+          resume_type: 'core',
+          display_name: 'Core Resume',
+          resume_data: {},
+          journey_step: 'chat',
+          created_via: 'resume_chat'
+        })
+        .select()
+        .single();
+      if (error || !newResume) {
+        console.error('Failed to create resume chat record:', error);
+        return;
+      }
+      router.push(`/resume/${newResume.id}`);
+    } catch (err) {
+      console.error('Resume chat start error:', err);
+    }
+  };
+
   // Handle file upload (from empty state)
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -750,6 +777,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     );
   }
 
+  const activeChatResume = data?.activeChatResume || null;
+  const coreResumeForDisplay = data?.coreResume || null;
   const isPro = data?.userTier === TIERS.PRO;
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
@@ -2113,12 +2142,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                     <div className="flex-shrink-0 text-center">
                       <button
-                        disabled
-                        className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 border-2 border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed whitespace-nowrap"
+                        onClick={handleStartResumeChat}
+                        className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                       >
                         💬 Resume Chat
                       </button>
-                      <p className="text-[10px] text-gray-400 mt-1">Coming Soon</p>
                     </div>
                   </div>
 

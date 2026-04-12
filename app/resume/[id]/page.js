@@ -1303,6 +1303,13 @@ if (data.ai_analysis) {
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
           <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
         
+            {resume?.created_via === 'resume_chat' && !resumeData?.fullName && (
+              <div className="flex flex-col items-center justify-center h-full min-h-[300px] px-8 text-center">
+                <div className="text-4xl mb-4">💬</div>
+                <p className="text-sm font-semibold text-gray-700 mb-1">Your résumé will appear here</p>
+                <p className="text-xs text-gray-500 leading-snug">Finish your conversation with Coach, then click the build button to see your résumé.</p>
+              </div>
+            )}
             <div
               data-resume-content="true"
               style={{
@@ -1449,10 +1456,13 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
   const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
 
+  const isConversational = resume?.created_via === 'resume_chat'
   const steps = isJobSpecific
     ? (userTier === 'free'
         ? ['assess', 'save']
         : ['assess', 'coach', 'improve', 'format', 'save'])
+    : isConversational
+    ? ['chat', 'improve', 'format', 'save']
     : ['review', 'assess', 'coach', 'improve', 'format', 'save']
   const currentIndex = steps.indexOf(journeyStep)
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
@@ -2068,11 +2078,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </div>
       )}
        
-      {journeyStep === 'coach' && (
+      {(journeyStep === 'coach' || journeyStep === 'chat') && (
               <CoachStep
           resumeData={resumeData}
           coachingComplete={resume?.coaching_complete || false}
           careerContext={careerContext}
+          isConversational={isConversational}
           detectedLevel={detectedLevel}
           userName={userName}
           userProfile={userProfile}
@@ -2107,6 +2118,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
        <ImproveStep
           rewrittenResume={rewrittenResume}
           resumeChanges={resumeChanges}
+          isConversational={isConversational}
           setRewrittenResume={setRewrittenResume}
           setResumeChanges={setResumeChanges}
           originalResumeData={resumeData}
@@ -2169,7 +2181,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score }) {
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -2184,6 +2196,125 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
   const inputRef = useRef(null)
   const previousMessageCount = useRef(0)
   const hasStartedCoaching = useRef(false)
+
+  // ── CONVERSATIONAL PATH FUNCTIONS ──
+  async function startResumeChat() {
+    setSending(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/resume-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          conversation: [{ role: 'user', content: "Hi! I'm ready to build my résumé." }],
+          displayName: userName
+        })
+      })
+      const data = await response.json()
+      if (!data.response) throw new Error('No response from resume chat')
+      const initialMessages = [
+        { role: 'user', content: "Hi! I'm ready to build my résumé." },
+        { role: 'assistant', content: data.response }
+      ]
+      setCoachingMessages(initialMessages)
+      await supabase.from('resumes').update({ coaching_conversation: initialMessages }).eq('id', params.id)
+    } catch (err) {
+      console.error('Error starting resume chat:', err)
+      setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh and try again." }])
+    } finally {
+      setSending(false)
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100)
+    }
+  }
+
+  async function sendResumeChat() {
+    if (!userInput.trim() || sending) return
+    const newMessage = { role: 'user', content: userInput }
+    const updatedMessages = [...coachingMessages, newMessage]
+    setCoachingMessages(updatedMessages)
+    setUserInput('')
+    setSending(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/resume-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ conversation: updatedMessages, displayName: userName })
+      })
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        console.error('Resume chat API error:', errData)
+        throw new Error(errData.error || 'API returned an error')
+      }
+      const data = await response.json()
+      const finalMessages = [...updatedMessages, { role: 'assistant', content: data.response }]
+      setCoachingMessages(finalMessages)
+      await supabase.from('resumes').update({ coaching_conversation: finalMessages }).eq('id', params.id)
+    } catch (err) {
+      console.error('Error sending resume chat message:', err)
+      setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending again." }])
+    } finally {
+      setSending(false)
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100)
+    }
+  }
+
+  async function finishResumeChat() {
+    setIsFinishing(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/coach-finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          resumeData: {},
+          conversation: coachingMessages,
+          detectedLevel,
+          careerContext,
+          isConversationalSource: true
+        })
+      })
+      const data = await response.json()
+      if (!data.rewrittenResume) throw new Error('Resume build failed')
+
+      const { data: { session: scoreSession } } = await supabase.auth.getSession()
+      const scoreResponse = await fetch('/api/analyze-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${scoreSession.access_token}` },
+        body: JSON.stringify({ resumeData: data.rewrittenResume })
+      })
+      const scoreData = await scoreResponse.json()
+      const newScore = scoreData?.score ?? null
+
+      setRewrittenResume(data.rewrittenResume)
+
+      await supabase.from('resumes').update({
+        resume_data: data.rewrittenResume,
+        rewritten_resume: data.rewrittenResume,
+        journey_step: 'improve',
+        coaching_conversation: coachingMessages,
+        coaching_complete: true,
+        current_score: newScore,
+        score_breakdown: scoreData?.analysis?.breakdown || null,
+        last_assessed_at: new Date().toISOString(),
+        ai_analysis: scoreData?.analysis || null,
+        updated_at: new Date().toISOString()
+      }).eq('id', params.id)
+
+      setResume(prev => ({
+        ...prev,
+        resume_data: data.rewrittenResume,
+        journey_step: 'improve',
+        current_score: newScore
+      }))
+
+    } catch (err) {
+      console.error('Error finishing resume chat:', err)
+      setErrorToast('Something went wrong building your résumé. Please try again.')
+    } finally {
+      setIsFinishing(false)
+    }
+  }
 
 const getMessageText = (msg) => {
     if (!msg.content) return ''
@@ -2215,7 +2346,20 @@ const getMessageText = (msg) => {
   }, [coachingMessages])
 
   // Check tier + start coaching if no messages yet
+  // Conversational init — watches isConversational, fires after resume loads
   useEffect(() => {
+    if (!isConversational) return
+    const hasMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
+    if (!hasMessages && !hasStartedCoaching.current) {
+      hasStartedCoaching.current = true
+      startResumeChat()
+    }
+  }, [isConversational])
+
+  // Standard coaching init — runs once at mount, skips empty resume data
+  useEffect(() => {
+    const hasContent = resumeData?.fullName || (resumeData?.experience?.length > 0)
+    if (!hasContent) return
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -2247,6 +2391,7 @@ const getMessageText = (msg) => {
   }, [])
 
  async function startCoaching(tier, trialTranscript = null) {
+    if (isConversational) return
     setSending(true)
     try {
      const { data: { session } } = await supabase.auth.getSession()
@@ -2741,6 +2886,99 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
     )
   }
 
+  // ── Conversational UI ──
+  if (isConversational) {
+    const isChatComplete = coachingMessages.some(msg =>
+      msg.role === 'assistant' && getMessageText(msg).toLowerCase().includes('click the button below')
+    )
+    return (
+      <>
+        <div className="flex flex-col">
+          <h3 className="font-semibold text-lg mb-1 -mt-3 flex-shrink-0">💬 Building Your Résumé</h3>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2 flex-shrink-0">
+            <p className="text-xs text-gray-600">Answer Coach's questions and we'll build your résumé from the conversation. The more detail you share, the stronger the result.</p>
+          </div>
+          <div className="space-y-2 mb-2">
+            {coachingMessages.map((msg, index) => (
+              <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
+                <div className={`rounded-lg px-2 py-1.5 text-xs leading-snug ${msg.role === 'assistant' ? 'bg-purple-50 border border-purple-100 w-full' : 'bg-gray-100 border border-gray-200 max-w-[90%]'}`}>
+                  {msg.role === 'assistant' && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="text-sm">🎓</span>
+                      <span className="text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                    </div>
+                  )}
+                  {msg.role === 'user' && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <div className="w-4 h-4 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 text-[8px] font-bold">
+                        {userName?.charAt(0).toUpperCase() || 'Y'}
+                      </div>
+                      <span className="text-[10px] font-semibold text-gray-500">{userName?.split(' ')[0] || 'You'}</span>
+                    </div>
+                  )}
+                  <div className="text-gray-800" dangerouslySetInnerHTML={{
+                    __html: getMessageText(msg)
+                      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\n\n/g, '<br/><br/>')
+                      .replace(/\n/g, '<br/>')
+                  }} />
+                </div>
+              </div>
+            ))}
+            {sending && (
+              <div className="flex">
+                <div className="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 w-full">
+                  <div className="flex gap-1 items-center">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {coachingMessages.some(m => m.role === 'user') && <div ref={messagesEndRef} />}
+          </div>
+          {!isChatComplete ? (
+            <div className="sticky bottom-0 bg-white border-t pt-2 pb-1 -mx-3 px-3">
+              <div className="flex gap-2 items-center">
+                <textarea
+                  ref={inputRef}
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendResumeChat() } }}
+                  placeholder="Type your response..."
+                  disabled={sending}
+                  rows={2}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+                <button
+                  onClick={sendResumeChat}
+                  disabled={!userInput.trim() || sending}
+                  className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end flex-shrink-0"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center flex-shrink-0 mt-2">
+              <button
+                onClick={finishResumeChat}
+                disabled={isFinishing}
+                className="px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+              >
+                {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                {isFinishing ? 'Building your résumé...' : '✨ Build My Résumé →'}
+              </button>
+            </div>
+          )}
+        </div>
+        <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      </>
+    )
+  }
+
   // ── Main chat UI (free trial or pro) ──
   return (
     <>
@@ -3011,7 +3249,10 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext }) {  const [accepting, setAccepting] = useState(false)
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational }) {
+  const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
+  const [convTargetedMessages, setConvTargetedMessages] = useState([])
+  const [accepting, setAccepting] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
@@ -3059,6 +3300,120 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
       </div>
+    )
+  }
+
+  // ── CONVERSATIONAL IMPROVE PATH ──
+  if (isConversational) {
+    if (changesAccepted) {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
+              <div>
+                <p className="font-bold text-white text-sm">Looking good!</p>
+                <p className="text-purple-100 text-xs">Your résumé is ready to format and download.</p>
+              </div>
+            </div>
+            {score && (
+              <div className="bg-white px-4 py-3 text-center">
+                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Resume Power Score</div>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
+                  <span className="text-xl text-gray-400">/100</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={async () => {
+                await supabase.from('resumes').update({ journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
+                setResume(prev => ({ ...prev, journey_step: 'format' }))
+              }}
+              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              Format & Finish →
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        <div className="space-y-4">
+          <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
+              <div>
+                <p className="font-bold text-white text-sm">Your Résumé is Ready!</p>
+                <p className="text-purple-100 text-xs">Coach built this from your conversation. Give it a look.</p>
+              </div>
+            </div>
+            {score && (
+              <div className="bg-white px-4 py-3 text-center">
+                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Resume Power Score</div>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
+                  <span className="text-xl text-gray-400">/100</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-700 text-center leading-snug">
+            Take a look at your résumé. Make sure Coach got everything right — dates, job titles, details. If anything looks off, use Fix It below.
+          </p>
+          <div className="flex flex-col gap-2 items-center">
+            <button
+              onClick={async () => {
+                await supabase.from('resumes').update({ changes_accepted: true, journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
+                setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
+              }}
+              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              Looks Good → Format & Finish
+            </button>
+            <button
+              onClick={() => setShowConvTargetedRecoach(true)}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              Something's Off → Fix It
+            </button>
+          </div>
+        </div>
+        {showConvTargetedRecoach && (
+          <TargetedRecoachStep
+            resumeData={resumeData}
+            rewrittenResume={rewrittenResume}
+            remainingGaps={['Review the résumé with the user and correct anything they identify as wrong or inaccurate.']}
+            detectedLevel={detectedLevel}
+            userName={userName}
+            userProfile={userProfile}
+            supabase={supabase}
+            params={params}
+            setResume={setResume}
+            setRewrittenResume={setRewrittenResume}
+            setResumeChanges={setResumeChanges}
+            targetedMessages={convTargetedMessages}
+            setTargetedMessages={setConvTargetedMessages}
+            handleReassess={handleReassess}
+            setShowRevealModal={() => {}}
+            setRecoachAttempts={setRecoachAttempts}
+            score={score}
+            originalCoachingMessages={coachingMessages || []}
+            careerContext={careerContext}
+            onClose={async () => {
+              setShowConvTargetedRecoach(false)
+              await supabase.from('resumes').update({ changes_accepted: true, updated_at: new Date().toISOString() }).eq('id', params.id)
+              setResume(prev => ({ ...prev, changes_accepted: true }))
+            }}
+          />
+        )}
+      </>
     )
   }
 
