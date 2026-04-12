@@ -9,6 +9,68 @@ import ErrorToast from '../components/ErrorToast';
 import UpgradeModal from '../components/UpgradeModal';
 
 // Status badge colors — muted to avoid clashing with HP purple
+function GapWinLogger({ gapText, currentJobEntry, supabase, user, onSaved, onDismiss, onRegenerate }) {
+  const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function handleSave() {
+    if (!text.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      const { data, error: saveError } = await supabase
+        .from('achievements')
+        .insert({
+          user_id: user.id,
+          source: 'career_archive',
+          raw_description: text.trim(),
+          status: 'approved',
+          application_id: currentJobEntry?.id || null,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+      if (saveError) throw saveError
+      onSaved(data)
+      setText('')
+      onDismiss()
+      onRegenerate()
+    } catch (err) {
+      console.error('Gap win save error:', err)
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="bg-amber-50 border-l-4 border-amber-400 px-4 py-3 rounded-r mb-6">
+      <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">Heads up</p>
+      <p className="text-xs text-amber-800 leading-snug mb-3">{gapText}</p>
+      <div className="flex gap-2 items-start">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="What happened during that stretch?"
+          rows={2}
+          className="flex-1 border border-amber-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none bg-white"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving || !text.trim()}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90 flex-shrink-0 flex items-center gap-1.5"
+          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+        >
+          {saving && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-white border-r-transparent" />}
+          {saving ? 'Saving...' : 'Save'}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  )
+}
+
 function StatusBadge({ status }) {
   const config = {
     hired:      { label: 'Hired',      bg: '#f0fdf4', border: '#86efac', text: '#166534' },
@@ -50,11 +112,53 @@ export default function CareerVaultPage() {
   const [showNewSearchModal, setShowNewSearchModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  // Review Prep
+  const [showOlderWinsModal, setShowOlderWinsModal] = useState(false)
+  const [selectedWin, setSelectedWin] = useState(null)
+  const [winCopied, setWinCopied] = useState(false)
+  const [showReviewPrepModal, setShowReviewPrepModal] = useState(false)
+  const [reviewPrepStep, setReviewPrepStep] = useState(1)
+  const [rpName, setRpName] = useState('')
+  const [rpTitle, setRpTitle] = useState('')
+  const [rpCompany, setRpCompany] = useState('')
+  const [rpDate, setRpDate] = useState('')
+  const [rpRange, setRpRange] = useState('12months')
+  const [rpFocus, setRpFocus] = useState('standard')
+  const [rpDocument, setRpDocument] = useState('')
+  const [rpLoading, setRpLoading] = useState(false)
+  const [rpError, setRpError] = useState(null)
+  const [rpCopied, setRpCopied] = useState(false)
+  const [rpHasGap, setRpHasGap] = useState(false)
+  const [rpGapText, setRpGapText] = useState('')
+  const [rpGapDismissed, setRpGapDismissed] = useState(false)
+  const [rpDownloading, setRpDownloading] = useState(false)
+
   const handleStartNewSearch = async () => {
+    // Archive all active applications before starting fresh
+    const { data: activeApps } = await supabase
+      .from('applications')
+      .select('id, application_status')
+      .eq('user_id', user.id)
+      .not('application_status', 'eq', 'archived');
+
+    if (activeApps?.length > 0) {
+      await Promise.all(activeApps.map(app =>
+        supabase
+          .from('applications')
+          .update({
+            application_status: 'archived',
+            last_active_status: app.application_status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', app.id)
+      ));
+    }
+
     await supabase
       .from('profiles')
       .update({ search_status: 'actively_searching' })
       .eq('id', user.id);
+
     router.push('/resume-coach');
   };
 
@@ -186,6 +290,60 @@ export default function CareerVaultPage() {
       setTimeout(() => logInputRef.current?.focus(), 100);
     }
   }, [showLogModal]);
+
+  function handleOpenReviewPrep() {
+    const displayName = userProfile?.display_name || `${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || ''
+    setRpName(displayName)
+    setRpTitle(currentJobEntry?.title || '')
+    setRpCompany(currentJobEntry?.company || '')
+    const now = new Date()
+    setRpDate(`${now.toLocaleString('default', { month: 'long' })} ${now.getFullYear()}`)
+    setRpRange('12months')
+    setRpFocus('standard')
+    setRpDocument('')
+    setRpError(null)
+    setRpCopied(false)
+    setRpGapDismissed(false)
+    setReviewPrepStep(1)
+    setShowReviewPrepModal(true)
+  }
+
+  async function handleGenerateReviewPrep() {
+    setRpLoading(true)
+    setRpError(null)
+    setReviewPrepStep(3)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/review-prep', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          name: rpName,
+          title: rpTitle,
+          company: rpCompany,
+          reviewDate: rpDate,
+          dateRange: rpRange,
+          focus: rpFocus,
+          accomplishments
+        })
+      })
+      const data = await response.json()
+      if (!data.success) throw new Error(data.message || data.error || 'Generation failed')
+      setRpDocument(data.document)
+      setRpHasGap(data.hasGap || false)
+      setRpGapText(data.gapText || '')
+      setReviewPrepStep(4)
+    } catch (err) {
+      console.error('Review prep error:', err)
+      setRpError('Something went wrong generating your document. Please try again.')
+      setReviewPrepStep(2)
+    } finally {
+      setRpLoading(false)
+    }
+  }
 
   async function handleSaveAccomplishment() {
     if (!logText.trim()) { setLogError('Tell us what happened.'); return; }
@@ -455,11 +613,11 @@ export default function CareerVaultPage() {
                       sinceStr = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                     }
                     return (
-                      <div className="flex flex-col gap-3 w-full">
-                        {/* Job card — full width */}
+                      <div className="flex flex-col gap-3 w-full md:flex-row">
+                        {/* Job card */}
                         <button
                           onClick={() => setShowJobModal(true)}
-                          className="w-full bg-gray-50 rounded-lg border border-gray-200 p-3 hover:border-purple-300 hover:shadow-sm transition-all text-left group flex items-center gap-3"
+                          className="w-full md:w-1/2 bg-gray-50 rounded-lg border border-gray-200 p-3 hover:border-purple-300 hover:shadow-sm transition-all text-left group flex items-center gap-3"
                         >
                           <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '2px solid #86efac' }}>
@@ -472,10 +630,10 @@ export default function CareerVaultPage() {
                           <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors flex-shrink-0">→</span>
                         </button>
 
-                        {/* Tenure + Wins + Button on same row */}
-                        <div className="flex gap-3 items-stretch">
+                        {/* Tenure + Wins */}
+                        <div className="flex gap-3 items-stretch flex-1">
                           {/* Tenure card */}
-                          <div className="bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 flex flex-col items-center justify-center text-center flex-shrink-0">
+                          <div className="bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center text-center flex-1">
                             {sinceStr && (
                               <>
                                 <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider leading-none">Since</p>
@@ -488,21 +646,13 @@ export default function CareerVaultPage() {
                           </div>
 
                           {/* Wins card */}
-                          <div className="bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 flex flex-col items-center justify-center text-center flex-shrink-0">
+                          <div className="bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center text-center flex-1">
                             <p className="text-3xl font-bold text-purple-600 leading-none">{accomplishments.length}</p>
                             <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Wins Logged</p>
                           </div>
-
-                          {/* Log a Win button */}
-                          <button
-                            onClick={() => setShowLogModal(true)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 flex-shrink-0 self-center"
-                            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                          >
-                            <span>+</span> Log a Win
-                          </button>
                         </div>
-                      </div>
+
+                        </div>
                     );
                   })() : (
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50">
@@ -520,49 +670,47 @@ export default function CareerVaultPage() {
                 </div>
 
                 {/* Accomplishments Log */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col flex-1">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 pt-4 flex flex-col flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400">{accomplishments.length} logged</span>
-                      {accomplishments.length > 0 && (
-                        <button
-                          onClick={() => setShowLogModal(true)}
-                          className="text-xs text-purple-600 font-semibold hover:text-purple-700"
-                        >
-                          + Add
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
+                        <span className="text-xs text-gray-400">{accomplishments.length} logged</span>
+                      </div>
+                      <button
+                        onClick={() => setShowLogModal(true)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap"
+                      >
+                        + Log a Win
+                      </button>
                     </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-4">
-                    Log wins as they happen — promotions, projects, metrics, skills, anything worth remembering.
+                  <p className="text-xs text-gray-500 mb-2">
+                    Log wins as they happen: promotions, projects, metrics, skills, anything worth remembering.
                   </p>
 
                   {/* Accomplishment List */}
                   {accomplishments.length > 0 ? (
-                    <div className="space-y-2">
-                      {accomplishments.map((acc) => (
+                    <div className="space-y-1">
+                      {accomplishments.slice(0, 4).map((acc) => (
                         <div
                           key={acc.id}
-                          className="group flex items-start gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-purple-200 transition-colors"
+                          onClick={() => { setSelectedWin(acc); setWinCopied(false); }}
+                          className="flex items-start gap-2.5 p-2 bg-gray-50 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+                          style={{ height: '52px' }}
                         >
                           <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800 leading-snug">{acc.raw_description}</p>
-                            {acc.created_at && (
-                              <p className="text-[10px] text-gray-400 mt-1">{formatDate(acc.created_at)}</p>
-                            )}
+                            <p className="text-xs text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
                           </div>
-                          <button
-                            onClick={() => handleDeleteAccomplishment(acc.id)}
-                            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all flex-shrink-0 text-lg leading-none"
-                            title="Delete"
-                          >
-                            ×
-                          </button>
                         </div>
                       ))}
+                      {accomplishments.length > 4 && (
+                        <button
+                          onClick={() => setShowOlderWinsModal(true)}
+                          className="w-full text-center pt-4 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                        >
+                          See {accomplishments.length - 4} more win{accomplishments.length - 4 > 1 ? 's' : ''} →
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-3 border border-dashed border-gray-200 rounded-lg bg-gray-50">
@@ -616,21 +764,33 @@ export default function CareerVaultPage() {
                       </p>
                     </div>
                     <div className="space-y-1.5">
+                      <button
+                        onClick={accomplishments.length > 0 ? handleOpenReviewPrep : null}
+                        disabled={accomplishments.length === 0}
+                        className={`w-full flex items-center gap-2 p-2 rounded-lg border transition-colors text-left group shadow-sm ${
+                          accomplishments.length > 0
+                            ? 'bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-400'
+                            : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
+                        }`}>
+                        <span className="text-sm">📋</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-gray-800">Prepare for My Review</p>
+                          <p className="text-[10px] text-gray-400">
+                            {accomplishments.length > 0
+                              ? `Turn your ${accomplishments.length} win${accomplishments.length !== 1 ? 's' : ''} into a review document`
+                              : 'Log wins to unlock your review document'}
+                          </p>
+                        </div>
+                        {accomplishments.length > 0 && (
+                          <span className="text-purple-400 group-hover:text-purple-600 text-xs transition-colors">→</span>
+                        )}
+                      </button>
                       <button onClick={() => router.push('/resume-coach')}
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">📄</span>
                         <div className="flex-1">
                           <p className="text-xs font-semibold text-gray-800">Resume Coach</p>
                           <p className="text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
-                        </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
-                      </button>
-                      <button onClick={() => router.push('/interview-coach')}
-                        className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
-                        <span className="text-sm">🎤</span>
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-800">Interview Practice</p>
-                          <p className="text-[10px] text-gray-400">{isPro ? 'Job-specific prep, always ready' : 'Generic practice, always free'}</p>
                         </div>
                         <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
                       </button>
@@ -1082,6 +1242,366 @@ export default function CareerVaultPage() {
           </div>
         </div>
       )}
+
+    {/* ── REVIEW PREP MODAL ── */}
+    {showReviewPrepModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(255,255,255,0.85)' }}
+        onClick={() => reviewPrepStep !== 3 && setShowReviewPrepModal(false)}
+      >
+        {/* Steps 1 & 2 — narrow modal */}
+        {(reviewPrepStep === 1 || reviewPrepStep === 2) && (
+          <div
+            className="bg-white shadow-2xl border border-gray-200 flex flex-col w-full"
+            style={{ maxWidth: '364px', borderRadius: '8px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-base font-bold text-white">
+                    {reviewPrepStep === 1 ? 'Confirm Your Details' : 'Set the Focus'}
+                  </h2>
+                  <p className="text-purple-100 text-xs">
+                    {reviewPrepStep === 1 ? 'Step 1 of 2' : 'Step 2 of 2'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowReviewPrepModal(false)}
+                className="text-white hover:opacity-70 text-2xl leading-none font-light"
+              >×</button>
+            </div>
+
+            {reviewPrepStep === 1 && (
+              <div className="p-5 space-y-3">
+                <p className="text-xs text-gray-500">Pre-filled from your Vault. Edit anything that needs updating.</p>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={rpName}
+                    onChange={e => setRpName(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={rpTitle}
+                    onChange={e => setRpTitle(e.target.value)}
+                    placeholder="e.g. Operations Coordinator"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Company</label>
+                  <input
+                    type="text"
+                    value={rpCompany}
+                    onChange={e => setRpCompany(e.target.value)}
+                    placeholder="e.g. Brightfield Solutions"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Review Date</label>
+                  <input
+                    type="text"
+                    value={rpDate}
+                    onChange={e => setRpDate(e.target.value)}
+                    placeholder="e.g. April 2026"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="flex justify-center pt-1">
+                  <button
+                    onClick={() => setReviewPrepStep(2)}
+                    disabled={!rpName.trim() || !rpTitle.trim() || !rpCompany.trim()}
+                    className="text-white rounded-lg py-2 px-8 text-xs font-semibold disabled:opacity-50 transition-opacity hover:opacity-90"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {reviewPrepStep === 2 && (
+              <div className="p-5 space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Review Period</label>
+                  <select
+                    value={rpRange}
+                    onChange={e => setRpRange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="3months">Last 3 months</option>
+                    <option value="6months">Last 6 months</option>
+                    <option value="12months">Last 12 months</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Review Focus</label>
+                  <select
+                    value={rpFocus}
+                    onChange={e => setRpFocus(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="standard">Standard annual review</option>
+                    <option value="raise">Raise or compensation discussion</option>
+                    <option value="promotion">Promotion consideration</option>
+                    <option value="pip">Performance improvement plan</option>
+                    <option value="other">Other / not sure</option>
+                  </select>
+                  <p className="text-[10px] text-gray-400 mt-1">This shapes the framing of your document, not what wins are included.</p>
+                </div>
+                {rpError && <p className="text-xs text-red-600">{rpError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setReviewPrepStep(1)}
+                    className="flex-1 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={handleGenerateReviewPrep}
+                    disabled={rpLoading}
+                    className="flex-1 text-white rounded-lg py-2 text-xs font-semibold disabled:opacity-50 transition-opacity hover:opacity-90"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                  >
+                    Generate My Document →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 3 — Loading */}
+        {reviewPrepStep === 3 && (
+          <div className="bg-white shadow-2xl border border-gray-200 flex flex-col items-center p-10 text-center" style={{ maxWidth: '364px', borderRadius: '8px', width: '100%' }}>
+            <img src="/images/Hire_Power_icon_2.png" alt="Hire Power" className="h-10 w-auto mx-auto mb-4" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <h3 className="font-semibold text-gray-900 mb-1">Building your narrative...</h3>
+            <p className="text-xs text-gray-500">Pulling your wins and shaping them into a review document.</p>
+          </div>
+        )}
+
+        {/* Step 4 — Document output */}
+        {reviewPrepStep === 4 && (
+          <div
+            className="bg-white shadow-2xl border border-gray-200 flex flex-col w-full"
+            style={{ maxWidth: '680px', borderRadius: '8px', height: '85vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-7 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-base font-bold text-white">Your Review Document</h2>
+                  <p className="text-purple-100 text-xs">{rpName} · {rpCompany} · {rpDate}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowReviewPrepModal(false)}
+                className="text-white hover:opacity-70 text-2xl leading-none font-light ml-4"
+              >×</button>
+            </div>
+
+            {/* Action bar */}
+            <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(rpDocument)
+                  setRpCopied(true)
+                  setTimeout(() => setRpCopied(false), 2000)
+                }}
+                className="flex items-center gap-1.5 px-4 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                {rpCopied ? '✓ Copied!' : '📋 Copy All'}
+              </button>
+             <button
+                onClick={async () => {
+                  setRpDownloading(true)
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    const response = await fetch('/api/generate-review-prep-pdf', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                      },
+                      body: JSON.stringify({
+                        documentText: rpDocument,
+                        userId: user.id
+                      })
+                    })
+                    const data = await response.json()
+                    if (!data.pdfUrl) throw new Error('No URL returned')
+                    const pdfResponse = await fetch(data.pdfUrl)
+                    const blob = await pdfResponse.blob()
+                    const blobUrl = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = blobUrl
+                    a.download = `${rpName.replace(/\s+/g, '_')}_Performance_Review_${rpDate.replace(/\s+/g, '_')}.pdf`
+                    document.body.appendChild(a)
+                    a.click()
+                    document.body.removeChild(a)
+                    URL.revokeObjectURL(blobUrl)
+                  } catch (err) {
+                    console.error('PDF download error:', err)
+                  } finally {
+                    setRpDownloading(false)
+                  }
+                }}
+                className="flex items-center gap-1.5 px-4 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                disabled={rpDownloading}
+              >
+                {rpDownloading
+                  ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Generating...</>
+                  : '⬇️ Download PDF'
+                }
+              </button>
+              
+            </div>
+
+            {/* Document content */}
+            <div className="flex-1 overflow-y-auto px-8 py-6">
+              {rpHasGap && rpGapText && !rpGapDismissed && (
+                <GapWinLogger
+                  gapText={rpGapText}
+                  currentJobEntry={currentJobEntry}
+                  supabase={supabase}
+                  user={user}
+                  onSaved={(newAcc) => {
+                    setAccomplishments(prev => [newAcc, ...prev])
+                  }}
+                  onDismiss={() => setRpGapDismissed(true)}
+                  onRegenerate={handleGenerateReviewPrep}
+                />
+              )}
+              <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">
+                {rpDocument}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Win detail modal */}
+    {selectedWin && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(255,255,255,0.85)' }}
+        onClick={() => setSelectedWin(null)}
+      >
+        <div
+          className="bg-white shadow-2xl border border-gray-200 w-full"
+          style={{ maxWidth: '364px', borderRadius: '8px' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+            className="px-6 py-4 flex items-center justify-between flex-shrink-0"
+          >
+            <div className="flex items-center gap-3">
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-7 w-auto flex-shrink-0" />
+              <div>
+                <h2 className="text-sm font-bold text-white">Logged Win</h2>
+                <p className="text-purple-100 text-xs">{selectedWin.created_at ? formatDate(selectedWin.created_at) : 'No date'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedWin.raw_description)
+                  setWinCopied(true)
+                  setTimeout(() => setWinCopied(false), 2000)
+                }}
+                className="text-xs font-semibold text-white hover:opacity-70 transition-opacity"
+              >
+                {winCopied ? 'Copied ✓' : 'Copy'}
+              </button>
+              <button
+                onClick={() => setSelectedWin(null)}
+                className="text-white hover:opacity-70 text-2xl leading-none font-light"
+              >×</button>
+            </div>
+          </div>
+          <div className="p-5">
+            <p className="text-sm text-gray-800 leading-relaxed">{selectedWin.raw_description}</p>
+            <div className="flex justify-end items-center mt-5">
+              <button
+                onClick={async () => {
+                  await handleDeleteAccomplishment(selectedWin.id)
+                  setSelectedWin(null)
+                }}
+                className="w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                title="Delete"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Older wins modal */}
+    {showOlderWinsModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">All Wins</h2>
+                <p className="text-purple-100 text-xs">{accomplishments.length} logged</p>
+              </div>
+              <button onClick={() => setShowOlderWinsModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
+            </div>
+          </div>
+          <div className="px-5 py-3 border-b border-gray-100 flex justify-end">
+            <button
+              onClick={() => { setShowOlderWinsModal(false); handleOpenReviewPrep(); }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors"
+            >
+              📋 Prepare for My Review
+            </button>
+          </div>
+          <div className="px-6 py-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+            <div className="space-y-1.5">
+              {accomplishments.map((acc) => (
+                <div
+                  key={acc.id}
+                  onClick={() => { setShowOlderWinsModal(false); setSelectedWin(acc); setWinCopied(false); }}
+                  className="flex items-start gap-2.5 p-2 bg-gray-50 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+                  style={{ height: '52px' }}
+                >
+                  <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
