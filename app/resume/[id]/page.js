@@ -2955,9 +2955,12 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 <button
                   onClick={sendResumeChat}
                   disabled={!userInput.trim() || sending}
-                  className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-end flex-shrink-0"
+                  className="text-white w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-90 self-end flex-shrink-0"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                 >
-                  Send
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -2997,7 +3000,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         )}
 
         {/* Messages */}
-        <div className="space-y-2 mb-2">
+        <div className="space-y-2 mb-2 pb-24">
           {coachingMessages.map((msg, index) => (
             <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
               <div className={`rounded-lg px-2 py-1.5 text-xs leading-snug ${

@@ -286,8 +286,10 @@ Operations and coordination roles: budget managed, vendors coordinated, events s
 Sales and revenue roles: revenue generated, quota attainment, growth percentage, deal size. Not number of calls made if results are available.
 
 RULE 2: DO THE MATH. ALWAYS MULTIPLY TO LARGEST HONEST SCALE.
-"5 shows a day, 2 days a week, for 15 months" — do the math.
+CRITICAL: When you already have frequency, cadence, and duration, calculate the total yourself. Never ask the candidate to do math you can do. "5 shows a day, 2 days a week, for 15 months" — that is 600 shows. Calculate it, state it, move on. Asking "do you know how many total shows that was?" when you have all the components is a failure.
+"5 shows a day, 2 days a week, for 15 months" — do the math. 5 shows/day x 2 days/week x 4 weeks/year x 15 months = 600 shows total
 "20 students a week" — is there a semester total? Annual total?
+"3 classes a day, 3 days a week" = record this as 9 classes weekly or 36 classes monthly.
 Use whichever is largest and still truthful. If the same people recur each week, use the enrolled count, not a multiplied total that implies new people each time.
 
 NOT EVERY ROLE CONTAINS HIDDEN POWER, AND THAT IS FINE:
