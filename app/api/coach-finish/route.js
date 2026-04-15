@@ -371,6 +371,8 @@ Senior Level: organizational scope, fully earned. Spearheaded, Championed, Drove
 
 VERB VARIETY RULE: Ideally, no verb appears more than twice in the same resume. Use a variety instead. Wrong: "Managed events. Managed team. Managed budget. Managed vendors." Right: "Coordinated events. Led team of 5. Oversaw $50K budget. Negotiated vendor contracts."
 
+WORD VARIETY RULE: The same rule applies to any high-impact word, not just verbs. Adverbs, adjectives, and descriptive phrases that appear more than once within the same role are a writing failure. "Independently" appearing twice in one job's bullets is the same problem as "managed" appearing four times. Read every role as a unit before outputting. If any non-trivial word appears more than once within the same role's bullets and job summary, replace one instance with a stronger or different expression of the same idea. Wrong: "Independently managed recruiting... independently resolved escalations." Right: "Independently managed recruiting... resolved escalations without director involvement."
+
 CURRENT ROLE TENSE CHECK (mandatory before outputting)
 Bullets and job summaries use first-person implied. No pronouns, no third-person conjugation. Present tense for current roles, past tense for past roles. EXCEPTION: a specific bullet in the current role represents a past event or accomplishment. In this situation, past tense is correct. Never use third-person conjugation (teaches, manages, coordinates). These read as if someone else is describing the candidate. For every job where current is true, read the bullets and job summary and confirm: present tense is used, past tense is not used, third-person conjugation is not used. If any of these fail, rewrite before outputting. The test: does this sound like the resume owner's voice, or like a third party describing them? If the latter, fix it.
 
@@ -565,7 +567,36 @@ THE FORMULA: Professional Identity & Scope + Career-wide Actions & Results Relev
 
 A great summary does these three things, so each sentence has a purpose:
 
-Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should be a short, concise sentence and it must end with something specific and unexpected that makes a recruiter want to keep reading. Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
+FOR CORE SUMMARIES:
+Position for a role TYPE, not a specific job or company.
+Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
+
+SENTENCE 1 Professional Identity & Scope with a unique twist 
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
+
+Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+
+STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique twist that shows a benefit to employer):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+
+Sentence 1 must NEVER open with the job they are pursuing, a "candidate" label, or any aspiration framing.
+
+FORBIDDEN sentence 1 patterns:
+- "HR Director candidate with 20 years of experience..." (names the target title as an identity label)
+- "Aspiring project manager with a background in events..." (aspiration framing)
+- "Experienced professional seeking a director-level role..." (objective statement disguised as a summary)
+- "Marketing professional transitioning into data analytics..." (leads with the transition, not the identity)
+
+CORRECT sentence 1 patterns. Open from what they ARE, let the target role emerge from the framing:
+- "HR professional with 20+ years building and running the complete HR function across manufacturing and distribution environments" (the trajectory toward director is implicit in the scope)
+- "Human resources manager with nearly a decade of sole ownership over the full HR function for a 200-person manufacturing operation" (the scale speaks for itself)
+- "Event coordinator with 8 years of full-cycle project management experience across corporate, nonprofit, and entertainment productions" (transferable scope is visible without naming the target)
+
+The test: could sentence 1 appear on a resume for the job they HAVE right now? If yes, it is written correctly. If it reads like a cover letter opener naming the job they WANT, rewrite it.
+
+For career changers: sentence 1 SHOWS how their experience qualifies them for the target. It must never TELL the recruiter what job they want. Frame their identity through the lens of the transferable skills that make them credible for the target role. The target role should be recognizable from what they describe, not stated explicitly.
 
 Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 will be your unique telling of the candidate’s body of work as it relates to their target job. Use 2-3 credible proof points (3 is absolute maximum) taken from across their entire career to demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis. Sentence 2 may NEVER include one-time projects or accomplishments, especially if they are not relevant to the target job. These belong in the job experience bullets, not the summary. 
 
@@ -774,20 +805,23 @@ Produced a group act for a 9-show performance reaching over 3,600 attendees; cre
 TOO SHORT – DO NOT WRITE LIKE THIS:
 Produced a group act for a holiday show, managing choreography, rehearsals and performances
 
-BULLET COUNT: 
+BULLET COUNT: TENURE-PROPORTIONAL:
+
 The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula. 
 
 Bullet point guidelines: 
 
-Current or most recent role: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets
+Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
 
 Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
 
-Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable, or title, company, dates and job summary only.
+Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable. If older than 15 years, old, title, company, dates and job summary only.
 
 Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
 
-Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates may have more. Early Career and Entry Level may have fewer.
+Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates will be on the higher end and, if experience warrants it, may have more. Early Career and Entry Level will be on the lower end and, if experience is thin, may have fewer.
+
+After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
 
 BULLET ORDER: Within each role, order bullets from strongest to most relevant for the target role first, weakest or least relevant last. A recruiter who stops reading halfway through should have seen the most compelling evidence first. Never bury the strongest bullet at the bottom of a list.
 
@@ -1468,14 +1502,17 @@ MISSING KEYWORDS: For career changers, pay extra attention to missing keywords. 
 
 SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer to this role go last or get cut entirely.
 
-SUMMARY: Opens from the target role identity. Previous experience becomes evidence, not identity. Name 2-3 skills from the job description requirements in sentence 2.
+SUMMARY: Follow all summary guidelines from the summary prompt exactly. No exceptions and no shortcuts. Name 2-3 skills from the job description requirements when the candidate genuinely has them. For career changers specifically: tailor the summary to the new role by demonstrating the skills and experience that qualify them for this role. Previous experience becomes evidence, not identity. 
 ` : ''}
 
 DUPLICATE CHECK — MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
 BULLET COUNT CHECK — MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. Senior with broad scope and 15+ years' experience: up to 7. Average: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+
+CERTIFICATIONS AND SINGLE-ITEM SECTIONS — MANDATORY BEFORE OUTPUTTING:
+If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
@@ -1517,7 +1554,36 @@ THE FORMULA: Professional Identity & Scope + Career-wide Actions & Results Relev
 
 A great summary does these three things, so each sentence has a purpose:
 
-Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should be a short, concise sentence and it must end with something specific and unexpected that makes a recruiter want to keep reading. Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
+FOR CORE SUMMARIES:
+Position for a role TYPE, not a specific job or company.
+Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
+
+SENTENCE 1: Professional identity and scope with a unique twist
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
+
+Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+
+STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique twist showing benefit to employer):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+
+Sentence 1 must NEVER open with the job they are pursuing, a "candidate" label, or any aspiration framing.
+
+FORBIDDEN sentence 1 patterns:
+- "HR Director candidate with 20 years of experience..." (names the target title as an identity label)
+- "Aspiring project manager with a background in events..." (aspiration framing)
+- "Experienced professional seeking a director-level role..." (objective statement disguised as a summary)
+- "Marketing professional transitioning into data analytics..." (leads with the transition, not the identity)
+
+CORRECT sentence 1 patterns. Open from what they ARE, let the target role emerge from the framing:
+- "HR professional with 20+ years building and running the complete HR function across manufacturing and distribution environments" (the trajectory toward director is implicit in the scope)
+- "Human resources manager with nearly a decade of sole ownership over the full HR function for a 200-person manufacturing operation" (the scale speaks for itself)
+- "Event coordinator with 8 years of full-cycle project management experience across corporate, nonprofit, and entertainment productions" (transferable scope is visible without naming the target)
+
+The test: could sentence 1 appear on a resume for the job they HAVE right now? If yes, it is written correctly. If it reads like a cover letter opener naming the job they WANT, rewrite it.
+
+For career changers: sentence 1 SHOWS how their experience qualifies them for the target. It must never TELL the recruiter what job they want. Frame their identity through the lens of the transferable skills that make them credible for the target role. The target role should be recognizable from what they describe, not stated explicitly.
 
 Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 will be your unique telling of the candidate’s body of work as it relates to their target job. Use 2-3 credible proof points (3 is absolute maximum) taken from across their entire career to demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis. Sentence 2 may NEVER include one-time projects or accomplishments, especially if they are not relevant to the target job. These belong in the job experience bullets, not the summary. 
 
@@ -1689,8 +1755,9 @@ HARD RULES: NON-NEGOTIABLE:
 - NEVER: one-time projects or accomplishments (these are bullets).
 - NEVER: more than 3 proof points in sentence 2.
 - NEVER: number ranges written as "X to Y" — always use a hyphen: "X-Y"
+- NEVER: repeat a specific metric in the summary. If an HR Manager "Led a solo HR department for a 200-person workforce", you must never include any other reference to those 200 employees (such as "supported 200+ employees across benefits and worker's comp").
 - NEVER: filler phrases. "at any given time" = "simultaneously". "at a volume of X per year" = "X annually". "an estimated" = cut it. "close to $X" = use the range "$X-$Y".
-- Career changers: sentence 1 establishes the new identity. Sentence 2 explains why it is credible. Never combined.
+- Career changers: sentence 1 establishes their professional identity through transferable skills, not the target title. Sentence 2 explains why that identity is credible for the target role. Never combined.
 - Students and recent grads: open from professional identity, not school enrollment. The degree is evidence, not the opener.
 `
  const isInternshipOrJunior = /intern(ship)?|junior|assistant\b/i.test(jobTitle || '')
@@ -1748,9 +1815,34 @@ ${governingPrinciple}
 
 FOR CORE SUMMARIES:
 Position for a role TYPE, not a specific job or company.
-Career context: If career context or coaching established a job target, open from that angle, not from their current title. Tailor the entire summary towards the target job, using your skill to align their impact and experience with that target. It is your job to help a recruiter envision why this candidate will excel in that role.
+Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
-For career changers: the summary must align their previous experience with their target job. Their previous experience becomes evidence of their work and results in the bullets. The summary should show the unique alignment of their background with the career they now wish to pursue.
+SENTENCE 1 IDENTITY RULE: NON-NEGOTIABLE:
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
+
+Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+
+STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique benefit to employer):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+
+Sentence 1 must NEVER open with the job they are pursuing, a "candidate" label, or any aspiration framing.
+
+FORBIDDEN sentence 1 patterns:
+- "HR Director candidate with 20 years of experience..." (names the target title as an identity label)
+- "Aspiring project manager with a background in events..." (aspiration framing)
+- "Experienced professional seeking a director-level role..." (objective statement disguised as a summary)
+- "Marketing professional transitioning into data analytics..." (leads with the transition, not the identity)
+
+CORRECT sentence 1 patterns. Open from what they ARE, let the target role emerge from the framing:
+- "HR professional with 20+ years building and running the complete HR function across manufacturing and distribution environments" (the trajectory toward director is implicit in the scope)
+- "Human resources manager with nearly a decade of sole ownership over the full HR function for a 200-person manufacturing operation" (the scale speaks for itself)
+- "Event coordinator with 8 years of full-cycle project management experience across corporate, nonprofit, and entertainment productions" (transferable scope is visible without naming the target)
+
+The test: could sentence 1 appear on a resume for the job they HAVE right now? If yes, it is written correctly. If it reads like a cover letter opener naming the job they WANT, rewrite it.
+
+For career changers: sentence 1 SHOWS how their experience qualifies them for the target. It must never TELL the recruiter what job they want. Frame their identity through the lens of the transferable skills that make them credible for the target role. The target role should be recognizable from what they describe, not stated explicitly.
 
 CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 ${hardRules}
@@ -1799,6 +1891,35 @@ For section reorder: field = "sectionOrder", section = "Section Order"`
 // ─────────────────────────────────────────────
 // BUILD TARGETED ENHANCEMENT PROMPT
 // ─────────────────────────────────────────────
+function buildConversationalFixPrompt({ rewrittenResume, fixConversation }) {
+  const conversationText = fixConversation
+    .map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`)
+    .join('\n\n')
+
+  return `You are applying a specific correction or addition to a resume based on a conversation between a coach and the candidate.
+
+THE CONVERSATION DESCRIBING WHAT TO CHANGE:
+${conversationText}
+
+CURRENT RESUME (your baseline — change ONLY what the conversation specifies):
+${JSON.stringify(rewrittenResume, null, 2)}
+
+YOUR RULES — NON-NEGOTIABLE:
+1. Make ONLY the changes described in the conversation. Nothing more.
+2. Do NOT improve, rewrite, or strengthen anything beyond the specific correction.
+3. Do NOT remove anything that was not explicitly requested to be removed.
+4. Do NOT add anything that was not explicitly requested to be added.
+5. If the candidate said a city is wrong, fix the city. Leave every other field exactly as it is.
+6. If the candidate said they forgot to mention a skill or experience, add it accurately. Touch nothing else.
+7. If the candidate said a bullet is wrong, correct that bullet only. Leave all other bullets exactly as written.
+8. No em dashes. No hallucination. Only what the conversation explicitly asked for.
+
+SURGICAL PRECISION: Most of this resume should be byte-for-byte identical to what you received. The only differences should be the specific corrections described in the conversation above.
+
+OUTPUT: Return ONLY valid JSON matching the exact same structure as the input resume.
+No markdown. No explanation. No backticks.`
+}
+
 function buildTargetedEnhancementPrompt({ rewrittenResume, newConversation, remainingGaps, level }) {
   const levelInstructions = LEVEL_WRITING_INSTRUCTIONS[level] || LEVEL_WRITING_INSTRUCTIONS.mid
   
@@ -1920,7 +2041,11 @@ This candidate is transitioning from ${careerContext.previous_field || 'their pr
 
 Every decision — summary, bullets, skills, section order — serves the target field, not the previous one.
 
-SUMMARY: Opens from the target role identity. Their previous experience becomes evidence, not identity. sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in coaching that they want less emphasis on a specific type of work, that work must not appear as a proof point in sentence 2 under any circumstances. Find the best proof points that serve the target role instead.
+SUMMARY: Follow all summary guidelines from the summary prompt exactly. No exceptions and no shortcuts. The summary must convey the candidate's professional essence in under 10 seconds in a way that makes a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
+
+THE FORMULA: Professional Identity & Scope + Career-wide Actions & Results Relevant to Target Job + Hook & What They Deliver
+
+The summary must align the candidate's experience with the target job. Ask: would a recruiter hiring for the target role care about this experience? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in coaching that they want less emphasis on a specific type of work, coaching work must not appear as a proof point in sentence 2 under any circumstances. Find the best proof points that serve the target role instead.
 
 BULLETS: For every bullet ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" If yes, keep and strengthen. If no, reframe or put towards the bottom of the list. Put bullets relevant to target role before those not relevant to target role. If someone with an administrative background is getting started in marketing, of course you will include the administrative experience in the bullets. But, any bullets showing marketing skills should appear first.
 
@@ -1970,15 +2095,15 @@ The number of bullets per role should reflect the role's relevance to the target
 
 Bullet point guidelines: 
 
-Current or most recent role: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets
+Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
 
 Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
 
-Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable, or title, company, dates and job summary only.
+Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable. If older than 15 years, old, title, company, dates and job summary only.
 
 Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
 
-Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates may have more. Early Career and Entry Level may have fewer.
+Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates will be on the higher end and, if experience warrants it, may have more. Early Career and Entry Level will be on the lower end and, if experience is thin, may have fewer.
 
 After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
 
@@ -2016,7 +2141,10 @@ DUPLICATE CHECK: MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
 BULLET COUNT CHECK: MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. Senior with broad scope and 15+ years' experience: up to 7. Average: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+
+CERTIFICATIONS AND SINGLE-ITEM SECTIONS: MANDATORY BEFORE OUTPUTTING:
+If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
@@ -2057,7 +2185,8 @@ export async function POST(request) {
       missingKeywords,
       retryInstruction,
       isTargetedEnhancement,
-      isConversationalSource
+      isConversationalSource,
+      isConversationalFix
     } = await request.json()
 
     if (!resumeData || !conversation) {
@@ -2072,6 +2201,44 @@ export async function POST(request) {
           b && b.trim().length > 0 && b.trim().toLowerCase() !== 'new bullet point'
         )
       }))
+    }
+
+    // ── CONVERSATIONAL FIX PATH ──
+    if (isConversationalFix) {
+      const baseResume = resumeData?._rewrittenResume || resumeData
+
+      const fixPrompt = buildConversationalFixPrompt({
+        rewrittenResume: baseResume,
+        fixConversation: conversation
+      })
+
+      const fixMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: fixPrompt }]
+      })
+
+      let cleanedFix = fixMessage.content[0].text.trim()
+      if (cleanedFix.startsWith('```')) {
+        cleanedFix = cleanedFix.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+      const fixedResume = JSON.parse(cleanedFix)
+
+      const changesPrompt = buildChangesPrompt(baseResume, fixedResume)
+      const changesMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: changesPrompt }]
+      })
+
+      let cleanedChanges = changesMessage.content[0].text.trim()
+      if (cleanedChanges.startsWith('```')) {
+        cleanedChanges = cleanedChanges.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+      let changes = []
+      try { changes = JSON.parse(cleanedChanges) } catch (e) { changes = [] }
+
+      return NextResponse.json({ rewrittenResume: fixedResume, changes })
     }
 
     // ── TARGETED ENHANCEMENT PATH ──

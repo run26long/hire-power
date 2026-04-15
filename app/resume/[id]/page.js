@@ -692,6 +692,13 @@ if (data.ai_analysis) {
     }
   }
 
+  function resetHistory(newData) {
+    const cloned = JSON.parse(JSON.stringify(newData))
+    resumeDataRef.current = cloned
+    setHistory([cloned])
+    setHistoryIndex(0)
+  }
+
   async function save(overrides = {}) {
     // Commit any active contentEditable field before saving
     if (document.activeElement && document.activeElement.isContentEditable) {
@@ -1372,6 +1379,7 @@ if (data.ai_analysis) {
           setCoachingSamplesUsed={setCoachingSamplesUsed}
           handleDownload={handleDownload}
           isDownloading={isDownloading}
+          resetHistory={resetHistory}
             />
           </div>
         </div>
@@ -1450,7 +1458,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading }) { 
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -1483,10 +1491,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     }
   }, [journeyStep])
 
+ const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat'
+
  return (
-   <div ref={panelRef} className="overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6">
+   <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 pl-4 pr-2 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6"}>
       
- <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 pt-4 md:pt-6 z-10 ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : 'mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-100'}`}>
+ <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-4 md:pt-6'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
  {isJobSpecific ? (
         <div className="mb-3 text-center">
           <h3 className="font-bold text-sm text-gray-900 leading-tight">{resumeName}</h3>
@@ -2111,6 +2121,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           changesAccepted={resume?.changes_accepted || false}
           remainingGaps={remainingGaps}
           score={score}
+          resetHistory={resetHistory}
         />
       )}
 
@@ -2181,7 +2192,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational }) {
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -2212,10 +2223,9 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
       })
       const data = await response.json()
       if (!data.response) throw new Error('No response from resume chat')
-      const initialMessages = [
-        { role: 'user', content: "Hi! I'm ready to build my résumé." },
-        { role: 'assistant', content: data.response }
-      ]
+    const initialMessages = [
+      { role: 'assistant', content: data.response }
+    ]
       setCoachingMessages(initialMessages)
       await supabase.from('resumes').update({ coaching_conversation: initialMessages }).eq('id', params.id)
     } catch (err) {
@@ -2287,6 +2297,8 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
       const newScore = scoreData?.score ?? null
 
       setRewrittenResume(data.rewrittenResume)
+
+      if (resetHistory) resetHistory(data.rewrittenResume)
 
       await supabase.from('resumes').update({
         resume_data: data.rewrittenResume,
@@ -2733,7 +2745,7 @@ const getMessageText = (msg) => {
     setResume(prev => ({ ...prev, journey_step: 'improve' }))
   }
 // ── Already generated → lock and show recoach prompt ──
-  if (coachingComplete && !trialComplete && userTier !== 'free') {
+  if (coachingComplete && !trialComplete && userTier !== 'free' && !isConversational) {
     const showPushHarder = changesAccepted && score < 85 && remainingGaps?.length > 0
     const showFormatFinish = changesAccepted
 
@@ -2894,12 +2906,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
     )
     return (
       <>
-        <div className="flex flex-col">
-          <h3 className="font-semibold text-lg mb-1 -mt-3 flex-shrink-0">💬 Building Your Résumé</h3>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2 flex-shrink-0">
-            <p className="text-xs text-gray-600">Answer Coach's questions and we'll build your résumé from the conversation. The more detail you share, the stronger the result.</p>
-          </div>
-          <div className="space-y-2 mb-2">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 min-h-0">
             {coachingMessages.map((msg, index) => (
               <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
                 <div className={`rounded-lg px-2 py-1.5 text-xs leading-snug ${msg.role === 'assistant' ? 'bg-purple-50 border border-purple-100 w-full' : 'bg-gray-100 border border-gray-200 max-w-[90%]'}`}>
@@ -2940,8 +2948,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
             <div ref={messagesEndRef} />
           </div>
           {!isChatComplete ? (
-            <div className="sticky bottom-0 bg-white border-t pt-2 pb-1 -mx-3 px-3">
-              <div className="flex gap-2 items-center">
+            <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
+              <div className="flex gap-2 items-stretch">
                 <textarea
                   ref={inputRef}
                   value={userInput}
@@ -2955,25 +2963,29 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 <button
                   onClick={sendResumeChat}
                   disabled={!userInput.trim() || sending}
-                  className="text-white w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-opacity hover:opacity-90 self-end flex-shrink-0"
-                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                  className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+                  style={{
+                    width: '32px',
+                    background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
+                    alignSelf: 'stretch'
+                  }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
                     <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                   </svg>
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex justify-center flex-shrink-0 mt-2">
+            <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
               <button
                 onClick={finishResumeChat}
                 disabled={isFinishing}
-                className="px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 text-white disabled:opacity-50"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                className="px-6 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-90 text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '180px' }}
               >
-                {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                {isFinishing ? 'Building your résumé...' : '✨ Build My Résumé →'}
+                {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent flex-shrink-0"></div>}
+                {isFinishing ? 'Building your résumé...' : '✨ Build My Resume →'}
               </button>
             </div>
           )}
@@ -3053,29 +3065,33 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && (
           <div className="sticky bottom-0 border-t pt-2 pb-1 -mx-3 px-3" style={{ backgroundColor: 'white', zIndex: 10, position: 'sticky' }}>
-              <div className="relative">
-                <textarea
-                  ref={inputRef}
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendResumeChat() } }}
-                  placeholder="Type your response..."
-                  disabled={sending}
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                />
-                <button
-                  onClick={sendResumeChat}
-                  disabled={!userInput.trim() || sending}
-                  className="absolute right-2 bottom-2 w-6 h-6 flex items-center justify-center rounded-full transition-colors disabled:opacity-30"
-                  style={{ background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db' }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-3 h-3">
-                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-                  </svg>
-                </button>
-              </div>
+            <div className="flex gap-2 items-stretch">
+              <textarea
+                ref={inputRef}
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                placeholder="Type your response..."
+                disabled={sending}
+                rows={2}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!userInput.trim() || sending}
+                className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+                style={{
+                  width: '32px',
+                  background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
+                  alignSelf: 'stretch'
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
+                  <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                </svg>
+              </button>
             </div>
+          </div>
         )}
 
         {/* Pro finish button */}
@@ -4501,7 +4517,8 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           },
           conversation: targetedMessages,
           detectedLevel,
-          isTargetedEnhancement: true
+          isTargetedEnhancement: isConversationalFix ? false : true,
+          isConversationalFix: isConversationalFix ? true : false
         })
       })
       const data = await response.json()
@@ -4599,7 +4616,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 
         <div className="p-4 border-t border-gray-100 flex-shrink-0">
           {!isComplete ? (
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-stretch">
               <textarea
                 ref={inputRef}
                 value={userInput}
@@ -4615,9 +4632,16 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
               <button
                 onClick={sendMessage}
                 disabled={!userInput.trim() || sending}
-                className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+                style={{
+                  width: '32px',
+                  background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
+                  alignSelf: 'stretch'
+                }}
               >
-                Send
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
+                  <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                </svg>
               </button>
             </div>
           ) : (
