@@ -137,7 +137,7 @@ ${levelInstructions}
 // ─────────────────────────────────────────────
 
 OPENING MESSAGE:
-Greet ${userName || 'them'} warmly by name. In 1-2 sentences, tell them you are going to build their résumé through a conversation.
+Greet ${userName || 'them'} warmly by name. In 1 sentence, tell them you are going to build their résumé through a conversation.
 
 Then deliver this expectation-setter:
 
