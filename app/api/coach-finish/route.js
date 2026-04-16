@@ -103,7 +103,7 @@ NO HALLUCINATION — CATASTROPHIC FAILURE:
 If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. This is the most serious rule in this prompt. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it. When in doubt, write around it with qualitative strength or omit entirely. Industry-standard practices that were not explicitly described in the conversation are hallucinations. Do not add inferred responsibilities because they are typical for the role.
 
 EM DASH — CRITICAL FAILURE:
-If any em dash (—) appears anywhere in this resume, the rewrite is considered a critical failure and must be corrected before outputting. Not in bullets. Not in summaries. Not in job summaries. Not anywhere. Em dashes are an immediate AI signal — candidates are rejected because of them. Use a comma, a period, or restructure the sentence. Check every single sentence before outputting. There is no acceptable use of an em dash anywhere in this document under any circumstances.
+If any em dash (—) appears anywhere in this resume, the rewrite is considered a critical failure and must be corrected before outputting. Not in bullets. Not in summaries. Not in job summaries. Not anywhere. Em dashes are an immediate AI signal . Candidates are rejected because of them. Use a comma, a period, or restructure the sentence. Check every single sentence before outputting. There is no acceptable use of an em dash anywhere in this document under any circumstances.
 
 ═══════════════════════════════
 2: SCORING GUIDELINES: IMPACT (50 points)
@@ -111,7 +111,7 @@ If any em dash (—) appears anywhere in this resume, the rewrite is considered 
 
 Impact measures what the candidate accomplished and how specifically they communicated it. Prioritize in this order for every candidate regardless of level:
 
-1. SPECIFICITY: Does the resume include enough detail about what they actually did? Named tools, environments, disciplines, departments, teams, or responsibilities — not just job categories.
+1. SPECIFICITY: Does the resume include enough detail about what they actually did? Named tools, environments, disciplines, departments, teams, or responsibilities, not just job categories.
 
 2. SCOPE AND SCALE: How many, how often, how much? Numbers and volume make the work real.
 
@@ -221,12 +221,13 @@ A recruiter moving through a stack of 200 resumes is looking for a reason to sto
 Writing style is scored subjectively based on how likely it is to engage a reader and compel them to read the entire resume. For each resume section, ask: If a hiring manager read this sentence, would their brain engage or skim past it?
 
 SKIM TRIGGERS: 
-  ✗ Abstract with no concrete anchor ("innovative solutions," "synergistic approaches," "leveraged best practices," "drove strategic outcomes")
-  ✗ More than one vague buzzword per bullet
-  ✗ No specifics: no numbers, no names, no context, nothing a reader can picture
- ✗ Too many specifics: too many metrics than are appropriate for each sentence or bullet; inclusion of metrics that are not important to the impact.
- ✗ Long, rambling sentences that try to cram in all information provided whether relevant or not. Edit, and keep only what is important.
+  ✗ Long, rambling sentences that try to cram in all information provided whether relevant or not. Edit, and keep only what is important.
 ✗ Sentences that use more words than they need to; phrases like “at any given time” that can be eliminated or replaced by single words like “simultaneously”. Filler words that do not contribute to meaning.
+ ✗ No specifics: no numbers, no names, no context, nothing a reader can picture
+ ✗ Too many specifics: too many metrics than are appropriate for each sentence or bullet; inclusion of metrics that are not important to the impact.
+✗ Abstract with no concrete anchor ("innovative solutions," "synergistic approaches," "leveraged best practices," "drove strategic outcomes")
+  ✗ More than one vague buzzword per bullet
+ 
   ✗ Could describe anyone in this role. Nothing specific to this person's work
   ✗ Duty, not impact ("Responsible for managing client relationships")
 
@@ -244,7 +245,7 @@ Writing Style Scoring
 1-2 – Boring to the point you don’t even care about their experience.
 
 2) Writing Technique (20 points): 
-CSlean grammar and spelling, active voice and implied first-person tense throughout, accurate verbs calibrated to actual ownership level, consistent tense, concise wording – no run on or overly long sentences that should be separated into two.
+Clean grammar and spelling, active voice and implied first-person tense throughout, accurate verbs calibrated to actual ownership level, consistent tense, concise wording – no run on or overly long sentences that should be separated into two.
 
 SPELLING, GRAMMAR, AND PUNCTUATION: clean and correct clean throughout. 
 
@@ -252,7 +253,7 @@ CONCISE LANGUAGE: every word earns its place. No filler, no redundancy, no unimp
 Strong: " Reduced annual spend 18% by negotiating vendor contracts"
 Weak: "Was responsible for the negotiation of vendor contracts which resulted in reductions to annual spending"
 
-FAILS THE CONCISENESS TEST:
+SUMMARY FAILS THE CONCISENESS TEST:
 Detail-oriented operations coordinator with more than six years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year. Brings a systems-level instinct for spotting what will break before it does and the follow-through to make sure it never reaches a manager's desk.
 
 - Detail-oriented – hollow. Cut it. Could be talking about anybody.
@@ -262,10 +263,10 @@ Detail-oriented operations coordinator with more than six years of experience ma
 - spanning operations, finance, IT, facilities, and HR – TOO MUCH detail and lacks importance required for summary inclusion. This is BULLET material. Summaries are HIGH LEVEL. No need for this level of detail because it adds NO impact.
 - at a volume of 150 to 200 per year – too many words. Should be 150+ annually.
 
-PASSES THE CONCISENESS TEST:
+SUMMARY PASSES THE CONCISENESS TEST:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M annual spend across 10-15 vendor relationships, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150+ client escalations annually. Brings a systems-level instinct for spotting what will break before it does and the follow-through to make sure it never reaches a manager's desk.
 
-FAILS THE CONCISENESS TEST:
+SUMMARY FAILS THE CONCISENESS TEST:
 Experienced aerial arts performer and production professional with hands-on experience in live event choreography, rehearsal management, and stage operations across a variety of different performance environments and production settings. Built and fully documented a group act from concept all the way through a 9-show run, performed 650+ shows at EPCOT, and coordinated with show directors through tech and dress rehearsals to integrate lighting, rigging, and audio cues. Looking to bring a foundation in safety management and performance logistics to production and stage management roles.
 
 - "Experienced" - hollow opener. Every resume is from someone with experience. Cut it.
@@ -274,10 +275,10 @@ Experienced aerial arts performer and production professional with hands-on expe
 - "all the way through" - filler. Cut it.
 - "Looking to bring" - candidate-first language. Summaries show what the employer gets, never what the candidate wants.
 
-PASSES THE CONCISENESS TEST:
-Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics such as show resets, cue coordination, and rigging, produces original works from concept through opening night, and performs across 8+ aerial disciplines. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain.
+SUMMARY PASSES THE CONCISENESS TEST:
+Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics such as show resets, cue coordination, and rigging, and produces original works from concept through opening night. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain.
 
-FAILS THE CONCISENESS TEST:
+BULLET FAILS THE CONCISENESS TEST:
 Resolve 3 to 4 client escalations per week independently, handling billing disputes, shipment issues, and service complaints through to resolution without management involvement except in high-stakes situations, totaling an estimated 150 to 200 escalations resolved annually
 
 - 3-4 escalations weekly and 150-200 annually SAY THE SAME THING. DO NOT REPEAT!
@@ -285,17 +286,17 @@ Resolve 3 to 4 client escalations per week independently, handling billing dispu
 - Resolve 3-4 complaints … through to resolution is REDUNDANT. You already said resolved. Don’t repeat it. 
 - without management involvement except in high-stakes situations – not relevant. Exceptions can be discussed in an interview if it even matters.
 
-PASSES THE CONCISENESS TEST:
+BULLET PASSES THE CONCISENESS TEST:
 Independently resolve 150-200 escalations annually, including billing disputes, shipment issues, and service complaints
 
-FAILS THE CONCISENESS TEST:
+BULLET FAILS THE CONCISENESS TEST:
 Choreographed and documented a group act for the annual holiday production, coordinating with the show director through tech and dress rehearsals to integrate staging and cues. Scheduled and ran all rehearsals from initial concept to 9-show run reaching 3,600-4,500 attendees
 
 - annual holiday production – who cares? This is NOT the important part of the story. The show being performed 9 times and reaching 3600 people is what tells the scope and scale! Lead with that; cut the rest.
 - choreographed and documented – this is production. Call it that. That’s the lead. Details come later in the bullet.
 - ran all rehearsals from initial concept – unnecessary 
 
-PASSES THE CONCISENESS TEST:
+BULLET PASSES THE CONCISENESS TEST:
 Produced a group act for a 9-show performance reaching over 3,600 attendees; created choreography, managed rehearsals, and integrated cues into main production at tech and dress rehearsals 
 
 SEPARATING BULLETS – TWO CONCEPTS, TWO BULLETS:
@@ -370,6 +371,8 @@ Senior Level: organizational scope, fully earned. Spearheaded, Championed, Drove
 
 VERB VARIETY RULE: Ideally, no verb appears more than twice in the same resume. Use a variety instead. Wrong: "Managed events. Managed team. Managed budget. Managed vendors." Right: "Coordinated events. Led team of 5. Oversaw $50K budget. Negotiated vendor contracts."
 
+WORD VARIETY RULE: The same rule applies to any high-impact word, not just verbs. Adverbs, adjectives, and descriptive phrases that appear more than once within the same role are a writing failure. "Independently" appearing twice in one job's bullets is the same problem as "managed" appearing four times. Read every role as a unit before outputting. If any non-trivial word appears more than once within the same role's bullets and job summary, replace one instance with a stronger or different expression of the same idea. Wrong: "Independently managed recruiting... independently resolved escalations." Right: "Independently managed recruiting... resolved escalations without director involvement."
+
 CURRENT ROLE TENSE CHECK (mandatory before outputting)
 Bullets and job summaries use first-person implied. No pronouns, no third-person conjugation. Present tense for current roles, past tense for past roles. EXCEPTION: a specific bullet in the current role represents a past event or accomplishment. In this situation, past tense is correct. Never use third-person conjugation (teaches, manages, coordinates). These read as if someone else is describing the candidate. For every job where current is true, read the bullets and job summary and confirm: present tense is used, past tense is not used, third-person conjugation is not used. If any of these fail, rewrite before outputting. The test: does this sound like the resume owner's voice, or like a third party describing them? If the latter, fix it.
 
@@ -397,6 +400,9 @@ Do not rely solely on the existing skills section or bullets for keywords. Activ
 
 KEYWORD PLACEMENT: 
 Keywords belong in two places: naturally embedded in bullets where the work is described, and consolidated in the skills section for ATS scanning. These are independent. Many valuable keywords belong in the skills section without appearing in a bullet. Software and tools used daily, certifications held, compliance knowledge, and field-specific terminology are all examples of skills section items that rarely need a bullet to justify their presence. If the candidate has it and it's relevant, it belongs in skills. A keyword that appears in both bullets and skills is strongest because it shows up in ATS and is backed by proof in the experience. But the skills section is not a mirror of the bullets. It is a comprehensive inventory of the candidate's relevant vocabulary, tools, and expertise. 
+
+KEYWORD ORDER: 
+Within each category of the skills section, order keyword from most important to least important to the target job.
 
 KEYWORD CALIBRATION BY CAREER LENGTH AND JOB LEVEL:
 
@@ -554,111 +560,168 @@ Before writing any bullets, extract ALL skills from the resume and coaching conv
 RESUME ELEMENTS 1: WRITING GUIDELINES FOR PROFESSIONAL SUMMARY (REQUIRED SECTION)
 ═══════════════════════════════════════════════
 
-The summary must convey the candidate’s professional essence in under 10 seconds and make a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
+THE GOVERNING PRINCIPLE:
+The summary must convey the candidate's professional essence in under 10 seconds and make a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
 
-THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
+THE FORMULA: Professional Identity & Scope + Career-wide Actions & Results Relevant to Target Job + Hook & What They Deliver
 
 A great summary does these three things, so each sentence has a purpose:
 
-Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
+FOR CORE SUMMARIES:
+Position for a role TYPE, not a specific job or company.
+Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
-Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
+SENTENCE 1 Professional Identity & Scope with a unique twist 
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
+
+Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+
+STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique twist that shows a benefit to employer):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+
+Sentence 1 must NEVER open with the job they are pursuing, a "candidate" label, or any aspiration framing.
+
+FORBIDDEN sentence 1 patterns:
+- "HR Director candidate with 20 years of experience..." (names the target title as an identity label)
+- "Aspiring project manager with a background in events..." (aspiration framing)
+- "Experienced professional seeking a director-level role..." (objective statement disguised as a summary)
+- "Marketing professional transitioning into data analytics..." (leads with the transition, not the identity)
+
+CORRECT sentence 1 patterns. Open from what they ARE, let the target role emerge from the framing:
+- "HR professional with 20+ years building and running the complete HR function across manufacturing and distribution environments" (the trajectory toward director is implicit in the scope)
+- "Human resources manager with nearly a decade of sole ownership over the full HR function for a 200-person manufacturing operation" (the scale speaks for itself)
+- "Event coordinator with 8 years of full-cycle project management experience across corporate, nonprofit, and entertainment productions" (transferable scope is visible without naming the target)
+
+The test: could sentence 1 appear on a resume for the job they HAVE right now? If yes, it is written correctly. If it reads like a cover letter opener naming the job they WANT, rewrite it.
+
+For career changers: sentence 1 SHOWS how their experience qualifies them for the target. It must never TELL the recruiter what job they want. Frame their identity through the lens of the transferable skills that make them credible for the target role. The target role should be recognizable from what they describe, not stated explicitly.
+
+Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 will be your unique telling of the candidate’s body of work as it relates to their target job. Use 2-3 credible proof points (3 is absolute maximum) taken from across their entire career to demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis. Sentence 2 may NEVER include one-time projects or accomplishments, especially if they are not relevant to the target job. These belong in the job experience bullets, not the summary. 
+
+Sentence 2 must tell the strongest story of the candidate’s career history and impact as a high-level overview.  Only use metrics if they are relevant and important to the career target. 
+
+Important metrics: Manages $500K-$1M in annual vendor spend across 10-15 vendors (makes their impact sound big)
+
+Unimportant metrics: Choreographed a 4-person act for a holiday production (makes their impact sound small. Cast size is not an important metric, and a one-time event like a holiday production is a bullet, not high-level summary material).
+
+Hard rule: No more than 3-4 metrics in sentence 2. No more than one comma-delineated phrase. Using unimportant metrics and detail impairs readability and lowers the scores. 
+
+Proof points in sentence 2 of the summary MUST answer "yes" to AT LEAST one of the following questions.
+
+a. Is this experience highly relevant to the role they are pursuing?
+b. Does it represent the overall scope and trajectory of their career across multiple roles? Note: This is something that you will likely need to compile based on their work history. 
+c. Is this something they do consistently and at scale right now, as an ongoing part of their current role?
+
+Note: The 3 questions above are ordered by importance. A proof point that represents the overall scope and trajectory of a candidate's career across multiple roles that is highly relevant to their target job is WAY more important than something they do consistently at their current job that is not relevant to their career goal. Only include the MOST IMPORTANT proof points for the target job in summary sentence 2. 
+
+Ordering rule: Sentence 2 must open with the proof point most relevant to the target role. Use the a/b/c priority order. Lead with "a" (highly relevant to target), then "b" (compiled career scope), then "c" (ongoing current scope) only when no stronger proof point is available.
+
+Bad example (aerial arts instructor targeting entertainment production work): "Teaches weekly aerial classes to up to 20 students, performs at roughly 15 corporate and charity events annually across a range of apparatuses and formats, and coordinates production logistics including cues, timing, and rehearsal management for live shows." Fails because: opens with teaching (weakest signal for a candidate pursuing production work), lists three separate task-level items, itemizes instead of compiling, tells the recruiter what she does not who she is.
+
+Good example (aerial arts instructor targeting entertainment production work): " Performs across professional theme park, holiday, and corporate aerial productions while serving as the production-side resource for cue calling, choreography documentation, and the backstage logistics that keep those shows running from tech through close." Works because: opens with production and performance (directly relevant to target), compiles EPCOT, holiday show, private events, and corporate gigs into one cohesive identity statement rather than focusing on any single event, deletes teaching to make room for stronger material relevant to the job target.
+
+The test for every proof point: could this appear as a bullet in their experience section? If yes, it belongs there, not here.
+
+The summary proof points must describe what this person has done across their career that qualifies them for their specific job target. Do not include what they achieved once, what they accomplished in an area unrelated to their career goals, or what their most impressive moment was. Summarize these types of items into a high-level overview of career impact that strengthens their candidacy for the target job.
 
 CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 
-RIGHT (ongoing scope):
-"Manages $1M in annual vendor spend, coordinates 5-8 cross-departmental projects simultaneously, and independently resolves 150+ client escalations annually."
-
-WRONG (one-time accomplishments disguised as scope):
-"Built the onboarding SOP from scratch, led Asana adoption across the office, and redesigned the filing system."
-
-Sentence 2 must address scope as a high-level overview using only the most important metrics and detail. Using unimportant metrics and detail impairs readability and lowers the scores. Hard rule: No more than 4 metrics in sentence 2.
-
-RIGHT (concise language; no operational details):
-Manages $500K-$1M in annual spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and autonomously resolves 150+ client escalations annually.
-
-WRONG (redundant wording; too many unimportant details makes this hard to read)
-Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year.
-
-THE TENSE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" – it’s not summary material, it's bullet material.
-PRESENT TENSE = ongoing scope = summary material
-"Manages $1M in vendor spend"
-"Coordinates 5-8 concurrent projects"
-"Resolves escalations autonomously"
-
-PAST TENSE = one-time accomplishment = bullet
-"Built the onboarding SOP from scratch"
-"Led Asana adoption across the office"
-"Redesigned the filing system"
-
-Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that. 
+Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
 SUMMARY EXAMPLES:
 
-STRONG SENTENCE 1 (Professional Identity & Scope): 
-"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running." 
-WHY IT WORKS: Establishes who they are and at what scale. The ending - "that keep mid-size offices running" - is specific, illustrative, and unexpected. A recruiter pictures a real person doing real work. 
+STRONG SENTENCE 1 (Professional Identity & Scope):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+WHY IT WORKS: Establishes who they are and at what scale. The ending - "that keep mid-size offices running" - is specific, illustrative, and unexpected. A recruiter pictures a real person doing real work.
 
-WEAK SENTENCE 1 (weak, hollow and generic): Results-driven operations professional with extensive experience in vendor management and cross-functional collaboration.
+WEAK SENTENCE 1 (weak, hollow and generic):
+"Results-driven operations professional with extensive experience in vendor management and cross-functional collaboration."
 WHY IT FAILS: So generic it could describe anyone with this job title. There is no scale, no specificity, nothing unexpected, nothing that makes a recruiter want to keep reading.
 
-STRONG SENTENCE 2 (Ongoing Actions & High-Level Results): " Manages $500K-$1M in annual vendor spend across 10-15 suppliers, coordinates 3-4 cross-departmental projects simultaneously, and autonomously resolves 150+ client escalations per year." 
-WHY IT WORKS: Proves sentence 1 with specifics. Scope is visible. Uses concise writing and only includes critical, high-level details, only 3 metrics. A recruiter now believes the claim in sentence 1.
+STRONG SENTENCE 2 (Ongoing Actions & Results):
+"Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually."
+WHY IT WORKS: Proves sentence 1 with specifics. Scope is visible. Uses concise writing. Only 3 metrics. A recruiter now believes the claim in sentence 1.
 
-WEAK SENTENCE 2 (FAILS to use concise language, uses “to” instead of “-“ for number ranges, many words do not elevate the impact and should be removed; too much operational detail by naming departments): Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year.
+WEAK SENTENCE 2 (fails conciseness test - filler words, wrong number format, too much operational detail):
+"Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year."
+WHY IT FAILS:
+- "an estimated" - delete, not necessary
+- "10 to 15" should be "10-15": number ranges use hyphens, not "to"
+- "supplier relationships" after "vendor spend": repetitive; don't waste words saying both
+- "at any given time": filler. Replace with "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR": too much operational detail for a summary; this is bullet material
+- "at a volume of 150 to 200 per year": too many words. Should be "150-200 annually"
 
-WEAK SENTENCE 2 (no results): Passionate about driving operational excellence and building high-performing teams.
+STRONG SENTENCE 2: 
+Produces documentation that show directors rely on to plan rigging positions, motor cues, and stage entrances and exits, and supports the backstage logistics that keep shows running from tech through close.
+WHY IT WORKS: Demonstrates scope of experience across many different projects and events, making the experience more impactful than just listing 2-3 specific events. “Supports” is appropriate language for a student just learning this field and doesn’t make it sound like she did more than she actually has.
+
+WEAK SENTENCE 2 (no results):
+" Built and documented a group act from concept through a 9-show run, coordinated with a show director through tech and dress rehearsals, and supported student performers on-site at private events."
+WHY IT FAILS: Using a single event makes her experience sound small, like it’s the only thing she’s ever done. This belongs in a bullet, not the summary.
+
+WEAK SENTENCE 2 (no results):
+"Passionate about driving operational excellence and building high-performing teams."
 WHY IT FAILS: "Passionate about" and "driving operational excellence" are hollow filler that say nothing specific about what this person actually does or delivers. This is a sentence about feelings, not scope.
 
-STRONG SENTENCE 3 (Hook & What They Deliver): "Brings the process discipline to build systems that last and the people fluency to get every department head on board with them."
+STRONG SENTENCE 3 (Hook & What They Deliver):
+"Brings the process discipline to build systems that last and the people fluency to get every department head on board with them."
 WHY IT WORKS: No accomplishment listed. No proof needed here. The bullets handle that. This is the line that makes a recruiter want to pick up the phone.
 
-WEAK SENTENCE 3 (accomplishments disguised as a hook): "Built the employee onboarding SOP from scratch, a process that has since onboarded 30-40 employees and remains the standard today, and led Asana adoption across the office, replacing an informal system of spreadsheets with a single source of project visibility for 35-40 active users." 
-WHY IT FAILS: These are bullets, not a summary sentence. One-time accomplishments belong in experience where they can be read in context. This sentence lists achievements instead of answering the only question sentence 3 exists to answer: what does the employer GET when they hire this person? 
+WEAK SENTENCE 3 (accomplishments disguised as a hook):
+"Built the employee onboarding SOP from scratch, a process that has since onboarded 30-40 employees and remains the standard today, and led Asana adoption across the office, replacing an informal system of spreadsheets with a single source of project visibility for 35-40 active users."
+WHY IT FAILS: These are bullets, not a summary sentence. One-time accomplishments belong in experience where they can be read in context.
 
-WEAK SENTENCE 3 (vague and unspecific): Proven track record of improving efficiency and reducing costs.
+WEAK SENTENCE 3 (vague and unspecific):
+"Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
-STRUCTURE RULES:
-- 3 sentences. Strong. Concise. No cramming in too much information that belongs in job experience bullets instead.
-- Use information from the full resume, career context, and all coaching conversation. DO NOT simply rewrite the existing summary. The summary is ALWAYS a full rewrite.
-- Lead with the strongest credibility signal available.
+STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to
+every production.
 
-CONCISENESS:
+STRONG SUMMARY: Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
+
+═══════════════════════════════════════════════
+CONCISENESS RULES — APPLY TO EVERY WORD
+═══════════════════════════════════════════════
+
 Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
 
-CONTENT – WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate’s experience, impact, and differentiating qualities. Cut the rest.
+CONTENT: WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate's experience, impact, and differentiating qualities. Cut the rest.
 
-QUALITY – HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said it one – “at any given time” should be “simultaneously”, etc. Read every summary and remove filler words on the first pass. Filler words add length without adding meaning, cut them or replace them with a tighter word. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. Repeat until no more words can be cut. A sentence is done when removing one more word would change what it says.
+QUALITY: HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said in one. Read every sentence and remove filler words on the first pass. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. No more than one comma-delineated phrase per sentence. A sentence is done when removing one more word would change what it says.
 
-FAILS THE CONCISENESS TEST:
-Detail-oriented operations coordinator with more than six years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year. Brings a systems-level instinct for spotting what will break before it does and the follow-through to make sure it never reaches a manager's desk.
-
-- Detail-oriented – hollow. Cut it. Could be talking about anybody.
-- Number ranges should be written 150-200. 150 to 200 is incorrect.
-- “an estimate” – delete, not necessary
-- vendor spend … supplier relationships – repetitive; don’t waste words by saying both
-- spanning operations, finance, IT, facilities, and HR – TOO MUCH detail and lacks importance required for summary inclusion. This is BULLET material. Summaries are HIGH LEVEL. No need for this level of detail because it adds NO impact.
-- at a volume of 150 to 200 per year – too many words. Should be 150+ annually.
-
-PASSES THE CONCISENESS TEST:
-Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M annual spend across 10-15 vendor relationships, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150+ client escalations annually. Brings a systems-level instinct for spotting what will break before it does and the follow-through to make sure it never reaches a manager's desk.
+FILLER TO CUT:
+- "at any given time" → replace with "simultaneously"
+- "at a volume of [N] per year" → replace with "[N] annually"
+- "an estimated" / "close to" / "approximately" → use the range instead: "$500K-$1M" not "close to $1M"
+- "concurrent" when used with a number → the number already implies simultaneity; "3-4 concurrent projects" → "3-4 projects simultaneously" or just "3-4 cross-departmental projects"
+- "supplier relationships" after "vendor spend" → pick one, not both
+- Number ranges: always use a hyphen — "150-200" not "150 to 200"
+- Operational detail like department lists ("spanning operations, finance, IT, facilities, and HR") belongs in bullets, not the summary
 
 FAILS THE CONCISENESS TEST:
-Experienced aerial arts performer and production professional with hands-on experience in live event choreography, rehearsal management, and stage operations across a variety of different performance environments and production settings. Built and fully documented a group act from concept all the way through a 9-show run, performed 650+ shows at EPCOT, and coordinated with show directors through tech and dress rehearsals to integrate lighting, rigging, and audio cues. Looking to bring a foundation in safety management and performance logistics to production and stage management roles.
+Operations coordinator with six years of experience managing the vendor relationships, cross-departmental workflows, and client-facing processes that keep mid-size offices running without escalating to management. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
-- "Experienced" - hollow opener. Every resume is from someone with experience. Cut it.
-- "a variety of different performance environments and production settings" - vague filler that says nothing specific. Replace with named venues or production types.
-- Sentence 2 is entirely one-time accomplishments disguised as scope. "Built a group act," "performed 650+ shows total," "coordinated through tech and dress rehearsals" - all past tense, all single events. None of these answer: what does she do consistently and at what scale? They belong in bullets.
-- "all the way through" - filler. Cut it.
-- "Looking to bring" - candidate-first language. Summaries show what the employer gets, never what the candidate wants.
+Problems:
+- "an estimated"- cut
+- "10 to 15" - should be "10-15"
+- "supplier relationships" after "vendor spend" - redundant
+- "3 to 4 concurrent" - should be "3-4"
+- "at any given time" - cut; use "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR" - operational detail, not summary material
+- "at a volume of 150 to 200 per year" - should be "150-200 annually"
 
 PASSES THE CONCISENESS TEST:
-Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics such as show resets, cue coordination, and rigging, produces original works from concept through opening night, and performs across 8+ aerial disciplines. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain. 
+Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
-SUMMARY LENGTH: Since conciseness is the goal, summary length is important. Summaries that are too long are less likely to be read. A recruiter will skim over them, and that is considered a failure of your writing. Summaries that are too short fail to tell the complete story of the candidate.
+═══════════════════════════════════════════════
+SUMMARY LENGTH
+═══════════════════════════════════════════════
 
-TOO LONG – DO NOT WRITE LIKE THIS:
+TOO LONG : DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing the vendor relationships,
 cross-departmental workflows, and client escalations that keep mid-size service operations running
 without disruption. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier
@@ -667,47 +730,24 @@ five teams, and resolves client escalations independently at a volume of 150 to 
 operational range to handle everything from procurement to onboarding to project coordination, and the
 independent judgment to keep things moving without waiting to be told what to do next.
 
-PERFECT LENGTH –WRITE LIKE THIS EVERY TIME:
-Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M annual spend across 10-15 vendor relationships, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150+ client escalations annually. Brings a systems-level instinct for spotting what will break before it does and the follow-through to make sure it never reaches a manager's desk.
- 
-TOO SHORT – DO NOT WRITE LIKE THIS:
+PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
+Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
+
+PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
+Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to every production.
+
+TOO SHORT: DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
 
-FOR CORE RESUME SUMMARIES: Position for a role type, not a specific company or job posting.
-
-TENSE RULE
-Summary is written in present tense, as it defines who this person is professionally right now. Past tense in a summary is almost always a sign that a bullet has snuck in or that stronger phrasing is available.
-
-THE EMPLOYER-FIRST RULE: 
-Show employers what they get. Never state what the candidate wants.
-Right: "Event coordinator with 3 years of production experience bringing vendor management, budget oversight, and multi-stakeholder coordination to every project."
-Wrong: "Seeking an Event Coordinator role where I can apply my skills and grow professionally."
-Wrong: "Passionate professional looking for opportunities in event management."
-Wrong even if subtle: "Hoping to bring my background in events to a new team."
-
-NEVER IN ANY SUMMARY:
-- The candidate's age or any comparative age reference ("at only 22," "unusually young," "most candidates her age"). These invite bias and make strength sound accidental
-- Third-person pronouns anywhere: "Brings a performer's instincts" is correct. "She brings a performer's instincts" is never acceptable.
-- Target company name (name of company they *hope* to work for)
-- "Seeking," "looking for," "hoping to," "I am," "I bring," "I have"
-- "Results-driven," "dynamic professional," "proven track record," "passionate about," "detail-oriented," "team player," "go-getter"
-- One-time projects or accomplishments (these are bullets) 
-- More than 3 proof points in sentence 2
-
-SUMMARY QUALITY CHECKPOINT 
+SUMMARY QUALITY CHECKPOINT:
 Read every sentence before outputting. For each one ask: does this describe the overall scope of their ongoing work and impact, or does it describe a specific project or one-time achievement?
-•	Ongoing or overall scope = summary material
-•	One-time project or achievement = bullet material
+- Ongoing or overall scope = summary material
+- One-time project or achievement = bullet material
 
-No bullet material in the summary. Not even combined with others. Not even impressive ones. 
+No bullet material in the summary. Not even combined with others. Not even impressive ones.
 
-Trying to cram in all a candidate’s accomplishments makes the summary weaker not stronger. Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver. That is it.
-
-TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. If any sentence or proof point wants to be past tense, either rewrite it in present tense or remove it.
-Present tense = ongoing scope = summary material. Past tense = one-time accomplishment = bullet material. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
-
-WHEN MATERIAL IS THIN
-When a candidate’s experience is limited, their existing resume is weak, and they didn’t offer much detail in coaching, you may not have much information to work with. In those cases, write the strongest honest version of what exists. A summary built from limited material will score lower than one built from rich coaching, and that is correct. Make it as specific and compelling as the evidence allows, doing your best to follow the guidelines. 
+WHEN MATERIAL IS THIN:
+When coaching is thin or experience is limited, write the strongest honest version of what exists. Never inflate, invent, or editorialize to compensate for limited material. Write what is real. Make it as specific and compelling as the evidence allows. Stop there.
 
 ═══════════════════════════════════════════════
 RESUME ELEMENTS 1: WRITING GUIDELINES FOR EXPERIENCE (REQUIRED SECTION)
@@ -765,20 +805,23 @@ Produced a group act for a 9-show performance reaching over 3,600 attendees; cre
 TOO SHORT – DO NOT WRITE LIKE THIS:
 Produced a group act for a holiday show, managing choreography, rehearsals and performances
 
-BULLET COUNT: 
+BULLET COUNT: TENURE-PROPORTIONAL:
+
 The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula. 
 
 Bullet point guidelines: 
 
-Current or most recent role: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets
+Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
 
 Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
 
-Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable, or title, company, dates and job summary only.
+Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable. If older than 15 years, old, title, company, dates and job summary only.
 
 Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
 
-Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates may have more. Early Career and Entry Level may have fewer.
+Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates will be on the higher end and, if experience warrants it, may have more. Early Career and Entry Level will be on the lower end and, if experience is thin, may have fewer.
+
+After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
 
 BULLET ORDER: Within each role, order bullets from strongest to most relevant for the target role first, weakest or least relevant last. A recruiter who stops reading halfway through should have seen the most compelling evidence first. Never bury the strongest bullet at the bottom of a list.
 
@@ -874,7 +917,7 @@ BULLET PUNCTUATION:
 RESUME ELEMENTS 3: WRITING GUIDELINES FOR SKILLS (REQUIRED SECTION)
 ═══════════════════════════════════════════════
 
-Only include the most relevant keywords for the position; maximum 15 skills per category. Prioritize the keywords that ATS systems will be searching. Cut generic skills that add length without adding ATS value.
+Only include the most relevant keywords for the position; maximum 15 skills per category. Prioritize the keywords that ATS systems will be searching. Cut generic skills that add length without adding ATS value. Put the skills in order of importance. Critical ATS keywords should go at the beginning of the appropriate skill category.
 
 MICROSOFT OFFICE: special ATS rule, different from other suites: ATS systems search for BOTH "Microsoft Office" as a phrase AND individual tool names. The correct format preserves both: "Microsoft Office (Word, Excel, PowerPoint, Outlook)". This matches searches for "Microsoft Office," "Excel," "PowerPoint," and "Word" simultaneously.
   
@@ -941,11 +984,14 @@ GPA: Include when 3.5 or above and the candidate is a student or recent grad. Fo
 
 Honors and academic recognition: Include for students and recent grads when relevant: Dean's List, departmental honors, scholarships tied to academic merit. Omit for experienced candidates unless the recognition is directly field-relevant and exceptional.
 
-Relevant coursework: Include only for students and very recent grads targeting roles in their field, and only when the course titles signal genuine preparation for the target role. List course titles only, comma-separated, one line, no descriptions. Course titles are searchable keywords. Right: "Relevant Coursework: Leadership in the Entertainment Industry, Entertainment Law, Revenue Strategies in Entertainment". Wrong: Paragraphs or descriptions of course content.
+Relevant coursework: Include only for students and very recent grads targeting roles in their field, and only when the course titles signal genuine preparation for the target role, AND only when little or no work experience in that field exists. Students who already have relevant work experience should not have coursework included on their resume. List course titles only, comma-separated, one line, no descriptions. Course titles are searchable keywords. Right: "Relevant Coursework: Leadership in the Entertainment Industry, Entertainment Law, Revenue Strategies in Entertainment". Wrong: Paragraphs or descriptions of course content.
 
 Academic projects: Include only when the deliverable itself demonstrates a skill the target role requires AND the scope is impressive enough to stand on its own. The bar is high. Would a hiring manager find this credible and relevant? Does it demonstrate stronger evidence than anything in the candidate's work experience for that skill? When in doubt, leave it out. Coursework is almost always enough. Right: "Developed a comprehensive event plan for the PGA Show covering logistics, operations, marketing, staffing, food and beverage, technology, and environmental impact". This is real event, multi-workstream deliverable, relevant to the target field. Wrong: "Created a leadership manifesto for a fictional live event.” This is fictional, single deliverable, demonstrates nothing specific.
 
 For experienced candidates (5+ years): education shrinks to institution name, degree, field of study, and graduation year only. No GPA, no coursework, no projects. The work experience carries the resume at this stage.
+
+INSTITUTION INCLUSION RULE:
+Only include an institution if it resulted in a completed degree or credential, OR if the coursework is directly and significantly relevant to the target role. Do NOT include transfer institutions where the candidate completed gen ed before moving on, community college attendance before transferring to a 4-year school, or any institution where no degree was earned and the coursework adds nothing to the target role. If a candidate started at Valencia and finished at UCF, list UCF only. If they earned a bachelor's from one school and a master's from another, list both.
 
 ═══════════════════════════════════════════════
 RESUME ELEMENTS 5: WRITING GUIDELINES FOR OPTIONAL SECTIONS 
@@ -957,12 +1003,13 @@ SECTION CONSOLIDATION RULE:
 If coaching surfaces items that would create 3+ separate sections with only 1-2 items each 
 (certifications, languages, volunteer, awards, memberships), consolidate into one "Additional Information" section.  Format each item as: Label | Detail.
 
-Examples: 
-"Spanish | Conversational" 
-"CPR Certified | American Red Cross, 2024" 
-"Volunteer | Orlando Arts Council, Board Member 2022-Present"
-  
-Give an item its own dedicated section only when there are 3+ items to justify it.
+Give an item its own dedicated section only when there are 3+ items to justify it. Do not create a standalone section for a single basic credential. A lone certification or single foreign language does not justify its own section. Fold single certifications or languages into the skills section as a skill entry. If multiple small items exist across certifications, languages, projects, and volunteer categories, that together justify a section, combine them all in Additional Information. 
+
+Examples:
+"Spanish | Conversational" with no other items goes under skills. Do not create a Languages category.
+"CPR Certified | American Red Cross, 2024" with no other items goes under skills. Do not create a Certifications category.
+"Spanish | Conversational" AND "CPR Certified | American Red Cross, 2024" only 2 items, goes under skills. Do not create Languages and Certifications categories.
+"Spanish | Conversational" AND "CPR Certified | American Red Cross, 2024" AND "Volunteer | Orlando Arts Council, Board Member 2022-Present" - Combine into Additional Information section.
 
 ═══════════════════════════════════════════════
 RESUME STRUCTURE 1: GUIDELINES FOR SECTION ORDER LOGIC
@@ -1366,6 +1413,29 @@ function normalizeEducation(education) {
   })
 }
 
+function trimBulletsToLimit(resumeData, level) {
+  const maxTotals = { entry: 8, mid: 9, senior: 12 }
+  const maxTotal = maxTotals[level] || 9
+
+  const totalBullets = (resumeData.experience || []).reduce((sum, job) => sum + (job.bullets || []).length, 0)
+  if (totalBullets <= maxTotal) return resumeData
+
+  const result = JSON.parse(JSON.stringify(resumeData))
+  let toRemove = totalBullets - maxTotal
+
+  // Trim from oldest roles first, never below 1 bullet per role
+  for (let i = result.experience.length - 1; i >= 0 && toRemove > 0; i--) {
+    const bullets = result.experience[i].bullets || []
+    const canRemove = Math.max(0, Math.min(bullets.length - 1, toRemove))
+    if (canRemove > 0) {
+      result.experience[i].bullets = bullets.slice(0, bullets.length - canRemove)
+      toRemove -= canRemove
+    }
+  }
+
+  return result
+}
+
 function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
@@ -1455,14 +1525,24 @@ MISSING KEYWORDS: For career changers, pay extra attention to missing keywords. 
 
 SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer to this role go last or get cut entirely.
 
-SUMMARY: Opens from the target role identity. Previous experience becomes evidence, not identity. Name 2-3 skills from the job description requirements in sentence 2.
+SUMMARY: Follow all summary guidelines from the summary prompt exactly. No exceptions and no shortcuts. Name 2-3 skills from the job description requirements when the candidate genuinely has them. For career changers specifically: tailor the summary to the new role by demonstrating the skills and experience that qualify them for this role. Previous experience becomes evidence, not identity. 
 ` : ''}
 
 DUPLICATE CHECK — MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
 BULLET COUNT CHECK — MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. Senior with broad scope and 15+ years' experience: up to 7. Average: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't.
+
+Then count total bullets across the entire resume:
+- Early Career: 6-8 total
+- Mid-Career: 7-9 total
+- Established Career: 8-10 total
+- Established Career AND Senior Level: 9-12 total
+If the total exceeds the limit for this candidate's career length, cut the weakest bullets from older or less relevant roles first. Do not output until both per-role and total counts are within limits.
+
+CERTIFICATIONS AND SINGLE-ITEM SECTIONS — MANDATORY BEFORE OUTPUTTING:
+If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
 
 OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
 Must match this exact structure:
@@ -1500,36 +1580,70 @@ CAREER CONTEXT:
 THE GOVERNING PRINCIPLE:
 The summary must convey the candidate's professional essence in under 10 seconds and make a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
 
-THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
+THE FORMULA: Professional Identity & Scope + Career-wide Actions & Results Relevant to Target Job + Hook & What They Deliver
 
 A great summary does these three things, so each sentence has a purpose:
 
-Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level. Does not include specific results. Should end with something specific and unexpected that makes a recruiter want to keep reading. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
+FOR CORE SUMMARIES:
+Position for a role TYPE, not a specific job or company.
+Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
-Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum). These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time?
+SENTENCE 1: Professional identity and scope with a unique twist
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
 
-CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
 
-Sentence 2 must address scope as a high-level overview using only the most important metrics and detail. Using unimportant metrics and detail impairs readability and lowers the scores. Hard rule: No more than 4 metrics in sentence 2.
+Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+
+STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique twist showing benefit to employer):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+
+Sentence 1 must NEVER open with the job they are pursuing, a "candidate" label, or any aspiration framing.
+
+FORBIDDEN sentence 1 patterns:
+- "HR Director candidate with 20 years of experience..." (names the target title as an identity label)
+- "Aspiring project manager with a background in events..." (aspiration framing)
+- "Experienced professional seeking a director-level role..." (objective statement disguised as a summary)
+- "Marketing professional transitioning into data analytics..." (leads with the transition, not the identity)
+
+CORRECT sentence 1 patterns. Open from what they ARE, let the target role emerge from the framing:
+- "HR professional with 20+ years building and running the complete HR function across manufacturing and distribution environments" (the trajectory toward director is implicit in the scope)
+- "Human resources manager with nearly a decade of sole ownership over the full HR function for a 200-person manufacturing operation" (the scale speaks for itself)
+- "Event coordinator with 8 years of full-cycle project management experience across corporate, nonprofit, and entertainment productions" (transferable scope is visible without naming the target)
+
+The test: could sentence 1 appear on a resume for the job they HAVE right now? If yes, it is written correctly. If it reads like a cover letter opener naming the job they WANT, rewrite it.
+
+For career changers: sentence 1 SHOWS how their experience qualifies them for the target. It must never TELL the recruiter what job they want. Frame their identity through the lens of the transferable skills that make them credible for the target role. The target role should be recognizable from what they describe, not stated explicitly.
+
+Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 will be your unique telling of the candidate’s body of work as it relates to their target job. Use 2-3 credible proof points (3 is absolute maximum) taken from across their entire career to demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis. Sentence 2 may NEVER include one-time projects or accomplishments, especially if they are not relevant to the target job. These belong in the job experience bullets, not the summary. 
+
+Sentence 2 must tell the strongest story of the candidate’s career history and impact as a high-level overview.  Only use metrics if they are relevant and important to the career target. 
+
+Important metrics: Manages $500K-$1M in annual vendor spend across 10-15 vendors (makes their impact sound big)
+
+Unimportant metrics: Choreographed a 4-person act for a holiday production (makes their impact sound small. Cast size is not an important metric, and a one-time event like a holiday production is a bullet, not high-level summary material).
+
+Hard rule: No more than 3-4 metrics in sentence 2. No more than one comma-delineated phrase. Using unimportant metrics and detail impairs readability and lowers the scores. 
+
+Proof points in sentence 2 of the summary MUST answer "yes" to AT LEAST one of the following questions.
+
+a. Is this experience highly relevant to the role they are pursuing?
+b. Does it represent the overall scope and trajectory of their career across multiple roles? Note: This is something that you will likely need to compile based on their work history. 
+c. Is this something they do consistently and at scale right now, as an ongoing part of their current role?
+
+Note: The 3 questions above are ordered by importance. A proof point that represents the overall scope and trajectory of a candidate's career across multiple roles that is highly relevant to their target job is WAY more important than something they do consistently at their current job that is not relevant to their career goal. Only include the MOST IMPORTANT proof points for the target job in summary sentence 2. 
+
+Ordering rule: Sentence 2 must open with the proof point most relevant to the target role. Use the a/b/c priority order. Lead with "a" (highly relevant to target), then "b" (compiled career scope), then "c" (ongoing current scope) only when no stronger proof point is available.
+
+Bad example (aerial arts instructor targeting entertainment production work): "Teaches weekly aerial classes to up to 20 students, performs at roughly 15 corporate and charity events annually across a range of apparatuses and formats, and coordinates production logistics including cues, timing, and rehearsal management for live shows." Fails because: opens with teaching (weakest signal for a candidate pursuing production work), lists three separate task-level items, itemizes instead of compiling, tells the recruiter what she does not who she is.
+
+Good example (aerial arts instructor targeting entertainment production work): " Performs across professional theme park, holiday, and corporate aerial productions while serving as the production-side resource for cue calling, choreography documentation, and the backstage logistics that keep those shows running from tech through close." Works because: opens with production and performance (directly relevant to target), compiles EPCOT, holiday show, private events, and corporate gigs into one cohesive identity statement rather than focusing on any single event, deletes teaching to make room for stronger material relevant to the job target.
 
 The test for every proof point: could this appear as a bullet in their experience section? If yes, it belongs there, not here.
 
-RIGHT (ongoing scope):
-"Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually."
+The summary proof points must describe what this person has done across their career that qualifies them for their specific job target. Do not include what they achieved once, what they accomplished in an area unrelated to their career goals, or what their most impressive moment was. Summarize these types of items into a high-level overview of career impact that strengthens their candidacy for the target job.
 
-WRONG (one-time accomplishments disguised as scope):
-"Built the onboarding SOP from scratch, led Asana adoption across the office, and redesigned the filing system."
-
-THE TENSE CHECK: Before including any proof point in sentence 2, confirm it can be written in present tense naturally. If it can't - if it wants to be "built," "led," "launched," "created," "implemented" - it is not summary material, it is bullet material.
-PRESENT TENSE = ongoing scope = summary material
-"Manages $1M in vendor spend"
-"Coordinates 5-8 concurrent projects"
-"Resolves escalations autonomously"
-
-PAST TENSE = one-time accomplishment = bullet
-"Built the onboarding SOP from scratch"
-"Led Asana adoption across the office"
-"Redesigned the filing system"
+CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
@@ -1551,11 +1665,19 @@ WEAK SENTENCE 2 (fails conciseness test - filler words, wrong number format, too
 "Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year."
 WHY IT FAILS:
 - "an estimated" - delete, not necessary
-- "10 to 15" should be "10-15" — number ranges use hyphens, not "to"
-- "supplier relationships" after "vendor spend" — repetitive; don't waste words saying both
-- "at any given time" — filler. Replace with "simultaneously"
-- "spanning operations, finance, IT, facilities, and HR" — too much operational detail for a summary; this is bullet material
-- "at a volume of 150 to 200 per year" — too many words. Should be "150-200 annually"
+- "10 to 15" should be "10-15": number ranges use hyphens, not "to"
+- "supplier relationships" after "vendor spend": repetitive; don't waste words saying both
+- "at any given time": filler. Replace with "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR": too much operational detail for a summary; this is bullet material
+- "at a volume of 150 to 200 per year": too many words. Should be "150-200 annually"
+
+STRONG SENTENCE 2: 
+Produces documentation that show directors rely on to plan rigging positions, motor cues, and stage entrances and exits, and supports the backstage logistics that keep shows running from tech through close.
+WHY IT WORKS: Demonstrates scope of experience across many different projects and events, making the experience more impactful than just listing 2-3 specific events. “Supports” is appropriate language for a student just learning this field and doesn’t make it sound like she did more than she actually has.
+
+WEAK SENTENCE 2 (no results):
+" Built and documented a group act from concept through a 9-show run, coordinated with a show director through tech and dress rehearsals, and supported student performers on-site at private events."
+WHY IT FAILS: Using a single event makes her experience sound small, like it’s the only thing she’s ever done. This belongs in a bullet, not the summary.
 
 WEAK SENTENCE 2 (no results):
 "Passionate about driving operational excellence and building high-performing teams."
@@ -1573,15 +1695,20 @@ WEAK SENTENCE 3 (vague and unspecific):
 "Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
+STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to
+every production.
+
+STRONG SUMMARY: Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
+
 ═══════════════════════════════════════════════
 CONCISENESS RULES — APPLY TO EVERY WORD
 ═══════════════════════════════════════════════
 
 Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
 
-CONTENT — WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate's experience, impact, and differentiating qualities. Cut the rest.
+CONTENT: WHAT TO SAY: Unimportant details should be removed. DO NOT INCLUDE EVERY DETAIL. Decide what is critical to convey a high-level overview of the candidate's experience, impact, and differentiating qualities. Cut the rest.
 
-QUALITY — HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said in one. Read every sentence and remove filler words on the first pass. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. A sentence is done when removing one more word would change what it says.
+QUALITY: HOW TO SAY IT: No filler words. Do not take 4 words to say what could be said in one. Read every sentence and remove filler words on the first pass. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. No more than one comma-delineated phrase per sentence. A sentence is done when removing one more word would change what it says.
 
 FILLER TO CUT:
 - "at any given time" → replace with "simultaneously"
@@ -1596,13 +1723,13 @@ FAILS THE CONCISENESS TEST:
 Operations coordinator with six years of experience managing the vendor relationships, cross-departmental workflows, and client-facing processes that keep mid-size offices running without escalating to management. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier relationships, coordinates 3 to 4 concurrent cross-departmental projects at any given time spanning operations, finance, IT, facilities, and HR, and resolves client escalations autonomously at a volume of 150 to 200 per year. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
 Problems:
-- "an estimated" — cut
-- "10 to 15" — should be "10-15"
-- "supplier relationships" after "vendor spend" — redundant
-- "3 to 4 concurrent" — should be "3-4"
-- "at any given time" — cut; use "simultaneously"
-- "spanning operations, finance, IT, facilities, and HR" — operational detail, not summary material
-- "at a volume of 150 to 200 per year" — should be "150-200 annually"
+- "an estimated"- cut
+- "10 to 15" - should be "10-15"
+- "supplier relationships" after "vendor spend" - redundant
+- "3 to 4 concurrent" - should be "3-4"
+- "at any given time" - cut; use "simultaneously"
+- "spanning operations, finance, IT, facilities, and HR" - operational detail, not summary material
+- "at a volume of 150 to 200 per year" - should be "150-200 annually"
 
 PASSES THE CONCISENESS TEST:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
@@ -1611,7 +1738,7 @@ Operations coordinator with 6+ years of experience managing the vendor relations
 SUMMARY LENGTH
 ═══════════════════════════════════════════════
 
-TOO LONG — DO NOT WRITE LIKE THIS:
+TOO LONG : DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing the vendor relationships,
 cross-departmental workflows, and client escalations that keep mid-size service operations running
 without disruption. Manages an estimated $500K to $1M in annual vendor spend across 10 to 15 supplier
@@ -1620,10 +1747,13 @@ five teams, and resolves client escalations independently at a volume of 150 to 
 operational range to handle everything from procurement to onboarding to project coordination, and the
 independent judgment to keep things moving without waiting to be told what to do next.
 
-PERFECT LENGTH — WRITE LIKE THIS EVERY TIME:
+PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
-TOO SHORT — DO NOT WRITE LIKE THIS:
+PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
+Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to every production.
+
+TOO SHORT: DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
 
 SUMMARY QUALITY CHECKPOINT:
@@ -1632,8 +1762,6 @@ Read every sentence before outputting. For each one ask: does this describe the 
 - One-time project or achievement = bullet material
 
 No bullet material in the summary. Not even combined with others. Not even impressive ones.
-
-TENSE CHECK: Read every sentence in the summary before outputting. Every verb must be present tense. "Built," "led," "launched," "created," and "implemented" do not belong in a summary. If you find one, you have found a bullet that snuck in. Move it.
 
 WHEN MATERIAL IS THIN:
 When coaching is thin or experience is limited, write the strongest honest version of what exists. Never inflate, invent, or editorialize to compensate for limited material. Write what is real. Make it as specific and compelling as the evidence allows. Stop there.
@@ -1646,7 +1774,7 @@ HARD RULES: NON-NEGOTIABLE:
 - Open from the TARGET role identity, not their current title or school enrollment.
 - Lead with the strongest credibility signal available.
 - No operational detail in the summary. State the credential. The bullets prove it.
-- DO NOT repeat bullet points verbatim. Use the bullets as source material, not copy-paste.
+- DO NOT repeat bullet points verbatim. Use the bullets as source material, not copy-paste. Use them to create your own, high-level telling of their career story.
 - NEVER address the employer: no "For a [team], that means..." No "Someone who understands..."
 - NEVER editorialize about what hiring this person means. The recruiter draws their own conclusions.
 - NEVER: "seeking," "looking for," "hoping to," "I am," "I bring," "passionate about," "results-driven," "proven track record," "detail-oriented," "team player," "go-getter"
@@ -1657,8 +1785,9 @@ HARD RULES: NON-NEGOTIABLE:
 - NEVER: one-time projects or accomplishments (these are bullets).
 - NEVER: more than 3 proof points in sentence 2.
 - NEVER: number ranges written as "X to Y" — always use a hyphen: "X-Y"
+- NEVER: repeat a specific metric in the summary. If an HR Manager "Led a solo HR department for a 200-person workforce", you must never include any other reference to those 200 employees (such as "supported 200+ employees across benefits and worker's comp").
 - NEVER: filler phrases. "at any given time" = "simultaneously". "at a volume of X per year" = "X annually". "an estimated" = cut it. "close to $X" = use the range "$X-$Y".
-- Career changers: sentence 1 establishes the new identity. Sentence 2 explains why it is credible. Never combined.
+- Career changers: sentence 1 establishes their professional identity through transferable skills, not the target title. Sentence 2 explains why that identity is credible for the target role. Never combined.
 - Students and recent grads: open from professional identity, not school enrollment. The degree is evidence, not the opener.
 `
  const isInternshipOrJunior = /intern(ship)?|junior|assistant\b/i.test(jobTitle || '')
@@ -1688,14 +1817,6 @@ Position the summary specifically for this role and company but do not mention e
 
 Follow the standard 3-sentence summary formula for core resumes, but tailor each sentence toward this role type as much as possible. 
 
-Sentence 1: Professional Identity & Scope - Who they are professionally and at what scale? Defines the career at the highest level aligned as closely as possible with the target role without overstating their experience. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. Should end with something specific and unexpected that makes a recruiter want to keep reading. Keep this short, simple and concise. No extra words or phrases.
-
-Sentence 2: Ongoing Actions & Results - 2-3 specific, credible proof points (3 is absolute maximum) that the candidate has the skills required for the target role. These must demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis, not one-time projects or accomplishments. One-time accomplishments belong in the job experience bullets, not the summary. Sentence 2 must answer: what does this person do and at what scale, consistently over time? Keep this short, simple and concise. No more than one comma-delineated phrase.
-
-Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean, simple sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that. 
-
-THE FORMULA: Professional Identity & Scope + Ongoing Actions & Results + Hook & What They Deliver
-
 Do not claim that the candidate IS the target title if the candidate does not currently hold it. Instead, show how their current skills would transfer and be an asset in this role.
 
 In the summary, organically add 2-3 skills from the job description when possible, but only if the candidate genuinely has those skills. This improves ATS matching for this specific role.
@@ -1724,9 +1845,34 @@ ${governingPrinciple}
 
 FOR CORE SUMMARIES:
 Position for a role TYPE, not a specific job or company.
-Lead with the strongest credibility signal from the finalized bullets.
-The target role determines sentence 1. If career context or coaching established a target, open from that angle, not from their current title.
-For career changers: the summary opens from the new identity. Their previous experience becomes evidence, not identity.
+Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
+
+SENTENCE 1 IDENTITY RULE: NON-NEGOTIABLE:
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
+
+Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+
+STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique benefit to employer):
+"Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
+
+Sentence 1 must NEVER open with the job they are pursuing, a "candidate" label, or any aspiration framing.
+
+FORBIDDEN sentence 1 patterns:
+- "HR Director candidate with 20 years of experience..." (names the target title as an identity label)
+- "Aspiring project manager with a background in events..." (aspiration framing)
+- "Experienced professional seeking a director-level role..." (objective statement disguised as a summary)
+- "Marketing professional transitioning into data analytics..." (leads with the transition, not the identity)
+
+CORRECT sentence 1 patterns. Open from what they ARE, let the target role emerge from the framing:
+- "HR professional with 20+ years building and running the complete HR function across manufacturing and distribution environments" (the trajectory toward director is implicit in the scope)
+- "Human resources manager with nearly a decade of sole ownership over the full HR function for a 200-person manufacturing operation" (the scale speaks for itself)
+- "Event coordinator with 8 years of full-cycle project management experience across corporate, nonprofit, and entertainment productions" (transferable scope is visible without naming the target)
+
+The test: could sentence 1 appear on a resume for the job they HAVE right now? If yes, it is written correctly. If it reads like a cover letter opener naming the job they WANT, rewrite it.
+
+For career changers: sentence 1 SHOWS how their experience qualifies them for the target. It must never TELL the recruiter what job they want. Frame their identity through the lens of the transferable skills that make them credible for the target role. The target role should be recognizable from what they describe, not stated explicitly.
 
 CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in admin that they want less emphasis on admin and are pursuing jobs in marketing, that admin work must not appear as a proof point in sentence 2 under any circumstances. Find the best examples of marketing proof points, and use those instead.
 ${hardRules}
@@ -1735,6 +1881,9 @@ Return ONLY the summary paragraph. No JSON. No label. No explanation. Just the t
 
 `
 }
+
+
+
 
 // ─────────────────────────────────────────────
 // BUILD CHANGES PROMPT (shared by both paths)
@@ -1772,6 +1921,35 @@ For section reorder: field = "sectionOrder", section = "Section Order"`
 // ─────────────────────────────────────────────
 // BUILD TARGETED ENHANCEMENT PROMPT
 // ─────────────────────────────────────────────
+function buildConversationalFixPrompt({ rewrittenResume, fixConversation }) {
+  const conversationText = fixConversation
+    .map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`)
+    .join('\n\n')
+
+  return `You are applying a specific correction or addition to a resume based on a conversation between a coach and the candidate.
+
+THE CONVERSATION DESCRIBING WHAT TO CHANGE:
+${conversationText}
+
+CURRENT RESUME (your baseline — change ONLY what the conversation specifies):
+${JSON.stringify(rewrittenResume, null, 2)}
+
+YOUR RULES — NON-NEGOTIABLE:
+1. Make ONLY the changes described in the conversation. Nothing more.
+2. Do NOT improve, rewrite, or strengthen anything beyond the specific correction.
+3. Do NOT remove anything that was not explicitly requested to be removed.
+4. Do NOT add anything that was not explicitly requested to be added.
+5. If the candidate said a city is wrong, fix the city. Leave every other field exactly as it is.
+6. If the candidate said they forgot to mention a skill or experience, add it accurately. Touch nothing else.
+7. If the candidate said a bullet is wrong, correct that bullet only. Leave all other bullets exactly as written.
+8. No em dashes. No hallucination. Only what the conversation explicitly asked for.
+
+SURGICAL PRECISION: Most of this resume should be byte-for-byte identical to what you received. The only differences should be the specific corrections described in the conversation above.
+
+OUTPUT: Return ONLY valid JSON matching the exact same structure as the input resume.
+No markdown. No explanation. No backticks.`
+}
+
 function buildTargetedEnhancementPrompt({ rewrittenResume, newConversation, remainingGaps, level }) {
   const levelInstructions = LEVEL_WRITING_INSTRUCTIONS[level] || LEVEL_WRITING_INSTRUCTIONS.mid
   
@@ -1827,6 +2005,194 @@ No markdown. No explanation. No backticks.`
 }
 
 // ─────────────────────────────────────────────
+// CORE RESUME BUILD PROMPT (used by both core and conversational paths)
+// ─────────────────────────────────────────────
+function buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational = false }) {
+  const conversationalBlock = isConversational ? `
+IMPORTANT: There is no existing resume and no pre-coaching assessment. The coaching conversation below is your sole source of content. Your quality standards are identical — impact, clarity, and keywords at the highest level the conversation allows. The coaching conversation IS the map. Read it the way you would read a strong resume combined with a coaching transcript, and write to the same standard you always would. Every number, date, company name, title, achievement, and credential must appear explicitly in that conversation. Do not infer, estimate, or add anything the candidate did not say.
+
+` : ''
+
+  const contextBlock = careerContext ? `
+CAREER DIRECTION CONTEXT:
+- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
+- Career goal: ${careerContext.career_goal || 'not specified'}
+- Career changer: ${careerContext.is_career_changer ? `YES — from ${careerContext.previous_field} → ${careerContext.target_roles?.join('/')}` : 'No'}
+- Skills identified but not yet on resume: ${careerContext.skills_not_on_resume?.join(', ') || 'none'}
+- Target timeline: ${careerContext.timeline || 'not specified'}
+
+For career changers: frame transferable skills explicitly. The resume should position this person 
+for their TARGET field, not just document their past.
+` : ''
+
+  const assessmentBlock = resumeData?._analysisResults ? `
+PRE-COACHING ASSESSMENT RESULTS (use these to validate your rewrite):
+
+The resume was assessed before coaching. Your rewrite must demonstrably address the gaps 
+identified below. If the coaching conversation surfaced material to fill these gaps, it must 
+appear in the rewritten resume. If it did not, note the gap as remaining.
+
+GAPS TO ADDRESS:
+${(resumeData._analysisResults.weaknesses || []).map(w => `• ${w}`).join('\n')}
+
+ACTION ITEMS TO FULFILL:
+${(resumeData._analysisResults.suggestions || []).map(s => `• ${s}`).join('\n')}
+
+WHAT'S WORKING (preserve these — do not change what the assessment confirmed as strong):
+${(resumeData._analysisResults.strengths || []).map(s => `• ${s}`).join('\n')}
+
+VALIDATION CHECK: Before outputting, verify that at least 3 of the gaps/action items above 
+are visibly addressed in your rewrite. If they are not, you have not finished the job.
+` : ''
+
+  const existingResumeBlock = isConversational ? '' : `ORIGINAL RESUME DATA:
+${JSON.stringify(resumeData, null, 2)}`
+
+  const conversationText = conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')
+
+  return `${conversationalBlock}You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with, one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance and conciseness. You never include anything that doesn't serve the candidate's target role, and you tell the most powerful story in the simplest, most impactful way possible. Good enough is not good enough. Your works must be
+
+${WRITING_CONSTITUTION}
+
+${levelInstructions}
+
+${contextBlock}
+
+${assessmentBlock}
+
+COACHING CONVERSATION (everything extracted — use all of it):
+${conversationText}
+
+${existingResumeBlock}
+
+${careerContext?.is_career_changer === true ? `
+CAREER PIVOT INSTRUCTION:
+This candidate is transitioning from ${careerContext.previous_field || 'their previous field'} to ${careerContext.target_roles?.join(' / ') || 'a new field'}.
+
+Every decision — summary, bullets, skills, section order — serves the target field, not the previous one.
+
+SUMMARY: Follow all summary guidelines from the summary prompt exactly. No exceptions and no shortcuts. The summary must convey the candidate's professional essence in under 10 seconds in a way that makes a recruiter want to keep reading. It is not a biography, an objective statement, a list of traits, or an accomplishment catalog. It is a hook, and it must be written using the following formula.
+
+THE FORMULA: Professional Identity & Scope + Career-wide Actions & Results Relevant to Target Job + Hook & What They Deliver
+
+The summary must align the candidate's experience with the target job. Ask: would a recruiter hiring for the target role care about this experience? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in coaching that they want less emphasis on a specific type of work, coaching work must not appear as a proof point in sentence 2 under any circumstances. Find the best proof points that serve the target role instead.
+
+BULLETS: For every bullet ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" If yes, keep and strengthen. If no, reframe or put towards the bottom of the list. Put bullets relevant to target role before those not relevant to target role. If someone with an administrative background is getting started in marketing, of course you will include the administrative experience in the bullets. But, any bullets showing marketing skills should appear first.
+
+SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer go last or get cut.
+CUTTING: For career changers, the no-removal default is suspended. Build the strongest case for where they're going, not a complete record of where they've been.
+` : ''}
+
+STEP 1: ASSESS THE RESUME:
+Strong resume (multiple bullets per role, relevant content): Enhancement mode. Preserve what works. Improve what's weak. Add what's missing.
+Bare-bones resume (vague descriptions, thin content): Build mode. Use both the existing resume AND the coaching conversation to improve the resume. Improve where you can. Write from scratch when needed.
+
+STEP 2: FILTER THE COACHING CONVERSATION:
+The conversation is raw material, not a comprehensive list of everything to add to the resume. You MUST determine what is critically relevant to helping the candidate get interviews for jobs in their target rule and apply ONLY that information to the resume. You MUST not use all the information provided if it isn't all relevant and critical to their goal. Including irrelevant information will hurt the resume score and the candidate's changes to get an interview.
+
+Apply this filter:
+INCLUDE: Demonstrates a notable skill, achievement, or responsibility relevant to target role that can be defined in terms of impact, scope, scale, or results → include it
+EXCLUDE: Celebrity name, personal anecdote, or colorful detail → reframe or omit
+EXCLUDE: Impressive-sounding fact that doesn't help their job search → cut it
+EXCLUDE: Small, one-time accomplishments that minimize the scope of their experience.
+EXCLUDE: Small, unimportant metrics. Do not add any number just to add numbers. Small or irrelevant metrics hurt a resume more than they help it. Find the real impact. Producing a 4-person group act for the holiday show is unimpressive. Reaching 4500 audience members over a 9-show run is impressive. Including cast size damages the resume. Including the audience size shows the real impact and strengthens the resume.
+EXCLUDE: Skill hiding inside a story → extract to skillsCategories, not a bullet
+
+STEP 3: EXTRACT SKILLS FIRST (before writing any bullets):
+Read every bullet, job summary, and coaching answer. Ask: "What skill is this person demonstrating that they have not explicitly listed?" It is your job to find skills in the existing resume and coaching conversation that translate to ATS keyword strength on their resume. You should find skills they didn't even know they had or didn't know were important to list. These go in skillsCategories.
+
+STEP 4: WRITE THE RESUME:
+
+PROFESSIONAL SUMMARY:
+Set summary to an empty string: "".
+The summary is written in a dedicated second pass. Do not write it here under any circumstances.
+
+EXPERIENCE:
+
+Assess every existing bullet before writing anything:
+
+STRONG (passes all): calibrated verb, specific detail, passes Brain Test, accurate ownership level → do not rewrite. Enhance only if coaching adds something new.
+
+WEAK (fails any): vague, duty-focused, no specifics, fails Brain Test → rewrite using resume content PLUS coaching material. 
+
+For every strong bullet: "Is there anything from coaching that makes this story stronger?" If yes, enhance it. If no, leave it exactly as written.
+
+Only use relevant impact when strengthening. Do not add meaningless metrics just to put more numbers on the page. Find the real impact. Producing a 4-person group act for the holiday show is unimpressive. Reaching 4500 audience members over a 9-show run is impressive. Including cast size damages the resume. Including the audience size shows the real impact and strengthens the resume.
+
+BULLET COUNT: TENURE-PROPORTIONAL:
+
+The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula. 
+
+Bullet point guidelines: 
+
+Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+
+Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
+
+Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable. If older than 15 years, old, title, company, dates and job summary only.
+
+Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
+
+Aim for the following total bullet counts across the entire resume, based on career length. If the total exceeds the limit for this candidate, cut the weakest bullets from older or less relevant roles first:
+- Early Career: 6-8 bullets total
+- Mid-Career: 7-9 bullets total
+- Established Career: 8-10 bullets total
+- Established Career AND Senior Level: 9-12 bullets total
+
+After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
+
+BULLET ORDER WITHIN EACH ROLE:
+Most target-relevant bullets first. A recruiter scanning for 5 seconds reads the first two. Make them count.
+
+THE NO-REMOVAL DEFAULT:
+Before removing any content: Does the coaching conversation give a specific reason to remove this? Is it genuinely redundant or irrelevant to the target role? Am I replacing it with something strictly better?
+If not clearly YES on all three, preserve it.
+
+ADMIN EXPERIENCE: Never remove admin bullets for student or early-career resumes. Internship and coordinator roles explicitly require evidence of admin capability.
+
+EDUCATION:
+Preserve as-is. Condense paragraph-length coursework to one line. 
+CRITICAL: Never repeat degree name or school name in lines[] — output each education entry exactly once.
+
+SECTION ORDER — apply only when a change clearly serves the candidate better. Otherwise leave it alone.
+Student with relevant degree and unrelated work → Education first.
+Experienced professional with relevant experience → Experience first.
+Credential-driven roles (RN, CPA, PMP) → Certifications can precede experience.
+Executive → Experience always leads.
+Career changer → Lead with strongest case for target role.
+Strong skill set that titles don't convey → Skills may precede experience.
+
+AGE DISCRIMINATION PROTECTION:
+20+ years experience: drop graduation year, condense pre-2005 roles to title/company/dates or cut entirely. Never list more than 20 years of work history without a compelling reason.
+
+PRE-OUTPUT: THE GOVERNING TEST:
+Before outputting, ask one question: "Is every word here earning its place for the target role?"
+Not "did I capture everything?" Not "did I address all the gaps?" Just: does this serve the target role, or not?
+
+If you cannot point to specific, meaningful improvements in at least two of impact, clarity, and keywords, you have not finished the job. Return to the coaching conversation and find what you missed.
+
+DUPLICATE CHECK: MANDATORY BEFORE OUTPUTTING:
+Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
+
+BULLET COUNT CHECK: MANDATORY BEFORE OUTPUTTING:
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't.
+
+Then count total bullets across the entire resume:
+- Early Career: 6-8 total
+- Mid-Career: 7-9 total
+- Established Career: 8-10 total
+- Established Career AND Senior Level: 9-12 total
+If the total exceeds the limit for this candidate's career length, cut the weakest bullets from older or less relevant roles first. Do not output until both per-role and total counts are within limits.
+
+CERTIFICATIONS AND SINGLE-ITEM SECTIONS: MANDATORY BEFORE OUTPUTTING:
+If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
+
+OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
+Must match this exact structure:
+${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
+}
+
+// ─────────────────────────────────────────────
 // MAIN HANDLER
 // ─────────────────────────────────────────────
 const anthropic = new Anthropic({
@@ -1838,11 +2204,13 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
+    let authenticatedUserId = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       const { data: { user }, error: authError } = await supabase.auth.getUser(token)
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      authenticatedUserId = user.id
     }
 
     const {
@@ -1857,7 +2225,9 @@ export async function POST(request) {
       matchedKeywords,
       missingKeywords,
       retryInstruction,
-      isTargetedEnhancement
+      isTargetedEnhancement,
+      isConversationalSource,
+      isConversationalFix
     } = await request.json()
 
     if (!resumeData || !conversation) {
@@ -1872,6 +2242,44 @@ export async function POST(request) {
           b && b.trim().length > 0 && b.trim().toLowerCase() !== 'new bullet point'
         )
       }))
+    }
+
+    // ── CONVERSATIONAL FIX PATH ──
+    if (isConversationalFix) {
+      const baseResume = resumeData?._rewrittenResume || resumeData
+
+      const fixPrompt = buildConversationalFixPrompt({
+        rewrittenResume: baseResume,
+        fixConversation: conversation
+      })
+
+      const fixMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: fixPrompt }]
+      })
+
+      let cleanedFix = fixMessage.content[0].text.trim()
+      if (cleanedFix.startsWith('```')) {
+        cleanedFix = cleanedFix.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+      const fixedResume = JSON.parse(cleanedFix)
+
+      const changesPrompt = buildChangesPrompt(baseResume, fixedResume)
+      const changesMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: changesPrompt }]
+      })
+
+      let cleanedChanges = changesMessage.content[0].text.trim()
+      if (cleanedChanges.startsWith('```')) {
+        cleanedChanges = cleanedChanges.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+      let changes = []
+      try { changes = JSON.parse(cleanedChanges) } catch (e) { changes = [] }
+
+      return NextResponse.json({ rewrittenResume: fixedResume, changes })
     }
 
     // ── TARGETED ENHANCEMENT PATH ──
@@ -1940,6 +2348,8 @@ export async function POST(request) {
         }
       }
 
+      enhancedResume = trimBulletsToLimit(enhancedResume, level)
+
       const changesPrompt = buildChangesPrompt(baseResume, enhancedResume)
       const changesMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
@@ -1959,6 +2369,105 @@ export async function POST(request) {
 
     const level = detectedLevel || 'mid'
     const levelInstructions = LEVEL_WRITING_INSTRUCTIONS[level] || LEVEL_WRITING_INSTRUCTIONS.mid
+
+    // ── CONVERSATIONAL SOURCE PATH (Resume Chat) ──
+    if (isConversationalSource) {
+      const convText = conversation.map(m => typeof m.content === 'string' ? m.content : '').join(' ')
+      const levelDetectMsg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 10,
+        temperature: 0,
+        messages: [{ role: 'user', content: `Based on this career information, what career level is this person? Respond with ONLY one word: entry, mid, or senior\n\n${convText.slice(0, 2000)}` }]
+      })
+      const detectedLevelText = levelDetectMsg.content[0].text.trim().toLowerCase()
+      const convLevel = ['entry', 'mid', 'senior'].includes(detectedLevelText) ? detectedLevelText : (detectedLevel || 'mid')
+      const convLevelInstructions = LEVEL_WRITING_INSTRUCTIONS[convLevel] || LEVEL_WRITING_INSTRUCTIONS.mid
+
+      const convRewritePrompt = buildCoreRewritePrompt({ resumeData: null, conversation, level: convLevel, levelInstructions: convLevelInstructions, careerContext, isConversational: true })
+      const convRewriteMsg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: convRewritePrompt }]
+      })
+
+      let cleanedConvRewrite = convRewriteMsg.content[0].text.trim()
+      if (cleanedConvRewrite.startsWith('```')) {
+        cleanedConvRewrite = cleanedConvRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+      let convResume = JSON.parse(cleanedConvRewrite)
+      if (convResume.education?.length) {
+        convResume.education = normalizeEducation(convResume.education)
+      }
+
+      const convSummaryPrompt = buildSummaryPrompt({
+        rewrittenResume: convResume,
+        conversation,
+        careerContext,
+        level: convLevel,
+        isJobSpecific: false,
+        jobDescription: null,
+        jobTitle: null,
+        jobCompany: null
+      })
+      const convSummaryMsg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: convSummaryPrompt }]
+      })
+      convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
+
+      // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
+      if (authenticatedUserId) {
+        try {
+          const careerContextExtractMsg = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 500,
+            temperature: 0,
+            messages: [{
+              role: 'user',
+              content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
+
+CONVERSATION:
+${convText}
+
+Return this exact structure:
+{
+  "current_role": "their most recent job title or null",
+  "target_roles": ["array of target job titles they mentioned"],
+  "career_goal": "same_field or career_change or exploring",
+  "is_career_changer": true or false,
+  "previous_field": "their previous field if career changer, otherwise null",
+  "transferable_skills": ["skills mentioned as transferable"],
+  "skills_not_on_resume": ["skills mentioned but not part of formal experience"],
+  "timeline": "actively_searching or passively_looking or not_searching or null",
+  "experience_level": "entry or mid or senior"
+}`
+            }]
+          })
+
+          let careerContextJson = careerContextExtractMsg.content[0].text.trim()
+          if (careerContextJson.startsWith('```')) {
+            careerContextJson = careerContextJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          }
+          const extractedContext = JSON.parse(careerContextJson)
+
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+          await supabaseWrite
+            .from('career_context')
+            .upsert({
+              user_id: authenticatedUserId,
+              ...extractedContext,
+              completed_at: new Date().toISOString(),
+              last_updated: new Date().toISOString()
+            }, { onConflict: 'user_id' })
+        } catch (e) {
+          console.error('Career context write failed (non-fatal):', e)
+        }
+      }
+
+      return NextResponse.json({ rewrittenResume: convResume, changes: [], detectedLevel: convLevel })
+    }
 
     // ── JOB-SPECIFIC REWRITE PATH ──
     if (isJobSpecific && jobDescription) {
@@ -2009,6 +2518,8 @@ export async function POST(request) {
       })
       rewrittenResume.summary = jsSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
+      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+
       const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
       const changesMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
@@ -2031,207 +2542,8 @@ export async function POST(request) {
       return NextResponse.json({ rewrittenResume, changes, detectedLevel: level })
     }
 
-    // ── CORE RESUME REWRITE PATH ──
-    const contextBlock = careerContext ? `
-CAREER DIRECTION CONTEXT:
-- Target roles: ${careerContext.target_roles?.join(', ') || 'not specified'}
-- Career goal: ${careerContext.career_goal || 'not specified'}
-- Career changer: ${careerContext.is_career_changer ? `YES — from ${careerContext.previous_field} → ${careerContext.target_roles?.join('/')}` : 'No'}
-- Skills identified but not yet on resume: ${careerContext.skills_not_on_resume?.join(', ') || 'none'}
-- Target timeline: ${careerContext.timeline || 'not specified'}
-
-For career changers: frame transferable skills explicitly. The resume should position this person 
-for their TARGET field, not just document their past.
-` : ''
-
-    const assessmentBlock = resumeData?._analysisResults ? `
-PRE-COACHING ASSESSMENT RESULTS (use these to validate your rewrite):
-
-The resume was assessed before coaching. Your rewrite must demonstrably address the gaps 
-identified below. If the coaching conversation surfaced material to fill these gaps, it must 
-appear in the rewritten resume. If it did not, note the gap as remaining.
-
-GAPS TO ADDRESS:
-${(resumeData._analysisResults.weaknesses || []).map(w => `• ${w}`).join('\n')}
-
-ACTION ITEMS TO FULFILL:
-${(resumeData._analysisResults.suggestions || []).map(s => `• ${s}`).join('\n')}
-
-WHAT'S WORKING (preserve these — do not change what the assessment confirmed as strong):
-${(resumeData._analysisResults.strengths || []).map(s => `• ${s}`).join('\n')}
-
-VALIDATION CHECK: Before outputting, verify that at least 3 of the gaps/action items above 
-are visibly addressed in your rewrite. If they are not, you have not finished the job.
-` : ''
-
- const rewritePrompt = `You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with, one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance. You never include anything that doesn't serve the candidate's target role. Good enough is not good enough.
-
-THE GOVERNING PHILOSOPHY:
-The goal is the smallest resume that makes the strongest case. Not comprehensive. Not complete. Focused. A resume that tries to say everything says nothing. Every bullet, every skill, every word is there because it serves the target role or it is cut.
-
-WHERE THINGS BELONG: READ THIS BEFORE WRITING ANYTHING:
-
-The same experience can go in three places. Putting it in the wrong one is the most common resume writing failure.
-
-THREE PIECES OF INFORMATION. THREE PLACEMENTS.
-
-Ava performed 750+ shows at EPCOT over 15 months. She called cues at a few aerial competitions. She used MindBody to manage her class schedule.
-
-IN THE SUMMARY: "750+ shows across a 15-month EPCOT engagement"
-The credential stated cleanly. Scale and identity only. This is who she is.
-No operational detail in the summary. Ever.
-
-IN A BULLET: "Performed 750+ shows across a 15-month EPCOT engagement, executing daily apparatus inspections, between-show resets, and music cue coordination for every performance"
-The credential proven. Scope and operational detail live here, not in the summary.
-
-IN SKILLS: Cue Calling (motor and music) • MindBody
-Cue calling at a few competitions has no scope for a bullet.
-MindBody is a scheduling tool, not an achievement.
-Both are ATS keywords. Both belong in skills only.
-
-BULLET TEST — all three must be true before writing a bullet:
-1. Did they DO this, not just USE something to do it?
-2. Does it have scope, context, or impact worth stating?
-3. Would a recruiter for the target role care about this specifically?
-If any answer is no, extract the keyword to skills. Do not write a bullet.
-
-PLACEMENT RULES:
-- Summary: sustained credential only in Sentence 2. Scale and identity. No operational detail.
-- Bullet: meaningful work with scope, context, and impact. Put bullets relevant to target role before those not relevant to target role. If someone with an administrative background is getting started in marketing, of course you will include the administrative experience in the bullets. But, any bullets showing marketing skills should appear first.
-- Skills: every ATS keyword, including those already in bullets.
-- Operational detail in the summary → move it to a bullet.
-- Bullet about using a tool → move it to skills.
-- Something that happened once or twice without meaningful scope → skills or cut.
-
-KEYWORD DUPLICATION STRATEGY:
-Skills is always the ATS safety net. If a keyword appears in a bullet, it still goes in skills.
-ATS systems weight keywords appearing in multiple sections higher.
-Never duplicate within the same section. Always include in skills regardless of where else it appears.
-
-SKILLS EXTRACTION HAPPENS FIRST:
-Before writing any bullets, extract ALL skills from the resume and coaching conversation into skillsCategories. Then write bullets for what remains that genuinely warrants bullet-level treatment.
-
-${WRITING_CONSTITUTION}
-
-${levelInstructions}
-
-${contextBlock}
-
-${assessmentBlock}
-
-COACHING CONVERSATION (everything extracted — use all of it):
-${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}
-
-ORIGINAL RESUME DATA:
-${JSON.stringify(resumeData, null, 2)}
-
-${careerContext?.is_career_changer === true ? `
-CAREER PIVOT INSTRUCTION:
-This candidate is transitioning from ${careerContext.previous_field || 'their previous field'} to ${careerContext.target_roles?.join(' / ') || 'a new field'}.
-
-Every decision — summary, bullets, skills, section order — serves the target field, not the previous one.
-
-SUMMARY: Opens from the target role identity. Their previous experience becomes evidence, not identity. sentence 2 proof points must serve the TARGET role, not the previous one. Ask: would a recruiter hiring for the target role care about this proof point? If the answer is no, even if it is the candidate's most impressive ongoing work, cut it from the summary and let the bullets handle it. If the candidate stated in coaching that they want less emphasis on a specific type of work, that work must not appear as a proof point in sentence 2 under any circumstances. Find the best proof points that serve the target role instead.
-
-BULLETS: For every bullet ask "does this help them land a ${careerContext.target_roles?.[0] || 'target'} role?" If yes, keep and strengthen. If no, reframe or put towards the bottom of the list. Put bullets relevant to target role before those not relevant to target role. If someone with an administrative background is getting started in marketing, of course you will include the administrative experience in the bullets. But, any bullets showing marketing skills should appear first.
-
-SKILLS: Weight toward target field vocabulary. Previous-field-specific skills that don't transfer go last or get cut.
-CUTTING: For career changers, the no-removal default is suspended. Build the strongest case for where they're going, not a complete record of where they've been.
-` : ''}
-
-STEP 1: ASSESS THE RESUME:
-Strong resume (multiple bullets per role, relevant content): Enhancement mode. Preserve what works. Improve what's weak. Add what's missing.
-Bare-bones resume (vague descriptions, thin content): Build mode. Use both the existing resume AND the coaching conversation to improve the resume. Improve where you can. Write from scratch when needed.
-
-STEP 2: FILTER THE COACHING CONVERSATION:
-The conversation is raw material, not a comprehensive list of everything to add to the resume. You MUST determine what is critically relevant to helping the candidate get interviews for jobs in their target rule and apply ONLY that information to the resume. You MUST not use all the information provided if it isn’t all relevant and critical to their goal. Including irrelevant information will hurt the resume score and the candidate’s changes to get an interview.
-
-Apply this filter:
-INCLUDE: Demonstrates a notable skill, achievement, or responsibility relevant to target role that can be defined in terms of impact, scope, scale, or results → include it
-EXCLUDE: Celebrity name, personal anecdote, or colorful detail → reframe or omit
-EXCLUDE: Impressive-sounding fact that doesn't help their job search → cut it
-EXCLUDE: Small, one-time accomplishments that minimize the scope of their experience.
-EXCLUDE: Small, unimportant metrics. Do not add any number just to add numbers. Small or irrelevant metrics hurt a resume more than they help it. Find the real impact. Producing a 4-person group act for the holiday show is unimpressive. Reaching 4500 audience members over a 9-show run is impressive. Including cast size damages the resume. Including the audience size shows the real impact and strengthens the resume.
-EXCLUDE: Skill hiding inside a story → extract to skillsCategories, not a bullet
-
-STEP 3: EXTRACT SKILLS FIRST (before writing any bullets):
-Read every bullet, job summary, and coaching answer. Ask: "What skill is this person demonstrating that they have not explicitly listed?" It is your job to find skills in the existing resume and coaching conversation that translate to ATS keyword strength on their resume. You should find skills they didn’t even know they had or didn’t know were important to list. These go in skillsCategories.
-
-STEP 4: WRITE THE RESUME:
-
-PROFESSIONAL SUMMARY:
-Set summary to an empty string: "".
-The summary is written in a dedicated second pass. Do not write it here under any circumstances.
-
-EXPERIENCE:
-
-Assess every existing bullet before writing anything:
-
-STRONG (passes all): calibrated verb, specific detail, passes Brain Test, accurate ownership level → do not rewrite. Enhance only if coaching adds something new.
-
-WEAK (fails any): vague, duty-focused, no specifics, fails Brain Test → rewrite using resume content PLUS coaching material. 
-
-For every strong bullet: "Is there anything from coaching that makes this story stronger?" If yes, enhance it. If no, leave it exactly as written.
-
-Only use relevant impact when strengthening. Do not add meaningless metrics just to put more numbers on the page. Find the real impact. Producing a 4-person group act for the holiday show is unimpressive. Reaching 4500 audience members over a 9-show run is impressive. Including cast size damages the resume. Including the audience size shows the real impact and strengthens the resume.
-
-BULLET COUNT: TENURE-PROPORTIONAL:
-
-The number of bullets per role should reflect the role's relevance to the target position, how recently it was held, and the candidate's overall career length and level. These are guidelines, not rules. Relevance and substance always win over formula. 
-
-Bullet point guidelines: 
-
-Current or most recent role: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets
-
-Previous role: Previous roles: 3-4 bullets. Note: If the candidate has more time in their previous role than current role, you can take away bullets from current role and add them to previous role.
-
-Older or less relevant roles: 1-2 bullets only unless the experience is directly relevant and irreplaceable, or title, company, dates and job summary only.
-
-Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
-
-Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates may have more. Early Career and Entry Level may have fewer.
-
-After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
-
-BULLET ORDER WITHIN EACH ROLE:
-Most target-relevant bullets first. A recruiter scanning for 5 seconds reads the first two. Make them count.
-
-THE NO-REMOVAL DEFAULT:
-Before removing any content: Does the coaching conversation give a specific reason to remove this? Is it genuinely redundant or irrelevant to the target role? Am I replacing it with something strictly better?
-If not clearly YES on all three, preserve it.
-
-ADMIN EXPERIENCE: Never remove admin bullets for student or early-career resumes. Internship and coordinator roles explicitly require evidence of admin capability.
-
-EDUCATION:
-Preserve as-is. Condense paragraph-length coursework to one line. 
-CRITICAL: Never repeat degree name or school name in lines[] — output each education entry exactly once.
-
-SECTION ORDER — apply only when a change clearly serves the candidate better. Otherwise leave it alone.
-Student with relevant degree and unrelated work → Education first.
-Experienced professional with relevant experience → Experience first.
-Credential-driven roles (RN, CPA, PMP) → Certifications can precede experience.
-Executive → Experience always leads.
-Career changer → Lead with strongest case for target role.
-Strong skill set that titles don't convey → Skills may precede experience.
-
-AGE DISCRIMINATION PROTECTION:
-20+ years experience: drop graduation year, condense pre-2005 roles to title/company/dates or cut entirely. Never list more than 20 years of work history without a compelling reason.
-
-PRE-OUTPUT: THE GOVERNING TEST:
-Before outputting, ask one question: "Is every word here earning its place for the target role?"
-Not "did I capture everything?" Not "did I address all the gaps?" Just: does this serve the target role, or not?
-
-If you cannot point to specific, meaningful improvements in at least two of impact, clarity, and keywords, you have not finished the job. Return to the coaching conversation and find what you missed.
-
-DUPLICATE CHECK: MANDATORY BEFORE OUTPUTTING:
-Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
-
-BULLET COUNT CHECK: MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. Senior with broad scope and 15+ years’ experience: up to 7. Average: Early Career or Entry Level: 4-5 bullets, Mid-Career or Mid-Level: 5-6 bullets, Established Career or Senior Level: 5-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
-
-OUTPUT: Return ONLY valid JSON. No markdown. No explanation. No backticks.
-Must match this exact structure:
-${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
+  // ── CORE RESUME REWRITE PATH ──
+    const rewritePrompt = buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational: false })
 
     let rewriteMessage
     let rewriteAttempts = 0
@@ -2258,7 +2570,7 @@ ${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
       cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     }
 
-    const rewrittenResume = JSON.parse(cleanedRewrite)
+    let rewrittenResume = JSON.parse(cleanedRewrite)
     if (rewrittenResume.education?.length) {
       rewrittenResume.education = normalizeEducation(rewrittenResume.education)
     }
@@ -2280,6 +2592,8 @@ ${JSON.stringify(OUTPUT_STRUCTURE, null, 2)}`
       messages: [{ role: 'user', content: coreSummaryPrompt }]
     })
     rewrittenResume.summary = coreSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
+
+    rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
 
     const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
 

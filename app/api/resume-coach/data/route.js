@@ -288,7 +288,9 @@ export async function GET(req) {
       return Response.json({ error: 'Failed to load resumes' }, { status: 500 });
     }
     
-    const coreResume = coreResumes?.[0] || null;
+    const allCore = coreResumes || [];
+    const activeChatResume = allCore.find(r => r.created_via === 'resume_chat' && !r.coaching_complete) || null;
+    const coreResume = allCore.find(r => r.created_via !== 'resume_chat' || r.coaching_complete) || null;
     
     // Generate thumbnail if core resume exists and doesn't have one
     let thumbnailUrl = coreResume?.thumbnail_url;
@@ -393,6 +395,7 @@ export async function GET(req) {
     // Return structured data
     return Response.json({
       userTier,
+      activeChatResume: activeChatResume ? { id: activeChatResume.id, display_name: activeChatResume.display_name } : null,
       userProfile: {
         display_name: profile.display_name,
         photo_url: profile.photo_url,

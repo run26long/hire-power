@@ -443,7 +443,7 @@ const handleResumeUpdate = async (updatedData) => {
                 </div>
               ) : (
               <div className="sticky bottom-0 bg-white border-t pt-3 pb-4 px-4 md:px-6">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-stretch">
                     <textarea
                       ref={inputRef}
                       value={userInput}
@@ -466,9 +466,16 @@ const handleResumeUpdate = async (updatedData) => {
                         setUserInput('');
                       }}
                       disabled={!userInput.trim() || isAIThinking}
-                      className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors self-center flex-shrink-0"
+                      className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+                      style={{
+                        width: '32px',
+                        background: userInput.trim() && !isAIThinking ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
+                        alignSelf: 'stretch'
+                      }}
                     >
-                      Send
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
+                        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                      </svg>
                     </button>
                   </div>
                 </div>

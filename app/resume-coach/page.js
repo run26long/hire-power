@@ -225,6 +225,33 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     setShowTourModal(false);
   };
 
+  const handleStartResumeChat = async () => {
+    handleCompleteTour();
+    try {
+      const { data: { user: chatUser } } = await supabase.auth.getUser();
+      if (!chatUser) return;
+      const { data: newResume, error } = await supabase
+        .from('resumes')
+        .insert({
+          user_id: chatUser.id,
+          resume_type: 'core',
+          display_name: 'Core Resume',
+          resume_data: {},
+          journey_step: 'chat',
+          created_via: 'resume_chat'
+        })
+        .select()
+        .single();
+      if (error || !newResume) {
+        console.error('Failed to create resume chat record:', error);
+        return;
+      }
+      router.push(`/resume/${newResume.id}`);
+    } catch (err) {
+      console.error('Resume chat start error:', err);
+    }
+  };
+
   // Handle file upload (from empty state)
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -750,6 +777,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     );
   }
 
+  const activeChatResume = data?.activeChatResume || null;
+  const coreResumeForDisplay = data?.coreResume || null;
   const isPro = data?.userTier === TIERS.PRO;
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
@@ -2072,7 +2101,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>1</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">Already have a resume?</p>
-                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it and we'll coach it into something stronger.</p>
+                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it here, and we'll coach it into something stronger.</p>
                     </div>
                     <label className="block cursor-pointer flex-shrink-0">
                       <input
@@ -2086,8 +2115,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         disabled={uploading}
                       />
                       <div
-                        className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-2 whitespace-nowrap"
-                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                        className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
                       >
                         {uploading ? (
                           <>
@@ -2095,7 +2124,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             Uploading...
                           </>
                         ) : (
-                          'Upload Resume'
+                          <>Upload Resume</>
                         )}
                       </div>
                     </label>
@@ -2104,21 +2133,21 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   {/* Divider */}
                   <div className="border-t border-gray-100 mx-2" />
 
-                  {/* Option 2 — Resume Chat */}
+                  {/* Option 2 — Build with Coach */}
                   <div className="flex items-center gap-4 py-4">
                     <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 leading-snug">Starting from scratch?</p>
-                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Just chat with Coach and we'll build your résumé from the conversation. Mobile friendly, no typing needed.</p>
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
+                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Chat with Coach, and get a finished resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
                     </div>
                     <div className="flex-shrink-0 text-center">
                       <button
-                        disabled
-                        className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 border-2 border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed whitespace-nowrap"
+                        onClick={handleStartResumeChat}
+                        className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
                       >
-                        💬 Resume Chat
+                        Build with Coach
                       </button>
-                      <p className="text-[10px] text-gray-400 mt-1">Coming Soon</p>
                     </div>
                   </div>
 
@@ -2132,7 +2161,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       }}
                       className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline"
                     >
-                      Use our form-based resume builder.
+                      Build it yourself with our form-based resume builder.
                     </button>
                   </div>
 
