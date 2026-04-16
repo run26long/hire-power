@@ -4482,7 +4482,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           careerContext: careerContext || null,
           detectedLevel,
           displayName: userName,
-          tier: 'targeted',
+          tier: isConversationalFix ? 'conversational_fix' : 'targeted',
           conversation: updatedMessages
         })
       })

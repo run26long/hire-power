@@ -1413,6 +1413,29 @@ function normalizeEducation(education) {
   })
 }
 
+function trimBulletsToLimit(resumeData, level) {
+  const maxTotals = { entry: 8, mid: 9, senior: 12 }
+  const maxTotal = maxTotals[level] || 9
+
+  const totalBullets = (resumeData.experience || []).reduce((sum, job) => sum + (job.bullets || []).length, 0)
+  if (totalBullets <= maxTotal) return resumeData
+
+  const result = JSON.parse(JSON.stringify(resumeData))
+  let toRemove = totalBullets - maxTotal
+
+  // Trim from oldest roles first, never below 1 bullet per role
+  for (let i = result.experience.length - 1; i >= 0 && toRemove > 0; i--) {
+    const bullets = result.experience[i].bullets || []
+    const canRemove = Math.max(0, Math.min(bullets.length - 1, toRemove))
+    if (canRemove > 0) {
+      result.experience[i].bullets = bullets.slice(0, bullets.length - canRemove)
+      toRemove -= canRemove
+    }
+  }
+
+  return result
+}
+
 function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
@@ -1509,7 +1532,14 @@ DUPLICATE CHECK — MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
 BULLET COUNT CHECK — MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't.
+
+Then count total bullets across the entire resume:
+- Early Career: 6-8 total
+- Mid-Career: 7-9 total
+- Established Career: 8-10 total
+- Established Career AND Senior Level: 9-12 total
+If the total exceeds the limit for this candidate's career length, cut the weakest bullets from older or less relevant roles first. Do not output until both per-role and total counts are within limits.
 
 CERTIFICATIONS AND SINGLE-ITEM SECTIONS — MANDATORY BEFORE OUTPUTTING:
 If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
@@ -2103,7 +2133,11 @@ Older or less relevant roles: 1-2 bullets only unless the experience is directly
 
 Roles held more than 15 years ago: title, company, and dates only unless the experience is directly relevant and irreplaceable. In that case, add a summary.
 
-Aim for no more than 10-12 bullets total on the resume. Established and Senior Level candidates will be on the higher end and, if experience warrants it, may have more. Early Career and Entry Level will be on the lower end and, if experience is thin, may have fewer.
+Aim for the following total bullet counts across the entire resume, based on career length. If the total exceeds the limit for this candidate, cut the weakest bullets from older or less relevant roles first:
+- Early Career: 6-8 bullets total
+- Mid-Career: 7-9 bullets total
+- Established Career: 8-10 bullets total
+- Established Career AND Senior Level: 9-12 bullets total
 
 After writing each role: count. If over the bullet limit, ask "Would a recruiter for the target role notice this was gone?" If no, cut it.
 
@@ -2141,7 +2175,14 @@ DUPLICATE CHECK: MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
 BULLET COUNT CHECK: MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't. Do not output until every role is within the limit.
+Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't.
+
+Then count total bullets across the entire resume:
+- Early Career: 6-8 total
+- Mid-Career: 7-9 total
+- Established Career: 8-10 total
+- Established Career AND Senior Level: 9-12 total
+If the total exceeds the limit for this candidate's career length, cut the weakest bullets from older or less relevant roles first. Do not output until both per-role and total counts are within limits.
 
 CERTIFICATIONS AND SINGLE-ITEM SECTIONS: MANDATORY BEFORE OUTPUTTING:
 If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
@@ -2306,6 +2347,8 @@ export async function POST(request) {
           console.warn('Retry parse failed, using first attempt')
         }
       }
+
+      enhancedResume = trimBulletsToLimit(enhancedResume, level)
 
       const changesPrompt = buildChangesPrompt(baseResume, enhancedResume)
       const changesMessage = await anthropic.messages.create({
@@ -2475,6 +2518,8 @@ Return this exact structure:
       })
       rewrittenResume.summary = jsSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
+      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+
       const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
       const changesMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
@@ -2525,7 +2570,7 @@ Return this exact structure:
       cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     }
 
-    const rewrittenResume = JSON.parse(cleanedRewrite)
+    let rewrittenResume = JSON.parse(cleanedRewrite)
     if (rewrittenResume.education?.length) {
       rewrittenResume.education = normalizeEducation(rewrittenResume.education)
     }
@@ -2547,6 +2592,8 @@ Return this exact structure:
       messages: [{ role: 'user', content: coreSummaryPrompt }]
     })
     rewrittenResume.summary = coreSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
+
+    rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
 
     const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
 
