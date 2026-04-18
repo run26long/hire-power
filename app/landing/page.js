@@ -339,11 +339,17 @@ const supabase = createClient();
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{backgroundColor:'rgba(0,0,0,0.5)'}}
-          onClick={() => { setShowSignupModal(false); setSignupAsPro(false); }}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') {
+              setShowSignupModal(false);
+              setSignupAsPro(false);
+            }
+          }}
         >
           <div
             className="bg-white shadow-2xl w-full overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{maxWidth:'420px',borderRadius:'12px'}}
           >
             {/* Header */}
