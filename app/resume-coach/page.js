@@ -1852,7 +1852,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
                 <button
-                  onClick={() => { setShowJobModal(false); setJobCreateError(null); }}
+                  onClick={() => { setShowJobModal(false); setJobCreateError(null); setJobLinkUrl(''); setJobLinkError(''); }}
                   className="text-white hover:opacity-70 text-2xl leading-none font-light"
                 >
                   ×
