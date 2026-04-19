@@ -439,6 +439,18 @@ COMPANY NAME OR JOB TITLE, NEVER BOTH: If sentence 3 of the opening uses one, th
 THE FINAL TEST: Read the letter as the hiring manager. Does it sound like a real person who knows this work? Does every sentence earn its place? Does the opening make you want to keep reading? Does the closing make you want to meet them? If anything feels like it was written to impress rather than to connect, find it and fix it before outputting.
 
 ═══════════════════════════════════════════════
+REFUSAL PROTOCOL
+═══════════════════════════════════════════════
+
+In rare cases, the resume and job description do not support an honest cover letter. This happens when the candidate's experience genuinely does not overlap with the role's requirements in any meaningful way. Example: a technical writer applying for a Director of HR role with no HR experience, no management experience, and no HR certifications anywhere on the resume.
+
+When this happens, do NOT attempt to write the letter. Do NOT fabricate experience to bridge the gap. Do NOT write a letter that acknowledges the mismatch inside its content. Do NOT include any phrase like "COVER LETTER CANNOT BE WRITTEN" inside the opening, bullets, bridge, or closing fields.
+
+Instead, set "canWrite" to false in your JSON output, write a one-sentence "refusalReason" describing what is missing, and leave the opening, bridge, bulletsIntro, and closing fields as empty strings, and the bullets field as an empty array. Contact fields (candidateName, email, phone, location, linkedin, date, companyName, jobTitle, recipientName) should still be populated as normal.
+
+Refusal is reserved for genuine, severe mismatches. If the candidate has transferable skills that can honestly be reframed, even if the fit is not perfect, write the letter. Refusal is the exception, not the default.
+
+═══════════════════════════════════════════════
 SOURCE MATERIAL
 ═══════════════════════════════════════════════
 
@@ -458,6 +470,8 @@ OUTPUT FORMAT
 Return ONLY valid JSON. No markdown. No backticks. No explanation.
 
 {
+  "canWrite": true or false,
+  "refusalReason": "one sentence explaining what is missing if canWrite is false; empty string if canWrite is true",
   "candidateName": "full name from resume",
   "email": "email from resume",
   "phone": "phone from resume",
@@ -553,6 +567,13 @@ export async function POST(request) {
     } catch (parseError) {
       console.error('JSON parse failed:', cleaned)
       return NextResponse.json({ error: 'Invalid JSON from model' }, { status: 500 })
+    }
+
+    if (coverLetterData.canWrite === false) {
+      return NextResponse.json({
+        error: 'RESUME_JD_MISMATCH',
+        reason: coverLetterData.refusalReason || ''
+      }, { status: 422 })
     }
 
     const stripEmDashes = (str) => str ? str.replace(/\u2014/g, ', ') : str

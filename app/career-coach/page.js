@@ -21,7 +21,6 @@ export default function MyCareerPage() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [modalScreen, setModalScreen] = useState(1);
 
   useEffect(() => {
     async function loadData() {
@@ -44,17 +43,6 @@ export default function MyCareerPage() {
       if (resumes && resumes.length > 0) setExistingResume(resumes[0]);
 
       setLoading(false);
-
-      // Show modal if no career context yet
-      if (!context) {
-        setTimeout(() => {
-          const seen = localStorage.getItem('hp_career_modal_seen');
-          if (!seen) {
-            setShowModal(true);
-            setModalScreen(1);
-          }
-        }, 300);
-      }
     }
     loadData();
   }, [supabase, router]);
@@ -157,9 +145,8 @@ export default function MyCareerPage() {
     if (resumes && resumes.length > 0) {
       router.push(`/career-coach/detail?resumeId=${resumes[0].id}`);
     } else {
-      // No resume yet — show modal
+      // No resume yet — show upload/build modal
       setShowModal(true);
-      setModalScreen(1);
     }
   };
 
@@ -541,17 +528,8 @@ export default function MyCareerPage() {
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
-                  {modalScreen === 1 ? (
-                    <>
-                      <h2 className="text-xl font-bold text-white">Welcome to Career Coach</h2>
-                      <p className="text-purple-100 text-xs">The most valuable 5 minutes of your job search</p>
-                    </>
-                  ) : (
-                    <>
-                      <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
-                      <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
-                    </>
-                  )}
+                  <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
+                  <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
                 </div>
               </div>
             </div>
@@ -559,44 +537,7 @@ export default function MyCareerPage() {
             {/* Modal Content */}
             <div className="px-6 py-4 flex-1 flex flex-col">
 
-              {/* Screen 1 */}
-              {modalScreen === 1 && (
-                <div className="flex flex-col h-full">
-                  <div className="space-y-3">
-                    <p className="font-bold text-gray-900 text-base">Why start with Career Coach?</p>
-
-                    <p className="text-sm text-gray-700">
-                      Most resume tools optimize for where you've been, not where you're trying to go. If you’re targeting a new role, changing industries, or applying to something your current title doesn’t reflect, a resume tool that doesn’t know this can’t help you get there.
-                    </p>
-                    <p className="text-sm text-gray-700">
-                       That's why Career Coach starts by understanding where you want to go.
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      In a quick conversation, we learn about your goals, direction, and the skills you have that aren’t obvious on paper. Everything we learn here powers your resume, your interviews, your entire job search.
-                    </p>
-
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
-                      <p className="text-sm text-gray-800 font-medium">
-                        A few answers here unlock a stronger resume, sharper interviews, and a smarter job search.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center mt-3">
-                    <button
-                      onClick={() => setModalScreen(2)}
-                      className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                    >
-                      Start the Conversation
-                    </button>
-                  </div>
-                </div>
-              )}
-
-          {/* Screen 2 — matches Resume modal screen 3 exactly */}
-              {modalScreen === 2 && (
-                <div className="flex flex-col py-2">
+              <div className="flex flex-col py-2">
 
                   {/* Existing Core Resume */}
                   {existingResume && (
@@ -692,8 +633,7 @@ export default function MyCareerPage() {
                     Not feeling chatty? <br/> Use our form-based resume builder from your computer.
                   </p>
 
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
