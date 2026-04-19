@@ -1413,6 +1413,35 @@ function normalizeEducation(education) {
   })
 }
 
+function normalizeSectionOrder(sectionOrder) {
+  const VALID_SECTIONS = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages']
+  const DEFAULT_ORDER = ['experience', 'education', 'skills']
+
+  // If it's not an array at all, return default
+  if (!Array.isArray(sectionOrder)) return DEFAULT_ORDER
+
+  // Clean each entry: strip brackets, quotes, whitespace, lowercase
+  const cleaned = sectionOrder
+    .map(entry => {
+      if (typeof entry !== 'string') return null
+      return entry.replace(/[\[\]"'`]/g, '').trim().toLowerCase()
+    })
+    .filter(entry => entry && VALID_SECTIONS.includes(entry))
+
+  // Deduplicate while preserving order
+  const seen = new Set()
+  const deduped = cleaned.filter(entry => {
+    if (seen.has(entry)) return false
+    seen.add(entry)
+    return true
+  })
+
+  // If cleaning stripped everything valid, return default
+  if (deduped.length === 0) return DEFAULT_ORDER
+
+  return deduped
+}
+
 function trimBulletsToLimit(resumeData, level) {
   const maxTotals = { entry: 8, mid: 9, senior: 12 }
   const maxTotal = maxTotals[level] || 9
@@ -2398,6 +2427,7 @@ export async function POST(request) {
       if (convResume.education?.length) {
         convResume.education = normalizeEducation(convResume.education)
       }
+      convResume.sectionOrder = normalizeSectionOrder(convResume.sectionOrder)
 
       const convSummaryPrompt = buildSummaryPrompt({
         rewrittenResume: convResume,
@@ -2499,6 +2529,7 @@ Return this exact structure:
       if (rewrittenResume.education?.length) {
         rewrittenResume.education = normalizeEducation(rewrittenResume.education)
       }
+      rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
       // ── SUMMARY: Written last, from completed bullets ──
       const jsSummaryPrompt = buildSummaryPrompt({
@@ -2574,6 +2605,7 @@ Return this exact structure:
     if (rewrittenResume.education?.length) {
       rewrittenResume.education = normalizeEducation(rewrittenResume.education)
     }
+    rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
     // ── SUMMARY: Written last, from completed bullets ──
     const coreSummaryPrompt = buildSummaryPrompt({
