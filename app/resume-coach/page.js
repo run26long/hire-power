@@ -203,24 +203,33 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  // AP-style title case — only applies when input is all lowercase or all uppercase
-  // Protects deliberately mixed-case input like "iOS Developer" or "C++ Engineer"
+  // AP-style title case — detects deliberate casing vs mobile auto-cap artifacts
+  // Protects "iOS Developer", "SaaS Engineer" (caps mid-word = deliberate)
+  // Normalizes "Mall at millennia" from mobile auto-cap (caps only at word starts)
   function toTitleCaseOnBlur(value) {
     if (!value) return value;
     const trimmed = value.trim();
     if (!trimmed) return trimmed;
-    // If user typed mixed case, leave it alone (they made deliberate choices)
-    const isAllLower = trimmed === trimmed.toLowerCase();
-    const isAllUpper = trimmed === trimmed.toUpperCase();
-    if (!isAllLower && !isAllUpper) return trimmed;
+    // Check if any uppercase letter appears in a non-first position of any word.
+    // If yes, user made deliberate casing choices (iOS, SaaS, PhD) — leave alone.
+    // If no, it's either all lowercase, all uppercase, or mobile auto-cap —
+    // all safe to run through title case.
+    const words = trimmed.split(/\s+/);
+    const hasMidWordCap = words.some(w => {
+      for (let i = 1; i < w.length; i++) {
+        if (w[i] >= 'A' && w[i] <= 'Z') return true;
+      }
+      return false;
+    });
+    if (hasMidWordCap) return trimmed;
     const smallWords = new Set(['a','an','and','as','at','but','by','for','if','in','nor','of','on','or','so','the','to','up','yet']);
     const acronyms = new Set(['hr','it','pr','qa','ui','ux','vp','ceo','cfo','coo','cto','cmo','seo','ai','ml']);
-    const words = trimmed.toLowerCase().split(/(\s+)/); // preserve whitespace tokens
+    const tokens = trimmed.toLowerCase().split(/(\s+)/); // preserve whitespace tokens
     const wordIndices = [];
-    words.forEach((tok, i) => { if (tok.trim() !== '') wordIndices.push(i); });
+    tokens.forEach((tok, i) => { if (tok.trim() !== '') wordIndices.push(i); });
     const firstIdx = wordIndices[0];
     const lastIdx = wordIndices[wordIndices.length - 1];
-    return words.map((tok, i) => {
+    return tokens.map((tok, i) => {
       if (tok.trim() === '') return tok;
       // Strip punctuation for acronym lookup but preserve it in output
       const cleanTok = tok.replace(/[^a-z]/g, '');
