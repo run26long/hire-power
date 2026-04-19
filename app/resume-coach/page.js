@@ -203,6 +203,35 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  // AP-style title case — only applies when input is all lowercase or all uppercase
+  // Protects deliberately mixed-case input like "iOS Developer" or "C++ Engineer"
+  function toTitleCaseOnBlur(value) {
+    if (!value) return value;
+    const trimmed = value.trim();
+    if (!trimmed) return trimmed;
+    // If user typed mixed case, leave it alone (they made deliberate choices)
+    const isAllLower = trimmed === trimmed.toLowerCase();
+    const isAllUpper = trimmed === trimmed.toUpperCase();
+    if (!isAllLower && !isAllUpper) return trimmed;
+    const smallWords = new Set(['a','an','and','as','at','but','by','for','if','in','nor','of','on','or','so','the','to','up','yet']);
+    const acronyms = new Set(['hr','it','pr','qa','ui','ux','vp','ceo','cfo','coo','cto','cmo','seo','ai','ml']);
+    const words = trimmed.toLowerCase().split(/(\s+)/); // preserve whitespace tokens
+    const wordIndices = [];
+    words.forEach((tok, i) => { if (tok.trim() !== '') wordIndices.push(i); });
+    const firstIdx = wordIndices[0];
+    const lastIdx = wordIndices[wordIndices.length - 1];
+    return words.map((tok, i) => {
+      if (tok.trim() === '') return tok;
+      // Strip punctuation for acronym lookup but preserve it in output
+      const cleanTok = tok.replace(/[^a-z]/g, '');
+      if (acronyms.has(cleanTok)) return tok.toUpperCase();
+      const isFirst = i === firstIdx;
+      const isLast = i === lastIdx;
+      if (!isFirst && !isLast && smallWords.has(tok)) return tok;
+      return tok.charAt(0).toUpperCase() + tok.slice(1);
+    }).join('');
+  }
+
   // Modal state and handlers
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [errorToast, setErrorToast] = useState(null);
@@ -1846,6 +1875,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   type="text"
                   value={jobTitle}
                   onChange={e => setJobTitle(e.target.value)}
+                  onBlur={e => setJobTitle(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
@@ -1856,6 +1886,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   type="text"
                   value={jobCompany}
                   onChange={e => setJobCompany(e.target.value)}
+                  onBlur={e => setJobCompany(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Disney"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
@@ -1881,8 +1912,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
               >
-                {creatingJob && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                {creatingJob ? 'Analyzing Match...' : 'Analyze Match →'}
+                <span key={creatingJob ? 'loading' : 'idle'} className="flex items-center gap-2">
+                  {creatingJob && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                  {creatingJob ? 'Analyzing Match...' : 'Analyze Match →'}
+                </span>
               </button>
             </div>
           </div>
@@ -2155,6 +2188,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   type="text"
                   value={clJobTitle}
                   onChange={e => setClJobTitle(e.target.value)}
+                  onBlur={e => setClJobTitle(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
@@ -2165,6 +2199,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   type="text"
                   value={clCompany}
                   onChange={e => setClCompany(e.target.value)}
+                  onBlur={e => setClCompany(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Disney"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
@@ -2186,8 +2221,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
                 style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto'}}
               >
-                {creatingCL && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                {creatingCL ? 'Creating...' : 'Create Cover Letter →'}
+                <span key={creatingCL ? 'loading' : 'idle'} className="flex items-center gap-2">
+                  {creatingCL && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                  {creatingCL ? 'Creating...' : 'Create Cover Letter →'}
+                </span>
               </button>
             </div>
           </div>
