@@ -2998,7 +2998,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
   // ── Main chat UI (free trial or pro) ──
   return (
     <>
-      <div className="flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <h3 className="font-semibold text-lg mb-1 -mt-3 flex-shrink-0">
           💬 {userTier === 'free' ? 'Free Coaching Trial' : 'Coaching in Progress'}
         </h3>
@@ -3012,7 +3012,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         )}
 
         {/* Messages */}
-        <div className="space-y-2 mb-2 pb-24">
+        <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 min-h-0">
           {coachingMessages.map((msg, index) => (
             <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
               <div className={`rounded-lg px-2 py-1.5 text-xs leading-snug ${
@@ -3064,7 +3064,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && (
-          <div className="sticky bottom-0 border-t pt-2 pb-1 -mx-3 px-3" style={{ backgroundColor: 'white', zIndex: 10, position: 'sticky' }}>
+          <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
             <div className="flex gap-2 items-stretch">
               <textarea
                 ref={inputRef}
@@ -3096,7 +3096,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Pro finish button */}
         {isProCoachingComplete && userTier !== 'free' && (
-          <div className="flex justify-center flex-shrink-0 mt-2">
+          <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
             <button
               onClick={finishCoaching}
               disabled={isFinishing}
@@ -3113,7 +3113,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Trial finish button */}
        {isTrialCoachingComplete && userTier === 'free' && !trialComplete && (
-          <div className="flex justify-center flex-shrink-0 mt-2">
+          <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
             <button
               onClick={finishTrialCoaching}
               disabled={isFinishing}

@@ -144,19 +144,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setRetryCount(0); 
       // Reset retry count on success
       
-      // Check if we should show tour (only if no resume)
-      // Small delay to let page render before showing modal
+      // Show tour modal only on first visit (when no resume and tour not yet seen)
+      // Returning users without a resume get the empty state page instead
       if (!resData.coreResume) {
         setTimeout(() => {
           const tourSeen = localStorage.getItem('hp_tour_seen');
           if (!tourSeen) {
             setHasSeenTour(false);
             setShowTourModal(true);
-            setTourScreen(1);
           } else {
             setHasSeenTour(true);
-            setShowTourModal(true);
-            setTourScreen(3);
           }
         }, 300); // 300ms delay
       }
@@ -1656,22 +1653,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                                 <div className="text-center">
-                                  <p className="text-xs font-semibold text-gray-900">Upload Resume</p>
-                                  <p className="text-[10px] text-gray-500 mt-0.5">PDF or DOCX</p>
+                                  <p className="text-xs font-semibold text-gray-900">Upload or build your</p>
+                                  <p className="text-xs font-semibold text-gray-900">resume to begin.</p>
                                 </div>
                               </div>
                             )}
                           </div>
                         </label>
-                        <p className="text-[10px] text-gray-500 text-center mt-1.5">
-                          No resume?{' '}
-                          <button
-                            onClick={() => router.push('/build?from=resume-coach')}
-                            className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
-                          >
-                            Build from scratch →
-                          </button>
-                        </p>
                       </div>
                       
                       {/* Right: Empty Score Section - col-span-8 */}
@@ -1772,7 +1760,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <div className="flex-1">
                         <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
                         <p className="text-xs text-gray-700 leading-snug">
-                          You haven't started yet. Upload your resume to begin.
+                          You haven't started yet. Click "Get Started" to upload or build your resume.
                         </p>
                       </div>
                       <button
@@ -1780,18 +1768,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm whitespace-nowrap flex items-center gap-2 flex-shrink-0"
                         style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                       >
-                        Upload Resume
+                        Get Started
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      Don't have a resume yet?{' '}
-                      <button
-                        onClick={() => router.push('/build?from=resume-coach')}
-                        className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
-                      >
-                        Click here to build one
-                      </button>
-                    </p>
                   </div>
                 </div>
 
@@ -1915,263 +1894,121 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
-          onClick={handleSkipTour}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') {
+              handleSkipTour();
+            }
+          }}
         >
           <div 
             className="bg-white shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200"
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               borderRadius: '8px',
-              height: '520px',
-              display: 'flex',
-              flexDirection: 'column'
             }}
           >
-            {/* Purple header - EXACT sidebar gradient */}
+            {/* Purple header */}
             <div 
              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }} 
-              className="px-6 py-5 relative flex-shrink-0"
+              className="px-6 py-5 relative"
             >
-              {tourScreen < 3 && (
-                <button
-                  onClick={handleSkipTour}
-                  className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
-                >
-                  ×
-                </button>
-              )}
-             
-              {tourScreen === 1 && (
-                <div className="flex items-center gap-3">
-                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Welcome to Resume Coach</h2>
-                    <p className="text-purple-100 text-xs">The AI that asks the right questions.</p>
-                  </div>
+              <button
+                onClick={handleSkipTour}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >
+                ×
+              </button>
+
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
+                  <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
                 </div>
-              )}
-              
-              {tourScreen === 2 && (
-                <div className="flex items-center gap-3">
-                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-                  <div>
-                    <h2 className="text-xl font-bold text-white">A Clear Path to a Stronger Resume</h2>
-                    <p className="text-purple-100 text-xs">No guesswork—just a clear process so you always know what to do next.</p>
-                  </div>
-                </div>
-              )}
-              
-              {tourScreen === 3 && (
-                <div className="flex items-center gap-3">
-                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
-                    <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Content */}
-            <div className="px-6 py-5 flex-1 flex flex-col" style={{ minHeight: '320px', maxHeight: '320px' }}>
-            
-              {/* Screen 1 */}
-              {tourScreen === 1 && (
-                <div className="flex flex-col h-full">
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <p className="font-bold text-gray-900 mb-3 text-base">The problem with most AI resume tools:</p>
-                      <div className="space-y-2 text-gray-700 text-sm">
-                        <p><span className="font-bold text-purple-600">→</span> You may not know what makes a resume strong.</p>
-                        <p><span className="font-bold text-purple-600">→</span> And AI can only work with what’s already on the page.</p>
-                         <p>That’s why most tools give generic tips or rewrite what’s already there.</p>  </div>
-                    </div>
-                    
-                    <div>
-                      <p className="font-bold text-gray-900 mb-2 text-base">Resume Coach works differently.</p>
-                      <p className="text-gray-700 leading-relaxed text-sm mb-2">
-                        We guide you through the same questions a professional resume writer would ask - uncovering achievements, metrics, and impact you might not think to include. </p>
-                       <p className="text-gray-700 leading-relaxed text-sm">So your resume gets stronger without AI making things up.
-                      </p>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3">
-                      <p className="text-sm text-gray-800 font-medium">
-                        No generic tips. No AI fiction. Just your real achievements, turned into a resume that gets interviews.
-                      </p>
-                    </div>
+            <div className="px-6 py-5">
+              <div className="flex flex-col py-2">
+
+                {/* Option 1 — Upload */}
+                <div className="flex items-center gap-4 py-4">
+                  <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>1</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">Already have a resume?</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it here, and we'll coach it into something stronger.</p>
                   </div>
-                  
-                  <div className="flex justify-center mt-5">
-                    <button
-                      onClick={handleNextTourScreen}
-                      className="text-white px-10 py-2.5 rounded-md transition-opacity hover:opacity-90 font-semibold shadow-sm text-sm"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              )}
-
-  {/* Screen 2 */}
-              {tourScreen === 2 && (
-                <div className="flex flex-col h-full">
-                  <div className="flex-1">
-                    <p className="font-bold text-sm text-gray-700 mb-2">
-                      Most resume tools leave you guessing.
-                    </p>
-
-                    <p className="text-sm text-gray-700 mb-2">
-                      Resume Coach walks you through a structured process that professional resume writers use to uncover stronger experience.
-                    </p>
-                    <p className="text-sm text-gray-700 mb-3">
-                      One clear step at a time.
-                    </p>
-                    
-                    {/* Vertical Progress Bar */}
-                    <div className="flex gap-3 mb-3">
-                      {/* Left: Vertical line with circles */}
-                      <div className="relative flex-shrink-0" style={{ width: '16px' }}>
-                        <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200">
-                          <div 
-                            className="w-full bg-gray-200 transition-all" 
-                            style={{ height: '100%' }}
-                          />
-                        </div>
-                        
-                        {/* Circles - w-4 h-4 with empty circle character */}
-                        <div className="relative flex flex-col justify-between" style={{ height: '160px', marginTop: '-2px' }}>
-                          {['Review', 'Assess', 'Coach', 'Improve', 'Format', 'Save'].map((step, index) => (
-                            <div key={step} className="flex items-center justify-center" style={{ height: '16px' }}>
-                              <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
-                                ○
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {/* Right: Step labels - aligned with dot centers */}
-                      <div className="flex-1 flex flex-col justify-between" style={{ height: '160px' }}>
-                        {[
-                          { title: 'Review', desc: 'Upload or build your resume' },
-                          { title: 'Assess', desc: 'See your Resume Power Score' },
-                          { title: 'Coach', desc: 'Conversation reveals missing achievements', pro: true },
-                          { title: 'Improve', desc: 'Accept targeted improvements' },
-                          { title: 'Format', desc: 'Auto-fit and final formatting' },
-                          { title: 'Save', desc: 'Download your stronger resume' }
-                        ].map((step, i) => (
-                          <div key={i} style={{ height: '16px', display: 'flex', alignItems: 'center' }}>
-                            <p className="text-sm text-gray-900 leading-none">
-                              <span className="font-bold">{step.title}</span> 
-                              {step.pro && <sup className="text-purple-600" style={{ fontSize: '7px' }}>PRO</sup>} — {step.desc}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-600 p-3 mt-4">
-                      <p className="text-sm text-gray-800 font-medium">
-                        No guessing what comes next. No getting confused by endless tips. Just clear next steps toward an interview-winning resume.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-center mt-3">
-                   <button
-                      onClick={handleNextTourScreen}
-                      className="text-white px-10 py-2.5 rounded-md transition-opacity hover:opacity-90 font-semibold shadow-sm text-sm"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              )}
-
-           {/* Screen 3 */}
-              {tourScreen === 3 && (
-                <div className="flex flex-col py-2">
-
-                  {/* Option 1 — Upload */}
-                  <div className="flex items-center gap-4 py-4">
-                    <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>1</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 leading-snug">Already have a resume?</p>
-                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it here, and we'll coach it into something stronger.</p>
-                    </div>
-                    <label className="block cursor-pointer flex-shrink-0">
-                      <input
-                        type="file"
-                        accept=".pdf,.docx"
-                        onChange={(e) => {
-                          handleFileUpload(e);
-                          handleCompleteTour();
-                        }}
-                        className="hidden"
-                        disabled={uploading}
-                      />
-                      <div
-                        className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
-                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
-                      >
-                        {uploading ? (
-                          <>
-                            <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
-                            Uploading...
-                          </>
-                        ) : (
-                          <>Upload Resume</>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-gray-100 mx-2" />
-
-                  {/* Option 2 — Build with Coach */}
-                  <div className="flex items-center gap-4 py-4">
-                    <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
-                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Chat with Coach, and get a finished resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
-                    </div>
-                    <div className="flex-shrink-0 text-center">
-                      <button
-                        onClick={handleStartResumeChat}
-                        className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap"
-                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
-                      >
-                        Build with Coach
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Builder link — desktop only */}
-                  <div className="hidden md:block text-center mt-2" style={{ lineHeight: '1' }}>
-                    <span className="block text-xs text-gray-400">Not feeling chatty?</span>
-                    <button
-                      onClick={() => {
+                  <label className="block cursor-pointer flex-shrink-0">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={(e) => {
+                        handleFileUpload(e);
                         handleCompleteTour();
-                        router.push('/build?from=resume-coach');
                       }}
-                      className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline"
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <div
+                      className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
                     >
-                      Build it yourself with our form-based resume builder.
+                      {uploading ? (
+                        <>
+                          <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>Upload Resume</>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-100 mx-2" />
+
+                {/* Option 2 — Build with Coach */}
+                <div className="flex items-center gap-4 py-4">
+                  <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Chat with Coach, and get a finished resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
+                  </div>
+                  <div className="flex-shrink-0 text-center">
+                    <button
+                      onClick={handleStartResumeChat}
+                      className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
+                    >
+                      Build with Coach
                     </button>
                   </div>
-
-                  {/* Mobile note */}
-                  <p className="md:hidden text-xs text-gray-400 text-center mt-2">
-                    Not feeling chatty? <br/> Use our form-based resume builder from your computer.
-                  </p>
-
                 </div>
-              )}
+
+                {/* Builder link — desktop only */}
+                <div className="hidden md:block text-center mt-2" style={{ lineHeight: '1' }}>
+                  <span className="block text-xs text-gray-400">Not feeling chatty?</span>
+                  <button
+                    onClick={() => {
+                      handleCompleteTour();
+                      router.push('/build?from=resume-coach');
+                    }}
+                    className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline"
+                  >
+                    Build it yourself with our form-based resume builder.
+                  </button>
+                </div>
+
+                {/* Mobile note */}
+                <p className="md:hidden text-xs text-gray-400 text-center mt-2">
+                  Not feeling chatty? <br/> Use our form-based resume builder from your computer.
+                </p>
+
+              </div>
             </div>
           </div>
         </div>
