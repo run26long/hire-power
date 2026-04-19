@@ -1909,8 +1909,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={handleCreateJobSpecific}
                 disabled={creatingJob}
-                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
+                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: creatingJob ? 0.85 : 1 }}
               >
                 <span key={creatingJob ? 'loading' : 'idle'} className="flex items-center gap-2">
                   {creatingJob && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
@@ -2218,8 +2218,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={handleCreateCoverLetter}
                 disabled={creatingCL}
-                className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
-                style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto'}}
+                className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto', opacity: creatingCL ? 0.85 : 1}}
               >
                 <span key={creatingCL ? 'loading' : 'idle'} className="flex items-center gap-2">
                   {creatingCL && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
