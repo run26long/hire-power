@@ -636,8 +636,21 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         })
       });
 
-      if (!generateRes.ok) throw new Error('Cover letter generation failed');
-      const { coverLetterData } = await generateRes.json();
+      const generateData = await generateRes.json();
+      if (!generateRes.ok) {
+        if (generateData.error === 'RESUME_JD_MISMATCH') {
+          setErrorToast("The resume and job description don't appear to match closely enough to write a cover letter. Try a different job description or resume.");
+          setShowCLModal(false);
+          setClSourceType(null);
+          setClSelectedJSId('');
+          setClJobTitle('');
+          setClCompany('');
+          setClJobDescription('');
+          return;
+        }
+        throw new Error('Cover letter generation failed');
+      }
+      const { coverLetterData } = generateData;
 
       const { data: newCL, error: insertError } = await supabase
         .from('cover_letters')
@@ -1869,7 +1882,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
                 <button
-                  onClick={() => { setShowJobModal(false); setJobCreateError(null); setJobLinkUrl(''); setJobLinkError(''); }}
+                  onClick={() => { setShowJobModal(false); setJobCreateError(null); }}
                   className="text-white hover:opacity-70 text-2xl leading-none font-light"
                 >
                   ×

@@ -1491,7 +1491,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     }
   }, [journeyStep])
 
- const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat'
+ const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat' && !resume?.coaching_complete
 
  return (
    <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 pl-4 pr-2 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6"}>
@@ -2092,6 +2092,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               <CoachStep
           resumeData={resumeData}
           coachingComplete={resume?.coaching_complete || false}
+          coachingTierAtSave={resume?.coaching_tier_at_save || null}
           careerContext={careerContext}
           isConversational={isConversational}
           detectedLevel={detectedLevel}
@@ -2192,7 +2193,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory }) {
+function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -2227,7 +2228,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
       { role: 'assistant', content: data.response }
     ]
       setCoachingMessages(initialMessages)
-      await supabase.from('resumes').update({ coaching_conversation: initialMessages }).eq('id', params.id)
+      await supabase.from('resumes').update({ coaching_conversation: initialMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
     } catch (err) {
       console.error('Error starting resume chat:', err)
       setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh and try again." }])
@@ -2243,6 +2244,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
     const updatedMessages = [...coachingMessages, newMessage]
     setCoachingMessages(updatedMessages)
     setUserInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto'
     setSending(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -2259,7 +2261,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
       const data = await response.json()
       const finalMessages = [...updatedMessages, { role: 'assistant', content: data.response }]
       setCoachingMessages(finalMessages)
-      await supabase.from('resumes').update({ coaching_conversation: finalMessages }).eq('id', params.id)
+      await supabase.from('resumes').update({ coaching_conversation: finalMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
     } catch (err) {
       console.error('Error sending resume chat message:', err)
       setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending again." }])
@@ -2387,10 +2389,11 @@ const getMessageText = (msg) => {
       setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
-      const isProWithTrialMessages = tier !== 'free' && hasRealMessages && !coachingComplete
+      const savedTier = coachingTierAtSave
+      const isTrialUpgrade = tier !== 'free' && hasRealMessages && !coachingComplete && savedTier === 'free'
 
-      if (isProWithTrialMessages && !hasStartedCoaching.current) {
-        // Pro user has trial messages — start fresh pro session with trial as context
+      if (isTrialUpgrade && !hasStartedCoaching.current) {
+        // Saved conversation was from a trial session — user has since upgraded. Start fresh Pro session with trial as context.
         hasStartedCoaching.current = true
         const capturedTrialTranscript = [...coachingMessages]
         setCoachingMessages([])
@@ -2399,6 +2402,7 @@ const getMessageText = (msg) => {
         hasStartedCoaching.current = true
         await startCoaching(tier)
       }
+      // Otherwise: saved conversation exists and tier matches (or is null/pro) — restore as-is, do nothing.
     }
     init()
   }, [])
@@ -2439,7 +2443,7 @@ const getMessageText = (msg) => {
 
       await supabase
         .from('resumes')
-        .update({ coaching_conversation: initialMessages })
+        .update({ coaching_conversation: initialMessages, coaching_tier_at_save: tier })
         .eq('id', params.id)
    } catch (err) {
       console.error('Error starting coaching:', err)
@@ -2457,6 +2461,7 @@ const getMessageText = (msg) => {
     const updatedMessages = [...coachingMessages, newMessage]
     setCoachingMessages(updatedMessages)
     setUserInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto'
     setSending(true)
 
     try {
@@ -2489,7 +2494,7 @@ const getMessageText = (msg) => {
 
       await supabase
         .from('resumes')
-        .update({ coaching_conversation: finalMessages })
+        .update({ coaching_conversation: finalMessages, coaching_tier_at_save: userTier })
         .eq('id', params.id)
     } catch (err) {
       console.error('Error sending message:', err)
@@ -2901,6 +2906,44 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
   // ── Conversational UI ──
   if (isConversational) {
+    // LOCK: coaching already complete, don't re-show the chat UI (no regenerate loophole)
+    if (coachingComplete) {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
+            <div
+              className="px-4 py-3 flex items-center gap-3"
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+            >
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
+              <div>
+                <p className="font-bold text-white text-sm leading-tight">Coaching Complete!</p>
+                <p className="text-purple-100 text-xs leading-tight">Your résumé is built and ready to review.</p>
+              </div>
+            </div>
+            {score && (
+              <div className="bg-white px-4 py-3 text-center">
+                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Resume Power Score</div>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
+                  <span className="text-xl text-gray-400">/100</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={advanceToImprove}
+              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              Review My Résumé →
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     const isChatComplete = coachingMessages.some(msg =>
       msg.role === 'assistant' && getMessageText(msg).toLowerCase().includes('click the button below')
     )
@@ -2949,16 +2992,25 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           </div>
           {!isChatComplete ? (
             <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
-              <div className="flex gap-2 items-stretch">
+              <div className="flex gap-2 items-end">
                 <textarea
                   ref={inputRef}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
+                  onInput={(e) => {
+                  e.target.style.height = 'auto'
+                  const maxHeight = window.innerHeight - 310
+                  const target = Math.min(e.target.scrollHeight, maxHeight)
+                  e.target.style.height = target + 'px'
+                  e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden'
+                  e.target.scrollIntoView({ block: 'end', behavior: 'instant' })
+                }}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendResumeChat() } }}
                   placeholder="Type your response..."
                   disabled={sending}
                   rows={2}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
                 />
                 <button
                   onClick={sendResumeChat}
@@ -2966,8 +3018,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
                   style={{
                     width: '32px',
-                    background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
-                    alignSelf: 'stretch'
+                    height: '56px',
+                    background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db'
                   }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
@@ -2999,7 +3051,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
   return (
     <>
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <h3 className="font-semibold text-lg mb-1 -mt-3 flex-shrink-0">
+        <h3 className="font-semibold text-lg mb-1 flex-shrink-0">
           💬 {userTier === 'free' ? 'Free Coaching Trial' : 'Coaching in Progress'}
         </h3>
 
@@ -3065,16 +3117,25 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && (
           <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
-            <div className="flex gap-2 items-stretch">
+            <div className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
+               onInput={(e) => {
+                  e.target.style.height = 'auto'
+                  const maxHeight = window.innerHeight - 310
+                  const target = Math.min(e.target.scrollHeight, maxHeight)
+                  e.target.style.height = target + 'px'
+                  e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden'
+                  e.target.scrollIntoView({ block: 'end', behavior: 'instant' })
+                }}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 placeholder="Type your response..."
                 disabled={sending}
                 rows={2}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
               />
               <button
                 onClick={sendMessage}
@@ -3082,8 +3143,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
                 style={{
                   width: '32px',
-                  background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
-                  alignSelf: 'stretch'
+                  height: '56px',
+                  background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db'
                 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
@@ -4463,6 +4524,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
     const updatedMessages = [...targetedMessages, newMessage]
     setTargetedMessages(updatedMessages)
     setUserInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto'
     setSending(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -4616,11 +4678,17 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 
         <div className="p-4 border-t border-gray-100 flex-shrink-0">
           {!isComplete ? (
-            <div className="flex gap-2 items-stretch">
+            <div className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
+                onInput={(e) => {
+                  e.target.style.height = 'auto'
+                  const target = Math.min(e.target.scrollHeight, 120)
+                  e.target.style.height = target + 'px'
+                  e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden'
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
                 }}
@@ -4628,6 +4696,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
                 disabled={sending}
                 rows={2}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                style={{ overflowY: 'hidden', maxHeight: '120px' }}
               />
               <button
                 onClick={sendMessage}
@@ -4635,8 +4704,9 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
                 className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
                 style={{
                   width: '32px',
+                  height: '56px',
                   background: userInput.trim() && !sending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
-                  alignSelf: 'stretch'
+                  alignSelf: 'flex-end'
                 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
