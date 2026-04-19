@@ -190,7 +190,7 @@ export default function MainNav({ currentPage, userProfile }) {
             ))}
             <button
               onClick={() => handleNavClick('/profile')}
-              className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+              className="w-full flex items-center justify-between px-5 py-3.5 border-b border-gray-100 text-left"
             >
               <span className="text-sm font-medium text-gray-600">My Profile</span>
               {userProfile?.display_name && (
@@ -198,6 +198,20 @@ export default function MainNav({ currentPage, userProfile }) {
                   {userProfile.display_name.charAt(0).toUpperCase()}
                 </div>
               )}
+            </button>
+            <button
+              onClick={async () => {
+                setMenuOpen(false);
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                window.location.href = '/dashboard';
+              }}
+              className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+            >
+              <span className="text-sm font-medium text-gray-600">Sign Out</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
           </div>
         )}
