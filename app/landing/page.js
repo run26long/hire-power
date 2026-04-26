@@ -286,6 +286,9 @@ const supabase = createClient();
           .manifesto { padding: 60px 24px !important; }
 
           .never-start-section { padding: 60px 24px !important; }
+          .build-with-coach-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+          .build-with-coach-visual { order: 2; }
+          .build-with-coach-grid button { display: block !important; margin-left: auto !important; margin-right: auto !important; }
 
           .vault { padding: 60px 0 !important; }
           .vault-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
@@ -377,7 +380,7 @@ const supabase = createClient();
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5">
+            <div className="px-6 py-4">
               {signupSuccess ? (
                 <div className="text-center py-4">
                   <div className="text-4xl mb-3">
@@ -439,7 +442,7 @@ const supabase = createClient();
                       // Free path: normal signup
                       handleSignup(e)
                     }
-                  }} className="space-y-4">
+                  }} className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
                       <input
@@ -491,7 +494,7 @@ const supabase = createClient();
                         className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
                       />
                       <span className="text-sm text-gray-700 leading-snug">
-                        Start with Pro. Get the full conversation from day one. Your best resume. Improvements automatically applied.
+                        Your best resume from day one. Start with Pro today.
                       </span>
                     </label>
 
@@ -512,11 +515,8 @@ const supabase = createClient();
                       </div>
                     )}
 
-                    <p className="text-xs text-gray-400 text-center">
-                      By creating a Hire Power account, you agree to our <br/> {' '}
-                      <a href="/terms" target="_blank" className="text-purple-600 hover:underline">Terms of Service</a>
-                      {' '}and{' '}
-                      <a href="/privacy" target="_blank" className="text-purple-600 hover:underline">Privacy Policy</a>.
+                    <p className="text-[11px] text-gray-400 text-center leading-tight">
+                      By creating a Hire Power account, you agree to our<br/> <a href="/terms" target="_blank" className="text-purple-600 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" className="text-purple-600 hover:underline">Privacy Policy</a>.
                     </p>
                     <button
                       type="submit"
@@ -532,7 +532,7 @@ const supabase = createClient();
                       ) : signupAsPro ? 'Create account and go Pro. $29.99/mo' : 'Create free account'}
                     </button>
                   </form>
-                  <p className="text-center text-xs text-gray-400 mt-4">
+                  <p className="text-center text-xs text-gray-400 mt-3">
                     Already have an account?{' '}
                     <button onClick={() => router.push('/dashboard')} className="text-purple-600 hover:underline font-medium bg-transparent border-none cursor-pointer p-0">Log in</button>
                   </p>
@@ -895,7 +895,7 @@ const supabase = createClient();
           <div className="how-grid" style={{marginTop: '36px'}}>
             <div className="how-steps" style={{gap: '4px', paddingTop: '0px'}}>
               {[
-                {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. Free for everyone, unlimited."},
+                {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. The best five-minute investment in your career."},
                 {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
                 {n:'3',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
                 {n:'4',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
@@ -948,6 +948,88 @@ const supabase = createClient();
         <div className="manifesto-inner">
           <div className="manifesto-eyebrow">Our Belief</div>
           <p><strong>Most tools help you find a job.</strong> Ours helps you build a career. Hire Power is your <em>lifelong career coach</em>, turning career management from a crisis into an ongoing conversation. Through AI-powered coaching, we help you bulletproof your resume, level up your interviews, and build a career archive that grows with you. <strong>From entry-level to executive suite, we help you power through the&nbsp;entire&nbsp;journey.</strong></p>
+        </div>
+      </section>
+
+      {/* BUILD WITH COACH */}
+      <section style={{background:'var(--purple-light)',padding:'80px 0',borderTop:'1px solid rgba(108,99,255,0.1)',borderBottom:'1px solid rgba(108,99,255,0.1)'}}>
+        <div className="container">
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'64px',alignItems:'center'}} className="build-with-coach-grid">
+            {/* Copy side */}
+            <div>
+              <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--purple)',marginBottom:'20px'}}>
+                Build with Coach
+              </div>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:'clamp(36px,4vw,56px)',lineHeight:1.05,letterSpacing:'-1.5px',color:'var(--black)',marginBottom:'24px'}}>
+                Zero to applied in<br className="mobile-break" style={{display:'none'}}/> <em style={{fontStyle:'italic',color:'var(--purple)'}}>30 minutes.</em>
+              </h2>
+              <p style={{fontSize:'17px',color:'#374151',lineHeight:1.65,marginBottom:'12px'}}>
+                No resume? No problem. If you're starting from scratch, we've got you covered. Coach asks. You answer. Talk it out, type it in, or switch between both. Your resume builds in real time while you walk the dog, watch a show, or sit at Starbucks.
+              </p>
+              <p style={{fontSize:'15px',color:'var(--purple)',fontStyle:'italic',fontWeight:500,marginBottom:'16px'}}>
+                No computer. No blank page. Just talk.
+              </p>
+              <button
+                onClick={() => { setSignupAsPro(true); setShowSignupModal(true); }}
+                style={{display:'inline-flex',alignItems:'center',background:'linear-gradient(to right,#667eea,#764ba2)',color:'white',padding:'14px 28px',borderRadius:'10px',fontSize:'15px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(108,99,255,0.35)',transition:'opacity 0.2s',marginTop:'12px'}}
+              >
+                Start Talking →
+              </button>
+            </div>
+
+            {/* Visual side - mobile chat mock */}
+            <div style={{display:'flex',justifyContent:'center',alignItems:'center'}} className="build-with-coach-visual">
+              <div style={{width:'280px',background:'white',borderRadius:'24px',overflow:'hidden',boxShadow:'0 20px 60px rgba(108,99,255,0.18), 0 4px 16px rgba(0,0,0,0.06)',border:'1px solid rgba(0,0,0,0.05)'}}>
+                {/* Phone-like header */}
+                <div style={{background:'linear-gradient(to right,#667eea,#764ba2)',padding:'12px 16px',display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{width:'24px',height:'24px',background:'rgba(255,255,255,0.2)',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
+                  </div>
+                  <div>
+                    <div style={{fontSize:'11px',fontWeight:700,color:'white'}}>Build with Coach</div>
+                    <div style={{fontSize:'9px',color:'rgba(255,255,255,0.7)'}}>Mobile · Talk or type</div>
+                  </div>
+                </div>
+                {/* Chat */}
+                <div style={{padding:'12px',background:'#fafafa',display:'flex',flexDirection:'column',gap:'8px'}}>
+                  <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'4px 12px 12px 12px',padding:'9px 12px'}}>
+                    <p style={{fontSize:'12px',color:'#1f2937',lineHeight:1.5,margin:0}}>What do you want to do for work?</p>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'flex-end'}}>
+                    <div style={{background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:'12px 4px 12px 12px',padding:'9px 12px',maxWidth:'85%'}}>
+                      <p style={{fontSize:'12px',color:'#1f2937',lineHeight:1.5,margin:0}}>Marketing internships, ideally something with social media</p>
+                    </div>
+                  </div>
+                  <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'4px 12px 12px 12px',padding:'9px 12px'}}>
+                    <p style={{fontSize:'12px',color:'#1f2937',lineHeight:1.5,margin:0}}>Have you run any social accounts, even for a club or side thing?</p>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'flex-end'}}>
+                    <div style={{background:'#f3f4f6',border:'1px solid #e5e7eb',borderRadius:'12px 4px 12px 12px',padding:'9px 12px',maxWidth:'85%'}}>
+                      <p style={{fontSize:'12px',color:'#1f2937',lineHeight:1.5,margin:0}}>Yeah, I run my sorority's TikTok. We went from 200 to 4K followers this semester</p>
+                    </div>
+                  </div>
+                  <div style={{background:'white',border:'1px solid #e5e7eb',borderRadius:'12px',padding:'9px 12px',marginTop:'4px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}>
+                      <div style={{width:'13px',height:'13px',borderRadius:'50%',background:'#10b981',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        <svg width="6" height="6" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l1.5 1.5 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                      <span style={{fontSize:'8px',fontWeight:700,color:'#10b981',textTransform:'uppercase',letterSpacing:'0.07em'}}>Added to your resume</span>
+                    </div>
+                    <p style={{fontSize:'11.5px',color:'#111827',lineHeight:1.5,margin:0}}>Grew sorority TikTok account from 200 to 4,000 followers in one semester through original short-form content strategy.</p>
+                  </div>
+                </div>
+                {/* Mic input bar */}
+                <div style={{padding:'10px 12px',background:'white',borderTop:'1px solid #f3f4f6',display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{flex:1,height:'30px',background:'#f9fafb',borderRadius:'15px',display:'flex',alignItems:'center',padding:'0 12px',fontSize:'11px',color:'#9ca3af'}}>
+                    Type or tap mic to talk...
+                  </div>
+                  <div style={{width:'30px',height:'30px',background:'linear-gradient(to right,#667eea,#764ba2)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3z" fill="white"/><path d="M19 11a7 7 0 01-14 0M12 18v3" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1017,7 +1099,7 @@ const supabase = createClient();
               <div className="tier-price">$0</div>
               <p className="tier-desc">Get a real feel for conversation-based coaching. No credit card. No expiration.</p>
               <ul className="tier-features">
-                <li><span className="check">✓</span> Career Coach - full access, unlimited</li>
+                <li><span className="check">✓</span> Career Coach - one session</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Coach</li>
                 <li><span className="check">✓</span> Core resume with AI analysis</li>
                 <li><span className="check">✓</span> Resume Power Score</li>
@@ -1094,9 +1176,9 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Save job description from the role you landed as the foundation of your next resume</li>
                 <li><span className="check">✓</span> Track achievements as they happen</li>
                 <li><span className="check">✓</span> Add new training, education, and skills in real time</li>
+                <li><span className="check">✓</span> Performance review preperation</li>
                 <li><span className="check">✓</span> Complete career archive access</li>
-                <li><span className="check">✓</span> Unlimited resume downloads</li>
-                <li><span className="check">✓</span> 5 premium templates</li>
+                <li><span className="check">✓</span> Unlimited resume downloads</li>  
               </ul>
               <div style={{marginTop:'auto',paddingTop:'24px',fontSize:'13px',color:'var(--gray)',fontStyle:'italic',lineHeight:1.5}}>
                 Available after your job search, so you never have to start from scratch again.

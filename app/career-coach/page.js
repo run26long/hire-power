@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import Breadcrumb from '../components/Breadcrumb';
+import UpgradeModal from '../components/UpgradeModal';
 import { track } from '../utils/analytics';
 
 export default function MyCareerPage() {
@@ -21,6 +22,7 @@ export default function MyCareerPage() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -137,6 +139,15 @@ export default function MyCareerPage() {
   };
 
   const handleStartConversation = async () => {
+    // Free/Vault gate: 1 Career Coach session lifetime. careerContext existing
+    // means they've completed their session. Returning users hit the upgrade modal.
+    const tier = userProfile?.subscription_tier;
+    const isGated = (tier === 'free' || tier === 'vault') && !!careerContext;
+    if (isGated) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     // Find most recent resume to use
     const { data: resumes } = await supabase
       .from('resumes').select('id').eq('user_id', user.id)
@@ -359,12 +370,17 @@ export default function MyCareerPage() {
                         }
                       </p>
                     </div>
-                    <button
+                   <button
                       onClick={handleStartConversation}
                       className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm whitespace-nowrap flex-shrink-0"
                       style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
-                      {hasContext ? 'Update Goals →' : 'Start Conversation →'}
+                      {(() => {
+                        const tier = userProfile?.subscription_tier;
+                        const isGated = (tier === 'free' || tier === 'vault') && hasContext;
+                        if (isGated) return 'Upgrade to Continue →';
+                        return hasContext ? 'Update Goals →' : 'Start Conversation →';
+                      })()}
                     </button>
                   </div>
 
@@ -638,7 +654,9 @@ export default function MyCareerPage() {
           </div>
         </div>
       )}
-        
+
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+
     </div>
   );
 }

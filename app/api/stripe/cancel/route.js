@@ -35,11 +35,26 @@ export async function POST(req) {
     }
 
     // Cancel at end of current billing period (not immediately)
-    await stripe.subscriptions.update(profile.stripe_subscription_id, {
+    const updated = await stripe.subscriptions.update(profile.stripe_subscription_id, {
       cancel_at_period_end: true,
     });
 
-    return Response.json({ success: true });
+    const periodEnd = updated.cancel_at || updated.current_period_end;
+
+    // Save pending change in profile so UI can display it
+    await supabase
+      .from('profiles')
+      .update({
+        pending_change_type: 'cancel',
+        pending_change_date: new Date(periodEnd * 1000).toISOString(),
+        cancellation_feedback: feedback || null,
+      })
+      .eq('id', userId);
+
+    return Response.json({
+      success: true,
+      scheduled_date: new Date(periodEnd * 1000).toISOString(),
+    });
 
   } catch (error) {
     console.error('Stripe cancel error:', error);

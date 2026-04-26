@@ -42,6 +42,7 @@ export default function JobTrackerPage() {
   const [applications, setApplications] = useState([]);
   const [archivedCards, setArchivedCards] = useState([]);
   const [jsResumes, setJsResumes] = useState([]);
+  
   const [interviewRounds, setInterviewRounds] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -99,6 +100,7 @@ export default function JobTrackerPage() {
         .select('id, display_name, current_score, job_title, job_company, job_description')
         .eq('user_id', user.id)
         .eq('resume_type', 'job_specific')
+        .eq('is_active', true)
         .order('updated_at', { ascending: false });
       setJsResumes(resumes || []);
 
@@ -649,34 +651,7 @@ export default function JobTrackerPage() {
               </div>
             </div>
             <div className="px-6 py-4 space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Link to JS Resume</label>
-                <p className="text-[10px] text-gray-400 mb-1">Select a JS resume to auto-fill the job details, or fill them in manually below.</p>
-                <select
-                  value={newResumeId}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val === '') {
-                      setNewResumeId('');
-                      setNewTitle('');
-                      setNewCompany('');
-                    } else {
-                      const selected = jsResumes.find(r => r.id === val);
-                      setNewResumeId(val);
-                      const nameParts = (selected?.display_name || '').split(' at ');
-                      setNewTitle(selected?.job_title || nameParts[0] || '');
-                      setNewCompany(selected?.job_company || nameParts[1] || '');
-                      setNewDescription(selected?.job_description || '');
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">No resume linked — fill in manually</option>
-                  {jsResumes.map(r => (
-                    <option key={r.id} value={r.id}>{r.display_name || 'Untitled'}</option>
-                  ))}
-                </select>
-              </div>
+              
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Job Title *</label>
                 <input
@@ -963,6 +938,7 @@ export default function JobTrackerPage() {
                           try {
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) return;
+                            const { data: { session } } = await supabase.auth.getSession();
                             const { data: profile } = await supabase
                               .from('profiles')
                               .select('email')
@@ -970,7 +946,10 @@ export default function JobTrackerPage() {
                               .single();
                             const response = await fetch('/api/stripe/checkout', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session.access_token}`,
+                              },
                               body: JSON.stringify({
                                 priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
                                 userId: user.id,

@@ -154,8 +154,9 @@ export async function POST(request) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       const fullName = resumeData?.fullName || 'Resume'
       const nameParts = fullName.split(' ')
-      const firstName = nameParts[0] || 'Resume'
-      const lastName = nameParts[nameParts.length - 1] || ''
+      const sanitize = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')
+      const firstName = sanitize(nameParts[0]) || 'Resume'
+      const lastName = sanitize(nameParts[nameParts.length - 1]) || ''
       const atsName = lastName ? `${firstName}_${lastName}` : firstName
       const fileName = `${userId}/${versionId || 'core'}/${atsName}_Resume_${templateName}_${timestamp}.pdf`
 

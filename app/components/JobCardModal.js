@@ -163,7 +163,7 @@ export default function JobCardModal({
                     <p className="text-xs font-semibold text-amber-800">{formatDate(card.interview_date)}</p>
                   </div>
                 )}
-                {card.hired_at && (
+                {card.hired_at && (card.application_status === 'hired' || card.last_active_status === 'hired') && (
                   <div className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center">
                     <p className="text-[10px] font-bold text-green-500 uppercase tracking-wide">Hired</p>
                     <p className="text-xs font-semibold text-green-800">{formatDate(card.hired_at)}</p>

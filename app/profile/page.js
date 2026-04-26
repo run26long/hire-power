@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import MainNav from '../components/MainNav'
 import { TIERS } from '@/lib/subscription'
 import UpgradeModal from '../components/UpgradeModal'
+import SuccessToast from '../components/SuccessToast'
+import ErrorToast from '../components/ErrorToast'
 
 export default function Profile() {
   const router = useRouter()
@@ -27,6 +29,8 @@ export default function Profile() {
   const [processing, setProcessing] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [toastSuccess, setToastSuccess] = useState('')
+  const [toastError, setToastError] = useState('')
 
   useEffect(() => { loadProfile() }, [])
 
@@ -72,7 +76,7 @@ export default function Profile() {
     } catch (e) { console.error(e) } finally { setSaving(false) }
   }
 
-  async function handleDowngrade() {
+ async function handleDowngrade() {
     try {
       setProcessing(true)
       const { data: { session: downgradeSession } } = await supabase.auth.getSession()
@@ -83,14 +87,16 @@ export default function Profile() {
       })
       const data = await response.json()
       if (data.error) throw new Error(data.error)
-      const { error } = await supabase.from('profiles')
-        .update({ subscription_tier: 'vault', downgrade_scheduled_date: new Date().toISOString() })
-        .eq('id', user.id)
-      if (error) throw error
       setShowDowngradeModal(false)
       await loadProfile()
-      router.push('/career-vault?downgraded=true')
-    } catch (e) { console.error(e) } finally { setProcessing(false) }
+      const dateStr = data.scheduled_date
+        ? new Date(data.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : 'the end of your billing period'
+      setToastSuccess(`Switch to Vault confirmed. Pro access continues through ${dateStr}.`)
+    } catch (e) {
+      console.error(e)
+      setToastError('Could not process downgrade. Please try again.')
+    } finally { setProcessing(false) }
   }
 
   async function handleCancel() {
@@ -104,15 +110,17 @@ export default function Profile() {
       })
       const data = await response.json()
       if (data.error) throw new Error(data.error)
-      const { error } = await supabase.from('profiles')
-        .update({ cancelled_at: new Date().toISOString(), cancellation_feedback: cancelFeedback })
-        .eq('id', user.id)
-      if (error) throw error
       setShowCancelModal(false)
       setCancelFeedback('')
       await loadProfile()
-      router.push('/dashboard?cancelled=true')
-    } catch (e) { console.error(e) } finally { setProcessing(false) }
+      const dateStr = data.scheduled_date
+        ? new Date(data.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : 'the end of your billing period'
+      setToastSuccess(`Cancellation confirmed. Your current plan continues through ${dateStr}.`)
+    } catch (e) {
+      console.error(e)
+      setToastError('Could not process cancellation. Please try again.')
+    } finally { setProcessing(false) }
   }
 
   async function handleExportData() {
@@ -233,6 +241,11 @@ export default function Profile() {
               }}>
                 {tierLabel[tier]}
               </span>
+              {profile?.pending_change_type && profile?.pending_change_date && (
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 6, lineHeight: 1.3 }}>
+                  {profile.pending_change_type === 'downgrade' ? 'Switching to Vault' : 'Cancelling'} on {new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
             </div>
           </div>
           <div className="border-b border-gray-400 border-opacity-10 mt-2"></div>
@@ -344,6 +357,21 @@ export default function Profile() {
                     )}
                   </div>
 
+                  {/* Pending change banner */}
+                  {profile?.pending_change_type && profile?.pending_change_date && (
+                    <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>
+                        {profile.pending_change_type === 'downgrade' ? 'Switching to Vault' : 'Cancellation scheduled'}
+                      </p>
+                      <p style={{ fontSize: 11, color: '#78350f', lineHeight: 1.4 }}>
+                        {profile.pending_change_type === 'downgrade'
+                          ? `Your Pro plan continues through ${new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, you'll switch to Vault for $4.99/month.`
+                          : `Your Pro plan continues through ${new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, your account will be downgraded to Free.`
+                        }
+                      </p>
+                    </div>
+                  )}
+
                   {/* Actions */}
                   {tier === TIERS.PRO && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -418,8 +446,14 @@ export default function Profile() {
                   <div style={{ ...cardBody, display: 'flex', gap: 8 }}>
                     <button
                       onClick={async () => {
-                        await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/reset-password` })
-                        alert('Password reset email sent!')
+                        try {
+                          const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/reset-password` })
+                          if (error) throw error
+                          setToastSuccess('Password reset email sent! Check your inbox.')
+                        } catch (e) {
+                          console.error(e)
+                          setToastError('Could not send reset email. Please try again.')
+                        }
                       }}
                       style={{ ...btnOutline, flex: 1, textAlign: 'center' }}
                     >
@@ -619,7 +653,7 @@ export default function Profile() {
         </div>
       )}
 
-   {showUpgradeModal && (
+  {showUpgradeModal && (
         <UpgradeModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
@@ -627,6 +661,9 @@ export default function Profile() {
           supabase={supabase}
         />
       )}
+
+      <SuccessToast message={toastSuccess} onClose={() => setToastSuccess('')} />
+      <ErrorToast message={toastError} onClose={() => setToastError('')} />
     </div>
   )
 }
