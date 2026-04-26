@@ -692,6 +692,19 @@ if (data.ai_analysis) {
     }
   }
 
+  // Ctrl+Z / Cmd+Z keyboard shortcut for undo
+  useEffect(() => {
+    function handleKeyDown(e) {
+      const isUndoShortcut = (e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey
+      if (isUndoShortcut && historyIndex > 0) {
+        e.preventDefault()
+        undo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [historyIndex, history])
+
   function resetHistory(newData) {
     const cloned = JSON.parse(JSON.stringify(newData))
     resumeDataRef.current = cloned
@@ -1496,7 +1509,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
  return (
    <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 pl-4 pr-2 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6"}>
       
- <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-4 md:pt-6'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-4 md:mb-6 pb-3 md:pb-4 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
+ <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-3 md:pt-4'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
  {isJobSpecific ? (
         <div className="mb-3 text-center">
           <h3 className="font-bold text-sm text-gray-900 leading-tight">{resumeName}</h3>
@@ -2749,107 +2762,9 @@ const getMessageText = (msg) => {
       .eq('id', params.id)
     setResume(prev => ({ ...prev, journey_step: 'improve' }))
   }
-// ── Already generated → lock and show recoach prompt ──
-  if (coachingComplete && !trialComplete && userTier !== 'free' && !isConversational) {
-    const showPushHarder = changesAccepted && score < 85 && remainingGaps?.length > 0
-    const showFormatFinish = changesAccepted
+// ── Coaching locked (Pro/JS, complete) — chat renders normally, just hide input and finish button ──
+  const proCoachingLocked = coachingComplete && !trialComplete && userTier !== 'free' && !isConversational
 
-    return (
-      <div className="space-y-3">
-
-        {/* Unified score card */}
-        <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
-          
-          {/* Purple header */}
-          <div
-            className="px-4 py-3 flex items-center gap-3"
-            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
-          >
-            <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
-            <div>
-              <p className="font-bold text-white text-sm leading-tight">Coaching Complete!</p>
-              <p className="text-purple-100 text-xs leading-tight">
-                {changesAccepted
-                  ? "Here are the rewrite results after your coaching session."
-                  : "Your resume has been rewritten and is ready to review."}
-              </p>
-            </div>
-          </div>
-
-          {/* Scores */}
-          {scoreBeforeCoaching && score && (
-            <>
-              <div className="bg-white flex justify-center gap-6 pt-6 pb-3 px-2">
-                <div className="text-center">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">Before</p>
-                  <p className="text-6xl font-bold" style={{ color: scoreBeforeCoaching >= 85 ? '#9333ea' : scoreBeforeCoaching >= 75 ? '#81c784' : scoreBeforeCoaching >= 60 ? '#ffc870' : '#e57373' }}>{scoreBeforeCoaching}</p>
-                </div>
-                <div className="flex items-center justify-center mt-5">
-                 <span style={{ fontSize: '2rem', color: '#9ca3af', fontWeight: 500, lineHeight: 1 }}>➜</span>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">After</p>
-                  <p className="text-6xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</p>
-                </div>
-              </div>
-              {score > scoreBeforeCoaching ? (
-                <div className="bg-purple-50 border-t border-purple-100 py-2 text-center">
-                  <p className="text-xs font-semibold text-purple-600">
-                    +{score - scoreBeforeCoaching} points from coaching
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-gray-50 border-t border-gray-100 py-2 text-center">
-                  <p className="text-xs text-gray-500">
-                    Your resume was already well-optimized.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Buttons */}
-        {!changesAccepted ? (
-          <div className="flex justify-center pt-1">
-            <button
-              onClick={advanceToImprove}
-              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              Review My Changes →
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2 justify-center pt-1">
-            {showPushHarder && (
-              <button
-                onClick={advanceToImprove}
-                className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
-              >
-                Push for a higher score →
-              </button>
-            )}
-            {showFormatFinish && (
-              <button
-                onClick={async () => {
-                  await supabase
-                    .from('resumes')
-                    .update({ journey_step: 'format', updated_at: new Date().toISOString() })
-                    .eq('id', params.id)
-                  setResume(prev => ({ ...prev, journey_step: 'format' }))
-                }}
-                className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-              >
-                Format & Finish →
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
   // ── Already used trial → upsell ──
 if (trialCoachingUsed && !trialComplete && userTier === 'free') {
       return (
@@ -2904,46 +2819,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
     )
   }
 
-  // ── Conversational UI ──
+ // ── Conversational UI ──
   if (isConversational) {
-    // LOCK: coaching already complete, don't re-show the chat UI (no regenerate loophole)
-    if (coachingComplete) {
-      return (
-        <div className="space-y-3">
-          <div className="rounded-lg overflow-hidden border border-purple-200 shadow-sm">
-            <div
-              className="px-4 py-3 flex items-center gap-3"
-              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
-            >
-              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
-              <div>
-                <p className="font-bold text-white text-sm leading-tight">Coaching Complete!</p>
-                <p className="text-purple-100 text-xs leading-tight">Your résumé is built and ready to review.</p>
-              </div>
-            </div>
-            {score && (
-              <div className="bg-white px-4 py-3 text-center">
-                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Resume Power Score</div>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
-                  <span className="text-xl text-gray-400">/100</span>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-center pt-1">
-            <button
-              onClick={advanceToImprove}
-              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              Review My Résumé →
-            </button>
-          </div>
-        </div>
-      )
-    }
-
     const isChatComplete = coachingMessages.some(msg =>
       msg.role === 'assistant' && getMessageText(msg).toLowerCase().includes('click the button below')
     )
@@ -2988,9 +2865,9 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
+           <div ref={messagesEndRef} />
           </div>
-          {!isChatComplete ? (
+         {coachingComplete ? null : !isChatComplete ? (
             <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
               <div className="flex gap-2 items-end">
                 <textarea
@@ -3115,7 +2992,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         </div>
 
         {/* Input */}
-        {!isProCoachingComplete && !isTrialCoachingComplete && (
+        {!isProCoachingComplete && !isTrialCoachingComplete && !proCoachingLocked && (
           <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
             <div className="flex gap-2 items-end">
               <textarea
@@ -3156,7 +3033,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         )}
 
         {/* Pro finish button */}
-        {isProCoachingComplete && userTier !== 'free' && (
+        {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && (
           <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
             <button
               onClick={finishCoaching}
@@ -3333,6 +3210,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
   const [reviewMode, setReviewMode] = useState(false)
+  const [showBreakdown, setShowBreakdown] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
   const [acceptedChanges, setAcceptedChanges] = useState([])
@@ -3382,7 +3260,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
     )
   }
 
-  // ── CONVERSATIONAL IMPROVE PATH ──
+ // ── CONVERSATIONAL IMPROVE PATH ──
   if (isConversational) {
     if (changesAccepted) {
       return (
@@ -3402,6 +3280,85 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
                   <span className="text-xl text-gray-400">/100</span>
                 </div>
+                <button
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium mt-1 inline-flex items-center gap-1"
+                >
+                  {showBreakdown ? 'Hide score breakdown' : 'View score breakdown'}
+                  <span className="text-[10px]">{showBreakdown ? '▲' : '▼'}</span>
+                </button>
+                {showBreakdown && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 text-left">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <span className="font-semibold text-gray-900 text-sm">Impact</span>
+                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 0}/50</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                          {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
+                          {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
+                          {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
+                          {!detectedLevel && 'Specificity, scope, and scale'}
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((analysisResults?.analysis?.breakdown?.impact || 0)/50)*100}%`,
+                              background: (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.85 ? '#9333ea' :
+                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.75 ? '#81c784' :
+                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.60 ? '#ffc870' :
+                                      '#e57373'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <span className="font-semibold text-gray-900 text-sm">Clarity</span>
+                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 0}/30</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((analysisResults?.analysis?.breakdown?.clarity || 0)/30)*100}%`,
+                              background: (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.85 ? '#9333ea' :
+                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.75 ? '#81c784' :
+                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.60 ? '#ffc870' :
+                                      '#e57373'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <span className="font-semibold text-gray-900 text-sm">Keywords</span>
+                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 0}/20</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                          {detectedLevel === 'senior' ? 'Field vocabulary, tools, methodologies, and systems' : 'Field vocabulary, tools, and software names'}
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((analysisResults?.analysis?.breakdown?.keywords || 0)/20)*100}%`,
+                              background: (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.85 ? '#9333ea' :
+                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.75 ? '#81c784' :
+                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.60 ? '#ffc870' :
+                                      '#e57373'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -3439,6 +3396,85 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
                   <span className="text-xl text-gray-400">/100</span>
                 </div>
+                <button
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium mt-1 inline-flex items-center gap-1"
+                >
+                  {showBreakdown ? 'Hide score breakdown' : 'View score breakdown'}
+                  <span className="text-[10px]">{showBreakdown ? '▲' : '▼'}</span>
+                </button>
+                {showBreakdown && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 text-left">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <span className="font-semibold text-gray-900 text-sm">Impact</span>
+                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 0}/50</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                          {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
+                          {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
+                          {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
+                          {!detectedLevel && 'Specificity, scope, and scale'}
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((analysisResults?.analysis?.breakdown?.impact || 0)/50)*100}%`,
+                              background: (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.85 ? '#9333ea' :
+                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.75 ? '#81c784' :
+                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.60 ? '#ffc870' :
+                                      '#e57373'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <span className="font-semibold text-gray-900 text-sm">Clarity</span>
+                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 0}/30</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((analysisResults?.analysis?.breakdown?.clarity || 0)/30)*100}%`,
+                              background: (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.85 ? '#9333ea' :
+                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.75 ? '#81c784' :
+                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.60 ? '#ffc870' :
+                                      '#e57373'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-baseline mb-0.5">
+                          <span className="font-semibold text-gray-900 text-sm">Keywords</span>
+                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 0}/20</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                          {detectedLevel === 'senior' ? 'Field vocabulary, tools, methodologies, and systems' : 'Field vocabulary, tools, and software names'}
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((analysisResults?.analysis?.breakdown?.keywords || 0)/20)*100}%`,
+                              background: (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.85 ? '#9333ea' :
+                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.75 ? '#81c784' :
+                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.60 ? '#ffc870' :
+                                      '#e57373'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

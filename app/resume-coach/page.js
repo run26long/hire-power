@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import UpgradeModal from '../components/UpgradeModal';
 import ErrorToast from '../components/ErrorToast';
+import { getJobSources } from '../utils/getJobSources';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
 import ResumeContent from '../components/ResumeContent';
@@ -43,6 +44,8 @@ export default function MyResumesPage() {
   const [jobTitle, setJobTitle] = useState('');
   const [jobCompany, setJobCompany] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [jobSources, setJobSources] = useState([]);
+  const [selectedJobSourceId, setSelectedJobSourceId] = useState('');
   const [creatingJob, setCreatingJob] = useState(false);
   const [jobCreateError, setJobCreateError] = useState(null);
 
@@ -82,6 +85,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const [showTourModal, setShowTourModal] = useState(false);
   const [tourScreen, setTourScreen] = useState(1);
   const [hasSeenTour, setHasSeenTour] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
 
  useEffect(() => {
     loadData();
@@ -138,9 +142,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         throw new Error('Failed to load data');
       }
       
-      const resData = await response.json();
+     const resData = await response.json();
       setData(resData);
       setUserProfile(resData.userProfile);
+
+      // Load job sources for the JS Resume + CL modal dropdowns
+      const sources = await getJobSources(supabase, user.id);
+      setJobSources(sources);
+
       setRetryCount(0); 
       // Reset retry count on success
       
@@ -261,10 +270,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   const handleStartResumeChat = async () => {
-    handleCompleteTour();
+    setCreatingChat(true);
     try {
       const { data: { user: chatUser } } = await supabase.auth.getUser();
-      if (!chatUser) return;
+      if (!chatUser) {
+        setCreatingChat(false);
+        return;
+      }
       const { data: newResume, error } = await supabase
         .from('resumes')
         .insert({
@@ -279,11 +291,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .single();
       if (error || !newResume) {
         console.error('Failed to create resume chat record:', error);
+        setCreatingChat(false);
         return;
       }
+      // Mark tour as seen, then navigate. Don't close the modal yet —
+      // it will unmount when navigation completes, avoiding empty-state flash.
+      localStorage.setItem('hp_tour_seen', 'true');
       router.push(`/resume/${newResume.id}`);
     } catch (err) {
       console.error('Resume chat start error:', err);
+      setCreatingChat(false);
     }
   };
 
@@ -482,24 +499,28 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const handleDeleteResume = async (resumeId) => {
     try {
       setDeletingId(resumeId);
+      const now = new Date().toISOString();
+
+      // Archive children first (JS resumes parented to this resume)
       const { error: childError } = await supabase
         .from('resumes')
-        .delete()
+        .update({ is_active: false, updated_at: now })
         .eq('parent_resume_id', resumeId)
         .eq('user_id', user.id);
       if (childError) throw childError;
 
+      // Archive the resume itself
       const { error } = await supabase
         .from('resumes')
-        .delete()
+        .update({ is_active: false, updated_at: now })
         .eq('id', resumeId)
         .eq('user_id', user.id);
       if (error) throw error;
       setConfirmDeleteId(null);
       await loadData();
     } catch (error) {
-      console.error('Delete error:', error?.message || error?.code || JSON.stringify(error));
-      setErrorToast('Could not delete resume. Please try again.');
+      console.error('Archive error:', error?.message || error?.code || JSON.stringify(error));
+      setErrorToast('Could not archive resume. Please try again.');
     } finally {
       setDeletingId(null);
     }
@@ -746,17 +767,17 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     
     const messages = {
       review: "Your resume is in! Now make sure everything landed in the right place - AI parsing is good, not perfect. Give it a quick review, then we'll assess.",
-      assess: "Time for your baseline. Get your Resume Power Score and a breakdown of what's working and what's not - specific to your experience, not generic advice.",
+      assess: "Time to assess what you’re working with. Get your Resume Power Score and a breakdown of what's working and what's not - specific to your experience, not generic advice.",
       coach: isFree
-        ? "Get a taste of what coaching can do. We'll have a real conversation about one of your jobs and surface an achievement worth adding — then you decide if you want the full session."
-        : "Your coach can't improve what's not on the page. Through conversation, we'll uncover quantifiable achievements, transferable skills, and results you forgot were impressive.",
+        ? "Get a taste of what coaching can do. We'll have a real conversation about one of your jobs and surface an achievement worth adding. Then, you decide if you want the full session."
+        : "Chat your way to a better resume. Through conversation, we'll uncover quantifiable achievements, transferable skills, and results you forgot were impressive.",
      improve: isFree 
-        ? "Review the suggestions from your assessment and make changes directly to your resume. When you're done, save and download."
-        : "The big reveal! See your updated Resume Power Score, review each improvement your coach made, then keep, edit, or reject each change.",
-      format: "Content is locked in. Run Auto-fit to get the perfect page fit, try different templates, and preview before downloading.",
+        ? "Review the suggestions from your assessment and make changes directly to your resume. When you're done, you can format, save, and download your improved resume."
+        : "The big reveal! See your updated Resume Power Score, review each improvement your coach made, then keep, reject, or edit each change.",
+      format: "Content is locked in. Run Auto-fit to get the perfect page fit, try different templates, and preview the end result before downloading.",
       save: isFree
-        ? "Your core resume is complete! Download it for immediate use, and when you're ready, upload a job description to see how well your resume matches that role."
-        : "Your core resume is bulletproof. Download it for immediate use, and when you're ready, create a job-specific version that builds on this foundation."
+        ? "Your core resume is complete! Download it for immediate use, and when you're ready, upload a job description to create a cover letter or see how well your resume matches that role."
+        : "Your core resume is bulletproof. Download it for immediate use, and when you're ready, create a job-specific version that builds on this foundation with a cover letter to match."
     };
     return messages[step] || messages.review;
   };
@@ -1890,7 +1911,37 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
+           <div className="p-6 space-y-4">
+              {jobSources.filter(s => !s.has_resume).length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Use details from existing job</label>
+                  <p className="text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
+                  <select
+                    value={selectedJobSourceId}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setSelectedJobSourceId('');
+                        setJobTitle('');
+                        setJobCompany('');
+                        setJobDescription('');
+                      } else {
+                        const selected = jobSources.find(s => s.id === val);
+                        setSelectedJobSourceId(val);
+                        setJobTitle(selected?.title || '');
+                        setJobCompany(selected?.company || '');
+                        setJobDescription(selected?.description || '');
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">None selected</option>
+                    {jobSources.filter(s => !s.has_resume).map(s => (
+                      <option key={s.id} value={s.id}>{s.displayLabel}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Job Title</label>
                 <input
@@ -2036,10 +2087,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   <div className="flex-shrink-0 text-center">
                     <button
                       onClick={handleStartResumeChat}
-                      className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                      disabled={creatingChat}
+                      className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap disabled:opacity-85"
                       style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
                     >
-                      Build with Coach
+                      {creatingChat ? (
+                        <>
+                          <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Starting...
+                        </>
+                      ) : (
+                        <>Build with Coach</>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -2080,8 +2139,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this resume?</h3>
-            <p className="text-sm text-gray-600 mb-5">This can't be undone. {isPro ? 'All coaching history and improvements will be permanently removed.' : 'Your resume and all assessment history will be permanently removed.'}</p>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Archive this resume?</h3>
+            <p className="text-sm text-gray-600 mb-5">It will move to your archive. You can restore or permanently delete it from there.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
@@ -2100,10 +2159,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Deleting...
+                    Archiving...
                   </>
                 ) : (
-                  'Yes, Delete'
+                  'Yes, Archive'
                 )}
               </button>
             </div>
@@ -2145,61 +2204,34 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             </div>
 
            <div className="p-4 space-y-3">
-              {isPro && data?.resumeVersions && data.resumeVersions.length > 0 && (
+              {jobSources.filter(s => !s.has_cover_letter).length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Select a job-specific resume if you created one for this job. If not, add the details below.</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Use details from existing job</label>
+                  <p className="text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
                   <select
-                    value={clSelectedJSId || ''}
+                    value={selectedJobSourceId}
                     onChange={e => {
                       const val = e.target.value;
                       if (val === '') {
+                        setSelectedJobSourceId('');
                         setClSelectedJSId('');
                         setClJobTitle('');
                         setClCompany('');
                         setClJobDescription('');
                       } else {
-                        const selected = data.resumeVersions.find(v => v.id === val);
-                        setClSelectedJSId(val);
-                        setClJobTitle(selected?.job_title || '');
-                        setClCompany(selected?.job_company || '');
-                        setClJobDescription(selected?.job_description || '');
-                      }
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
-                  >
-                    <option value="">Start fresh</option>
-                    {data.resumeVersions.map(v => (
-                      <option key={v.id} value={v.id}>{v.job_title} at {v.job_company}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {!isPro && data?.resumeVersions && data.resumeVersions.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Use a saved job match score to auto-fill the details below.</label>
-                  <select
-                    value={clSelectedJSId || ''}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val === '') {
+                        const selected = jobSources.find(s => s.id === val);
+                        setSelectedJobSourceId(val);
                         setClSelectedJSId('');
-                        setClJobTitle('');
-                        setClCompany('');
-                        setClJobDescription('');
-                      } else {
-                        const selected = data.resumeVersions.find(v => v.id === val);
-                        setClSelectedJSId(val);
-                        setClJobTitle(selected?.job_title || '');
-                        setClCompany(selected?.job_company || '');
-                        setClJobDescription(selected?.job_description || '');
+                        setClJobTitle(selected?.title || '');
+                        setClCompany(selected?.company || '');
+                        setClJobDescription(selected?.description || '');
                       }
                     }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
                   >
-                    <option value="">Start fresh</option>
-                    {data.resumeVersions.map(v => (
-                      <option key={v.id} value={v.id}>{v.job_title} at {v.job_company}</option>
+                    <option value="">None selected</option>
+                    {jobSources.filter(s => !s.has_cover_letter).map(s => (
+                      <option key={s.id} value={s.id}>{s.displayLabel}</option>
                     ))}
                   </select>
                 </div>
@@ -2373,7 +2405,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={() => handleDeleteCoverLetter(confirmDeleteCLId)}
                 disabled={deletingCLId === confirmDeleteCLId}
-                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {deletingCLId === confirmDeleteCLId ? (
                   <>

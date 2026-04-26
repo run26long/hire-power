@@ -10,8 +10,19 @@ export default function MainNav({ currentPage, userProfile }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const tier = userProfile?.subscription_tier;
+ const tier = userProfile?.subscription_tier;
   const isVaultTier = tier === 'vault' || tier === 'maintenance' || (tier === 'pro' && userProfile?.search_status === 'hired');
+
+  const pendingChangeType = userProfile?.pending_change_type;
+  const pendingChangeDate = userProfile?.pending_change_date;
+  let tierTooltip = undefined;
+  if (pendingChangeType && pendingChangeDate) {
+    const dateStr = new Date(pendingChangeDate).toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric'
+    });
+    if (pendingChangeType === 'downgrade') tierTooltip = `Switching to Vault on ${dateStr}`;
+    else if (pendingChangeType === 'cancel') tierTooltip = `Cancelling on ${dateStr}`;
+  }
 
   const navItems = [
     { id: 'dashboard',       label: 'Dashboard',       path: '/dashboard' },
@@ -79,13 +90,13 @@ export default function MainNav({ currentPage, userProfile }) {
                 className="flex items-center gap-2 text-gray-700 hover:text-purple-600"
               >
                 {tier === 'pro' && (
-                  <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
                 )}
                 {tier === 'vault' && (
-                  <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
                 )}
                 {tier === 'maintenance' && (
-                  <span className="text-[10px] font-bold text-white bg-gray-500 px-2 py-0.5 rounded-full">VAULT</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-gray-500 px-2 py-0.5 rounded-full">VAULT</span>
                 )}
                 {(!tier || tier === 'free') && (
                   <span
@@ -126,10 +137,10 @@ export default function MainNav({ currentPage, userProfile }) {
                   </span>
                 )}
                 {(tier === 'pro') && (
-                  <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
                 )}
                 {(tier === 'vault' || tier === 'maintenance') && (
-                  <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
                 )}
               </>
             )}

@@ -134,9 +134,12 @@ export async function POST(request) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const candidateName = coverLetterData?.candidateName || 'Cover_Letter'
     const nameParts = candidateName.split(' ')
-    const atsName = nameParts.length > 1
-      ? `${nameParts[0]}_${nameParts[nameParts.length - 1]}`
-      : nameParts[0]
+    const sanitize = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]/g, '')
+    const firstName = sanitize(nameParts[0]) || 'Cover_Letter'
+    const lastName = sanitize(nameParts[nameParts.length - 1]) || ''
+    const atsName = nameParts.length > 1 && lastName
+      ? `${firstName}_${lastName}`
+      : firstName
     const fileName = `${userId}/cover-letters/${atsName}_Cover_Letter_${timestamp}.pdf`
 
     const { error: uploadError } = await supabase.storage

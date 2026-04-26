@@ -109,6 +109,10 @@ export default function CareerVaultPage() {
   // Archive modal
  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
+  const [activeResumes, setActiveResumes] = useState([]);
+  const [showResumeListModal, setShowResumeListModal] = useState(false);
+  const [confirmArchiveResume, setConfirmArchiveResume] = useState(null);
+  const [archivingResumeId, setArchivingResumeId] = useState(null);
   const [showNewSearchModal, setShowNewSearchModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
@@ -134,7 +138,9 @@ export default function CareerVaultPage() {
   const [rpDownloading, setRpDownloading] = useState(false)
 
   const handleStartNewSearch = async () => {
-    // Archive all active applications before starting fresh
+    const now = new Date().toISOString();
+
+    // Archive all active applications
     const { data: activeApps } = await supabase
       .from('applications')
       .select('id, application_status')
@@ -148,11 +154,26 @@ export default function CareerVaultPage() {
           .update({
             application_status: 'archived',
             last_active_status: app.application_status,
-            updated_at: new Date().toISOString()
+            updated_at: now
           })
           .eq('id', app.id)
       ));
     }
+
+    // Archive all JS resumes (core resume stays active)
+    await supabase
+      .from('resumes')
+      .update({ is_active: false, updated_at: now })
+      .eq('user_id', user.id)
+      .eq('resume_type', 'job_specific')
+      .eq('is_active', true);
+
+    // Archive all cover letters
+    await supabase
+      .from('cover_letters')
+      .update({ is_active: false, updated_at: now })
+      .eq('user_id', user.id)
+      .eq('is_active', true);
 
     await supabase
       .from('profiles')
@@ -225,13 +246,22 @@ export default function CareerVaultPage() {
         if (accs) setAccomplishments(accs);
       }
 
-      const { count: resumeCount } = await supabase
+      // Load all active resumes (core + JS) for count and modal
+      const { data: allActiveResumes } = await supabase
         .from('resumes')
-        .select('*', { count: 'exact', head: true })
+        .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at')
         .eq('user_id', user.id)
-        .eq('resume_type', 'core')
-        .eq('is_active', true);
-      setResumeCount(resumeCount || 0);
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false });
+
+      // Sort: core first, then JS by most recently updated
+      const sortedResumes = (allActiveResumes || []).sort((a, b) => {
+        if (a.resume_type === 'core' && b.resume_type !== 'core') return -1;
+        if (a.resume_type !== 'core' && b.resume_type === 'core') return 1;
+        return new Date(b.updated_at) - new Date(a.updated_at);
+      });
+      setActiveResumes(sortedResumes);
+      setResumeCount(sortedResumes.length);
 
       // Load archived job cards
       const { data: archivedApps } = await supabase
@@ -445,6 +475,58 @@ export default function CareerVaultPage() {
     setArchivedCoreResumes(prev => prev.filter(r => r.id !== resumeId));
     setResumeCount(prev => prev + 1);
     setArchiveActionLoading(false);
+  }
+
+  async function handleArchiveResume(resume) {
+    setArchivingResumeId(resume.id);
+    try {
+      const now = new Date().toISOString();
+
+      // If core, archive all child JS resumes too
+      if (resume.resume_type === 'core') {
+        await supabase
+          .from('resumes')
+          .update({ is_active: false, updated_at: now })
+          .eq('parent_resume_id', resume.id)
+          .eq('user_id', user.id);
+      }
+
+      // Archive the resume itself
+      const { error } = await supabase
+        .from('resumes')
+        .update({ is_active: false, updated_at: now })
+        .eq('id', resume.id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+
+      // Update local state
+      setActiveResumes(prev => prev.filter(r => r.id !== resume.id));
+      setResumeCount(prev => Math.max(0, prev - 1));
+      setConfirmArchiveResume(null);
+
+      // Reload archived list so it shows up in archive immediately
+      const { data: archivedApps } = await supabase
+        .from('applications')
+        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
+        .eq('user_id', user.id)
+        .eq('application_status', 'archived')
+        .order('updated_at', { ascending: false });
+      setArchivedCards(archivedApps || []);
+
+      const { data: inactiveCores } = await supabase
+        .from('resumes')
+        .select('id, display_name, created_at, updated_at, current_score, resume_power_score')
+        .eq('user_id', user.id)
+        .eq('resume_type', 'core')
+        .eq('is_active', false)
+        .order('updated_at', { ascending: false });
+      setArchivedCoreResumes(inactiveCores || []);
+    } catch (err) {
+      console.error('Error archiving resume:', err);
+      setErrorToast('Could not archive. Please try again.');
+    } finally {
+      setArchivingResumeId(null);
+    }
   }
 
   async function handleHardDelete() {
@@ -747,11 +829,15 @@ export default function CareerVaultPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {[
-                        { label: 'Logged',   value: accomplishments.length, icon: '🏆' },
-                        { label: 'Resumes',  value: resumeCount,            icon: '📄' },
-                        { label: 'Archived', value: archivedCards.length + archivedCoreResumes.length, icon: '📁' },
+                        { label: 'Logged',   value: accomplishments.length, icon: '🏆', onClick: null },
+                        { label: 'Resumes',  value: resumeCount,            icon: '📄', onClick: resumeCount > 0 ? () => setShowResumeListModal(true) : null },
+                        { label: 'Archived', value: archivedCards.length + archivedCoreResumes.length, icon: '📁', onClick: (archivedCards.length + archivedCoreResumes.length) > 0 ? () => setShowArchiveModal(true) : null },
                       ].map((item) => (
-                        <div key={item.label} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200 select-none">
+                        <div
+                          key={item.label}
+                          onClick={item.onClick || undefined}
+                          className={`text-center p-2 bg-gray-50 rounded-lg border border-gray-200 select-none ${item.onClick ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors' : ''}`}
+                        >
                           <div className="text-base">{item.icon}</div>
                           <div className="text-lg font-bold text-gray-700">{item.value}</div>
                           <div className="text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
@@ -1597,6 +1683,143 @@ export default function CareerVaultPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── RESUME LIST MODAL ── */}
+    {showResumeListModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={() => setShowResumeListModal(false)}
+      >
+        <div
+          className="bg-white shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
+          style={{ borderRadius: '12px', maxHeight: '80vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+            className="px-6 py-5 relative flex-shrink-0"
+          >
+            <button
+              onClick={() => setShowResumeListModal(false)}
+              className="absolute top-3 right-4 text-white hover:opacity-70 text-2xl leading-none font-light"
+            >×</button>
+            <div className="flex items-center gap-3">
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+              <div>
+                <h2 className="text-xl font-bold text-white">Your Resumes</h2>
+                <p className="text-purple-100 text-xs">{activeResumes.length} active resume{activeResumes.length !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-2">
+            {activeResumes.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <div className="text-4xl mb-2">📄</div>
+                <p className="text-sm">No active resumes</p>
+              </div>
+            ) : (
+              activeResumes.map((resume) => (
+                <div key={resume.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {resume.resume_type === 'core'
+                            ? (resume.display_name || 'Core Resume')
+                            : (resume.display_name || `${resume.job_title || 'Untitled'}${resume.job_company ? ' at ' + resume.job_company : ''}`)
+                          }
+                        </p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide" style={{
+                          background: resume.resume_type === 'core' ? '#f5f3ff' : '#eff6ff',
+                          borderColor: resume.resume_type === 'core' ? '#c4b5fd' : '#93c5fd',
+                          color: resume.resume_type === 'core' ? '#5b21b6' : '#1e40af'
+                        }}>
+                          {resume.resume_type === 'core' ? 'Core' : 'Job-Specific'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400">
+                        Updated {formatDate(resume.updated_at)}{resume.current_score ? ` · Score: ${resume.current_score}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => { setShowResumeListModal(false); router.push(`/resume/${resume.id}`); }}
+                        className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
+                      >View</button>
+                      <button
+                        onClick={() => setConfirmArchiveResume(resume)}
+                        className="text-[10px] text-gray-500 font-semibold hover:text-gray-700"
+                      >Remove & Add to Archive</button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── ARCHIVE CONFIRMATION ── */}
+    {confirmArchiveResume && (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={() => archivingResumeId === null && setConfirmArchiveResume(null)}
+      >
+        <div
+          className="bg-white shadow-2xl overflow-hidden"
+          style={{ width: '364px', borderRadius: '12px' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div
+            className="px-6 py-5 relative"
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+          >
+            <div className="flex items-center gap-3">
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+              <div>
+                <h2 className="text-base font-bold text-white">Move to Archive?</h2>
+                <p className="text-purple-100 text-xs">
+                  {confirmArchiveResume.resume_type === 'core'
+                    ? (confirmArchiveResume.display_name || 'Core Resume')
+                    : `${confirmArchiveResume.job_title || 'Untitled'}${confirmArchiveResume.job_company ? ' at ' + confirmArchiveResume.job_company : ''}`
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 py-5">
+            <p className="text-sm text-gray-700 mb-5 leading-snug">
+              {confirmArchiveResume.resume_type === 'core'
+                ? 'This will move your core resume and any related job-specific versions to your archive. You can restore or permanently delete from there.'
+                : 'This will move this job-specific resume to your archive. You can restore or permanently delete from there.'
+              }
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setConfirmArchiveResume(null)}
+                disabled={archivingResumeId !== null}
+                className="px-5 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleArchiveResume(confirmArchiveResume)}
+                disabled={archivingResumeId !== null}
+                className="px-5 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+              >
+                {archivingResumeId !== null && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                {archivingResumeId !== null ? 'Archiving...' : 'Move to Archive'}
+              </button>
             </div>
           </div>
         </div>
