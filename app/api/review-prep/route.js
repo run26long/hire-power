@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { apiError } from '@/lib/apiError'
 
 const anthropic = new Anthropic()
 
@@ -158,7 +159,13 @@ Output the document text only. No preamble, no explanation, no notes about what 
       messages: [{ role: 'user', content: prompt }]
     })
 
-    const bodyText = message.content[0].text.trim()
+    const bodyText = message.content?.[0]?.text?.trim()
+    if (!bodyText) {
+      return apiError(
+        new Error('Empty content from Anthropic in review-prep'),
+        "We couldn't generate your review prep. Please try again."
+      )
+    }
 
     // Build header — plain text, no branding
     const header = `${name}\n${title} — ${company}\nPerformance Review | ${reviewDate}`
@@ -173,10 +180,6 @@ Output the document text only. No preamble, no explanation, no notes about what 
     })
 
   } catch (error) {
-    console.error('Review prep error:', error)
-    return Response.json(
-      { error: 'Failed to generate review prep', details: error.message },
-      { status: 500 }
-    )
+    return apiError(error, "We couldn't generate your review prep. Please try again.")
   }
 }

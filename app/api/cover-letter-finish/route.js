@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { apiError } from '@/lib/apiError'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -509,7 +510,7 @@ export async function POST(request) {
 
     if (!resumeData || !jobDescription) {
       return NextResponse.json(
-        { error: 'resumeData and jobDescription are required' },
+        { error: "We're missing some information needed to write your cover letter. Refresh and try again." },
         { status: 400 }
       )
     }
@@ -520,11 +521,15 @@ export async function POST(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('subscription_tier, cl_count')
       .eq('id', userId)
       .single()
+
+    if (profileError) {
+      return apiError(profileError, "We couldn't load your account. Please try again.")
+    }
 
     const isFree = !profile?.subscription_tier || profile?.subscription_tier === 'free'
     if (isFree && (profile?.cl_count ?? 0) >= 3) {
@@ -544,7 +549,8 @@ export async function POST(request) {
         })
         break
       } catch (err) {
-        if (err.status === 529 && attempts < 2) {
+        const isRetryable = err.status === 529 || err.status === 429 || err.status === 503
+        if (isRetryable && attempts < 2) {
           attempts++
           await new Promise(resolve => setTimeout(resolve, 2000 * attempts))
         } else {
@@ -556,8 +562,10 @@ export async function POST(request) {
     let raw = message.content[0].text.trim()
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      console.error('No JSON found in output:', raw)
-      return NextResponse.json({ error: 'No JSON returned from model' }, { status: 500 })
+      return apiError(
+        new Error('No JSON found in cover letter model output: ' + raw.slice(0, 500)),
+        "We couldn't generate the cover letter. Please try again."
+      )
     }
     let cleaned = jsonMatch[0]
 
@@ -565,8 +573,8 @@ export async function POST(request) {
     try {
       coverLetterData = JSON.parse(cleaned)
     } catch (parseError) {
-      console.error('JSON parse failed:', cleaned)
-      return NextResponse.json({ error: 'Invalid JSON from model' }, { status: 500 })
+      console.error('Cover letter JSON parse failed:', cleaned)
+      return apiError(parseError, "We couldn't generate the cover letter. Please try again.")
     }
 
     if (coverLetterData.canWrite === false) {
@@ -591,7 +599,6 @@ export async function POST(request) {
     return NextResponse.json({ coverLetterData })
 
   } catch (error) {
-    console.error('Cover letter generate error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "We couldn't generate the cover letter. Please try again.")
   }
 }

@@ -2,6 +2,7 @@ import React from 'react'
 import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import path from 'path'
+import { apiError } from '@/lib/apiError'
 import ResumePDFCurrent from '../../templates/pdf/ResumePDF-Current'
 import ResumePDFCommand from '../../templates/pdf/ResumePDF-Command'
 import ResumePDFCrisp from '../../templates/pdf/ResumePDF-Crisp'
@@ -214,6 +215,12 @@ export async function POST(request) {
       const { data: { publicUrl } } = supabase.storage
         .from('resume-pdfs')
         .getPublicUrl(fileName)
+      if (!publicUrl) {
+        return apiError(
+          new Error(`getPublicUrl returned empty for ${fileName}`),
+          "We couldn't load the preview. Please try again."
+        )
+      }
       return Response.json({ previewUrl: publicUrl })
     }
 
@@ -229,10 +236,6 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    console.error('PDF generation error:', error)
-    return Response.json(
-      { error: 'Failed to generate PDF', details: error.message },
-      { status: 500 }
-    )
+    return apiError(error, "We couldn't generate your PDF. Please try again.")
   }
 }

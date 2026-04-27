@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { apiError } from '@/lib/apiError'
 
 const WRITING_CONSTITUTION = `
 RESUME WRITING STANDARDS — APPLY TO EVERY WORD YOU WRITE:
@@ -275,12 +276,18 @@ Return ONLY a valid JSON object. No markdown. No explanation. No backticks.
 
     const responseText = message.content[0].text
     const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const result = JSON.parse(cleanedText)
+
+    let result
+    try {
+      result = JSON.parse(cleanedText)
+    } catch (parseError) {
+      console.error('Trial coach finish JSON parse failed:', cleanedText)
+      return apiError(parseError, "We couldn't finish your trial coaching session. Please try again.")
+    }
 
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('Trial coach finish error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "We couldn't finish your trial coaching session. Please try again.")
   }
 }
