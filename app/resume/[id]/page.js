@@ -10,6 +10,9 @@ import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
 import ErrorToast from '../../components/ErrorToast'
+import CaptureCounter from '../../components/CaptureCounter'
+import CaptureToast from '../../components/CaptureToast'
+import { parseCaptureTags, replayCaptures } from '../../utils/parseCaptureTags'
 import { track } from '../../utils/analytics'
 
 const styles = `
@@ -59,6 +62,11 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
   const [remainingGaps, setRemainingGaps] = useState([])
   const [recoachAttempts, setRecoachAttempts] = useState(0)
+
+  // Capture system state — counter + toast queue
+  const [captureCounts, setCaptureCounts] = useState({ jobs: 0, education: 0, skills: 0, wins: 0 })
+  const [captureBumpKey, setCaptureBumpKey] = useState(null)
+  const [captureToast, setCaptureToast] = useState(null)
 
   // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
@@ -498,6 +506,19 @@ function formatDate(dateString, format = dateFormat) {
       setCoachingSamplesUsed(userProfile.coaching_samples_used || 0)
     }
   }, [userProfile])
+
+  // Load saved capture counts from DB on mount.
+  // captured_data persists across reloads so the counter is accurate.
+  useEffect(() => {
+    if (!resume?.captured_data) return
+    const saved = resume.captured_data
+    setCaptureCounts({
+      jobs: saved.jobs || 0,
+      education: saved.education || 0,
+      skills: saved.skills || 0,
+      wins: saved.wins || 0,
+    })
+  }, [resume?.id])
 
  const pageCheckTimerRef = useRef(null)
 
@@ -1322,7 +1343,18 @@ if (data.ai_analysis) {
          <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
           <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
-        
+
+            {/* Capture counter — sticky strip above the resume */}
+            <div className="sticky top-0 z-20">
+              <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} />
+            </div>
+
+            {/* Capture toast — top-right of resume panel, below counter */}
+            <CaptureToast
+              message={captureToast}
+              onClose={() => setCaptureToast(null)}
+            />
+
             {resume?.created_via === 'resume_chat' && !resumeData?.fullName && (
               <div className="flex flex-col items-center justify-center h-full min-h-[300px] px-8 text-center">
                 <div className="text-4xl mb-4">💬</div>
@@ -1377,6 +1409,10 @@ if (data.ai_analysis) {
               setResumeChanges={setResumeChanges}
               coachingMessages={coachingMessages}
               setCoachingMessages={setCoachingMessages}
+              captureCounts={captureCounts}
+              setCaptureCounts={setCaptureCounts}
+              setCaptureBumpKey={setCaptureBumpKey}
+              setCaptureToast={setCaptureToast}
               showRevealModal={showRevealModal}
               setShowRevealModal={setShowRevealModal}
               scoreBeforeCoaching={scoreBeforeCoaching}
@@ -1471,7 +1507,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory }) {
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2103,6 +2139,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
        
       {(journeyStep === 'coach' || journeyStep === 'chat') && (
               <CoachStep
+          resume={resume}
           resumeData={resumeData}
           coachingComplete={resume?.coaching_complete || false}
           coachingTierAtSave={resume?.coaching_tier_at_save || null}
@@ -2136,6 +2173,10 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           remainingGaps={remainingGaps}
           score={score}
           resetHistory={resetHistory}
+          captureCounts={captureCounts}
+          setCaptureCounts={setCaptureCounts}
+          setCaptureBumpKey={setCaptureBumpKey}
+          setCaptureToast={setCaptureToast}
         />
       )}
 
@@ -2206,7 +2247,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave }) {
+function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -2221,6 +2262,127 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
   const inputRef = useRef(null)
   const previousMessageCount = useRef(0)
   const hasStartedCoaching = useRef(false)
+
+  // Capture system: track what's already been counted to prevent duplicates
+  // when a message gets re-processed (e.g. on remount or state replay).
+  const seenCapturesRef = useRef(new Set())
+
+  // Send the user's last message + assistant's response to the extraction API.
+  // Updates counts, fires toast for achievements, persists to DB so reloads keep counter intact.
+  // Runs as fire-and-forget so it never blocks the UI.
+  async function processCaptures(userMessageText, assistantResponseText) {
+    if (!setCaptureCounts || !setCaptureBumpKey || !setCaptureToast) return
+
+    // Skip capture processing for free trial — only single-bullet feedback, no captures
+    if (userTier === 'free') return
+
+    if (!userMessageText || !assistantResponseText) return
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch('/api/extract-captures', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userMessage: userMessageText,
+          assistantResponse: assistantResponseText,
+          isJobSpecific: isJobSpecific || false
+        })
+      })
+
+      if (!response.ok) return
+
+      const data = await response.json()
+      const captures = data.captures || []
+      if (captures.length === 0) return
+
+      // Track which captures were actually new (not duplicates) for DB persistence.
+      const newlyAccepted = []
+
+      captures.forEach(capture => {
+        const dedupeKey = `${capture.type}:${capture.payload.toLowerCase()}`
+        if (seenCapturesRef.current.has(dedupeKey)) return
+        seenCapturesRef.current.add(dedupeKey)
+
+        // For job-specific coaching: only skill and achievement tags should fire
+        if (isJobSpecific && (capture.type === 'job' || capture.type === 'education')) return
+
+        newlyAccepted.push({ ...capture, dedupeKey })
+        const stamp = Date.now() + Math.random()
+
+        if (capture.type === 'job') {
+          setCaptureCounts(prev => ({ ...prev, jobs: (prev.jobs || 0) + 1 }))
+          setCaptureBumpKey(`jobs:${stamp}`)
+        } else if (capture.type === 'education') {
+          setCaptureCounts(prev => ({ ...prev, education: (prev.education || 0) + 1 }))
+          setCaptureBumpKey(`education:${stamp}`)
+        } else if (capture.type === 'skill') {
+          setCaptureCounts(prev => ({ ...prev, skills: (prev.skills || 0) + 1 }))
+          setCaptureBumpKey(`skills:${stamp}`)
+        } else if (capture.type === 'achievement') {
+          setCaptureCounts(prev => ({ ...prev, wins: (prev.wins || 0) + 1 }))
+          setCaptureBumpKey(`wins:${stamp}`)
+          setCaptureToast(capture.payload)
+        }
+      })
+
+      // Persist updated capture state to DB so it survives reloads.
+      // Read current state from DB, increment, write back. Read-modify-write keeps
+      // the source of truth in the DB and avoids stale React state issues.
+      if (newlyAccepted.length > 0) {
+        const { data: row } = await supabase
+          .from('resumes')
+          .select('captured_data')
+          .eq('id', params.id)
+          .single()
+
+        const current = row?.captured_data || { jobs: 0, education: 0, skills: 0, wins: 0, seenKeys: [] }
+        const seenKeys = new Set(current.seenKeys || [])
+
+        let jobs = current.jobs || 0
+        let education = current.education || 0
+        let skills = current.skills || 0
+        let wins = current.wins || 0
+
+        newlyAccepted.forEach(c => {
+          if (seenKeys.has(c.dedupeKey)) return
+          seenKeys.add(c.dedupeKey)
+          if (c.type === 'job') jobs++
+          else if (c.type === 'education') education++
+          else if (c.type === 'skill') skills++
+          else if (c.type === 'achievement') wins++
+        })
+
+        await supabase
+          .from('resumes')
+          .update({
+            captured_data: {
+              jobs,
+              education,
+              skills,
+              wins,
+              seenKeys: Array.from(seenKeys)
+            }
+          })
+          .eq('id', params.id)
+      }
+    } catch (err) {
+      // Silent fail — captures are non-essential
+    }
+  }
+
+  // On mount, seed the dedupe set from saved capture data so we never
+  // re-fire a toast or re-count something that was already captured in a past session.
+  useEffect(() => {
+    const saved = resume?.captured_data
+    if (!saved?.seenKeys) return
+    saved.seenKeys.forEach(key => {
+      seenCapturesRef.current.add(key)
+    })
+  }, [resume?.id])
 
   // ── CONVERSATIONAL PATH FUNCTIONS ──
   async function startResumeChat() {
@@ -2253,6 +2415,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
 
   async function sendResumeChat() {
     if (!userInput.trim() || sending) return
+    const userMessageText = userInput
     const newMessage = { role: 'user', content: userInput }
     const updatedMessages = [...coachingMessages, newMessage]
     setCoachingMessages(updatedMessages)
@@ -2274,6 +2437,7 @@ function CoachStep({ resumeData, careerContext, detectedLevel, userName, userPro
       const data = await response.json()
       const finalMessages = [...updatedMessages, { role: 'assistant', content: data.response }]
       setCoachingMessages(finalMessages)
+      processCaptures(userMessageText, data.response)
       await supabase.from('resumes').update({ coaching_conversation: finalMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
     } catch (err) {
       console.error('Error sending resume chat message:', err)
@@ -2470,6 +2634,7 @@ const getMessageText = (msg) => {
   async function sendMessage() {
     if (!userInput.trim() || sending) return
 
+    const userMessageText = userInput
     const newMessage = { role: 'user', content: userInput }
     const updatedMessages = [...coachingMessages, newMessage]
     setCoachingMessages(updatedMessages)
@@ -2504,6 +2669,7 @@ const getMessageText = (msg) => {
       const data = await response.json()
       const finalMessages = [...updatedMessages, { role: 'assistant', content: data.response }]
       setCoachingMessages(finalMessages)
+      processCaptures(userMessageText, data.response)
 
       await supabase
         .from('resumes')
@@ -4498,9 +4664,15 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 
   const getMessageText = (msg) => {
     if (!msg.content) return ''
-    if (typeof msg.content === 'string') return msg.content
-    if (Array.isArray(msg.content)) return msg.content.map(b => b.text || '').join(' ')
-    return ''
+    let raw = ''
+    if (typeof msg.content === 'string') raw = msg.content
+    else if (Array.isArray(msg.content)) raw = msg.content.map(b => b.text || '').join(' ')
+    // Strip capture tags so they never display in the chat UI
+    if (msg.role === 'assistant') {
+      const { cleanText } = parseCaptureTags(raw)
+      return cleanText
+    }
+    return raw
   }
 
   const isComplete = targetedMessages.some(msg =>
