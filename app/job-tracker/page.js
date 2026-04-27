@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 const COLUMNS = [
   { id: 'resume_in_progress', label: 'Prepping', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
@@ -71,40 +72,52 @@ export default function JobTrackerPage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/dashboard'); return; }
-      setUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/dashboard'); return; }
+        setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
-      setUserProfile(profile);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError;
+        }
+        setUserProfile(profile);
 
-      const { data: apps } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
-        .eq('user_id', user.id)
-        .not('application_status', 'eq', 'archived')
-        .order('sort_order', { ascending: true });
-      setApplications(apps || []);
+        const { data: apps, error: appsError } = await supabase
+          .from('applications')
+          .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
+          .eq('user_id', user.id)
+          .not('application_status', 'eq', 'archived')
+          .order('sort_order', { ascending: true });
+        if (appsError) throw appsError;
+        setApplications(apps || []);
 
-      const { data: archived } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
-        .eq('user_id', user.id)
-        .eq('application_status', 'archived')
-        .order('updated_at', { ascending: false });
-      setArchivedCards(archived || []);
+        const { data: archived, error: archivedError } = await supabase
+          .from('applications')
+          .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
+          .eq('user_id', user.id)
+          .eq('application_status', 'archived')
+          .order('updated_at', { ascending: false });
+        if (archivedError) throw archivedError;
+        setArchivedCards(archived || []);
 
-      const { data: resumes } = await supabase
-        .from('resumes')
-        .select('id, display_name, current_score, job_title, job_company, job_description')
-        .eq('user_id', user.id)
-        .eq('resume_type', 'job_specific')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false });
-      setJsResumes(resumes || []);
+        const { data: resumes, error: resumesError } = await supabase
+          .from('resumes')
+          .select('id, display_name, current_score, job_title, job_company, job_description')
+          .eq('user_id', user.id)
+          .eq('resume_type', 'job_specific')
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false });
+        if (resumesError) throw resumesError;
+        setJsResumes(resumes || []);
 
-      setLoading(false);
+      } catch (err) {
+        console.error('Job tracker load failed:', err);
+        setErrorToast("We couldn't load your job tracker. Please refresh the page.");
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, []);
@@ -944,7 +957,7 @@ export default function JobTrackerPage() {
                               .select('email')
                               .eq('id', user.id)
                               .single();
-                            const response = await fetch('/api/stripe/checkout', {
+                            const data = await fetchJSON('/api/stripe/checkout', {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
@@ -956,12 +969,15 @@ export default function JobTrackerPage() {
                                 email: profile?.email || user.email,
                               })
                             });
-                            const data = await response.json();
-                            if (data.url) window.location.href = data.url;
+                            if (!data.url) {
+                              throw new Error("We couldn't start checkout. Please try again in a moment.");
+                            }
+                            setShowHiredModal(false);
+                            window.location.href = data.url;
                           } catch (err) {
-                            console.error('Vault checkout error:', err);
+                            setErrorToast(err.message);
+                            setShowHiredModal(false);
                           }
-                          setShowHiredModal(false);
                         }}
                         style={{
                           fontFamily: "'DM Sans', sans-serif",

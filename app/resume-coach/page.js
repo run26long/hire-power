@@ -11,6 +11,7 @@ import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
 import ResumeContent from '../components/ResumeContent';
 import Breadcrumb from '../components/Breadcrumb';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 export default function MyResumesPage() {
   const router = useRouter();
@@ -132,17 +133,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         return;
       }
 
-      const response = await fetch('/api/resume-coach/data', {
+      const resData = await fetchJSON('/api/resume-coach/data', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load data');
-      }
-      
-     const resData = await response.json();
+
       setData(resData);
       setUserProfile(resData.userProfile);
 
@@ -150,9 +146,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       const sources = await getJobSources(supabase, user.id);
       setJobSources(sources);
 
-      setRetryCount(0); 
+      setRetryCount(0);
       // Reset retry count on success
-      
+
       // Show tour modal only on first visit (when no resume and tour not yet seen)
       // Returning users without a resume get the empty state page instead
       if (!resData.coreResume) {
@@ -166,17 +162,17 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           }
         }, 300); // 300ms delay
       }
-      
+
     } catch (error) {
       console.error('Error loading data:', error);
-      
-      // Auto-retry once
-      if (retryCount === 0) {
-        setRetryCount(1);
-        setTimeout(() => loadData(), 1000); // Retry after 1 second
+
+      // Auto-retry once with a 1-second delay, then give up
+      const MAX_RETRIES = 1;
+      if (retryCount < MAX_RETRIES) {
+        setRetryCount(retryCount + 1);
+        setTimeout(() => loadData(), 1000);
       } else {
-        // Show error after retry fails
-        setLoadError('Couldn\'t load your resumes. Please try again.');
+        setLoadError(error.message || "We couldn't load your resumes. Please refresh the page.");
       }
     } finally {
       setLoading(false);
@@ -467,18 +463,23 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', errorData);
-        throw new Error('PDF generation failed');
+        throw new Error("We couldn't generate your PDF. Please try again.");
       }
 
       const result = await response.json();
-      
+
       // Fetch PDF as blob
       const pdfResponse = await fetch(result.pdfUrl);
+      if (!pdfResponse.ok) {
+        throw new Error("We couldn't download your PDF. Please try again.");
+      }
+      const contentType = pdfResponse.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        throw new Error("We couldn't download your PDF. Please try again.");
+      }
       const blob = await pdfResponse.blob();
       const blobUrl = window.URL.createObjectURL(blob);
-      
+
       // Download with proper filename - EXACT same logic as resume detail page
       const a = document.createElement('a');
       a.href = blobUrl;
@@ -487,10 +488,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
-      
+
     } catch (error) {
-      console.error('Error downloading resume:', error);
-      setErrorToast('There was a problem downloading your resume. Please try again.');
+      setErrorToast(error.message);
     } finally {
       setDownloadingResumeId(null); // Clear downloading state
     }
@@ -546,7 +546,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     setJobCreateError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error("You're signed out. Please refresh and sign in again.");
 
       // Get source resume data
       const sourceId = jobModalSourceId || data?.coreResume?.id;
@@ -557,7 +557,26 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .single();
       if (fetchError) throw fetchError;
 
-      // Create job-specific resume record
+      // Run job analysis FIRST so we don't create an orphaned resume record
+      // if analysis fails. (Previously the insert ran before the analysis,
+      // and a failed analysis left a half-empty record in the database.)
+      const { data: { session: jobSession } } = await supabase.auth.getSession()
+      const analysis = await fetchJSON('/api/job-analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jobSession.access_token}`
+        },
+        body: JSON.stringify({
+          resumeData: sourceResume.resume_data,
+          jobDescription,
+          jobTitle,
+          jobCompany,
+          userId: user.id
+        })
+      });
+
+      // Now create the job-specific resume record with the analysis baked in
       const { data: newResume, error: insertError } = await supabase
         .from('resumes')
         .insert({
@@ -573,62 +592,33 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           template_id: sourceResume.template_id || 'modern',
           font_family: sourceResume.font_family || 'Lato',
           font_size: sourceResume.font_size || 11,
+          current_score: analysis.matchScore,
+          ai_analysis: analysis,
+          last_assessed_at: new Date().toISOString()
         })
         .select()
         .single();
       if (insertError) throw insertError;
 
-      // Run job analysis
-      const { data: { session: jobSession } } = await supabase.auth.getSession()
-      const analysisRes = await fetch('/api/job-analyze', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jobSession.access_token}`
-        },
-        body: JSON.stringify({
-          resumeData: sourceResume.resume_data,
-          jobDescription,
-          jobTitle,
-          jobCompany,
-          userId: user.id
-        })
-      });
-      if (!analysisRes.ok) throw new Error('Analysis failed');
-      const analysis = await analysisRes.json();
-
-      // Save analysis to new resume
-      await supabase
-        .from('resumes')
-        .update({
-          current_score: analysis.matchScore,
-          ai_analysis: analysis,
-          last_assessed_at: new Date().toISOString()
-        })
-        .eq('id', newResume.id);
-
       // Navigate to new resume
       router.push(`/resume/${newResume.id}`);
     } catch (err) {
-      console.error('Error creating job-specific resume:', err);
-      setJobCreateError('Something went wrong. Please try again.');
+      setJobCreateError(err.message);
     } finally {
       setCreatingJob(false);
     }
   }
 
   async function handleCreateCoverLetter() {
+    if (!clJobTitle.trim() || !clCompany.trim() || !clJobDescription.trim()) {
+      setClCreateError('Please fill in all fields.');
+      return;
+    }
     setCreatingCL(true);
     setClCreateError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      if (!clJobTitle.trim() || !clCompany.trim() || !clJobDescription.trim()) {
-        setClCreateError('Please fill in all fields.');
-        setCreatingCL(false);
-        return;
-      }
+      if (!user) throw new Error("You're signed out. Please refresh and sign in again.");
 
       const jobTitle = clJobTitle;
       const jobCompany = clCompany;
@@ -642,35 +632,33 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .single();
 
       const { data: { session: clSession } } = await supabase.auth.getSession()
-      const generateRes = await fetch('/api/cover-letter-finish', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${clSession.access_token}`
-        },
-        body: JSON.stringify({
-          resumeData: sourceResume?.resume_data,
-          jobTitle,
-          jobCompany,
-          jobDescription,
-          userId: user?.id
-        })
-      });
-
-      const generateData = await generateRes.json();
-      if (!generateRes.ok) {
-        if (generateData.error === 'RESUME_JD_MISMATCH') {
-          setErrorToast("The resume and job description don't appear to match closely enough to write a cover letter. Try a different job description or resume.");
-          setShowCLModal(false);
-          setClSourceType(null);
-          setClSelectedJSId('');
-          setClJobTitle('');
-          setClCompany('');
-          setClJobDescription('');
+      let generateData;
+      try {
+        generateData = await fetchJSON('/api/cover-letter-finish', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${clSession.access_token}`
+          },
+          body: JSON.stringify({
+            resumeData: sourceResume?.resume_data,
+            jobTitle,
+            jobCompany,
+            jobDescription,
+            userId: user?.id
+          })
+        });
+      } catch (fetchErr) {
+        // Special handling for RESUME_JD_MISMATCH — keep modal open
+        // so the user can adjust their inputs without losing them.
+        if (fetchErr.code === 'RESUME_JD_MISMATCH') {
+          setClCreateError("The resume and job description don't appear to match closely enough to write a cover letter. Try a different job description or resume.");
+          setCreatingCL(false);
           return;
         }
-        throw new Error('Cover letter generation failed');
+        throw fetchErr;
       }
+
       const { coverLetterData } = generateData;
 
       const { data: newCL, error: insertError } = await supabase
@@ -693,8 +681,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
       router.push(`/cover-letter/${newCL.id}`);
     } catch (err) {
-      console.error('Error creating cover letter:', err);
-      setClCreateError('Something went wrong. Please try again.');
+      setClCreateError(err.message);
     } finally {
       setCreatingCL(false);
     }

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { fetchJSON } from '@/lib/fetchJSON'
 
 export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier }) {
   const [loading, setLoading] = useState(false)
@@ -12,18 +13,22 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!user) throw new Error("You're signed out. Please refresh and sign in again.")
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email')
         .eq('id', user.id)
         .single()
 
+      if (profileError) {
+        console.warn('UpgradeModal: profile query failed, falling back to user.email', profileError)
+      }
+
       const { data: { session } } = await supabase.auth.getSession()
-      const response = await fetch('/api/stripe/checkout', {
+      const data = await fetchJSON('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
@@ -35,14 +40,14 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
         })
       })
 
-      const data = await response.json()
-      if (data.error) throw new Error(data.error)
+      if (!data.url) {
+        throw new Error("We couldn't start checkout. Please try again in a moment.")
+      }
 
       window.location.href = data.url
 
     } catch (err) {
-      console.error('Upgrade error:', err)
-      setError('Something went wrong. Please try again.')
+      setError(err.message)
       setLoading(false)
     }
   }

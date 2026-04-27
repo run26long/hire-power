@@ -7,6 +7,7 @@ import { TIERS } from '@/lib/subscription'
 import UpgradeModal from '../components/UpgradeModal'
 import SuccessToast from '../components/SuccessToast'
 import ErrorToast from '../components/ErrorToast'
+import { fetchJSON } from '@/lib/fetchJSON'
 
 export default function Profile() {
   const router = useRouter()
@@ -39,7 +40,12 @@ export default function Profile() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/dashboard'); return }
       setUser(user)
-      const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      if (pError && pError.code !== 'PGRST116') {
+        // PGRST116 = "no rows returned" which is fine for a new user
+        console.error('Profile load failed:', pError)
+        setToastError("We couldn't load your profile. Please refresh the page.")
+      }
       if (p) {
         setProfile(p)
         setDisplayName(p.display_name || user.email.split('@')[0])
@@ -48,20 +54,37 @@ export default function Profile() {
         setDisplayName(user.email.split('@')[0])
       }
       setLoading(false)
-    } catch (e) { console.error(e); setLoading(false) }
+    } catch (e) {
+      console.error(e)
+      setToastError("We couldn't load your profile. Please refresh the page.")
+      setLoading(false)
+    }
   }
 
   async function uploadPhoto(event) {
     try {
       setUploading(true)
       const file = event.target.files[0]
-      if (!file || !file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) return
+      if (!file) return
+      if (!file.type.startsWith('image/')) {
+        setToastError("That file isn't an image. Please choose a JPG or PNG.")
+        return
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setToastError("That image is too large. Please choose one under 2 MB.")
+        return
+      }
       const fileName = `${user.id}-${Date.now()}.${file.name.split('.').pop()}`
       const { error } = await supabase.storage.from('profile-photos').upload(fileName, file, { upsert: true })
       if (error) throw error
       const { data } = supabase.storage.from('profile-photos').getPublicUrl(fileName)
       setPhotoUrl(data.publicUrl)
-    } catch (e) { console.error(e) } finally { setUploading(false) }
+    } catch (e) {
+      console.error(e)
+      setToastError("We couldn't upload your photo. Please try again.")
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function saveProfile() {
@@ -73,20 +96,23 @@ export default function Profile() {
       await loadProfile()
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2500)
-    } catch (e) { console.error(e) } finally { setSaving(false) }
+    } catch (e) {
+      console.error(e)
+      setToastError("We couldn't save your changes. Please try again.")
+    } finally {
+      setSaving(false)
+    }
   }
 
  async function handleDowngrade() {
     try {
       setProcessing(true)
       const { data: { session: downgradeSession } } = await supabase.auth.getSession()
-      const response = await fetch('/api/stripe/downgrade', {
+      const data = await fetchJSON('/api/stripe/downgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${downgradeSession.access_token}` },
         body: JSON.stringify({ userId: user.id })
       })
-      const data = await response.json()
-      if (data.error) throw new Error(data.error)
       setShowDowngradeModal(false)
       await loadProfile()
       const dateStr = data.scheduled_date
@@ -94,22 +120,21 @@ export default function Profile() {
         : 'the end of your billing period'
       setToastSuccess(`Switch to Vault confirmed. Pro access continues through ${dateStr}.`)
     } catch (e) {
-      console.error(e)
-      setToastError('Could not process downgrade. Please try again.')
-    } finally { setProcessing(false) }
+      setToastError(e.message)
+    } finally {
+      setProcessing(false)
+    }
   }
 
   async function handleCancel() {
     try {
       setProcessing(true)
       const { data: { session: cancelSession } } = await supabase.auth.getSession()
-      const response = await fetch('/api/stripe/cancel', {
+      const data = await fetchJSON('/api/stripe/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cancelSession.access_token}` },
         body: JSON.stringify({ userId: user.id, feedback: cancelFeedback })
       })
-      const data = await response.json()
-      if (data.error) throw new Error(data.error)
       setShowCancelModal(false)
       setCancelFeedback('')
       await loadProfile()
@@ -118,9 +143,10 @@ export default function Profile() {
         : 'the end of your billing period'
       setToastSuccess(`Cancellation confirmed. Your current plan continues through ${dateStr}.`)
     } catch (e) {
-      console.error(e)
-      setToastError('Could not process cancellation. Please try again.')
-    } finally { setProcessing(false) }
+      setToastError(e.message)
+    } finally {
+      setProcessing(false)
+    }
   }
 
   async function handleExportData() {
@@ -131,13 +157,23 @@ export default function Profile() {
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('career_context').select('*').eq('user_id', user.id).maybeSingle(),
       ])
+      if (resumesRes.error || profileRes.error || careerRes.error) {
+        console.error('Export query errors:', { resumesRes: resumesRes.error, profileRes: profileRes.error, careerRes: careerRes.error })
+        setToastError("We couldn't export some of your data. Please try again.")
+        return
+      }
       const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), profile: profileRes.data, career_context: careerRes.data, resumes: resumesRes.data }, null, 2)], { type: 'application/json' })
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
       a.download = `hire-power-data-${new Date().toISOString().split('T')[0]}.json`
       a.click()
       setShowExportModal(false)
-    } catch (e) { console.error(e) } finally { setExportLoading(false) }
+    } catch (e) {
+      console.error(e)
+      setToastError("We couldn't export your data. Please try again.")
+    } finally {
+      setExportLoading(false)
+    }
   }
 
   async function handleDeleteAccount() {
@@ -148,9 +184,19 @@ export default function Profile() {
         .update({ deletion_requested_at: new Date().toISOString(), subscription_tier: TIERS.FREE, cancelled_at: new Date().toISOString() })
         .eq('id', user.id)
       if (error) throw error
-      await supabase.auth.signOut()
+      const { error: signOutError } = await supabase.auth.signOut()
+      if (signOutError) {
+        // Profile was marked for deletion but sign-out failed.
+        // Force a redirect anyway since the account is now in a deletion state.
+        console.error('Sign-out after deletion failed:', signOutError)
+      }
       router.push('/landing')
-    } catch (e) { console.error(e) } finally { setProcessing(false) }
+    } catch (e) {
+      console.error(e)
+      setToastError("We couldn't delete your account. Please try again, or email hired@hirepowerai.com if it keeps failing.")
+    } finally {
+      setProcessing(false)
+    }
   }
 
   const tierLabel = { [TIERS.FREE]: 'Free', [TIERS.PRO]: 'Pro', [TIERS.VAULT]: 'Vault' }

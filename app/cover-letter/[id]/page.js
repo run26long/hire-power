@@ -7,6 +7,7 @@ import MainNav from '@/app/components/MainNav'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import CoverLetterContent from '@/app/components/CoverLetterContent'
 import ErrorToast from '@/app/components/ErrorToast'
+import { fetchJSON } from '@/lib/fetchJSON'
 
 export default function CoverLetterPage() {
   const params = useParams()
@@ -228,7 +229,9 @@ export default function CoverLetterPage() {
           const { pageCount } = await response.json()
           setResumeExceedsPage(pageCount > 1)
         }
-      } catch (e) { /* silent */ }
+      } catch (e) {
+        console.warn('Page check failed (non-blocking):', e)
+      }
     }, 1500)
   }
 
@@ -243,7 +246,7 @@ export default function CoverLetterPage() {
       let testSize = selectedSize
 
       const checkSize = async (size, spacing = 1) => {
-        const response = await fetch('/api/generate-cover-letter-pdf', {
+        return await fetchJSON('/api/generate-cover-letter-pdf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${autoFitSession.access_token}` },
           body: JSON.stringify({
@@ -256,8 +259,6 @@ export default function CoverLetterPage() {
             userId: user.id
           })
         })
-        if (!response.ok) throw new Error('Auto-fit check failed')
-        return await response.json()
       }
 
       const current = await checkSize(testSize)
@@ -329,7 +330,7 @@ export default function CoverLetterPage() {
       const { data: { user } } = await supabase.auth.getUser()
       const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
       const { data: { session: dlSession } } = await supabase.auth.getSession()
-      const response = await fetch('/api/generate-cover-letter-pdf', {
+      const result = await fetchJSON('/api/generate-cover-letter-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${dlSession.access_token}` },
         body: JSON.stringify({
@@ -342,9 +343,14 @@ export default function CoverLetterPage() {
           userId: user.id
         })
       })
-      if (!response.ok) throw new Error('PDF generation failed')
-      const result = await response.json()
       const pdfResponse = await fetch(result.pdfUrl)
+      if (!pdfResponse.ok) {
+        throw new Error("We couldn't download your cover letter. Please try again.")
+      }
+      const contentType = pdfResponse.headers.get('content-type') || ''
+      if (!contentType.includes('application/pdf')) {
+        throw new Error("We couldn't download your cover letter. Please try again.")
+      }
       const blob = await pdfResponse.blob()
       const blobUrl = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -357,8 +363,7 @@ export default function CoverLetterPage() {
       document.body.removeChild(a)
       window.URL.revokeObjectURL(blobUrl)
     } catch (error) {
-      console.error('Download error:', error)
-      setErrorToast('Failed to generate PDF. Please try again.')
+      setErrorToast(error.message)
     } finally {
       setIsDownloading(false)
     }
@@ -383,14 +388,20 @@ export default function CoverLetterPage() {
           userId: user.id
         })
       })
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        setPreviewUrl(url)
-        setShowPreview(true)
+      if (!response.ok) {
+        throw new Error("We couldn't load the preview. Please try again.")
       }
+      const contentType = response.headers.get('content-type') || ''
+      if (!contentType.includes('application/pdf')) {
+        throw new Error("We couldn't load the preview. Please try again.")
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      setPreviewUrl(url)
+      setShowPreview(true)
     } catch (e) {
       console.error('Preview error:', e)
+      setErrorToast(e.message)
     } finally {
       setIsLoadingPreview(false)
     }
