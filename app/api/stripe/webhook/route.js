@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { apiError } from '@/lib/apiError';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -10,7 +11,7 @@ const supabase = createClient(
 
 // Map Stripe price IDs to subscription tiers
 function getTierForPriceId(priceId) {
-  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return 'pro';
+  if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) return 'pro';
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID) return 'vault';
   return null;
 }
@@ -33,9 +34,21 @@ export async function POST(req) {
     case 'checkout.session.completed': {
       const userId = obj.client_reference_id;
       const priceId = obj.metadata?.priceId;
-      const tier = priceId === process.env.STRIPE_PRO_PRICE_ID ? 'pro' : 'vault';
+      const tier = getTierForPriceId(priceId);
 
-      await supabase
+      // If we can't resolve the tier, log loudly and return 500 so Stripe
+      // retries — this should never happen with priceId allowlist in checkout.
+      if (!tier) {
+        console.error('CRITICAL: checkout.session.completed with unknown priceId', {
+          userId,
+          priceId,
+          customerId: obj.customer,
+          sessionId: obj.id,
+        });
+        return Response.json({ error: 'Unknown priceId' }, { status: 500 });
+      }
+
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({
           subscription_tier: tier,
@@ -46,6 +59,18 @@ export async function POST(req) {
           pending_change_date: null,
         })
         .eq('id', userId);
+
+      if (updateError) {
+        console.error('CRITICAL: checkout.session.completed update failed — user paid but profile not updated', {
+          userId,
+          customerId: obj.customer,
+          subscriptionId: obj.subscription,
+          tier,
+          error: updateError,
+        });
+        // Return 500 so Stripe retries the webhook
+        return Response.json({ error: 'DB update failed' }, { status: 500 });
+      }
 
       break;
     }
@@ -68,7 +93,7 @@ export async function POST(req) {
 
       if (existing && existing.subscription_tier !== newTier) {
         // Tier transition detected — update and clear pending change
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({
             subscription_tier: newTier,
@@ -76,6 +101,16 @@ export async function POST(req) {
             pending_change_date: null,
           })
           .eq('stripe_customer_id', customerId);
+
+        if (updateError) {
+          console.error('CRITICAL: customer.subscription.updated tier transition failed', {
+            customerId,
+            previousTier: existing.subscription_tier,
+            newTier,
+            error: updateError,
+          });
+          return Response.json({ error: 'DB update failed' }, { status: 500 });
+        }
       }
 
       break;
@@ -99,7 +134,7 @@ export async function POST(req) {
             items: [{ price: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID }],
           });
 
-          await supabase
+          const { error: vaultUpdateError } = await supabase
             .from('profiles')
             .update({
               subscription_tier: 'vault',
@@ -108,11 +143,23 @@ export async function POST(req) {
               pending_change_date: null,
             })
             .eq('stripe_customer_id', customerId);
+
+          if (vaultUpdateError) {
+            console.error('CRITICAL: Vault sub created in Stripe but profile update failed', {
+              customerId,
+              vaultSubId: vaultSub.id,
+              error: vaultUpdateError,
+            });
+            return Response.json({ error: 'DB update failed' }, { status: 500 });
+          }
         } catch (vaultError) {
           // Vault subscription failed (e.g. card declined). Drop to free
           // and clear pending state so user can re-subscribe from profile.
-          console.error('Vault subscription creation failed during downgrade:', vaultError);
-          await supabase
+          console.error('CRITICAL: Vault subscription creation failed during downgrade — user dropped to free', {
+            customerId,
+            error: vaultError,
+          });
+          const { error: dropToFreeError } = await supabase
             .from('profiles')
             .update({
               subscription_tier: 'free',
@@ -122,10 +169,18 @@ export async function POST(req) {
               pending_change_date: null,
             })
             .eq('stripe_customer_id', customerId);
+
+          if (dropToFreeError) {
+            console.error('CRITICAL: Drop-to-free fallback also failed — user is in inconsistent state', {
+              customerId,
+              error: dropToFreeError,
+            });
+            return Response.json({ error: 'DB update failed' }, { status: 500 });
+          }
         }
       } else {
         // Normal cancel — drop to free
-        await supabase
+        const { error: cancelUpdateError } = await supabase
           .from('profiles')
           .update({
             subscription_tier: 'free',
@@ -135,6 +190,14 @@ export async function POST(req) {
             pending_change_date: null,
           })
           .eq('stripe_customer_id', customerId);
+
+        if (cancelUpdateError) {
+          console.error('CRITICAL: Subscription cancellation update failed', {
+            customerId,
+            error: cancelUpdateError,
+          });
+          return Response.json({ error: 'DB update failed' }, { status: 500 });
+        }
       }
 
       break;

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { apiError } from '@/lib/apiError';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -286,7 +287,6 @@ You MUST score each dimension separately first, then sum them for matchScore. Do
     });
 
   } catch (error) {
-    console.error('job-analyze error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return apiError(error, "We couldn't analyze the job match. Please try again.");
   }
 }

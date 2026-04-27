@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { extractText } from 'unpdf'
 import mammoth from 'mammoth'
+import { apiError } from '@/lib/apiError'
 
 export async function POST(request) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request) {
       .download(filePath)
     
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return apiError(error, "We couldn't open that file. Try uploading it again.", 400)
     }
     
     const arrayBuffer = await data.arrayBuffer()
@@ -65,7 +66,6 @@ export async function POST(request) {
     }
     
   } catch (error) {
-    console.error('Parse error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "We couldn't read that file. Make sure it's a PDF or Word doc and try again.")
   }
 }
