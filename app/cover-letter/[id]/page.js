@@ -93,91 +93,127 @@ export default function CoverLetterPage() {
   }, [coverLetter?.id])
 
   async function autoLinkJobCard() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      if (!user) return
 
-    // Check if any card (including archived) already has this cover letter linked
-    const { data: existingCards } = await supabase
-      .from('applications')
-      .select('id')
-      .eq('cover_letter_id', coverLetter.id)
-      .eq('user_id', user.id)
-      .limit(1)
+      // Check if any card (including archived) already has this cover letter linked
+      const { data: existingCards, error: existingError } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('cover_letter_id', coverLetter.id)
+        .eq('user_id', user.id)
+        .limit(1)
+      if (existingError) throw existingError
 
-    if (existingCards?.[0]) return // already linked, nothing to do
+      if (existingCards?.[0]) return // already linked, nothing to do
 
-    // Check if a card exists for the linked JS resume (only if it's job-specific)
-    if (coverLetter.linked_resume_id) {
-      const { data: linkedResume } = await supabase
-        .from('resumes')
-        .select('id, resume_type')
-        .eq('id', coverLetter.linked_resume_id)
-        .single()
+      // Check if a card exists for the linked JS resume (only if it's job-specific)
+      if (coverLetter.linked_resume_id) {
+        const { data: linkedResume, error: linkedResumeError } = await supabase
+          .from('resumes')
+          .select('id, resume_type')
+          .eq('id', coverLetter.linked_resume_id)
+          .single()
+        if (linkedResumeError && linkedResumeError.code !== 'PGRST116') throw linkedResumeError
 
-      const isJobSpecific = linkedResume?.resume_type === 'job_specific'
+        const isJobSpecific = linkedResume?.resume_type === 'job_specific'
 
-      if (isJobSpecific) {
-        const { data: resumeCards } = await supabase
-          .from('applications')
-          .select('id')
-          .eq('resume_id', coverLetter.linked_resume_id)
-          .eq('user_id', user.id)
-          .limit(1)
-
-        const resumeCard = resumeCards?.[0] || null
-
-        if (resumeCard) {
-          await supabase
+        if (isJobSpecific) {
+          const { data: resumeCards, error: resumeCardsError } = await supabase
             .from('applications')
-            .update({ cover_letter_id: coverLetter.id })
-            .eq('id', resumeCard.id)
-          return
+            .select('id')
+            .eq('resume_id', coverLetter.linked_resume_id)
+            .eq('user_id', user.id)
+            .limit(1)
+          if (resumeCardsError) throw resumeCardsError
+
+          const resumeCard = resumeCards?.[0] || null
+
+          if (resumeCard) {
+            const { error: updateError } = await supabase
+              .from('applications')
+              .update({ cover_letter_id: coverLetter.id })
+              .eq('id', resumeCard.id)
+            if (updateError) throw updateError
+            return
+          }
         }
       }
-    }
 
-    // No existing card — create one (never link a core resume to a job card)
-    await supabase
-      .from('applications')
-      .insert({
-        user_id: user.id,
-        title: coverLetter.job_title || 'Untitled Role',
-        company: coverLetter.job_company || 'Unknown Company',
-        description: coverLetter.job_description || '',
-        cover_letter_id: coverLetter.id,
-        resume_id: null,
-        application_status: 'resume_in_progress',
-        application_date: new Date().toISOString().split('T')[0],
-      })
+      // No existing card — create one (never link a core resume to a job card)
+      const { error: insertError } = await supabase
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          title: coverLetter.job_title || 'Untitled Role',
+          company: coverLetter.job_company || 'Unknown Company',
+          description: coverLetter.job_description || '',
+          cover_letter_id: coverLetter.id,
+          resume_id: null,
+          application_status: 'resume_in_progress',
+          application_date: new Date().toISOString().split('T')[0],
+        })
+      if (insertError) throw insertError
+    } catch (err) {
+      console.error('Auto-link job card failed:', err)
+      // Auto-linking is best-effort behind the scenes. Don't block the user
+      // from editing their cover letter if linking fails — they can manually
+      // link from job tracker. But surface it so we know if it's broken.
+      setErrorToast("We couldn't link this cover letter to a job card. You can link it manually from Job Tracker.")
+    }
   }
 
   async function loadCoverLetter() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/resume-coach'); return }
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      if (!user) { router.push('/resume-coach'); return }
 
-    const { data, error } = await supabase
-      .from('cover_letters')
-      .select('*')
-      .eq('id', params.id)
-      .eq('user_id', user.id)
-      .single()
+      const { data, error } = await supabase
+        .from('cover_letters')
+        .select('*')
+        .eq('id', params.id)
+        .eq('user_id', user.id)
+        .single()
 
-    if (error) { router.push('/resume-coach'); return }
+      if (error) {
+        // Distinguish "not found" from real load failure
+        if (error.code === 'PGRST116') {
+          router.push('/resume-coach')
+          return
+        }
+        throw error
+      }
 
-    setCoverLetter(data)
-    const loadedTemplate = data.template_id || 'current'
-    setSelectedTemplate(loadedTemplate)
-    setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Lato')
-    setSelectedSize(data.font_size || 11)
-    setSelectedSpacing(data.spacing || 1)
-    setLoading(false)
+      setCoverLetter(data)
+      const loadedTemplate = data.template_id || 'current'
+      setSelectedTemplate(loadedTemplate)
+      setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Lato')
+      setSelectedSize(data.font_size || 11)
+      setSelectedSpacing(data.spacing || 1)
+    } catch (err) {
+      console.error('Load cover letter failed:', err)
+      setErrorToast("We couldn't load your cover letter. Please refresh the page.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function loadUserProfile() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setUserProfile(data)
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      if (!user) return
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      if (error && error.code !== 'PGRST116') throw error
+      setUserProfile(data)
+    } catch (err) {
+      console.error('Load user profile failed:', err)
+      // Profile loading is non-blocking — the page still works without it.
+      // Don't show a toast; just log and move on.
+    }
   }
 
   function updateCoverLetterData(newData) {
@@ -186,22 +222,29 @@ export default function CoverLetterPage() {
   }
 
   async function save(overrides = {}) {
-    const { error } = await supabase
-      .from('cover_letters')
-      .update({
-        cover_letter_data: coverLetter.cover_letter_data,
-        template_id: selectedTemplate,
-        font_family: selectedFont,
-        font_size: Math.round(overrides.fontSize ?? selectedSize),
-        spacing: overrides.spacing ?? selectedSpacing,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', params.id)
+    try {
+      const { error } = await supabase
+        .from('cover_letters')
+        .update({
+          cover_letter_data: coverLetter.cover_letter_data,
+          template_id: selectedTemplate,
+          font_family: selectedFont,
+          font_size: Math.round(overrides.fontSize ?? selectedSize),
+          spacing: overrides.spacing ?? selectedSpacing,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', params.id)
 
-    if (error) { console.error('Save error:', error); setErrorToast('Changes could not be saved. Please check your connection and try again.'); return }
-    setHasUnsavedChanges(false)
-    setSaveSuccess(true)
-    setTimeout(() => setSaveSuccess(false), 2000)
+      if (error) throw error
+      setHasUnsavedChanges(false)
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (err) {
+      console.error('Save error:', err)
+      setErrorToast("We couldn't save your changes. Please check your connection and try again.")
+      // Note: hasUnsavedChanges stays true so the Save button stays
+      // active and the user can retry without losing their edits.
+    }
   }
 
   const triggerPageCheck = () => {
@@ -415,10 +458,25 @@ export default function CoverLetterPage() {
     )
   }
 
-  if (!coverLetter) {
+ if (!coverLetter) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Cover letter not found</p>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-gray-600">We couldn't load your cover letter.</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setLoading(true); loadCoverLetter() }}
+            className="px-4 py-2 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+          >
+            Try again
+          </button>
+          <button
+            onClick={() => router.push('/resume-coach')}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            Back to Resume Coach
+          </button>
+        </div>
       </div>
     )
   }

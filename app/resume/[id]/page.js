@@ -332,25 +332,36 @@ const handleReassess = async (overrideData = null) => {
         })
         .eq('id', params.id)
 
-      if (error) console.error('Error saving score:', error.message)
+      if (error) {
+        console.error('Error saving score:', error)
+        setErrorToast("We analyzed your resume but couldn't save the score. Please try again.")
+        return
+      }
 
       setResume(prev => ({ ...prev, current_score: result.matchScore }))
       setScoreAfterCoaching(result.matchScore)
 
       // Update job card match score if one exists
       if (currentUser) {
-        const { data: existingCard } = await supabase
+        const { data: existingCard, error: cardLookupError } = await supabase
           .from('applications')
           .select('id')
           .eq('resume_id', params.id)
           .eq('user_id', currentUser.id)
           .maybeSingle()
 
-        if (existingCard) {
-          await supabase
+        if (cardLookupError) {
+          console.error('Error looking up job card:', cardLookupError)
+        } else if (existingCard) {
+          const { error: cardUpdateError } = await supabase
             .from('applications')
             .update({ match_score: result.matchScore })
             .eq('id', existingCard.id)
+
+          if (cardUpdateError) {
+            console.error('Error updating job card match score:', cardUpdateError)
+            setErrorToast("Your resume score saved, but the job tracker card didn't update. Refresh the Job Tracker page to sync.")
+          }
         }
       }
 
@@ -392,7 +403,11 @@ const handleReassess = async (overrideData = null) => {
         .update(updateData)
         .eq('id', params.id)
 
-      if (error) console.error('Error saving score:', error.message)
+      if (error) {
+        console.error('Error saving score:', error)
+        setErrorToast("We analyzed your resume but couldn't save the score. Please try again.")
+        return
+      }
 
       setResume(prev => ({
         ...prev,
@@ -401,6 +416,7 @@ const handleReassess = async (overrideData = null) => {
       }))
 
       setScoreAfterCoaching(result.score)
+
     }
 
   } catch (error) {
@@ -449,44 +465,73 @@ function formatDate(dateString, format = dateFormat) {
     cardCreationRanRef.current = true
 
     async function createJobCard() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) {
+          console.error('Auth error in createJobCard:', authError)
+          return
+        }
+        if (!user) return
 
-      const { data: resumeCards } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('resume_id', resume.id)
-        .eq('user_id', user.id)
-        .limit(1)
+        const { data: resumeCards, error: resumeCardsError } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('resume_id', resume.id)
+          .eq('user_id', user.id)
+          .limit(1)
 
-      const cardByResume = resumeCards?.[0] || null
+        if (resumeCardsError) {
+          console.error('Error checking for existing job card by resume:', resumeCardsError)
+          setErrorToast("We couldn't link this resume to your job tracker. You can add it manually from the Job Tracker page.")
+          return
+        }
 
-      const { data: jobCards } = !cardByResume && resume.job_title && resume.job_company
-        ? await supabase
+        const cardByResume = resumeCards?.[0] || null
+
+        let jobCardsData = null
+        if (!cardByResume && resume.job_title && resume.job_company) {
+          const { data: jobCards, error: jobCardsError } = await supabase
             .from('applications')
             .select('id')
             .eq('user_id', user.id)
             .eq('title', resume.job_title)
             .eq('company', resume.job_company)
             .limit(1)
-        : { data: null }
 
-      const existingCard = cardByResume || jobCards?.[0] || null
+          if (jobCardsError) {
+            console.error('Error checking for existing job card by title/company:', jobCardsError)
+            setErrorToast("We couldn't link this resume to your job tracker. You can add it manually from the Job Tracker page.")
+            return
+          }
+          jobCardsData = jobCards
+        }
 
-      if (!existingCard) {
-        await supabase
-          .from('applications')
-          .insert({
-            user_id: user.id,
-            title: resume.job_title || 'Untitled Role',
-            company: resume.job_company || 'Unknown Company',
-            description: resume.job_description || '',
-            application_status: 'resume_in_progress',
-            resume_id: resume.id,
-            match_score: resume.current_score || null,
-            application_date: new Date().toISOString().split('T')[0],
-            sort_order: 0,
-          })
+        const existingCard = cardByResume || jobCardsData?.[0] || null
+
+        if (!existingCard) {
+          const { error: insertError } = await supabase
+            .from('applications')
+            .insert({
+              user_id: user.id,
+              title: resume.job_title || 'Untitled Role',
+              company: resume.job_company || 'Unknown Company',
+              description: resume.job_description || '',
+              application_status: 'resume_in_progress',
+              resume_id: resume.id,
+              match_score: resume.current_score || null,
+              application_date: new Date().toISOString().split('T')[0],
+              sort_order: 0,
+            })
+
+          if (insertError) {
+            console.error('Error creating job card:', insertError)
+            setErrorToast("We couldn't add this resume to your job tracker. You can add it manually from the Job Tracker page.")
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error in createJobCard:', err)
+        setErrorToast("Something went wrong adding this to your job tracker. You can add it manually from the Job Tracker page.")
       }
     }
 
@@ -550,9 +595,11 @@ function formatDate(dateString, format = dateFormat) {
         if (response.ok) {
           const { pageCount } = await response.json()
           setResumeExceedsPage(pageCount > 1)
+        } else {
+          console.error('Page check failed:', response.status, response.statusText)
         }
       } catch (e) {
-        // Silent fail
+        console.error('Page check error:', e)
       }
     }, 1500)
   }
@@ -578,27 +625,35 @@ function formatDate(dateString, format = dateFormat) {
     }
   }, [selectedTemplate])
 
-  async function loadResume() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/dashboard')
-      return
-    }
+ async function loadResume() {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error in loadResume:', authError)
+        setErrorToast("We couldn't verify your account. Please refresh the page.")
+        setLoading(false)
+        return
+      }
+      if (!user) {
+        router.push('/dashboard')
+        return
+      }
 
-    const { data, error } = await supabase
-      .from('resumes')
-      .select('*')
-      .eq('id', params.id)
-      .eq('user_id', user.id)
-      .single()
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('id', params.id)
+        .eq('user_id', user.id)
+        .single()
 
-    if (error) {
-      console.error('Error loading resume:', error)
-      router.push('/resume-coach')
-      return
-    }
+      if (error) {
+        console.error('Error loading resume:', error)
+        setErrorToast("We couldn't load your resume. Please try again.")
+        setLoading(false)
+        return
+      }
 
-    setResume(data)
+      setResume(data)
 
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
@@ -645,20 +700,39 @@ if (data.ai_analysis) {
     setHistoryIndex(0)
     
     setLoading(false)
-
-      }
+    } catch (err) {
+      console.error('Unexpected error in loadResume:', err)
+      setErrorToast("Something went wrong loading your resume. Please refresh the page.")
+      setLoading(false)
+    }
+  }
 
   async function loadUserProfile() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error in loadUserProfile:', authError)
+        return
+      }
+      if (!user) return
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-    setUserProfile(data)
+      if (error) {
+        console.error('Error loading user profile:', error)
+        setErrorToast("We couldn't load your profile. Some features may not work correctly. Please refresh the page.")
+        return
+      }
+
+      setUserProfile(data)
+    } catch (err) {
+      console.error('Unexpected error in loadUserProfile:', err)
+      setErrorToast("Something went wrong loading your profile. Please refresh the page.")
+    }
   }
 
   function updateResumeData(newResumeData) {
@@ -2370,7 +2444,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
           .eq('id', params.id)
       }
     } catch (err) {
-      // Silent fail — captures are non-essential
+      console.error('Capture extraction failed:', err)
     }
   }
 
