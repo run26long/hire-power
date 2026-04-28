@@ -70,6 +70,39 @@ export default function JobTrackerPage() {
   const [newNotes, setNewNotes] = useState('');
   const [addLoading, setAddLoading] = useState(false);
 
+  // AP-style title case — detects deliberate casing vs mobile auto-cap artifacts.
+  // Protects "iOS Developer", "SaaS Engineer" (caps mid-word = deliberate).
+  // Normalizes "Mall at millennia" from mobile auto-cap (caps only at word starts).
+  function toTitleCaseOnBlur(value) {
+    if (!value) return value;
+    const trimmed = value.trim();
+    if (!trimmed) return trimmed;
+    const words = trimmed.split(/\s+/);
+    const hasMidWordCap = words.some(w => {
+      for (let i = 1; i < w.length; i++) {
+        if (w[i] >= 'A' && w[i] <= 'Z') return true;
+      }
+      return false;
+    });
+    if (hasMidWordCap) return trimmed;
+    const smallWords = new Set(['a','an','and','as','at','but','by','for','if','in','nor','of','on','or','so','the','to','up','yet']);
+    const acronyms = new Set(['hr','it','pr','qa','ui','ux','vp','ceo','cfo','coo','cto','cmo','seo','ai','ml']);
+    const tokens = trimmed.toLowerCase().split(/(\s+)/);
+    const wordIndices = [];
+    tokens.forEach((tok, i) => { if (tok.trim() !== '') wordIndices.push(i); });
+    const firstIdx = wordIndices[0];
+    const lastIdx = wordIndices[wordIndices.length - 1];
+    return tokens.map((tok, i) => {
+      if (tok.trim() === '') return tok;
+      const cleanTok = tok.replace(/[^a-z]/g, '');
+      if (acronyms.has(cleanTok)) return tok.toUpperCase();
+      const isFirst = i === firstIdx;
+      const isLast = i === lastIdx;
+      if (!isFirst && !isLast && smallWords.has(tok)) return tok;
+      return tok.charAt(0).toUpperCase() + tok.slice(1);
+    }).join('');
+  }
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -753,6 +786,7 @@ export default function JobTrackerPage() {
                   type="text"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
+                  onBlur={e => setNewTitle(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -763,6 +797,7 @@ export default function JobTrackerPage() {
                   type="text"
                   value={newCompany}
                   onChange={e => setNewCompany(e.target.value)}
+                  onBlur={e => setNewCompany(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Acme Corp"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
