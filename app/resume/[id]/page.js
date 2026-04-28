@@ -1652,6 +1652,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 <div
                   onClick={async () => {
                  if (index > maxStepIndex || index === currentIndex) return
+                    const { error: saveError } = await supabase
+                      .from('resumes')
+                      .update({ journey_step: step, updated_at: new Date().toISOString() })
+                      .eq('id', params.id)
+                    if (saveError) {
+                      console.error('Error jumping to journey step (dot):', saveError)
+                      setErrorToast("We couldn't switch to that step. Please try again.")
+                      return
+                    }
                     setResume(prev => ({ ...prev, journey_step: step }))
                   }}
                   className={`
@@ -1671,7 +1680,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                       .from('resumes')
                       .update({ journey_step: step, updated_at: new Date().toISOString() })
                       .eq('id', params.id)
-                    if (!error) setResume(prev => ({ ...prev, journey_step: step }))
+                    if (error) {
+                      console.error('Error jumping to journey step (label):', error)
+                      setErrorToast("We couldn't switch to that step. Please try again.")
+                      return
+                    }
+                    setResume(prev => ({ ...prev, journey_step: step }))
                   }}
                  className={`text-xs mt-1 capitalize ${
                     index === currentIndex ? 'text-purple-600 font-semibold' :
@@ -2112,11 +2126,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                                 updated_at: new Date().toISOString()
                               })
                               .eq('id', params.id)
-                            if (error) throw error
+                            if (error) {
+                              console.error('Error advancing to improve step:', error)
+                              setErrorToast("We couldn't move you to the improve step. Please try again.")
+                              return
+                            }
                             setResume(prev => ({ ...prev, journey_step: 'improve' }))
                           } catch (err) {
-                            console.error('Error:', err)
-                            setErrorToast('Something went wrong. Please try again.')
+                            console.error('Unexpected error advancing to improve step:', err)
+                            setErrorToast("Something went wrong. Please try again.")
                           } finally {
                             setIsUpdatingJourney(false)
                           }
@@ -2151,11 +2169,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                               updated_at: new Date().toISOString()
                             })
                             .eq('id', params.id)
-                          if (error) throw error
+                          if (error) {
+                            console.error('Error starting free trial coaching:', error)
+                            setErrorToast("We couldn't start your coaching session. Please try again.")
+                            return
+                          }
                           setResume(prev => ({ ...prev, journey_step: 'coach' }))
                        } catch (err) {
-                        console.error('Error:', err)
-                        setErrorToast('Something went wrong. Please try again.')
+                        console.error('Unexpected error starting free trial coaching:', err)
+                        setErrorToast("Something went wrong starting your coaching session. Please try again.")
                       } finally {
                         setIsUpdatingJourney(false)
                       }
@@ -5043,7 +5065,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
       setResumeChanges(data.changes || [])
       setRecoachAttempts(prev => prev + 1)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({
           rewritten_resume: data.rewrittenResume,
@@ -5051,6 +5073,13 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving targeted recoach result:', saveError)
+        setErrorToast("We rewrote your résumé but couldn't save it. Please try the update button again.")
+        setIsFinishing(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, resume_data: data.rewrittenResume }))
       await handleReassess(data.rewrittenResume)
@@ -5189,6 +5218,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 // ─────────────────────────────────────────────
 function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier }) {
   const [advancing, setAdvancing] = useState(false)
+  const [errorToastFormat, setErrorToastFormat] = useState(null)
 
   return (
     <div className="space-y-2">
@@ -5220,13 +5250,19 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           onClick={async () => {
             setAdvancing(true)
             try {
-              await supabase
+              const { error: saveError } = await supabase
                 .from('resumes')
                 .update({ journey_step: 'save', updated_at: new Date().toISOString() })
                 .eq('id', params.id)
+              if (saveError) {
+                console.error('Error advancing to save step:', saveError)
+                setErrorToastFormat("We couldn't move you to the save step. Please try again.")
+                return
+              }
               setResume(prev => ({ ...prev, journey_step: 'save' }))
             } catch (err) {
-              console.error(err)
+              console.error('Unexpected error advancing to save step:', err)
+              setErrorToastFormat("Something went wrong. Please try again.")
             } finally {
               setAdvancing(false)
             }
@@ -5239,6 +5275,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           {advancing ? 'Saving...' : 'Ready to Save →'}
         </button>
       </div>
+      <ErrorToast message={errorToastFormat} onClose={() => setErrorToastFormat(null)} />
     </div>
   )
 }
@@ -5248,23 +5285,41 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
 // ─────────────────────────────────────────────
 function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handleDownload, isDownloading }) {
   const firstName = userName ? userName.split(' ')[0] : null
+  const [errorToastSave, setErrorToastSave] = useState(null)
 
   useEffect(() => {
     async function markComplete() {
-      const supabase = createClient()
-      const { data: resume } = await supabase
-        .from('resumes')
-        .select('completed_at')
-        .eq('id', params.id)
-        .single()
-      if (!resume?.completed_at) {
-        await supabase
+      try {
+        const supabase = createClient()
+        const { data: resume, error: readError } = await supabase
           .from('resumes')
-          .update({ 
-            completed_at: new Date().toISOString(),
-            journey_step: 'save'
-          })
+          .select('completed_at')
           .eq('id', params.id)
+          .single()
+
+        if (readError) {
+          console.error('Error reading completion status:', readError)
+          setErrorToastSave("We couldn't confirm your resume's completion status. Your work is safe — please refresh the page.")
+          return
+        }
+
+        if (!resume?.completed_at) {
+          const { error: updateError } = await supabase
+            .from('resumes')
+            .update({ 
+              completed_at: new Date().toISOString(),
+              journey_step: 'save'
+            })
+            .eq('id', params.id)
+
+          if (updateError) {
+            console.error('Error marking resume complete:', updateError)
+            setErrorToastSave("We couldn't mark your resume as complete. Your work is safe — please refresh the page.")
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error marking complete:', err)
+        setErrorToastSave("Something went wrong saving your completion status. Your work is safe — please refresh the page.")
       }
     }
     markComplete()
@@ -5327,6 +5382,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
           </button>
         </div>
       </div>
+      <ErrorToast message={errorToastSave} onClose={() => setErrorToastSave(null)} />
     </div>
   )
 }
