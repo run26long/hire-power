@@ -2477,7 +2477,14 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
       { role: 'assistant', content: data.response }
     ]
       setCoachingMessages(initialMessages)
-      await supabase.from('resumes').update({ coaching_conversation: initialMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
+      const { error: saveError } = await supabase
+        .from('resumes')
+        .update({ coaching_conversation: initialMessages, coaching_tier_at_save: 'pro' })
+        .eq('id', params.id)
+      if (saveError) {
+        console.error('Error saving initial chat message:', saveError)
+        setErrorToast("We couldn't save the start of your session. If you refresh, you may lose this message.")
+      }
     } catch (err) {
       console.error('Error starting resume chat:', err)
       setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh and try again." }])
@@ -2512,7 +2519,14 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
       const finalMessages = [...updatedMessages, { role: 'assistant', content: data.response }]
       setCoachingMessages(finalMessages)
       processCaptures(userMessageText, data.response)
-      await supabase.from('resumes').update({ coaching_conversation: finalMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
+      const { error: saveError } = await supabase
+        .from('resumes')
+        .update({ coaching_conversation: finalMessages, coaching_tier_at_save: 'pro' })
+        .eq('id', params.id)
+      if (saveError) {
+        console.error('Error saving chat message:', saveError)
+        setErrorToast("We couldn't save your last message. If you refresh, you may lose recent progress.")
+      }
     } catch (err) {
       console.error('Error sending resume chat message:', err)
       setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending again." }])
@@ -2553,7 +2567,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
 
       if (resetHistory) resetHistory(data.rewrittenResume)
 
-      await supabase.from('resumes').update({
+      const { error: saveError } = await supabase.from('resumes').update({
         resume_data: data.rewrittenResume,
         rewritten_resume: data.rewrittenResume,
         journey_step: 'improve',
@@ -2565,6 +2579,13 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         ai_analysis: scoreData?.analysis || null,
         updated_at: new Date().toISOString()
       }).eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving rewritten résumé:', saveError)
+        setErrorToast("We built your résumé but couldn't save it. Please try the build button again.")
+        setIsFinishing(false)
+        return
+      }
 
       setResume(prev => ({
         ...prev,
@@ -2622,22 +2643,34 @@ const getMessageText = (msg) => {
     }
   }, [isConversational])
 
-  // Standard coaching init — runs once at mount, skips empty resume data
+ // Standard coaching init — runs once at mount, skips empty resume data
   useEffect(() => {
     const hasContent = resumeData?.fullName || (resumeData?.experience?.length > 0)
     if (!hasContent) return
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) {
+          console.error('Auth error in CoachStep init:', authError)
+          setErrorToast("We couldn't verify your account. Please refresh the page.")
+          return
+        }
+        if (!user) return
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier')
-        .eq('id', user.id)
-        .single()
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single()
 
-      const tier = profile?.subscription_tier || 'free'
-      setUserTier(tier)
+        if (profileError) {
+          console.error('Error loading profile tier in CoachStep:', profileError)
+          setErrorToast("We couldn't load your account details. Please refresh the page.")
+          return
+        }
+
+        const tier = profile?.subscription_tier || 'free'
+        setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
       const savedTier = coachingTierAtSave
@@ -2654,6 +2687,10 @@ const getMessageText = (msg) => {
         await startCoaching(tier)
       }
       // Otherwise: saved conversation exists and tier matches (or is null/pro) — restore as-is, do nothing.
+      } catch (err) {
+        console.error('Unexpected error in CoachStep init:', err)
+        setErrorToast("Something went wrong starting your coaching session. Please refresh the page.")
+      }
     }
     init()
   }, [])
@@ -2692,10 +2729,15 @@ const getMessageText = (msg) => {
       const initialMessages = [{ role: 'assistant', content: data.response }]
       setCoachingMessages(initialMessages)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ coaching_conversation: initialMessages, coaching_tier_at_save: tier })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving initial coaching message:', saveError)
+        setErrorToast("We couldn't save the start of your session. If you refresh, you may lose this message.")
+      }
    } catch (err) {
       console.error('Error starting coaching:', err)
       setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh the page and try again." }])
@@ -2745,10 +2787,15 @@ const getMessageText = (msg) => {
       setCoachingMessages(finalMessages)
       processCaptures(userMessageText, data.response)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ coaching_conversation: finalMessages, coaching_tier_at_save: userTier })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving coaching message:', saveError)
+        setErrorToast("We couldn't save your last message. If you refresh, you may lose recent progress.")
+      }
     } catch (err) {
       console.error('Error sending message:', err)
       setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending your message again." }])
@@ -2887,7 +2934,7 @@ const getMessageText = (msg) => {
       setRewrittenResume(finalResume)
       setResumeChanges(finalChanges)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({
           journey_step: 'improve',
@@ -2899,6 +2946,13 @@ const getMessageText = (msg) => {
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving coached resume:', saveError)
+        setErrorToast("We rewrote your resume but couldn't save it. Please try the reveal button again.")
+        setIsFinishing(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
 
@@ -2929,7 +2983,7 @@ const getMessageText = (msg) => {
       })
       const data = await response.json()
 
-      await supabase
+      const { error: resumeError } = await supabase
         .from('resumes')
         .update({
           trial_coaching_used: true,
@@ -2938,19 +2992,40 @@ const getMessageText = (msg) => {
         })
         .eq('id', params.id)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
+      if (resumeError) {
+        console.error('Error marking trial coaching used:', resumeError)
+        setErrorToast("We finished your coaching but couldn't save the result. Please try the reveal button again.")
+        setIsFinishing(false)
+        return
+      }
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error in finishTrialCoaching:', authError)
+      } else if (user) {
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('coaching_samples_used')
           .eq('id', user.id)
           .single()
-        const newCount = (profile?.coaching_samples_used || 0) + 1
-        await supabase
-          .from('profiles')
-          .update({ coaching_samples_used: newCount })
-          .eq('id', user.id)
-        setCoachingSamplesUsed(newCount)
+
+        if (profileError) {
+          console.error('Error reading profile sample count:', profileError)
+          setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
+        } else {
+          const newCount = (profile?.coaching_samples_used || 0) + 1
+          const { error: profileUpdateError } = await supabase
+            .from('profiles')
+            .update({ coaching_samples_used: newCount })
+            .eq('id', user.id)
+
+          if (profileUpdateError) {
+            console.error('Error updating profile sample count:', profileUpdateError)
+            setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
+          } else {
+            setCoachingSamplesUsed(newCount)
+          }
+        }
       }
 
       setTrialResult(data)
@@ -2979,7 +3054,7 @@ const getMessageText = (msg) => {
         }
       }
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({
           resume_data: updatedResume,
@@ -2988,18 +3063,32 @@ const getMessageText = (msg) => {
         })
         .eq('id', params.id)
 
+      if (saveError) {
+        console.error('Error applying trial bullet:', saveError)
+        setErrorToast("We couldn't apply that change. Please try again.")
+        return
+      }
+
       setResume(prev => ({ ...prev, resume_data: updatedResume, journey_step: 'improve' }))
     } catch (err) {
       console.error('Error applying bullet:', err)
+      setErrorToast("Something went wrong applying that change. Please try again.")
       await advanceToImprove()
     }
   }
 
   async function advanceToImprove() {
-    await supabase
+    const { error: saveError } = await supabase
       .from('resumes')
       .update({ journey_step: 'improve', updated_at: new Date().toISOString() })
       .eq('id', params.id)
+
+    if (saveError) {
+      console.error('Error advancing to improve step:', saveError)
+      setErrorToast("We couldn't move you to the next step. Please try again.")
+      return
+    }
+
     setResume(prev => ({ ...prev, journey_step: 'improve' }))
   }
 // ── Coaching locked (Pro/JS, complete) — chat renders normally, just hide input and finish button ──
