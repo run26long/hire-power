@@ -506,7 +506,16 @@ export default function Profile() {
                       Reset Password
                     </button>
                     <button
-                      onClick={async () => { await supabase.auth.signOut(); router.push('/dashboard') }}
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.auth.signOut()
+                          if (error) throw error
+                          router.push('/dashboard')
+                        } catch (e) {
+                          console.error('Sign out failed:', e)
+                          setToastError("We couldn't sign you out. Please try again.")
+                        }
+                      }}
                       style={{ ...btnGhost, flex: 1, textAlign: 'center' }}
                     >
                       Sign Out

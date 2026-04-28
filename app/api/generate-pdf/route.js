@@ -174,14 +174,26 @@ export async function POST(request) {
         .from('resume-pdfs')
         .getPublicUrl(fileName)
 
+      if (!publicUrl) {
+        return apiError(
+          new Error(`getPublicUrl returned empty for ${fileName}`),
+          "We couldn't save your PDF. Please try again."
+        )
+      }
+
       const tableName = isJobVersion ? 'resume_versions' : 'resumes'
       const recordId = versionId || resumeId
 
-      const { data: currentRecord } = await supabase
+      const { data: currentRecord, error: selectError } = await supabase
         .from(tableName)
         .select('formatted_versions')
         .eq('id', recordId)
         .single()
+
+      if (selectError) {
+        console.error('generate-pdf: failed to read formatted_versions:', selectError)
+        return apiError(selectError, "We couldn't save your PDF. Please try again.")
+      }
 
       const formattedVersions = currentRecord?.formatted_versions || {}
       formattedVersions[templateName] = {
@@ -190,10 +202,15 @@ export async function POST(request) {
         file_path: fileName
       }
 
-      await supabase
+      const { error: updateError } = await supabase
         .from(tableName)
         .update({ formatted_versions: formattedVersions })
         .eq('id', recordId)
+
+      if (updateError) {
+        console.error('generate-pdf: failed to update formatted_versions:', updateError)
+        return apiError(updateError, "We couldn't save your PDF. Please try again.")
+      }
 
       return Response.json({
         success: true,

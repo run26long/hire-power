@@ -31,16 +31,34 @@ export async function POST(request) {
       return NextResponse.json({ error: createError.message }, { status: 400 })
     }
 
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      customer_email: email,
-      line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
-      metadata: { userId: userData.user.id }
-    })
+    if (!userData?.user?.id) {
+      console.error('signup-pro: createUser returned no user object')
+      return NextResponse.json({ error: 'We couldn\'t create your account. Please try again.' }, { status: 500 })
+    }
+
+    // Create Stripe checkout session. If this fails, delete the Supabase user
+    // we just created so they can cleanly retry signup instead of being stranded
+    // with an account that says "already exists" but has no Stripe subscription.
+    let session
+    try {
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        customer_email: email,
+        line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, quantity: 1 }],
+        success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
+        cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+        metadata: { userId: userData.user.id }
+      })
+    } catch (stripeError) {
+      console.error('signup-pro: Stripe session failed, rolling back user creation:', stripeError)
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(userData.user.id)
+      if (deleteError) {
+        // Log loudly so we can manually clean up if rollback ever fails.
+        console.error('signup-pro: ROLLBACK FAILED for orphaned user', userData.user.id, deleteError)
+      }
+      return NextResponse.json({ error: "We couldn't start checkout. Please try again in a moment." }, { status: 500 })
+    }
 
     return NextResponse.json({ checkoutUrl: session.url })
 
