@@ -3571,11 +3571,20 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         .select('rewritten_resume, resume_changes')
         .eq('id', params.id)
         .single()
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error reloading rewritten resume:', error)
+            setErrorToast("We couldn't reload your coached resume. Please refresh the page.")
+            return
+          }
           if (data?.rewritten_resume) {
             setRewrittenResume(data.rewritten_resume)
             setResumeChanges(data.resume_changes || [])
           }
+        })
+        .catch(err => {
+          console.error('Unexpected error reloading rewritten resume:', err)
+          setErrorToast("Something went wrong reloading your coached resume. Please refresh the page.")
         })
         .finally(() => setLoading(false))
     }
@@ -3694,7 +3703,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           <div className="flex justify-center pt-1">
             <button
               onClick={async () => {
-                await supabase.from('resumes').update({ journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
+                const { error: saveError } = await supabase
+                  .from('resumes')
+                  .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                  .eq('id', params.id)
+                if (saveError) {
+                  console.error('Error advancing to format step:', saveError)
+                  setErrorToast("We couldn't move you to the format step. Please try again.")
+                  return
+                }
                 setResume(prev => ({ ...prev, journey_step: 'format' }))
               }}
               className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
@@ -3819,7 +3836,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             </button>
             <button
               onClick={async () => {
-                await supabase.from('resumes').update({ changes_accepted: true, journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
+                const { error: saveError } = await supabase
+                  .from('resumes')
+                  .update({ changes_accepted: true, journey_step: 'format', updated_at: new Date().toISOString() })
+                  .eq('id', params.id)
+                if (saveError) {
+                  console.error('Error accepting conversational changes:', saveError)
+                  setErrorToast("We couldn't save your changes. Please try again.")
+                  return
+                }
                 setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
               }}
               className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
@@ -3853,7 +3878,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             isConversationalFix={true}
             onClose={async () => {
               setShowConvTargetedRecoach(false)
-              await supabase.from('resumes').update({ changes_accepted: true, updated_at: new Date().toISOString() }).eq('id', params.id)
+              const { error: saveError } = await supabase
+                .from('resumes')
+                .update({ changes_accepted: true, updated_at: new Date().toISOString() })
+                .eq('id', params.id)
+              if (saveError) {
+                console.error('Error marking conversational changes accepted on close:', saveError)
+                setErrorToast("We couldn't save your changes. Please refresh the page.")
+                return
+              }
               setResume(prev => ({ ...prev, changes_accepted: true }))
             }}
           />
@@ -3930,10 +3963,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           )}
           <button
             onClick={async () => {
-              await supabase
+              const { error: saveError } = await supabase
                 .from('resumes')
                 .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                 .eq('id', params.id)
+              if (saveError) {
+                console.error('Error advancing to format step:', saveError)
+                setErrorToast("We couldn't move you to the format step. Please try again.")
+                return
+              }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
             className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
@@ -4108,17 +4146,24 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   async function acceptAll() {
     setAccepting(true)
     try {
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ resume_data: rewrittenResume, changes_accepted: true, updated_at: new Date().toISOString() })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving accepted changes:', saveError)
+        setErrorToast("We couldn't save your accepted changes. Please try again.")
+        setAccepting(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, resume_data: rewrittenResume, changes_accepted: true }))
       await handleReassess(rewrittenResume)
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error accepting changes:', err)
-      setErrorToast('Something went wrong. Please try again.')
+      setErrorToast("Something went wrong applying your changes. Please try again.")
     } finally {
       setAccepting(false)
     }
@@ -4138,10 +4183,18 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         }
       })
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ resume_data: finalData, changes_accepted: true, updated_at: new Date().toISOString() })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving reviewed changes:', saveError)
+        setErrorToast("We couldn't save your reviewed changes. Please try again.")
+        setAccepting(false)
+        setIsPreparingReveal(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, resume_data: finalData, changes_accepted: true }))
       await handleReassess(finalData)
@@ -4149,7 +4202,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error finishing review:', err)
-      setErrorToast('Something went wrong. Please try again.')
+      setErrorToast("Something went wrong applying your reviewed changes. Please try again.")
     } finally {
       setAccepting(false)
       setIsPreparingReveal(false)
@@ -4543,10 +4596,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                  <button
                   onClick={async () => {
                     setShowRevealModal(false)
-                    await supabase
+                    const { error: saveError } = await supabase
                       .from('resumes')
                       .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                       .eq('id', params.id)
+                    if (saveError) {
+                      console.error('Error advancing to format step:', saveError)
+                      setErrorToast("We couldn't move you to the format step. Please try again.")
+                      return
+                    }
                     setResume(prev => ({ ...prev, journey_step: 'format' }))
                   }}
                   className="block mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm transition-opacity hover:opacity-90 mb-3"
@@ -4626,10 +4684,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 <button
                   onClick={async () => {
                     setShowGapsModal(false)
-                    await supabase
+                    const { error: saveError } = await supabase
                       .from('resumes')
                       .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                       .eq('id', params.id)
+                    if (saveError) {
+                      console.error('Error advancing to format step:', saveError)
+                      setErrorToast("We couldn't move you to the format step. Please try again.")
+                      return
+                    }
                     setResume(prev => ({ ...prev, journey_step: 'format' }))
                   }}
                   className="w-full bg-white text-gray-500 border border-gray-200 rounded-lg py-2 text-xs font-medium hover:bg-gray-50 transition-colors"
@@ -4676,8 +4739,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 // ─────────────────────────────────────────────
 // FREE IMPROVE STEP
 // ─────────────────────────────────────────────
-function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal, setShowUpgradeModal }) {  const [currentIndex, setCurrentIndex] = useState(0)
+function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal, setShowUpgradeModal }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [isChecking, setIsChecking] = useState(false)
+  const [errorToastFree, setErrorToastFree] = useState(null)
   const isDone = currentIndex >= suggestions.length
   const hasUsedTrial = coachingSamplesUsed > 0
 
@@ -4738,9 +4803,15 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
                   const isLast = currentIndex === suggestions.length - 1
                   if (isLast) {
                     setIsChecking(true)
-                    await handleReassess()
-                    setIsChecking(false)
-                    setShowRevealModal(true)
+                    try {
+                      await handleReassess()
+                      setShowRevealModal(true)
+                    } catch (err) {
+                      console.error('Error during final reassess:', err)
+                      setErrorToastFree("We couldn't check your score. Please try again.")
+                    } finally {
+                      setIsChecking(false)
+                    }
                   } else {
                     setCurrentIndex(prev => prev + 1)
                   }
@@ -4783,8 +4854,13 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
             </button>
             <button
               onClick={async () => {
-                await handleReassess()
-                setShowRevealModal(true)
+                try {
+                  await handleReassess()
+                  setShowRevealModal(true)
+                } catch (err) {
+                  console.error('Error during reassess:', err)
+                  setErrorToastFree("We couldn't check your score. Please try again.")
+                }
               }}
               disabled={isAnalyzing}
               className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors flex items-center gap-1"
@@ -4796,10 +4872,15 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
             </button>
             <button
               onClick={async () => {
-              await supabase
+              const { error: saveError } = await supabase
                 .from('resumes')
                 .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                 .eq('id', params.id)
+              if (saveError) {
+                console.error('Error advancing to format step:', saveError)
+                setErrorToastFree("We couldn't move you to the format step. Please try again.")
+                return
+              }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
             className="text-white rounded-lg py-2 px-8 font-semibold text-xs transition-opacity hover:opacity-90"
@@ -4810,6 +4891,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
           </div>
         </div>
       )}
+      <ErrorToast message={errorToastFree} onClose={() => setErrorToastFree(null)} />
     </div>
   )
 }
