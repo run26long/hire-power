@@ -964,7 +964,7 @@ const supabase = createClient();
                 Zero to applied in<br className="mobile-break" style={{display:'none'}}/> <em style={{fontStyle:'italic',color:'var(--purple)'}}>30 minutes.</em>
               </h2>
               <p style={{fontSize:'17px',color:'#374151',lineHeight:1.65,marginBottom:'12px'}}>
-                No resume? No problem. If you're starting from scratch, we've got you covered. Coach asks. You answer. Talk it out, type it in, or switch between both. Your resume builds in real time while you walk the dog, watch a show, or sit at Starbucks.
+                No resume? No problem. Build one in minutes - right from your phone! Coach asks. You answer. Talk it out, type it in, or switch between both. Your resume builds in real time while you walk the dog, watch a show, or sit at Starbucks.
               </p>
               <p style={{fontSize:'15px',color:'var(--purple)',fontStyle:'italic',fontWeight:500,marginBottom:'16px'}}>
                 No computer. No blank page. Just talk.

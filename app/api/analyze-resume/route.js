@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { apiError } from '@/lib/apiError'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -576,7 +577,16 @@ CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble
     
     console.log('Cleaned response:', cleanedResponse)
 
-    const analysis = JSON.parse(cleanedResponse)
+    let analysis
+    try {
+      analysis = JSON.parse(cleanedResponse)
+    } catch (parseError) {
+      console.error('Failed to parse Claude analysis response as JSON', {
+        rawResponse: cleanedResponse,
+        parseError,
+      })
+      return apiError(parseError, "We couldn't read the analysis. Please try again.")
+    }
     console.log('Analysis parsed successfully')
     console.log('Overall score:', analysis.overallScore)
     console.log('Breakdown:', analysis.breakdown)
@@ -593,14 +603,6 @@ CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble
     })
     
   } catch (error) {
-    console.error('=== ANALYSIS ERROR ===')
-    console.error('Error type:', error.constructor.name)
-    console.error('Error message:', error.message)
-    console.error('Full error:', error)
-    
-    return Response.json(
-      { error: `Failed to analyze resume: ${error.message}` },
-      { status: 500 }
-    )
+    return apiError(error, "We couldn't analyze your resume. Please try again.")
   }
 }

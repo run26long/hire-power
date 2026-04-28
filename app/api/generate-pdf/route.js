@@ -2,6 +2,7 @@ import React from 'react'
 import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import path from 'path'
+import { apiError } from '@/lib/apiError'
 import ResumePDFCurrent from '../../templates/pdf/ResumePDF-Current'
 import ResumePDFCommand from '../../templates/pdf/ResumePDF-Command'
 import ResumePDFCrisp from '../../templates/pdf/ResumePDF-Crisp'
@@ -173,14 +174,26 @@ export async function POST(request) {
         .from('resume-pdfs')
         .getPublicUrl(fileName)
 
+      if (!publicUrl) {
+        return apiError(
+          new Error(`getPublicUrl returned empty for ${fileName}`),
+          "We couldn't save your PDF. Please try again."
+        )
+      }
+
       const tableName = isJobVersion ? 'resume_versions' : 'resumes'
       const recordId = versionId || resumeId
 
-      const { data: currentRecord } = await supabase
+      const { data: currentRecord, error: selectError } = await supabase
         .from(tableName)
         .select('formatted_versions')
         .eq('id', recordId)
         .single()
+
+      if (selectError) {
+        console.error('generate-pdf: failed to read formatted_versions:', selectError)
+        return apiError(selectError, "We couldn't save your PDF. Please try again.")
+      }
 
       const formattedVersions = currentRecord?.formatted_versions || {}
       formattedVersions[templateName] = {
@@ -189,10 +202,15 @@ export async function POST(request) {
         file_path: fileName
       }
 
-      await supabase
+      const { error: updateError } = await supabase
         .from(tableName)
         .update({ formatted_versions: formattedVersions })
         .eq('id', recordId)
+
+      if (updateError) {
+        console.error('generate-pdf: failed to update formatted_versions:', updateError)
+        return apiError(updateError, "We couldn't save your PDF. Please try again.")
+      }
 
       return Response.json({
         success: true,
@@ -214,6 +232,12 @@ export async function POST(request) {
       const { data: { publicUrl } } = supabase.storage
         .from('resume-pdfs')
         .getPublicUrl(fileName)
+      if (!publicUrl) {
+        return apiError(
+          new Error(`getPublicUrl returned empty for ${fileName}`),
+          "We couldn't load the preview. Please try again."
+        )
+      }
       return Response.json({ previewUrl: publicUrl })
     }
 
@@ -229,10 +253,6 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    console.error('PDF generation error:', error)
-    return Response.json(
-      { error: 'Failed to generate PDF', details: error.message },
-      { status: 500 }
-    )
+    return apiError(error, "We couldn't generate your PDF. Please try again.")
   }
 }

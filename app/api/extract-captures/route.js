@@ -75,7 +75,11 @@ JOB-SPECIFIC MODE: ${isJobSpecific ? "ON. Only fire skill and achievement captur
       }]
     })
 
-    const responseText = message.content[0].text.trim()
+    const responseText = message.content?.[0]?.text?.trim()
+    if (!responseText) {
+      console.error('Extract captures: no content in API response')
+      return NextResponse.json({ captures: [], error: 'extraction_failed' }, { status: 500 })
+    }
     const cleaned = responseText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim()
 
     let parsed
@@ -83,7 +87,7 @@ JOB-SPECIFIC MODE: ${isJobSpecific ? "ON. Only fire skill and achievement captur
       parsed = JSON.parse(cleaned)
     } catch (e) {
       console.error('Capture extraction parse error:', e, 'Response:', responseText)
-      return NextResponse.json({ captures: [] })
+      return NextResponse.json({ captures: [], error: 'extraction_failed' }, { status: 500 })
     }
 
     const captures = Array.isArray(parsed.captures) ? parsed.captures : []
@@ -91,6 +95,6 @@ JOB-SPECIFIC MODE: ${isJobSpecific ? "ON. Only fire skill and achievement captur
 
   } catch (error) {
     console.error('Extract captures error:', error)
-    return NextResponse.json({ captures: [] })
+    return NextResponse.json({ captures: [], error: 'extraction_failed' }, { status: 500 })
   }
 }

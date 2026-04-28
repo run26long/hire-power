@@ -2,6 +2,7 @@ import React from 'react'
 import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import path from 'path'
+import { apiError } from '@/lib/apiError'
 import CoverLetterPDFCommand from '../../templates/cover-letter-pdf/cover-letter-PDF-Command'
 import CoverLetterPDFCrisp from '../../templates/cover-letter-pdf/cover-letter-PDF-Crisp'
 import CoverLetterPDFCurrent from '../../templates/cover-letter-pdf/cover-letter-PDF-Current'
@@ -155,10 +156,16 @@ export async function POST(request) {
       .from('resume-pdfs')
       .getPublicUrl(fileName)
 
+    if (!publicUrl) {
+      return apiError(
+        new Error(`getPublicUrl returned empty for ${fileName}`),
+        "We couldn't save your cover letter. Please try again."
+      )
+    }
+
     return Response.json({ success: true, pdfUrl: publicUrl })
 
   } catch (error) {
-    console.error('Cover letter PDF error:', error)
-    return Response.json({ error: 'Failed to generate PDF', details: error.message }, { status: 500 })
+    return apiError(error, "We couldn't generate your cover letter PDF. Please try again.")
   }
 }

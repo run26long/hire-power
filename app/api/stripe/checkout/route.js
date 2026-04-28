@@ -1,6 +1,12 @@
 import Stripe from 'stripe';
+import { apiError } from '@/lib/apiError';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const ALLOWED_PRICE_IDS = [
+  process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+  process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+].filter(Boolean);
 
 export async function POST(req) {
   try {
@@ -15,6 +21,16 @@ export async function POST(req) {
     }
 
     const { priceId, userId, email, couponCode, resumeId } = await req.json();
+
+    // Validate priceId against allowlist (prevents tampered requests)
+    if (!ALLOWED_PRICE_IDS.includes(priceId)) {
+      return apiError(
+        new Error(`Invalid priceId attempted: ${priceId}`),
+        "We couldn't process that subscription. Please refresh and try again.",
+        400,
+        'INVALID_PRICE'
+      );
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
@@ -36,17 +52,18 @@ export async function POST(req) {
       metadata: { userId, priceId },
     };
 
-    // Apply coupon if provided
+    // Apply coupon if provided — validate first, fail loudly if invalid
     if (couponCode) {
-      // Look up coupon in Stripe
       try {
-        const coupon = await stripe.coupons.retrieve(couponCode);
-        if (coupon) {
-          sessionParams.discounts = [{ coupon: couponCode }];
-        }
+        await stripe.coupons.retrieve(couponCode);
+        sessionParams.discounts = [{ coupon: couponCode }];
       } catch (e) {
-        // Invalid coupon — proceed without discount
-        console.log('Invalid coupon code:', couponCode);
+        return apiError(
+          e,
+          "That coupon code isn't valid. Double-check it and try again.",
+          400,
+          'INVALID_COUPON'
+        );
       }
     }
 
@@ -55,7 +72,6 @@ export async function POST(req) {
     return Response.json({ url: session.url });
 
   } catch (error) {
-    console.error('Stripe checkout error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return apiError(error, "We couldn't start checkout. Please try again in a moment.");
   }
 }

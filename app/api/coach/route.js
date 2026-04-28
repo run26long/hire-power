@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { apiError } from '@/lib/apiError'
 
 // ─────────────────────────────────────────────
 // Convert structured resume_data → plain text
@@ -876,7 +877,7 @@ CRITICAL CONVERSATION RULES:
 - NEVER use one-time or isolated events as resume evidence unless they demonstrate clear scale or repeatable impact. A single student, a single show, a single instance is an anecdote, not a resume bullet. If the detail is interesting but one-off, ask if it's representative of a pattern before using it.
 - NEVER explain to the candidate why you're choosing one piece of information over another, or why one metric matters more than another. Apply your judgment silently. The candidate sees what you decide, not how you decided it. Brief acknowledgments ("Got it.", "Good detail.") are fine. Explanations of your decision-making are not.
 - Match tone and language to their career stage (see level instructions above)
-- Do NOT open with excessive enthusiasm. Warm and direct, not performative
+- Do NOT open with excessive enthusiasm. Warm and direct, not performative.
 
 CLOSING: as soon as you have enough material to write one great bullet:
 End naturally . Don't announce you're done or ask if they're ready. Just close warmly.
@@ -1267,7 +1268,8 @@ export async function POST(request) {
         })
         break
       } catch (err) {
-        if (err.status === 529 && attempts < 2) {
+        const isRetryable = err.status === 529 || err.status === 429 || err.status === 503
+        if (isRetryable && attempts < 2) {
           attempts++
           await new Promise(resolve => setTimeout(resolve, 2000 * attempts))
         } else {
@@ -1282,7 +1284,6 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    console.error('Coach API error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "Something went wrong with the coaching session. Please try again.")
   }
 }

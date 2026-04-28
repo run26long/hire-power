@@ -332,25 +332,36 @@ const handleReassess = async (overrideData = null) => {
         })
         .eq('id', params.id)
 
-      if (error) console.error('Error saving score:', error.message)
+      if (error) {
+        console.error('Error saving score:', error)
+        setErrorToast("We analyzed your resume but couldn't save the score. Please try again.")
+        return
+      }
 
       setResume(prev => ({ ...prev, current_score: result.matchScore }))
       setScoreAfterCoaching(result.matchScore)
 
       // Update job card match score if one exists
       if (currentUser) {
-        const { data: existingCard } = await supabase
+        const { data: existingCard, error: cardLookupError } = await supabase
           .from('applications')
           .select('id')
           .eq('resume_id', params.id)
           .eq('user_id', currentUser.id)
           .maybeSingle()
 
-        if (existingCard) {
-          await supabase
+        if (cardLookupError) {
+          console.error('Error looking up job card:', cardLookupError)
+        } else if (existingCard) {
+          const { error: cardUpdateError } = await supabase
             .from('applications')
             .update({ match_score: result.matchScore })
             .eq('id', existingCard.id)
+
+          if (cardUpdateError) {
+            console.error('Error updating job card match score:', cardUpdateError)
+            setErrorToast("Your resume score saved, but the job tracker card didn't update. Refresh the Job Tracker page to sync.")
+          }
         }
       }
 
@@ -392,7 +403,11 @@ const handleReassess = async (overrideData = null) => {
         .update(updateData)
         .eq('id', params.id)
 
-      if (error) console.error('Error saving score:', error.message)
+      if (error) {
+        console.error('Error saving score:', error)
+        setErrorToast("We analyzed your resume but couldn't save the score. Please try again.")
+        return
+      }
 
       setResume(prev => ({
         ...prev,
@@ -401,6 +416,7 @@ const handleReassess = async (overrideData = null) => {
       }))
 
       setScoreAfterCoaching(result.score)
+
     }
 
   } catch (error) {
@@ -449,44 +465,73 @@ function formatDate(dateString, format = dateFormat) {
     cardCreationRanRef.current = true
 
     async function createJobCard() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) {
+          console.error('Auth error in createJobCard:', authError)
+          return
+        }
+        if (!user) return
 
-      const { data: resumeCards } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('resume_id', resume.id)
-        .eq('user_id', user.id)
-        .limit(1)
+        const { data: resumeCards, error: resumeCardsError } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('resume_id', resume.id)
+          .eq('user_id', user.id)
+          .limit(1)
 
-      const cardByResume = resumeCards?.[0] || null
+        if (resumeCardsError) {
+          console.error('Error checking for existing job card by resume:', resumeCardsError)
+          setErrorToast("We couldn't link this resume to your job tracker. You can add it manually from the Job Tracker page.")
+          return
+        }
 
-      const { data: jobCards } = !cardByResume && resume.job_title && resume.job_company
-        ? await supabase
+        const cardByResume = resumeCards?.[0] || null
+
+        let jobCardsData = null
+        if (!cardByResume && resume.job_title && resume.job_company) {
+          const { data: jobCards, error: jobCardsError } = await supabase
             .from('applications')
             .select('id')
             .eq('user_id', user.id)
             .eq('title', resume.job_title)
             .eq('company', resume.job_company)
             .limit(1)
-        : { data: null }
 
-      const existingCard = cardByResume || jobCards?.[0] || null
+          if (jobCardsError) {
+            console.error('Error checking for existing job card by title/company:', jobCardsError)
+            setErrorToast("We couldn't link this resume to your job tracker. You can add it manually from the Job Tracker page.")
+            return
+          }
+          jobCardsData = jobCards
+        }
 
-      if (!existingCard) {
-        await supabase
-          .from('applications')
-          .insert({
-            user_id: user.id,
-            title: resume.job_title || 'Untitled Role',
-            company: resume.job_company || 'Unknown Company',
-            description: resume.job_description || '',
-            application_status: 'resume_in_progress',
-            resume_id: resume.id,
-            match_score: resume.current_score || null,
-            application_date: new Date().toISOString().split('T')[0],
-            sort_order: 0,
-          })
+        const existingCard = cardByResume || jobCardsData?.[0] || null
+
+        if (!existingCard) {
+          const { error: insertError } = await supabase
+            .from('applications')
+            .insert({
+              user_id: user.id,
+              title: resume.job_title || 'Untitled Role',
+              company: resume.job_company || 'Unknown Company',
+              description: resume.job_description || '',
+              application_status: 'resume_in_progress',
+              resume_id: resume.id,
+              match_score: resume.current_score || null,
+              application_date: new Date().toISOString().split('T')[0],
+              sort_order: 0,
+            })
+
+          if (insertError) {
+            console.error('Error creating job card:', insertError)
+            setErrorToast("We couldn't add this resume to your job tracker. You can add it manually from the Job Tracker page.")
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error in createJobCard:', err)
+        setErrorToast("Something went wrong adding this to your job tracker. You can add it manually from the Job Tracker page.")
       }
     }
 
@@ -550,9 +595,11 @@ function formatDate(dateString, format = dateFormat) {
         if (response.ok) {
           const { pageCount } = await response.json()
           setResumeExceedsPage(pageCount > 1)
+        } else {
+          console.error('Page check failed:', response.status, response.statusText)
         }
       } catch (e) {
-        // Silent fail
+        console.error('Page check error:', e)
       }
     }, 1500)
   }
@@ -578,27 +625,35 @@ function formatDate(dateString, format = dateFormat) {
     }
   }, [selectedTemplate])
 
-  async function loadResume() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/dashboard')
-      return
-    }
+ async function loadResume() {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error in loadResume:', authError)
+        setErrorToast("We couldn't verify your account. Please refresh the page.")
+        setLoading(false)
+        return
+      }
+      if (!user) {
+        router.push('/dashboard')
+        return
+      }
 
-    const { data, error } = await supabase
-      .from('resumes')
-      .select('*')
-      .eq('id', params.id)
-      .eq('user_id', user.id)
-      .single()
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('id', params.id)
+        .eq('user_id', user.id)
+        .single()
 
-    if (error) {
-      console.error('Error loading resume:', error)
-      router.push('/resume-coach')
-      return
-    }
+      if (error) {
+        console.error('Error loading resume:', error)
+        setErrorToast("We couldn't load your resume. Please try again.")
+        setLoading(false)
+        return
+      }
 
-    setResume(data)
+      setResume(data)
 
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
@@ -645,20 +700,39 @@ if (data.ai_analysis) {
     setHistoryIndex(0)
     
     setLoading(false)
-
-      }
+    } catch (err) {
+      console.error('Unexpected error in loadResume:', err)
+      setErrorToast("Something went wrong loading your resume. Please refresh the page.")
+      setLoading(false)
+    }
+  }
 
   async function loadUserProfile() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error in loadUserProfile:', authError)
+        return
+      }
+      if (!user) return
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-    setUserProfile(data)
+      if (error) {
+        console.error('Error loading user profile:', error)
+        setErrorToast("We couldn't load your profile. Some features may not work correctly. Please refresh the page.")
+        return
+      }
+
+      setUserProfile(data)
+    } catch (err) {
+      console.error('Unexpected error in loadUserProfile:', err)
+      setErrorToast("Something went wrong loading your profile. Please refresh the page.")
+    }
   }
 
   function updateResumeData(newResumeData) {
@@ -1578,6 +1652,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 <div
                   onClick={async () => {
                  if (index > maxStepIndex || index === currentIndex) return
+                    const { error: saveError } = await supabase
+                      .from('resumes')
+                      .update({ journey_step: step, updated_at: new Date().toISOString() })
+                      .eq('id', params.id)
+                    if (saveError) {
+                      console.error('Error jumping to journey step (dot):', saveError)
+                      setErrorToast("We couldn't switch to that step. Please try again.")
+                      return
+                    }
                     setResume(prev => ({ ...prev, journey_step: step }))
                   }}
                   className={`
@@ -1597,7 +1680,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                       .from('resumes')
                       .update({ journey_step: step, updated_at: new Date().toISOString() })
                       .eq('id', params.id)
-                    if (!error) setResume(prev => ({ ...prev, journey_step: step }))
+                    if (error) {
+                      console.error('Error jumping to journey step (label):', error)
+                      setErrorToast("We couldn't switch to that step. Please try again.")
+                      return
+                    }
+                    setResume(prev => ({ ...prev, journey_step: step }))
                   }}
                  className={`text-xs mt-1 capitalize ${
                     index === currentIndex ? 'text-purple-600 font-semibold' :
@@ -2038,11 +2126,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                                 updated_at: new Date().toISOString()
                               })
                               .eq('id', params.id)
-                            if (error) throw error
+                            if (error) {
+                              console.error('Error advancing to improve step:', error)
+                              setErrorToast("We couldn't move you to the improve step. Please try again.")
+                              return
+                            }
                             setResume(prev => ({ ...prev, journey_step: 'improve' }))
                           } catch (err) {
-                            console.error('Error:', err)
-                            setErrorToast('Something went wrong. Please try again.')
+                            console.error('Unexpected error advancing to improve step:', err)
+                            setErrorToast("Something went wrong. Please try again.")
                           } finally {
                             setIsUpdatingJourney(false)
                           }
@@ -2077,11 +2169,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                               updated_at: new Date().toISOString()
                             })
                             .eq('id', params.id)
-                          if (error) throw error
+                          if (error) {
+                            console.error('Error starting free trial coaching:', error)
+                            setErrorToast("We couldn't start your coaching session. Please try again.")
+                            return
+                          }
                           setResume(prev => ({ ...prev, journey_step: 'coach' }))
                        } catch (err) {
-                        console.error('Error:', err)
-                        setErrorToast('Something went wrong. Please try again.')
+                        console.error('Unexpected error starting free trial coaching:', err)
+                        setErrorToast("Something went wrong starting your coaching session. Please try again.")
                       } finally {
                         setIsUpdatingJourney(false)
                       }
@@ -2370,7 +2466,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
           .eq('id', params.id)
       }
     } catch (err) {
-      // Silent fail — captures are non-essential
+      console.error('Capture extraction failed:', err)
     }
   }
 
@@ -2403,7 +2499,14 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
       { role: 'assistant', content: data.response }
     ]
       setCoachingMessages(initialMessages)
-      await supabase.from('resumes').update({ coaching_conversation: initialMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
+      const { error: saveError } = await supabase
+        .from('resumes')
+        .update({ coaching_conversation: initialMessages, coaching_tier_at_save: 'pro' })
+        .eq('id', params.id)
+      if (saveError) {
+        console.error('Error saving initial chat message:', saveError)
+        setErrorToast("We couldn't save the start of your session. If you refresh, you may lose this message.")
+      }
     } catch (err) {
       console.error('Error starting resume chat:', err)
       setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh and try again." }])
@@ -2438,7 +2541,14 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
       const finalMessages = [...updatedMessages, { role: 'assistant', content: data.response }]
       setCoachingMessages(finalMessages)
       processCaptures(userMessageText, data.response)
-      await supabase.from('resumes').update({ coaching_conversation: finalMessages, coaching_tier_at_save: 'pro' }).eq('id', params.id)
+      const { error: saveError } = await supabase
+        .from('resumes')
+        .update({ coaching_conversation: finalMessages, coaching_tier_at_save: 'pro' })
+        .eq('id', params.id)
+      if (saveError) {
+        console.error('Error saving chat message:', saveError)
+        setErrorToast("We couldn't save your last message. If you refresh, you may lose recent progress.")
+      }
     } catch (err) {
       console.error('Error sending resume chat message:', err)
       setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending again." }])
@@ -2479,7 +2589,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
 
       if (resetHistory) resetHistory(data.rewrittenResume)
 
-      await supabase.from('resumes').update({
+      const { error: saveError } = await supabase.from('resumes').update({
         resume_data: data.rewrittenResume,
         rewritten_resume: data.rewrittenResume,
         journey_step: 'improve',
@@ -2491,6 +2601,13 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         ai_analysis: scoreData?.analysis || null,
         updated_at: new Date().toISOString()
       }).eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving rewritten résumé:', saveError)
+        setErrorToast("We built your résumé but couldn't save it. Please try the build button again.")
+        setIsFinishing(false)
+        return
+      }
 
       setResume(prev => ({
         ...prev,
@@ -2548,22 +2665,34 @@ const getMessageText = (msg) => {
     }
   }, [isConversational])
 
-  // Standard coaching init — runs once at mount, skips empty resume data
+ // Standard coaching init — runs once at mount, skips empty resume data
   useEffect(() => {
     const hasContent = resumeData?.fullName || (resumeData?.experience?.length > 0)
     if (!hasContent) return
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) {
+          console.error('Auth error in CoachStep init:', authError)
+          setErrorToast("We couldn't verify your account. Please refresh the page.")
+          return
+        }
+        if (!user) return
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier')
-        .eq('id', user.id)
-        .single()
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single()
 
-      const tier = profile?.subscription_tier || 'free'
-      setUserTier(tier)
+        if (profileError) {
+          console.error('Error loading profile tier in CoachStep:', profileError)
+          setErrorToast("We couldn't load your account details. Please refresh the page.")
+          return
+        }
+
+        const tier = profile?.subscription_tier || 'free'
+        setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
       const savedTier = coachingTierAtSave
@@ -2580,6 +2709,10 @@ const getMessageText = (msg) => {
         await startCoaching(tier)
       }
       // Otherwise: saved conversation exists and tier matches (or is null/pro) — restore as-is, do nothing.
+      } catch (err) {
+        console.error('Unexpected error in CoachStep init:', err)
+        setErrorToast("Something went wrong starting your coaching session. Please refresh the page.")
+      }
     }
     init()
   }, [])
@@ -2618,10 +2751,15 @@ const getMessageText = (msg) => {
       const initialMessages = [{ role: 'assistant', content: data.response }]
       setCoachingMessages(initialMessages)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ coaching_conversation: initialMessages, coaching_tier_at_save: tier })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving initial coaching message:', saveError)
+        setErrorToast("We couldn't save the start of your session. If you refresh, you may lose this message.")
+      }
    } catch (err) {
       console.error('Error starting coaching:', err)
       setCoachingMessages([{ role: 'assistant', content: "Something went wrong starting your session. Please refresh the page and try again." }])
@@ -2671,10 +2809,15 @@ const getMessageText = (msg) => {
       setCoachingMessages(finalMessages)
       processCaptures(userMessageText, data.response)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ coaching_conversation: finalMessages, coaching_tier_at_save: userTier })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving coaching message:', saveError)
+        setErrorToast("We couldn't save your last message. If you refresh, you may lose recent progress.")
+      }
     } catch (err) {
       console.error('Error sending message:', err)
       setCoachingMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending your message again." }])
@@ -2813,7 +2956,7 @@ const getMessageText = (msg) => {
       setRewrittenResume(finalResume)
       setResumeChanges(finalChanges)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({
           journey_step: 'improve',
@@ -2825,6 +2968,13 @@ const getMessageText = (msg) => {
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving coached resume:', saveError)
+        setErrorToast("We rewrote your resume but couldn't save it. Please try the reveal button again.")
+        setIsFinishing(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
 
@@ -2855,7 +3005,7 @@ const getMessageText = (msg) => {
       })
       const data = await response.json()
 
-      await supabase
+      const { error: resumeError } = await supabase
         .from('resumes')
         .update({
           trial_coaching_used: true,
@@ -2864,19 +3014,40 @@ const getMessageText = (msg) => {
         })
         .eq('id', params.id)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
+      if (resumeError) {
+        console.error('Error marking trial coaching used:', resumeError)
+        setErrorToast("We finished your coaching but couldn't save the result. Please try the reveal button again.")
+        setIsFinishing(false)
+        return
+      }
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Auth error in finishTrialCoaching:', authError)
+      } else if (user) {
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('coaching_samples_used')
           .eq('id', user.id)
           .single()
-        const newCount = (profile?.coaching_samples_used || 0) + 1
-        await supabase
-          .from('profiles')
-          .update({ coaching_samples_used: newCount })
-          .eq('id', user.id)
-        setCoachingSamplesUsed(newCount)
+
+        if (profileError) {
+          console.error('Error reading profile sample count:', profileError)
+          setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
+        } else {
+          const newCount = (profile?.coaching_samples_used || 0) + 1
+          const { error: profileUpdateError } = await supabase
+            .from('profiles')
+            .update({ coaching_samples_used: newCount })
+            .eq('id', user.id)
+
+          if (profileUpdateError) {
+            console.error('Error updating profile sample count:', profileUpdateError)
+            setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
+          } else {
+            setCoachingSamplesUsed(newCount)
+          }
+        }
       }
 
       setTrialResult(data)
@@ -2905,7 +3076,7 @@ const getMessageText = (msg) => {
         }
       }
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({
           resume_data: updatedResume,
@@ -2914,18 +3085,32 @@ const getMessageText = (msg) => {
         })
         .eq('id', params.id)
 
+      if (saveError) {
+        console.error('Error applying trial bullet:', saveError)
+        setErrorToast("We couldn't apply that change. Please try again.")
+        return
+      }
+
       setResume(prev => ({ ...prev, resume_data: updatedResume, journey_step: 'improve' }))
     } catch (err) {
       console.error('Error applying bullet:', err)
+      setErrorToast("Something went wrong applying that change. Please try again.")
       await advanceToImprove()
     }
   }
 
   async function advanceToImprove() {
-    await supabase
+    const { error: saveError } = await supabase
       .from('resumes')
       .update({ journey_step: 'improve', updated_at: new Date().toISOString() })
       .eq('id', params.id)
+
+    if (saveError) {
+      console.error('Error advancing to improve step:', saveError)
+      setErrorToast("We couldn't move you to the next step. Please try again.")
+      return
+    }
+
     setResume(prev => ({ ...prev, journey_step: 'improve' }))
   }
 // ── Coaching locked (Pro/JS, complete) — chat renders normally, just hide input and finish button ──
@@ -3408,11 +3593,20 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         .select('rewritten_resume, resume_changes')
         .eq('id', params.id)
         .single()
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error reloading rewritten resume:', error)
+            setErrorToast("We couldn't reload your coached resume. Please refresh the page.")
+            return
+          }
           if (data?.rewritten_resume) {
             setRewrittenResume(data.rewritten_resume)
             setResumeChanges(data.resume_changes || [])
           }
+        })
+        .catch(err => {
+          console.error('Unexpected error reloading rewritten resume:', err)
+          setErrorToast("Something went wrong reloading your coached resume. Please refresh the page.")
         })
         .finally(() => setLoading(false))
     }
@@ -3531,7 +3725,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           <div className="flex justify-center pt-1">
             <button
               onClick={async () => {
-                await supabase.from('resumes').update({ journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
+                const { error: saveError } = await supabase
+                  .from('resumes')
+                  .update({ journey_step: 'format', updated_at: new Date().toISOString() })
+                  .eq('id', params.id)
+                if (saveError) {
+                  console.error('Error advancing to format step:', saveError)
+                  setErrorToast("We couldn't move you to the format step. Please try again.")
+                  return
+                }
                 setResume(prev => ({ ...prev, journey_step: 'format' }))
               }}
               className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
@@ -3656,7 +3858,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             </button>
             <button
               onClick={async () => {
-                await supabase.from('resumes').update({ changes_accepted: true, journey_step: 'format', updated_at: new Date().toISOString() }).eq('id', params.id)
+                const { error: saveError } = await supabase
+                  .from('resumes')
+                  .update({ changes_accepted: true, journey_step: 'format', updated_at: new Date().toISOString() })
+                  .eq('id', params.id)
+                if (saveError) {
+                  console.error('Error accepting conversational changes:', saveError)
+                  setErrorToast("We couldn't save your changes. Please try again.")
+                  return
+                }
                 setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
               }}
               className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
@@ -3690,7 +3900,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             isConversationalFix={true}
             onClose={async () => {
               setShowConvTargetedRecoach(false)
-              await supabase.from('resumes').update({ changes_accepted: true, updated_at: new Date().toISOString() }).eq('id', params.id)
+              const { error: saveError } = await supabase
+                .from('resumes')
+                .update({ changes_accepted: true, updated_at: new Date().toISOString() })
+                .eq('id', params.id)
+              if (saveError) {
+                console.error('Error marking conversational changes accepted on close:', saveError)
+                setErrorToast("We couldn't save your changes. Please refresh the page.")
+                return
+              }
               setResume(prev => ({ ...prev, changes_accepted: true }))
             }}
           />
@@ -3767,10 +3985,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           )}
           <button
             onClick={async () => {
-              await supabase
+              const { error: saveError } = await supabase
                 .from('resumes')
                 .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                 .eq('id', params.id)
+              if (saveError) {
+                console.error('Error advancing to format step:', saveError)
+                setErrorToast("We couldn't move you to the format step. Please try again.")
+                return
+              }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
             className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
@@ -3945,17 +4168,24 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   async function acceptAll() {
     setAccepting(true)
     try {
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ resume_data: rewrittenResume, changes_accepted: true, updated_at: new Date().toISOString() })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving accepted changes:', saveError)
+        setErrorToast("We couldn't save your accepted changes. Please try again.")
+        setAccepting(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, resume_data: rewrittenResume, changes_accepted: true }))
       await handleReassess(rewrittenResume)
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error accepting changes:', err)
-      setErrorToast('Something went wrong. Please try again.')
+      setErrorToast("Something went wrong applying your changes. Please try again.")
     } finally {
       setAccepting(false)
     }
@@ -3975,10 +4205,18 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         }
       })
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({ resume_data: finalData, changes_accepted: true, updated_at: new Date().toISOString() })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving reviewed changes:', saveError)
+        setErrorToast("We couldn't save your reviewed changes. Please try again.")
+        setAccepting(false)
+        setIsPreparingReveal(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, resume_data: finalData, changes_accepted: true }))
       await handleReassess(finalData)
@@ -3986,7 +4224,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error finishing review:', err)
-      setErrorToast('Something went wrong. Please try again.')
+      setErrorToast("Something went wrong applying your reviewed changes. Please try again.")
     } finally {
       setAccepting(false)
       setIsPreparingReveal(false)
@@ -4380,10 +4618,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                  <button
                   onClick={async () => {
                     setShowRevealModal(false)
-                    await supabase
+                    const { error: saveError } = await supabase
                       .from('resumes')
                       .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                       .eq('id', params.id)
+                    if (saveError) {
+                      console.error('Error advancing to format step:', saveError)
+                      setErrorToast("We couldn't move you to the format step. Please try again.")
+                      return
+                    }
                     setResume(prev => ({ ...prev, journey_step: 'format' }))
                   }}
                   className="block mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm transition-opacity hover:opacity-90 mb-3"
@@ -4463,10 +4706,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 <button
                   onClick={async () => {
                     setShowGapsModal(false)
-                    await supabase
+                    const { error: saveError } = await supabase
                       .from('resumes')
                       .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                       .eq('id', params.id)
+                    if (saveError) {
+                      console.error('Error advancing to format step:', saveError)
+                      setErrorToast("We couldn't move you to the format step. Please try again.")
+                      return
+                    }
                     setResume(prev => ({ ...prev, journey_step: 'format' }))
                   }}
                   className="w-full bg-white text-gray-500 border border-gray-200 rounded-lg py-2 text-xs font-medium hover:bg-gray-50 transition-colors"
@@ -4513,8 +4761,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 // ─────────────────────────────────────────────
 // FREE IMPROVE STEP
 // ─────────────────────────────────────────────
-function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal, setShowUpgradeModal }) {  const [currentIndex, setCurrentIndex] = useState(0)
+function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal, setShowUpgradeModal }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [isChecking, setIsChecking] = useState(false)
+  const [errorToastFree, setErrorToastFree] = useState(null)
   const isDone = currentIndex >= suggestions.length
   const hasUsedTrial = coachingSamplesUsed > 0
 
@@ -4575,9 +4825,15 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
                   const isLast = currentIndex === suggestions.length - 1
                   if (isLast) {
                     setIsChecking(true)
-                    await handleReassess()
-                    setIsChecking(false)
-                    setShowRevealModal(true)
+                    try {
+                      await handleReassess()
+                      setShowRevealModal(true)
+                    } catch (err) {
+                      console.error('Error during final reassess:', err)
+                      setErrorToastFree("We couldn't check your score. Please try again.")
+                    } finally {
+                      setIsChecking(false)
+                    }
                   } else {
                     setCurrentIndex(prev => prev + 1)
                   }
@@ -4620,8 +4876,13 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
             </button>
             <button
               onClick={async () => {
-                await handleReassess()
-                setShowRevealModal(true)
+                try {
+                  await handleReassess()
+                  setShowRevealModal(true)
+                } catch (err) {
+                  console.error('Error during reassess:', err)
+                  setErrorToastFree("We couldn't check your score. Please try again.")
+                }
               }}
               disabled={isAnalyzing}
               className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-xs font-semibold hover:bg-purple-50 transition-colors flex items-center gap-1"
@@ -4633,10 +4894,15 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
             </button>
             <button
               onClick={async () => {
-              await supabase
+              const { error: saveError } = await supabase
                 .from('resumes')
                 .update({ journey_step: 'format', updated_at: new Date().toISOString() })
                 .eq('id', params.id)
+              if (saveError) {
+                console.error('Error advancing to format step:', saveError)
+                setErrorToastFree("We couldn't move you to the format step. Please try again.")
+                return
+              }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
             className="text-white rounded-lg py-2 px-8 font-semibold text-xs transition-opacity hover:opacity-90"
@@ -4647,6 +4913,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
           </div>
         </div>
       )}
+      <ErrorToast message={errorToastFree} onClose={() => setErrorToastFree(null)} />
     </div>
   )
 }
@@ -4798,7 +5065,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
       setResumeChanges(data.changes || [])
       setRecoachAttempts(prev => prev + 1)
 
-      await supabase
+      const { error: saveError } = await supabase
         .from('resumes')
         .update({
           rewritten_resume: data.rewrittenResume,
@@ -4806,6 +5073,13 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
+
+      if (saveError) {
+        console.error('Error saving targeted recoach result:', saveError)
+        setErrorToast("We rewrote your résumé but couldn't save it. Please try the update button again.")
+        setIsFinishing(false)
+        return
+      }
 
       setResume(prev => ({ ...prev, resume_data: data.rewrittenResume }))
       await handleReassess(data.rewrittenResume)
@@ -4944,6 +5218,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 // ─────────────────────────────────────────────
 function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier }) {
   const [advancing, setAdvancing] = useState(false)
+  const [errorToastFormat, setErrorToastFormat] = useState(null)
 
   return (
     <div className="space-y-2">
@@ -4975,13 +5250,19 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           onClick={async () => {
             setAdvancing(true)
             try {
-              await supabase
+              const { error: saveError } = await supabase
                 .from('resumes')
                 .update({ journey_step: 'save', updated_at: new Date().toISOString() })
                 .eq('id', params.id)
+              if (saveError) {
+                console.error('Error advancing to save step:', saveError)
+                setErrorToastFormat("We couldn't move you to the save step. Please try again.")
+                return
+              }
               setResume(prev => ({ ...prev, journey_step: 'save' }))
             } catch (err) {
-              console.error(err)
+              console.error('Unexpected error advancing to save step:', err)
+              setErrorToastFormat("Something went wrong. Please try again.")
             } finally {
               setAdvancing(false)
             }
@@ -4994,6 +5275,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           {advancing ? 'Saving...' : 'Ready to Save →'}
         </button>
       </div>
+      <ErrorToast message={errorToastFormat} onClose={() => setErrorToastFormat(null)} />
     </div>
   )
 }
@@ -5003,23 +5285,41 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
 // ─────────────────────────────────────────────
 function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handleDownload, isDownloading }) {
   const firstName = userName ? userName.split(' ')[0] : null
+  const [errorToastSave, setErrorToastSave] = useState(null)
 
   useEffect(() => {
     async function markComplete() {
-      const supabase = createClient()
-      const { data: resume } = await supabase
-        .from('resumes')
-        .select('completed_at')
-        .eq('id', params.id)
-        .single()
-      if (!resume?.completed_at) {
-        await supabase
+      try {
+        const supabase = createClient()
+        const { data: resume, error: readError } = await supabase
           .from('resumes')
-          .update({ 
-            completed_at: new Date().toISOString(),
-            journey_step: 'save'
-          })
+          .select('completed_at')
           .eq('id', params.id)
+          .single()
+
+        if (readError) {
+          console.error('Error reading completion status:', readError)
+          setErrorToastSave("We couldn't confirm your resume's completion status. Your work is safe — please refresh the page.")
+          return
+        }
+
+        if (!resume?.completed_at) {
+          const { error: updateError } = await supabase
+            .from('resumes')
+            .update({ 
+              completed_at: new Date().toISOString(),
+              journey_step: 'save'
+            })
+            .eq('id', params.id)
+
+          if (updateError) {
+            console.error('Error marking resume complete:', updateError)
+            setErrorToastSave("We couldn't mark your resume as complete. Your work is safe — please refresh the page.")
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error marking complete:', err)
+        setErrorToastSave("Something went wrong saving your completion status. Your work is safe — please refresh the page.")
       }
     }
     markComplete()
@@ -5082,6 +5382,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
           </button>
         </div>
       </div>
+      <ErrorToast message={errorToastSave} onClose={() => setErrorToastSave(null)} />
     </div>
   )
 }

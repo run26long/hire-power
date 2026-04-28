@@ -108,32 +108,40 @@ function DashboardContent() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); setShowLoginModal(true); return; }
-      setUser(user);
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!user) { setShowLoginModal(true); return; }
+        setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
-      setUserProfile(profile);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+        setUserProfile(profile);
 
-      // New user → Dashboard
-      const createdAt = new Date(user.created_at);
-      if ((Date.now() - createdAt.getTime()) < 30000) {
-        router.push('/dashboard');
-        return;
-      }
+        // New user → Dashboard
+        const createdAt = new Date(user.created_at);
+        if ((Date.now() - createdAt.getTime()) < 30000) {
+          router.push('/dashboard');
+          return;
+        }
 
-      const { data: resumes } = await supabase
-        .from('resumes').select('*').eq('user_id', user.id)
-        .eq('resume_type', 'core')
-        .order('updated_at', { ascending: false }).limit(1);
-      if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
+        const { data: resumes, error: resumesError } = await supabase
+          .from('resumes').select('*').eq('user_id', user.id)
+          .eq('resume_type', 'core')
+          .order('updated_at', { ascending: false }).limit(1);
+        if (resumesError) throw resumesError;
+        if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
 
-      setLoading(false);
-
-      if (searchParams.get('cancelled') === 'true') {
-        setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
-        window.history.replaceState({}, '', '/dashboard');
+        if (searchParams.get('cancelled') === 'true') {
+          setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
+          window.history.replaceState({}, '', '/dashboard');
+        }
+      } catch (err) {
+        console.error('Dashboard load failed:', err);
+        setToast("We couldn't load your dashboard. Please refresh the page.");
+      } finally {
+        setLoading(false);
       }
     }
     loadData();

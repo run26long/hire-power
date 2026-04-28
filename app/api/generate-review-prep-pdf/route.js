@@ -2,6 +2,7 @@ import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import ReviewPrepPDF from '../../templates/pdf/ReviewPrepPDF'
+import { apiError } from '@/lib/apiError'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -43,10 +44,16 @@ export async function POST(request) {
       .from('resume-pdfs')
       .getPublicUrl(uploadPath)
 
+    if (!publicUrl) {
+      return apiError(
+        new Error(`getPublicUrl returned empty for ${uploadPath}`),
+        "We couldn't save your review prep. Please try again."
+      )
+    }
+
     return Response.json({ success: true, pdfUrl: publicUrl })
 
   } catch (error) {
-    console.error('Review prep PDF error:', error)
-    return Response.json({ error: 'Failed to generate PDF', details: error.message }, { status: 500 })
+    return apiError(error, "We couldn't generate your review prep PDF. Please try again.")
   }
 }

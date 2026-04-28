@@ -9,6 +9,7 @@ import CoachLayout from '../../components/CoachLayout';
 import ResumeContent from '../../components/ResumeContent';
 import BuilderGuide from '../../components/BuilderGuide';
 import ConversationPanel from '../../components/ConversationPanel';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 // Format date function (REQUIRED for ResumeContent)
 function formatDate(dateString, format = 'short') {
@@ -118,44 +119,58 @@ const handleResumeUpdate = async (updatedData) => {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/dashboard');
-        return;
-      }
-      setUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/dashboard');
+          return;
+        }
+        setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      setUserProfile(profile);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+        setUserProfile(profile);
 
-      // Check for resumeId in URL
-      const params = new URLSearchParams(window.location.search);
-      const urlResumeId = params.get('resumeId');
-      
-    if (urlResumeId) {
+        // Check for resumeId in URL
+        const params = new URLSearchParams(window.location.search);
+        const urlResumeId = params.get('resumeId');
+
+        if (!urlResumeId) {
+          // No resume ID — redirect back to My Career
+          router.push('/career-coach');
+          return;
+        }
+
         // Load resume from database
-        const { data: resume } = await supabase
+        const { data: resume, error: resumeError } = await supabase
           .from('resumes')
           .select('*')
           .eq('id', urlResumeId)
           .single();
-        
-  if (resume) {
-          setResumeId(urlResumeId);
-          setResumeData(resume.resume_data);
-          startCareerConversation(resume.resume_data);
-        }
-      } else {
-        // No resume ID - redirect back to My Career
-        router.push('/career-coach');
-        return;
-      }
 
-      setLoading(false);
+        if (resumeError || !resume) {
+          // Resume not found (deleted, wrong ID, RLS denial) — redirect with a flag
+          // so the destination page can surface a toast.
+          sessionStorage.setItem('hp_career_coach_toast', "We couldn't find that resume. Pick another one to continue.");
+          router.push('/career-coach');
+          return;
+        }
+
+        setResumeId(urlResumeId);
+        setResumeData(resume.resume_data);
+        startCareerConversation(resume.resume_data);
+
+      } catch (err) {
+        console.error('Career detail load failed:', err);
+        sessionStorage.setItem('hp_career_coach_toast', "We couldn't load that page. Please try again.");
+        router.push('/career-coach');
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, [supabase, router]);
@@ -222,18 +237,16 @@ const handleResumeUpdate = async (updatedData) => {
     setIsAIThinking(true);
 
     try {
-      const response = await fetch('/api/career-coach', {
+      const data = await fetchJSON('/api/career-coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          messages: newMessages, 
+        body: JSON.stringify({
+          messages: newMessages,
           resumeData: resumeData,
-          userId: user?.id 
+          userId: user?.id
         })
       });
-      
-      const data = await response.json();
-      
+
       setMessages([
         ...newMessages,
         {
@@ -241,16 +254,18 @@ const handleResumeUpdate = async (updatedData) => {
           content: data.response
         }
       ]);
-      
+
       // Check if conversation is complete
       if (data.isComplete) {
         setIsConversationComplete(true);
       }
-      
-      setIsAIThinking(false);
     } catch (error) {
-      console.error('Error:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Something went wrong. Please try sending your message again." }]);
+      console.error('Career coach send error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: error.message || "Something went wrong. Please try sending your message again."
+      }]);
+    } finally {
       setIsAIThinking(false);
     }
   };

@@ -7,6 +7,7 @@ import MainNav from '../components/MainNav';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 import UpgradeModal from '../components/UpgradeModal';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 // Status badge colors — muted to avoid clashing with HP purple
 function GapWinLogger({ gapText, currentJobEntry, supabase, user, onSaved, onDismiss, onRegenerate }) {
@@ -140,47 +141,58 @@ export default function CareerVaultPage() {
   const handleStartNewSearch = async () => {
     const now = new Date().toISOString();
 
-    // Archive all active applications
-    const { data: activeApps } = await supabase
-      .from('applications')
-      .select('id, application_status')
-      .eq('user_id', user.id)
-      .not('application_status', 'eq', 'archived');
+    try {
+      // Archive all active applications
+      const { data: activeApps, error: activeAppsError } = await supabase
+        .from('applications')
+        .select('id, application_status')
+        .eq('user_id', user.id)
+        .not('application_status', 'eq', 'archived');
+      if (activeAppsError) throw activeAppsError;
 
-    if (activeApps?.length > 0) {
-      await Promise.all(activeApps.map(app =>
-        supabase
-          .from('applications')
-          .update({
-            application_status: 'archived',
-            last_active_status: app.application_status,
-            updated_at: now
-          })
-          .eq('id', app.id)
-      ));
+      if (activeApps?.length > 0) {
+        const archiveResults = await Promise.all(activeApps.map(app =>
+          supabase
+            .from('applications')
+            .update({
+              application_status: 'archived',
+              last_active_status: app.application_status,
+              updated_at: now
+            })
+            .eq('id', app.id)
+        ));
+        const archiveError = archiveResults.find(r => r.error);
+        if (archiveError) throw archiveError.error;
+      }
+
+      // Archive all JS resumes (core resume stays active)
+      const { error: jsError } = await supabase
+        .from('resumes')
+        .update({ is_active: false, updated_at: now })
+        .eq('user_id', user.id)
+        .eq('resume_type', 'job_specific')
+        .eq('is_active', true);
+      if (jsError) throw jsError;
+
+      // Archive all cover letters
+      const { error: clError } = await supabase
+        .from('cover_letters')
+        .update({ is_active: false, updated_at: now })
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+      if (clError) throw clError;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ search_status: 'actively_searching' })
+        .eq('id', user.id);
+      if (profileError) throw profileError;
+
+      router.push('/resume-coach');
+    } catch (err) {
+      console.error('Start new search failed:', err);
+      setErrorToast("We couldn't start your new search. Please try again.");
     }
-
-    // Archive all JS resumes (core resume stays active)
-    await supabase
-      .from('resumes')
-      .update({ is_active: false, updated_at: now })
-      .eq('user_id', user.id)
-      .eq('resume_type', 'job_specific')
-      .eq('is_active', true);
-
-    // Archive all cover letters
-    await supabase
-      .from('cover_letters')
-      .update({ is_active: false, updated_at: now })
-      .eq('user_id', user.id)
-      .eq('is_active', true);
-
-    await supabase
-      .from('profiles')
-      .update({ search_status: 'actively_searching' })
-      .eq('id', user.id);
-
-    router.push('/resume-coach');
   };
 
   // Current job entry (from hired job card)
@@ -214,101 +226,115 @@ export default function CareerVaultPage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/dashboard'); return; }
-      setUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/dashboard'); return; }
+        setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
-      setUserProfile(profile);
-      setTier(profile?.subscription_tier || 'vault');
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+        setUserProfile(profile);
+        setTier(profile?.subscription_tier || 'vault');
 
-      // Load hired card first so we can filter accomplishments by it
-      const { data: hiredCard } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
-        .eq('user_id', user.id)
-        .eq('application_status', 'hired')
-        .order('hired_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (hiredCard) setCurrentJobEntry(hiredCard);
-
-      // Load accomplishments tied to current hired card only
-      if (hiredCard?.id) {
-        const { data: accs } = await supabase
-          .from('achievements')
-          .select('*')
+        // Load hired card first so we can filter accomplishments by it
+        const { data: hiredCard, error: hiredError } = await supabase
+          .from('applications')
+          .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
           .eq('user_id', user.id)
-          .eq('source', 'career_archive')
-          .eq('application_id', hiredCard.id)
-          .order('created_at', { ascending: false });
-        if (accs) setAccomplishments(accs);
-      }
+          .eq('application_status', 'hired')
+          .order('hired_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (hiredError) throw hiredError;
+        if (hiredCard) setCurrentJobEntry(hiredCard);
 
-      // Load all active resumes (core + JS) for count and modal
-      const { data: allActiveResumes } = await supabase
-        .from('resumes')
-        .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false });
+        // Load accomplishments tied to current hired card only
+        if (hiredCard?.id) {
+          const { data: accs, error: accsError } = await supabase
+            .from('achievements')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('source', 'career_archive')
+            .eq('application_id', hiredCard.id)
+            .order('created_at', { ascending: false });
+          if (accsError) throw accsError;
+          if (accs) setAccomplishments(accs);
+        }
 
-      // Sort: core first, then JS by most recently updated
-      const sortedResumes = (allActiveResumes || []).sort((a, b) => {
-        if (a.resume_type === 'core' && b.resume_type !== 'core') return -1;
-        if (a.resume_type !== 'core' && b.resume_type === 'core') return 1;
-        return new Date(b.updated_at) - new Date(a.updated_at);
-      });
-      setActiveResumes(sortedResumes);
-      setResumeCount(sortedResumes.length);
+        // Load all active resumes (core + JS) for count and modal
+        const { data: allActiveResumes, error: activeResumesError } = await supabase
+          .from('resumes')
+          .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false });
+        if (activeResumesError) throw activeResumesError;
 
-      // Load archived job cards
-      const { data: archivedApps } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
-        .eq('user_id', user.id)
-        .eq('application_status', 'archived')
-        .order('updated_at', { ascending: false });
+        // Sort: core first, then JS by most recently updated
+        const sortedResumes = (allActiveResumes || []).sort((a, b) => {
+          if (a.resume_type === 'core' && b.resume_type !== 'core') return -1;
+          if (a.resume_type !== 'core' && b.resume_type === 'core') return 1;
+          return new Date(b.updated_at) - new Date(a.updated_at);
+        });
+        setActiveResumes(sortedResumes);
+        setResumeCount(sortedResumes.length);
 
-      const statusPriority = { hired: 0, interview: 1, applied: 2, resume_in_progress: 3, rejected: 4, archived: 5 };
-      const sortedApps = (archivedApps || []).sort((a, b) =>
-        (statusPriority[a.application_status] ?? 5) - (statusPriority[b.application_status] ?? 5)
-      );
-      setArchivedCards(sortedApps);
+        // Load archived job cards
+        const { data: archivedApps, error: archivedError } = await supabase
+          .from('applications')
+          .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
+          .eq('user_id', user.id)
+          .eq('application_status', 'archived')
+          .order('updated_at', { ascending: false });
+        if (archivedError) throw archivedError;
 
-      // Load archived core resumes (is_active = false)
-      const { data: inactiveCores } = await supabase
-        .from('resumes')
-        .select('id, display_name, created_at, updated_at, current_score, resume_power_score')
-        .eq('user_id', user.id)
-        .eq('resume_type', 'core')
-        .eq('is_active', false)
-        .order('updated_at', { ascending: false });
-      setArchivedCoreResumes(inactiveCores || []);
+        const statusPriority = { hired: 0, interview: 1, applied: 2, resume_in_progress: 3, rejected: 4, archived: 5 };
+        const sortedApps = (archivedApps || []).sort((a, b) =>
+          (statusPriority[a.application_status] ?? 5) - (statusPriority[b.application_status] ?? 5)
+        );
+        setArchivedCards(sortedApps);
 
-           // Load active application counts
-      const { data: activeApps } = await supabase
-        .from('applications')
-        .select('application_status')
-        .eq('user_id', user.id)
-        .not('application_status', 'eq', 'archived');
-      setActiveApplications(activeApps || []);
+        // Load archived core resumes (is_active = false)
+        const { data: inactiveCores, error: inactiveError } = await supabase
+          .from('resumes')
+          .select('id, display_name, created_at, updated_at, current_score, resume_power_score')
+          .eq('user_id', user.id)
+          .eq('resume_type', 'core')
+          .eq('is_active', false)
+          .order('updated_at', { ascending: false });
+        if (inactiveError) throw inactiveError;
+        setArchivedCoreResumes(inactiveCores || []);
 
-      // Load JS resumes for linking
-      const { data: jsResumesData } = await supabase
-        .from('resumes')
-        .select('id, display_name, current_score')
-        .eq('user_id', user.id)
-        .eq('resume_type', 'job_specific')
-        .order('updated_at', { ascending: false });
-      setJsResumes(jsResumesData || []);
+        // Load active application counts
+        const { data: activeApps, error: activeAppsError } = await supabase
+          .from('applications')
+          .select('application_status')
+          .eq('user_id', user.id)
+          .not('application_status', 'eq', 'archived');
+        if (activeAppsError) throw activeAppsError;
+        setActiveApplications(activeApps || []);
 
-      setLoading(false);
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('downgraded') === 'true') {
-        setErrorToast("You've switched to Vault. Career history saved. Ready to log wins!");
-        window.history.replaceState({}, '', '/career-vault');
+        // Load JS resumes for linking
+        const { data: jsResumesData, error: jsResumesError } = await supabase
+          .from('resumes')
+          .select('id, display_name, current_score')
+          .eq('user_id', user.id)
+          .eq('resume_type', 'job_specific')
+          .order('updated_at', { ascending: false });
+        if (jsResumesError) throw jsResumesError;
+        setJsResumes(jsResumesData || []);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('downgraded') === 'true') {
+          setErrorToast("You've switched to Vault. Career history saved. Ready to log wins!");
+          window.history.replaceState({}, '', '/career-vault');
+        }
+      } catch (err) {
+        console.error('Career vault load failed:', err);
+        setErrorToast("We couldn't load your career vault. Please refresh the page.");
+      } finally {
+        setLoading(false);
       }
     }
     loadData();
@@ -344,7 +370,7 @@ export default function CareerVaultPage() {
     setReviewPrepStep(3)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const response = await fetch('/api/review-prep', {
+      const data = await fetchJSON('/api/review-prep', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -360,15 +386,13 @@ export default function CareerVaultPage() {
           accomplishments
         })
       })
-      const data = await response.json()
-      if (!data.success) throw new Error(data.message || data.error || 'Generation failed')
+      if (!data.success) throw new Error("We couldn't generate your review prep. Please try again.")
       setRpDocument(data.document)
       setRpHasGap(data.hasGap || false)
       setRpGapText(data.gapText || '')
       setReviewPrepStep(4)
     } catch (err) {
-      console.error('Review prep error:', err)
-      setRpError('Something went wrong generating your document. Please try again.')
+      setRpError(err.message)
       setReviewPrepStep(2)
     } finally {
       setRpLoading(false)
@@ -446,10 +470,11 @@ export default function CareerVaultPage() {
 
       if (error) throw error;
 
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ search_status: 'hired' })
         .eq('id', user.id);
+      if (profileError) throw profileError;
 
       setCurrentJobEntry(data);
       setShowSetJobModal(false);
@@ -468,13 +493,20 @@ export default function CareerVaultPage() {
 
   async function handleRestoreCore(resumeId) {
     setArchiveActionLoading(true);
-    await supabase
-      .from('resumes')
-      .update({ is_active: true })
-      .eq('id', resumeId);
-    setArchivedCoreResumes(prev => prev.filter(r => r.id !== resumeId));
-    setResumeCount(prev => prev + 1);
-    setArchiveActionLoading(false);
+    try {
+      const { error } = await supabase
+        .from('resumes')
+        .update({ is_active: true })
+        .eq('id', resumeId);
+      if (error) throw error;
+      setArchivedCoreResumes(prev => prev.filter(r => r.id !== resumeId));
+      setResumeCount(prev => prev + 1);
+    } catch (err) {
+      console.error('Restore core resume failed:', err);
+      setErrorToast("We couldn't restore that resume. Please try again.");
+    } finally {
+      setArchiveActionLoading(false);
+    }
   }
 
   async function handleArchiveResume(resume) {
@@ -942,12 +974,22 @@ export default function CareerVaultPage() {
           card={currentJobEntry}
           onClose={() => setShowJobModal(false)}
           onSaveNotes={async (cardId, notes) => {
-            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            const { error } = await supabase.from('applications').update({ notes }).eq('id', cardId);
+            if (error) {
+              console.error('Save notes failed:', error);
+              setErrorToast("We couldn't save your notes. Please try again.");
+              throw error;
+            }
             setCurrentJobEntry(prev => ({ ...prev, notes }));
           }}
           onLogWin={() => { setShowJobModal(false); setShowLogModal(true); }}
           onLinkResume={async (cardId, resumeId) => {
-            await supabase.from('applications').update({ resume_id: resumeId }).eq('id', cardId);
+            const { error } = await supabase.from('applications').update({ resume_id: resumeId }).eq('id', cardId);
+            if (error) {
+              console.error('Link resume failed:', error);
+              setErrorToast("We couldn't link your resume. Please try again.");
+              return;
+            }
             const resume = jsResumes.find(r => r.id === resumeId);
             setCurrentJobEntry(prev => ({ ...prev, resume_id: resumeId, resumes: resume || null }));
           }}
@@ -1210,7 +1252,12 @@ export default function CareerVaultPage() {
           card={selectedArchiveCard}
           onClose={() => { setShowArchiveCardModal(false); setSelectedArchiveCard(null); }}
           onSaveNotes={async (cardId, notes) => {
-            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            const { error } = await supabase.from('applications').update({ notes }).eq('id', cardId);
+            if (error) {
+              console.error('Save notes failed:', error);
+              setErrorToast("We couldn't save your notes. Please try again.");
+              throw error;
+            }
             setArchivedCards(prev => prev.map(c => c.id === cardId ? { ...c, notes } : c));
           }}
           jsResumes={jsResumes}
@@ -1522,7 +1569,7 @@ export default function CareerVaultPage() {
                   setRpDownloading(true)
                   try {
                     const { data: { session } } = await supabase.auth.getSession()
-                    const response = await fetch('/api/generate-review-prep-pdf', {
+                    const data = await fetchJSON('/api/generate-review-prep-pdf', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1533,9 +1580,17 @@ export default function CareerVaultPage() {
                         userId: user.id
                       })
                     })
-                    const data = await response.json()
-                    if (!data.pdfUrl) throw new Error('No URL returned')
+                    if (!data.pdfUrl) {
+                      throw new Error("We couldn't download your PDF. Please try again.")
+                    }
                     const pdfResponse = await fetch(data.pdfUrl)
+                    if (!pdfResponse.ok) {
+                      throw new Error("We couldn't download your PDF. Please try again.")
+                    }
+                    const contentType = pdfResponse.headers.get('content-type') || ''
+                    if (!contentType.includes('application/pdf')) {
+                      throw new Error("We couldn't download your PDF. Please try again.")
+                    }
                     const blob = await pdfResponse.blob()
                     const blobUrl = URL.createObjectURL(blob)
                     const a = document.createElement('a')
@@ -1546,7 +1601,7 @@ export default function CareerVaultPage() {
                     document.body.removeChild(a)
                     URL.revokeObjectURL(blobUrl)
                   } catch (err) {
-                    console.error('PDF download error:', err)
+                    setErrorToast(err.message)
                   } finally {
                     setRpDownloading(false)
                   }
@@ -1753,10 +1808,12 @@ export default function CareerVaultPage() {
                         onClick={() => { setShowResumeListModal(false); router.push(`/resume/${resume.id}`); }}
                         className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
                       >View</button>
-                      <button
-                        onClick={() => setConfirmArchiveResume(resume)}
-                        className="text-[10px] text-gray-500 font-semibold hover:text-gray-700"
-                      >Remove & Add to Archive</button>
+                      {resume.resume_type !== 'core' && (
+                        <button
+                          onClick={() => setConfirmArchiveResume(resume)}
+                          className="text-[10px] text-gray-500 font-semibold hover:text-gray-700"
+                        >Remove & Add to Archive</button>
+                      )}
                     </div>
                   </div>
                 </div>

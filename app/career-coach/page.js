@@ -7,6 +7,7 @@ import MainNav from '../components/MainNav';
 import Breadcrumb from '../components/Breadcrumb';
 import UpgradeModal from '../components/UpgradeModal';
 import { track } from '../utils/analytics';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 export default function MyCareerPage() {
   const router = useRouter();
@@ -26,25 +27,41 @@ export default function MyCareerPage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/dashboard'); return; }
-      setUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/dashboard'); return; }
+        setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
-      setUserProfile(profile);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+        setUserProfile(profile);
 
-      const { data: context } = await supabase
-        .from('career_context').select('*').eq('user_id', user.id).maybeSingle();
-      setCareerContext(context);
+        const { data: context, error: contextError } = await supabase
+          .from('career_context').select('*').eq('user_id', user.id).maybeSingle();
+        if (contextError) throw contextError;
+        setCareerContext(context);
 
-      const { data: resumes } = await supabase
-        .from('resumes').select('*').eq('user_id', user.id)
-        .eq('resume_type', 'core')
-        .order('updated_at', { ascending: false }).limit(1);
-      if (resumes && resumes.length > 0) setExistingResume(resumes[0]);
+        const { data: resumes, error: resumesError } = await supabase
+          .from('resumes').select('*').eq('user_id', user.id)
+          .eq('resume_type', 'core')
+          .order('updated_at', { ascending: false }).limit(1);
+        if (resumesError) throw resumesError;
+        if (resumes && resumes.length > 0) setExistingResume(resumes[0]);
 
-      setLoading(false);
+        // Surface session-stored toast from /career-coach/detail redirects
+        const carryover = sessionStorage.getItem('hp_career_coach_toast');
+        if (carryover) {
+          setUploadError(carryover);
+          sessionStorage.removeItem('hp_career_coach_toast');
+        }
+
+      } catch (err) {
+        console.error('Career coach load failed:', err);
+        setUploadError("We couldn't load your career page. Please refresh and try again.");
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, [supabase, router]);
@@ -57,6 +74,21 @@ export default function MyCareerPage() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Client-side file validation (matches server-side)
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("That file isn't supported. Please upload a PDF or Word doc.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("That file is too large. Please choose one under 10 MB.");
+      return;
+    }
+
     setUploading(true);
     setUploadError(null);
     try {
@@ -69,21 +101,18 @@ export default function MyCareerPage() {
       if (uploadErr) throw uploadErr;
 
       const { data: { session: uploadSession } } = await supabase.auth.getSession();
-      const parseRes = await fetch('/api/parse-pdf', {
+
+      const { text } = await fetchJSON('/api/parse-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadSession.access_token}` },
         body: JSON.stringify({ filePath })
       });
-      if (!parseRes.ok) throw new Error('Parse failed');
-      const { text } = await parseRes.json();
 
-      const extractRes = await fetch('/api/extract-resume-structure', {
+      const { data: resumeData } = await fetchJSON('/api/extract-resume-structure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${uploadSession.access_token}` },
         body: JSON.stringify({ parsedText: text })
       });
-      if (!extractRes.ok) throw new Error('Extract failed');
-      const { data: resumeData } = await extractRes.json();
 
       const { data: savedResume, error: saveErr } = await supabase
         .from('resumes').insert({
@@ -96,12 +125,17 @@ export default function MyCareerPage() {
         }).select().single();
       if (saveErr) throw saveErr;
 
+      if (!savedResume) {
+        throw new Error("We couldn't save your resume. Please try uploading again.");
+      }
+
       track('resume_uploaded', { method: 'upload', source: 'career_coach' })
       localStorage.setItem('hp_career_modal_seen', 'true');
       router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
     } catch (err) {
       console.error('Upload error:', err);
-      setUploadError('Upload failed. Please try again.');
+      setUploadError(err.message || "We couldn't upload your resume. Please try again.");
+    } finally {
       setUploading(false);
     }
   };

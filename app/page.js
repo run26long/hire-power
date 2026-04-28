@@ -12,10 +12,15 @@ export default function Home() {
   }, [])
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      router.push('/dashboard')
-    } else {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push('/dashboard')
+      } else {
+        router.push('/landing')
+      }
+    } catch (err) {
+      console.error('Home page auth check failed:', err)
       router.push('/landing')
     }
   }

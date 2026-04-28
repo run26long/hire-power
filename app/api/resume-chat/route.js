@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { apiError } from '@/lib/apiError'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -311,7 +312,16 @@ You may ONLY reference information explicitly told to you in this conversation. 
 - Keep each message to 2-3 sentences maximum.
 - Be warm and direct. Not performative.
 - No hallucination. Only reference what they explicitly tell you.
-- NEVER ask a two-part question where the two parts contradict each other.
+- NEVER ask a two-part question where the two parts contradict each other or could be answered differently.
+  Bad: "Are those still current, or do we need to update them?" — "yes" means opposite things depending on which half they answered.
+  Bad: "Is that still accurate, or has anything changed?" — same problem.
+  Bad: "Have you maintained a clean safety record? No injuries or incidents on your watch?" — two questions in one, and the negation in the second half forces the candidate to mentally untangle whether "yes" means "yes I have a clean record" or "yes there have been incidents." Either way, only ask one question at a time.
+  Bad: "Did you build this from scratch, or inherit it?" — these are mutually exclusive options, not a yes/no question.
+  Bad: "How long have you been doing that, and have you been leading your own classes since then?" — two unrelated questions joined together.
+  Good: "Is your email still the best way to reach you?"
+  Good: "Did you build this program from scratch?"
+  Every question must have a clear, unambiguous yes-or-no or single-fact answer. If you find yourself wanting to ask two things, ask one now and the other in the next turn.
+- NEVER explain to the candidate why you're choosing one piece of information over another, or why one metric matters more than another. Apply your judgment silently. The candidate sees what you decide, not how you decided it. Brief acknowledgments ("Got it.", "Good detail.") are fine. Explanations of your decision-making are not.
 - Do not summarize what they said back to them at length. Acknowledge briefly and move forward.
 - There is no limit on the number of exchanges. Cover everything thoroughly.
 
@@ -342,7 +352,10 @@ export async function POST(request) {
     const { conversation, displayName } = await request.json()
 
     if (!conversation || !Array.isArray(conversation)) {
-      return NextResponse.json({ error: 'conversation is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: "Something went wrong with that message. Refresh and try again." },
+        { status: 400 }
+      )
     }
 
     const userName = displayName || 'there'
@@ -367,7 +380,7 @@ export async function POST(request) {
         const detected = levelDetectMsg.content[0].text.trim().toLowerCase()
         if (['entry', 'mid', 'senior'].includes(detected)) level = detected
       } catch (e) {
-        // Default to entry on detection failure
+        console.warn('Level detection failed, defaulting to entry:', e)
       }
     }
 
@@ -393,7 +406,8 @@ export async function POST(request) {
         })
         break
       } catch (err) {
-        if (err.status === 529 && attempts < 2) {
+        const isRetryable = err.status === 529 || err.status === 429 || err.status === 503
+        if (isRetryable && attempts < 2) {
           attempts++
           await new Promise(resolve => setTimeout(resolve, 2000 * attempts))
         } else {
@@ -405,7 +419,6 @@ export async function POST(request) {
     return NextResponse.json({ response: message.content[0].text, detectedLevel: level })
 
   } catch (error) {
-    console.error('Resume Chat API error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "Something went wrong with your message. Please try again.")
   }
 }

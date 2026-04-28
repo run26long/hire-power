@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { extractText } from 'unpdf'
 import mammoth from 'mammoth'
+import { apiError } from '@/lib/apiError'
 
 export async function POST(request) {
   try {
@@ -23,10 +24,19 @@ export async function POST(request) {
       .download(filePath)
     
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return apiError(error, "We couldn't open that file. Try uploading it again.", 400)
     }
     
     const arrayBuffer = await data.arrayBuffer()
+    
+    // Server-side file size limit (10MB) — protects against direct API calls that bypass client check
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+    if (arrayBuffer.byteLength > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "That file's too large. Please upload a file under 10MB." },
+        { status: 413 }
+      )
+    }
     
     // Check file type
     const isDocx = filePath.toLowerCase().endsWith('.docx')
@@ -35,15 +45,24 @@ export async function POST(request) {
       // Parse DOCX - mammoth needs a Buffer
       const buffer = Buffer.from(arrayBuffer)
       
-      // Extract main body text
-      const textResult = await mammoth.extractRawText({ buffer })
-      
-      // Also convert to HTML to try capturing headers/footers
-      const htmlResult = await mammoth.convertToHtml({ 
-        buffer,
-        includeDefaultStyleMap: false,
-        includeEmbeddedStyleMap: false
-      })
+      let textResult, htmlResult
+      try {
+        // Extract main body text
+        textResult = await mammoth.extractRawText({ buffer })
+        
+        // Also convert to HTML to try capturing headers/footers
+        htmlResult = await mammoth.convertToHtml({ 
+          buffer,
+          includeDefaultStyleMap: false,
+          includeEmbeddedStyleMap: false
+        })
+      } catch (parseErr) {
+        console.error('DOCX parse error:', parseErr)
+        return NextResponse.json(
+          { error: "We couldn't read that Word doc. The file might be corrupted or password-protected. Try saving it again or upload a different copy." },
+          { status: 422 }
+        )
+      }
       
       // Strip HTML tags to get plain text (may include some header/footer content)
       const htmlText = htmlResult.value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -57,7 +76,18 @@ export async function POST(request) {
       })
     } else {
       // Parse PDF
-      const { text, totalPages } = await extractText(arrayBuffer, { mergePages: true })
+      let text, totalPages
+      try {
+        const result = await extractText(arrayBuffer, { mergePages: true })
+        text = result.text
+        totalPages = result.totalPages
+      } catch (parseErr) {
+        console.error('PDF parse error:', parseErr)
+        return NextResponse.json(
+          { error: "We couldn't read that PDF. The file might be corrupted, scanned, or password-protected. Try saving it as a new PDF or upload a different version." },
+          { status: 422 }
+        )
+      }
       return NextResponse.json({
         text: text,
         pages: totalPages
@@ -65,7 +95,6 @@ export async function POST(request) {
     }
     
   } catch (error) {
-    console.error('Parse error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "We couldn't read that file. Make sure it's a PDF or Word doc and try again.")
   }
 }

@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { apiError } from '@/lib/apiError';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(
@@ -51,7 +52,7 @@ export async function POST(req) {
 
     const periodEnd = updated.cancel_at || updated.current_period_end;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
         pending_change_type: 'downgrade',
@@ -59,13 +60,27 @@ export async function POST(req) {
       })
       .eq('id', userId);
 
+    if (updateError) {
+      // Stripe downgrade scheduled but our DB didn't update.
+      // Log loudly so we can reconcile manually if it ever happens.
+      console.error('CRITICAL: Stripe downgrade succeeded but profile update failed', {
+        userId,
+        subscriptionId: profile.stripe_subscription_id,
+        error: updateError,
+      });
+      return apiError(
+        updateError,
+        "Your downgrade didn't save correctly. Please email hired@hirepowerai.com so we can fix this for you.",
+        500
+      );
+    }
+
     return Response.json({
       success: true,
       scheduled_date: new Date(periodEnd * 1000).toISOString(),
     });
 
   } catch (error) {
-    console.error('Stripe downgrade error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return apiError(error, "We couldn't process your downgrade. Please try again, or email hired@hirepowerai.com if it keeps failing.");
   }
 }

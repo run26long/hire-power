@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { apiError } from '@/lib/apiError'
 
 // ─────────────────────────────────────────────
 // WRITING CONSTITUTION
@@ -2601,7 +2602,13 @@ Return this exact structure:
       cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     }
 
-    let rewrittenResume = JSON.parse(cleanedRewrite)
+    let rewrittenResume
+    try {
+      rewrittenResume = JSON.parse(cleanedRewrite)
+    } catch (parseError) {
+      console.error('Coach-finish rewrite JSON parse failed:', cleanedRewrite)
+      return apiError(parseError, "We couldn't finalize your resume. Please try again.")
+    }
     if (rewrittenResume.education?.length) {
       rewrittenResume.education = normalizeEducation(rewrittenResume.education)
     }
@@ -2655,7 +2662,6 @@ Return this exact structure:
     })
 
   } catch (error) {
-    console.error('Extract achievements error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return apiError(error, "We couldn't finalize your resume. Please try again.")
   }
 }

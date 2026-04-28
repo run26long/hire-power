@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { apiError } from '@/lib/apiError'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -145,10 +146,6 @@ CRITICAL INSTRUCTIONS:
 
     return Response.json({ data: extractedData })
   } catch (error) {
-    console.error('Extraction error:', error)
-    return Response.json(
-      { error: error.message || 'Failed to extract resume structure' },
-      { status: 500 }
-    )
+    return apiError(error, "We couldn't read your resume. Try uploading it again, or use a different file.")
   }
 }

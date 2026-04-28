@@ -48,12 +48,16 @@ export default function JobCardModal({
       if (!card?.id) return;
       const isHired = card.application_status === 'hired' || card.last_active_status === 'hired';
       if (!isHired) return;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('achievements')
         .select('*')
         .eq('application_id', card.id)
         .eq('source', 'career_archive')
         .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Failed to load wins for job card:', error);
+        return;
+      }
       if (data) setCardWins(data);
     }
     loadWins();
@@ -384,9 +388,14 @@ export default function JobCardModal({
                 <button
                   onClick={async () => {
                     setNotesSaving(true);
-                    await onSaveNotes?.(card.id, notesValue);
-                    setNotesSaving(false);
-                    setNotesSaved(true);
+                    try {
+                      await onSaveNotes?.(card.id, notesValue);
+                      setNotesSaved(true);
+                    } catch (err) {
+                      console.error('Save notes failed:', err);
+                    } finally {
+                      setNotesSaving(false);
+                    }
                   }}
                   disabled={notesSaving}
                   className="mt-1 text-[10px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
@@ -499,16 +508,21 @@ export default function JobCardModal({
                     const eventDate = scheduleTime
                       ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString()
                       : new Date(scheduleDate).toISOString();
-                    await onScheduleInterview?.(card.id, {
-                      event_date: eventDate,
-                      venue: scheduleVenue,
-                      status: 'interview_scheduled',
-                    });
-                    setScheduleSaving(false);
-                    setShowScheduleModal(false);
-                    setScheduleDate('');
-                    setScheduleTime('');
-                    setScheduleVenue('');
+                    try {
+                      await onScheduleInterview?.(card.id, {
+                        event_date: eventDate,
+                        venue: scheduleVenue,
+                        status: 'interview_scheduled',
+                      });
+                      setShowScheduleModal(false);
+                      setScheduleDate('');
+                      setScheduleTime('');
+                      setScheduleVenue('');
+                    } catch (err) {
+                      console.error('Schedule interview failed:', err);
+                    } finally {
+                      setScheduleSaving(false);
+                    }
                   }}
                   disabled={scheduleSaving || !scheduleDate}
                   className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"

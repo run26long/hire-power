@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 const COLUMNS = [
   { id: 'resume_in_progress', label: 'Prepping', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
@@ -69,42 +70,87 @@ export default function JobTrackerPage() {
   const [newNotes, setNewNotes] = useState('');
   const [addLoading, setAddLoading] = useState(false);
 
+  // AP-style title case — detects deliberate casing vs mobile auto-cap artifacts.
+  // Protects "iOS Developer", "SaaS Engineer" (caps mid-word = deliberate).
+  // Normalizes "Mall at millennia" from mobile auto-cap (caps only at word starts).
+  function toTitleCaseOnBlur(value) {
+    if (!value) return value;
+    const trimmed = value.trim();
+    if (!trimmed) return trimmed;
+    const words = trimmed.split(/\s+/);
+    const hasMidWordCap = words.some(w => {
+      for (let i = 1; i < w.length; i++) {
+        if (w[i] >= 'A' && w[i] <= 'Z') return true;
+      }
+      return false;
+    });
+    if (hasMidWordCap) return trimmed;
+    const smallWords = new Set(['a','an','and','as','at','but','by','for','if','in','nor','of','on','or','so','the','to','up','yet']);
+    const acronyms = new Set(['hr','it','pr','qa','ui','ux','vp','ceo','cfo','coo','cto','cmo','seo','ai','ml']);
+    const tokens = trimmed.toLowerCase().split(/(\s+)/);
+    const wordIndices = [];
+    tokens.forEach((tok, i) => { if (tok.trim() !== '') wordIndices.push(i); });
+    const firstIdx = wordIndices[0];
+    const lastIdx = wordIndices[wordIndices.length - 1];
+    return tokens.map((tok, i) => {
+      if (tok.trim() === '') return tok;
+      const cleanTok = tok.replace(/[^a-z]/g, '');
+      if (acronyms.has(cleanTok)) return tok.toUpperCase();
+      const isFirst = i === firstIdx;
+      const isLast = i === lastIdx;
+      if (!isFirst && !isLast && smallWords.has(tok)) return tok;
+      return tok.charAt(0).toUpperCase() + tok.slice(1);
+    }).join('');
+  }
+
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/dashboard'); return; }
-      setUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/dashboard'); return; }
+        setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
-      setUserProfile(profile);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError;
+        }
+        setUserProfile(profile);
 
-      const { data: apps } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
-        .eq('user_id', user.id)
-        .not('application_status', 'eq', 'archived')
-        .order('sort_order', { ascending: true });
-      setApplications(apps || []);
+        const { data: apps, error: appsError } = await supabase
+          .from('applications')
+          .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
+          .eq('user_id', user.id)
+          .not('application_status', 'eq', 'archived')
+          .order('sort_order', { ascending: true });
+        if (appsError) throw appsError;
+        setApplications(apps || []);
 
-      const { data: archived } = await supabase
-        .from('applications')
-        .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
-        .eq('user_id', user.id)
-        .eq('application_status', 'archived')
-        .order('updated_at', { ascending: false });
-      setArchivedCards(archived || []);
+        const { data: archived, error: archivedError } = await supabase
+          .from('applications')
+          .select('*, resumes!applications_resume_id_fkey(id, display_name, current_score)')
+          .eq('user_id', user.id)
+          .eq('application_status', 'archived')
+          .order('updated_at', { ascending: false });
+        if (archivedError) throw archivedError;
+        setArchivedCards(archived || []);
 
-      const { data: resumes } = await supabase
-        .from('resumes')
-        .select('id, display_name, current_score, job_title, job_company, job_description')
-        .eq('user_id', user.id)
-        .eq('resume_type', 'job_specific')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false });
-      setJsResumes(resumes || []);
+        const { data: resumes, error: resumesError } = await supabase
+          .from('resumes')
+          .select('id, display_name, current_score, job_title, job_company, job_description')
+          .eq('user_id', user.id)
+          .eq('resume_type', 'job_specific')
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false });
+        if (resumesError) throw resumesError;
+        setJsResumes(resumes || []);
 
-      setLoading(false);
+      } catch (err) {
+        console.error('Job tracker load failed:', err);
+        setErrorToast("We couldn't load your job tracker. Please refresh the page.");
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, []);
@@ -178,7 +224,7 @@ export default function JobTrackerPage() {
       const hiredAt = new Date().toISOString();
 
       // Find and archive any existing hired card — exclude the card we just moved
-      const { data: existingHired } = await supabase
+      const { data: existingHired, error: existingHiredError } = await supabase
         .from('applications')
         .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
         .eq('user_id', user.id)
@@ -186,25 +232,54 @@ export default function JobTrackerPage() {
         .neq('id', dragCard.id)
         .maybeSingle();
 
+      if (existingHiredError) {
+        console.error('Lookup existing hired card failed:', existingHiredError);
+        setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+        setDragCard(null);
+        setDragOverColumn(null);
+        return;
+      }
+
       if (existingHired) {
-        await supabase
+        const { error: archiveError } = await supabase
           .from('applications')
           .update({ application_status: 'archived', last_active_status: 'hired', updated_at: hiredAt })
           .eq('id', existingHired.id);
+        if (archiveError) {
+          console.error('Archive previous hired card failed:', archiveError);
+          setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+          setDragCard(null);
+          setDragOverColumn(null);
+          return;
+        }
         setApplications(prev => prev.filter(a => a.id !== existingHired.id));
         setArchivedCards(prev => [...prev, { ...existingHired, application_status: 'archived', last_active_status: 'hired' }]);
       }
 
       // Set new card as hired
-      await supabase
+      const { error: hiredAtError } = await supabase
         .from('applications')
         .update({ hired_at: hiredAt, updated_at: hiredAt })
         .eq('id', dragCard.id);
+      if (hiredAtError) {
+        console.error('Set hired_at failed:', hiredAtError);
+        setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+        setDragCard(null);
+        setDragOverColumn(null);
+        return;
+      }
 
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ search_status: 'hired' })
         .eq('id', user.id);
+      if (profileError) {
+        console.error('Update search_status failed:', profileError);
+        setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+        setDragCard(null);
+        setDragOverColumn(null);
+        return;
+      }
 
       setUserProfile(prev => ({ ...prev, search_status: 'hired' }));
       setShowHiredModal(true);
@@ -224,39 +299,45 @@ export default function JobTrackerPage() {
     if (!newTitle || !newCompany) return;
     setAddLoading(true);
 
-    const { data, error } = await supabase
-      .from('applications')
-      .insert({
-        user_id: user.id,
-        title: newTitle,
-        company: newCompany,
-        description: newDescription || '',
-        application_status: 'resume_in_progress',
-        notes: newNotes || null,
-        resume_id: newResumeId || null,
-        application_date: new Date().toISOString().split('T')[0],
-        sort_order: applications.length,
-      })
-      .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          title: newTitle,
+          company: newCompany,
+          description: newDescription || '',
+          application_status: 'resume_in_progress',
+          notes: newNotes || null,
+          resume_id: newResumeId || null,
+          application_date: new Date().toISOString().split('T')[0],
+          sort_order: applications.length,
+        })
+        .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
+        .single();
 
-    if (error) {
-      console.error('Job card insert error:', error);
+      if (error) {
+        console.error('Job card insert error:', error);
+        setErrorToast('Could not add job card. Please try again.');
+      } else if (data) {
+        setApplications(prev => [...prev, data]);
+        setShowAddModal(false);
+        setNewTitle('');
+        setNewCompany('');
+        setNewDescription('');
+        setNewResumeId('');
+        setNewNotes('');
+      }
+    } catch (err) {
+      console.error('Job card insert threw:', err);
       setErrorToast('Could not add job card. Please try again.');
-    } else if (data) {
-      setApplications(prev => [...prev, data]);
-      setShowAddModal(false);
-      setNewTitle('');
-      setNewCompany('');
-      setNewDescription('');
-      setNewResumeId('');
-      setNewNotes('');
+    } finally {
+      setAddLoading(false);
     }
-    setAddLoading(false);
   };
 
   const handleScheduleInterview = async (cardId, eventData) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('application_events')
       .insert({
         application_id: cardId,
@@ -264,16 +345,26 @@ export default function JobTrackerPage() {
       })
       .select()
       .single();
+    if (error) {
+      console.error('Schedule interview failed:', error);
+      setErrorToast("We couldn't save your interview. Please try again.");
+      throw error;
+    }
     if (data) {
       setInterviewRounds(prev => [...prev, data]);
     }
   };
 
   const handleLinkResume = async (cardId, resumeId) => {
-    await supabase
+    const { error } = await supabase
       .from('applications')
       .update({ resume_id: resumeId, updated_at: new Date().toISOString() })
       .eq('id', cardId);
+    if (error) {
+      console.error('Link resume failed:', error);
+      setErrorToast("We couldn't link your resume. Please try again.");
+      return;
+    }
     const resume = jsResumes.find(r => r.id === resumeId);
     setApplications(prev => prev.map(a =>
       a.id === cardId ? { ...a, resume_id: resumeId, resumes: resume || null } : a
@@ -283,20 +374,32 @@ export default function JobTrackerPage() {
 
   const handleRestoreCard = async (cardId) => {
     const card = archivedCards.find(a => a.id === cardId);
-    await supabase
+    if (!card) return;
+    const { error } = await supabase
       .from('applications')
       .update({ application_status: 'resume_in_progress', last_active_status: null, updated_at: new Date().toISOString() })
       .eq('id', cardId);
+    if (error) {
+      console.error('Restore card failed:', error);
+      setErrorToast("We couldn't restore that card. Please try again.");
+      return;
+    }
     setApplications(prev => [...prev, { ...card, application_status: 'resume_in_progress', last_active_status: null }]);
     setArchivedCards(prev => prev.filter(a => a.id !== cardId));
   };
 
   const handleArchiveCard = async (cardId) => {
     const card = applications.find(a => a.id === cardId);
-    await supabase
+    if (!card) return;
+    const { error } = await supabase
       .from('applications')
       .update({ application_status: 'archived', last_active_status: card.application_status, updated_at: new Date().toISOString() })
       .eq('id', cardId);
+    if (error) {
+      console.error('Archive card failed:', error);
+      setErrorToast("We couldn't archive that card. Please try again.");
+      return;
+    }
     setArchivedCards(prev => [...prev, { ...card, application_status: 'archived', last_active_status: card.application_status }]);
     setApplications(prev => prev.filter(a => a.id !== cardId));
     setShowCardModal(false);
@@ -335,29 +438,49 @@ export default function JobTrackerPage() {
     }
     if (newStatus === 'hired') {
       const hiredAt = new Date().toISOString();
-      const { data: existingHired } = await supabase
+      const { data: existingHired, error: existingHiredError } = await supabase
         .from('applications')
         .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
         .eq('user_id', user.id)
         .eq('application_status', 'hired')
         .neq('id', card.id)
         .maybeSingle();
+      if (existingHiredError) {
+        console.error('Lookup existing hired card failed:', existingHiredError);
+        setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+        return;
+      }
       if (existingHired) {
-        await supabase
+        const { error: archiveError } = await supabase
           .from('applications')
           .update({ application_status: 'archived', last_active_status: 'hired', updated_at: hiredAt })
           .eq('id', existingHired.id);
+        if (archiveError) {
+          console.error('Archive previous hired card failed:', archiveError);
+          setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+          return;
+        }
         setApplications(prev => prev.filter(a => a.id !== existingHired.id));
         setArchivedCards(prev => [...prev, { ...existingHired, application_status: 'archived', last_active_status: 'hired' }]);
       }
-      await supabase
+      const { error: hiredAtError } = await supabase
         .from('applications')
         .update({ hired_at: hiredAt, updated_at: hiredAt })
         .eq('id', card.id);
-      await supabase
+      if (hiredAtError) {
+        console.error('Set hired_at failed:', hiredAtError);
+        setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+        return;
+      }
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ search_status: 'hired' })
         .eq('id', user.id);
+      if (profileError) {
+        console.error('Update search_status failed:', profileError);
+        setErrorToast("We couldn't update your hired status. Please refresh and try again.");
+        return;
+      }
       setUserProfile(prev => ({ ...prev, search_status: 'hired' }));
       setShowHiredModal(true);
       setHiredCard(card);
@@ -568,13 +691,18 @@ export default function JobTrackerPage() {
             setSelectedCard(card);
             setShowCardModal(true);
             if (card.application_status === 'interview' || card.application_status === 'hired') {
-              const { data } = await supabase
+              const { data, error } = await supabase
                 .from('application_events')
                 .select('*')
                 .eq('application_id', card.id)
                 .eq('status', 'interview_scheduled')
                 .order('event_date', { ascending: true });
-              setInterviewRounds(data || []);
+              if (error) {
+                console.error('Load interview rounds failed:', error);
+                setInterviewRounds([]);
+              } else {
+                setInterviewRounds(data || []);
+              }
             } else {
               setInterviewRounds([]);
             }
@@ -658,6 +786,7 @@ export default function JobTrackerPage() {
                   type="text"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
+                  onBlur={e => setNewTitle(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -668,6 +797,7 @@ export default function JobTrackerPage() {
                   type="text"
                   value={newCompany}
                   onChange={e => setNewCompany(e.target.value)}
+                  onBlur={e => setNewCompany(toTitleCaseOnBlur(e.target.value))}
                   placeholder="e.g. Acme Corp"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -744,10 +874,15 @@ export default function JobTrackerPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    await supabase
+                    const { error } = await supabase
                       .from('applications')
                       .update({ application_status: 'archived', last_active_status: 'rejected', updated_at: new Date().toISOString() })
                       .eq('id', rejectedPromptCard.id);
+                    if (error) {
+                      console.error('Archive rejected card failed:', error);
+                      setErrorToast("We couldn't archive that card. Please try again.");
+                      return;
+                    }
                     setArchivedCards(prev => [...prev, { ...rejectedPromptCard, application_status: 'archived', last_active_status: 'rejected' }]);
                     setApplications(prev => prev.filter(a => a.id !== rejectedPromptCard.id));
                     setRejectedPromptCard(null);
@@ -944,7 +1079,7 @@ export default function JobTrackerPage() {
                               .select('email')
                               .eq('id', user.id)
                               .single();
-                            const response = await fetch('/api/stripe/checkout', {
+                            const data = await fetchJSON('/api/stripe/checkout', {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
@@ -956,12 +1091,15 @@ export default function JobTrackerPage() {
                                 email: profile?.email || user.email,
                               })
                             });
-                            const data = await response.json();
-                            if (data.url) window.location.href = data.url;
+                            if (!data.url) {
+                              throw new Error("We couldn't start checkout. Please try again in a moment.");
+                            }
+                            setShowHiredModal(false);
+                            window.location.href = data.url;
                           } catch (err) {
-                            console.error('Vault checkout error:', err);
+                            setErrorToast(err.message);
+                            setShowHiredModal(false);
                           }
-                          setShowHiredModal(false);
                         }}
                         style={{
                           fontFamily: "'DM Sans', sans-serif",
@@ -1041,7 +1179,12 @@ export default function JobTrackerPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    await supabase.from('applications').delete().eq('id', deleteConfirmCard.id);
+                    const { error } = await supabase.from('applications').delete().eq('id', deleteConfirmCard.id);
+                    if (error) {
+                      console.error('Delete card failed:', error);
+                      setErrorToast("We couldn't delete that card. Please try again.");
+                      return;
+                    }
                     setArchivedCards(prev => prev.filter(a => a.id !== deleteConfirmCard.id));
                     setDeleteConfirmCard(null);
                   }}
@@ -1098,13 +1241,18 @@ export default function JobTrackerPage() {
                         setSelectedCard(card);
                         setShowCardModal(true);
                         if (card.application_status === 'interview' || card.application_status === 'hired') {
-                          const { data } = await supabase
+                          const { data, error } = await supabase
                             .from('application_events')
                             .select('*')
                             .eq('application_id', card.id)
                             .eq('status', 'interview_scheduled')
                             .order('event_date', { ascending: true });
-                          setInterviewRounds(data || []);
+                          if (error) {
+                            console.error('Load interview rounds failed:', error);
+                            setInterviewRounds([]);
+                          } else {
+                            setInterviewRounds(data || []);
+                          }
                         } else {
                           setInterviewRounds([]);
                         }
@@ -1227,7 +1375,12 @@ export default function JobTrackerPage() {
           }}
           onArchive={handleArchiveCard}
           onSaveNotes={async (cardId, notes) => {
-            await supabase.from('applications').update({ notes }).eq('id', cardId);
+            const { error } = await supabase.from('applications').update({ notes }).eq('id', cardId);
+            if (error) {
+              console.error('Save notes failed:', error);
+              setErrorToast("We couldn't save your notes. Please try again.");
+              throw error;
+            }
             setApplications(prev => prev.map(a => a.id === cardId ? { ...a, notes } : a));
           }}
           onLinkResume={handleLinkResume}
