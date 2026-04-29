@@ -110,14 +110,20 @@ function DashboardContent() {
     async function loadData() {
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
-        if (!user) { setShowLoginModal(true); return; }
+        if (authError || !user) {
+          // No valid session — show login modal instead of throwing.
+          // Auth errors here usually mean expired/missing refresh token, which is normal.
+          setShowLoginModal(true);
+          return;
+        }
         setUser(user);
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
-        setUserProfile(profile);
+        if (profileError) {
+          console.warn('Dashboard profile load issue (non-fatal):', profileError);
+        }
+        if (profile) setUserProfile(profile);
 
         // New user → Dashboard
         const createdAt = new Date(user.created_at);
@@ -130,7 +136,9 @@ function DashboardContent() {
           .from('resumes').select('*').eq('user_id', user.id)
           .eq('resume_type', 'core')
           .order('updated_at', { ascending: false }).limit(1);
-        if (resumesError) throw resumesError;
+        if (resumesError) {
+          console.warn('Dashboard resumes load issue (non-fatal):', resumesError);
+        }
         if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
 
         if (searchParams.get('cancelled') === 'true') {
