@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { groupExperience } from '../utils/groupExperience'
+import { groupEducation } from '../utils/groupEducation'
 
 export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {}, selectedTemplate = 'crisp', combineBannerDismissed = false, setCombineBannerDismissed = () => {} }) {
   const [confirmingDelete, setConfirmingDelete] = useState(null)
@@ -507,146 +509,294 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   )
 
   const sections = {
-    experience: resumeData.experience?.length > 0 ? (
-      <div className={sectionClass} key="experience">
-        {sectionHeader('experience')}
-        {resumeData.experience.map((job, jobIndex) => (
-          <div key={jobIndex} className={`mb-4 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
-            <div className="flex justify-between items-start mb-1">
-              <div className="flex items-center gap-1 flex-1">
-                <h3 className={`font-semibold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
-                {entryArrows('experience', jobIndex, resumeData.experience.length)}
-                {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
-                  <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
-                    <span className="text-gray-600">Delete job?</span>
-                    <button onClick={() => {
-                      const newData = JSON.parse(JSON.stringify(resumeData))
-                      newData.experience.splice(jobIndex, 1)
-                      onUpdate(newData)
-                      setConfirmingDelete(null)
-                    }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                    <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
-                  </div>
-                ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete job">🗑️</button>)}
-              </div>
-              {selectedTemplate !== 'sharp' && selectedTemplate !== 'edge' && (
-                <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
+    experience: resumeData.experience?.length > 0 ? (() => {
+      const expGroups = groupExperience(resumeData.experience)
+
+      const renderRoleBody = (job, jobIndex) => (
+        <>
+          {job.summary ? (
+            <div className="mb-2">
+              <p className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
+              {!readOnly && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-[#e57373] text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
+            </div>
+          ) : !readOnly && job.summaryDismissed !== true && (
+            <div className="flex items-center gap-2 mb-2">
+              <button onClick={() => addExperienceSummary(jobIndex)} className="text-purple-600 text-xs opacity-50 hover:opacity-100">+ Add Summary Paragraph (1-2 sentences)</button>
+              <button onClick={() => { const newData = JSON.parse(JSON.stringify(resumeData)); newData.experience[jobIndex].summaryDismissed = true; onUpdate(newData) }} className="text-gray-400 text-xs hover:text-gray-600">× Hide this field</button>
+            </div>
+          )}
+          {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
+            <div key={bulletIndex} className="relative flex items-start gap-1 mb-1 group/bullet">
+              <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
+              <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet}</p>
+              {!readOnly && (
+                <div className="absolute right-0 top-0 flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100 bg-white">
+                  <button
+                    onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
+                    onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)} disabled={bulletIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                  <button
+                    onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
+                    onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)} disabled={bulletIndex === job.bullets.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                  {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="text-gray-600">Delete?</span>
+                      <button onClick={() => { deleteExperienceBullet(jobIndex, bulletIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
+                  )}
+                </div>
               )}
             </div>
-            {selectedTemplate === 'sharp' || selectedTemplate === 'edge' ? (
-              <p className={`text-sm text-gray-600 mb-2`} style={ts.company || {}}>
-                {[job.company, job.location, `${formatDate(job.startDate)} - ${job.current ? 'Present' : formatDate(job.endDate)}`].filter(Boolean).join(' | ')}
-              </p>
-            ) : (
-              <p className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`} style={ts.company || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}>{job.company}</p>
-            )}
-            {job.summary ? (
-              <div className="mb-2">
-                <p className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
-                {!readOnly && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-[#e57373] text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
-              </div>
-            ) : !readOnly && job.summaryDismissed !== true && (
-              <div className="flex items-center gap-2 mb-2">
-                <button onClick={() => addExperienceSummary(jobIndex)} className="text-purple-600 text-xs opacity-50 hover:opacity-100">+ Add Summary Paragraph (1-2 sentences)</button>
-                <button onClick={() => { const newData = JSON.parse(JSON.stringify(resumeData)); newData.experience[jobIndex].summaryDismissed = true; onUpdate(newData) }} className="text-gray-400 text-xs hover:text-gray-600">× Hide this field</button>
-              </div>
-            )}
-            {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
-              <div key={bulletIndex} className="relative flex items-start gap-1 mb-1 group/bullet">
-                <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
-                <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet}</p>
-                {!readOnly && (
-                  <div className="absolute right-0 top-0 flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100 bg-white">
-                    <button
-                      onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
-                      onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)} disabled={bulletIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
-                    <button
-                      onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
-                      onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)} disabled={bulletIndex === job.bullets.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
-                    {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600">Delete?</span>
-                        <button onClick={() => { deleteExperienceBullet(jobIndex, bulletIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                        <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
+          ))}
+          {!readOnly && <button onClick={() => addExperienceBullet(jobIndex)} className="text-purple-600 text-xs mt-2 opacity-0 group-hover/entry:opacity-100">+ Add Bullet</button>}
+        </>
+      )
+
+      return (
+        <div className={sectionClass} key="experience">
+          {sectionHeader('experience')}
+          {expGroups.map((group, groupIndex) => {
+            // Single-role group: render exactly as before (title on top, company below).
+            if (group.roles.length === 1) {
+              const job = group.roles[0]
+              const jobIndex = job._originalIndex
+              return (
+                <div key={`group-${groupIndex}`} className={`mb-4 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-1 flex-1">
+                      <h3 className={`font-semibold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
+                      {entryArrows('experience', jobIndex, resumeData.experience.length)}
+                      {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
+                        <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
+                          <span className="text-gray-600">Delete job?</span>
+                          <button onClick={() => {
+                            const newData = JSON.parse(JSON.stringify(resumeData))
+                            newData.experience.splice(jobIndex, 1)
+                            onUpdate(newData)
+                            setConfirmingDelete(null)
+                          }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                          <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                        </div>
+                      ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete job">🗑️</button>)}
+                    </div>
+                    {selectedTemplate !== 'sharp' && selectedTemplate !== 'edge' && (
+                      <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
                     )}
                   </div>
-                )}
-              </div>
-            ))}
-            {!readOnly && <button onClick={() => addExperienceBullet(jobIndex)} className="text-purple-600 text-xs mt-2 opacity-0 group-hover/entry:opacity-100">+ Add Bullet</button>}
-          </div>
-        ))}
-      </div>
-    ) : null,
+                  {selectedTemplate === 'sharp' || selectedTemplate === 'edge' ? (
+                    <p className={`text-sm text-gray-600 mb-2`} style={ts.company || {}}>
+                      {[job.company, job.location, `${formatDate(job.startDate)} - ${job.current ? 'Present' : formatDate(job.endDate)}`].filter(Boolean).join(' | ')}
+                    </p>
+                  ) : (
+                    <p className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`} style={ts.company || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}>{job.company}</p>
+                  )}
+                  {renderRoleBody(job, jobIndex)}
+                </div>
+              )
+            }
 
-    education: resumeData.education?.length > 0 ? (
-      <div className="mb-6 group" key="education">
-        {sectionHeader('education')}
-        {resumeData.education.map((edu, eduIndex) => (
-          <div key={eduIndex} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
-            <div className="flex items-center justify-between gap-1 mb-1">
-              <h3 className={`font-semibold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}>{edu.school}</h3>
-              {entryArrows('education', eduIndex, resumeData.education.length)}
-              {!readOnly && (confirmingDelete === `education-${eduIndex}` ? (
-                <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
-                  <span className="text-gray-600">Delete?</span>
+            // Multi-role group: shared company header on top, roles indented underneath.
+            const headerRole = group.roles[0] // most recent — used for shared location editing
+            const headerJobIndex = headerRole._originalIndex
+            const groupRangeText = `${formatDate(group.startDate)} - ${group.current ? 'Present' : formatDate(group.endDate)}`
+            return (
+              <div key={`group-${groupIndex}`} className={`mb-4 p-2 rounded ${!readOnly && 'hover:bg-purple-50/50'}`}>
+                {/* Shared company header */}
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3
+                      className={`font-semibold ${!readOnly && 'cursor-text'}`}
+                      style={ts.jobTitle || {}}
+                      contentEditable={!readOnly}
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        if (isUndoingRef.current) return
+                        const newName = e.currentTarget.textContent
+                        const newData = JSON.parse(JSON.stringify(resumeData))
+                        // Update company name on every role in this group so they stay grouped.
+                        group.roles.forEach(r => {
+                          newData.experience[r._originalIndex].company = newName
+                        })
+                        onUpdate(newData)
+                      }}
+                    >{group.company}</h3>
+                    {(group.location || !readOnly) && (
+                      <p
+                        className={`text-sm text-gray-600 ${!readOnly && 'cursor-text'}`}
+                        style={ts.company || {}}
+                        contentEditable={!readOnly}
+                        suppressContentEditableWarning
+                        onBlur={(e) => updateNestedField(`experience[${headerJobIndex}].location`, e.currentTarget.textContent)}
+                      >{group.location}</p>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{groupRangeText}</span>
+                </div>
+                {/* Roles within the group, indented */}
+                <div className="pl-4 border-l-2 border-purple-100">
+                  {group.roles.map((job, roleIdx) => {
+                    const jobIndex = job._originalIndex
+                    return (
+                      <div key={`role-${jobIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="flex items-center gap-1 flex-1">
+                            <h4 className={`font-semibold italic ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
+                            {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
+                              <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
+                                <span className="text-gray-600">Delete role?</span>
+                                <button onClick={() => {
+                                  const newData = JSON.parse(JSON.stringify(resumeData))
+                                  newData.experience.splice(jobIndex, 1)
+                                  onUpdate(newData)
+                                  setConfirmingDelete(null)
+                                }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                                <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                              </div>
+                            ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete role">🗑️</button>)}
+                          </div>
+                          <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
+                        </div>
+                        {renderRoleBody(job, jobIndex)}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
+    })() : null,
+
+    education: resumeData.education?.length > 0 ? (() => {
+      const eduGroups = groupEducation(resumeData.education)
+
+      const renderDegreeBody = (edu, eduIndex) => (
+        <>
+          {(!readOnly || edu.degree || edu.field || edu.graduationDate || edu.degreeDisplay) && (
+            <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={ts.company || ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning
+            onBlur={(e) => {
+              const newData = JSON.parse(JSON.stringify(resumeData))
+              newData.education[eduIndex].degreeDisplay = e.currentTarget.textContent
+              onUpdate(newData)
+            }}
+            >{edu.degreeDisplay || [[edu.degree, edu.field].filter(Boolean).join(', '), edu.graduationDate ? formatDate(edu.graduationDate) : null].filter(Boolean).join(' | ')}</p>
+          )}
+          {edu.lines?.map((line, lineIndex) => (
+            <div key={lineIndex} className="flex items-start gap-2 group/line">
+              <p className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`education[${eduIndex}].lines[${lineIndex}]`, e.currentTarget.textContent)}>{line}</p>
+              {!readOnly && (
+                <div className="flex items-center gap-1 opacity-0 group-hover/line:opacity-100">
+                  <button onClick={() => {
+                    if (lineIndex === 0) return
+                    const newData = JSON.parse(JSON.stringify(resumeData))
+                    const lines = newData.education[eduIndex].lines
+                    const temp = lines[lineIndex]; lines[lineIndex] = lines[lineIndex-1]; lines[lineIndex-1] = temp
+                    onUpdate(newData)
+                  }} disabled={lineIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▲</button>
                   <button onClick={() => {
                     const newData = JSON.parse(JSON.stringify(resumeData))
-                    newData.education.splice(eduIndex, 1)
+                    const lines = newData.education[eduIndex].lines
+                    if (lineIndex === lines.length - 1) return
+                    const temp = lines[lineIndex]; lines[lineIndex] = lines[lineIndex+1]; lines[lineIndex+1] = temp
                     onUpdate(newData)
-                    setConfirmingDelete(null)
-                  }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                  <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                  }} disabled={lineIndex === edu.lines.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▼</button>
+                  {confirmingDelete === `eduline-${eduIndex}-${lineIndex}` ? (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="text-gray-600">Delete?</span>
+                      <button onClick={() => { deleteEducationLine(eduIndex, lineIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </div>
+                  ) : <button onClick={() => setConfirmingDelete(`eduline-${eduIndex}-${lineIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete line">🗑️</button>}
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`education-${eduIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete education">🗑️</button>)}
+              )}
             </div>
-           {(!readOnly || edu.degree || edu.field || edu.graduationDate || edu.degreeDisplay) && (
-              <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={ts.company || ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning 
-              onBlur={(e) => {
-                const newData = JSON.parse(JSON.stringify(resumeData))
-                newData.education[eduIndex].degreeDisplay = e.currentTarget.textContent
-                onUpdate(newData)
-              }}
-              >{edu.degreeDisplay || [[edu.degree, edu.field].filter(Boolean).join(', '), edu.graduationDate ? formatDate(edu.graduationDate) : null].filter(Boolean).join(' | ')}</p>
-            )}
-            {edu.lines?.map((line, lineIndex) => (
-              <div key={lineIndex} className="flex items-start gap-2 group/line">
-                <p className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`education[${eduIndex}].lines[${lineIndex}]`, e.currentTarget.textContent)}>{line}</p>
-                {!readOnly && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover/line:opacity-100">
-                    <button onClick={() => {
-                      if (lineIndex === 0) return
-                      const newData = JSON.parse(JSON.stringify(resumeData))
-                      const lines = newData.education[eduIndex].lines
-                      const temp = lines[lineIndex]; lines[lineIndex] = lines[lineIndex-1]; lines[lineIndex-1] = temp
-                      onUpdate(newData)
-                    }} disabled={lineIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▲</button>
-                    <button onClick={() => {
-                      const newData = JSON.parse(JSON.stringify(resumeData))
-                      const lines = newData.education[eduIndex].lines
-                      if (lineIndex === lines.length - 1) return
-                      const temp = lines[lineIndex]; lines[lineIndex] = lines[lineIndex+1]; lines[lineIndex+1] = temp
-                      onUpdate(newData)
-                    }} disabled={lineIndex === edu.lines.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▼</button>
-                    {confirmingDelete === `eduline-${eduIndex}-${lineIndex}` ? (
-                      <div className="flex items-center gap-1 text-xs">
+          ))}
+          {!readOnly && <button onClick={() => addEducationLine(eduIndex)} className="text-purple-600 text-xs mt-1 opacity-0 group-hover/entry:opacity-100">+ Add Line</button>}
+        </>
+      )
+
+      return (
+        <div className="mb-6 group" key="education">
+          {sectionHeader('education')}
+          {eduGroups.map((group, groupIndex) => {
+            // Single-degree group: render exactly as before.
+            if (group.degrees.length === 1) {
+              const edu = group.degrees[0]
+              const eduIndex = edu._originalIndex
+              return (
+                <div key={`edu-group-${groupIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <h3 className={`font-semibold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}>{edu.school}</h3>
+                    {entryArrows('education', eduIndex, resumeData.education.length)}
+                    {!readOnly && (confirmingDelete === `education-${eduIndex}` ? (
+                      <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
                         <span className="text-gray-600">Delete?</span>
-                        <button onClick={() => { deleteEducationLine(eduIndex, lineIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                        <button onClick={() => {
+                          const newData = JSON.parse(JSON.stringify(resumeData))
+                          newData.education.splice(eduIndex, 1)
+                          onUpdate(newData)
+                          setConfirmingDelete(null)
+                        }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                         <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                       </div>
-                    ) : <button onClick={() => setConfirmingDelete(`eduline-${eduIndex}-${lineIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete line">🗑️</button>}
+                    ) : <button onClick={() => setConfirmingDelete(`education-${eduIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete education">🗑️</button>)}
                   </div>
-                )}
+                  {renderDegreeBody(edu, eduIndex)}
+                </div>
+              )
+            }
+
+            // Multi-degree group: shared school header on top, degrees indented underneath.
+            return (
+              <div key={`edu-group-${groupIndex}`} className={`mb-3 p-2 rounded ${!readOnly && 'hover:bg-purple-50/50'}`}>
+                <h3
+                  className={`font-semibold mb-2 ${!readOnly && 'cursor-text'}`}
+                  style={ts.jobTitle || {}}
+                  contentEditable={!readOnly}
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    if (isUndoingRef.current) return
+                    const newName = e.currentTarget.textContent
+                    const newData = JSON.parse(JSON.stringify(resumeData))
+                    group.degrees.forEach(d => {
+                      newData.education[d._originalIndex].school = newName
+                    })
+                    onUpdate(newData)
+                  }}
+                >{group.school}</h3>
+                <div className="pl-4 border-l-2 border-purple-100">
+                  {group.degrees.map((edu) => {
+                    const eduIndex = edu._originalIndex
+                    return (
+                      <div key={`edu-${eduIndex}`} className={`mb-2 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
+                        <div className="flex items-center justify-end mb-1">
+                          {!readOnly && (confirmingDelete === `education-${eduIndex}` ? (
+                            <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
+                              <span className="text-gray-600">Delete?</span>
+                              <button onClick={() => {
+                                const newData = JSON.parse(JSON.stringify(resumeData))
+                                newData.education.splice(eduIndex, 1)
+                                onUpdate(newData)
+                                setConfirmingDelete(null)
+                              }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                              <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                            </div>
+                          ) : <button onClick={() => setConfirmingDelete(`education-${eduIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete degree">🗑️</button>)}
+                        </div>
+                        {renderDegreeBody(edu, eduIndex)}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            ))}
-            {!readOnly && <button onClick={() => addEducationLine(eduIndex)} className="text-purple-600 text-xs mt-1 opacity-0 group-hover/entry:opacity-100">+ Add Line</button>}
-          </div>
-        ))}
-      </div>
-    ) : null,
+            )
+          })}
+        </div>
+      )
+    })() : null,
 
     skills: resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0 ? (
       <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`} key="skills">
