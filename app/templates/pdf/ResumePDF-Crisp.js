@@ -60,10 +60,13 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
                     <>
                       <View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, flex: 1 }}>{job.title || ''}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
+                            <Text style={{ textTransform: 'uppercase' }}>{job.company || ''}</Text>
+                            {job.location ? <Text>{` | ${job.location}`}</Text> : null}
+                          </Text>
                           <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
                         </View>
-                        <Text style={{ fontFamily: f, fontSize: base, fontStyle: 'italic', color: '#555555', marginBottom: Math.round(2*sp) }}>{[job.company, job.location].filter(Boolean).join(' | ')}</Text>
+                        <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(2*sp) }}>{job.title || ''}</Text>
                         {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
                       </View>
                       {renderBullets(job)}
@@ -73,16 +76,19 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
                 return (
                   <>
                     <View wrap={false} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
-                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, flex: 1 }}>{[group.company, group.location].filter(Boolean).join(' | ')}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
+                        <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
+                        {group.location ? <Text>{` | ${group.location}`}</Text> : null}
+                      </Text>
                       <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
                     </View>
                     {group.roles.map((job, ri) => (
                       <View key={ri} style={{ paddingLeft: 12, marginBottom: ri < group.roles.length - 1 ? Math.round(5*sp) : 0 }}>
                         <View wrap={false}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontFamily: f, fontWeight: 'bold', fontStyle: 'italic', fontSize: base, flex: 1 }}>{job.title || ''}</Text>
-                            <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
-                          </View>
+                          <Text style={{ fontFamily: f, fontSize: base }}>
+                            <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
+                            <Text style={{ color: '#555555' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
+                          </Text>
                           {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
                         </View>
                         {renderBullets(job)}
@@ -116,31 +122,40 @@ export default function ResumePDFCrisp({ resumeData, font = 'Source Serif 4', fo
               const eduGroups = groupEducation(resumeData.education)
               if (!eduGroups.length) return null
 
-              const renderDegreeLines = (ed) => (
-                <>
-                  {ed.lines?.filter(l => l && l.trim() !== '').map((l, k) => <Text key={k} style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{l}</Text>)}
-                </>
-              )
+              const renderDegreeAndDate = (ed) => {
+                const degreeText = ed.degreeDisplay || [ed.degree, ed.field].filter(Boolean).join(', ')
+                const dateText = ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : ''
+                return (
+                  <Text style={{ fontFamily: f, fontSize: base }}>
+                    <Text style={{ fontWeight: 'bold' }}>{degreeText}</Text>
+                    {dateText ? <Text>{` | ${dateText}`}</Text> : null}
+                  </Text>
+                )
+              }
+
+              const renderDegreeLines = (ed) => {
+                const lines = (ed.lines || []).filter(l => l && l.trim() !== '')
+                if (!lines.length) return null
+                return <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{lines.join(' | ')}</Text>
+              }
 
               const renderEduGroup = (group) => {
                 if (group.degrees.length === 1) {
                   const ed = group.degrees[0]
                   return (
                     <>
-                      <View style={{ flexDirection: 'column' }}>
-                        <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base }}>{ed.school || ''}</Text>
-                        <Text style={{ fontFamily: f, fontSize: base, fontStyle: 'italic', color: '#555555' }}>{ed.degreeDisplay || [[ed.degree, ed.field].filter(Boolean).join(', '), ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
-                      </View>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', textTransform: 'uppercase' }}>{ed.school || ''}</Text>
+                      {renderDegreeAndDate(ed)}
                       {renderDegreeLines(ed)}
                     </>
                   )
                 }
                 return (
                   <>
-                    <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(2*sp) }}>{group.school || ''}</Text>
+                    <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: Math.round(2*sp) }}>{group.school || ''}</Text>
                     {group.degrees.map((ed, di) => (
                       <View key={di} style={{ paddingLeft: 12, marginBottom: di < group.degrees.length - 1 ? Math.round(4*sp) : 0 }}>
-                        <Text style={{ fontFamily: f, fontSize: base, fontStyle: 'italic', color: '#555555' }}>{ed.degreeDisplay || [[ed.degree, ed.field].filter(Boolean).join(', '), ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : null].filter(Boolean).join(' | ')}</Text>
+                        {renderDegreeAndDate(ed)}
                         {renderDegreeLines(ed)}
                       </View>
                     ))}

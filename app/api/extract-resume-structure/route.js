@@ -98,7 +98,7 @@ CRITICAL INSTRUCTIONS:
 - education.degree: The degree name only (e.g., "Bachelor of Science", "Master of Arts", "Associate Degree"). Empty string if not present.
 - education.field: The field of study only (e.g., "Computer Science", "Business Administration", "Entertainment Management"). Empty string if not present.
 - education.graduationDate: Graduation or expected graduation date in YYYY-MM format. Null if not present.
-- education.lines: Supplementary info ONLY — GPA, honors, relevant coursework, honor societies, expected graduation note. Do NOT put degree name or field of study in lines[]. Those go in degree and field above.
+- education.lines: Supplementary info ONLY — GPA, honors, relevant coursework, honor societies. Do NOT put degree name or field of study in lines[]. Those go in degree and field above. Do NOT put any version of the graduation date in lines[] — not the numeric date, not a written-out date (e.g., "December 2027"), not an "expected" phrase (e.g., "expected December 2027" or "graduating May 2024"). The graduationDate field captures the date; do not duplicate it.
 - skillsCategories: ALWAYS categorize skills into "Technical Skills" and "Professional Skills". Technical = programming languages, software, tools, technical abilities. Professional = soft skills, leadership, communication, management. If you can't categorize, use "Skills" as single category.
 - projects: Extract any personal projects, side projects, or portfolio work. Include project name, brief description, and link if available.
 - certifications: Extract professional certifications, licenses, or credentials. Format as "name" and "details" (organization | date).
@@ -125,7 +125,49 @@ CRITICAL INSTRUCTIONS:
     }
 
     const extractedData = JSON.parse(cleanedResponse)
-    
+
+    // Strip date duplicates from education.lines[] — safety net for when the model
+    // ignores the prompt rule and drops a duplicate date string into lines[].
+    if (Array.isArray(extractedData.education)) {
+      extractedData.education = extractedData.education.map(edu => {
+        if (!Array.isArray(edu.lines) || edu.lines.length === 0) return edu
+        if (!edu.graduationDate) return edu
+
+        const gradDate = edu.graduationDate
+        const [yearStr, monthStr] = gradDate.split('-')
+        const year = yearStr
+        const monthNum = parseInt(monthStr, 10)
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+        const monthName = (monthNum >= 1 && monthNum <= 12) ? monthNames[monthNum - 1] : null
+
+        const filteredLines = edu.lines.filter(line => {
+          if (typeof line !== 'string') return true
+          const lower = line.toLowerCase()
+
+          // Match "12/2027", "2027", "12-2027", "2027-12"
+          if (lower.includes(year)) {
+            // Catch "expected May 2024", "graduating December 2027", "anticipated 2025", etc.
+            if (/\b(expected|anticipated|graduating|graduation|projected)\b/.test(lower)) {
+              return false
+            }
+            // Catch bare "December 2027" or "12/2027"
+            if (monthName && lower.includes(monthName.toLowerCase())) {
+              return false
+            }
+            // Catch lines that are essentially just the date
+            const stripped = line.replace(/[^a-z0-9]/gi, '')
+            if (stripped.length < 12 && stripped.includes(year)) {
+              return false
+            }
+          }
+
+          return true
+        })
+
+        return { ...edu, lines: filteredLines }
+      })
+    }
+
     // Ensure section order exists (backwards compatibility)
     if (!extractedData.sectionOrder) {
       const sections = []
