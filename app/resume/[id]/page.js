@@ -1228,16 +1228,18 @@ if (data.ai_analysis) {
               <button className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 flex items-center gap-1">
                 🔍 <span>{zoom}%</span>
               </button>
-              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/zoom:block bg-white border border-gray-200 rounded shadow-lg py-1 min-w-[80px]">
-                {[75, 100, 125, 150].map(z => (
-                  <button
-                    key={z}
-                    onClick={() => setZoom(z)}
-                    className={`w-full text-left px-3 py-1 text-xs hover:bg-purple-50 ${zoom === z ? 'text-purple-600 font-semibold' : 'text-gray-700'}`}
-                  >
-                    {z}%
-                  </button>
-                ))}
+              <div className="absolute left-0 top-full pt-1 z-50 hidden group-hover/zoom:block min-w-[80px]">
+                <div className="bg-white border border-gray-200 rounded shadow-lg py-1">
+                  {[75, 100, 125, 150].map(z => (
+                    <button
+                      key={z}
+                      onClick={() => setZoom(z)}
+                      className={`w-full text-left px-3 py-1 text-xs hover:bg-purple-50 ${zoom === z ? 'text-purple-600 font-semibold' : 'text-gray-700'}`}
+                    >
+                      {z}%
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
