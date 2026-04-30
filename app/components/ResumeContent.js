@@ -558,7 +558,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         <div className={sectionClass} key="experience">
           {sectionHeader('experience')}
           {expGroups.map((group, groupIndex) => {
-            // Single-role group: render exactly as before (title on top, company below).
+            // Single-role group: company on top (caps non-bold) + location (mixed case), pipe-separated; title underneath (bold).
             if (group.roles.length === 1) {
               const job = group.roles[0]
               const jobIndex = job._originalIndex
@@ -566,7 +566,48 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 <div key={`group-${groupIndex}`} className={`mb-4 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
                   <div className="flex justify-between items-start mb-1">
                     <div className="flex items-center gap-1 flex-1">
-                      <h3 className={`font-semibold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
+                      {selectedTemplate === 'sharp' || selectedTemplate === 'edge' ? (
+                        <p className="text-sm text-gray-800 flex-1" style={ts.company || {}}>
+                          <span style={{ textTransform: 'uppercase' }}>{job.company || 'Company'}</span>
+                          {job.location && <span> | {job.location}</span>}
+                        </p>
+                      ) : (
+                        <p
+                          className={`text-sm text-gray-800 flex-1 ${!readOnly && 'cursor-text'}`}
+                          style={ts.company || {}}
+                        >
+                          <span
+                            style={{ textTransform: 'uppercase' }}
+                            contentEditable={!readOnly}
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              if (isUndoingRef.current) return
+                              updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent.trim())
+                            }}
+                          >{job.company || 'Company'}</span>
+                          {(job.location || !readOnly) && (
+                            <>
+                              <span> | </span>
+                              <span
+                                contentEditable={!readOnly}
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  if (isUndoingRef.current) return
+                                  updateNestedField(`experience[${jobIndex}].location`, e.currentTarget.textContent.trim())
+                                }}
+                              >{job.location || 'Location'}</span>
+                            </>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    {selectedTemplate !== 'sharp' && selectedTemplate !== 'edge' && (
+                      <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-1 flex-1">
+                      <h3 className={`font-bold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
                       {entryArrows('experience', jobIndex, resumeData.experience.length)}
                       {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
                         <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
@@ -581,23 +622,13 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                         </div>
                       ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete job">🗑️</button>)}
                     </div>
-                    {selectedTemplate !== 'sharp' && selectedTemplate !== 'edge' && (
-                      <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
-                    )}
                   </div>
-                  {selectedTemplate === 'sharp' || selectedTemplate === 'edge' ? (
-                    <p className={`text-sm text-gray-600 mb-2`} style={ts.company || {}}>
-                      {[job.company, job.location, `${formatDate(job.startDate)} - ${job.current ? 'Present' : formatDate(job.endDate)}`].filter(Boolean).join(' | ')}
-                    </p>
-                  ) : (
-                    <p className={`text-sm font-medium text-gray-700 mb-2 ${!readOnly && 'cursor-text'}`} style={ts.company || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent)}>{job.company}</p>
-                  )}
                   {renderRoleBody(job, jobIndex)}
                 </div>
               )
             }
 
-            // Multi-role group: shared company header on top, roles indented underneath.
+            // Multi-role group: shared company header on top (caps non-bold) + location (mixed case), roles indented (title bold).
             const headerRole = group.roles[0] // most recent — used for shared location editing
             const headerJobIndex = headerRole._originalIndex
             const groupRangeText = `${formatDate(group.startDate)} - ${group.current ? 'Present' : formatDate(group.endDate)}`
@@ -606,31 +637,38 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 {/* Shared company header */}
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
-                    <h3
-                      className={`font-semibold ${!readOnly && 'cursor-text'}`}
-                      style={ts.jobTitle || {}}
-                      contentEditable={!readOnly}
-                      suppressContentEditableWarning
-                      onBlur={(e) => {
-                        if (isUndoingRef.current) return
-                        const newName = e.currentTarget.textContent
-                        const newData = JSON.parse(JSON.stringify(resumeData))
-                        // Update company name on every role in this group so they stay grouped.
-                        group.roles.forEach(r => {
-                          newData.experience[r._originalIndex].company = newName
-                        })
-                        onUpdate(newData)
-                      }}
-                    >{group.company}</h3>
-                    {(group.location || !readOnly) && (
-                      <p
-                        className={`text-sm text-gray-600 ${!readOnly && 'cursor-text'}`}
-                        style={ts.company || {}}
+                    <p
+                      className={`text-sm text-gray-800 ${!readOnly && 'cursor-text'}`}
+                      style={ts.company || {}}
+                    >
+                      <span
+                        style={{ textTransform: 'uppercase' }}
                         contentEditable={!readOnly}
                         suppressContentEditableWarning
-                        onBlur={(e) => updateNestedField(`experience[${headerJobIndex}].location`, e.currentTarget.textContent)}
-                      >{group.location}</p>
-                    )}
+                        onBlur={(e) => {
+                          if (isUndoingRef.current) return
+                          const newName = e.currentTarget.textContent.trim()
+                          const newData = JSON.parse(JSON.stringify(resumeData))
+                          group.roles.forEach(r => {
+                            newData.experience[r._originalIndex].company = newName
+                          })
+                          onUpdate(newData)
+                        }}
+                      >{group.company || 'Company'}</span>
+                      {(group.location || !readOnly) && (
+                        <>
+                          <span> | </span>
+                          <span
+                            contentEditable={!readOnly}
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              if (isUndoingRef.current) return
+                              updateNestedField(`experience[${headerJobIndex}].location`, e.currentTarget.textContent.trim())
+                            }}
+                          >{group.location || 'Location'}</span>
+                        </>
+                      )}
+                    </p>
                   </div>
                   <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{groupRangeText}</span>
                 </div>
@@ -638,11 +676,13 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 <div className="pl-4 border-l-2 border-purple-100">
                   {group.roles.map((job, roleIdx) => {
                     const jobIndex = job._originalIndex
+                    const roleDateText = `${formatDate(job.startDate)} - ${job.current ? 'Present' : formatDate(job.endDate)}`
                     return (
                       <div key={`role-${jobIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
                         <div className="flex justify-between items-start mb-1">
-                          <div className="flex items-center gap-1 flex-1">
-                            <h4 className={`font-semibold italic ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
+                          <div className="flex items-center gap-1 flex-1 flex-wrap">
+                            <h4 className={`font-bold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
+                            <span className="text-sm text-gray-600 font-normal" style={ts.date || {}}>({roleDateText})</span>
                             {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
                               <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
                                 <span className="text-gray-600">Delete role?</span>
@@ -656,7 +696,6 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                               </div>
                             ) : <button onClick={() => setConfirmingDelete(`experience-entry-${jobIndex}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100 text-xs" title="Delete role">🗑️</button>)}
                           </div>
-                          <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
                         </div>
                         {renderRoleBody(job, jobIndex)}
                       </div>
@@ -673,63 +712,83 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     education: resumeData.education?.length > 0 ? (() => {
       const eduGroups = groupEducation(resumeData.education)
 
-      const renderDegreeBody = (edu, eduIndex) => (
-        <>
-          {(!readOnly || edu.degree || edu.field || edu.graduationDate || edu.degreeDisplay) && (
-            <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={ts.company || ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning
-            onBlur={(e) => {
-              const newData = JSON.parse(JSON.stringify(resumeData))
-              newData.education[eduIndex].degreeDisplay = e.currentTarget.textContent
-              onUpdate(newData)
-            }}
-            >{edu.degreeDisplay || [[edu.degree, edu.field].filter(Boolean).join(', '), edu.graduationDate ? formatDate(edu.graduationDate) : null].filter(Boolean).join(' | ')}</p>
-          )}
-          {edu.lines?.map((line, lineIndex) => (
-            <div key={lineIndex} className="flex items-start gap-2 group/line">
-              <p className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`education[${eduIndex}].lines[${lineIndex}]`, e.currentTarget.textContent)}>{line}</p>
-              {!readOnly && (
-                <div className="flex items-center gap-1 opacity-0 group-hover/line:opacity-100">
-                  <button onClick={() => {
-                    if (lineIndex === 0) return
-                    const newData = JSON.parse(JSON.stringify(resumeData))
-                    const lines = newData.education[eduIndex].lines
-                    const temp = lines[lineIndex]; lines[lineIndex] = lines[lineIndex-1]; lines[lineIndex-1] = temp
-                    onUpdate(newData)
-                  }} disabled={lineIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▲</button>
-                  <button onClick={() => {
-                    const newData = JSON.parse(JSON.stringify(resumeData))
-                    const lines = newData.education[eduIndex].lines
-                    if (lineIndex === lines.length - 1) return
-                    const temp = lines[lineIndex]; lines[lineIndex] = lines[lineIndex+1]; lines[lineIndex+1] = temp
-                    onUpdate(newData)
-                  }} disabled={lineIndex === edu.lines.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▼</button>
-                  {confirmingDelete === `eduline-${eduIndex}-${lineIndex}` ? (
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="text-gray-600">Delete?</span>
-                      <button onClick={() => { deleteEducationLine(eduIndex, lineIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
-                    </div>
-                  ) : <button onClick={() => setConfirmingDelete(`eduline-${eduIndex}-${lineIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete line">🗑️</button>}
-                </div>
-              )}
-            </div>
-          ))}
-          {!readOnly && <button onClick={() => addEducationLine(eduIndex)} className="text-purple-600 text-xs mt-1 opacity-0 group-hover/entry:opacity-100">+ Add Line</button>}
-        </>
-      )
+      const renderDegreeBody = (edu, eduIndex) => {
+        const linesNonEmpty = (edu.lines || []).filter(l => l && l.trim() !== '')
+        return (
+          <>
+            {(!readOnly || edu.degree || edu.field || edu.graduationDate || edu.degreeDisplay) && (() => {
+              const degreeText = edu.degreeDisplay || [edu.degree, edu.field].filter(Boolean).join(', ')
+              const dateText = edu.graduationDate ? formatDate(edu.graduationDate) : ''
+              return (
+                <p className={`text-sm mb-1`} style={ts.jobTitle || {}}>
+                  <span
+                    className={`font-bold ${!readOnly && 'cursor-text'}`}
+                    contentEditable={!readOnly}
+                    suppressContentEditableWarning
+                    onBlur={(e) => {
+                      if (isUndoingRef.current) return
+                      const newData = JSON.parse(JSON.stringify(resumeData))
+                      newData.education[eduIndex].degreeDisplay = e.currentTarget.textContent.trim()
+                      onUpdate(newData)
+                    }}
+                  >{degreeText || (!readOnly ? 'Degree' : '')}</span>
+                  {(dateText || !readOnly) && (
+                    <>
+                      <span className="font-normal"> | </span>
+                      <span
+                        className={`font-normal ${!readOnly && 'cursor-text'}`}
+                        contentEditable={!readOnly}
+                        suppressContentEditableWarning
+                        onBlur={(e) => {
+                          if (isUndoingRef.current) return
+                          updateNestedField(`education[${eduIndex}].graduationDate`, e.currentTarget.textContent.trim())
+                        }}
+                      >{dateText || 'Date'}</span>
+                    </>
+                  )}
+                </p>
+              )
+            })()}
+            {linesNonEmpty.length > 0 && (
+              <p
+                className={`text-sm ${!readOnly && 'cursor-text'}`}
+                style={ts.body || {}}
+                contentEditable={!readOnly}
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  if (isUndoingRef.current) return
+                  const newLines = e.currentTarget.textContent.split('|').map(s => s.trim()).filter(Boolean)
+                  const newData = JSON.parse(JSON.stringify(resumeData))
+                  newData.education[eduIndex].lines = newLines
+                  onUpdate(newData)
+                }}
+              >{linesNonEmpty.join(' | ')}</p>
+            )}
+            {!readOnly && linesNonEmpty.length === 0 && (
+              <button onClick={() => addEducationLine(eduIndex)} className="text-purple-600 text-xs mt-1 opacity-50 hover:opacity-100">+ Add Line</button>
+            )}
+          </>
+        )
+      }
 
       return (
         <div className="mb-6 group" key="education">
           {sectionHeader('education')}
           {eduGroups.map((group, groupIndex) => {
-            // Single-degree group: render exactly as before.
+            // Single-degree group: school on top (all-caps, non-bold), degree underneath (bold).
             if (group.degrees.length === 1) {
               const edu = group.degrees[0]
               const eduIndex = edu._originalIndex
               return (
                 <div key={`edu-group-${groupIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <h3 className={`font-semibold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}>{edu.school}</h3>
+                    <p
+                      className={`text-sm uppercase text-gray-800 flex-1 ${!readOnly && 'cursor-text'}`}
+                      style={ts.company || {}}
+                      contentEditable={!readOnly}
+                      suppressContentEditableWarning
+                      onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}
+                    >{edu.school}</p>
                     {entryArrows('education', eduIndex, resumeData.education.length)}
                     {!readOnly && (confirmingDelete === `education-${eduIndex}` ? (
                       <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
@@ -749,12 +808,12 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               )
             }
 
-            // Multi-degree group: shared school header on top, degrees indented underneath.
+            // Multi-degree group: shared school header (all-caps, non-bold) on top, degrees indented (degree text bold inside body).
             return (
               <div key={`edu-group-${groupIndex}`} className={`mb-3 p-2 rounded ${!readOnly && 'hover:bg-purple-50/50'}`}>
-                <h3
-                  className={`font-semibold mb-2 ${!readOnly && 'cursor-text'}`}
-                  style={ts.jobTitle || {}}
+                <p
+                  className={`text-sm uppercase text-gray-800 mb-2 ${!readOnly && 'cursor-text'}`}
+                  style={ts.company || {}}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
                   onBlur={(e) => {
@@ -766,7 +825,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                     })
                     onUpdate(newData)
                   }}
-                >{group.school}</h3>
+                >{group.school}</p>
                 <div className="pl-4 border-l-2 border-purple-100">
                   {group.degrees.map((edu) => {
                     const eduIndex = edu._originalIndex
