@@ -248,6 +248,7 @@ const handleDownload = async () => {
   accentColor: accentColor,
           spacing: selectedSpacing,
           action: 'download',
+        resumeId: resume.id,
         versionId: null,
         isJobVersion: false,
         userId: user.id
@@ -1102,7 +1103,7 @@ if (data.ai_analysis) {
                       const response = await fetch('/api/generate-pdf', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview', userId: user.id })
+                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
                       })
                      if (response.ok) {
                         const blob = await response.blob()
