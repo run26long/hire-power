@@ -597,7 +597,7 @@ export default function JobTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
               <span className="text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
             </div>
-            <p className="text-sm text-gray-500 mb-2">Tap a board to switch views. Open a card to move it to a different board.</p>
+            <p className="text-3xl text-red-600 mb-2 font-bold">Tap a board to switch views. Open a card to move it to a different board.</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowArchiveModal(true)}
