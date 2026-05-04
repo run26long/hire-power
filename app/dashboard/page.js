@@ -248,6 +248,13 @@ function DashboardContent() {
           .hp-card-title { grid-column: 1 / -1 !important; grid-row: 2 !important; margin-bottom: 0 !important; padding-top: 4px; padding-bottom: 8px; }
           .hp-card > p { grid-column: 1 / -1 !important; grid-row: 3 !important; margin-top: 0 !important; }
           .hp-card > div:last-of-type { grid-column: 1 / -1 !important; grid-row: 4 !important; }
+          /* Mobile font-size bumps — desktop unaffected (rules only apply <=768px) */
+          .hp-welcome { font-size: 12px !important; }
+          .hp-quote-p2 { font-size: 16px !important; }
+          .hp-card > span { font-size: 12px !important; }
+          .hp-card > p { font-size: 16px !important; }
+          .hp-card > div:last-of-type > span:first-child { font-size: 14px !important; }
+          .hp-card > div:last-of-type > span:last-child { font-size: 16px !important; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
           .hp-cards-grid { grid-template-columns: repeat(2,1fr) !important; }
