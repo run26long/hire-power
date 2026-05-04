@@ -595,19 +595,19 @@ export default function JobTrackerPage() {
           <div className="md:hidden px-6 pt-4 pb-2 flex-shrink-0">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
-              <span className="text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
+              <span className="text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
             </div>
-            <p className="text-xs text-gray-500 mb-2">Tap a board to switch views. Open a card to move it to a different board.</p>
+            <p className="text-sm text-gray-500 mb-2">Tap a board to switch views. Open a card to move it to a different board.</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowArchiveModal(true)}
-                className="text-xs font-semibold py-1.5 px-3 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                className="text-sm font-semibold py-1.5 px-3 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors whitespace-nowrap"
               >
                 📁 Archive ({archivedCards.length})
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="text-white text-xs font-bold py-1.5 px-3 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+                className="text-white text-sm font-bold py-1.5 px-3 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
                 style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
               >
                 + Add Job
@@ -621,7 +621,7 @@ export default function JobTrackerPage() {
               <button
                 key={col.id}
                 onClick={() => setMobileColumn(col.id)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
                 style={{
                   background: mobileColumn === col.id ? col.color : 'transparent',
                   color: mobileColumn === col.id ? 'white' : col.color,
@@ -657,8 +657,8 @@ export default function JobTrackerPage() {
                         borderBottom: 'none',
                       }}
                     >
-                      <span className="text-xs" style={{ fontWeight: 800, color: col.color }}>{col.label}</span>
-                      <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: col.border, color: col.color }}>{cards.length}</span>
+                      <span className="text-sm md:text-xs" style={{ fontWeight: 800, color: col.color }}>{col.label}</span>
+                      <span className="text-xs md:text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: col.border, color: col.color }}>{cards.length}</span>
                     </div>
 
                     {/* Column body */}
@@ -675,7 +675,7 @@ export default function JobTrackerPage() {
                     >
                       {cards.length === 0 && (
                         <div className="flex-1 flex items-center justify-center">
-                          <p className="text-[10px] text-gray-300 font-medium">
+                          <p className="text-xs md:text-[10px] text-gray-300 font-medium">
                             {isOver ? '↓ Drop here' : 'No cards'}
                           </p>
                         </div>
@@ -712,8 +712,8 @@ export default function JobTrackerPage() {
                         >
                           <div className="flex items-start justify-between gap-1">
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
-                              <p className="text-[11px] text-gray-500">{card.company}</p>
+                              <p className="text-sm md:text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
+                              <p className="text-xs md:text-[11px] text-gray-500">{card.company}</p>
                             </div>
                             {card.match_score && (
                               <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
@@ -739,19 +739,19 @@ export default function JobTrackerPage() {
 
                           <div className="mt-auto pt-1 flex flex-wrap gap-1">
                             {card.resumes && (
-                              <span className="text-[9px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded-md font-semibold">
+                              <span className="text-[11px] md:text-[9px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded-md font-semibold">
                                 Resume linked
                               </span>
                             )}
 
                             {card.interview_date && (
-                              <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded-md font-semibold">
+                              <span className="text-[11px] md:text-[9px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded-md font-semibold">
                                 📅 {new Date(card.interview_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                               </span>
                             )}
 
                             {card.notes && (
-                              <p className="text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">{card.notes}</p>
+                              <p className="text-xs md:text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">{card.notes}</p>
                             )}
                           </div>
                         </div>
