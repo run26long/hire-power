@@ -359,7 +359,7 @@ export default function Profile() {
                     </label>
                   </div>
                   {/* Fields */}
-                  <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="hp-name-email-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
                       <label style={labelSm}>Display Name</label>
                       <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputSm} placeholder="Your name" />
@@ -554,6 +554,7 @@ export default function Profile() {
           .hp-profile-inner { height: auto !important; overflow: visible !important; }
           .hp-row { grid-template-columns: 1fr !important; }
           .hp-career-grid { grid-template-columns: 1fr !important; }
+          .hp-name-email-grid { grid-template-columns: 1fr !important; }
           .hp-mobile-top { display: block !important; }
 
           /* Mobile font-size bumps — desktop unaffected (rules only apply <=768px) */
