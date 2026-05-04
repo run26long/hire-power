@@ -699,11 +699,11 @@ export default function CareerVaultPage() {
                       {currentJobEntry && <StatusBadge status="hired" />}
                     </div>
                     <div className="flex items-center gap-2">
-                      {!currentJobEntry && <span className="text-[10px] text-gray-400 font-medium">Not set</span>}
-                      <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
+                      {!currentJobEntry && <span className="text-xs md:text-[10px] text-gray-400 font-medium">Not set</span>}
+                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-4">
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">
                     The saved job description and any accomplishments you log here attach to this job entry to create your next resume.
                   </p>
 
@@ -738,22 +738,22 @@ export default function CareerVaultPage() {
                             <span className="text-xl">🏆</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900 truncate">{currentJobEntry.title}</p>
-                            <p className="text-xs text-gray-500 truncate">{currentJobEntry.company}</p>
+                            <p className="text-base md:text-sm font-bold text-gray-900 truncate">{currentJobEntry.title}</p>
+                            <p className="text-sm md:text-xs text-gray-500 truncate">{currentJobEntry.company}</p>
                           </div>
-                          <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors flex-shrink-0">→</span>
+                          <span className="text-gray-300 group-hover:text-purple-400 text-sm md:text-xs transition-colors flex-shrink-0">→</span>
                         </button>
 
                         {/* Tenure + Wins */}
                         <div className="flex gap-3 items-stretch flex-1">
                           {/* Tenure card */}
                           <div className="bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center text-center flex-1">
-                            {sinceStr && (
+                           {sinceStr && (
                               <>
-                                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider leading-none">Since</p>
-                                <p className="text-sm font-bold text-gray-700 mt-1 whitespace-nowrap">{sinceStr}</p>
+                                <p className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wider leading-none">Since</p>
+                                <p className="text-base md:text-sm font-bold text-gray-700 mt-1 whitespace-nowrap">{sinceStr}</p>
                                 {tenureStr && tenureStr !== 'Just started' && (
-                                  <p className="text-[10px] text-gray-400 mt-1 whitespace-nowrap">{tenureStr} in role</p>
+                                  <p className="text-xs md:text-[10px] text-gray-400 mt-1 whitespace-nowrap">{tenureStr} in role</p>
                                 )}
                               </>
                             )}
@@ -762,7 +762,7 @@ export default function CareerVaultPage() {
                           {/* Wins card */}
                           <div className="bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center text-center flex-1">
                             <p className="text-3xl font-bold text-purple-600 leading-none">{accomplishments.length}</p>
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Wins Logged</p>
+                            <p className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide mt-1">Wins Logged</p>
                           </div>
                         </div>
 
@@ -770,12 +770,12 @@ export default function CareerVaultPage() {
                     );
                   })() : (
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50">
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-sm md:text-xs text-gray-500 mb-2">
                         No current job set. Mark a job card as Hired and it appears here automatically.
                       </p>
                       <button
                         onClick={() => setShowSetJobModal(true)}
-                        className="text-xs text-purple-600 font-semibold hover:text-purple-700"
+                        className="text-sm md:text-xs text-purple-600 font-semibold hover:text-purple-700"
                       >
                         Set current job manually →
                       </button>
@@ -788,16 +788,16 @@ export default function CareerVaultPage() {
                   <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
-                        <span className="text-xs text-gray-400">{accomplishments.length} logged</span>
+                        <span className="text-sm md:text-xs text-gray-400">{accomplishments.length} logged</span>
                       </div>
                       <button
                         onClick={() => setShowLogModal(true)}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap"
+                        className="text-sm md:text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap"
                       >
                         + Log a Win
                       </button>
                     </div>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-sm md:text-xs text-gray-500 mb-2">
                     Log wins as they happen: promotions, projects, metrics, skills, anything worth remembering.
                   </p>
 
@@ -813,14 +813,14 @@ export default function CareerVaultPage() {
                         >
                           <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
+                            <p className="text-sm md:text-xs text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
                           </div>
                         </div>
                       ))}
                       {accomplishments.length > 4 && (
                         <button
                           onClick={() => setShowOlderWinsModal(true)}
-                          className="w-full text-center pt-4 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                          className="w-full text-center pt-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                         >
                           See {accomplishments.length - 4} more win{accomplishments.length - 4 > 1 ? 's' : ''} →
                         </button>
@@ -831,16 +831,16 @@ export default function CareerVaultPage() {
                       <div className="text-4xl mb-2">🏆</div>
                       {!currentJobEntry ? (
                         <>
-                          <p className="text-sm font-semibold text-gray-600 mb-1">No current job set</p>
-                          <p className="text-xs text-gray-400 text-center leading-relaxed">
+                          <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">No current job set</p>
+                          <p className="text-sm md:text-xs text-gray-400 text-center leading-relaxed">
                             Mark a job as Hired and wins you log will attach to that role automatically.
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
-                          <p className="text-xs text-gray-400 text-center leading-relaxed">
-                            The next time something good happens at work, log it here.<br />
+                          <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
+                          <p className="text-sm md:text-xs text-gray-400 text-center leading-relaxed">
+                            The next time something good happens, log it here.<br />
                             Takes 30 seconds. Saves hours later.
                           </p>
                         </>
@@ -857,7 +857,7 @@ export default function CareerVaultPage() {
                   {/* Stats + Quick Actions combined */}
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div className="mb-3">
-                      <h2 className="text-sm font-semibold text-gray-900">Your Career Vault</h2>
+                      <h2 className="text-base md:text-sm font-semibold text-gray-900">Your Career Vault</h2>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {[
@@ -872,7 +872,7 @@ export default function CareerVaultPage() {
                         >
                           <div className="text-base">{item.icon}</div>
                           <div className="text-lg font-bold text-gray-700">{item.value}</div>
-                          <div className="text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
+                          <div className="text-[11px] md:text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
                         </div>
                       ))}
                     </div>
@@ -892,34 +892,34 @@ export default function CareerVaultPage() {
                         }`}>
                         <span className="text-sm">📋</span>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-800">Prepare for My Review</p>
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-sm md:text-xs font-semibold text-gray-800">Prepare for My Review</p>
+                          <p className="text-xs md:text-[10px] text-gray-400">
                             {accomplishments.length > 0
                               ? `Turn your ${accomplishments.length} win${accomplishments.length !== 1 ? 's' : ''} into a review document`
                               : 'Log wins to unlock your review document'}
                           </p>
                         </div>
                         {accomplishments.length > 0 && (
-                          <span className="text-purple-400 group-hover:text-purple-600 text-xs transition-colors">→</span>
+                          <span className="text-purple-400 group-hover:text-purple-600 text-sm md:text-xs transition-colors">→</span>
                         )}
                       </button>
                       <button onClick={() => router.push('/resume-coach')}
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">📄</span>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-800">Resume Coach</p>
-                          <p className="text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
+                          <p className="text-sm md:text-xs font-semibold text-gray-800">Resume Coach</p>
+                          <p className="text-xs md:text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
                         </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-sm md:text-xs transition-colors">→</span>
                       </button>
                       <button onClick={() => setShowArchiveModal(true)}
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-sm">📁</span>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-800">View Archive</p>
-                          <p className="text-[10px] text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
+                          <p className="text-sm md:text-xs font-semibold text-gray-800">View Archive</p>
+                          <p className="text-xs md:text-[10px] text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
                         </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-xs transition-colors">→</span>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-sm md:text-xs transition-colors">→</span>
                       </button>
                     </div>
                   </div>
@@ -928,16 +928,16 @@ export default function CareerVaultPage() {
                   <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-3 pb-6">
                    {isPro ? (
                       <>
-                        <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
-                        <p className="text-xs text-gray-500 mb-1.5">Update your resume in minutes using everything you've logged.</p>
+                        <h2 className="text-base md:text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
+                        <p className="text-sm md:text-xs text-gray-500 mb-1.5">Update your resume in minutes using your logged wins.</p>
                         <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                          <p className="text-xs text-gray-700 leading-snug">
+                          <p className="text-sm md:text-xs text-gray-700 leading-snug">
                             You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Your coach remembers all of it.
                           </p>
                         </div>
                         <button
                           onClick={() => setShowNewSearchModal(true)}
-                          className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold hover:opacity-90 transition-opacity"
+                          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold hover:opacity-90 transition-opacity"
                           style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                         >
                           Start new search →
@@ -945,16 +945,16 @@ export default function CareerVaultPage() {
                       </>
                     ) : (
                       <>
-                        <h2 className="text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
-                        <p className="text-xs text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
+                        <h2 className="text-base md:text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
+                        <p className="text-sm md:text-xs text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
                         <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                          <p className="text-xs text-gray-700 leading-snug">
+                          <p className="text-sm md:text-xs text-gray-700 leading-snug">
                             You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Upgrade so your coach can apply them to your resume.
                           </p>
                         </div>
                        <button
                           onClick={() => setShowUpgradeModal(true)}
-                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-xs font-semibold hover:bg-purple-700 transition-colors"
+                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-sm md:text-xs font-semibold hover:bg-purple-700 transition-colors"
                         >
                           Upgrade to Pro — $29.99/mo
                         </button>
