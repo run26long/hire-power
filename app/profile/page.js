@@ -363,7 +363,7 @@ export default function Profile() {
                     <div>
                       <label style={labelSm}>Display Name</label>
                       <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputSm} placeholder="Your name" />
-                      <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>How we'll address you in coaching</p>
+                      <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
                     </div>
                     <div>
                       <label style={labelSm}>Email</label>
@@ -555,6 +555,29 @@ export default function Profile() {
           .hp-row { grid-template-columns: 1fr !important; }
           .hp-career-grid { grid-template-columns: 1fr !important; }
           .hp-mobile-top { display: block !important; }
+
+          /* Mobile font-size bumps — desktop unaffected (rules only apply <=768px) */
+          /* Mobile top bar descriptor */
+          .hp-mobile-top p { font-size: 16px !important; }
+          /* Card eyebrow titles (PERSONAL INFORMATION, PLAN, etc.) */
+          .hp-profile-inner span[style*="text-transform: uppercase"][style*="letter-spacing"] { font-size: 12px !important; }
+          /* Field labels and small hints (DISPLAY NAME, "How we'll address you...", etc.) */
+          .hp-profile-inner label { font-size: 12px !important; }
+          .hp-profile-inner p[style*="font-size: 10px"],
+          .hp-profile-inner p[style*="fontSize: 10"] { font-size: 12px !important; }
+          /* Field values, plan tier label, body copy */
+          .hp-profile-inner p[style*="font-size: 11px"],
+          .hp-profile-inner p[style*="fontSize: 11"] { font-size: 13px !important; }
+          .hp-profile-inner p[style*="font-size: 13px"],
+          .hp-profile-inner p[style*="fontSize: 13"] { font-size: 16px !important; }
+          /* Inputs — 16px also prevents iOS auto-zoom on focus */
+          .hp-profile-inner input[type="text"],
+          .hp-profile-inner input[type="email"] { font-size: 16px !important; }
+          /* Buttons */
+          .hp-profile-inner button { font-size: 13px !important; }
+          /* "Saved!" inline confirmation */
+          .hp-profile-inner span[style*="color: rgb(22, 163, 74)"],
+          .hp-profile-inner span[style*="#16a34a"] { font-size: 13px !important; }
         }
         @media (min-width: 769px) {
           .hp-mobile-top { display: none !important; }
