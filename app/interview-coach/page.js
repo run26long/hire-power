@@ -147,11 +147,11 @@ export default function MyInterviewsPage() {
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Practices</h2>
                     <div className="flex items-center gap-2">
-                      <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
-                      <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Coming Soon</span>
+                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
+                      <span className="text-xs md:text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Coming Soon</span>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-5">Your saved practice sessions will appear here, each tied to a specific job.</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-5">Your saved practice sessions will appear here, each tied to a specific job.</p>
 
                   {/* New Practice Button */}
                  <button
@@ -164,16 +164,16 @@ export default function MyInterviewsPage() {
                       </svg>
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-semibold text-gray-900">New Interview Practice</div>
-                      <div className="text-xs text-gray-500">Choose a job-specific resume or start from scratch</div>
+                      <div className="text-base md:text-sm font-semibold text-gray-900">New Interview Practice</div>
+                      <div className="text-sm md:text-xs text-gray-500">Choose a job-specific resume or start from scratch</div>
                     </div>
                   </button>
 
                   {/* Empty State */}
                   <div className="text-center py-4 border border-dashed border-gray-200 rounded-lg bg-gray-50">
                     <div className="text-3xl mb-1">🎤</div>
-                    <p className="text-sm font-semibold text-gray-700 mb-1">Your practice sessions will live here</p>
-                    <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
+                    <p className="text-base md:text-sm font-semibold text-gray-700 mb-1">Your practice sessions will live here</p>
+                    <p className="text-sm md:text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
                       Each practice is tied to a specific job, with a level badge, score history, and coaching notes so you can track improvement over time.
                     </p>
                     <div className="flex items-center justify-center gap-3 mt-3">
@@ -184,7 +184,7 @@ export default function MyInterviewsPage() {
                           }`}>
                             {level}
                           </div>
-                          <span className="text-[9px] text-gray-400">L{level}</span>
+                          <span className="text-[11px] md:text-[9px] text-gray-400">L{level}</span>
                         </div>
                       ))}
                     </div>
@@ -195,16 +195,16 @@ export default function MyInterviewsPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-base font-semibold text-gray-900">Question of the Day</h2>
-                    <span className="text-[10px] text-gray-400">Think it through — no pressure</span>
+                    <span className="text-xs md:text-[10px] text-gray-400">Think it through — no pressure</span>
                   </div>
                   <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded-r mt-3">
-                    <p className="text-sm text-gray-800 font-medium leading-relaxed">{questionOfTheDay}</p>
+                    <p className="text-base md:text-sm text-gray-800 font-medium leading-relaxed">{questionOfTheDay}</p>
                   </div>
                   <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-1.5">
-                    <p className="text-xs text-gray-500">Use the STAR method: Situation, Task, Action, Result</p>
+                    <p className="text-sm md:text-xs text-gray-500">Use the STAR method: Situation, Task, Action, Result</p>
                     <button
                       onClick={() => setShowComingSoonModal(true)}
-                     className="text-xs text-purple-600 font-semibold hover:text-purple-700 text-center md:text-right"
+                     className="text-sm md:text-xs text-purple-600 font-semibold hover:text-purple-700 text-center md:text-right"
                     >
                       Practice this question →
                     </button>
@@ -219,7 +219,7 @@ export default function MyInterviewsPage() {
                 {/* Practice Stats */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
-                  <p className="text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
                   {isPro ? (
                     <div className="grid grid-cols-2 gap-1.5">
@@ -231,8 +231,8 @@ export default function MyInterviewsPage() {
                       ].map((stat) => (
                         <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                           <div>
-                            <p className="text-xs font-medium text-gray-700">{stat.label}</p>
-                            <p className="text-[10px] text-gray-400">{stat.sub}</p>
+                            <p className="text-sm md:text-xs font-medium text-gray-700">{stat.label}</p>
+                            <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
                           </div>
                           <span className="text-2xl font-bold text-gray-300">{stat.val}</span>
                         </div>
@@ -247,18 +247,18 @@ export default function MyInterviewsPage() {
                         ].map((stat) => (
                           <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <div>
-                              <p className="text-xs font-medium text-gray-700">{stat.label}</p>
-                              <p className="text-[10px] text-gray-400">{stat.sub}</p>
+                              <p className="text-sm md:text-xs font-medium text-gray-700">{stat.label}</p>
+                              <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
                             </div>
                             <span className="text-2xl font-bold text-gray-300">{stat.val}</span>
                           </div>
                         ))}
                       </div>
                       <div className="flex items-center justify-between p-2.5 bg-purple-50 border border-purple-200 rounded-lg gap-3">
-                        <p className="text-xs text-purple-800 leading-snug">Unlock Power Analysis, job-specific sessions, and gamified progression.</p>
+                        <p className="text-sm md:text-xs text-purple-800 leading-snug">Unlock Power Analysis, job-specific sessions, and gamified progression.</p>
                         <button
                           onClick={() => setShowComingSoonModal(true)}
-                          className="text-white rounded-md py-1.5 px-3 text-[11px] font-semibold flex-shrink-0 transition-opacity hover:opacity-90"
+                          className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold flex-shrink-0 transition-opacity hover:opacity-90"
                           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                         >
                           Go Pro
@@ -267,12 +267,12 @@ export default function MyInterviewsPage() {
                     </div>
                   )}
 
-                  <p className="text-[10px] text-gray-400 text-center mt-2">Start practicing to see your stats here</p>
+                  <p className="text-xs md:text-[10px] text-gray-400 text-center mt-2">Start practicing to see your stats here</p>
                 </div>
 
                 {/* Practice out loud callout */}
                 <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-                  <p className="text-xs text-gray-700 leading-snug">
+                  <p className="text-sm md:text-xs text-gray-700 leading-snug">
                     Candidates who practice out loud - not just in their head - are significantly more confident and articulate in real interviews.
                   </p>
                 </div>
@@ -280,7 +280,7 @@ export default function MyInterviewsPage() {
                 {/* Interview Readiness Checklist */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
-                  <p className="text-xs text-gray-500 mb-4">Quick prep before any interview</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
                   <div className="space-y-1.5">
                     {[
@@ -390,7 +390,7 @@ function ChecklistItem({ label }) {
           </svg>
         )}
       </div>
-      <span className={`text-xs transition-colors ${checked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+      <span className={`text-sm md:text-xs transition-colors ${checked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
         {label}
       </span>
     </button>

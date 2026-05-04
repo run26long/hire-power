@@ -400,7 +400,7 @@ export default function MyCareerPage() {
                       <p className="text-sm md:text-xs text-gray-700 leading-snug">
                         {hasContext
                           ? 'Your career direction is set. Resume Coach and Interview Coach will use this to tailor everything to your goals.'
-                          : "Tell us where you're headed and we'll tailor everything to get you there. Five minutes here saves hours everywhere else."
+                          : "Tell us where you're headed so we can help you get there. The best 5-minute investment in your career."
                         }
                       </p>
                     </div>
