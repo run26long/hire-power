@@ -297,18 +297,18 @@ export default function MyCareerPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Career Profile</h2>
-                    <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Coach</span>
+                    <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Coach</span>
                   </div>
-                  <p className="text-xs text-gray-500 mb-4">The context that makes your resume and interviews sharper.</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">The context that makes your resume and interviews sharper.</p>
 
                   {/* Profile Grid */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
 
                     {/* Current Role */}
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Current Role</div>
+                      <div className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Current Role</div>
                       {hasContext && careerContext.current_role ? (
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-base md:text-sm font-semibold text-gray-900">
                           {careerContext.current_role}
                           {careerContext.current_company && (
                             <span className="text-gray-500 font-normal"> at {careerContext.current_company}</span>
@@ -318,28 +318,28 @@ export default function MyCareerPage() {
                         <p className="text-xl font-bold text-gray-200">--</p>
                       )}
                       {hasContext && careerContext.years_experience && (
-                        <p className="text-xs text-gray-500 mt-0.5">{careerContext.years_experience} years experience</p>
+                        <p className="text-sm md:text-xs text-gray-500 mt-0.5">{careerContext.years_experience} years experience</p>
                       )}
                     </div>
 
                     {/* Career Direction */}
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Career Direction</div>
+                      <div className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Career Direction</div>
                       {hasContext ? (
                         <div>
                           {careerContext.is_career_changer ? (
                             <div className="flex items-center gap-1.5">
                               <span className="text-purple-600">🔄</span>
-                              <p className="text-sm font-semibold text-gray-900">Career Transition</p>
+                              <p className="text-base md:text-sm font-semibold text-gray-900">Career Transition</p>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5">
                               <span className="text-green-600">↑</span>
-                              <p className="text-sm font-semibold text-gray-900">Same Field</p>
+                              <p className="text-base md:text-sm font-semibold text-gray-900">Same Field</p>
                             </div>
                           )}
                           {careerContext.is_career_changer && careerContext.previous_field && (
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-sm md:text-xs text-gray-500 mt-0.5">
                               {careerContext.previous_field} → {careerContext.target_industries?.[0] || 'New Field'}
                             </p>
                           )}
@@ -351,22 +351,22 @@ export default function MyCareerPage() {
 
                     {/* Target Roles */}
                     <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Target Roles</div>
+                      <div className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Target Roles</div>
                       {hasContext && careerContext.target_roles?.length > 0 ? (
-                        <p className="text-sm font-semibold text-gray-900">{careerContext.target_roles.join(', ')}</p>
+                        <p className="text-base md:text-sm font-semibold text-gray-900">{careerContext.target_roles.join(', ')}</p>
                       ) : (
                         <p className="text-xl font-bold text-gray-200">--</p>
                       )}
                       {hasContext && careerContext.target_industries?.length > 0 && (
-                        <p className="text-xs text-gray-500 mt-0.5">in {careerContext.target_industries.join(', ')}</p>
+                        <p className="text-sm md:text-xs text-gray-500 mt-0.5">in {careerContext.target_industries.join(', ')}</p>
                       )}
                     </div>
 
                    {/* Timeline */}
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Search Timeline</div>
+                      <div className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Search Timeline</div>
                       {hasContext && careerContext.timeline ? (
-                        <p className="text-sm font-semibold text-gray-900 capitalize">
+                        <p className="text-base md:text-sm font-semibold text-gray-900 capitalize">
                           {careerContext.timeline.replace(/_/g, ' ')}
                         </p>
                       ) : (
@@ -377,7 +377,7 @@ export default function MyCareerPage() {
 
                   {/* Hidden Skills */}
                   <div className="bg-gray-50 rounded-lg p-2 mb-3">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Hidden Skills Identified</div>
+                    <div className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Hidden Skills Identified</div>
                     {hasContext && careerContext.skills_not_on_resume?.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {careerContext.skills_not_on_resume.map((skill, i) => (
@@ -394,10 +394,10 @@ export default function MyCareerPage() {
                   {/* CTA Bar */}
                  <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                     <div className="flex-1">
-                      <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">
+                      <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">
                         {hasContext ? 'Career Profile Complete' : 'Get Started'}
                       </div>
-                      <p className="text-xs text-gray-700 leading-snug">
+                      <p className="text-sm md:text-xs text-gray-700 leading-snug">
                         {hasContext
                           ? 'Your career direction is set. Resume Coach and Interview Coach will use this to tailor everything to your goals.'
                           : "Tell us where you're headed and we'll tailor everything to get you there. Five minutes here saves hours everywhere else."
@@ -419,14 +419,14 @@ export default function MyCareerPage() {
                   </div>
 
                   {hasContext && careerContext.completed_at && (
-                    <p className="text-[10px] text-gray-400 text-right mt-2">
+                    <p className="text-xs md:text-[10px] text-gray-400 text-right mt-2">
                       Last updated {formatDate(careerContext.updated_at || careerContext.completed_at)}
                     </p>
                   )}
 
                   {/* How Your Profile Is Used */}
                   <div className="mt-5 pt-5 border-t border-gray-100">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">How Your Profile Is Used</div>
+                    <div className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-3">How Your Profile Is Used</div>
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
@@ -435,8 +435,8 @@ export default function MyCareerPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-gray-900">Resume Coach</p>
-                          <p className="text-xs text-gray-500 leading-snug">Your target roles and career direction shape which achievements we extract and how we frame your experience.</p>
+                          <p className="text-sm md:text-xs font-semibold text-gray-900">Resume Coach</p>
+                          <p className="text-sm md:text-xs text-gray-500 leading-snug">Your target roles and career direction shape which achievements we extract and how we frame your experience.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -446,8 +446,8 @@ export default function MyCareerPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-gray-900">Interview Coach</p>
-                          <p className="text-xs text-gray-500 leading-snug">Your goals and hidden skills inform your Power Analysis and the gaps we help you address before you walk in.</p>
+                          <p className="text-sm md:text-xs font-semibold text-gray-900">Interview Coach</p>
+                          <p className="text-sm md:text-xs text-gray-500 leading-snug">Your goals and hidden skills inform your Power Analysis and the gaps we help you address before you walk in.</p>
                         </div>
                       </div>
                       
@@ -462,7 +462,7 @@ export default function MyCareerPage() {
                 {/* Status Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <h2 className="text-lg font-semibold text-gray-900">Career Readiness</h2>
-                  <p className="text-xs text-gray-500 mb-4">How prepared is your career profile?</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">How prepared is your career profile?</p>
 
                   <div className="space-y-3">
                     {/* Career Conversation */}
@@ -473,10 +473,10 @@ export default function MyCareerPage() {
                         {hasContext ? '✓' : '○'}
                       </div>
                       <div>
-                        <p className={`text-sm font-medium ${hasContext ? 'text-gray-900' : 'text-gray-400'}`}>
+                        <p className={`text-base md:text-sm font-medium ${hasContext ? 'text-gray-900' : 'text-gray-400'}`}>
                           Career Conversation
                         </p>
-                        <p className="text-xs text-gray-400">Goals, direction, target roles</p>
+                        <p className="text-sm md:text-xs text-gray-400">Goals, direction, target roles</p>
                       </div>
                     </div>
 
@@ -488,10 +488,10 @@ export default function MyCareerPage() {
                         {existingResume ? '✓' : '○'}
                       </div>
                       <div>
-                        <p className={`text-sm font-medium ${existingResume ? 'text-gray-900' : 'text-gray-400'}`}>
+                        <p className={`text-base md:text-sm font-medium ${existingResume ? 'text-gray-900' : 'text-gray-400'}`}>
                           Resume on File
                         </p>
-                        <p className="text-xs text-gray-400">Core resume uploaded or built</p>
+                        <p className="text-sm md:text-xs text-gray-400">Core resume uploaded or built</p>
                       </div>
                     </div>
 
@@ -501,8 +501,8 @@ export default function MyCareerPage() {
                         ○
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-400">Interview Ready</p>
-                        <p className="text-xs text-gray-400">Interview Coach prep complete</p>
+                        <p className="text-base md:text-sm font-medium text-gray-400">Interview Ready</p>
+                        <p className="text-sm md:text-xs text-gray-400">Interview Coach prep complete</p>
                       </div>
                     </div>
                   </div>
@@ -511,32 +511,32 @@ export default function MyCareerPage() {
                 {/* Coming Soon Assessments */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Career Assessments</h2>
-                  <p className="text-xs text-gray-500 mb-4">Additional tools to guide your career development</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">Additional tools to guide your career development</p>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       <span className="text-lg">⭕</span>
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-gray-500">Aptitude Assessment</p>
-                        <p className="text-[10px] text-gray-400">Discover roles that match your strengths</p>
+                        <p className="text-sm md:text-xs font-medium text-gray-500">Aptitude Assessment</p>
+                        <p className="text-xs md:text-[10px] text-gray-400">Discover roles that match your strengths</p>
                       </div>
-                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
+                      <span className="text-xs md:text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
                     </div>
                     <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       <span className="text-lg">⭕</span>
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-gray-500">Career Exploration</p>
-                        <p className="text-[10px] text-gray-400">Map paths from your current experience</p>
+                        <p className="text-sm md:text-xs font-medium text-gray-500">Career Exploration</p>
+                        <p className="text-xs md:text-[10px] text-gray-400">Map paths from your current experience</p>
                       </div>
-                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
+                      <span className="text-xs md:text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
                     </div>
                     <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       <span className="text-lg">⭕</span>
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-gray-500">Skills Inventory</p>
-                        <p className="text-[10px] text-gray-400">Map your complete skillset including hidden strengths</p>
+                        <p className="text-sm md:text-xs font-medium text-gray-500">Skills Inventory</p>
+                        <p className="text-xs md:text-[10px] text-gray-400">Map your complete skillset including hidden strengths</p>
                       </div>
-                      <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
+                      <span className="text-xs md:text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
                     </div>
                   </div>
                 </div>
