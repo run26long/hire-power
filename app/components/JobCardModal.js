@@ -108,7 +108,7 @@ export default function JobCardModal({
               <div>
                 <h2 className="text-xl font-bold text-white leading-tight mb-1">{card.title}</h2>
                 <div className="flex items-center gap-2">
-                  <p className="text-purple-100 text-xs">{card.company}</p>
+                  <p className="text-purple-100 text-sm md:text-xs">{card.company}</p>
                   <StatusBadge status={card.application_status} />
                 </div>
               </div>
@@ -117,7 +117,7 @@ export default function JobCardModal({
 
           {/* Mobile Move to row */}
           <div className="md:hidden px-6 py-3 border-b border-gray-100 flex-shrink-0">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Move to</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Move to</p>
             <div className="flex gap-1.5 flex-wrap">
               {[
                 { id: 'prepping',           label: 'Prepping',  color: '#7c3aed' },
@@ -130,7 +130,7 @@ export default function JobCardModal({
                   key={col.id}
                   onClick={() => onMoveCard?.(card, col.id)}
                   disabled={card.application_status === col.id}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
                     border: `1px solid ${col.color}`,
                     color: card.application_status === col.id ? 'white' : col.color,
@@ -151,47 +151,47 @@ export default function JobCardModal({
               <div className="flex gap-2 flex-wrap">
                 {card.application_date && (
                   <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 text-center">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Applied</p>
-                    <p className="text-xs font-semibold text-gray-700">{formatDate(card.application_date)}</p>
+                    <p className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide">Applied</p>
+                    <p className="text-sm md:text-xs font-semibold text-gray-700">{formatDate(card.application_date)}</p>
                   </div>
                 )}
                 {card.follow_up_date && card.application_status === 'applied' && (
                   <div className="bg-blue-50 rounded-lg px-3 py-2 border border-blue-100 text-center">
-                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wide">Follow Up</p>
-                    <p className="text-xs font-semibold text-blue-700">{formatDate(card.follow_up_date)}</p>
+                    <p className="text-xs md:text-[10px] font-bold text-blue-400 uppercase tracking-wide">Follow Up</p>
+                    <p className="text-sm md:text-xs font-semibold text-blue-700">{formatDate(card.follow_up_date)}</p>
                   </div>
                 )}
                 {card.interview_date && (
                   <div className="bg-amber-50 rounded-lg px-3 py-2 border border-amber-100 text-center">
-                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Interview</p>
-                    <p className="text-xs font-semibold text-amber-800">{formatDate(card.interview_date)}</p>
+                    <p className="text-xs md:text-[10px] font-bold text-amber-500 uppercase tracking-wide">Interview</p>
+                    <p className="text-sm md:text-xs font-semibold text-amber-800">{formatDate(card.interview_date)}</p>
                   </div>
                 )}
                 {card.hired_at && (card.application_status === 'hired' || card.last_active_status === 'hired') && (
                   <div className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center">
-                    <p className="text-[10px] font-bold text-green-500 uppercase tracking-wide">Hired</p>
-                    <p className="text-xs font-semibold text-green-800">{formatDate(card.hired_at)}</p>
+                    <p className="text-xs md:text-[10px] font-bold text-green-500 uppercase tracking-wide">Hired</p>
+                    <p className="text-sm md:text-xs font-semibold text-green-800">{formatDate(card.hired_at)}</p>
                   </div>
                 )}
                 {interviewRounds.map((round, i) => (
                   <div key={round.id} className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center">
-                    <p className="text-[10px] font-bold text-green-500 uppercase tracking-wide">Interview {i + 1}</p>
-                    <p className="text-xs font-semibold text-green-800">
+                    <p className="text-xs md:text-[10px] font-bold text-green-500 uppercase tracking-wide">Interview {i + 1}</p>
+                    <p className="text-sm md:text-xs font-semibold text-green-800">
                       {new Date(round.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </p>
-                    <p className="text-[9px] text-green-600">{round.venue || ''}</p>
+                    <p className="text-[11px] md:text-[9px] text-green-600">{round.venue || ''}</p>
                   </div>
                 ))}
                 {card.resumes?.current_score && (
                   <div className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100 text-center">
-                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wide">Score</p>
-                    <p className="text-xs font-semibold text-purple-700">{card.resumes.current_score}</p>
+                    <p className="text-xs md:text-[10px] font-bold text-purple-400 uppercase tracking-wide">Score</p>
+                    <p className="text-sm md:text-xs font-semibold text-purple-700">{card.resumes.current_score}</p>
                   </div>
                 )}
                 {context === 'vault' && (
                   <div className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100 text-center">
-                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wide">Wins</p>
-                    <p className="text-xs font-semibold text-purple-700">{accomplishmentsCount}</p>
+                    <p className="text-xs md:text-[10px] font-bold text-purple-400 uppercase tracking-wide">Wins</p>
+                    <p className="text-sm md:text-xs font-semibold text-purple-700">{accomplishmentsCount}</p>
                   </div>
                 )}
               </div>
@@ -199,22 +199,22 @@ export default function JobCardModal({
 
             {/* Documents */}
             <div className="space-y-2">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Documents</p>
+              <p className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide">Documents</p>
 
               {card.resumes ? (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📄</span>
                     <div>
-                      <p className="text-xs font-semibold text-gray-800">
+                      <p className="text-sm md:text-xs font-semibold text-gray-800">
                         {card.resumes.resume_type === 'job_specific' ? 'Tailored Resume' : 'Resume'}
                       </p>
-                      <p className="text-[10px] text-gray-400">{card.resumes.display_name}</p>
+                      <p className="text-xs md:text-[10px] text-gray-400">{card.resumes.display_name}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => router.push(`/resume/${card.resume_id}`)}
-                    className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                    className="text-sm md:text-xs font-semibold text-purple-600 hover:text-purple-800"
                   >Open →</button>
                 </div>
               ) : context === 'tracker' ? (
@@ -233,10 +233,10 @@ export default function JobCardModal({
                       }}
                     >
                       <div>
-                        <p className="text-xs font-semibold text-purple-800">Create Tailored Resume</p>
-                        <p className="text-[10px] text-purple-500">Tailored to this job</p>
+                        <p className="text-sm md:text-xs font-semibold text-purple-800">Create Tailored Resume</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Tailored to this job</p>
                       </div>
-                      <span className="text-xs font-semibold text-purple-500">+ Create →</span>
+                      <span className="text-sm md:text-xs font-semibold text-purple-500">+ Create →</span>
                     </div>
                   ) : (
                     <div
@@ -244,10 +244,10 @@ export default function JobCardModal({
                       onClick={() => setShowUpgradeModal(true)}
                     >
                       <div>
-                        <p className="text-xs font-semibold text-purple-800">Tailor Resume for This Job</p>
-                        <p className="text-[10px] text-purple-500">Upgrade to Pro to unlock</p>
+                        <p className="text-sm md:text-xs font-semibold text-purple-800">Tailor Resume for This Job</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Upgrade to Pro to unlock</p>
                       </div>
-                      <span className="text-xs font-semibold text-purple-500">Pro →</span>
+                      <span className="text-sm md:text-xs font-semibold text-purple-500">Pro →</span>
                     </div>
                   )}
                 </>
@@ -257,11 +257,11 @@ export default function JobCardModal({
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">✉️</span>
-                    <p className="text-xs font-semibold text-gray-800">Cover Letter</p>
+                    <p className="text-sm md:text-xs font-semibold text-gray-800">Cover Letter</p>
                   </div>
                   <button
                     onClick={() => router.push(`/cover-letter/${card.cover_letter_id}`)}
-                    className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                    className="text-sm md:text-xs font-semibold text-purple-600 hover:text-purple-800"
                   >Open →</button>
                 </div>
               )}
@@ -270,11 +270,11 @@ export default function JobCardModal({
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">📋</span>
-                    <p className="text-xs font-semibold text-gray-800">Job Description</p>
+                    <p className="text-sm md:text-xs font-semibold text-gray-800">Job Description</p>
                   </div>
                   <button
                     onClick={() => setShowJdModal(true)}
-                    className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                    className="text-sm md:text-xs font-semibold text-purple-600 hover:text-purple-800"
                   >View →</button>
                 </div>
               )}
@@ -283,7 +283,7 @@ export default function JobCardModal({
             {/* Action prompts — tracker only, contextual to status */}
             {context === 'tracker' && card.application_status !== 'hired' && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Actions</p>
+                <p className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide">Actions</p>
 
                 {card.application_status === 'resume_in_progress' && !card.cover_letter_id && (
                   <div
@@ -300,10 +300,10 @@ export default function JobCardModal({
                     }}
                   >
                     <div>
-                      <p className="text-xs font-semibold text-purple-800">Build Cover Letter</p>
-                      <p className="text-[10px] text-purple-500">Tailored to this job</p>
+                      <p className="text-sm md:text-xs font-semibold text-purple-800">Build Cover Letter</p>
+                      <p className="text-xs md:text-[10px] text-purple-500">Tailored to this job</p>
                     </div>
-                    <span className="text-xs font-semibold text-purple-500">+ Create →</span>
+                    <span className="text-sm md:text-xs font-semibold text-purple-500">+ Create →</span>
                   </div>
                 )}
 
@@ -311,17 +311,17 @@ export default function JobCardModal({
                   <>
                     <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <div>
-                        <p className="text-xs font-semibold text-blue-800">Send Follow-Up</p>
-                        <p className="text-[10px] text-blue-500">Draft a follow-up email in one click</p>
+                        <p className="text-sm md:text-xs font-semibold text-blue-800">Send Follow-Up</p>
+                        <p className="text-xs md:text-[10px] text-blue-500">Draft a follow-up email in one click</p>
                       </div>
-                      <span className="text-[10px] text-blue-300 font-semibold">Coming soon</span>
+                      <span className="text-xs md:text-[10px] text-blue-300 font-semibold">Coming soon</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
                       <div>
-                        <p className="text-xs font-semibold text-purple-800">Prep for Interview</p>
-                        <p className="text-[10px] text-purple-500">Practice questions for this role</p>
+                        <p className="text-sm md:text-xs font-semibold text-purple-800">Prep for Interview</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Practice questions for this role</p>
                       </div>
-                      <span className="text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                      <span className="text-xs md:text-[10px] text-purple-300 font-semibold">Coming soon</span>
                     </div>
                   </>
                 )}
@@ -333,26 +333,26 @@ export default function JobCardModal({
                       onClick={() => setShowScheduleModal(true)}
                     >
                       <div>
-                        <p className="text-xs font-semibold text-amber-800">
+                        <p className="text-sm md:text-xs font-semibold text-amber-800">
                           {interviewRounds.length === 0 ? 'Schedule Interview' : `Schedule Interview ${interviewRounds.length + 1}`}
                         </p>
-                        <p className="text-[10px] text-amber-600">Date, time, and format</p>
+                        <p className="text-xs md:text-[10px] text-amber-600">Date, time, and format</p>
                       </div>
-                      <span className="text-xs font-semibold text-amber-500">+ Add →</span>
+                      <span className="text-sm md:text-xs font-semibold text-amber-500">+ Add →</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
                       <div>
-                        <p className="text-xs font-semibold text-purple-800">Practice Interview</p>
-                        <p className="text-[10px] text-purple-500">AI-spoken questions for this role</p>
+                        <p className="text-sm md:text-xs font-semibold text-purple-800">Practice Interview</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">AI-spoken questions for this role</p>
                       </div>
-                      <span className="text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                      <span className="text-xs md:text-[10px] text-purple-300 font-semibold">Coming soon</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
                       <div>
-                        <p className="text-xs font-semibold text-green-800">Write Thank-You Note</p>
-                        <p className="text-[10px] text-green-500">Send within 24 hours to stand out</p>
+                        <p className="text-sm md:text-xs font-semibold text-green-800">Write Thank-You Note</p>
+                        <p className="text-xs md:text-[10px] text-green-500">Send within 24 hours to stand out</p>
                       </div>
-                      <span className="text-[10px] text-green-300 font-semibold">Coming soon</span>
+                      <span className="text-xs md:text-[10px] text-green-300 font-semibold">Coming soon</span>
                     </div>
                   </>
                 )}
@@ -362,12 +362,12 @@ export default function JobCardModal({
             {/* Logged Wins (hired cards only) */}
             {cardWins.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Wins Logged ({cardWins.length})</p>
+                <p className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Wins Logged ({cardWins.length})</p>
                 <div className="space-y-1.5">
                   {cardWins.map(win => (
                     <div key={win.id} className="flex items-start gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
                       <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
-                      <p className="text-xs text-gray-700 leading-snug">{win.raw_description}</p>
+                      <p className="text-sm md:text-xs text-gray-700 leading-snug">{win.raw_description}</p>
                     </div>
                   ))}
                 </div>
@@ -376,13 +376,13 @@ export default function JobCardModal({
 
             {/* Notes */}
             <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Notes</p>
+              <p className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Notes</p>
               <textarea
                 value={notesValue}
                 onChange={e => { setNotesValue(e.target.value); setNotesSaved(false); }}
                 placeholder="Recruiter name, referral source, interview notes..."
                 rows={3}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-none"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-base md:text-xs text-gray-700 focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-none"
               />
               {notesChanged && (
                 <button
@@ -398,7 +398,7 @@ export default function JobCardModal({
                     }
                   }}
                   disabled={notesSaving}
-                  className="mt-1 text-[10px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                  className="mt-1 text-xs md:text-[10px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
                 >
                   {notesSaving ? 'Saving...' : notesSaved ? 'Saved ✓' : 'Save notes'}
                 </button>
@@ -411,7 +411,7 @@ export default function JobCardModal({
             {context === 'tracker' && card.application_status !== 'archived' && (
               <button
                 onClick={() => onArchive?.(card.id)}
-                className="py-2 px-5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+                className="py-2 px-5 border border-gray-200 rounded-lg text-sm md:text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 Remove & Add to Archive
               </button>
@@ -419,14 +419,14 @@ export default function JobCardModal({
             {context === 'vault' && onLogWin && (
               <button
                 onClick={onLogWin}
-                className="py-2 px-5 border border-purple-200 rounded-lg text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors"
+                className="py-2 px-5 border border-purple-200 rounded-lg text-sm md:text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors"
               >
                 + Log a Win
               </button>
             )}
             <button
               onClick={onClose}
-              className="py-2 px-8 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
+              className="py-2 px-8 rounded-lg text-sm md:text-xs font-bold text-white hover:opacity-90 transition-opacity"
               style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
             >
               Done
@@ -473,7 +473,7 @@ export default function JobCardModal({
                   type="date"
                   value={scheduleDate}
                   onChange={e => setScheduleDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base md:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -482,7 +482,7 @@ export default function JobCardModal({
                   type="time"
                   value={scheduleTime}
                   onChange={e => setScheduleTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base md:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -490,7 +490,7 @@ export default function JobCardModal({
                 <select
                   value={scheduleVenue}
                   onChange={e => setScheduleVenue(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base md:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">Select format...</option>
                   <option value="Phone">Phone</option>
