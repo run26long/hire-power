@@ -300,7 +300,7 @@ const handleResumeUpdate = async (updatedData) => {
       <div className="md:hidden flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 flex-shrink-0">
         <button
           onClick={() => setMobilePanel('conversation')}
-          className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+          className="flex-1 py-1.5 text-sm font-semibold rounded-md transition-colors"
           style={{
             color: mobilePanel === 'conversation' ? '#7c3aed' : '#6b7280',
             backgroundColor: mobilePanel === 'conversation' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
@@ -310,7 +310,7 @@ const handleResumeUpdate = async (updatedData) => {
         </button>
         <button
           onClick={() => setMobilePanel('resume')}
-          className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+          className="flex-1 py-1.5 text-sm font-semibold rounded-md transition-colors"
           style={{
             color: mobilePanel === 'resume' ? '#7c3aed' : '#6b7280',
             backgroundColor: mobilePanel === 'resume' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
@@ -391,10 +391,10 @@ const handleResumeUpdate = async (updatedData) => {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xl">🎓</span>
-                          <p className="text-xs font-semibold text-gray-700">Career Coach</p>
+                          <p className="text-sm md:text-xs font-semibold text-gray-700">Career Coach</p>
                         </div>
                         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3">
-                          <div className="text-gray-800 whitespace-pre-line text-xs">
+                          <div className="text-gray-800 whitespace-pre-line text-base md:text-xs">
                             {msg.content}
                           </div>
                         </div>
@@ -402,10 +402,10 @@ const handleResumeUpdate = async (updatedData) => {
                     ) : (
                       <div className="flex gap-3 justify-end mb-3">
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-w-[75%]">
-                          <p className="text-xs font-semibold text-gray-700 mb-1">
+                          <p className="text-sm md:text-xs font-semibold text-gray-700 mb-1">
                             {userProfile?.display_name || 'You'}
                           </p>
-                          <div className="text-gray-800 whitespace-pre-line text-xs">
+                          <div className="text-gray-800 whitespace-pre-line text-base md:text-xs">
                             {msg.content}
                           </div>
                         </div>
@@ -432,7 +432,7 @@ const handleResumeUpdate = async (updatedData) => {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xl">🎓</span>
-                      <p className="text-xs font-semibold text-gray-700">Career Coach</p>
+                      <p className="text-sm md:text-xs font-semibold text-gray-700">Career Coach</p>
                     </div>
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3">
                       <div className="flex items-center space-x-2">
@@ -450,7 +450,7 @@ const handleResumeUpdate = async (updatedData) => {
                 <div className="flex justify-center border-t pt-4 pb-4">
                   <button
                     onClick={handleConversationComplete}
-                    className="text-white py-2 px-8 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs"
+                    className="text-white py-2 px-8 rounded-lg transition-opacity hover:opacity-90 font-semibold text-sm md:text-xs"
                     style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
                     Continue to Resume Coach →
@@ -473,7 +473,7 @@ const handleResumeUpdate = async (updatedData) => {
                       placeholder="Type your response..."
                       disabled={isAIThinking}
                       rows={2}
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                     />
                     <button
                       onClick={() => {
