@@ -704,7 +704,7 @@ export default function CareerVaultPage() {
                     </div>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">
-                    The saved job description and any accomplishments you log here attach to this job entry to create your next resume.
+                    The saved job description and any wins you log here attach to this job to create your next resume.
                   </p>
 
                   {currentJobEntry ? (() => {
@@ -857,7 +857,7 @@ export default function CareerVaultPage() {
                   {/* Stats + Quick Actions combined */}
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div className="mb-3">
-                      <h2 className="text-base md:text-sm font-semibold text-gray-900">Your Career Vault</h2>
+                      <h2 className="text-lg md:text-sm font-semibold text-gray-900">Your Career Vault</h2>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {[
@@ -870,14 +870,14 @@ export default function CareerVaultPage() {
                           onClick={item.onClick || undefined}
                           className={`text-center p-2 bg-gray-50 rounded-lg border border-gray-200 select-none ${item.onClick ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors' : ''}`}
                         >
-                          <div className="text-base">{item.icon}</div>
-                          <div className="text-lg font-bold text-gray-700">{item.value}</div>
-                          <div className="text-[11px] md:text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
+                          <div className="text-2xl md:text-base">{item.icon}</div>
+                          <div className="text-2xl md:text-lg font-bold text-gray-700">{item.value}</div>
+                          <div className="text-xs md:text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
                         </div>
                       ))}
                     </div>
                     <div className="border-t border-gray-100 pt-1 mt-1 mb-2 text-center">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      <p className="text-sm md:text-xs font-bold text-gray-500 uppercase tracking-wide">
                         {isPro ? 'Quick Actions' : 'Quick Actions Still Available in Vault'}
                       </p>
                     </div>
@@ -890,45 +890,45 @@ export default function CareerVaultPage() {
                             ? 'bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-400'
                             : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
                         }`}>
-                        <span className="text-sm">📋</span>
+                        <span className="text-base md:text-sm">📋</span>
                         <div className="flex-1">
-                          <p className="text-sm md:text-xs font-semibold text-gray-800">Prepare for My Review</p>
-                          <p className="text-xs md:text-[10px] text-gray-400">
+                          <p className="text-base md:text-xs font-semibold text-gray-800">Prepare for My Review</p>
+                          <p className="text-sm md:text-[10px] text-gray-400">
                             {accomplishments.length > 0
                               ? `Turn your ${accomplishments.length} win${accomplishments.length !== 1 ? 's' : ''} into a review document`
                               : 'Log wins to unlock your review document'}
                           </p>
                         </div>
                         {accomplishments.length > 0 && (
-                          <span className="text-purple-400 group-hover:text-purple-600 text-sm md:text-xs transition-colors">→</span>
+                          <span className="text-purple-400 group-hover:text-purple-600 text-base md:text-xs transition-colors">→</span>
                         )}
                       </button>
                       <button onClick={() => router.push('/resume-coach')}
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
-                        <span className="text-sm">📄</span>
+                        <span className="text-base md:text-sm">📄</span>
                         <div className="flex-1">
-                          <p className="text-sm md:text-xs font-semibold text-gray-800">Resume Coach</p>
-                          <p className="text-xs md:text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
+                          <p className="text-base md:text-xs font-semibold text-gray-800">Resume Coach</p>
+                          <p className="text-sm md:text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
                         </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-sm md:text-xs transition-colors">→</span>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
                       </button>
                       <button onClick={() => setShowArchiveModal(true)}
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
-                        <span className="text-sm">📁</span>
+                        <span className="text-base md:text-sm">📁</span>
                         <div className="flex-1">
-                          <p className="text-sm md:text-xs font-semibold text-gray-800">View Archive</p>
-                          <p className="text-xs md:text-[10px] text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
+                          <p className="text-base md:text-xs font-semibold text-gray-800">View Archive</p>
+                          <p className="text-sm md:text-[10px] text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
                         </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-sm md:text-xs transition-colors">→</span>
+                        <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Upgrade CTA */}
                   <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-3 pb-6">
-                   {isPro ? (
+                  {isPro ? (
                       <>
-                        <h2 className="text-base md:text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
+                        <h2 className="text-lg md:text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
                         <p className="text-sm md:text-xs text-gray-500 mb-1.5">Update your resume in minutes using your logged wins.</p>
                         <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
                           <p className="text-sm md:text-xs text-gray-700 leading-snug">
@@ -937,7 +937,7 @@ export default function CareerVaultPage() {
                         </div>
                         <button
                           onClick={() => setShowNewSearchModal(true)}
-                          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold hover:opacity-90 transition-opacity"
+                          className="block mx-auto text-white rounded-lg py-2 px-8 text-base md:text-xs font-semibold hover:opacity-90 transition-opacity"
                           style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                         >
                           Start new search →
@@ -945,7 +945,7 @@ export default function CareerVaultPage() {
                       </>
                     ) : (
                       <>
-                        <h2 className="text-base md:text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
+                        <h2 className="text-lg md:text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
                         <p className="text-sm md:text-xs text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
                         <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
                           <p className="text-sm md:text-xs text-gray-700 leading-snug">
@@ -954,7 +954,7 @@ export default function CareerVaultPage() {
                         </div>
                        <button
                           onClick={() => setShowUpgradeModal(true)}
-                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-sm md:text-xs font-semibold hover:bg-purple-700 transition-colors"
+                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-base md:text-xs font-semibold hover:bg-purple-700 transition-colors"
                         >
                           Upgrade to Pro — $29.99/mo
                         </button>
