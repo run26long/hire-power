@@ -343,7 +343,7 @@ export default function Profile() {
                   <span style={cardTitle}>Personal Information</span>
                 </div>
                 <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <div className="hp-photo-fields-row" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                   {/* Photo */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     {photoUrl ? (
@@ -365,14 +365,19 @@ export default function Profile() {
                       <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputSm} placeholder="Your name" />
                       <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
                     </div>
-                    <div>
+                    <div className="hp-email-desktop">
                       <label style={labelSm}>Email</label>
                       <input type="email" value={user?.email || ''} disabled style={inputDis} />
                       <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
                     </div>
                   </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                  <div className="hp-email-mobile" style={{ display: 'none' }}>
+                    <label style={labelSm}>Email</label>
+                    <input type="email" value={user?.email || ''} disabled style={inputDis} />
+                    <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
+                  </div>
+                  <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                     {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
                     <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1 }}>
                       {saving ? 'Saving...' : 'Save Changes'}
@@ -556,6 +561,10 @@ export default function Profile() {
           .hp-career-grid { grid-template-columns: 1fr !important; }
           .hp-name-email-grid { grid-template-columns: 1fr !important; }
           .hp-mobile-top { display: block !important; }
+          .hp-photo-fields-row { align-items: flex-start !important; }
+          .hp-save-row { justify-content: center !important; }
+          .hp-email-desktop { display: none !important; }
+          .hp-email-mobile { display: block !important; }
 
           /* Mobile font-size bumps — desktop unaffected (rules only apply <=768px) */
           /* Mobile top bar descriptor */
