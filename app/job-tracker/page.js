@@ -597,7 +597,7 @@ export default function JobTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
               <span className="text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
             </div>
-            <p className="text-3xl text-red-600 mb-2 font-bold">Tap a board to switch views. Open a card to move it to a different board.</p>
+            <p className="text-sm text-gray-500 mb-2">Tap a board to switch views. Open a card to move it to a different board.</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowArchiveModal(true)}
@@ -712,8 +712,8 @@ export default function JobTrackerPage() {
                         >
                           <div className="flex items-start justify-between gap-1">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm md:text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
-                              <p className="text-xs md:text-[11px] text-gray-500">{card.company}</p>
+                              <p className="text-base md:text-xs font-bold text-gray-900 leading-tight mb-0.5 line-clamp-2">{card.title}</p>
+                              <p className="text-sm md:text-[11px] text-gray-500">{card.company}</p>
                             </div>
                             {card.match_score && (
                               <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
@@ -739,19 +739,19 @@ export default function JobTrackerPage() {
 
                           <div className="mt-auto pt-1 flex flex-wrap gap-1">
                             {card.resumes && (
-                              <span className="text-[11px] md:text-[9px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded-md font-semibold">
+                              <span className="text-xs md:text-[9px] bg-purple-50 text-purple-600 border border-purple-100 px-1.5 py-0.5 rounded-md font-semibold">
                                 Resume linked
                               </span>
                             )}
 
                             {card.interview_date && (
-                              <span className="text-[11px] md:text-[9px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded-md font-semibold">
+                              <span className="text-xs md:text-[9px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded-md font-semibold">
                                 📅 {new Date(card.interview_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                               </span>
                             )}
 
                             {card.notes && (
-                              <p className="text-xs md:text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">{card.notes}</p>
+                              <p className="text-sm md:text-[10px] text-gray-400 leading-tight line-clamp-1 w-full">{card.notes}</p>
                             )}
                           </div>
                         </div>
