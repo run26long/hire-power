@@ -651,7 +651,7 @@ export default function MyCareerPage() {
                     <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
-                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Chat with Coach, and get a finished resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
+                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
                     </div>
                     <div className="flex-shrink-0 text-center">
                       <button
@@ -659,7 +659,7 @@ export default function MyCareerPage() {
                         className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap"
                         style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
                       >
-                        Build with Coach
+                        brb
                       </button>
                     </div>
                   </div>

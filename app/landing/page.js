@@ -983,8 +983,8 @@ const supabase = createClient();
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'64px',alignItems:'center'}} className="build-with-coach-grid">
             {/* Copy side */}
             <div>
-              <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--purple)',marginBottom:'20px'}}>
-                Build with Coach
+              <div style={{fontSize:'13px',fontWeight:700,letterSpacing:'0.04em',color:'var(--purple)',marginBottom:'20px'}}>
+                brb · best resume builder
               </div>
               <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:900,fontSize:'clamp(36px,4vw,56px)',lineHeight:1.05,letterSpacing:'-1.5px',color:'var(--black)',marginBottom:'24px'}}>
                 Zero to applied in<br className="mobile-break" style={{display:'none'}}/> <em style={{fontStyle:'italic',color:'var(--purple)'}}>30 minutes.</em>
@@ -1012,7 +1012,7 @@ const supabase = createClient();
                     <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
                   </div>
                   <div>
-                    <div style={{fontSize:'11px',fontWeight:700,color:'white'}}>Build with Coach</div>
+                    <div style={{fontSize:'11px',fontWeight:700,color:'white'}}>brb · best resume builder</div>
                     <div style={{fontSize:'9px',color:'rgba(255,255,255,0.7)'}}>Mobile · Talk or type</div>
                   </div>
                 </div>
