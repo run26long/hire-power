@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json()
+    const { email, password, source } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
@@ -34,6 +34,18 @@ export async function POST(request) {
     if (!userData?.user?.id) {
       console.error('signup-pro: createUser returned no user object')
       return NextResponse.json({ error: 'We couldn\'t create your account. Please try again.' }, { status: 500 })
+    }
+
+    // Stamp signup source on profiles row (created automatically by trigger).
+    // Non-blocking: a failure here shouldn't kill the signup flow.
+    if (source) {
+      const { error: sourceError } = await supabase
+        .from('profiles')
+        .update({ signup_source: source })
+        .eq('id', userData.user.id)
+      if (sourceError) {
+        console.error('signup-pro: failed to write signup_source for user', userData.user.id, sourceError)
+      }
     }
 
     // Create Stripe checkout session. If this fails, delete the Supabase user
