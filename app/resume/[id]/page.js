@@ -896,7 +896,7 @@ if (data.ai_analysis) {
         <div className="flex items-center gap-2 px-4 py-2">
           <button
             onClick={() => setMobilePanel('coach')}
-            className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+            className="flex-1 py-1.5 text-sm md:text-xs font-semibold rounded-md transition-colors"
             style={{
               color: mobilePanel === 'coach' ? '#7c3aed' : '#6b7280',
               backgroundColor: mobilePanel === 'coach' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
@@ -909,7 +909,7 @@ if (data.ai_analysis) {
               setMobilePanel('resume')
               setMobileToolbar(null)
             }}
-            className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
+            className="flex-1 py-1.5 text-sm md:text-xs font-semibold rounded-md transition-colors"
             style={{
               color: mobilePanel === 'resume' ? '#7c3aed' : '#6b7280',
               backgroundColor: mobilePanel === 'resume' ? 'rgba(147, 51, 234, 0.08)' : 'transparent'
@@ -919,7 +919,7 @@ if (data.ai_analysis) {
           </button>
         </div>
         {showEditTip && (
-          <div className="px-4 pb-1 text-xs text-amber-700 text-center">
+          <div className="px-4 pb-1 text-sm md:text-xs text-amber-700 text-center">
             Editing works best on desktop. Tap any section to try.
           </div>
         )}
