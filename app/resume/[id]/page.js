@@ -1843,7 +1843,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         <ul className="space-y-1.5 text-left">
           {(Array.isArray(analysisResults?.analysis?.summary) ? analysisResults.analysis.summary : [])
             .map((sentence, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+              <li key={i} className="flex items-start gap-2 text-sm md:text-xs text-gray-600">
                 <span className={`mt-0.5 flex-shrink-0 ${sentence.startsWith('○') ? 'text-gray-400' : 'text-purple-600'}`}>
                   {sentence.startsWith('○') ? '○' : '✓'}
                 </span>
@@ -1855,7 +1855,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         {/* Matched Skills */}
         {analysisResults?.analysis?.matchedKeywords?.length > 0 && (
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#81c784' }}>✅ Matched Skills</h4>
+            <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#81c784' }}>✅ Matched Skills</h4>
             <div className="flex flex-wrap gap-1.5">
               {analysisResults.analysis.matchedKeywords.map((kw, i) => (
                 <span key={i} className="bg-green-50 border border-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full">{kw}</span>
@@ -1867,7 +1867,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         {/* Missing Skills */}
         {analysisResults?.analysis?.missingKeywords?.length > 0 && (
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#e57373' }}>⚠️ Skills to Address</h4>
+            <h4 className="text-sm md:text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#e57373' }}>⚠️ Skills to Address</h4>
             <div className="flex flex-wrap gap-1.5">
               {analysisResults.analysis.missingKeywords.map((kw, i) => (
                 <span key={i} className="bg-red-50 border border-red-200 text-red-700 text-xs px-2 py-0.5 rounded-full">{kw}</span>
@@ -1890,7 +1890,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             }
           }}
           disabled={isUpdatingJourney}
-          className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90"
+          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
         style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           Start Job Coaching →
@@ -1925,7 +1925,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     />
   </div>
   
- <div className="flex items-center justify-center gap-3 text-[9px] text-gray-600">
+ <div className="flex items-center justify-center gap-3 text-xs md:text-[9px] text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
@@ -1950,7 +1950,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="font-semibold text-gray-900 text-sm">Impact</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 25}/50</span>
                   </div>
-                 <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                 <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                     {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
                     {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
                     {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
@@ -1974,7 +1974,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="font-semibold text-gray-900 text-sm">Clarity</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 18}/30</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
+                  <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
   className="h-full"
@@ -1994,7 +1994,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     <span className="font-semibold text-gray-900 text-sm">Keywords</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 14}/20</span>
                   </div>
-                 <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                 <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                   {detectedLevel === 'entry' && 'Field vocabulary, tools, and software names'}
 {detectedLevel === 'mid' && 'Field vocabulary, tools, and software names'}
 {detectedLevel === 'senior' && 'Field vocabulary, tools, methodologies, and systems'}
@@ -2025,7 +2025,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 "Professional formatting maintains clear, readable structure.",
                 "Skills section includes relevant technical and soft skills."
               ]).map((strength, i) => (
-                <li key={i} className="text-xs text-gray-700 flex gap-2 leading-snug">
+                <li key={i} className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
                   <span className="text-green-600 flex-shrink-0">•</span>
                   <span>{strength}</span>
                 </li>
@@ -2056,8 +2056,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 "Missing keywords from target job description in technical skills section.",
                 "Education section could benefit from relevant coursework or academic honors.",
                 "Event coordination lacks scope indicators such as event count or budget details."
-              ]).map((weakness, i) => (
-                <li key={i} className="text-xs text-gray-700 flex gap-2 leading-snug">
+             ]).map((weakness, i) => (
+                <li key={i} className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
                   <span className="text-red-600 flex-shrink-0">•</span>
                   <span>{weakness}</span>
                 </li>
@@ -2089,7 +2089,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 "Strengthen education section: include GPA if above 3.5, relevant coursework, or academic honors.",
                 "Replace weak verbs like 'helped' and 'responsible for' with action verbs showing direct impact."
               ]).map((suggestion, i) => (
-                <li key={i} className="text-xs text-gray-700 flex gap-2 leading-snug">
+                <li key={i} className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
                   <span className="text-yellow-600 flex-shrink-0">•</span>
                   <span>{suggestion}</span>
                 </li>
@@ -2102,19 +2102,19 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               // FREE TIER - Go to coaching
               <div className="space-y-3">
                 <div className="text-center">
-                  <h4 className="font-semibold text-gray-900 mb-1">What's Next?</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">What's Next?</h4>
             
                 </div>
                 {coachingSamplesUsed > 0 ? (
                   <>
                     <button
                       onClick={() => setShowUpgradeModal(true)}
-                      className="block mx-auto text-white rounded-lg py-2 px-4 text-xs font-semibold transition-opacity hover:opacity-90"
+                      className="block mx-auto text-white rounded-lg py-2 px-4 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
                       style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       Upgrade to Pro — we'll find the missing details and rewrite everything for you.
                     </button>
-                    <p className="text-xs text-gray-500 text-center">
+                    <p className="text-sm md:text-xs text-gray-500 text-center">
                       Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
                     </p>
                     <div className="text-center">
@@ -2143,7 +2143,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                           }
                         }}
                         disabled={isUpdatingJourney}
-                        className="text-xs text-gray-400 hover:text-gray-600"
+                        className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
                       >
                         Make changes myself →
                       </button>
@@ -2153,12 +2153,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                   <>
                     <button
                       onClick={() => setShowUpgradeModal(true)}
-                      className="block mx-auto text-white rounded-lg py-2 px-4 text-xs font-semibold transition-opacity hover:opacity-90"
+                      className="block mx-auto text-white rounded-lg py-2 px-4 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
                       style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
                       Upgrade to Pro — we'll find the missing details and rewrite everything for you.
                     </button>
-                    <p className="text-xs text-gray-500 text-center">
+                    <p className="text-sm md:text-xs text-gray-500 text-center">
                       Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
                     </p>
                     <button
@@ -2186,7 +2186,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                       }
                     }}
                     disabled={isUpdatingJourney}
-                    className={`block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-xs font-semibold hover:bg-purple-50 transition-colors ${
+                    className={`block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors ${
                         isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : ''
                       }`}
                     >
@@ -2219,7 +2219,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     }
                   }}
                   disabled={isUpdatingJourney}
-                  className={`mx-auto block text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity flex items-center gap-2 ${
+                  className={`mx-auto block text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity flex items-center gap-2 ${
                     isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-90'
                   }`}
                   style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -3125,13 +3125,13 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
       <div className="space-y-2">
         <h3 className="font-semibold text-lg -mt-3">💬 Resume Coach</h3>
         <div className="bg-purple-50 rounded-lg p-2">
-          <p className="text-xs font-semibold text-gray-900 mb-1">You've used your free coaching session</p>
-          <p className="text-xs text-gray-600 mb-3">
+          <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1">You've used your free coaching session</p>
+          <p className="text-sm md:text-xs text-gray-600 mb-3">
             Upgrade to Pro to coach every job, every bullet, and uncover skills you didn't know belonged on a resume.
           </p>
           <div className="bg-white rounded-lg p-3 mb-3 border border-purple-100">
-            <p className="text-xs font-semibold text-purple-700 mb-2">Pro coaching includes:</p>
-            <ul className="text-xs text-gray-600 space-y-1.5">
+            <p className="text-sm md:text-xs font-semibold text-purple-700 mb-2">Pro coaching includes:</p>
+            <ul className="text-sm md:text-xs text-gray-600 space-y-1.5">
               <li>✓ Full conversation across all jobs</li>
               <li>✓ Every bullet improved automatically</li>
               <li>✓ Hidden skill identification</li>
@@ -3139,13 +3139,13 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
               <li>✓ Before/after review for every change</li>
             </ul>
           </div>
-          <p className="text-xs text-purple-700 font-medium mb-3 text-center">
+          <p className="text-sm md:text-xs text-purple-700 font-medium mb-3 text-center">
             Pro users see an average <strong>16-point improvement</strong> after coaching.
           </p>
           <div className="flex justify-center mb-2">
             <button
               onClick={() => setShowUpgradeModal(true)}
-              className="text-white rounded-lg px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Upgrade to Pro →
@@ -3154,7 +3154,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           <div className="flex justify-center">
             <button
               onClick={advanceToImprove}
-              className="text-gray-400 text-xs hover:text-gray-600"
+              className="text-gray-400 text-sm md:text-xs hover:text-gray-600"
             >
               Continue improving myself →
             </button>
@@ -3184,11 +3184,11 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 min-h-0">
             {coachingMessages.map((msg, index) => (
               <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
-                <div className={`rounded-lg px-2 py-1.5 text-xs leading-snug ${msg.role === 'assistant' ? 'bg-purple-50 border border-purple-100 w-full' : 'bg-gray-100 border border-gray-200 max-w-[90%]'}`}>
+                <div className={`rounded-lg px-2 py-1.5 text-sm md:text-xs leading-snug ${msg.role === 'assistant' ? 'bg-purple-50 border border-purple-100 w-full' : 'bg-gray-100 border border-gray-200 max-w-[90%]'}`}>
                   {msg.role === 'assistant' && (
                     <div className="flex items-center gap-1 mb-1">
                       <span className="text-sm">🎓</span>
-                      <span className="text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                      <span className="text-xs md:text-[10px] font-semibold text-gray-500">Resume Coach</span>
                     </div>
                   )}
                   {msg.role === 'user' && (
@@ -3196,7 +3196,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                       <div className="w-4 h-4 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 text-[8px] font-bold">
                         {userName?.charAt(0).toUpperCase() || 'Y'}
                       </div>
-                      <span className="text-[10px] font-semibold text-gray-500">{userName?.split(' ')[0] || 'You'}</span>
+                      <span className="text-xs md:text-[10px] font-semibold text-gray-500">{userName?.split(' ')[0] || 'You'}</span>
                     </div>
                   )}
                   <div className="text-gray-800" dangerouslySetInnerHTML={{
@@ -3240,7 +3240,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   placeholder="Type your response..."
                   disabled={sending}
                   rows={2}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
                 />
                 <button
@@ -3264,7 +3264,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
               <button
                 onClick={finishResumeChat}
                 disabled={isFinishing}
-                className="px-6 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-90 text-white disabled:opacity-50"
+                className="px-6 py-2 rounded-lg text-sm md:text-xs font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-90 text-white disabled:opacity-50"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '180px' }}
               >
                 {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent flex-shrink-0"></div>}
@@ -3288,7 +3288,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {userTier === 'free' && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2 flex-shrink-0">
-            <p className="text-xs text-gray-600">
+            <p className="text-sm md:text-xs text-gray-600">
               <strong>Free trial:</strong> Try Resume Coach on one role and see how a single rewritten bullet can transform how your experience reads.
             </p>
           </div>
@@ -3298,7 +3298,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 min-h-0">
           {coachingMessages.map((msg, index) => (
             <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} mb-1.5`}>
-              <div className={`rounded-lg px-2 py-1.5 text-xs leading-snug ${
+              <div className={`rounded-lg px-2 py-1.5 text-sm md:text-xs leading-snug ${
                 msg.role === 'assistant'
                   ? 'bg-purple-50 border border-purple-100 w-full'
                   : 'bg-gray-100 border border-gray-200 max-w-[90%]'
@@ -3306,7 +3306,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 {msg.role === 'assistant' ? (
                   <div className="flex items-center gap-1 mb-1">
                     <span className="text-sm">🎓</span>
-                    <span className="text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                    <span className="text-xs md:text-[10px] font-semibold text-gray-500">Resume Coach</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 mb-1">
@@ -3317,7 +3317,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                         {userName?.charAt(0).toUpperCase() || 'Y'}
                       </div>
                     )}
-                    <span className="text-[10px] font-semibold text-gray-500">{userName?.split(' ')[0] || 'You'}</span>
+                    <span className="text-xs md:text-[10px] font-semibold text-gray-500">{userName?.split(' ')[0] || 'You'}</span>
                   </div>
                 )}
                <div className="text-gray-800" dangerouslySetInnerHTML={{
@@ -3333,7 +3333,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           {sending && (
             <div className="flex">
               <div className="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 w-full">
-                <p className="text-[10px] font-semibold text-gray-400 mb-0.5">Coach</p>
+                <p className="text-xs md:text-[10px] font-semibold text-gray-400 mb-0.5">Coach</p>
                 <div className="flex gap-1 items-center">
                   <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
                   <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
@@ -3365,7 +3365,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 placeholder="Type your response..."
                 disabled={sending}
                 rows={2}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
               />
               <button
@@ -3389,10 +3389,10 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         {/* Pro finish button */}
         {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && (
           <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
-            <button
+           <button
               onClick={finishCoaching}
               disabled={isFinishing}
-              className={`px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 text-white ${
+              className={`px-6 py-2 rounded-lg text-sm md:text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 text-white ${
                 isFinishing ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               style={{ background: isFinishing ? '#9ca3af' : 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -3409,7 +3409,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
             <button
               onClick={finishTrialCoaching}
               disabled={isFinishing}
-              className="px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white"
+              className="px-6 py-2 rounded-lg text-sm md:text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
@@ -3632,8 +3632,8 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             <div className="px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
               <div>
-                <p className="font-bold text-white text-sm">Looking good!</p>
-                <p className="text-purple-100 text-xs">Your résumé is ready to format and download.</p>
+                <p className="font-bold text-white text-base md:text-sm">Looking good!</p>
+                <p className="text-purple-100 text-sm md:text-xs">Your résumé is ready to format and download.</p>
               </div>
             </div>
             {score && (
@@ -3658,7 +3658,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <span className="font-semibold text-gray-900 text-sm">Impact</span>
                           <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 0}/50</span>
                         </div>
-                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                        <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
                           {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
                           {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
@@ -3683,7 +3683,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <span className="font-semibold text-gray-900 text-sm">Clarity</span>
                           <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 0}/30</span>
                         </div>
-                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
+                        <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full"
@@ -3703,7 +3703,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <span className="font-semibold text-gray-900 text-sm">Keywords</span>
                           <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 0}/20</span>
                         </div>
-                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                        <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'senior' ? 'Field vocabulary, tools, methodologies, and systems' : 'Field vocabulary, tools, and software names'}
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -3739,7 +3739,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 }
                 setResume(prev => ({ ...prev, journey_step: 'format' }))
               }}
-              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Format & Finish →
@@ -3782,7 +3782,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <span className="font-semibold text-gray-900 text-sm">Impact</span>
                           <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 0}/50</span>
                         </div>
-                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                        <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
                           {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
                           {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
@@ -3807,7 +3807,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <span className="font-semibold text-gray-900 text-sm">Clarity</span>
                           <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 0}/30</span>
                         </div>
-                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
+                        <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full"
@@ -3827,7 +3827,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <span className="font-semibold text-gray-900 text-sm">Keywords</span>
                           <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 0}/20</span>
                         </div>
-                        <div className="text-[11px] text-gray-500 leading-tight mb-1.5">
+                        <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'senior' ? 'Field vocabulary, tools, methodologies, and systems' : 'Field vocabulary, tools, and software names'}
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -3849,13 +3849,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-700 text-center leading-snug">
+          <p className="text-sm md:text-xs text-gray-700 text-center leading-snug">
             Take a look at your résumé. Make sure Coach got everything right — dates, job titles, details. If anything looks off, use Fix It below.
           </p>
           <div className="flex flex-col gap-2 items-center">
             <button
               onClick={() => setShowConvTargetedRecoach(true)}
-              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors"
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
             >
               Something's Off → Fix It
             </button>
@@ -3872,7 +3872,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 }
                 setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
               }}
-              className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Looks Good → Format & Finish
@@ -3938,37 +3938,37 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           >
             <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
             <div>
-              <p className="font-bold text-white text-sm leading-tight">Improvements Applied!</p>
-                <p className="text-purple-100 text-xs leading-tight">
+              <p className="font-bold text-white text-base md:text-sm leading-tight">Improvements Applied!</p>
+                <p className="text-purple-100 text-sm md:text-xs leading-tight">
                   Here's what your reviewed changes did for your resume.
                 </p>
               </div>
             </div>
 
             {/* Scores */}
-            <div className="bg-white flex items-center justify-center gap-6 pt-6 pb-3 px-2">
+           <div className="bg-white flex items-center justify-center gap-6 pt-6 pb-3 px-2">
               <div className="text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">Before</p>
+                <p className="text-xs md:text-[10px] text-gray-400 uppercase tracking-wide mb-3">Before</p>
                 <p className="text-6xl font-bold" style={{ color: scoreBeforeCoaching >= 85 ? '#9333ea' : scoreBeforeCoaching >= 75 ? '#81c784' : scoreBeforeCoaching >= 60 ? '#ffc870' : '#e57373' }}>{scoreBeforeCoaching}</p>
               </div>
               <div className="flex items-center justify-center mt-5">
                   <span style={{ fontSize: '2rem', color: '#9ca3af', fontWeight: 500, lineHeight: 1 }}>➜</span>
                 </div>
               <div className="text-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">After</p>
+                <p className="text-xs md:text-[10px] text-gray-400 uppercase tracking-wide mb-3">After</p>
                 <p className="text-6xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</p>
               </div>
             </div>
 
             {score > scoreBeforeCoaching ? (
               <div className="bg-purple-50 border-t border-purple-100 py-2 text-center">
-                <p className="text-xs font-semibold text-purple-600">
+                <p className="text-sm md:text-xs font-semibold text-purple-600">
                   +{score - scoreBeforeCoaching} points from coaching
                 </p>
               </div>
             ) : (
                 <div className="bg-gray-50 border-t border-gray-100 py-2 text-center">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm md:text-xs text-gray-500">
                     Your resume was already well-optimized.
                   </p>
                 </div>
@@ -3981,7 +3981,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           {showPushHarder && (
             <button
               onClick={() => setShowGapsModal(true)}
-              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
             >
               Push for a higher score →
             </button>
@@ -3999,7 +3999,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
             }}
-            className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+            className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Format & Finish →
@@ -4294,7 +4294,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
     return (
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">🎉 Your New Resume is Ready!</h3>
-        <p className="text-xs text-gray-500">Review each change below. Keep what you love, skip what you don't.</p>
+        <p className="text-sm md:text-xs text-gray-500">Review each change below. Keep what you love, skip what you don't.</p>
 
         {/* Progress */}
         <div className="flex items-center gap-3">
@@ -4304,13 +4304,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               style={{ width: `${(reviewedCount / totalChanges) * 100}%` }}
             />
           </div>
-          <span className="text-xs text-gray-500 whitespace-nowrap">{reviewedCount}/{totalChanges}</span>
+          <span className="text-sm md:text-xs text-gray-500 whitespace-nowrap">{reviewedCount}/{totalChanges}</span>
         </div>
 
         <div className="flex gap-2">
           <button
             onClick={() => setShowChangeModal(true)}
-            className="flex-1 bg-purple-600 text-white rounded-lg py-1.5 font-medium text-xs hover:bg-purple-700 transition-colors"
+            className="flex-1 bg-purple-600 text-white rounded-lg py-1.5 font-medium text-sm md:text-xs hover:bg-purple-700 transition-colors"
           >
             Review Changes ({currentChangeIndex + 1}/{totalChanges})
           </button>
@@ -4324,7 +4324,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               finishReview(newAccepted)
             }}
             disabled={accepting}
-            className="flex-1 bg-white text-gray-600 border border-gray-300 rounded-lg py-1.5 text-xs hover:bg-gray-50 transition-colors disabled:opacity-75"
+            className="flex-1 bg-white text-gray-600 border border-gray-300 rounded-lg py-1.5 text-sm md:text-xs hover:bg-gray-50 transition-colors disabled:opacity-75"
           >
             {accepting ? 'Saving...' : 'Accept All'}
           </button>
@@ -4505,13 +4505,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
     <>
       <div className="space-y-4">
         <div className="text-center py-2">
-          <h3 className="font-semibold text-gray-900">Your New Resume is Ready!</h3>
-          <p className="text-xs text-gray-500 mt-1">
+          <h3 className="font-semibold text-gray-900 text-base md:text-base">Your New Resume is Ready!</h3>
+          <p className="text-sm md:text-xs text-gray-500 mt-1">
             {totalChanges} improvement{totalChanges !== 1 ? 's' : ''} made
           </p>
         </div>
 
-        <div className="text-xs text-gray-600 text-center space-y-2">
+        <div className="text-sm md:text-xs text-gray-600 text-center space-y-2">
           <p><strong>The improved version is displayed.</strong></p>
           <p>Love it? <strong>Accept All</strong> and you're ready to format, download, and start applying!</p>
           <p>Want to fine-tune? <strong>Review Changes</strong> lets you go through each one and edit as you like.</p>
@@ -4522,14 +4522,14 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             <button
               onClick={acceptAll}
               disabled={accepting}
-              className="bg-purple-600 text-white rounded-lg py-1.5 px-3 text-xs font-medium hover:bg-purple-700 disabled:opacity-75 flex items-center gap-1.5 transition-colors"
+              className="bg-purple-600 text-white rounded-lg py-1.5 px-3 text-sm md:text-xs font-medium hover:bg-purple-700 disabled:opacity-75 flex items-center gap-1.5 transition-colors"
             >
               {accepting && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
               {accepting ? 'Saving...' : '✓ Accept All'}
             </button>
             <button
               onClick={() => { setReviewMode(true); setShowChangeModal(true) }}
-              className="bg-white text-purple-600 border border-purple-600 rounded-lg py-1.5 px-3 text-xs font-medium hover:bg-purple-50 transition-colors"
+              className="bg-white text-purple-600 border border-purple-600 rounded-lg py-1.5 px-3 text-sm md:text-xs font-medium hover:bg-purple-50 transition-colors"
             >
               Review Changes
             </button>
