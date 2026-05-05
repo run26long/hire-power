@@ -1707,12 +1707,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         <>
           <h3 className="font-semibold text-lg -mt-3 mb-3">📝 Review Your Resume</h3>
           
-          <p className="text-xs text-gray-700 mb-3">
+          <p className="text-sm md:text-xs text-gray-700 mb-3">
             AI parsing isn't perfect, so things occasionally land in the wrong spot. Take a quick look at your resume, and make sure everything's where it should be. Click any section to edit or move content around.
           </p>
 
           <div className="bg-purple-50 border-l-4 border-purple-500 p-3 mb-4">
-            <div className="text-xs text-purple-900 space-y-2">
+            <div className="text-sm md:text-xs text-purple-900 space-y-2">
               <div><strong>✓ Check contact info</strong></div>
               <div><strong>✓ Verify job titles and dates</strong></div>
               <div><strong>✓ Review bullet points</strong></div>
@@ -1743,7 +1743,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   {journeyStep === 'assess' && isJobSpecific && (
   <div className="space-y-4">
     <div className="text-center mt-3">
-      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Job Match Score</div>
+      <div className="text-sm md:text-xs text-gray-500 uppercase tracking-wide mb-1">Job Match Score</div>
       <div className="flex items-baseline justify-center gap-1 mb-2">
         <span className="text-5xl font-bold text-gray-900">{score || '--'}</span>
         <span className="text-xl text-gray-400">%</span>
@@ -1757,7 +1757,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           }}
         />
       </div>
-    <div className="flex items-center justify-center gap-3 text-[9px] text-gray-600">
+    <div className="flex items-center justify-center gap-3 text-xs md:text-[9px] text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
@@ -1775,7 +1775,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   {userTier === 'free' ? (
       <>
         {(matchedCount || missingCount) ? (
-          <p className="text-xs text-gray-700 text-center -mt-1">
+          <p className="text-sm md:text-xs text-gray-700 text-center -mt-1">
             You meet <span className="font-semibold text-gray-900">{matchedCount} of {matchedCount + missingCount}</span> requirements for this role.
           </p>
         ) : null}
@@ -1787,13 +1787,13 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           return (
             <ul className="space-y-1.5 text-left">
               {visible.map((sentence, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                <li key={i} className="flex items-start gap-2 text-sm md:text-xs text-gray-700">
                   <span className="text-purple-600 mt-0.5 flex-shrink-0">✓</span>
                   <span>{sentence.slice(1).trim()}</span>
                 </li>
               ))}
               {hasMore && (
-               <li className="flex items-start gap-2 text-xs text-gray-700">
+               <li className="flex items-start gap-2 text-sm md:text-xs text-gray-700">
                   <span className="mt-0.5 flex-shrink-0">⚠️</span>
                  <span className="text-purple-600 font-semibold">Additional strengths and opportunities identified — upgrade to reveal</span>
                 </li>
@@ -1803,13 +1803,13 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         })()}
 
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <p className="text-xs font-semibold text-purple-800 mb-2">
+          <p className="text-sm md:text-xs font-semibold text-purple-800 mb-2">
             🔒 {matchedCount} skills matched · {missingCount} to address
           </p>
-          <p className="text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap — so your resume becomes a stronger match for this specific job.</p>
+          <p className="text-sm md:text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap — so your resume becomes a stronger match for this specific job.</p>
           <button
             onClick={() => setShowUpgradeModal(true)}
-            className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90"
+            className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Close the Gap on This Job →
@@ -1821,16 +1821,16 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               : s >= 75
               ? <>Pro users who coach this type of resume see an average <span className="font-semibold">8-point score improvement.</span></>
               : <>Pro users who coach low-match resumes see an average <span className="font-semibold">12-point score improvement.</span></>
-            return (
+           return (
               <div className="border-l-4 border-purple-400 pl-2 mt-3">
-                <p className="text-xs text-gray-500 italic leading-snug">{msg}</p>
+                <p className="text-sm md:text-xs text-gray-500 italic leading-snug">{msg}</p>
               </div>
             )
           })()}
           <div className="text-center mt-3">
             <button
               onClick={() => window.location.href = '/resume-coach'}
-              className="text-gray-400 text-xs hover:text-gray-600"
+              className="text-gray-400 text-sm md:text-xs hover:text-gray-600"
             >
               ← Back to My Resumes
             </button>
