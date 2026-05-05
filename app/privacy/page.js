@@ -1,8 +1,24 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
 export default function PrivacyPolicy() {
+  const [backHref, setBackHref] = useState('/landing');
+  const [backLabel, setBackLabel] = useState('Hire Power');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const host = window.location.hostname;
+    if (host === 'brbresume.com' || host === 'www.brbresume.com') {
+      setBackHref('/');
+      setBackLabel('brb');
+    }
+  }, []);
+
   return (
     <div style={{fontFamily:"'DM Sans',sans-serif",maxWidth:'760px',margin:'0 auto',padding:'80px 32px',color:'#1a1a1a',lineHeight:1.7}}>
       <div style={{marginBottom:'48px'}}>
-        <a href="/landing" style={{fontSize:'14px',color:'#9333ea',textDecoration:'none',fontWeight:600}}>← Hire Power</a>
+        <a href={backHref} style={{fontSize:'14px',color:'#9333ea',textDecoration:'none',fontWeight:600}}>← {backLabel}</a>
       </div>
       <h1 style={{fontFamily:"'DM Sans',sans-serif",fontSize:'40px',fontWeight:900,letterSpacing:'-1.5px',marginBottom:'8px'}}>Privacy Policy</h1>
       <p style={{fontSize:'14px',color:'#6b7280',marginBottom:'48px'}}>Last updated: April 2026</p>
