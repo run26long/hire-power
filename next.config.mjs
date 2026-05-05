@@ -9,18 +9,18 @@ const nextConfig = {
       },
     ],
   },
-  async rewrites() {
+ async rewrites() {
     return {
       beforeFiles: [
         {
-          source: '/:path*',
+          source: '/',
           has: [{ type: 'host', value: 'brbresume.com' }],
-          destination: '/brb-landing/:path*',
+          destination: '/brb-landing',
         },
         {
-          source: '/:path*',
+          source: '/',
           has: [{ type: 'host', value: 'www.brbresume.com' }],
-          destination: '/brb-landing/:path*',
+          destination: '/brb-landing',
         },
       ],
     }
