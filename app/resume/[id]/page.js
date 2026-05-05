@@ -944,7 +944,7 @@ if (data.ai_analysis) {
             {/* Format */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
-              className="py-1 px-3 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 px-3 text-sm md:text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
                 color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
@@ -957,7 +957,7 @@ if (data.ai_analysis) {
             {/* Actions */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'actions' ? null : 'actions')}
-              className="py-1 px-3 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 px-3 text-sm md:text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
                 color: mobileToolbar === 'actions' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'actions' ? 'rgba(147, 51, 234, 0.08)' : 'white',
@@ -983,7 +983,7 @@ if (data.ai_analysis) {
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="flex-1 py-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+              className="flex-1 py-1 rounded text-sm md:text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Downloading...</> : '⬇️ Download'}
@@ -994,7 +994,7 @@ if (data.ai_analysis) {
           {mobileToolbar === 'format' && (
             <div className="px-4 pb-3 grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Template</label>
+                <label className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide">Template</label>
                 <select
                   value={selectedTemplate}
                   onChange={(e) => {
@@ -1004,7 +1004,7 @@ if (data.ai_analysis) {
                     setSelectedFont(fonts[t] || 'Lato')
                     setHasUnsavedChanges(true)
                   }}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                  className="border border-gray-300 rounded px-2 py-1.5 text-base md:text-xs bg-white"
                 >
                   <option value="command">Command</option>
                   <option value="crisp">Crisp</option>
@@ -1017,11 +1017,11 @@ if (data.ai_analysis) {
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Font</label>
+                <label className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide">Font</label>
                 <select
                   value={selectedFont}
                   onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                  className="border border-gray-300 rounded px-2 py-1.5 text-base md:text-xs bg-white"
                 >
                   <option value="EB Garamond">EB Garamond</option>
                   <option value="Lato">Lato</option>
@@ -1030,21 +1030,21 @@ if (data.ai_analysis) {
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Size</label>
+                <label className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide">Size</label>
                 <select
                   value={selectedSize}
                   onChange={(e) => { setSelectedSize(Number(e.target.value)); setHasUnsavedChanges(true) }}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                  className="border border-gray-300 rounded px-2 py-1.5 text-base md:text-xs bg-white"
                 >
                   {[10, 11, 12].map(s => <option key={s} value={s}>{s}pt</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Dates</label>
+                <label className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide">Dates</label>
                 <select
                   value={dateFormat}
                   onChange={(e) => { setDateFormat(e.target.value); setHasUnsavedChanges(true) }}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-xs bg-white"
+                  className="border border-gray-300 rounded px-2 py-1.5 text-base md:text-xs bg-white"
                 >
                   <option value="short">MM/YYYY</option>
                   <option value="full">Month YYYY</option>
@@ -1052,7 +1052,7 @@ if (data.ai_analysis) {
                 </select>
               </div>
               <div className="flex flex-col gap-1 col-span-2">
-                <label className="text-[10px] text-gray-500 uppercase tracking-wide">Accent Color</label>
+                <label className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide">Accent Color</label>
                 <div className="flex items-center gap-1.5">
                   {['#5b4fcf','#1e3a5f','#7a1e3a','#1e6b6b','#1e5f3a','#8b3a1e','#2d2d2d','#2d4a6b'].map(c => (
                     <button
@@ -1068,7 +1068,7 @@ if (data.ai_analysis) {
                   <button
                     onClick={handleAutoFit}
                     disabled={isAutoFitting}
-                    className={`flex-1 py-1 rounded text-xs font-semibold border transition-colors ${
+                    className={`flex-1 py-1 rounded text-sm md:text-xs font-semibold border transition-colors ${
                       isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300' :
                       resumeExceedsPage ? 'border-amber-400 bg-amber-50 text-amber-700' :
                       'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -1089,7 +1089,7 @@ if (data.ai_analysis) {
                 <button
                   onClick={() => handleReassess()}
                   disabled={isAnalyzing || journeyStep === 'review'}
-                  className="py-1.5 border border-gray-300 rounded text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</> : 'Re-assess'}
                 </button>
@@ -1113,20 +1113,20 @@ if (data.ai_analysis) {
                     } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
                   }}
                   disabled={isLoadingPreview}
-                  className="py-1.5 border border-gray-300 rounded text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   {isLoadingPreview ? '...' : 'Preview'}
                 </button>
                 <button
                   onClick={undo}
                   disabled={historyIndex <= 0}
-                  className="py-1.5 border border-gray-300 rounded text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
+                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
                 >
                   ↶ Undo
                 </button>
                 <button
                   onClick={save}
-                  className={`py-1.5 rounded text-xs font-semibold ${
+                  className={`py-1.5 rounded text-sm md:text-xs font-semibold ${
                     saveSuccess ? 'bg-green-600 text-white' :
                     hasUnsavedChanges ? 'bg-purple-600 text-white' :
                     'bg-gray-200 text-gray-500'
@@ -1625,15 +1625,15 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
  <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-3 md:pt-4'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
  {isJobSpecific ? (
         <div className="mb-3 text-center">
-          <h3 className="font-bold text-sm text-gray-900 leading-tight">{resumeName}</h3>
+          <h3 className="font-bold text-base md:text-sm text-gray-900 leading-tight">{resumeName}</h3>
           {(userTier !== 'free') && (
             <div className="mt-3">
-              <p className="text-[10px] text-purple-600 font-semibold uppercase tracking-wide">Resume Tailoring Progress</p>
+              <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide">Resume Tailoring Progress</p>
             </div>
           )}
         </div>
       ) : (
-        <h3 className="text-center font-semibold text-sm mb-3">
+        <h3 className="text-center font-semibold text-base md:text-sm mb-3">
           {userName ? `${userName.split(' ')[0]}'s ` : ''}{resumeName} Progress
         </h3>
       )}
@@ -1690,7 +1690,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                     }
                     setResume(prev => ({ ...prev, journey_step: step }))
                   }}
-                 className={`text-xs mt-1 capitalize ${
+                 className={`text-sm md:text-xs mt-1 capitalize ${
                     index === currentIndex ? 'text-purple-600 font-semibold' :
                     index <= maxStepIndex ? 'text-purple-600 cursor-pointer hover:underline' :
                     'text-gray-400'
