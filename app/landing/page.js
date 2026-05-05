@@ -255,12 +255,38 @@ const supabase = createClient();
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-        @media (max-width: 768px) {
+       @media (max-width: 768px) {
           .hero { grid-template-columns: 1fr !important; padding: 32px 24px 48px !important; min-height: auto !important; }
           .hero-visual { display: none !important; }
           .hero h1 { font-size: 38px !important; letter-spacing: -1px !important; }
           .hero-inner-pad { margin-left: 0 !important; }
           .hero-actions { flex-direction: column !important; align-items: flex-start !important; }
+
+          /* Mobile readability bumps — eyebrows, microcopy, buttons all to min 14px */
+          .landing-page .section-eyebrow { font-size: 14px !important; }
+          .landing-page .interview-moment-eyebrow { font-size: 14px !important; }
+          .landing-page .manifesto-eyebrow { font-size: 14px !important; }
+          .landing-page .hero-trust { font-size: 14px !important; }
+          .landing-page .pricing-os-line { font-size: 14px !important; }
+          .landing-page .pricing-note { font-size: 14px !important; }
+          .landing-page .step-content h4 { font-size: 16px !important; }
+          .landing-page .step-content p { font-size: 14px !important; }
+          .landing-page .coach-pill h5 { font-size: 14px !important; }
+          .landing-page .coach-pill p { font-size: 14px !important; }
+          .landing-page .context-arrow { font-size: 14px !important; }
+          .landing-page .power-score-label { font-size: 14px !important; }
+          .landing-page .score-bar-name { font-size: 14px !important; }
+          .landing-page .score-bar-val { font-size: 14px !important; }
+          .landing-page .vault-event-content h5 { font-size: 14px !important; }
+          .landing-page .vault-event-content p { font-size: 14px !important; }
+          .landing-page .vault-event-date { font-size: 14px !important; }
+          .landing-page .tier-os-tag { font-size: 14px !important; }
+          .landing-page .tier-desc { font-size: 14px !important; }
+          .landing-page .tier-features li { font-size: 14px !important; }
+          .landing-page .tier-btn { font-size: 14px !important; }
+          .landing-page button { font-size: 14px !important; }
+          .landing-page a.btn-primary-lg,
+          .landing-page a.btn-white { font-size: 14px !important; }
 
           .container { padding: 0 24px !important; }
 
@@ -316,7 +342,7 @@ const supabase = createClient();
           .pricing .section-title { margin-bottom: 8px !important; }
           .hide-on-mobile { display: none !important; }
           .never-start-heading br { display: none !important; }
-          .hero h1 { font-size: 34px !important; }
+          .hero h1 { font-size: 42px !important; }
           .final-cta h2 { font-size: 36px !important; }
           .manifesto p { font-size: 18px !important; }
           .we-just-asked-gap { margin-bottom: 24px !important; }
