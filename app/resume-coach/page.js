@@ -951,28 +951,28 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[540px]">
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
-                      <span className="md:hidden text-xs font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
+                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
+                    <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
                     {/* Mobile: 3 action buttons */}
                     <div className="flex md:hidden gap-2 mb-4">
                       <button
                         onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                        className="flex-1 py-2 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         👁 View
                       </button>
                       <button
                         onClick={() => handleDownloadResume(data.coreResume.id)}
                         disabled={downloadingResumeId === data.coreResume.id}
-                        className="flex-1 py-2 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                       >
                         {downloadingResumeId === data.coreResume.id ? '...' : '⬇️ Download'}
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(data.coreResume.id)}
-                        className="flex-1 py-2 border border-red-200 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                        className="flex-1 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                       >
                         🗑 Delete
                       </button>
@@ -1099,7 +1099,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               </>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">
+                          <div className="text-sm md:text-xs text-gray-500 uppercase tracking-wide mb-3">
                             {!showPlaceholder ? 'Resume Power Score' : 'Not Yet Assessed'}
                           </div>
                           
@@ -1116,7 +1116,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                             
                             {/* Simple text labels with dots */}
-                            <div className="flex items-center justify-center gap-10 text-xs text-gray-600">
+                           <div className="flex items-center justify-center gap-10 text-sm md:text-xs text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
@@ -1148,17 +1148,17 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </>
                               )}
                             </div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
+                           <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).color }}></span>
-                                <span className={`text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).text}`}>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).text}`}>
                                   {getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).label}
                                 </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="text-[10px] text-gray-400">—</span>
+                                <span className="text-xs md:text-[10px] text-gray-400">—</span>
                               </div>
                             )}
                           </div>
@@ -1177,17 +1177,17 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </>
                               )}
                             </div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
+                            <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).color }}></span>
-                                <span className={`text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).text}`}>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).text}`}>
                                   {getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).label}
                                 </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="text-[10px] text-gray-400">—</span>
+                                <span className="text-xs md:text-[10px] text-gray-400">—</span>
                               </div>
                             )}
                           </div>
@@ -1206,17 +1206,17 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </>
                               )}
                             </div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
+                            <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).color }}></span>
-                                <span className={`text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).text}`}>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).text}`}>
                                   {getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).label}
                                 </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="text-[10px] text-gray-400">—</span>
+                                <span className="text-xs md:text-[10px] text-gray-400">—</span>
                               </div>
                             )}
                           </div>
@@ -1225,7 +1225,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                     {/* Progress Bar */}
                     <div className="mb-4">
-                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">Progress</div>
+                      <div className="text-sm md:text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">Progress</div>
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200">
                           <div 
@@ -1251,7 +1251,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 style={(isPast || isActive) ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
                                   {isPast ? '✓' : isActive ? '●' : '○'}
                                 </div>
-                                <span className={`text-xs mt-1 ${
+                                <span className={`text-sm md:text-xs mt-1 ${
                                   isActive ? 'text-purple-600 font-semibold' :
                                   isPast ? 'text-purple-600' :
                                   'text-gray-400'
@@ -1268,8 +1268,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {/* What This Means */}
                     <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                       <div className="flex-1">
-                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
-                        <p className="text-xs text-gray-700 leading-snug">
+                       <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
+                        <p className="text-sm md:text-xs text-gray-700 leading-snug">
                           {getJourneyMessage(displayStep)}
                         </p>
                       </div>
@@ -1305,7 +1305,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
-                        <p className="text-xs text-gray-500 mb-2">Tailored versions optimized for specific applications</p>
+                        <p className="text-sm md:text-xs text-gray-500 mb-2">Tailored versions optimized for specific applications</p>
                       <div>
                         <div className="space-y-2">
                           <button
@@ -1317,7 +1317,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                               </svg>
                             </div>
-                            <div className="text-xs font-semibold text-gray-900">Create New</div>
+                            <div className="text-sm md:text-xs font-semibold text-gray-900">Create New</div>
                           </button>
 
                           {data.resumeVersions && data.resumeVersions.length > 0 ? (
@@ -1330,8 +1330,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
-                                      <div className="text-[10px] text-gray-500 truncate">{version.job_company}</div>
+                                      <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
+                                      <div className="text-xs md:text-[10px] text-gray-500 truncate">{version.job_company}</div>
                                     </div>
                                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                                       {isPro && <button
@@ -1368,7 +1368,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               {data.resumeVersions.length > 2 && (
                                <button
                                     onClick={() => setShowOlderJSModal(true)}
-                                    className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     See {data.resumeVersions.length - 2} older version{data.resumeVersions.length - 2 > 1 ? 's' : ''} →
                                   </button>
@@ -1377,7 +1377,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           ) : (
                             <div className="text-center py-4 text-gray-500">
                               <div className="text-2xl mb-1">🎯</div>
-                              <p className="text-xs">No job-specific resumes yet.<br />Click "Create New" when you're ready.</p>
+                              <p className="text-sm md:text-xs">No job-specific resumes yet.<br />Click "Create New" when you're ready.</p>
                             </div>
                           )}
                         </div>
@@ -1387,13 +1387,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <>
                         <div className="flex items-center justify-between mb-0.5">
                           <h2 className="text-base font-semibold text-gray-900">Job Match Scores</h2>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          <span className={`text-xs md:text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                             jmsLimitReached ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'
                           }`}>
                             {Math.max(0, 3 - (data?.userProfile?.jms_count ?? 0))} of 3 remaining
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 mb-2">Upload a job description to see how well you match</p>
+                        <p className="text-sm md:text-xs text-gray-500 mb-2">Upload a job description to see how well you match</p>
                         <div className="space-y-1.5">
                           {(() => {
                             const versions = data.resumeVersions || []
@@ -1413,8 +1413,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   >
                                     <div className="flex items-center justify-between w-full">
                                       <div className="flex-1 min-w-0">
-                                        <div className="text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
-                                        <div className="text-[10px] text-gray-500 truncate">{version.job_company}</div>
+                                        <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{version.job_title}</div>
+                                        <div className="text-xs md:text-[10px] text-gray-500 truncate">{version.job_company}</div>
                                       </div>
                                       <div className="flex items-center gap-1 ml-2 flex-shrink-0 ml-auto">
                                         {isPro && <button
@@ -1463,7 +1463,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                       </svg>
                                     </div>
-                                    <div className="text-xs font-semibold text-gray-700">Click to upload a job description</div>
+                                    <div className="text-sm md:text-xs font-semibold text-gray-700">Click to upload a job description</div>
                                   </button>
                                 )
                               }
@@ -1474,7 +1474,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
                                   style={{ height: '44px' }}
                                 >
-                                  <div className="text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Job Match Score {slotIndex + 1}</div>
+                                  <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Job Match Score {slotIndex + 1}</div>
                                 </div>
                               )
                             })
@@ -1489,7 +1489,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
                               <span className="text-[10px]">🔒</span>
                             </div>
-                            <div className="text-xs font-semibold text-purple-600">Go Pro to tailor your resume to each job</div>
+                            <div className="text-sm md:text-xs font-semibold text-purple-600">Go Pro to tailor your resume to each job</div>
                           </button>
                         </div>
                       </>
@@ -1501,7 +1501,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
-                        <p className="text-xs text-gray-500 mb-2">Written for this job, not every job.</p>
+                        <p className="text-sm md:text-xs text-gray-500 mb-2">Written for this job, not every job.</p>
                         <div>
                           <div className="space-y-2">
                             <button
@@ -1513,7 +1513,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                               </div>
-                              <div className="text-xs font-semibold text-gray-900">Create New</div>
+                              <div className="text-sm md:text-xs font-semibold text-gray-900 ">Create New</div>
                             </button>
 
                             {data.coverLetters && data.coverLetters.length > 0 ? (
@@ -1533,8 +1533,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                           </svg>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
-                                          <div className="text-[10px] text-gray-500 truncate">{cl.job_company}</div>
+                                          <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
+                                          <div className="text-xs md:text-[10px] text-gray-500 truncate">{cl.job_company}</div>
                                         </div>
                                       </div>
                                      <button
@@ -1552,7 +1552,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 {data.coverLetters.length > 2 && (
                                   <button
                                       onClick={() => setShowOlderCLModal(true)}
-                                      className="w-full text-center py-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                      className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                     >
                                       See {data.coverLetters.length - 2} older letter{data.coverLetters.length - 2 > 1 ? 's' : ''} →
                                     </button>
@@ -1561,7 +1561,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             ) : (
                               <div className="text-center py-4 text-gray-500">
                                 <div className="text-2xl mb-1">✉️</div>
-                                <p className="text-xs">No cover letters yet.<br />Click "Create New" when you're ready.</p>
+                                <p className="text-sm md:text-xs">No cover letters yet.<br />Click "Create New" when you're ready.</p>
                               </div>
                             )}
                           </div>
@@ -1571,13 +1571,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <>
                         <div className="flex items-center justify-between mb-0.5">
                           <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          <span className={`text-xs md:text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                             clLimitReached ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'
                           }`}>
                             {Math.max(0, 3 - (data?.userProfile?.cl_count ?? 0))} of 3 remaining
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 mb-2">Written for this job, not every job.</p>
+                        <p className="text-sm md:text-xs text-gray-500 mb-2">Written for this job, not every job.</p>
                         <div className="space-y-1.5">
                           {(() => {
                             const letters = data.coverLetters || []
@@ -1602,8 +1602,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                         </svg>
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <div className="text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
-                                        <div className="text-[10px] text-gray-500 truncate">{cl.job_company}</div>
+                                        <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{cl.job_title}</div>
+                                        <div className="text-xs md:text-[10px] text-gray-500 truncate">{cl.job_company}</div>
                                       </div>
                                     </div>
                                   </div>
@@ -1623,7 +1623,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                       </svg>
                                     </div>
-                                    <div className="text-xs font-semibold text-gray-700">Click to create a cover letter</div>
+                                    <div className="text-sm md:text-xs font-semibold text-gray-700">Click to create a cover letter</div>
                                   </button>
                                 )
                               }
@@ -1634,7 +1634,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
                                   style={{ height: '44px' }}
                                 >
-                                  <div className="text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Cover Letter {slotIndex + 1}</div>
+                                  <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Cover Letter {slotIndex + 1}</div>
                                 </div>
                               )
                             })
@@ -1648,7 +1648,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
                               <span className="text-[10px]">🔒</span>
                             </div>
-                            <div className="text-xs font-semibold text-purple-600">Go Pro for unlimited cover letters</div>
+                            <div className="text-sm md:text-xs font-semibold text-purple-600">Go Pro for unlimited cover letters</div>
                           </button>
                         </div>
                       </>
@@ -1666,13 +1666,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-8">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 md:h-[540px]">
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
-                    <p className="text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
+                    <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
                     {/* Thumbnail LEFT | Score RIGHT - EXACT same grid */}
                     <div className="grid grid-cols-12 gap-4 mb-4">
                       
                       {/* Left: Empty Thumbnail (Upload Box) - col-span-4 */}
-                      <div className="col-span-4">
+                      <div className="hidden md:block md:col-span-4">
                         <label className="block cursor-pointer" onClick={(e) => { e.preventDefault(); setShowTourModal(true); setTourScreen(3); }}>
                           <input
                             type="file"
@@ -1688,7 +1688,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             {uploading ? (
                               <div className="flex flex-col items-center gap-2">
                                 <div className="animate-spin h-6 w-6 border-3 border-purple-600 border-t-transparent rounded-full"></div>
-                                <p className="text-xs font-medium text-gray-700">Uploading...</p>
+                                <p className="text-sm md:text-xs font-medium text-gray-700">Uploading...</p>
                               </div>
                             ) : uploadError ? (
                               <div className="flex flex-col items-center gap-2 px-4">
@@ -1696,11 +1696,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                                 <div className="text-center">
-                                  <p className="text-xs font-semibold text-amber-900">Upload Failed</p>
-                                  <p className="text-[10px] text-amber-700 mt-1">{uploadError}</p>
+                                  <p className="text-sm md:text-xs font-semibold text-amber-900">Upload Failed</p>
+                                  <p className="text-xs md:text-[10px] text-amber-700 mt-1">{uploadError}</p>
                                   <button
                                     onClick={() => setUploadError(null)}
-                                    className="text-[10px] text-purple-600 hover:text-purple-700 font-medium mt-2"
+                                    className="text-xs md:text-[10px] text-purple-600 hover:text-purple-700 font-medium mt-2"
                                   >
                                     Try Again
                                   </button>
@@ -1712,8 +1712,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                                 <div className="text-center">
-                                  <p className="text-xs font-semibold text-gray-900">Upload or build your</p>
-                                  <p className="text-xs font-semibold text-gray-900">resume to begin.</p>
+                                  <p className="text-sm md:text-xs font-semibold text-gray-900">Upload or build your</p>
+                                  <p className="text-sm md:text-xs font-semibold text-gray-900">resume to begin.</p>
                                 </div>
                               </div>
                             )}
@@ -1722,14 +1722,24 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       
                       {/* Right: Empty Score Section - col-span-8 */}
-                      <div className="col-span-8 flex flex-col justify-between py-3">
+                      <div className="col-span-12 md:col-span-8 flex flex-col justify-between py-3">
+                        {/* Mobile-only Get Started button */}
+                        <div className="md:hidden mb-4 flex justify-center">
+                          <button
+                            onClick={() => { setShowTourModal(true); setTourScreen(3); }}
+                            className="text-white px-6 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm"
+                            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                          >
+                            Start Your Resume
+                          </button>
+                        </div>
                         {/* Giant Score */}
                         <div className="text-center">
                           <div className="mb-3">
                             <span className="text-7xl font-bold text-gray-300">--</span>
                             <span className="text-3xl text-gray-300">/100</span>
                           </div>
-                          <div className="text-xs text-gray-500 uppercase tracking-wide mb-3">
+                          <div className="text-sm md:text-xs text-gray-500 uppercase tracking-wide mb-3">
                             Not Yet Assessed
                           </div>
                           
@@ -1740,7 +1750,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                             
                             {/* Simple text labels with dots */}
-                            <div className="flex items-center justify-center gap-6 text-xs text-gray-600">
+                            <div className="flex items-center justify-center gap-6 text-sm md:text-xs text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
@@ -1763,9 +1773,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               <span className="text-gray-300">--</span>
                               <span className="text-sm text-gray-300">/50</span>
 </div>
-<div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
+<div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
                             <div className="flex items-center justify-center gap-1">
-                              <span className="text-[10px] text-gray-400">—</span>
+                              <span className="text-xs md:text-[10px] text-gray-400">—</span>
                             </div>
                           </div>
                           
@@ -1774,9 +1784,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               <span className="text-gray-300">--</span>
                               <span className="text-sm text-gray-300">/30</span>
 </div>
-<div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
+<div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
                             <div className="flex items-center justify-center gap-1">
-                              <span className="text-[10px] text-gray-400">—</span>
+                              <span className="text-xs md:text-[10px] text-gray-400">—</span>
                             </div>
                           </div>
                           
@@ -1785,7 +1795,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               <span className="text-gray-300">--</span>
                               <span className="text-sm text-gray-300">/20</span>
                             </div>
-                            <div className="text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
+                            <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
                             <div className="flex items-center justify-center gap-1">
                               <span className="text-[10px] text-gray-400">—</span>
                             </div>
@@ -1796,7 +1806,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                     {/* Journey Progress - All Gray */}
                     <div className="mb-4">
-                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Journey Progress</div>
+                      <div className="text-sm md:text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Journey Progress</div>
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200"></div>
                         <div className="relative flex justify-between">
@@ -1805,7 +1815,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 bg-white border border-gray-300 text-gray-400">
                                 ○
                               </div>
-                              <span className="text-xs mt-1 text-gray-400">
+                              <span className="text-sm md:text-xs mt-1 text-gray-400">
                                 {step}
                               </span>
                             </div>
@@ -1817,8 +1827,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {/* What This Means - WITH Upload Button */}
                     <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between gap-3">
                       <div className="flex-1">
-                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
-                        <p className="text-xs text-gray-700 leading-snug">
+                        <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
+                        <p className="text-sm md:text-xs text-gray-700 leading-snug">
                           You haven't started yet. Click "Get Started" to upload or build your resume.
                         </p>
                       </div>
@@ -1839,25 +1849,25 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
-                        <p className="text-xs text-gray-500 mb-4">Tailored versions optimized for specific applications</p>
+                        <p className="text-sm md:text-xs text-gray-500 mb-4">Tailored versions optimized for specific applications</p>
                       </>
                     ) : (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job Match Scores</h2>
-                        <p className="text-xs text-gray-500 mb-4">Upload a job description to see how well you match</p>
+                        <p className="text-sm md:text-xs text-gray-500 mb-4">Upload a job description to see how well you match</p>
                       </>
                     )}
                     <div className="text-center py-6 text-gray-400">
                       <div className="text-3xl mb-2">{isPro ? '📋' : '🎯'}</div>
-                      <p className="text-xs">Complete your core resume first</p>
+                      <p className="text-sm md:text-xs">Complete your core resume first</p>
                     </div>
                   </div>
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px' }}>
                     <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
-                    <p className="text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
+                    <p className="text-sm md:text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
                     <div className="text-center py-6 text-gray-400">
                       <div className="text-3xl mb-2">✉️</div>
-                      <p className="text-xs">Complete your core resume first</p>
+                      <p className="text-sm md:text-xs">Complete your core resume first</p>
                     </div>
                   </div>
                 </div>
@@ -1886,7 +1896,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-white">{isPro ? 'Tailor for a Specific Job' : 'Check Your Job Match Score'}</h2>
-                    <p className="text-purple-100 text-xs">{isPro ? "We'll analyze the match and coach your resume for this role." : "We'll analyze how closely your resume aligns with this role."}</p>
+                    <p className="text-purple-100 text-sm md:text-xs">{isPro ? "We'll analyze the match and coach your resume for this role." : "We'll analyze how closely your resume aligns with this role."}</p>
                   </div>
                 </div>
                 <button
@@ -1920,7 +1930,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         setJobDescription(selected?.description || '');
                       }
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base md:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
                   >
                     <option value="">None selected</option>
                     {jobSources.filter(s => !s.has_resume).map(s => (
@@ -1930,7 +1940,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Title</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title</label>
                 <input
                   type="text"
                   value={jobTitle}
@@ -1941,7 +1951,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Company</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={jobCompany}
@@ -1952,7 +1962,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Description</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description</label>
                 <textarea
                   value={jobDescription}
                   onChange={e => setJobDescription(e.target.value)}
@@ -1963,7 +1973,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               </div>
 
               {jobCreateError && (
-                <p className="text-xs text-red-600">{jobCreateError}</p>
+                <p className="text-sm md:text-xs text-red-600">{jobCreateError}</p>
               )}
 
               <button
@@ -2178,7 +2188,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-white">Create Cover Letter</h2>
-                    <p className="text-purple-100 text-xs">Stand out by showing how your skills align. Edit and download when ready.</p>
+                    <p className="text-purple-100 text-sm md:text-xs">Stand out by showing how your skills align. Edit and download when ready.</p>
                   </div>
                 </div>
                 <button
@@ -2193,8 +2203,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
            <div className="p-4 space-y-3">
               {jobSources.filter(s => !s.has_cover_letter).length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Use details from existing job</label>
-                  <p className="text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
+                  <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Use details from existing job</label>
+                  <p className="text-xs md:text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
                   <select
                     value={selectedJobSourceId}
                     onChange={e => {
@@ -2224,7 +2234,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Title</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title</label>
                 <input
                   type="text"
                   value={clJobTitle}
@@ -2235,7 +2245,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Company</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={clCompany}
@@ -2246,7 +2256,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Job Description</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description</label>
                 <textarea
                   value={clJobDescription}
                   onChange={e => setClJobDescription(e.target.value)}
@@ -2255,7 +2265,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
-              {clCreateError && <p className="text-xs text-red-600">{clCreateError}</p>}
+              {clCreateError && <p className="text-sm md:text-xs text-red-600">{clCreateError}</p>}
               <button
                 onClick={handleCreateCoverLetter}
                 disabled={creatingCL}
