@@ -9,6 +9,22 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/:path*',
+          has: [{ type: 'host', value: 'brbresume.com' }],
+          destination: '/brb-landing/:path*',
+        },
+        {
+          source: '/:path*',
+          has: [{ type: 'host', value: 'www.brbresume.com' }],
+          destination: '/brb-landing/:path*',
+        },
+      ],
+    }
+  },
 }
 
 export default nextConfig
