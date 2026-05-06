@@ -36,6 +36,22 @@ export async function GET(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
+    // Check if we've already processed this Stripe session. If so, redirect to
+    // the existing resume instead of creating a duplicate (handles back/refresh).
+    const { data: existingResume, error: lookupError } = await supabase
+      .from('resumes')
+      .select('id')
+      .eq('stripe_session_id', sessionId)
+      .maybeSingle()
+
+    if (lookupError) {
+      console.error('post-stripe-brb: lookup failed', sessionId, lookupError)
+    }
+
+    if (existingResume) {
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/resume/${existingResume.id}`)
+    }
+
     const { data: newResume, error: insertError } = await supabase
       .from('resumes')
       .insert({
@@ -44,7 +60,8 @@ export async function GET(request) {
         display_name: 'Core Resume',
         resume_data: {},
         journey_step: 'chat',
-        created_via: 'resume_chat'
+        created_via: 'resume_chat',
+        stripe_session_id: sessionId
       })
       .select()
       .single()

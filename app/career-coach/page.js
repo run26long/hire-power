@@ -45,9 +45,13 @@ export default function MyCareerPage() {
         const { data: resumes, error: resumesError } = await supabase
           .from('resumes').select('*').eq('user_id', user.id)
           .eq('resume_type', 'core')
-          .order('updated_at', { ascending: false }).limit(1);
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false });
         if (resumesError) throw resumesError;
-        if (resumes && resumes.length > 0) setExistingResume(resumes[0]);
+        // Match Resume Coach logic: BRB resumes only count once coaching_complete.
+        // Otherwise they're an in-progress session, not a real core resume.
+        const realCore = (resumes || []).find(r => r.created_via !== 'resume_chat' || r.coaching_complete);
+        if (realCore) setExistingResume(realCore);
 
         // Surface session-stored toast from /career-coach/detail redirects
         const carryover = sessionStorage.getItem('hp_career_coach_toast');
@@ -182,15 +186,18 @@ export default function MyCareerPage() {
       return;
     }
 
-    // Find most recent resume to use
+    // Find most recent resume to use — match Resume Coach logic by skipping
+    // BRB sessions that haven't completed coaching yet.
     const { data: resumes } = await supabase
-      .from('resumes').select('id').eq('user_id', user.id)
+      .from('resumes').select('id, created_via, coaching_complete').eq('user_id', user.id)
       .eq('resume_type', 'core')
-      .order('updated_at', { ascending: false }).limit(1);
-    if (resumes && resumes.length > 0) {
-      router.push(`/career-coach/detail?resumeId=${resumes[0].id}`);
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false });
+    const realCore = (resumes || []).find(r => r.created_via !== 'resume_chat' || r.coaching_complete);
+    if (realCore) {
+      router.push(`/career-coach/detail?resumeId=${realCore.id}`);
     } else {
-      // No resume yet — show upload/build modal
+      // No real resume yet — show upload/build modal
       setShowModal(true);
     }
   };
@@ -670,7 +677,7 @@ export default function MyCareerPage() {
                     <button
                       onClick={() => {
                         localStorage.setItem('hp_career_modal_seen', 'true');
-                        router.push('/career-coach/build');
+                        router.push('/build?from=career-coach');
                       }}
                       className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline"
                     >
