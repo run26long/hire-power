@@ -116,13 +116,23 @@ function DashboardContent() {
           setShowLoginModal(true);
           return;
         }
-        setUser(user);
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles').select('*').eq('id', user.id).single();
         if (profileError) {
           console.warn('Dashboard profile load issue (non-fatal):', profileError);
         }
+
+        // Block dashboard access if the account has been flagged for deletion.
+        // Catches users with a valid session token from before deletion was requested.
+        if (profile?.deletion_requested_at) {
+          await supabase.auth.signOut();
+          setShowLoginModal(true);
+          setLoginError('account_deleted');
+          return;
+        }
+
+        setUser(user);
         if (profile) setUserProfile(profile);
 
         // New user → Dashboard
@@ -159,12 +169,28 @@ function DashboardContent() {
     e.preventDefault();
     setLoginLoading(true); setLoginError('');
     const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
-    setLoginLoading(false);
     if (signInError) {
+      setLoginLoading(false);
       setLoginError(signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed') ? 'account_not_found' : signInError.message);
       return;
     }
-    if (data.user) { setShowLoginModal(false); window.location.href = '/dashboard'; }
+    if (data.user) {
+      // Block login if the account has been flagged for deletion.
+      const { data: profileCheck } = await supabase
+        .from('profiles')
+        .select('deletion_requested_at')
+        .eq('id', data.user.id)
+        .single();
+      if (profileCheck?.deletion_requested_at) {
+        await supabase.auth.signOut();
+        setLoginLoading(false);
+        setLoginError('account_deleted');
+        return;
+      }
+      setLoginLoading(false);
+      setShowLoginModal(false);
+      window.location.href = '/dashboard';
+    }
   };
 
   const handleForgotPassword = async (e) => {
@@ -290,6 +316,10 @@ function DashboardContent() {
                   {loginError === 'account_not_found' ? (
                     <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm mb-4">
                       No account found. <button onClick={() => router.push('/landing')} className="font-semibold underline">Sign up free →</button>
+                    </div>
+                  ) : loginError === 'account_deleted' ? (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
+                      This account has been deleted. If this was a mistake, email <a href="mailto:hired@hirepowerai.com" className="font-semibold underline">hired@hirepowerai.com</a>.
                     </div>
                   ) : loginError ? (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">{loginError}</div>
