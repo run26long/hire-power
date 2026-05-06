@@ -163,7 +163,7 @@ export default function BrbLandingPage() {
             </div>
             <div className="pitch"><span className="hook">no resume?</span><span className="line">that&apos;s literally</span> <span className="punch">what we&apos;re here for.</span></div>
             <a href="#" className="cta" onClick={openModal}>write my resume</a>
-            <div className="trust">mobile friendly · no laptop · talk or type</div>
+            <div className="trust">yes, from your phone. · no laptop required · talk or type</div>
           </div>
         </section>
 
