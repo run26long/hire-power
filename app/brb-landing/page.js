@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ErrorToast from '@/app/components/ErrorToast'
 
 export default function BrbLandingPage() {
   const router = useRouter()
@@ -13,6 +14,8 @@ export default function BrbLandingPage() {
   const [accountExists, setAccountExists] = useState(false)
   const [success, setSuccess] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [errorToast, setErrorToast] = useState(null)
 
   // Detect ?cancelled=true (user backed out of Stripe) and show cancel modal
   useEffect(() => {
@@ -413,16 +416,26 @@ export default function BrbLandingPage() {
                     </div>
                     <div className="field">
                       <label htmlFor="brb-password">password</label>
-                      <input
-                        type="password"
-                        id="brb-password"
-                        required
-                        minLength={6}
-                        placeholder="min 6 characters"
-                        autoComplete="new-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
+                      <div className="password-wrap">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          id="brb-password"
+                          required
+                          minLength={6}
+                          placeholder="min 6 characters"
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? '🙈' : '👁️'}
+                        </button>
+                      </div>
                     </div>
 
                   <div className="transparency">
@@ -518,7 +531,15 @@ export default function BrbLandingPage() {
               <h2 className="cancel-headline">got cold feet?</h2>
               <p className="cancel-lede">No problem. Your free Hire Power account is already created.</p>
               <ul className="cancel-list">
-                <li><span className="cancel-check">✓</span> <a href="https://hirepowerai.com/build">build my resume myself (for free)</a></li>
+                <li><span className="cancel-check">✓</span> <button type="button" className="cancel-link-btn" onClick={(e) => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                    e.preventDefault()
+                    setShowDesktopToast(true)
+                    setTimeout(() => setShowDesktopToast(false), 4000)
+                  } else {
+                    window.location.href = 'https://hirepowerai.com/build'
+                  }
+                }}>build my resume myself (desktop only)</button></li>
                 <li><span className="cancel-check">✓</span> <button type="button" className="cancel-link-btn" onClick={() => { setShowCancelModal(false); setShowModal(true); }}>jk. i want brb to do it for me</button></li>
               </ul>
               <p className="cancel-footnote">brb is best on mobile.</p>
@@ -526,6 +547,8 @@ export default function BrbLandingPage() {
           </div>
         </div>
       ) : null}
+
+      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
       <style>{`
 :root {
@@ -2408,7 +2431,31 @@ html, body {
           text-decoration: underline;
         }
 
-       /* Cancel modal */
+       .password-wrap {
+          position: relative;
+        }
+        .password-wrap input {
+          padding-right: 40px;
+        }
+        .password-toggle {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-size: 16px;
+          line-height: 1;
+          opacity: 0.6;
+          transition: opacity 0.15s;
+        }
+        .password-toggle:hover {
+          opacity: 1;
+        }
+
+        /* Cancel modal */
         .cancel-hp {
           display: flex;
           align-items: center;
