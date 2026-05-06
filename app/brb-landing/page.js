@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import ErrorToast from '@/app/components/ErrorToast'
 
 export default function BrbLandingPage() {
   const router = useRouter()
@@ -15,15 +14,29 @@ export default function BrbLandingPage() {
   const [success, setSuccess] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [errorToast, setErrorToast] = useState(null)
+  const [signupUserId, setSignupUserId] = useState(null)
 
-  // Detect ?cancelled=true (user backed out of Stripe) and show cancel modal
+  // Detect ?cancelled=true (user backed out of Stripe) and show cancel modal.
+  // If session_id is also present, recover the userId + email from Stripe so
+  // the "jk" link can send them straight back to checkout without a re-signup.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     if (params.get('cancelled') === 'true') {
       setShowCancelModal(true)
-      // Clean the param out of the URL so refresh doesn't re-trigger
+      const sessionId = params.get('session_id')
+      if (sessionId) {
+        fetch(`/api/auth/recover-stripe-session?session_id=${encodeURIComponent(sessionId)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.userId && data.email) {
+              setSignupUserId(data.userId)
+              setEmail(data.email)
+            }
+          })
+          .catch(err => console.error('Failed to recover Stripe session:', err))
+      }
+      // Clean the params out of the URL so refresh doesn't re-trigger
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
@@ -92,6 +105,7 @@ export default function BrbLandingPage() {
       const { createClient } = await import('@/utils/supabase/client')
       const supabase = createClient()
       await supabase.auth.signInWithPassword({ email, password })
+      setSignupUserId(data.userId)
       setSuccess(true)
       setTimeout(() => { window.location.href = data.checkoutUrl }, 800)
     } catch (err) {
@@ -531,25 +545,65 @@ export default function BrbLandingPage() {
               <h2 className="cancel-headline">got cold feet?</h2>
               <p className="cancel-lede">No problem. Your free Hire Power account is already created.</p>
               <ul className="cancel-list">
-                <li><span className="cancel-check">✓</span> <button type="button" className="cancel-link-btn" onClick={(e) => {
-                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
-                    e.preventDefault()
-                    setErrorToast('Building your own resume needs a desktop. Open hirepowerai.com on a computer.')
-                  } else {
-                    window.location.href = 'https://hirepowerai.com/build'
-                  }
-                }}>build my resume myself (desktop only)</button></li>
-                <li><span className="cancel-check">✓</span> <button type="button" className="cancel-link-btn" onClick={() => { setShowCancelModal(false); setShowModal(true); }}>jk. i want brb to do it for me</button></li>
+                <li className="cancel-mobile-only">
+                  <span className="cancel-check">✓</span>
+                  <span className="cancel-text-static">brb is mobile-only. To build a resume yourself, head to <strong>hirepowerai.com</strong> on a computer.</span>
+                </li>
+                <li className="cancel-desktop-only">
+                  <span className="cancel-check">✓</span>
+                  <button type="button" className="cancel-link-btn" onClick={() => { window.location.href = 'https://hirepowerai.com/build' }}>build my resume myself</button>
+                </li>
+                <li>
+                  <span className="cancel-check">✓</span>
+                  <button type="button" className="cancel-link-btn" onClick={async () => {
+                    if (!signupUserId || !email) {
+                      // Fallback: no signup data in state (e.g. they refreshed). Send to signup modal.
+                      setShowCancelModal(false)
+                      setShowModal(true)
+                      return
+                    }
+                    try {
+                      const { createClient } = await import('@/utils/supabase/client')
+                      const supabase = createClient()
+                      const { data: { session } } = await supabase.auth.getSession()
+                      if (!session?.access_token) {
+                        setShowCancelModal(false)
+                        setShowModal(true)
+                        return
+                      }
+                      const res = await fetch('/api/stripe/checkout', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${session.access_token}`
+                        },
+                        body: JSON.stringify({
+                          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+                          userId: signupUserId,
+                          email,
+                          source: 'brb'
+                        })
+                      })
+                      const data = await res.json()
+                      if (data.url) {
+                        window.location.href = data.url
+                      } else {
+                        // Fallback: route failed, send them to signup so they can retry
+                        setShowCancelModal(false)
+                        setShowModal(true)
+                      }
+                    } catch (err) {
+                      setShowCancelModal(false)
+                      setShowModal(true)
+                    }
+                  }}>jk. i want brb to do it for me · $30 incoming!</button>
+                </li>
               </ul>
               <p className="cancel-footnote">brb is best on mobile.</p>
             </div>
           </div>
         </div>
       ) : null}
-
-      <div style={{ position: 'fixed', zIndex: 9999, bottom: 0, left: 0, right: 0, pointerEvents: errorToast ? 'auto' : 'none' }}>
-        <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
-      </div>
 
       <style>{`
 :root {
@@ -2130,7 +2184,7 @@ html, body {
 .modal-card {
   background: #fff;
   width: 100%;
-  max-width: 500px;
+  max-width: 420px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(20, 8, 40, 0.4);
@@ -2539,6 +2593,15 @@ html, body {
           margin: 14px 0 0;
           letter-spacing: 0.3px;
           font-style: italic;
+        }
+        .cancel-text-static {
+          color: #161616;
+        }
+        .cancel-list li.cancel-mobile-only { display: none; }
+        .cancel-list li.cancel-desktop-only { display: flex; }
+        @media (max-width: 767px) {
+          .cancel-list li.cancel-mobile-only { display: flex; }
+          .cancel-list li.cancel-desktop-only { display: none; }
         }
         @media (max-width: 480px) {
           .cancel-headline { font-size: 26px; }
