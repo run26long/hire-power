@@ -58,9 +58,13 @@ export async function POST(request) {
         mode: 'subscription',
         customer_email: email,
         line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, quantity: 1 }],
-        success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
-        cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
-        metadata: { userId: userData.user.id }
+        success_url: source === 'brb'
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/post-stripe-brb?session_id={CHECKOUT_SESSION_ID}`
+          : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
+        cancel_url: source === 'brb'
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/brb-landing?cancelled=true`
+          : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+        metadata: { userId: userData.user.id, source: source || 'hp' }
       })
     } catch (stripeError) {
       console.error('signup-pro: Stripe session failed, rolling back user creation:', stripeError)

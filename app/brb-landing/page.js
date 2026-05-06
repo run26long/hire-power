@@ -12,20 +12,37 @@ export default function BrbLandingPage() {
   const [error, setError] = useState(null)
   const [accountExists, setAccountExists] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
-  // Lock body scroll when modal is open
+  // Detect ?cancelled=true (user backed out of Stripe) and show cancel modal
   useEffect(() => {
-    document.body.style.overflow = showModal ? 'hidden' : ''
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('cancelled') === 'true') {
+      setShowCancelModal(true)
+      // Clean the param out of the URL so refresh doesn't re-trigger
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    document.body.style.overflow = (showModal || showCancelModal) ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [showModal])
+  }, [showModal, showCancelModal])
 
-  // ESC closes modal
+  // ESC closes either modal
   useEffect(() => {
-    if (!showModal) return
-    const onKey = (e) => { if (e.key === 'Escape') closeModal() }
+    if (!showModal && !showCancelModal) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        if (showCancelModal) setShowCancelModal(false)
+        else closeModal()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [showModal])
+  }, [showModal, showCancelModal])
 
   const openModal = (e) => {
     if (e) e.preventDefault()
@@ -381,37 +398,7 @@ export default function BrbLandingPage() {
                 </div>
               ) : (
                 <>
-                  <div className="transparency">
-                    <span className="tx-label">heads up:</span>{' '}
-                    you came for the resume. you&apos;ll get one. signing up also unlocks{' '}
-                    <strong>every feature of Hire Power Pro</strong> &mdash; kind of like Netflix when you came for Stranger Things and got every other show too.
-                  </div>
-
-                  <p className="features-label">the rest of the library</p>
-                  <ul className="features">
-                    <li>a tailored resume for every job or internship you apply to</li>
-                    <li>12 cover letters in the time it takes to scroll TikTok</li>
-                    <li>interview practice that listens, not lectures</li>
-                    <li>a job tracker that remembers where you applied (bc you won&apos;t)</li>
-                  </ul>
-
-                  {accountExists && (
-                    <div className="msg-box info">
-                      account already exists.{' '}
-                      <button
-                        type="button"
-                        className="link-btn"
-                        onClick={() => router.push('/dashboard')}
-                      >
-                        log in instead
-                      </button>
-                    </div>
-                  )}
-                  {error && (
-                    <div className="msg-box err">{error}</div>
-                  )}
-
-                  <form className="signup-form" onSubmit={handleSubmit} noValidate>
+                      <form className="signup-form" onSubmit={handleSubmit} noValidate>
                     <div className="field">
                       <label htmlFor="brb-email">email</label>
                       <input
@@ -438,17 +425,48 @@ export default function BrbLandingPage() {
                       />
                     </div>
 
-                    <p className="cancel-line">
-                      $29.99/mo. cancel anytime. (we&apos;ll just keep adding reasons not to.)
-                    </p>
+                  <div className="transparency">
+                    <span className="tx-label">heads up:</span>{' '}
+                    You came for the resume & you&apos;ll get a great one. But signing up also gets you{' '}
+                    every feature of Hire Power Pro. Kind of like Netflix when you came for Stranger Things and got every other show too.
+                  </div>
+
+                  <p className="features-label">here's what's in the rest of the library</p>
+                  <ul className="features">
+                    <li>a tailored resume for every job or internship</li>
+                    <li>12 cover letters in the time it takes to scroll TikTok</li>
+                    <li>interview practice that listens, not lectures</li>
+                    <li>a job tracker that remembers where you applied</li>
+                  </ul>
+
+                  {accountExists && (
+                    <div className="msg-box info">
+                      account already exists.{' '}
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => router.push('/dashboard')}
+                      >
+                        log in instead
+                      </button>
+                    </div>
+                  )}
+                  {error && (
+                    <div className="msg-box err">{error}</div>
+                  )}
+
+            
 
                     <button type="submit" className="cta-submit" disabled={loading}>
                       {loading ? 'creating account...' : 'write my resume · $29.99/mo'}
                     </button>
                   </form>
-
+ <p className="cancel-line">
+                      cancel anytime. but we&apos;ll give you reasons not to.
+                    </p>
+                
                   <p className="terms-line">
-                    by creating a Hire Power account, you agree to our{' '}
+                    by creating an account, you agree to our{' '}
                     <a href="/terms" target="_blank" rel="noopener noreferrer">terms</a>{' '}
                     and{' '}
                     <a href="/privacy" target="_blank" rel="noopener noreferrer">privacy policy</a>.
@@ -469,6 +487,45 @@ export default function BrbLandingPage() {
           </div>
         </div>
       )}
+
+      {showCancelModal ? (
+        <div
+          className="modal-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-modal-title"
+          onMouseDown={(e) => {
+            e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'
+          }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') {
+              setShowCancelModal(false)
+            }
+          }}
+        >
+          <div className="modal-card cancel-card" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modal-header cancel-header">
+              <button type="button" className="modal-close" onClick={() => setShowCancelModal(false)} aria-label="Close">×</button>
+              <div className="header-row">
+                <div className="modal-mark" id="cancel-modal-title">brb</div>
+                <div className="cancel-hp">
+                  <img src="/images/Hire_Power_icon.png" alt="" className="cancel-hp-icon" />
+                  <span className="cancel-hp-text">HIRE POWER</span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-body cancel-body">
+              <h2 className="cancel-headline">got cold feet?</h2>
+              <p className="cancel-lede">No problem. Your free Hire Power account is already created.</p>
+              <ul className="cancel-list">
+                <li><span className="cancel-check">✓</span> <a href="https://hirepowerai.com/build">build my resume myself (for free)</a></li>
+                <li><span className="cancel-check">✓</span> <button type="button" className="cancel-link-btn" onClick={() => { setShowCancelModal(false); setShowModal(true); }}>jk. i want brb to do it for me</button></li>
+              </ul>
+              <p className="cancel-footnote">brb is best on mobile.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <style>{`
 :root {
@@ -2267,37 +2324,40 @@ html, body {
   .modal-overlay { padding: 8px; }
   .modal-card { border-radius: 14px; }
   .modal-header { padding: 10px 18px 8px; }
-  .modal-body { padding: 8px 18px 10px; }
+  .modal-body { padding: 10px 18px 12px; }
   .header-row { padding-right: 22px; gap: 12px; }
   .modal-mark { font-size: 28px; }
-  .modal-tag { font-size: 10px; }
-  .modal-pwr { font-size: 8.5px; }
+  .modal-tag { font-size: 12px; }
+  .modal-pwr { font-size: 10px; }
   .transparency {
-    font-size: 11.5px;
-    padding: 8px 12px;
-    margin-bottom: 8px;
+    font-size: 14px;
+    padding: 9px 13px;
+    margin-bottom: 10px;
+    line-height: 1.35;
   }
   .features-label {
     font-size: 22px;
+    margin-bottom: 6px;
   }
   .features {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .features li {
-    font-size: 11.5px;
+    font-size: 14px;
     padding: 0;
     gap: 8px;
+    line-height: 1.35;
   }
   .features li::before {
     font-size: 16px;
   }
   .signup-form .field { margin-bottom: 4px; }
-  .signup-form label { font-size: 9.5px; margin-bottom: 3px; }
-  .signup-form input { padding: 7px 12px; font-size: 13px; }
-  .cancel-line { font-size: 9.5px; margin: 6px 0 6px; }
-  .cta-submit { padding: 10px 28px; font-size: 13px; }
-  .terms-line { font-size: 9.5px; margin: 6px 0 2px; }
-  .login-line { font-size: 11px; margin: 4px 0 0; }
+  .signup-form label { font-size: 12px; margin-bottom: 3px; }
+  .signup-form input { padding: 9px 12px; font-size: 16px; }
+  .cancel-line { font-size: 12px; margin: 6px 0 6px; }
+  .cta-submit { padding: 11px 28px; font-size: 15px; }
+  .terms-line { font-size: 12px; margin: 6px 0 2px; line-height: 1.4; }
+  .login-line { font-size: 13px; margin: 2px 0 0; line-height: 1.4; }
 }
 
 
@@ -2346,6 +2406,97 @@ html, body {
         }
         .login-line .link-btn:hover {
           text-decoration: underline;
+        }
+
+       /* Cancel modal */
+        .cancel-hp {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .cancel-hp-icon {
+          height: 24px;
+          width: auto;
+          display: block;
+        }
+        .cancel-hp-text {
+          font-family: 'Inter', system-ui, sans-serif;
+          font-size: 17px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
+          color: #fff;
+          line-height: 1;
+        }
+        .cancel-headline {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 32px;
+          font-weight: 700;
+          line-height: 1.05;
+          letter-spacing: -0.5px;
+          color: #161616;
+          margin: 0 0 12px;
+          text-align: center;
+        }
+        .cancel-lede {
+          font-size: 14px;
+          line-height: 1.5;
+          color: #161616;
+          text-align: center;
+          margin: 0 0 16px;
+        }
+        .cancel-list {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          align-items: center;
+        }
+        .cancel-list li {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+          line-height: 1.4;
+          color: #161616;
+        }
+        .cancel-check {
+          color: #16a34a;
+          font-weight: 700;
+          font-size: 16px;
+          flex-shrink: 0;
+        }
+        .cancel-list a,
+        .cancel-link-btn {
+          color: #6b21a8;
+          font-weight: 600;
+          text-decoration: underline;
+          background: transparent;
+          border: none;
+          padding: 0;
+          font-family: inherit;
+          font-size: inherit;
+          cursor: pointer;
+        }
+        .cancel-list a:hover,
+        .cancel-link-btn:hover {
+          color: #4c1d95;
+        }
+        .cancel-footnote {
+          font-family: 'DM Mono', 'Courier New', monospace;
+          font-size: 10.5px;
+          color: #777;
+          text-align: center;
+          margin: 14px 0 0;
+          letter-spacing: 0.3px;
+          font-style: italic;
+        }
+        @media (max-width: 480px) {
+          .cancel-headline { font-size: 26px; }
+          .cancel-lede { font-size: 13px; margin-bottom: 12px; }
+          .cancel-list li { font-size: 13px; }
+          .cancel-footnote { font-size: 9.5px; }
         }
       `}</style>
     </>
