@@ -696,7 +696,7 @@ html, body {
   flex-wrap: wrap;
   gap: 6px;
   font-family: 'DM Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(0,0,0,0.55);
   letter-spacing: 0.3px;
   text-transform: lowercase;
@@ -851,7 +851,7 @@ html, body {
 }
 .hero-a .notif .meta .msg {
   font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.25;
   color: rgba(255,255,255,0.92);
 }
@@ -913,7 +913,7 @@ html, body {
 .hero-a .trust {
   margin-top: 16px;
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.6px;
   color: rgba(255,255,255,0.45);
   text-transform: lowercase;
@@ -1165,7 +1165,7 @@ html, body {
   text-transform: uppercase;
 }
 .receipt .r-head .addr {
-  font-size: 9px;
+  font-size: 11px;
   margin-top: 5px;
   color: #555;
   line-height: 1.5;
@@ -1174,7 +1174,7 @@ html, body {
 .receipt .r-row {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   padding: 5px 0;
   letter-spacing: 0.3px;
 }
@@ -1325,7 +1325,7 @@ html, body {
 .brb-card .brb-sub {
   font-family: 'DM Sans', sans-serif;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0;
   text-transform: none;
   margin-top: 4px;
@@ -1345,7 +1345,7 @@ html, body {
 .brb-card .brb-row {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   padding: 5px 0;
   letter-spacing: 0.3px;
 }
@@ -1536,7 +1536,7 @@ html, body {
 }
 .phone-chat .ph-title {
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255,255,255,0.4);
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -1550,7 +1550,7 @@ html, body {
   max-width: 86%;
   padding: 11px 14px;
   border-radius: 14px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .phone-chat .pb.coach {
@@ -1636,7 +1636,7 @@ html, body {
   color: var(--ink);
 }
 .mini-resume .mr-contact {
-  font-size: 9.5px;
+  font-size: 11px;
   color: #888;
   margin-top: 4px;
   letter-spacing: 0.2px;
@@ -1646,7 +1646,7 @@ html, body {
 }
 .mini-resume .mr-section-h {
   font-family: 'DM Mono', monospace;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 1.6px;
   text-transform: uppercase;
   color: var(--highlight);
@@ -1662,7 +1662,7 @@ html, body {
   margin-bottom: 5px;
 }
 .mini-resume .mr-bullet {
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.45;
   color: rgba(0,0,0,0.78);
   padding-left: 12px;
@@ -1677,7 +1677,7 @@ html, body {
   font-weight: 700;
 }
 .mini-resume .mr-line {
-  font-size: 11px;
+  font-size: 13px;
   color: rgba(0,0,0,0.7);
   padding-left: 0;
 }
@@ -1686,7 +1686,7 @@ html, body {
   padding-top: 10px;
   border-top: 1px dashed #ddd;
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", Arial, sans-serif;
-  font-size: 11.5px;
+  font-size: 12px;
   font-style: italic;
   color: rgba(0,0,0,0.42);
   text-align: center;
@@ -1832,7 +1832,7 @@ html, body {
 .foot {
   text-align: center;
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1.2px;
   color: rgba(0,0,0,0.55);
   padding: 18px 0 8px;

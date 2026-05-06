@@ -1602,12 +1602,24 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
   const [maxStepIndex, setMaxStepIndex] = useState(currentIndex)
+  const [viewingStep, setViewingStep] = useState(null)
 
   useEffect(() => {
     if (currentIndex > maxStepIndex) {
       setMaxStepIndex(currentIndex)
     }
   }, [currentIndex])
+
+  // When the DB step advances (forward progression), clear the viewing override
+  // so the user sees their actual current step, not a stale view of an earlier one.
+  useEffect(() => {
+    setViewingStep(null)
+  }, [journeyStep])
+
+  // displayStep is what the right panel renders. It prefers viewingStep
+  // (in-memory backward navigation) and falls back to journeyStep (DB truth).
+  const displayStep = viewingStep || journeyStep
+  const displayIndex = steps.indexOf(displayStep)
   const panelRef = useRef(null)
 
   // Scroll to top when journey step changes to 'assess'
@@ -1657,45 +1669,27 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             {steps.map((step, index) => (
               <div key={step} className="flex flex-col items-center">
                 <div
-                  onClick={async () => {
-                 if (index > maxStepIndex || index === currentIndex) return
-                    const { error: saveError } = await supabase
-                      .from('resumes')
-                      .update({ journey_step: step, updated_at: new Date().toISOString() })
-                      .eq('id', params.id)
-                    if (saveError) {
-                      console.error('Error jumping to journey step (dot):', saveError)
-                      setErrorToast("We couldn't switch to that step. Please try again.")
-                      return
-                    }
-                    setResume(prev => ({ ...prev, journey_step: step }))
+                  onClick={() => {
+                    if (index > maxStepIndex || index === displayIndex) return
+                    setViewingStep(step)
                   }}
                   className={`
                     w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10
-                   ${index < currentIndex ? 'text-white cursor-pointer transition-colors' : 
-                    index === currentIndex ? 'text-white' :
+                   ${index < displayIndex ? 'text-white cursor-pointer transition-colors' :
+                    index === displayIndex ? 'text-white' :
                     index <= maxStepIndex ? 'text-white cursor-pointer transition-colors' :
                     'bg-white border-2 border-gray-300 text-gray-400'}
                   `}
                   style={index <= maxStepIndex ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
-                 {index < currentIndex ? '✓' : index === currentIndex ? '●' : index <= maxStepIndex ? '✓' : '○'}
+                 {index < displayIndex ? '✓' : index === displayIndex ? '●' : index <= maxStepIndex ? '✓' : '○'}
                 </div>
                 <span
-                  onClick={async () => {
-                    if (index >= currentIndex) return
-                    const { error } = await supabase
-                      .from('resumes')
-                      .update({ journey_step: step, updated_at: new Date().toISOString() })
-                      .eq('id', params.id)
-                    if (error) {
-                      console.error('Error jumping to journey step (label):', error)
-                      setErrorToast("We couldn't switch to that step. Please try again.")
-                      return
-                    }
-                    setResume(prev => ({ ...prev, journey_step: step }))
+                  onClick={() => {
+                    if (index >= maxStepIndex || index === displayIndex) return
+                    setViewingStep(step)
                   }}
                  className={`text-sm md:text-xs mt-1 capitalize ${
-                    index === currentIndex ? 'text-purple-600 font-semibold' :
+                    index === displayIndex ? 'text-purple-600 font-semibold' :
                     index <= maxStepIndex ? 'text-purple-600 cursor-pointer hover:underline' :
                     'text-gray-400'
                   }`}>
@@ -1707,7 +1701,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </div>
       </div>
 
- {journeyStep === 'review' && (
+ {displayStep === 'review' && (
         <>
           <h3 className="font-semibold text-lg -mt-3 mb-3">📝 Review Your Resume</h3>
           
@@ -1744,7 +1738,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </>
       )}
       
-  {journeyStep === 'assess' && isJobSpecific && (
+  {displayStep === 'assess' && isJobSpecific && (
   <div className="space-y-4">
     <div className="text-center mt-3">
       <div className="text-sm md:text-xs text-gray-500 uppercase tracking-wide mb-1">Job Match Score</div>
@@ -1903,7 +1897,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     )}
   </div>
 )}
- {journeyStep === 'assess' && !isJobSpecific && (
+ {displayStep === 'assess' && !isJobSpecific && (
         <div className="space-y-3">
        {/* Header */}
         <div className="flex items-center justify-center gap-6 -mt-1">
@@ -2200,8 +2194,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                 )}
               </div>
             ) : (
-              // PRO TIER - Start coaching or continue if already coached
-             resume?.coaching_complete ? null : (
+              // PRO TIER - Start coaching only if not yet started AND not already complete
+              (resume?.coaching_complete || maxStepIndex > steps.indexOf('assess')) ? null : (
                 <button
                   onClick={async () => {
                     setIsUpdatingJourney(true)
@@ -2240,7 +2234,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         </div>
       )}
        
-      {(journeyStep === 'coach' || journeyStep === 'chat') && (
+      {(displayStep === 'coach' || displayStep === 'chat') && (
               <CoachStep
           resume={resume}
           resumeData={resumeData}
@@ -2283,7 +2277,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         />
       )}
 
-   {journeyStep === 'improve' && (
+   {displayStep === 'improve' && (
        <ImproveStep
           rewrittenResume={rewrittenResume}
           resumeChanges={resumeChanges}
@@ -2319,7 +2313,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         />
       )}
 
-      {journeyStep === 'format' && (
+      {displayStep === 'format' && (
   <FormatStep
     supabase={supabase}
     params={params}
@@ -2333,7 +2327,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 
      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
-      {journeyStep === 'save' && (
+      {displayStep === 'save' && (
         <SaveStep
           resumeName={resumeName}
           userName={userName}
@@ -2343,6 +2337,22 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           handleDownload={handleDownload}
           isDownloading={isDownloading}
         />
+      )}
+
+      {viewingStep && viewingStep !== journeyStep && (
+        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
+            <span>✅</span>
+            <span>
+              {viewingStep === 'review' && 'Review Complete'}
+              {viewingStep === 'assess' && 'Assessment Complete'}
+              {viewingStep === 'coach' && 'Coaching Complete'}
+              {viewingStep === 'chat' && 'Conversation Complete'}
+              {viewingStep === 'improve' && 'Improvements Complete'}
+              {viewingStep === 'format' && 'Formatting Complete'}
+            </span>
+          </div>
+        </div>
       )}
     </div>
   )

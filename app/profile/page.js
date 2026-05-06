@@ -528,6 +528,26 @@ export default function Profile() {
                   </div>
                 </div>
 
+                {/* THE NOT-SO-FINE PRINT */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Your career. Your info.</span>
+                  </div>
+                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
+                      We believe in transparency, so you'll never have to dig for these. 
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
+                        Privacy Policy
+                      </a>
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
+                        Terms of Service
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
                 {/* DANGER ZONE */}
                 <div style={{ ...cardBase, border: '1px solid #fecaca' }}>
                   <div style={cardHeader('linear-gradient(135deg,#fff5f5,#fee2e2)')}>
