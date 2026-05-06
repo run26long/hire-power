@@ -58,11 +58,12 @@ export async function POST(request) {
         mode: 'subscription',
         customer_email: email,
         line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, quantity: 1 }],
+        allow_promotion_codes: true,
         success_url: source === 'brb'
           ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/post-stripe-brb?session_id={CHECKOUT_SESSION_ID}`
           : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
         cancel_url: source === 'brb'
-          ? `${process.env.NEXT_PUBLIC_SITE_URL}/brb-landing?cancelled=true`
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/brb-landing?cancelled=true&session_id={CHECKOUT_SESSION_ID}`
           : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
         metadata: { userId: userData.user.id, source: source || 'hp' }
       })
@@ -76,7 +77,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "We couldn't start checkout. Please try again in a moment." }, { status: 500 })
     }
 
-    return NextResponse.json({ checkoutUrl: session.url })
+    return NextResponse.json({ checkoutUrl: session.url, userId: userData.user.id })
 
   } catch (error) {
     console.error('signup-pro error:', error)

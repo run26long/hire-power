@@ -1633,8 +1633,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           )}
         </div>
       ) : (
-        <h3 className="text-center font-semibold text-base md:text-sm mb-3">
-          {userName ? `${userName.split(' ')[0]}'s ` : ''}{resumeName} Progress
+       <h3 className="text-center font-semibold text-base md:text-sm mb-3">
+          {isConversational ? (
+            <>brb <span className="text-gray-400">·</span> best resume builder</>
+          ) : (
+            <>{userName ? `${userName.split(' ')[0]}'s ` : ''}{resumeName} Progress</>
+          )}
         </h3>
       )}
         

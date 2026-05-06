@@ -20,7 +20,7 @@ export async function POST(req) {
       if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { priceId, userId, email, couponCode, resumeId } = await req.json();
+    const { priceId, userId, email, couponCode, resumeId, source } = await req.json();
 
     // Validate priceId against allowlist (prevents tampered requests)
     if (!ALLOWED_PRICE_IDS.includes(priceId)) {
@@ -41,12 +41,16 @@ export async function POST(req) {
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: email,
       client_reference_id: userId,
-      success_url: resumeId
-        ? `${baseUrl}/resume/${resumeId}?upgraded=true`
-        : `${baseUrl}/dashboard?upgraded=true`,
-      cancel_url: resumeId
-        ? `${baseUrl}/resume/${resumeId}`
-        : `${baseUrl}/dashboard`,
+      success_url: source === 'brb'
+        ? `${baseUrl}/api/auth/post-stripe-brb?session_id={CHECKOUT_SESSION_ID}`
+        : resumeId
+          ? `${baseUrl}/resume/${resumeId}?upgraded=true`
+          : `${baseUrl}/dashboard?upgraded=true`,
+      cancel_url: source === 'brb'
+        ? `${baseUrl}/brb-landing?cancelled=true`
+        : resumeId
+          ? `${baseUrl}/resume/${resumeId}`
+          : `${baseUrl}/dashboard`,
       allow_promotion_codes: true,
       payment_method_collection: 'if_required',
       metadata: { userId, priceId },
