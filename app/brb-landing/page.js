@@ -534,8 +534,7 @@ export default function BrbLandingPage() {
                 <li><span className="cancel-check">✓</span> <button type="button" className="cancel-link-btn" onClick={(e) => {
                   if (typeof window !== 'undefined' && window.innerWidth < 768) {
                     e.preventDefault()
-                    setShowDesktopToast(true)
-                    setTimeout(() => setShowDesktopToast(false), 4000)
+                    setErrorToast('Building your own resume needs a desktop. Open hirepowerai.com on a computer.')
                   } else {
                     window.location.href = 'https://hirepowerai.com/build'
                   }
