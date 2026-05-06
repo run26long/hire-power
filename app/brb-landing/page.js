@@ -548,7 +548,9 @@ export default function BrbLandingPage() {
         </div>
       ) : null}
 
-      <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <div style={{ position: 'fixed', zIndex: 9999, bottom: 0, left: 0, right: 0, pointerEvents: errorToast ? 'auto' : 'none' }}>
+        <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      </div>
 
       <style>{`
 :root {
