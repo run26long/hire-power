@@ -451,7 +451,7 @@ export default function Profile() {
             <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
 
               {/* CAREER CONTEXT + YOUR INFO stacked */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 {/* CAREER CONTEXT */}
                 <div style={cardBase}>

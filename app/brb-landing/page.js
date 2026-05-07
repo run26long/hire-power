@@ -265,7 +265,8 @@ export default function BrbLandingPage() {
             <section className="shot phone-chat skew-right" style={{marginTop:'6px'}}>
               <div className="ph-bar">
                 <div className="ph-dot"></div>
-                <div className="ph-title">brb · in progress</div>
+                <div className="ph-title">brb · best resume builder</div>
+                <img src="/images/HirePower_logo_single_color.PNG" alt="Hire Power" className="ph-hp-logo" />
               </div>
               <div className="ph-chat">
                 <div className="pb coach">where have you worked? tell me about your most recent job.</div>
@@ -372,8 +373,14 @@ export default function BrbLandingPage() {
         </div>
 
         <div className="foot">
-          <span className="frax">brb</span> by Hire Power · 2026 ·
-          <a href="/privacy">privacy</a><a href="/terms">terms</a>
+          <span className="foot-line">
+            <span className="frax">brb</span>
+            <span className="foot-by">by</span>
+            <img src="/images/HirePower_logo.png" alt="Hire Power" className="foot-hp-logo" />
+            <span className="foot-meta">· 2026 ·</span>
+            <a href="/privacy">privacy</a>
+            <a href="/terms">terms</a>
+          </span>
           <span className="esc">prefer free? just you and a blank page at <a href="https://hirepowerai.com">hirepowerai.com</a> ✦</span>
         </div>
 
@@ -398,7 +405,7 @@ export default function BrbLandingPage() {
               >
                 ×
               </button>
-              <div className="header-row">
+             <div className="header-row">
                 <div className="modal-mark" id="modal-title">brb</div>
                 <div className="header-text">
                   <div className="modal-tag">best resume builder</div>
@@ -1539,7 +1546,13 @@ html, body {
   font-size: 12px;
   color: rgba(255,255,255,0.4);
   letter-spacing: 0.6px;
-  text-transform: uppercase;
+  text-transform: lowercase;
+}
+.phone-chat .ph-hp-logo {
+  height: 28px;
+  width: auto;
+  display: block;
+  margin-left: auto;
 }
 .phone-chat .ph-chat {
   display: flex;
@@ -1838,6 +1851,20 @@ html, body {
   padding: 18px 0 8px;
   text-transform: uppercase;
 }
+.foot .foot-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.foot .foot-by {
+  text-transform: lowercase;
+  letter-spacing: 0.8px;
+}
+.foot .foot-meta {
+  letter-spacing: 1.2px;
+}
 .foot a { color: rgba(0,0,0,0.55); margin: 0 6px; text-decoration: underline; }
 .foot .esc {
   display: block;
@@ -1860,6 +1887,12 @@ html, body {
   text-transform: lowercase;
   letter-spacing: -0.03em;
   font-weight: 700;
+}
+.foot .foot-hp-logo {
+  height: 22px;
+  width: auto;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* ============================================
