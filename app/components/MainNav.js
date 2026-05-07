@@ -145,8 +145,8 @@ export default function MainNav({ currentPage, userProfile }) {
               </>
             )}
 
-            {/* Hamburger button */}
-            <button
+            {/* Hamburger button — only for logged-in users (logged-out users see login modal only) */}
+            {userProfile && <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="flex flex-col justify-center items-center w-8 h-8 gap-1.5"
               aria-label="Toggle menu"
@@ -174,7 +174,7 @@ export default function MainNav({ currentPage, userProfile }) {
                   transition: 'all 0.2s ease'
                 }}
               />
-            </button>
+            </button>}
           </div>
         </div>
 
@@ -199,31 +199,35 @@ export default function MainNav({ currentPage, userProfile }) {
                 )}
               </button>
             ))}
-            <button
-              onClick={() => handleNavClick('/profile')}
-              className="w-full flex items-center justify-between px-5 py-3.5 border-b border-gray-100 text-left"
-            >
-              <span className="text-sm font-medium text-gray-600">My Profile</span>
-              {userProfile?.display_name && (
-                <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
-                  {userProfile.display_name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </button>
-            <button
-              onClick={async () => {
-                setMenuOpen(false);
-                const supabase = createClient();
-                await supabase.auth.signOut();
-                window.location.href = '/dashboard';
-              }}
-              className="w-full flex items-center justify-between px-5 py-3.5 text-left"
-            >
-              <span className="text-sm font-medium text-gray-600">Sign Out</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
+            {userProfile && (
+              <>
+                <button
+                  onClick={() => handleNavClick('/profile')}
+                  className="w-full flex items-center justify-between px-5 py-3.5 border-b border-gray-100 text-left"
+                >
+                  <span className="text-sm font-medium text-gray-600">My Profile</span>
+                  {userProfile?.display_name && (
+                    <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
+                      {userProfile.display_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+                <button
+                  onClick={async () => {
+                    setMenuOpen(false);
+                    const supabase = createClient();
+                    await supabase.auth.signOut();
+                    window.location.href = '/dashboard';
+                  }}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+                >
+                  <span className="text-sm font-medium text-gray-600">Sign Out</span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
