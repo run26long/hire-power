@@ -80,7 +80,12 @@ export default function FeedbackButton() {
       {/* Modal */}
       {open && (
         <div
-          onClick={handleClose}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') {
+              handleClose();
+            }
+          }}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
             background: 'rgba(0,0,0,0.3)',
@@ -89,7 +94,7 @@ export default function FeedbackButton() {
           }}
         >
           <div
-            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
             style={{
               background: '#fff',
               borderRadius: '16px',

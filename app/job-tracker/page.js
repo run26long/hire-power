@@ -58,6 +58,7 @@ export default function JobTrackerPage() {
 
   const [mobileColumn, setMobileColumn] = useState('resume_in_progress');
   const [deleteConfirmCard, setDeleteConfirmCard] = useState(null);
+  const [restoringId, setRestoringId] = useState(null);
   const [toast, setToast] = useState(null);
   const [errorToast, setErrorToast] = useState(null);
   const [dragCard, setDragCard] = useState(null);
@@ -373,8 +374,12 @@ export default function JobTrackerPage() {
   };
 
   const handleRestoreCard = async (cardId) => {
+    // Guard against rapid double-clicks. If a restore is in flight for this
+    // card, ignore subsequent clicks until it finishes.
+    if (restoringId === cardId) return;
     const card = archivedCards.find(a => a.id === cardId);
     if (!card) return;
+    setRestoringId(cardId);
     const { error } = await supabase
       .from('applications')
       .update({ application_status: 'resume_in_progress', last_active_status: null, updated_at: new Date().toISOString() })
@@ -382,10 +387,12 @@ export default function JobTrackerPage() {
     if (error) {
       console.error('Restore card failed:', error);
       setErrorToast("We couldn't restore that card. Please try again.");
+      setRestoringId(null);
       return;
     }
     setApplications(prev => [...prev, { ...card, application_status: 'resume_in_progress', last_active_status: null }]);
     setArchivedCards(prev => prev.filter(a => a.id !== cardId));
+    setRestoringId(null);
   };
 
   const handleArchiveCard = async (cardId) => {
@@ -1284,8 +1291,9 @@ export default function JobTrackerPage() {
                                 e.stopPropagation();
                                 await handleRestoreCard(card.id);
                               }}
-                              className="text-[10px] text-purple-500 font-semibold hover:text-purple-700"
-                            >Restore</button>
+                              disabled={restoringId === card.id}
+                              className="text-[10px] text-purple-500 font-semibold hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >{restoringId === card.id ? 'Restoring...' : 'Restore'}</button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
