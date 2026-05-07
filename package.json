@@ -17,6 +17,7 @@
     "html2pdf.js": "^0.14.0",
     "mammoth": "^1.11.0",
     "next": "16.1.6",
+    "pdfjs-dist": "^5.7.284",
     "posthog-js": "^1.364.7",
     "puppeteer": "^24.37.5",
     "react": "19.2.3",
