@@ -20,6 +20,14 @@ export default function BuildPage() {
   const [fromPage, setFromPage] = useState('career-coach');
   const [resumeId, setResumeId] = useState(null);
   const [errorToast, setErrorToast] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   
   // Resume data
   const [resumeData, setResumeData] = useState({
@@ -165,6 +173,62 @@ useEffect(() => {
     );
   }
 
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <MainNav currentPage={fromPage} userProfile={userProfile} />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-sm w-full text-center">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Desktop only</h2>
+            <p className="text-sm text-gray-600 mb-5">
+              Our form-based resume builder works best on a larger screen. Open this on your computer, or try brb instead — it's built for mobile.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  const { data: { user: chatUser } } = await supabase.auth.getUser();
+                  if (!chatUser) {
+                    router.push('/dashboard');
+                    return;
+                  }
+                  const { data: newResume, error } = await supabase
+                    .from('resumes')
+                    .insert({
+                      user_id: chatUser.id,
+                      resume_type: 'core',
+                      display_name: 'Core Resume',
+                      resume_data: {},
+                      journey_step: 'chat',
+                      created_via: 'resume_chat'
+                    })
+                    .select()
+                    .single();
+                  if (error || !newResume) {
+                    setErrorToast("We couldn't start brb. Please try again.");
+                    return;
+                  }
+                  router.push(`/resume/${newResume.id}`);
+                } catch (err) {
+                  console.error('brb start error:', err);
+                  setErrorToast("We couldn't start brb. Please try again.");
+                }
+              }}
+              className="w-full text-white px-4 py-2 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              Try brb instead
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const breadcrumbItems = [
     { label: fromPage === 'career-coach' ? 'My Career' : 'My Resumes', path: `/${fromPage}` },
     { label: 'Build Resume' }
@@ -202,19 +266,19 @@ useEffect(() => {
               </h3>
               
               <div className="text-right text-xs font-bold text-gray-700 mb-2">
-                {['Contact', 'Summary', 'Experience', 'Education', 'Skills', 'Projects', 'Certifications', 'Volunteer', 'Languages'][currentStep]} (step {currentStep + 1} of 9)
+                {['Contact', 'Summary', 'Experience', 'Education', 'Skills', 'Projects', 'Certifications', 'Volunteer', 'Languages', 'Complete'][currentStep]} (step {currentStep + 1} of 10)
               </div>
               
               <div className="relative">
                 <div className="absolute top-2.5 left-0 right-0 h-0.5 bg-gray-300">
                   <div 
                     className="h-full bg-purple-600 transition-all duration-300"
-                    style={{ width: `${currentStep >= 0 ? (currentStep / 8) * 100 : 0}%` }}
+                    style={{ width: `${currentStep >= 0 ? (currentStep / 9) * 100 : 0}%` }}
                   />
                 </div>
                 
                 <div className="relative flex justify-between">
-                  {Array.from({ length: 9 }).map((_, index) => (
+                  {Array.from({ length: 10 }).map((_, index) => (
                     <div key={index} className="flex flex-col items-center">
                       <div className={`
                         w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold z-10
@@ -624,21 +688,28 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                     className="border border-gray-300 rounded p-2 text-sm w-full disabled:bg-gray-100"
                   >
                     <option value="">Select Month</option>
-                    {months.map((m, i) => (
-                      <option key={m} value={m}>{monthNames[i]}</option>
-                    ))}
+                    {months.map((m, i) => {
+                      // Hide months before start month if end year matches start year
+                      if (startYear && endYear && startYear === endYear && parseInt(m) < parseInt(startMonth || '0')) return null;
+                      return <option key={m} value={m}>{monthNames[i]}</option>;
+                    })}
                   </select>
                   <select
                     value={endYear}
                     onChange={(e) => {
-                      setEndYear(e.target.value);
+                      const newEndYear = e.target.value;
+                      setEndYear(newEndYear);
                       setCurrentJob({ ...currentJob, current: false });
+                      // If new end year equals start year and end month is now before start month, clear end month
+                      if (startYear && newEndYear === startYear && endMonth && parseInt(endMonth) < parseInt(startMonth || '0')) {
+                        setEndMonth('');
+                      }
                     }}
                     disabled={currentJob.current}
                     className="border border-gray-300 rounded p-2 text-sm w-full disabled:bg-gray-100"
                   >
                     <option value="">Select Year</option>
-                    {years.map(y => (
+                    {years.filter(y => !startYear || y >= parseInt(startYear)).map(y => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
@@ -1156,6 +1227,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
 // Projects Step Component
 function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   const [showFields, setShowFields] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
   const [currentProject, setCurrentProject] = useState({
     name: "",
     description: "",
@@ -1164,12 +1236,32 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   const addProject = () => {
     if (currentProject.name && currentProject.description) {
-      setResumeData({
-        ...resumeData,
-        projects: [...resumeData.projects, currentProject]
-      });
+      if (editingIndex !== null) {
+        const updated = [...resumeData.projects];
+        updated[editingIndex] = currentProject;
+        setResumeData({ ...resumeData, projects: updated });
+        setEditingIndex(null);
+      } else {
+        setResumeData({
+          ...resumeData,
+          projects: [...resumeData.projects, currentProject]
+        });
+      }
       setCurrentProject({ name: "", description: "", link: "" });
     }
+  };
+
+  const editProject = (index) => {
+    setCurrentProject(resumeData.projects[index]);
+    setEditingIndex(index);
+    setShowFields(true);
+  };
+
+  const deleteProject = (index) => {
+    setResumeData({
+      ...resumeData,
+      projects: resumeData.projects.filter((_, i) => i !== index)
+    });
   };
 
   if (!showFields) {
@@ -1253,8 +1345,19 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           disabled={!currentProject.name || !currentProject.description}
           className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
-          Add This Project
+          {editingIndex !== null ? 'Save Changes' : 'Add This Project'}
         </button>
+        {editingIndex !== null && (
+          <button
+            onClick={() => {
+              setEditingIndex(null);
+              setCurrentProject({ name: "", description: "", link: "" });
+            }}
+            className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
+          >
+            Cancel Edit
+          </button>
+        )}
       </div>
 
       {resumeData.projects.length > 0 && (
@@ -1264,8 +1367,21 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           </p>
           <div className="space-y-1">
             {resumeData.projects.map((project, index) => (
-              <div key={index} className="text-xs text-gray-600 bg-green-50 p-2 rounded">
-                ✓ {project.name}
+              <div key={index} className="text-xs text-gray-700 bg-green-50 p-2 rounded flex items-start gap-2">
+                <span className="flex-shrink-0">✓</span>
+                <span className="flex-1 min-w-0 break-words">{project.name}</span>
+                <button
+                  onClick={() => editProject(index)}
+                  className="flex-shrink-0 text-purple-600 hover:text-purple-700 text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteProject(index)}
+                  className="flex-shrink-0 text-red-600 hover:text-red-700 text-xs font-semibold"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
@@ -1293,6 +1409,7 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 // Certifications Step Component
 function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   const [showFields, setShowFields] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
   const [currentCert, setCurrentCert] = useState({
     name: "",
     details: ""
@@ -1300,12 +1417,32 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
 
   const addCertification = () => {
     if (currentCert.name && currentCert.details) {
-      setResumeData({
-        ...resumeData,
-        certifications: [...resumeData.certifications, currentCert]
-      });
+      if (editingIndex !== null) {
+        const updated = [...resumeData.certifications];
+        updated[editingIndex] = currentCert;
+        setResumeData({ ...resumeData, certifications: updated });
+        setEditingIndex(null);
+      } else {
+        setResumeData({
+          ...resumeData,
+          certifications: [...resumeData.certifications, currentCert]
+        });
+      }
       setCurrentCert({ name: "", details: "" });
     }
+  };
+
+  const editCertification = (index) => {
+    setCurrentCert(resumeData.certifications[index]);
+    setEditingIndex(index);
+    setShowFields(true);
+  };
+
+  const deleteCertification = (index) => {
+    setResumeData({
+      ...resumeData,
+      certifications: resumeData.certifications.filter((_, i) => i !== index)
+    });
   };
 
   if (!showFields) {
@@ -1376,8 +1513,19 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
           disabled={!currentCert.name || !currentCert.details}
           className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
-          Add This Certification
+          {editingIndex !== null ? 'Save Changes' : 'Add This Certification'}
         </button>
+        {editingIndex !== null && (
+          <button
+            onClick={() => {
+              setEditingIndex(null);
+              setCurrentCert({ name: "", details: "" });
+            }}
+            className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
+          >
+            Cancel Edit
+          </button>
+        )}
       </div>
 
       {resumeData.certifications.length > 0 && (
@@ -1387,8 +1535,21 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
           </p>
           <div className="space-y-1">
             {resumeData.certifications.map((cert, index) => (
-              <div key={index} className="text-xs text-gray-600 bg-green-50 p-2 rounded">
-                ✓ {cert.name}
+              <div key={index} className="text-xs text-gray-700 bg-green-50 p-2 rounded flex items-start gap-2">
+                <span className="flex-shrink-0">✓</span>
+                <span className="flex-1 min-w-0 break-words">{cert.name}</span>
+                <button
+                  onClick={() => editCertification(index)}
+                  className="flex-shrink-0 text-purple-600 hover:text-purple-700 text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteCertification(index)}
+                  className="flex-shrink-0 text-red-600 hover:text-red-700 text-xs font-semibold"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
@@ -1416,6 +1577,7 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
 // Volunteer Step Component
 function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   const [showFields, setShowFields] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
   const [currentVol, setCurrentVol] = useState({
     organization: "",
     description: ""
@@ -1423,12 +1585,32 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   const addVolunteer = () => {
     if (currentVol.organization && currentVol.description) {
-      setResumeData({
-        ...resumeData,
-        volunteer: [...resumeData.volunteer, currentVol]
-      });
+      if (editingIndex !== null) {
+        const updated = [...resumeData.volunteer];
+        updated[editingIndex] = currentVol;
+        setResumeData({ ...resumeData, volunteer: updated });
+        setEditingIndex(null);
+      } else {
+        setResumeData({
+          ...resumeData,
+          volunteer: [...resumeData.volunteer, currentVol]
+        });
+      }
       setCurrentVol({ organization: "", description: "" });
     }
+  };
+
+  const editVolunteer = (index) => {
+    setCurrentVol(resumeData.volunteer[index]);
+    setEditingIndex(index);
+    setShowFields(true);
+  };
+
+  const deleteVolunteer = (index) => {
+    setResumeData({
+      ...resumeData,
+      volunteer: resumeData.volunteer.filter((_, i) => i !== index)
+    });
   };
 
   if (!showFields) {
@@ -1499,8 +1681,19 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           disabled={!currentVol.organization || !currentVol.description}
           className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
-          Add This Experience
+          {editingIndex !== null ? 'Save Changes' : 'Add This Experience'}
         </button>
+        {editingIndex !== null && (
+          <button
+            onClick={() => {
+              setEditingIndex(null);
+              setCurrentVol({ organization: "", description: "" });
+            }}
+            className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
+          >
+            Cancel Edit
+          </button>
+        )}
       </div>
 
       {resumeData.volunteer.length > 0 && (
@@ -1510,8 +1703,21 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           </p>
           <div className="space-y-1">
             {resumeData.volunteer.map((vol, index) => (
-              <div key={index} className="text-xs text-gray-600 bg-green-50 p-2 rounded">
-                ✓ {vol.organization}
+              <div key={index} className="text-xs text-gray-700 bg-green-50 p-2 rounded flex items-start gap-2">
+                <span className="flex-shrink-0">✓</span>
+                <span className="flex-1 min-w-0 break-words">{vol.organization}</span>
+                <button
+                  onClick={() => editVolunteer(index)}
+                  className="flex-shrink-0 text-purple-600 hover:text-purple-700 text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteVolunteer(index)}
+                  className="flex-shrink-0 text-red-600 hover:text-red-700 text-xs font-semibold"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
@@ -1539,6 +1745,7 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 // Languages Step Component
 function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   const [showFields, setShowFields] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
   const [currentLang, setCurrentLang] = useState({
     language: "",
     proficiency: "Professional"
@@ -1546,12 +1753,32 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   const addLanguage = () => {
     if (currentLang.language) {
-      setResumeData({
-        ...resumeData,
-        languages: [...resumeData.languages, currentLang]
-      });
+      if (editingIndex !== null) {
+        const updated = [...resumeData.languages];
+        updated[editingIndex] = currentLang;
+        setResumeData({ ...resumeData, languages: updated });
+        setEditingIndex(null);
+      } else {
+        setResumeData({
+          ...resumeData,
+          languages: [...resumeData.languages, currentLang]
+        });
+      }
       setCurrentLang({ language: "", proficiency: "Professional" });
     }
+  };
+
+  const editLanguage = (index) => {
+    setCurrentLang(resumeData.languages[index]);
+    setEditingIndex(index);
+    setShowFields(true);
+  };
+
+  const deleteLanguage = (index) => {
+    setResumeData({
+      ...resumeData,
+      languages: resumeData.languages.filter((_, i) => i !== index)
+    });
   };
 
   if (!showFields) {
@@ -1626,8 +1853,19 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           disabled={!currentLang.language}
           className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
-          Add This Language
+          {editingIndex !== null ? 'Save Changes' : 'Add This Language'}
         </button>
+        {editingIndex !== null && (
+          <button
+            onClick={() => {
+              setEditingIndex(null);
+              setCurrentLang({ language: "", proficiency: "Professional" });
+            }}
+            className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
+          >
+            Cancel Edit
+          </button>
+        )}
       </div>
 
       {resumeData.languages.length > 0 && (
@@ -1637,8 +1875,21 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           </p>
           <div className="space-y-1">
             {resumeData.languages.map((lang, index) => (
-              <div key={index} className="text-xs text-gray-600 bg-green-50 p-2 rounded">
-                ✓ {lang.language} ({lang.proficiency})
+              <div key={index} className="text-xs text-gray-700 bg-green-50 p-2 rounded flex items-start gap-2">
+                <span className="flex-shrink-0">✓</span>
+                <span className="flex-1 min-w-0 break-words">{lang.language} ({lang.proficiency})</span>
+                <button
+                  onClick={() => editLanguage(index)}
+                  className="flex-shrink-0 text-purple-600 hover:text-purple-700 text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteLanguage(index)}
+                  className="flex-shrink-0 text-red-600 hover:text-red-700 text-xs font-semibold"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
