@@ -1603,6 +1603,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const [errorToast, setErrorToast] = useState(null)
   const [maxStepIndex, setMaxStepIndex] = useState(currentIndex)
   const [viewingStep, setViewingStep] = useState(null)
+  const [showSkipCoachingModal, setShowSkipCoachingModal] = useState(false)
+  const [isSkipCoachingFinishing, setIsSkipCoachingFinishing] = useState(false)
 
   useEffect(() => {
     if (currentIndex > maxStepIndex) {
@@ -1874,25 +1876,46 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           </div>
         )}
 
-       <button
-          onClick={async () => {
-            setIsUpdatingJourney(true)
-            try {
-              const { error } = await supabase
-                .from('resumes')
-                .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
-                .eq('id', params.id)
-              if (!error) setResume(prev => ({ ...prev, journey_step: 'coach' }))
-            } finally {
-              setIsUpdatingJourney(false)
-            }
-          }}
-          disabled={isUpdatingJourney}
-          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
-        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-        >
-          Start Job Coaching →
-        </button>
+       <div className="space-y-4 pt-2">
+          <div className="text-center">
+            <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-1">More to add?</p>
+            <p className="text-sm md:text-xs text-gray-600 mb-2 leading-snug">
+              Tell us about the extra skills and experience, and we'll use it to strengthen your resume.
+            </p>
+            <button
+              onClick={async () => {
+                setIsUpdatingJourney(true)
+                try {
+                  const { error } = await supabase
+                    .from('resumes')
+                    .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+                    .eq('id', params.id)
+                  if (!error) setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                } finally {
+                  setIsUpdatingJourney(false)
+                }
+              }}
+              disabled={isUpdatingJourney}
+              className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+            >
+              Coach Me Through It →
+            </button>
+          </div>
+
+          <div className="text-center">
+            <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-1">Nothing more to add?</p>
+            <p className="text-sm md:text-xs text-gray-600 mb-2 leading-snug">
+              We'll use your existing content to tailor your resume as well as possible for this job.
+            </p>
+            <button
+              onClick={() => setShowSkipCoachingModal(true)}
+              className="block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              Tailor Without Coaching →
+            </button>
+          </div>
+        </div>
       </>
     )}
   </div>
@@ -2351,6 +2374,110 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               {viewingStep === 'improve' && 'Improvements Complete'}
               {viewingStep === 'format' && 'Formatting Complete'}
             </span>
+          </div>
+        </div>
+      )}
+
+      {showSkipCoachingModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => !isSkipCoachingFinishing && setShowSkipCoachingModal(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl overflow-hidden"
+            style={{ width: '364px' }}
+          >
+            <div className="px-6 py-6 relative" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <button
+                onClick={() => !isSkipCoachingFinishing && setShowSkipCoachingModal(false)}
+                disabled={isSkipCoachingFinishing}
+                className="absolute top-3 right-4 text-white hover:opacity-70 text-2xl leading-none font-light disabled:opacity-50"
+              >×</button>
+              <div className="flex flex-col items-center text-center gap-2">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-16 w-auto mb-1" />
+                <h2 className="text-xl font-bold text-white leading-tight">Nothing more to add?</h2>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-gray-700 mb-4 leading-snug">
+                We'll use your existing content to make your resume read like it was written for this role. Your job match score likely won't change much since we won't be adding new skills or experience, but this will help it stand out to recruiters.
+              </p>
+              <div className="flex flex-col gap-2 items-center">
+                <button
+                  onClick={async () => {
+                    setIsSkipCoachingFinishing(true)
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      const response = await fetch('/api/coach-finish', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${session.access_token}`
+                        },
+                        body: JSON.stringify({
+                          resumeData,
+                          conversation: [],
+                          detectedLevel,
+                          careerContext,
+                          isJobSpecific: true,
+                          jobDescription: resume?.job_description || null,
+                          jobTitle: resume?.job_title || null,
+                          jobCompany: resume?.job_company || null,
+                          matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
+                          missingKeywords: analysisResults?.analysis?.missingKeywords || [],
+                          skipCoaching: true
+                        })
+                      })
+                      const data = await response.json()
+                      if (!data.rewrittenResume) throw new Error('Rewrite failed')
+
+                      setRewrittenResume(data.rewrittenResume)
+                      setResumeChanges(data.changes || [])
+
+                      const { error: saveError } = await supabase
+                        .from('resumes')
+                        .update({
+                          journey_step: 'improve',
+                          rewritten_resume: data.rewrittenResume,
+                          resume_changes: data.changes || [],
+                          coaching_complete: true,
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('id', params.id)
+
+                      if (saveError) {
+                        console.error('Error saving tailored resume:', saveError)
+                        setErrorToast("We tailored your resume but couldn't save it. Please try again.")
+                        setIsSkipCoachingFinishing(false)
+                        return
+                      }
+
+                      setResume(prev => ({ ...prev, journey_step: 'improve' }))
+                      setShowSkipCoachingModal(false)
+                    } catch (err) {
+                      console.error('Error tailoring resume:', err)
+                      setErrorToast('Something went wrong. Please try again.')
+                      setIsSkipCoachingFinishing(false)
+                    }
+                  }}
+                  disabled={isSkipCoachingFinishing}
+                  className="rounded-lg py-2.5 px-8 text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
+                >
+                  {isSkipCoachingFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                  {isSkipCoachingFinishing ? 'Tailoring your resume...' : 'Tailor My Resume →'}
+                </button>
+                <button
+                  onClick={() => setShowSkipCoachingModal(false)}
+                  disabled={isSkipCoachingFinishing}
+                  className="text-gray-400 text-xs hover:text-gray-600 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

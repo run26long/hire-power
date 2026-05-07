@@ -447,43 +447,68 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* ROW 2: Career Context + Account + Danger Zone */}
+           {/* ROW 2: Career Context + Your Info stacked left | Account + Danger stacked right */}
             <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
 
-              {/* CAREER CONTEXT */}
-              <div style={{ ...cardBase, height: '100%' }}>
-                <div style={cardHeader()}>
-                  <span style={cardTitle}>Career Context</span>
-                </div>
-                <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                 <div className="hp-career-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={labelSm}>Current Role</label>
-                      <p style={{ ...valueSm, color: profile?.current_role ? '#111827' : '#d1d5db' }}>
-                        {profile?.current_role || 'Set in Career Coach'}
-                      </p>
+              {/* CAREER CONTEXT + YOUR INFO stacked */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* CAREER CONTEXT */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Career Context</span>
+                  </div>
+                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                   <div className="hp-career-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={labelSm}>Current Role</label>
+                        <p style={{ ...valueSm, color: profile?.current_role ? '#111827' : '#d1d5db' }}>
+                          {profile?.current_role || 'Set in Career Coach'}
+                        </p>
+                      </div>
+                      <div>
+                        <label style={labelSm}>Experience Level</label>
+                        <p style={{ ...valueSm, color: profile?.experience_level ? '#111827' : '#d1d5db' }}>
+                          {profile?.experience_level
+                            ? profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1)
+                            : 'Auto-detected'}
+                        </p>
+                      </div>
+                      <div>
+                        <label style={labelSm}>Target Roles</label>
+                        <p style={{ ...valueSm, color: profile?.target_roles?.length ? '#111827' : '#d1d5db', fontSize: 12 }}>
+                          {Array.isArray(profile?.target_roles) && profile.target_roles.length
+                            ? profile.target_roles.slice(0, 2).join(', ')
+                            : 'Set in Career Coach'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <label style={labelSm}>Experience Level</label>
-                      <p style={{ ...valueSm, color: profile?.experience_level ? '#111827' : '#d1d5db' }}>
-                        {profile?.experience_level
-                          ? profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1)
-                          : 'Auto-detected'}
-                      </p>
-                    </div>
-                    <div>
-                      <label style={labelSm}>Target Roles</label>
-                      <p style={{ ...valueSm, color: profile?.target_roles?.length ? '#111827' : '#d1d5db', fontSize: 12 }}>
-                        {Array.isArray(profile?.target_roles) && profile.target_roles.length
-                          ? profile.target_roles.slice(0, 2).join(', ')
-                          : 'Set in Career Coach'}
-                      </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button onClick={() => router.push('/career-coach')} style={btnOutline}>Update in Career Coach</button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => router.push('/career-coach')} style={btnOutline}>Update in Career Coach</button>
+                </div>
+
+                {/* THE NOT-SO-FINE PRINT */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Your career. Your info.</span>
+                  </div>
+                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
+                      We believe in transparency, so you'll never have to dig for these. 
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
+                        Privacy Policy
+                      </a>
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
+                        Terms of Service
+                      </a>
+                    </div>
                   </div>
                 </div>
+
               </div>
 
               {/* ACCOUNT + DANGER stacked */}
@@ -525,26 +550,6 @@ export default function Profile() {
                     >
                       Sign Out
                     </button>
-                  </div>
-                </div>
-
-                {/* THE NOT-SO-FINE PRINT */}
-                <div style={cardBase}>
-                  <div style={cardHeader()}>
-                    <span style={cardTitle}>Your career. Your info.</span>
-                  </div>
-                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
-                      We believe in transparency, so you'll never have to dig for these. 
-                    </p>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
-                        Privacy Policy
-                      </a>
-                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
-                        Terms of Service
-                      </a>
-                    </div>
                   </div>
                 </div>
 
