@@ -1304,6 +1304,60 @@ If neither mentions it, do not add it — even if the job description requires i
 `
 
 // ─────────────────────────────────────────────
+// JOB-SPECIFIC NO-COACH WRITING RULES
+// Used when the candidate chose to tailor their resume for a job
+// without going through coaching first. This is a much stricter ruleset
+// because there is no coaching transcript to support new content.
+// ─────────────────────────────────────────────
+const JS_NO_COACH_RULES = `
+
+NO HALLUCINATION — CATASTROPHIC FAILURE:
+If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume, the entire rewrite is a catastrophic failure. There is NO coaching conversation in this pass. The original resume is your ONLY source of truth. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did this appear in the original resume? If not, remove it. When in doubt, write around it with qualitative strength or omit entirely.
+
+EM DASH — CRITICAL FAILURE:
+If any em dash (—) appears anywhere in this resume, the rewrite is considered a critical failure and must be corrected before outputting. Use a comma, a period, or restructure the sentence. There is no acceptable use of an em dash anywhere in this document under any circumstances.
+
+JOB-SPECIFIC NO-COACH WRITING STANDARDS:
+
+CONTEXT YOU MUST UNDERSTAND:
+The candidate has chosen NOT to go through a coaching conversation for this job. They are telling you: "I have nothing more to add. Use what's already on my resume." Your job is to tailor their existing content to this specific job description as effectively as possible WITHOUT inventing anything new.
+
+This is not a typical rewrite. It is a strategic repositioning of existing content. The score will likely not move significantly because no new evidence is being added. The value of this pass is helping the resume read as a stronger fit for THIS specific role, even though the underlying content is unchanged.
+
+WHAT YOU CAN DO:
+
+1. REORDER BULLETS within each role so JD-relevant bullets appear first. A recruiter scanning the first 2 bullets per role should see the strongest match for this specific job.
+
+2. REFRAME BULLET WORDING where existing content genuinely maps to JD language. If the JD asks for "stakeholder management" and the candidate's bullet says "coordinated with vendors, performers, and clients," reframe it to make the stakeholder management visible. The underlying experience must already be there. You are translating, not inventing.
+
+3. TAILOR THE SUMMARY toward the target role using existing experience. The summary positioning can shift to emphasize aspects of the candidate's background most relevant to this JD. The summary will be written in the dedicated second pass — set it to "" in your output.
+
+4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the JD requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
+
+5. CUT IRRELEVANT CONTENT if it dilutes the case for this specific role. A bullet that does nothing for this JD can be removed if a stronger bullet from the same role tells a more relevant story. Be conservative — when in doubt, leave it.
+
+WHAT YOU ABSOLUTELY CANNOT DO:
+
+1. DO NOT ADD NEW BULLETS. The candidate has not given you new material. Every bullet in your output must trace back to a bullet in the original resume.
+
+2. DO NOT INVENT METRICS, NUMBERS, OR SCOPE. If a bullet says "managed events," do not turn it into "managed 50+ events." If the original didn't have the number, you don't have the number.
+
+3. DO NOT ADD NEW SKILLS to the skills section that aren't already demonstrated somewhere on the original resume. If the JD requires "Salesforce" and the original resume has no mention of Salesforce, do not add it. ATS keyword stuffing with skills the candidate doesn't have is fabrication.
+
+4. DO NOT ADD JD KEYWORDS to bullets unless the existing bullet content genuinely supports the keyword. Reframing "coordinated vendors" as "managed stakeholder relationships" is acceptable because the underlying activity supports both phrasings. Reframing "answered phones" as "led cross-functional initiatives" is fabrication.
+
+5. DO NOT INFER RESPONSIBILITIES that are typical for the job title. If the candidate's resume says "Server" and the bullets describe taking orders and running food, do not add "trained new staff" because servers often do that. The resume is the only source of what they actually did.
+
+6. DO NOT FILL GAPS the candidate hasn't filled. If the JD requires 5 years of Python experience and the resume shows none, that gap stays. Your job is not to make this candidate look qualified for jobs they aren't qualified for. Your job is to make sure they get full credit for what they ACTUALLY have.
+
+THE TEST FOR EVERY EDIT:
+Before changing any bullet, ask: "Could the candidate defend every word of this in an interview based on what was already on their resume?" If yes, the edit is legitimate. If no, revert it.
+
+THE GOAL:
+A resume that reads as the strongest possible version of THIS candidate's existing experience, repositioned to highlight what makes them a fit for THIS specific role. The underlying truth of what they did stays exactly the same. Only the framing, ordering, and emphasis change.
+`
+
+// ─────────────────────────────────────────────
 // SHARED OUTPUT STRUCTURE
 // ─────────────────────────────────────────────
 const OUTPUT_STRUCTURE = {
@@ -1466,7 +1520,7 @@ function trimBulletsToLimit(resumeData, level) {
   return result
 }
 
-function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction }) {
+function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction, skipCoaching }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
 - Target roles: ${careerContext.target_roles?.join(', ') || jobTitle || 'not specified'}
@@ -1476,7 +1530,7 @@ CAREER CONTEXT:
 
   return `${WRITING_CONSTITUTION}
 
-${JS_WRITING_CONSTITUTION}
+${skipCoaching ? JS_NO_COACH_RULES : JS_WRITING_CONSTITUTION}
 
 ${levelInstructions}
 
@@ -1503,8 +1557,9 @@ EXCLUDE: Small, one-time accomplishments that minimize the scope of their experi
 EXCLUDE: Small or irrelevant metrics. Do not add numbers just to have numbers. Find the real impact. Producing a 4-person group act is unimpressive. Reaching 4,500 attendees across a 9-show run is impressive. Cast size damages the resume. Audience size strengthens it.
 EXCLUDE: Skills hiding inside a story — extract those to skillsCategories, not a bullet.
 
-COACHING CONVERSATION (everything the candidate revealed — use all of it):
-${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}
+${skipCoaching ? `NO COACHING CONVERSATION:
+The candidate chose to tailor their resume without going through coaching. There is no transcript to draw from. The original resume below is your ONLY source of truth for what the candidate has done. Re-read the JS_NO_COACH_RULES above before writing anything.` : `COACHING CONVERSATION (everything the candidate revealed — use all of it):
+${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}`}
 
 ORIGINAL RESUME (what you are improving):
 ${JSON.stringify(resumeData, null, 2)}
@@ -2257,7 +2312,8 @@ export async function POST(request) {
       retryInstruction,
       isTargetedEnhancement,
       isConversationalSource,
-      isConversationalFix
+      isConversationalFix,
+      skipCoaching
     } = await request.json()
 
     if (!resumeData || !conversation) {
@@ -2513,7 +2569,8 @@ Return this exact structure:
         jobCompany,
         matchedKeywords: matchedKeywords || [],
         missingKeywords: missingKeywords || [],
-        retryInstruction: retryInstruction || null
+        retryInstruction: retryInstruction || null,
+        skipCoaching: skipCoaching || false
       })
 
       const rewriteMessage = await anthropic.messages.create({

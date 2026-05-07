@@ -1591,9 +1591,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
 
   const isConversational = resume?.created_via === 'resume_chat'
+  const skippedCoaching = isJobSpecific && resume?.coaching_complete === true && (!resume?.coaching_conversation || resume.coaching_conversation.length === 0)
   const steps = isJobSpecific
     ? (userTier === 'free'
         ? ['assess', 'save']
+        : skippedCoaching
+        ? ['assess', 'improve', 'format', 'save']
         : ['assess', 'coach', 'improve', 'format', 'save'])
     : isConversational
     ? ['chat', 'improve', 'format', 'save']
@@ -1876,7 +1879,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           </div>
         )}
 
-       <div className="space-y-4 pt-2">
+       {!resume?.coaching_complete && (
+        <div className="space-y-4 pt-2">
           <div className="text-center">
             <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-1">More to add?</p>
             <p className="text-sm md:text-xs text-gray-600 mb-2 leading-snug">
@@ -1916,6 +1920,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
             </button>
           </div>
         </div>
+       )}
       </>
     )}
   </div>
@@ -4478,7 +4483,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
           >
             <div className="bg-white rounded-lg shadow-2xl p-8 text-center" style={{ maxWidth: '320px' }}>
-              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-10 w-auto mx-auto mb-4" />
+              <img src="/images/Hire_Power_icon_2.png" alt="Hire Power" className="h-10 w-auto mx-auto mb-4" />
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
               <h3 className="font-semibold text-gray-900 mb-1">Preparing your resume...</h3>
               <p className="text-xs text-gray-500">Applying your changes and calculating your new score.</p>
