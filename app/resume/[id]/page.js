@@ -1105,9 +1105,9 @@ if (data.ai_analysis) {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
                         body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
                       })
-                     if (response.ok) {
-                        const blob = await response.blob()
-                        setPreviewUrl(window.URL.createObjectURL(blob))
+                      if (response.ok) {
+                        const data = await response.json()
+                        setPreviewUrl(data.previewUrl)
                         setShowPreview(true)
                       }
                     } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
