@@ -42,7 +42,6 @@ export default function Profile() {
       setUser(user)
       const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (pError && pError.code !== 'PGRST116') {
-        // PGRST116 = "no rows returned" which is fine for a new user
         console.error('Profile load failed:', pError)
         setToastError("We couldn't load your profile. Please refresh the page.")
       }
@@ -186,8 +185,6 @@ export default function Profile() {
       if (error) throw error
       const { error: signOutError } = await supabase.auth.signOut()
       if (signOutError) {
-        // Profile was marked for deletion but sign-out failed.
-        // Force a redirect anyway since the account is now in a deletion state.
         console.error('Sign-out after deletion failed:', signOutError)
       }
       router.push('/landing')
@@ -334,124 +331,60 @@ export default function Profile() {
         <div className="hp-profile-scroll flex-1 overflow-hidden">
           <div className="hp-profile-inner" style={{ padding: '16px 24px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* ROW 1: Personal Info + Plan */}
-            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
+            {/* SINGLE ROW: Left stack | Right stack */}
+            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto', alignItems: 'start' }}>
 
-              {/* PERSONAL INFO */}
-              <div style={cardBase}>
-                <div style={cardHeader()}>
-                  <span style={cardTitle}>Personal Information</span>
-                </div>
-                <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div className="hp-photo-fields-row" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                  {/* Photo */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {photoUrl ? (
-                      <img src={photoUrl} alt="Profile" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9d5ff' }} />
-                    ) : (
-                      <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#9333ea,#6b21a8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: '#fff' }}>
-                        {initials}
-                      </div>
-                    )}
-                    <label style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}>
-                      {uploading ? '...' : 'Photo'}
-                      <input type="file" accept="image/*" onChange={uploadPhoto} disabled={uploading} style={{ display: 'none' }} />
-                    </label>
+              {/* LEFT STACK: Personal Info + Career Context + Your Career Your Info */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* PERSONAL INFO */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Personal Information</span>
                   </div>
-                  {/* Fields */}
-                  <div className="hp-name-email-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={labelSm}>Display Name</label>
-                      <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputSm} placeholder="Your name" />
-                      <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
+                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 29, paddingTop: 14, paddingBottom: 24 }}>
+                    <div className="hp-photo-fields-row" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                      {/* Photo */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        {photoUrl ? (
+                          <img src={photoUrl} alt="Profile" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9d5ff' }} />
+                        ) : (
+                          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#9333ea,#6b21a8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: '#fff' }}>
+                            {initials}
+                          </div>
+                        )}
+                        <label style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', cursor: 'pointer' }}>
+                          {uploading ? '...' : 'Photo'}
+                          <input type="file" accept="image/*" onChange={uploadPhoto} disabled={uploading} style={{ display: 'none' }} />
+                        </label>
+                      </div>
+                      {/* Fields */}
+                      <div className="hp-name-email-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <label style={labelSm}>Display Name</label>
+                          <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputSm} placeholder="Your name" />
+                          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
+                        </div>
+                        <div className="hp-email-desktop">
+                          <label style={labelSm}>Email</label>
+                          <input type="email" value={user?.email || ''} disabled style={inputDis} />
+                          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="hp-email-desktop">
+                    <div className="hp-email-mobile" style={{ display: 'none' }}>
                       <label style={labelSm}>Email</label>
                       <input type="email" value={user?.email || ''} disabled style={inputDis} />
                       <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
                     </div>
-                  </div>
-                  </div>
-                  <div className="hp-email-mobile" style={{ display: 'none' }}>
-                    <label style={labelSm}>Email</label>
-                    <input type="email" value={user?.email || ''} disabled style={inputDis} />
-                    <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
-                  </div>
-                  <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-                    {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
-                    <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1 }}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                      {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
+                      <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1 }}>
+                        {saving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* PLAN */}
-              <div style={cardBase}>
-                <div style={cardHeader()}>
-                  <span style={cardTitle}>Plan</span>
-                </div>
-                <div style={cardBody}>
-                  {/* Tier badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: tierBg[tier], border: `1px solid ${tierBorder[tier]}`, borderRadius: 10, marginBottom: 12 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: tierColor[tier], flexShrink: 0 }}></div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 13, fontWeight: 800, color: tierColor[tier] }}>Hire Power {tierLabel[tier]}</p>
-                      <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
-                        {tier === TIERS.FREE && 'Always free. Limited features'}
-                        {tier === TIERS.PRO && '$29.99/month · All features unlocked'}
-                        {tier === TIERS.VAULT && '$4.99/month · Career Vault access'}
-                      </p>
-                    </div>
-                    {tier === TIERS.FREE && (
-                      <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
-                    )}
-                  </div>
-
-                  {/* Pending change banner */}
-                  {profile?.pending_change_type && profile?.pending_change_date && (
-                    <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>
-                        {profile.pending_change_type === 'downgrade' ? 'Switching to Vault' : 'Cancellation scheduled'}
-                      </p>
-                      <p style={{ fontSize: 11, color: '#78350f', lineHeight: 1.4 }}>
-                        {profile.pending_change_type === 'downgrade'
-                          ? `Your Pro plan continues through ${new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, you'll switch to Vault for $4.99/month.`
-                          : `Your Pro plan continues through ${new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, your account will be downgraded to Free.`
-                        }
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  {tier === TIERS.PRO && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Between job searches? Store your career history in Vault for $4.99/month. We'll build your next resume while you're building your career.</p>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setShowDowngradeModal(true)} style={{ ...btnOutline, flex: 1 }}>Switch to Vault</button>
-                        <button onClick={() => setShowCancelModal(true)} style={{ ...btnRed, flex: 1, color: '#e57373', borderColor: '#e57373' }}>Cancel Subscription</button>
-                      </div>
-                    </div>
-                  )}
-                  {tier === TIERS.VAULT && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
-                     <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => setShowUpgradeModal(true)} style={{ ...btnPurple, flex: 1 }}>Upgrade to Pro</button>
-                        <button onClick={() => setShowCancelModal(true)} style={{ ...btnRed, flex: 1 }}>Cancel Subscription</button>
-                      </div>
-                    </div>
-                  )}
-                  
-                </div>
-              </div>
-            </div>
-
-           {/* ROW 2: Career Context + Your Info stacked left | Account + Danger stacked right */}
-            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto' }}>
-
-              {/* CAREER CONTEXT + YOUR INFO stacked */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 {/* CAREER CONTEXT */}
                 <div style={cardBase}>
@@ -459,7 +392,7 @@ export default function Profile() {
                     <span style={cardTitle}>Career Context</span>
                   </div>
                   <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                   <div className="hp-career-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    <div className="hp-career-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                       <div>
                         <label style={labelSm}>Current Role</label>
                         <p style={{ ...valueSm, color: profile?.current_role ? '#111827' : '#d1d5db' }}>
@@ -489,7 +422,7 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* THE NOT-SO-FINE PRINT */}
+                {/* YOUR CAREER YOUR INFO */}
                 <div style={cardBase}>
                   <div style={cardHeader()}>
                     <span style={cardTitle}>Your career. Your info.</span>
@@ -510,9 +443,70 @@ export default function Profile() {
                 </div>
 
               </div>
+              {/* END LEFT STACK */}
 
-              {/* ACCOUNT + DANGER stacked */}
+              {/* RIGHT STACK: Plan + Account + Danger Zone */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* PLAN */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Plan</span>
+                  </div>
+                  <div style={cardBody}>
+                    {/* Tier badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: tierBg[tier], border: `1px solid ${tierBorder[tier]}`, borderRadius: 10, marginBottom: 12 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: tierColor[tier], flexShrink: 0 }}></div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: tierColor[tier] }}>Hire Power {tierLabel[tier]}</p>
+                        <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
+                          {tier === TIERS.FREE && 'Always free. Limited features'}
+                          {tier === TIERS.PRO && '$29.99/month · All features unlocked'}
+                          {tier === TIERS.VAULT && '$4.99/month · Career Vault access'}
+                        </p>
+                      </div>
+                      {tier === TIERS.FREE && (
+                        <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
+                      )}
+                    </div>
+
+                    {/* Pending change banner */}
+                    {profile?.pending_change_type && profile?.pending_change_date && (
+                      <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>
+                          {profile.pending_change_type === 'downgrade' ? 'Switching to Vault' : 'Cancellation scheduled'}
+                        </p>
+                        <p style={{ fontSize: 11, color: '#78350f', lineHeight: 1.4 }}>
+                          {profile.pending_change_type === 'downgrade'
+                            ? `Your Pro plan continues through ${new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, you'll switch to Vault for $4.99/month.`
+                            : `Your Pro plan continues through ${new Date(profile.pending_change_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, your account will be downgraded to Free.`
+                          }
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    {tier === TIERS.PRO && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Between job searches? Store your career history in Vault for $4.99/month. We'll build your next resume while you're building your career.</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => setShowDowngradeModal(true)} style={{ ...btnOutline, flex: 1 }}>Switch to Vault</button>
+                          <button onClick={() => setShowCancelModal(true)} style={{ ...btnRed, flex: 1, color: '#e57373', borderColor: '#e57373' }}>Cancel Subscription</button>
+                        </div>
+                      </div>
+                    )}
+                    {tier === TIERS.VAULT && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => setShowUpgradeModal(true)} style={{ ...btnPurple, flex: 1 }}>Upgrade to Pro</button>
+                          <button onClick={() => setShowCancelModal(true)} style={{ ...btnRed, flex: 1 }}>Cancel Subscription</button>
+                        </div>
+                      </div>
+                    )}
+                    
+                  </div>
+                </div>
 
                 {/* ACCOUNT */}
                 <div style={cardBase}>
@@ -569,6 +563,8 @@ export default function Profile() {
                 </div>
 
               </div>
+              {/* END RIGHT STACK */}
+
             </div>
 
           </div>
@@ -592,25 +588,18 @@ export default function Profile() {
           .hp-email-mobile { display: block !important; }
 
           /* Mobile font-size bumps — desktop unaffected (rules only apply <=768px) */
-          /* Mobile top bar descriptor */
           .hp-mobile-top p { font-size: 16px !important; }
-          /* Card eyebrow titles (PERSONAL INFORMATION, PLAN, etc.) */
           .hp-profile-inner span[style*="text-transform: uppercase"][style*="letter-spacing"] { font-size: 12px !important; }
-          /* Field labels and small hints (DISPLAY NAME, "How we'll address you...", etc.) */
           .hp-profile-inner label { font-size: 12px !important; }
           .hp-profile-inner p[style*="font-size: 10px"],
           .hp-profile-inner p[style*="fontSize: 10"] { font-size: 12px !important; }
-          /* Field values, plan tier label, body copy */
           .hp-profile-inner p[style*="font-size: 11px"],
           .hp-profile-inner p[style*="fontSize: 11"] { font-size: 13px !important; }
           .hp-profile-inner p[style*="font-size: 13px"],
           .hp-profile-inner p[style*="fontSize: 13"] { font-size: 16px !important; }
-          /* Inputs — 16px also prevents iOS auto-zoom on focus */
           .hp-profile-inner input[type="text"],
           .hp-profile-inner input[type="email"] { font-size: 16px !important; }
-          /* Buttons */
           .hp-profile-inner button { font-size: 13px !important; }
-          /* "Saved!" inline confirmation */
           .hp-profile-inner span[style*="color: rgb(22, 163, 74)"],
           .hp-profile-inner span[style*="#16a34a"] { font-size: 13px !important; }
         }
