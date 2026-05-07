@@ -7,6 +7,7 @@ import MainNav from '@/app/components/MainNav'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import CoverLetterContent from '@/app/components/CoverLetterContent'
 import ErrorToast from '@/app/components/ErrorToast'
+import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
 
 export default function CoverLetterPage() {
@@ -889,7 +890,7 @@ export default function CoverLetterPage() {
       {showPreview && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 md:p-8" style={{ backgroundColor: 'rgba(255,255,255,0.85)' }}>
           <div
-            className="relative rounded-lg shadow-2xl overflow-hidden"
+            className="relative rounded-lg shadow-2xl overflow-hidden bg-white"
             style={{ height: '90vh', width: 'calc(90vh * 8.5 / 11)', maxWidth: '95vw' }}
           >
             <button
@@ -897,13 +898,7 @@ export default function CoverLetterPage() {
               className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full text-gray-600 hover:text-gray-900 text-xl leading-none font-light"
               style={{ background: 'rgba(255,255,255,0.9)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}
             >×</button>
-            {previewUrl && (
-              <iframe
-                src={`${previewUrl}#toolbar=0&view=Fit`}
-                className="w-full h-full"
-                title="Cover Letter Preview"
-              />
-            )}
+            {previewUrl && <PDFViewer url={previewUrl} />}
           </div>
         </div>
       )}
