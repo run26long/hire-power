@@ -127,7 +127,7 @@ export default function PDFViewer({ url }) {
           <p className="text-sm text-white">{error}</p>
         </div>
       )}
-      <div ref={containerRef} style={{ padding: '16px' }} />
+      <div ref={containerRef} style={{ padding: '16px 16px 0 16px' }} />
     </div>
   )
 }
