@@ -46,30 +46,59 @@ export default function PDFViewer({ url }) {
         if (!container) return
         container.innerHTML = ''
 
-        // Render each page onto its own canvas, stacked vertically.
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        // Render each page as a Letter-sized white "page" on a gray background.
+        // Each page gets its own canvas wrapped in a div with a drop shadow and
+        // a page number, mimicking what a desktop PDF reader shows. Gives the
+        // user a true visual of how the resume fills a Letter page (8.5" x 11"),
+        // including blank space at the bottom for short resumes and clear
+        // separation between pages for multi-page resumes.
+        const totalPages = pdf.numPages
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
           if (cancelled) return
 
           const page = await pdf.getPage(pageNum)
-
-          // Render at 2x resolution for sharpness on high-DPI screens.
           const scale = 2
           const viewport = page.getViewport({ scale })
+
+          const pageWrapper = document.createElement('div')
+          pageWrapper.style.position = 'relative'
+          pageWrapper.style.width = '100%'
+          pageWrapper.style.background = 'white'
+          pageWrapper.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'
+          pageWrapper.style.marginBottom = '16px'
 
           const canvas = document.createElement('canvas')
           canvas.width = viewport.width
           canvas.height = viewport.height
-          // Display size: fill the container width, height proportional.
           canvas.style.width = '100%'
           canvas.style.height = 'auto'
           canvas.style.display = 'block'
-          if (pageNum > 1) canvas.style.marginTop = '12px'
 
           const context = canvas.getContext('2d')
           await page.render({ canvasContext: context, viewport }).promise
 
           if (cancelled) return
-          container.appendChild(canvas)
+
+          pageWrapper.appendChild(canvas)
+
+          // Page indicator badge (only shown when 2+ pages exist)
+          if (totalPages > 1) {
+            const badge = document.createElement('div')
+            badge.textContent = `Page ${pageNum} of ${totalPages}`
+            badge.style.position = 'absolute'
+            badge.style.bottom = '8px'
+            badge.style.right = '8px'
+            badge.style.background = 'rgba(0,0,0,0.6)'
+            badge.style.color = 'white'
+            badge.style.fontSize = '10px'
+            badge.style.fontWeight = '600'
+            badge.style.padding = '3px 8px'
+            badge.style.borderRadius = '10px'
+            badge.style.pointerEvents = 'none'
+            pageWrapper.appendChild(badge)
+          }
+
+          container.appendChild(pageWrapper)
         }
 
         setLoading(false)
@@ -87,7 +116,7 @@ export default function PDFViewer({ url }) {
   }, [url])
 
   return (
-    <div className="w-full h-full overflow-y-auto bg-white">
+    <div className="w-full h-full overflow-y-auto" style={{ background: '#9ca3af' }}>
       {loading && (
         <div className="flex items-center justify-center h-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -95,10 +124,10 @@ export default function PDFViewer({ url }) {
       )}
       {error && (
         <div className="flex items-center justify-center h-full p-4">
-          <p className="text-sm text-gray-600">{error}</p>
+          <p className="text-sm text-white">{error}</p>
         </div>
       )}
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ padding: '16px' }} />
     </div>
   )
 }
