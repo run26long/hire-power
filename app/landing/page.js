@@ -88,7 +88,9 @@ const supabase = createClient();
         body: JSON.stringify({
           email: signupEmail,
           userId: data.user.id,
-          subscriptionTier: 'free'
+          subscriptionTier: 'free',
+          firstName: signupFirstName,
+          lastName: signupLastName
         })
       }).catch(err => console.error('Loops sync failed:', err));
     }

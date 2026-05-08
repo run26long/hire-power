@@ -163,15 +163,6 @@ function DashboardContent() {
       }
     }
     loadData();
-
-    // Cross-tab auth sync: refresh page when auth state changes in another tab
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'PASSWORD_RECOVERY' || event === 'USER_UPDATED') {
-        window.location.reload();
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   // Password strength: returns { score: 0-3, label, color, width }
