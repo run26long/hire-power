@@ -16,6 +16,44 @@ function getTierForPriceId(priceId) {
   return null;
 }
 
+// Sync tier change to Loops (non-blocking — failure shouldn't break webhook)
+async function syncTierToLoops(userId, tier) {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('email, first_name, last_name')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile) {
+      console.error('syncTierToLoops: could not load profile for user', userId, error);
+      return;
+    }
+
+    const response = await fetch('https://app.loops.so/api/v1/contacts/update', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: profile.email,
+        userId,
+        subscriptionTier: tier,
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || ''
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('syncTierToLoops failed:', response.status, errText, { userId, tier });
+    }
+  } catch (err) {
+    console.error('syncTierToLoops error:', err, { userId, tier });
+  }
+}
+
 export async function POST(req) {
   const body = await req.text();
   const sig = req.headers.get('stripe-signature');
@@ -72,6 +110,8 @@ export async function POST(req) {
         return Response.json({ error: 'DB update failed' }, { status: 500 });
       }
 
+      await syncTierToLoops(userId, tier);
+
       break;
     }
 
@@ -93,14 +133,16 @@ export async function POST(req) {
 
       if (existing && existing.subscription_tier !== newTier) {
         // Tier transition detected — update and clear pending change
-        const { error: updateError } = await supabase
+        const { data: updated, error: updateError } = await supabase
           .from('profiles')
           .update({
             subscription_tier: newTier,
             pending_change_type: null,
             pending_change_date: null,
           })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .select('id')
+          .single();
 
         if (updateError) {
           console.error('CRITICAL: customer.subscription.updated tier transition failed', {
@@ -111,6 +153,8 @@ export async function POST(req) {
           });
           return Response.json({ error: 'DB update failed' }, { status: 500 });
         }
+
+        if (updated?.id) await syncTierToLoops(updated.id, newTier);
       }
 
       break;
@@ -152,6 +196,8 @@ export async function POST(req) {
             });
             return Response.json({ error: 'DB update failed' }, { status: 500 });
           }
+
+          if (existingProfile?.id) await syncTierToLoops(existingProfile.id, 'vault');
         } catch (vaultError) {
           // Vault subscription failed (e.g. card declined). Drop to free
           // and clear pending state so user can re-subscribe from profile.
@@ -177,10 +223,12 @@ export async function POST(req) {
             });
             return Response.json({ error: 'DB update failed' }, { status: 500 });
           }
+
+          if (existingProfile?.id) await syncTierToLoops(existingProfile.id, 'free');
         }
       } else {
         // Normal cancel — drop to free
-        const { error: cancelUpdateError } = await supabase
+        const { data: cancelledProfile, error: cancelUpdateError } = await supabase
           .from('profiles')
           .update({
             subscription_tier: 'free',
@@ -189,7 +237,9 @@ export async function POST(req) {
             pending_change_type: null,
             pending_change_date: null,
           })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .select('id')
+          .single();
 
         if (cancelUpdateError) {
           console.error('CRITICAL: Subscription cancellation update failed', {
@@ -198,6 +248,8 @@ export async function POST(req) {
           });
           return Response.json({ error: 'DB update failed' }, { status: 500 });
         }
+
+        if (cancelledProfile?.id) await syncTierToLoops(cancelledProfile.id, 'free');
       }
 
       break;
