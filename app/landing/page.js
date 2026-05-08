@@ -81,18 +81,8 @@ const supabase = createClient();
 
     if (data.user) {
       setSignupSuccess(true);
-      // Sync to Loops (non-blocking; don't fail signup if this fails)
-      fetch('/api/loops/sync-contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: signupEmail,
-          userId: data.user.id,
-          subscriptionTier: 'free',
-          firstName: signupFirstName,
-          lastName: signupLastName
-        })
-      }).catch(err => console.error('Loops sync failed:', err));
+      // Loops sync deferred to dashboard load after email confirmation.
+      // We don't sync unconfirmed signups to keep Loops clean.
     }
   };
 
@@ -508,7 +498,7 @@ const supabase = createClient();
                       // Free path: normal signup
                       handleSignup(e)
                     }
-                  }} className="space-y-3">
+                  }} className="space-y-1">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
@@ -603,7 +593,7 @@ const supabase = createClient();
 
                     {/* Pro callout — only when checked */}
                     {signupAsPro && (
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 space-y-1.5">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 space-y-1">
                         {[
                           'Coaching conversation that rewrites your resume for you',
                           'Unlimited job-specific resumes and cover letters',

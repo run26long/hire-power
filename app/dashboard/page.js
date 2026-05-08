@@ -135,6 +135,33 @@ function DashboardContent() {
         setUser(user);
         if (profile) setUserProfile(profile);
 
+        // First-time Loops sync for confirmed Free users.
+        // Pro/Vault users are synced by the Stripe webhook on payment.
+        if (
+          user.email_confirmed_at &&
+          profile &&
+          !profile.loops_synced_at &&
+          profile.subscription_tier === 'free'
+        ) {
+          fetch('/api/loops/sync-contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: user.email,
+              userId: user.id,
+              subscriptionTier: 'free',
+              firstName: profile.first_name || '',
+              lastName: profile.last_name || ''
+            })
+          })
+            .then(res => {
+              if (res.ok) {
+                supabase.from('profiles').update({ loops_synced_at: new Date().toISOString() }).eq('id', user.id);
+              }
+            })
+            .catch(err => console.error('Loops first-sync failed:', err));
+        }
+
         // New user → Dashboard
         const createdAt = new Date(user.created_at);
         if ((Date.now() - createdAt.getTime()) < 30000) {

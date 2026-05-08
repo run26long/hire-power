@@ -52,6 +52,9 @@ export async function POST(request) {
       }
     }
 
+    // Loops sync deferred to Stripe webhook (checkout.session.completed).
+    // Pro users only enter Loops after payment confirms.
+
     // Create Stripe checkout session. If this fails, delete the Supabase user
     // we just created so they can cleanly retry signup instead of being stranded
     // with an account that says "already exists" but has no Stripe subscription.
