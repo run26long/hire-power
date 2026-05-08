@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 export async function POST(request) {
   try {
-    const { email, password, source } = await request.json()
+    const { email, password, source, firstName, lastName } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
@@ -21,7 +21,11 @@ export async function POST(request) {
     const { data: userData, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: {
+        first_name: firstName?.trim() || '',
+        last_name: lastName?.trim() || ''
+      }
     })
 
     if (createError) {

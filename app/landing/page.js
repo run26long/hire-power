@@ -474,7 +474,12 @@ const supabase = createClient();
                         const res = await fetch('/api/auth/signup-pro', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ email: signupEmail, password: signupPassword })
+                          body: JSON.stringify({
+                            email: signupEmail,
+                            password: signupPassword,
+                            firstName: signupFirstName,
+                            lastName: signupLastName
+                          })
                         })
                         const data = await res.json()
                         if (!res.ok) {
