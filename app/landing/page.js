@@ -23,6 +23,21 @@ const [showSignupPassword, setShowSignupPassword] = useState(false);
 
 const supabase = createClient();
 
+  // Password strength: returns { score: 0-3, label, color, width }
+  const getPasswordStrength = (password) => {
+    if (!password) return null;
+    const len = password.length;
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^a-zA-Z0-9]/.test(password);
+    const variety = [hasLetter, hasNumber, hasSymbol].filter(Boolean).length;
+
+    if (len < 8) return { score: 0, label: 'Too short', color: '#ef4444', width: '25%' };
+    if (len >= 12 || (len >= 10 && variety >= 2)) return { score: 3, label: 'Strong', color: '#10b981', width: '100%' };
+    if (len >= 10 || (len >= 8 && variety >= 2)) return { score: 2, label: 'Good', color: '#f59e0b', width: '66%' };
+    return { score: 1, label: 'Weak', color: '#f59e0b', width: '40%' };
+  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupLoading(true);
@@ -499,8 +514,8 @@ const supabase = createClient();
                           value={signupPassword}
                           onChange={(e) => setSignupPassword(e.target.value)}
                           className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
-                          placeholder="Min. 6 characters"
-                          minLength={6}
+                          placeholder="Min. 8 characters"
+                          minLength={8}
                         />
                         <button
                           type="button"
@@ -519,6 +534,19 @@ const supabase = createClient();
                           )}
                         </button>
                       </div>
+                      {signupPassword && (() => {
+                        const s = getPasswordStrength(signupPassword);
+                        return (
+                          <div className="mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full transition-all duration-200" style={{ width: s.width, background: s.color }} />
+                              </div>
+                              <span className="text-[10px] font-medium" style={{ color: s.color }}>{s.label}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Pro checkbox */}
