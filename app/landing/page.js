@@ -12,6 +12,8 @@ export default function LandingPage() {
   const [userProfile, setUserProfile] = useState(null);
 const [showSignupModal, setShowSignupModal] = useState(false);
 const [signupAsPro, setSignupAsPro] = useState(false);
+const [signupFirstName, setSignupFirstName] = useState('');
+const [signupLastName, setSignupLastName] = useState('');
 const [signupEmail, setSignupEmail] = useState('');
 const [signupPassword, setSignupPassword] = useState('');
 const [signupLoading, setSignupLoading] = useState(false);
@@ -48,6 +50,12 @@ const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: signupEmail,
       password: signupPassword,
+      options: {
+        data: {
+          first_name: signupFirstName.trim(),
+          last_name: signupLastName.trim(),
+        }
+      }
     });
 
     setSignupLoading(false);
@@ -494,6 +502,30 @@ const supabase = createClient();
                       handleSignup(e)
                     }
                   }} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                        <input
+                          type="text"
+                          required
+                          value={signupFirstName}
+                          onChange={(e) => setSignupFirstName(e.target.value)}
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="First"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                        <input
+                          type="text"
+                          required
+                          value={signupLastName}
+                          onChange={(e) => setSignupLastName(e.target.value)}
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="Last"
+                        />
+                      </div>
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
                       <input
