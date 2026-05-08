@@ -58,6 +58,16 @@ const supabase = createClient();
 
     if (data.user) {
       setSignupSuccess(true);
+      // Sync to Loops (non-blocking; don't fail signup if this fails)
+      fetch('/api/loops/sync-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: signupEmail,
+          userId: data.user.id,
+          subscriptionTier: 'free'
+        })
+      }).catch(err => console.error('Loops sync failed:', err));
     }
   };
 
