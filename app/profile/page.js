@@ -33,6 +33,17 @@ export default function Profile() {
   const [toastSuccess, setToastSuccess] = useState('')
   const [toastError, setToastError] = useState('')
 
+  // Change Password modal
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false)
+  const [changePasswordError, setChangePasswordError] = useState('')
+
   useEffect(() => { loadProfile() }, [])
 
   async function loadProfile() {
@@ -515,19 +526,10 @@ export default function Profile() {
                   </div>
                   <div style={{ ...cardBody, display: 'flex', gap: 8 }}>
                     <button
-                      onClick={async () => {
-                        try {
-                          const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/reset-password` })
-                          if (error) throw error
-                          setToastSuccess('Password reset email sent! Check your inbox.')
-                        } catch (e) {
-                          console.error(e)
-                          setToastError('Could not send reset email. Please try again.')
-                        }
-                      }}
+                      onClick={() => setShowChangePasswordModal(true)}
                       style={{ ...btnOutline, flex: 1, textAlign: 'center' }}
                     >
-                      Reset Password
+                      Change Password
                     </button>
                     <button
                       onClick={async () => {
@@ -688,27 +690,165 @@ export default function Profile() {
         </div>
       )}
 
+      {/* ── CHANGE PASSWORD MODAL ── */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white shadow-2xl w-full overflow-hidden" style={{ maxWidth: 420, borderRadius: 12 }}>
+            <div style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }} className="px-6 py-5 relative">
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false)
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                  setChangePasswordError('')
+                }}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Change your password</h2>
+                  <p className="text-purple-100 text-xs">Make it something you'll remember.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              {changePasswordError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">{changePasswordError}</div>
+              )}
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                setChangePasswordError('')
+                if (newPassword !== confirmPassword) { setChangePasswordError('New passwords do not match.'); return }
+                if (newPassword.length < 6) { setChangePasswordError('Password must be at least 6 characters.'); return }
+                if (newPassword === currentPassword) { setChangePasswordError('New password must be different from current password.'); return }
+                setChangePasswordLoading(true)
+                try {
+                  // Verify current password by re-authenticating
+                  const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword })
+                  if (signInError) { setChangePasswordError('Current password is incorrect.'); setChangePasswordLoading(false); return }
+                  // Update to new password
+                  const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+                  if (updateError) throw updateError
+                  setShowChangePasswordModal(false)
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                  setToastSuccess('Password updated successfully.')
+                } catch (err) {
+                  console.error(err)
+                  setChangePasswordError('Could not update password. Please try again.')
+                } finally {
+                  setChangePasswordLoading(false)
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+                  <div className="relative">
+                    <input type={showCurrentPassword ? "text" : "password"} required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
+                      placeholder="Your current password" autoFocus />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showCurrentPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+                  <div className="relative">
+                   <input type={showNewPassword ? "text" : "password"} required value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
+                      placeholder="Min. 6 characters" />
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showNewPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+                  <div className="relative">
+                    <input type={showConfirmPassword ? "text" : "password"} required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
+                      placeholder="Same password again" />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showConfirmPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" disabled={changePasswordLoading}
+                  className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
+                  {changePasswordLoading ? 'Updating...' : 'Update password'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── EXPORT MODAL ── */}
       {showExportModal && (
-        <div style={modalOverlay}>
-          <div style={modalBox}>
-            <div style={modalHead()}>
-              <p style={modalTitle}>Export Your Data</p>
-              <p style={modalSub}>Download everything we have on file.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white shadow-2xl w-full overflow-hidden" style={{ maxWidth: 420, borderRadius: 12 }}>
+            <div style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }} className="px-6 py-5 relative">
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Export your data</h2>
+                  <p className="text-purple-100 text-xs">Download everything we have on file.</p>
+                </div>
+              </div>
             </div>
-            <div style={modalBody}>
-              <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 16, lineHeight: 1.9 }}>
+            <div className="px-6 py-5">
+              <ul className="text-sm text-gray-600 pl-5 mb-4 space-y-1.5 list-disc">
                 <li>Profile and account information</li>
                 <li>Career context and coaching history</li>
                 <li>All resumes and resume data</li>
               </ul>
-              <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 16 }}>File downloads as JSON. Your data — take it anywhere.</p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setShowExportModal(false)} style={{ ...btnGhost, flex: 1 }}>Cancel</button>
-                <button onClick={handleExportData} disabled={exportLoading} style={{ ...btnPurple, flex: 1, opacity: exportLoading ? 0.6 : 1 }}>
-                  {exportLoading ? 'Exporting...' : 'Download My Data'}
-                </button>
-              </div>
+              <p className="text-xs text-gray-400 mb-5">File downloads as JSON. Your data, take it anywhere.</p>
+              <button
+                onClick={handleExportData}
+                disabled={exportLoading}
+                className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+              >
+                {exportLoading ? 'Exporting...' : 'Download My Data'}
+              </button>
             </div>
           </div>
         </div>
