@@ -16,6 +16,8 @@ export default function Profile() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [displayName, setDisplayName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [photoUrl, setPhotoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const supabase = createClient()
@@ -72,6 +74,8 @@ export default function Profile() {
       }
       if (p) {
         setProfile(p)
+        setFirstName(p.first_name || '')
+        setLastName(p.last_name || '')
         setDisplayName(p.display_name || user.email.split('@')[0])
         setPhotoUrl(p.photo_url || '')
       } else {
@@ -114,8 +118,9 @@ export default function Profile() {
   async function saveProfile() {
     try {
       setSaving(true)
+      const computedDisplayName = `${firstName.trim()} ${lastName.trim()}`.trim() || displayName
       const { error } = await supabase.from('profiles')
-        .upsert({ id: user.id, display_name: displayName, photo_url: photoUrl, updated_at: new Date().toISOString() })
+        .upsert({ id: user.id, first_name: firstName.trim(), last_name: lastName.trim(), display_name: computedDisplayName, photo_url: photoUrl, updated_at: new Date().toISOString() })
       if (error) throw error
       await loadProfile()
       setSaveSuccess(true)
@@ -384,11 +389,16 @@ export default function Profile() {
                         </label>
                       </div>
                       {/* Fields */}
-                      <div className="hp-name-email-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="hp-name-email-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                         <div>
-                          <label style={labelSm}>Display Name</label>
-                          <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputSm} placeholder="Your name" />
+                          <label style={labelSm}>First Name</label>
+                          <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={inputSm} placeholder="First" />
                           <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
+                        </div>
+                        <div>
+                          <label style={labelSm}>Last Name</label>
+                          <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={inputSm} placeholder="Last" />
+                          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>
                         </div>
                         <div className="hp-email-desktop">
                           <label style={labelSm}>Email</label>

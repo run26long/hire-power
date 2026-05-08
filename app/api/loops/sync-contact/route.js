@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const { email, userId, subscriptionTier } = await request.json()
+    const { email, userId, subscriptionTier, firstName, lastName } = await request.json()
 
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
@@ -17,7 +17,9 @@ export async function POST(request) {
       body: JSON.stringify({
         email,
         userId,
-        subscriptionTier
+        subscriptionTier,
+        firstName,
+        lastName
       })
     })
 
