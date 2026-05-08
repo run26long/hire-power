@@ -33,6 +33,20 @@ export default function Profile() {
   const [toastSuccess, setToastSuccess] = useState('')
   const [toastError, setToastError] = useState('')
 
+  // Password strength: returns { score: 0-3, label, color, width }
+  const getPasswordStrength = (password) => {
+    if (!password) return null;
+    const len = password.length;
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^a-zA-Z0-9]/.test(password);
+    const variety = [hasLetter, hasNumber, hasSymbol].filter(Boolean).length;
+    if (len < 8) return { score: 0, label: 'Too short', color: '#ef4444', width: '25%' };
+    if (len >= 12 || (len >= 10 && variety >= 2)) return { score: 3, label: 'Strong', color: '#10b981', width: '100%' };
+    if (len >= 10 || (len >= 8 && variety >= 2)) return { score: 2, label: 'Good', color: '#f59e0b', width: '66%' };
+    return { score: 1, label: 'Weak', color: '#f59e0b', width: '40%' };
+  };
+
   // Change Password modal
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -721,7 +735,7 @@ export default function Profile() {
                 e.preventDefault()
                 setChangePasswordError('')
                 if (newPassword !== confirmPassword) { setChangePasswordError('New passwords do not match.'); return }
-                if (newPassword.length < 6) { setChangePasswordError('Password must be at least 6 characters.'); return }
+                if (newPassword.length < 8) { setChangePasswordError('Password must be at least 8 characters.'); return }
                 if (newPassword === currentPassword) { setChangePasswordError('New password must be different from current password.'); return }
                 setChangePasswordLoading(true)
                 try {
@@ -769,7 +783,7 @@ export default function Profile() {
                   <div className="relative">
                    <input type={showNewPassword ? "text" : "password"} required value={newPassword} onChange={e => setNewPassword(e.target.value)}
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
-                      placeholder="Min. 6 characters" />
+                      placeholder="Min. 8 characters" />
                     <button type="button" onClick={() => setShowNewPassword(!showNewPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       {showNewPassword ? (
@@ -784,6 +798,19 @@ export default function Profile() {
                       )}
                     </button>
                   </div>
+                  {newPassword && (() => {
+                    const s = getPasswordStrength(newPassword);
+                    return (
+                      <div className="mt-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full transition-all duration-200" style={{ width: s.width, background: s.color }} />
+                          </div>
+                          <span className="text-[10px] font-medium" style={{ color: s.color }}>{s.label}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
