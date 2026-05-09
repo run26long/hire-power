@@ -66,6 +66,7 @@ export async function POST(request) {
         customer_email: email,
         line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID, quantity: 1 }],
         allow_promotion_codes: true,
+        payment_method_collection: 'if_required',
         success_url: source === 'brb'
           ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/post-stripe-brb?session_id={CHECKOUT_SESSION_ID}`
           : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?upgraded=true`,
