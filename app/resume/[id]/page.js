@@ -24,6 +24,32 @@ const styles = `
   }
 `
 
+async function fireT4IfFirst(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('t4_sent_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.t4_sent_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ t4_sent_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstJSResumeImprovedAt: now
+      })
+    })
+  } catch (e) {
+    console.error('T4 trigger failed (non-blocking):', e)
+  }
+}
+
 export default function ResumePage() {
   const params = useParams()
   const router = useRouter()
@@ -2456,6 +2482,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 
                       setResume(prev => ({ ...prev, journey_step: 'improve' }))
                       setShowSkipCoachingModal(false)
+                      fireT4IfFirst(supabase)
                     } catch (err) {
                       console.error('Error tailoring resume:', err)
                       setErrorToast('Something went wrong. Please try again.')
@@ -3121,6 +3148,7 @@ const getMessageText = (msg) => {
       }
 
       setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
+      if (isJobSpecific) fireT4IfFirst(supabase)
 
     } catch (err) {
       console.error('Error finishing coaching:', err)
@@ -3190,6 +3218,11 @@ const getMessageText = (msg) => {
             setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
           } else {
             setCoachingSamplesUsed(newCount)
+            const now = new Date().toISOString()
+            try {
+              await supabase.from('profiles').update({ coaching_completed_at: now }).eq('id', user.id)
+              await fetch('/api/loops/sync-contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, userId: user.id, coachingCompletedAt: now }) })
+            } catch (e) { console.error('T7 trigger update failed (non-blocking):', e) }
           }
         }
       }

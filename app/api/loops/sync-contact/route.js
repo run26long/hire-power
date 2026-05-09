@@ -2,10 +2,17 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const { email, userId, subscriptionTier, firstName, lastName } = await request.json()
+    const body = await request.json()
+    const { email, isInitialSync } = body
 
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
+    }
+
+    const { isInitialSync: _drop, ...payload } = body
+
+    if (isInitialSync) {
+      payload.hasResume = false
     }
 
     const response = await fetch('https://app.loops.so/api/v1/contacts/update', {
@@ -14,13 +21,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        email,
-        userId,
-        subscriptionTier,
-        firstName,
-        lastName
-      })
+      body: JSON.stringify(payload)
     })
 
     if (!response.ok) {

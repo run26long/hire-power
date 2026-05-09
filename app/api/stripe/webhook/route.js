@@ -21,7 +21,7 @@ async function syncTierToLoops(userId, tier) {
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('email, first_name, last_name')
+      .select('email, first_name, last_name, loops_synced_at')
       .eq('id', userId)
       .single();
 
@@ -30,24 +30,37 @@ async function syncTierToLoops(userId, tier) {
       return;
     }
 
+    const isInitialSync = !profile.loops_synced_at;
+
+    const payload = {
+      email: profile.email,
+      userId,
+      subscriptionTier: tier,
+      firstName: profile.first_name || '',
+      lastName: profile.last_name || ''
+    };
+
+    if (isInitialSync) {
+      payload.hasResume = false;
+    }
+
     const response = await fetch('https://app.loops.so/api/v1/contacts/update', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        email: profile.email,
-        userId,
-        subscriptionTier: tier,
-        firstName: profile.first_name || '',
-        lastName: profile.last_name || ''
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
       const errText = await response.text();
       console.error('syncTierToLoops failed:', response.status, errText, { userId, tier });
+      return;
+    }
+
+    if (isInitialSync) {
+      await supabase.from('profiles').update({ loops_synced_at: new Date().toISOString() }).eq('id', userId);
     }
   } catch (err) {
     console.error('syncTierToLoops error:', err, { userId, tier });

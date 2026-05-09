@@ -290,6 +290,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         setCreatingChat(false);
         return;
       }
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: chatUser.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
       // Mark tour as seen, then navigate. Don't close the modal yet —
       // it will unmount when navigation completes, avoiding empty-state flash.
       localStorage.setItem('hp_tour_seen', 'true');
@@ -378,6 +379,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
       // 5. Redirect to resume detail page
       track('resume_uploaded', { method: 'upload' })
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
       router.push(`/resume/${savedResume.id}`);
 
     } catch (error) {

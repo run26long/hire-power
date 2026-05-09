@@ -142,7 +142,8 @@ function DashboardContent() {
               userId: user.id,
               subscriptionTier: 'free',
               firstName: profile.first_name || '',
-              lastName: profile.last_name || ''
+              lastName: profile.last_name || '',
+              isInitialSync: true
             })
           })
             .then(res => {
