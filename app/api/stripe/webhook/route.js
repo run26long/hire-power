@@ -21,7 +21,7 @@ async function syncTierToLoops(userId, tier) {
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('email, first_name, last_name, loops_synced_at')
+     .select('email, first_name, last_name, loops_synced_at, t6_sent_at') 
       .eq('id', userId)
       .single();
 
@@ -31,6 +31,8 @@ async function syncTierToLoops(userId, tier) {
     }
 
     const isInitialSync = !profile.loops_synced_at;
+    const isFreeToProUpgrade = tier === 'pro' && !isInitialSync && !profile.t6_sent_at;
+    const t6Now = isFreeToProUpgrade ? new Date().toISOString() : null;
 
     const payload = {
       email: profile.email,
@@ -42,6 +44,10 @@ async function syncTierToLoops(userId, tier) {
 
     if (isInitialSync) {
       payload.hasResume = false;
+    }
+
+    if (isFreeToProUpgrade) {
+      payload.upgradedAt = t6Now;
     }
 
     const response = await fetch('https://app.loops.so/api/v1/contacts/update', {
@@ -61,6 +67,10 @@ async function syncTierToLoops(userId, tier) {
 
     if (isInitialSync) {
       await supabase.from('profiles').update({ loops_synced_at: new Date().toISOString() }).eq('id', userId);
+    }
+
+    if (isFreeToProUpgrade) {
+      await supabase.from('profiles').update({ t6_sent_at: t6Now }).eq('id', userId);
     }
   } catch (err) {
     console.error('syncTierToLoops error:', err, { userId, tier });
