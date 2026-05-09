@@ -212,6 +212,82 @@ export async function POST(request) {
         return apiError(updateError, "We couldn't save your PDF. Please try again.")
       }
 
+      // ─────────────────────────────────────────────
+      // T3 TRIGGER — first resume download for this user
+      // Fires firstResumeDownload event to Loops
+      // Gated by profiles.t3_sent_at and resumes.first_downloaded_at (both single-fire)
+      // Wrapped in try/catch so any failure here never blocks the download
+      // ─────────────────────────────────────────────
+      if (userId) {
+        try {
+          const { data: profileRow } = await supabase
+            .from('profiles')
+            .select('email, first_name, subscription_tier, t3_sent_at')
+            .eq('id', userId)
+            .single()
+
+          // Only proceed if user hasn't received T3 yet
+          if (profileRow && !profileRow.t3_sent_at) {
+            // Stamp first_downloaded_at on the resume (the actual resumes table, not resume_versions)
+            // We only stamp + check this on the parent resume, since T3 fires once per user regardless of resume type
+            const resumeIdForStamp = isJobVersion ? resumeId : recordId
+
+            if (resumeIdForStamp) {
+              const { data: resumeRow } = await supabase
+                .from('resumes')
+                .select('first_downloaded_at')
+                .eq('id', resumeIdForStamp)
+                .single()
+
+              if (resumeRow && !resumeRow.first_downloaded_at) {
+                const now = new Date().toISOString()
+
+                // Stamp both timestamps first (defensive: prevents double-fire if user clicks download twice quickly)
+                await supabase
+                  .from('resumes')
+                  .update({ first_downloaded_at: now })
+                  .eq('id', resumeIdForStamp)
+
+                await supabase
+                  .from('profiles')
+                  .update({ t3_sent_at: now })
+                  .eq('id', userId)
+
+                // Fire Loops event
+                if (process.env.LOOPS_API_KEY && profileRow.email) {
+                  const loopsResponse = await fetch('https://app.loops.so/api/v1/events/send', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      email: profileRow.email,
+                      userId: userId,
+                      eventName: 'firstResumeDownload',
+                      contactProperties: {
+                        firstName: profileRow.first_name || '',
+                        subscriptionTier: profileRow.subscription_tier || 'free'
+                      }
+                    })
+                  })
+
+                  if (!loopsResponse.ok) {
+                    const errText = await loopsResponse.text()
+                    console.error('T3 Loops event failed:', loopsResponse.status, errText)
+                  }
+                } else {
+                  console.warn('T3 trigger skipped: LOOPS_API_KEY missing or profile email empty')
+                }
+              }
+            }
+          }
+        } catch (t3Error) {
+          // T3 failure must never block the download
+          console.error('T3 trigger error (non-blocking):', t3Error)
+        }
+      }
+
       return Response.json({
         success: true,
         pdfUrl: publicUrl,

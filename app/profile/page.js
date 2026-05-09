@@ -62,6 +62,19 @@ export default function Profile() {
 
   useEffect(() => { loadProfile() }, [])
 
+  // Auto-open upgrade modal when arriving from email link (?upgrade=true)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('upgrade') === 'true') {
+      setShowUpgradeModal(true)
+      // Strip the param so a refresh doesn't re-trigger
+      params.delete('upgrade')
+      const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [])
+
   async function loadProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -936,8 +949,7 @@ export default function Profile() {
         <UpgradeModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
-          userProfile={profile}
-          supabase={supabase}
+          currentTier={tier}
         />
       )}
 
