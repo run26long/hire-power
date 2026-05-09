@@ -123,15 +123,6 @@ function DashboardContent() {
           console.warn('Dashboard profile load issue (non-fatal):', profileError);
         }
 
-        // Block dashboard access if the account has been flagged for deletion.
-        // Catches users with a valid session token from before deletion was requested.
-        if (profile?.deletion_requested_at) {
-          await supabase.auth.signOut();
-          setShowLoginModal(true);
-          setLoginError('account_deleted');
-          return;
-        }
-
         setUser(user);
         if (profile) setUserProfile(profile);
 
