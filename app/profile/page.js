@@ -222,14 +222,19 @@ export default function Profile() {
     if (deleteConfirmText !== 'DELETE') return
     try {
       setProcessing(true)
-      const { error } = await supabase.from('profiles')
-        .update({ deletion_requested_at: new Date().toISOString(), subscription_tier: TIERS.FREE, cancelled_at: new Date().toISOString() })
-        .eq('id', user.id)
-      if (error) throw error
-      const { error: signOutError } = await supabase.auth.signOut()
-      if (signOutError) {
-        console.error('Sign-out after deletion failed:', signOutError)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setToastError("Your session expired. Please sign in again.")
+        return
       }
+      await fetchJSON('/api/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+      await supabase.auth.signOut()
       router.push('/landing')
     } catch (e) {
       console.error(e)
@@ -910,18 +915,58 @@ export default function Profile() {
           <div style={{ ...modalBox, maxWidth: 440 }}>
             <div style={modalHead('linear-gradient(135deg,#dc2626,#991b1b)')}>
               <p style={modalTitle}>Delete Your Account</p>
-              <p style={modalSub}>30-day recovery window applies.</p>
+              <p style={modalSub}>This action is immediate and cannot be undone.</p>
             </div>
             <div style={modalBody}>
-              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 12 }}>
-                This will cancel your subscription and begin a 30-day grace period. Contact support within 30 days to recover. After that, everything is gone permanently.
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 14 }}>
+                When you click Delete My Account, we'll permanently remove all your data right away. No grace period, no recovery. We honor your request immediately to respect your privacy.
               </p>
+
+              {(tier === TIERS.PRO || tier === TIERS.VAULT) && (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                    Just trying to stop paying?
+                  </p>
+                  <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 8 }}>
+                    You don't have to delete your account. Keep your data and stop paying:
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {tier === TIERS.PRO && (
+                      <button
+                        onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setShowDowngradeModal(true); }}
+                        style={{ ...btnPurple, flex: 1 }}
+                      >
+                        Switch to Vault
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setShowCancelModal(true); }}
+                      style={{ ...btnOutline, flex: 1 }}
+                    >
+                      Cancel to Free
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <p style={{ fontSize: 12, color: '#374151', fontWeight: 700, marginBottom: 6 }}>Permanently removes:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 16, lineHeight: 1.8 }}>
                 <li>All resumes and coaching conversations</li>
-                <li>Career archive and achievements</li>
+                <li>Career Vault and achievements</li>
+                <li>Cover letters and job tracking history</li>
                 <li>Your account and profile data</li>
               </ul>
+
+              {tier === TIERS.FREE && (
+                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
+                    Your account stays free, forever.
+                  </p>
+                  <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>
+                    You don't have to delete to stop using Hire Power. Walk away anytime, come back anytime. Your data stays safe.
+                  </p>
+                </div>
+              )}
               <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 6 }}>Type <strong>DELETE</strong> to confirm:</p>
               <input
                 type="text"
