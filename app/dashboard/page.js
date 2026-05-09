@@ -213,7 +213,14 @@ function DashboardContent() {
     const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
     if (signInError) {
       setLoginLoading(false);
-      setLoginError(signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed') ? 'account_not_found' : signInError.message);
+      const msg = signInError.message;
+      if (msg.includes('Email not confirmed')) {
+        setLoginError('email_not_confirmed');
+      } else if (msg.includes('Invalid login credentials')) {
+        setLoginError('invalid_credentials');
+      } else {
+        setLoginError(msg);
+      }
       return;
     }
     if (data.user) {
@@ -355,9 +362,13 @@ function DashboardContent() {
             <div className="px-6 py-5">
               {loginView === 'login' && (
                 <>
-                  {loginError === 'account_not_found' ? (
-                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm mb-4">
-                      No account found. <button onClick={() => router.push('/landing')} className="font-semibold underline">Sign up free →</button>
+                  {loginError === 'invalid_credentials' ? (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
+                      Email or password is incorrect. Try again, or use <button onClick={() => { setLoginView('forgot'); setResetError(''); setResetSuccess(false); }} className="font-semibold underline bg-transparent border-none cursor-pointer p-0 text-red-700">Forgot password?</button>
+                    </div>
+                  ) : loginError === 'email_not_confirmed' ? (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded text-sm mb-4">
+                      Please confirm your email before logging in. Check your inbox for the confirmation link.
                     </div>
                   ) : loginError === 'account_deleted' ? (
                     <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mb-4">
