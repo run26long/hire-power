@@ -73,7 +73,12 @@ export async function POST(request) {
         cancel_url: source === 'brb'
           ? `${process.env.NEXT_PUBLIC_SITE_URL}/brb-landing?cancelled=true&session_id={CHECKOUT_SESSION_ID}`
           : `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
-        metadata: { userId: userData.user.id, source: source || 'hp' }
+        client_reference_id: userData.user.id,
+        metadata: {
+          userId: userData.user.id,
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+          source: source || 'hp'
+        }
       })
     } catch (stripeError) {
       console.error('signup-pro: Stripe session failed, rolling back user creation:', stripeError)
