@@ -13,6 +13,57 @@ import ResumeContent from '../components/ResumeContent';
 import Breadcrumb from '../components/Breadcrumb';
 import { fetchJSON } from '@/lib/fetchJSON';
 
+async function fireT8IfFirst(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('t8_sent_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.t8_sent_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ t8_sent_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstCoverLetterAt: now
+      })
+    })
+  } catch (e) {
+    console.error('T8 trigger failed (non-blocking):', e)
+  }
+}
+
+async function fireT5IfFirst(supabase) {  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('t5_sent_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.t5_sent_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ t5_sent_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstJMSCalculatedAt: now
+      })
+    })
+  } catch (e) {
+    console.error('T5 trigger failed (non-blocking):', e)
+  }
+}
+
 export default function MyResumesPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -602,6 +653,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .single();
       if (insertError) throw insertError;
 
+      fireT5IfFirst(supabase)
+
       // Navigate to new resume
       router.push(`/resume/${newResume.id}`);
     } catch (err) {
@@ -680,6 +733,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .single();
 
       if (insertError) throw insertError;
+
+      fireT8IfFirst(supabase)
 
       router.push(`/cover-letter/${newCL.id}`);
     } catch (err) {
