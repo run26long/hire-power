@@ -152,6 +152,7 @@ useEffect(() => {
       if (error) throw error;
 
       track('resume_uploaded', { method: 'build' })
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
       if (fromPage === 'career-coach') {
         router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
       } else if (fromPage === 'resume-coach') {

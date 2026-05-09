@@ -134,6 +134,7 @@ export default function MyCareerPage() {
       }
 
       track('resume_uploaded', { method: 'upload', source: 'career_coach' })
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
       localStorage.setItem('hp_career_modal_seen', 'true');
       router.push(`/career-coach/detail?resumeId=${savedResume.id}`);
     } catch (err) {
@@ -170,6 +171,7 @@ export default function MyCareerPage() {
         console.error('Failed to create resume chat record:', error);
         return;
       }
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: chatUser.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
       router.push(`/resume/${newResume.id}`);
     } catch (err) {
       console.error('Resume chat start error:', err);
