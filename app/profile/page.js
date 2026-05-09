@@ -913,7 +913,14 @@ export default function Profile() {
       {showDeleteModal && (
         <div style={modalOverlay}>
           <div style={{ ...modalBox, maxWidth: 440 }}>
-            <div style={modalHead('linear-gradient(135deg,#dc2626,#991b1b)')}>
+            <div style={{ ...modalHead('linear-gradient(135deg,#dc2626,#991b1b)'), position: 'relative' }}>
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText('') }}
+                style={{ position: 'absolute', top: 12, right: 14, background: 'transparent', border: 'none', color: 'white', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 0, fontWeight: 300 }}
+                aria-label="Close"
+              >
+                ×
+              </button>
               <p style={modalTitle}>Delete Your Account</p>
               <p style={modalSub}>This action is immediate and cannot be undone.</p>
             </div>
@@ -934,14 +941,14 @@ export default function Profile() {
                     {tier === TIERS.PRO && (
                       <button
                         onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setShowDowngradeModal(true); }}
-                        style={{ ...btnPurple, flex: 1 }}
+                        style={{ background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', borderRadius: 7, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flex: 1 }}
                       >
                         Switch to Vault
                       </button>
                     )}
                     <button
                       onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setShowCancelModal(true); }}
-                      style={{ ...btnOutline, flex: 1 }}
+                      style={{ background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', borderRadius: 7, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flex: 1 }}
                     >
                       Cancel to Free
                     </button>
