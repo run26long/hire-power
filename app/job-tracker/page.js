@@ -8,6 +8,101 @@ import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 import { fetchJSON } from '@/lib/fetchJSON';
 
+async function fireJT3OnOptIn(supabase, cardId) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const now = new Date().toISOString()
+    await supabase
+      .from('applications')
+      .update({ follow_up_reminder_opt_in: true })
+      .eq('id', cardId)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        followUpReminderSet: now
+      })
+    })
+  } catch (e) {
+    console.error('JT3 trigger failed (non-blocking):', e)
+  }
+}
+
+async function fireJT6(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ first_hired_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstHiredAt: now
+      })
+    })
+  } catch (e) {
+    console.error('JT6 trigger failed (non-blocking):', e)
+  }
+}
+
+async function fireJT2IfFirst(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('first_applied_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.first_applied_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ first_applied_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstAppliedAt: now
+      })
+    })
+  } catch (e) {
+    console.error('JT2 trigger failed (non-blocking):', e)
+  }
+}
+
+async function fireJT1IfFirst(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('first_card_created_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.first_card_created_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ first_card_created_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstCardCreatedAt: now
+      })
+    })
+  } catch (e) {
+    console.error('JT1 trigger failed (non-blocking):', e)
+  }
+}
+
 const COLUMNS = [
   { id: 'resume_in_progress', label: 'Prepping', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
   { id: 'applied',            label: 'Applied',      color: '#1d4ed8', bg: 'rgba(29,78,216,0.06)',   border: 'rgba(29,78,216,0.2)'   },
@@ -204,6 +299,7 @@ export default function JobTrackerPage() {
 
     // Show toast for applied and interview moves
     if (columnId === 'applied') {
+      fireJT2IfFirst(supabase);
       const updatedCard = { ...droppedCard, application_status: 'applied' };
       setToast({ type: 'info', message: "Moved to Applied. Open the card to schedule a follow-up or start interview prep.", card: updatedCard });
       setTimeout(() => setToast(null), 5000);
@@ -222,6 +318,7 @@ export default function JobTrackerPage() {
 
    // Hired: archive any existing hired card, write hired_at, show celebration
     if (columnId === 'hired') {
+      fireJT6(supabase);
       const hiredAt = new Date().toISOString();
 
       // Find and archive any existing hired card — exclude the card we just moved
@@ -328,6 +425,7 @@ export default function JobTrackerPage() {
         setNewDescription('');
         setNewResumeId('');
         setNewNotes('');
+        fireJT1IfFirst(supabase);
       }
     } catch (err) {
       console.error('Job card insert threw:', err);
@@ -335,6 +433,41 @@ export default function JobTrackerPage() {
     } finally {
       setAddLoading(false);
     }
+  };
+
+  const handleSetFollowUpReminder = async (cardId) => {
+    await fireJT3OnOptIn(supabase, cardId);
+    setApplications(prev => prev.map(a =>
+      a.id === cardId ? { ...a, follow_up_reminder_opt_in: true } : a
+    ));
+  };
+
+  const handleUpdateInterview = async (interviewId, eventData) => {
+    const { error } = await supabase
+      .from('application_events')
+      .update(eventData)
+      .eq('id', interviewId);
+    if (error) {
+      console.error('Update interview failed:', error);
+      setErrorToast("We couldn't update your interview. Please try again.");
+      throw error;
+    }
+    setInterviewRounds(prev => prev.map(r =>
+      r.id === interviewId ? { ...r, ...eventData } : r
+    ));
+  };
+
+  const handleCancelInterview = async (interviewId) => {
+    const { error } = await supabase
+      .from('application_events')
+      .delete()
+      .eq('id', interviewId);
+    if (error) {
+      console.error('Cancel interview failed:', error);
+      setErrorToast("We couldn't cancel your interview. Please try again.");
+      throw error;
+    }
+    setInterviewRounds(prev => prev.filter(r => r.id !== interviewId));
   };
 
   const handleScheduleInterview = async (cardId, eventData) => {
@@ -432,6 +565,7 @@ export default function JobTrackerPage() {
     }
     setMobileColumn(newStatus);
     if (newStatus === 'applied') {
+      fireJT2IfFirst(supabase);
       const updatedCard = { ...card, application_status: 'applied' };
       setToast({ type: 'info', message: "Moved to Applied. Open the card to schedule a follow-up or start interview prep.", card: updatedCard });
       setTimeout(() => setToast(null), 5000);
@@ -444,6 +578,7 @@ export default function JobTrackerPage() {
       setTimeout(() => setRejectedPromptCard({ ...card, previousStatus }), 600);
     }
     if (newStatus === 'hired') {
+      fireJT6(supabase);
       const hiredAt = new Date().toISOString();
       const { data: existingHired, error: existingHiredError } = await supabase
         .from('applications')
@@ -1393,6 +1528,9 @@ export default function JobTrackerPage() {
           }}
           onLinkResume={handleLinkResume}
           onScheduleInterview={handleScheduleInterview}
+          onSetFollowUpReminder={handleSetFollowUpReminder}
+          onUpdateInterview={handleUpdateInterview}
+          onCancelInterview={handleCancelInterview}
           jsResumes={jsResumes}
           interviewRounds={interviewRounds}
           context="tracker"

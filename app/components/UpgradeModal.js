@@ -1,11 +1,43 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { fetchJSON } from '@/lib/fetchJSON'
 
 export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const fireB4 = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('b4_sent_at, subscription_tier')
+          .eq('id', user.id)
+          .single()
+        if (!profile || profile.b4_sent_at) return
+        if (profile.subscription_tier !== 'free') return
+        const now = new Date().toISOString()
+        await supabase.from('profiles').update({ b4_sent_at: now }).eq('id', user.id)
+        await fetch('/api/loops/sync-contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email,
+            userId: user.id,
+            viewedPricingAt: now
+          })
+        })
+      } catch (e) {
+        console.error('B4 trigger failed (non-blocking):', e)
+      }
+    }
+    fireB4()
+  }, [isOpen])
 
   const handleUpgrade = async () => {
     setLoading(true)

@@ -64,6 +64,34 @@ async function fireT5IfFirst(supabase) {  try {
   }
 }
 
+async function fireB2IfThird(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('b2_sent_at, jms_count, subscription_tier')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.b2_sent_at) return
+    if (profile.subscription_tier !== 'free') return
+    if ((profile.jms_count ?? 0) < 3) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ b2_sent_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        thirdJMSReached: now
+      })
+    })
+  } catch (e) {
+    console.error('B2 trigger failed (non-blocking):', e)
+  }
+}
+
 export default function MyResumesPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -654,6 +682,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (insertError) throw insertError;
 
       fireT5IfFirst(supabase)
+      fireB2IfThird(supabase)
 
       // Navigate to new resume
       router.push(`/resume/${newResume.id}`);
