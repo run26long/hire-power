@@ -24,6 +24,32 @@ const styles = `
   }
 `
 
+async function fireJT1MarkerIfFirst(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('first_card_created_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.first_card_created_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ first_card_created_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        firstCardCreatedAt: now
+      })
+    })
+  } catch (e) {
+    console.error('JT1 marker failed (non-blocking):', e)
+  }
+}
+
 async function fireT4IfFirst(supabase) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -47,6 +73,32 @@ async function fireT4IfFirst(supabase) {
     })
   } catch (e) {
     console.error('T4 trigger failed (non-blocking):', e)
+  }
+}
+
+async function fireO4MarkerIfFirst(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('reached_improve_at')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.reached_improve_at) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ reached_improve_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        reachedImproveAt: now
+      })
+    })
+  } catch (e) {
+    console.error('O4 marker failed (non-blocking):', e)
   }
 }
 
@@ -556,6 +608,7 @@ function formatDate(dateString, format = dateFormat) {
             setErrorToast("We couldn't add this resume to your job tracker. You can add it manually from the Job Tracker page.")
             return
           }
+          fireJT1MarkerIfFirst(supabase)
         }
       } catch (err) {
         console.error('Unexpected error in createJobCard:', err)
@@ -2182,6 +2235,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                               return
                             }
                             setResume(prev => ({ ...prev, journey_step: 'improve' }))
+                            fireO4MarkerIfFirst(supabase)
                           } catch (err) {
                             console.error('Unexpected error advancing to improve step:', err)
                             setErrorToast("Something went wrong. Please try again.")
@@ -2786,6 +2840,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         journey_step: 'improve',
         current_score: newScore
       }))
+      fireO4MarkerIfFirst(supabase)
 
     } catch (err) {
       console.error('Error finishing resume chat:', err)
@@ -3149,6 +3204,7 @@ const getMessageText = (msg) => {
 
       setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
       if (isJobSpecific) fireT4IfFirst(supabase)
+      fireO4MarkerIfFirst(supabase)
 
     } catch (err) {
       console.error('Error finishing coaching:', err)

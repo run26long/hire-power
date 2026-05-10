@@ -32,6 +32,9 @@ export default function JobCardModal({
   onLinkResume,
   onScheduleInterview,
   onMoveCard,
+  onSetFollowUpReminder,
+  onUpdateInterview,
+  onCancelInterview,
   jsResumes = [],
   interviewRounds = [],
   context = 'tracker',
@@ -64,6 +67,7 @@ export default function JobCardModal({
   }, [card?.id]);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editingInterview, setEditingInterview] = useState(null);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
   const [scheduleVenue, setScheduleVenue] = useState('');
@@ -71,6 +75,8 @@ export default function JobCardModal({
   const [notesValue, setNotesValue] = useState(card.notes || '');
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  const [followUpOptedIn, setFollowUpOptedIn] = useState(card.follow_up_reminder_opt_in || false);
+  const [followUpSaving, setFollowUpSaving] = useState(false);
 
   function formatDate(dateString) {
     if (!dateString) return '';
@@ -174,7 +180,23 @@ export default function JobCardModal({
                   </div>
                 )}
                 {interviewRounds.map((round, i) => (
-                  <div key={round.id} className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center">
+                  <div
+                    key={round.id}
+                    onClick={() => {
+                      const d = new Date(round.event_date);
+                      const yyyy = d.getFullYear();
+                      const mm = String(d.getMonth() + 1).padStart(2, '0');
+                      const dd = String(d.getDate()).padStart(2, '0');
+                      const hh = String(d.getHours()).padStart(2, '0');
+                      const min = String(d.getMinutes()).padStart(2, '0');
+                      setEditingInterview(round);
+                      setScheduleDate(`${yyyy}-${mm}-${dd}`);
+                      setScheduleTime(`${hh}:${min}`);
+                      setScheduleVenue(round.venue || '');
+                      setShowScheduleModal(true);
+                    }}
+                    className="bg-green-50 rounded-lg px-3 py-2 border border-green-100 text-center cursor-pointer hover:border-green-300 transition-colors"
+                  >
                     <p className="text-xs md:text-[10px] font-bold text-green-500 uppercase tracking-wide">Interview {i + 1}</p>
                     <p className="text-sm md:text-xs font-semibold text-green-800">
                       {new Date(round.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -309,13 +331,41 @@ export default function JobCardModal({
 
                 {card.application_status === 'applied' && (
                   <>
-                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <div>
-                        <p className="text-sm md:text-xs font-semibold text-blue-800">Send Follow-Up</p>
-                        <p className="text-xs md:text-[10px] text-blue-500">Draft a follow-up email in one click</p>
+                    {followUpOptedIn ? (
+                      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-600">✓</span>
+                          <div>
+                            <p className="text-sm md:text-xs font-semibold text-blue-800">Follow-up reminder set</p>
+                            <p className="text-xs md:text-[10px] text-blue-500">We'll email you in 7 days</p>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-xs md:text-[10px] text-blue-300 font-semibold">Coming soon</span>
-                    </div>
+                    ) : (
+                      <div
+                        onClick={async () => {
+                          if (followUpSaving) return;
+                          setFollowUpSaving(true);
+                          try {
+                            await onSetFollowUpReminder?.(card.id);
+                            setFollowUpOptedIn(true);
+                          } catch (err) {
+                            console.error('Set follow-up reminder failed:', err);
+                          } finally {
+                            setFollowUpSaving(false);
+                          }
+                        }}
+                        className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100 cursor-pointer hover:border-blue-300 transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm md:text-xs font-semibold text-blue-800">Remind me to follow up in 7 days</p>
+                          <p className="text-xs md:text-[10px] text-blue-500">We'll send a check-in email</p>
+                        </div>
+                        <span className="text-sm md:text-xs font-semibold text-blue-500">
+                          {followUpSaving ? 'Setting...' : '+ Set →'}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
                       <div>
                         <p className="text-sm md:text-xs font-semibold text-purple-800">Prep for Interview</p>
@@ -347,13 +397,7 @@ export default function JobCardModal({
                       </div>
                       <span className="text-xs md:text-[10px] text-purple-300 font-semibold">Coming soon</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                      <div>
-                        <p className="text-sm md:text-xs font-semibold text-green-800">Write Thank-You Note</p>
-                        <p className="text-xs md:text-[10px] text-green-500">Send within 24 hours to stand out</p>
-                      </div>
-                      <span className="text-xs md:text-[10px] text-green-300 font-semibold">Coming soon</span>
-                    </div>
+                  
                   </>
                 )}
               </div>
@@ -440,7 +484,13 @@ export default function JobCardModal({
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
-          onClick={() => setShowScheduleModal(false)}
+          onClick={() => {
+            setShowScheduleModal(false);
+            setEditingInterview(null);
+            setScheduleDate('');
+            setScheduleTime('');
+            setScheduleVenue('');
+          }}
         >
           <div
             className="bg-white shadow-2xl w-full max-w-sm overflow-hidden"
@@ -452,14 +502,22 @@ export default function JobCardModal({
               className="px-6 py-5 relative"
             >
               <button
-                onClick={() => setShowScheduleModal(false)}
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  setEditingInterview(null);
+                  setScheduleDate('');
+                  setScheduleTime('');
+                  setScheduleVenue('');
+                }}
                 className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
               >×</button>
               <div className="flex items-center gap-3">
                 <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
                 <div>
                   <h2 className="text-xl font-bold text-white">
-                    {interviewRounds.length === 0 ? 'Schedule Interview' : `Schedule Interview ${interviewRounds.length + 1}`}
+                    {editingInterview
+                      ? `Edit Interview ${interviewRounds.findIndex(r => r.id === editingInterview.id) + 1}`
+                      : interviewRounds.length === 0 ? 'Schedule Interview' : `Schedule Interview ${interviewRounds.length + 1}`}
                   </h2>
                   <p className="text-purple-100 text-xs">{card.title} · {card.company}</p>
                 </div>
@@ -509,12 +567,20 @@ export default function JobCardModal({
                       ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString()
                       : new Date(scheduleDate).toISOString();
                     try {
-                      await onScheduleInterview?.(card.id, {
-                        event_date: eventDate,
-                        venue: scheduleVenue,
-                        status: 'interview_scheduled',
-                      });
+                      if (editingInterview) {
+                        await onUpdateInterview?.(editingInterview.id, {
+                          event_date: eventDate,
+                          venue: scheduleVenue,
+                        });
+                      } else {
+                        await onScheduleInterview?.(card.id, {
+                          event_date: eventDate,
+                          venue: scheduleVenue,
+                          status: 'interview_scheduled',
+                        });
+                      }
                       setShowScheduleModal(false);
+                      setEditingInterview(null);
                       setScheduleDate('');
                       setScheduleTime('');
                       setScheduleVenue('');
@@ -528,9 +594,36 @@ export default function JobCardModal({
                   className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                   style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                 >
-                  {scheduleSaving ? 'Saving...' : 'Save Interview'}
+                 {scheduleSaving ? 'Saving...' : editingInterview ? 'Update Interview' : 'Save Interview'}
                 </button>
               </div>
+
+              {editingInterview && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={async () => {
+                      if (scheduleSaving) return;
+                      setScheduleSaving(true);
+                      try {
+                        await onCancelInterview?.(editingInterview.id);
+                        setShowScheduleModal(false);
+                        setEditingInterview(null);
+                        setScheduleDate('');
+                        setScheduleTime('');
+                        setScheduleVenue('');
+                      } catch (err) {
+                        console.error('Cancel interview failed:', err);
+                      } finally {
+                        setScheduleSaving(false);
+                      }
+                    }}
+                    disabled={scheduleSaving}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                  >
+                    Cancel this interview
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
