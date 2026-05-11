@@ -123,7 +123,7 @@ export default function JobCardModal({
 
           {/* Mobile Move to row */}
           <div className="md:hidden px-6 py-3 border-b border-gray-100 flex-shrink-0">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Move to</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Click any board below to move this card</p>
             <div className="flex gap-1.5 flex-wrap">
               {[
                 { id: 'prepping',           label: 'Prepping',  color: '#7c3aed' },

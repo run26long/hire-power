@@ -801,7 +801,7 @@ export default function JobTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
               <span className="text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Job Tracker</span>
             </div>
-            <p className="text-sm text-gray-500 mb-2">Tap a board to switch views. Open a card to move it to a different board.</p>
+            <p className="text-sm text-gray-500 mb-2">Tap a board name below to view that board. <br/>Tap the board name inside a card to move it to that board.</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowArchiveModal(true)}
@@ -820,12 +820,12 @@ export default function JobTrackerPage() {
           </div>
 
           {/* Mobile column picker */}
-          <div className="md:hidden flex gap-1.5 px-4 py-3 bg-white flex-shrink-0 justify-center">
+          <div className="md:hidden flex flex-wrap gap-1.5 px-4 py-3 bg-white flex-shrink-0 justify-center">
             {COLUMNS.map(col => (
               <button
                 key={col.id}
                 onClick={() => setMobileColumn(col.id)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+                className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
                 style={{
                   background: mobileColumn === col.id ? col.color : 'transparent',
                   color: mobileColumn === col.id ? 'white' : col.color,
@@ -996,7 +996,7 @@ export default function JobTrackerPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Company *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={newCompany}
@@ -1029,7 +1029,7 @@ export default function JobTrackerPage() {
               <div className="flex justify-center pt-1">
                 <button
                   onClick={handleAddCard}
-                  disabled={!newTitle || !newCompany || addLoading}
+                  disabled={!newTitle || addLoading}
                   className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                   style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                 >
