@@ -820,19 +820,19 @@ export default function JobTrackerPage() {
           </div>
 
           {/* Mobile column picker */}
-          <div className="md:hidden flex flex-wrap gap-1.5 px-4 py-3 bg-white flex-shrink-0 justify-center">
+          <div className="md:hidden flex gap-1 px-3 py-3 bg-white flex-shrink-0 justify-center">
             {COLUMNS.map(col => (
               <button
                 key={col.id}
                 onClick={() => setMobileColumn(col.id)}
-                className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+                className="px-2.5 py-1 rounded-full text-xs font-semibold transition-colors"
                 style={{
                   background: mobileColumn === col.id ? col.color : 'transparent',
                   color: mobileColumn === col.id ? 'white' : col.color,
                   border: `1px solid ${col.color}`,
                 }}
               >
-                {col.label}
+                {col.label === 'Prepping' ? 'Prepping' : col.label}
               </button>
             ))}
           </div>
