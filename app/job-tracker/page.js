@@ -103,6 +103,50 @@ async function fireJT1IfFirst(supabase) {
   }
 }
 
+async function syncTrackerActivity(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const now = new Date().toISOString()
+    await supabase.from('profiles').update({ last_tracker_activity_at: now }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        lastTrackerActivityAt: now
+      })
+    })
+  } catch (e) {
+    console.error('Tracker activity sync failed (non-blocking):', e)
+  }
+}
+
+async function updateAppliedCardCount(supabase) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { count } = await supabase
+      .from('applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('current_status', 'applied')
+    await supabase.from('profiles').update({ applied_card_count: count || 0 }).eq('id', user.id)
+    await fetch('/api/loops/sync-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user.email,
+        userId: user.id,
+        appliedCardCount: count || 0
+      })
+    })
+  } catch (e) {
+    console.error('Applied card count sync failed (non-blocking):', e)
+  }
+}
+
 const COLUMNS = [
   { id: 'resume_in_progress', label: 'Prepping', color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.2)'  },
   { id: 'applied',            label: 'Applied',      color: '#1d4ed8', bg: 'rgba(29,78,216,0.06)',   border: 'rgba(29,78,216,0.2)'   },
@@ -297,6 +341,12 @@ export default function JobTrackerPage() {
       return;
     }
 
+    // Sync tracker activity + applied count
+    syncTrackerActivity(supabase);
+    if (columnId === 'applied' || previousStatus === 'applied') {
+      updateAppliedCardCount(supabase);
+    }
+
     // Show toast for applied and interview moves
     if (columnId === 'applied') {
       fireJT2IfFirst(supabase);
@@ -419,6 +469,7 @@ export default function JobTrackerPage() {
         setErrorToast('Could not add job card. Please try again.');
       } else if (data) {
         setApplications(prev => [...prev, data]);
+        syncTrackerActivity(supabase);
         setShowAddModal(false);
         setNewTitle('');
         setNewCompany('');
@@ -440,6 +491,7 @@ export default function JobTrackerPage() {
     setApplications(prev => prev.map(a =>
       a.id === cardId ? { ...a, follow_up_reminder_opt_in: true } : a
     ));
+    syncTrackerActivity(supabase);
   };
 
   const handleUpdateInterview = async (interviewId, eventData) => {
@@ -455,6 +507,7 @@ export default function JobTrackerPage() {
     setInterviewRounds(prev => prev.map(r =>
       r.id === interviewId ? { ...r, ...eventData } : r
     ));
+    syncTrackerActivity(supabase);
   };
 
   const handleCancelInterview = async (interviewId) => {
@@ -468,6 +521,7 @@ export default function JobTrackerPage() {
       throw error;
     }
     setInterviewRounds(prev => prev.filter(r => r.id !== interviewId));
+    syncTrackerActivity(supabase);
   };
 
   const handleScheduleInterview = async (cardId, eventData) => {
@@ -486,6 +540,7 @@ export default function JobTrackerPage() {
     }
     if (data) {
       setInterviewRounds(prev => [...prev, data]);
+      syncTrackerActivity(supabase);
     }
   };
 
@@ -504,6 +559,7 @@ export default function JobTrackerPage() {
       a.id === cardId ? { ...a, resume_id: resumeId, resumes: resume || null } : a
     ));
     setSelectedCard(prev => prev ? { ...prev, resume_id: resumeId, resumes: resume || null } : prev);
+    syncTrackerActivity(supabase);
   };
 
   const handleRestoreCard = async (cardId) => {
@@ -563,6 +619,12 @@ export default function JobTrackerPage() {
       setErrorToast('Move failed. Please try again.');
       return;
     }
+    // Sync tracker activity + applied count
+    syncTrackerActivity(supabase);
+    if (newStatus === 'applied' || previousStatus === 'applied') {
+      updateAppliedCardCount(supabase);
+    }
+
     setMobileColumn(newStatus);
     if (newStatus === 'applied') {
       fireJT2IfFirst(supabase);
@@ -1525,6 +1587,7 @@ export default function JobTrackerPage() {
               throw error;
             }
             setApplications(prev => prev.map(a => a.id === cardId ? { ...a, notes } : a));
+            syncTrackerActivity(supabase);
           }}
           onLinkResume={handleLinkResume}
           onScheduleInterview={handleScheduleInterview}

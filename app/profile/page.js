@@ -75,6 +75,47 @@ export default function Profile() {
     }
   }, [])
 
+  // Auto-trigger Vault checkout when arriving from email link (?plan=vault)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('plan') !== 'vault') return
+    // Strip the param so a refresh doesn't re-trigger
+    params.delete('plan')
+    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
+    window.history.replaceState({}, '', newUrl)
+    // Fire Vault checkout
+    async function startVaultCheckout() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .single()
+        const data = await fetchJSON('/api/stripe/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+            userId: user.id,
+            email: prof?.email || user.email,
+          })
+        })
+        if (!data.url) {
+          throw new Error("We couldn't start checkout. Please try again in a moment.")
+        }
+        window.location.href = data.url
+      } catch (err) {
+        setToastError(err.message)
+      }
+    }
+    startVaultCheckout()
+  }, [user])
+
   async function loadProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
