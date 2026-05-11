@@ -619,8 +619,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   async function handleCreateJobSpecific() {
-    if (!jobTitle.trim() || !jobCompany.trim() || !jobDescription.trim()) {
-      setJobCreateError('Please fill in all three fields.');
+    if (!jobTitle.trim() || !jobDescription.trim()) {
+      setJobCreateError('Please fill in the job title and job description.');
       return;
     }
     setCreatingJob(true);
@@ -664,7 +664,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           user_id: user.id,
           resume_type: 'job_specific',
           parent_resume_id: sourceId,
-          display_name: `${jobTitle} at ${jobCompany}`,
+          display_name: jobCompany.trim() ? `${jobTitle} at ${jobCompany}` : jobTitle,
           resume_data: sourceResume.resume_data,
           job_title: jobTitle,
           job_company: jobCompany,
@@ -694,8 +694,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   async function handleCreateCoverLetter() {
-    if (!clJobTitle.trim() || !clCompany.trim() || !clJobDescription.trim()) {
-      setClCreateError('Please fill in all fields.');
+    if (!clJobTitle.trim() || !clJobDescription.trim()) {
+      setClCreateError('Please fill in the job title and job description.');
       return;
     }
     setCreatingCL(true);
@@ -2026,7 +2026,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
               )}
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title *</label>
                 <input
                   type="text"
                   value={jobTitle}
@@ -2048,7 +2048,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 />
               </div>
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description *</label>
                 <textarea
                   value={jobDescription}
                   onChange={e => setJobDescription(e.target.value)}
@@ -2320,7 +2320,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
               )}
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title *</label>
                 <input
                   type="text"
                   value={clJobTitle}
@@ -2342,7 +2342,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 />
               </div>
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description</label>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description *</label>
                 <textarea
                   value={clJobDescription}
                   onChange={e => setClJobDescription(e.target.value)}
