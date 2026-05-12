@@ -1834,7 +1834,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           }}
         />
       </div>
-    <div className="flex items-center justify-center gap-1.5 md:gap-3 text-[10px] md:text-[9px] text-gray-600">
+    <div className="flex items-center justify-between md:justify-center md:gap-3 text-xs md:text-[9px] text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
@@ -2025,7 +2025,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     />
   </div>
   
- <div className="flex items-center justify-center gap-3 text-xs md:text-[9px] text-gray-600">
+ <div className="flex items-center justify-between md:justify-center md:gap-3 text-xs md:text-[9px] text-gray-600">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
