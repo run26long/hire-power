@@ -3803,6 +3803,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   const [showChangeModal, setShowChangeModal] = useState(false)
   const [editingChange, setEditingChange] = useState(false)
   const [editedText, setEditedText] = useState('')
+  const [decisionStack, setDecisionStack] = useState([])
   const [loading, setLoading] = useState(false)
   const [isPreparingReveal, setIsPreparingReveal] = useState(false)
   const [showGapsModal, setShowGapsModal] = useState(false)
@@ -4653,11 +4654,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     <button
                       onClick={() => {
                         const prevIndex = currentChangeIndex - 1
-                        if (acceptedChanges[acceptedChanges.length - 1] === resumeChanges[prevIndex]) {
+                        const lastDecision = decisionStack[decisionStack.length - 1]
+                        if (lastDecision === 'accept') {
                           setAcceptedChanges(prev => prev.slice(0, -1))
                         } else {
                           setRejectedChanges(prev => prev.slice(0, -1))
                         }
+                        setDecisionStack(prev => prev.slice(0, -1))
                         setCurrentChangeIndex(prevIndex)
                         setEditingChange(false)
                         setEditedText('')
@@ -4670,6 +4673,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                  <button
                     onClick={() => {
                       setRejectedChanges(prev => [...prev, currentChange])
+                      setDecisionStack(prev => [...prev, 'reject'])
                       const newIndex = currentChangeIndex + 1
                       setCurrentChangeIndex(newIndex)
                       setEditingChange(false)
@@ -4704,6 +4708,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       const finalChange = editingChange ? { ...currentChange, after: editedText } : currentChange
                       const newAccepted = [...acceptedChanges, finalChange]
                       setAcceptedChanges(newAccepted)
+                      setDecisionStack(prev => [...prev, 'accept'])
                       const newIndex = currentChangeIndex + 1
                       setCurrentChangeIndex(newIndex)
                       setEditingChange(false)

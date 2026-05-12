@@ -1883,6 +1883,56 @@ export default function CareerVaultPage() {
       </div>
     )}
 
+    {/* ── DELETE CONFIRMATION ── */}
+    {confirmDelete && (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={() => setConfirmDelete(null)}
+      >
+        <div
+          className="bg-white shadow-2xl overflow-hidden"
+          style={{ width: '364px', borderRadius: '12px' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div
+            className="px-6 py-5 relative"
+            style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+          >
+            <div className="flex items-center gap-3">
+              <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+              <div>
+                <h2 className="text-base font-bold text-white">Delete permanently?</h2>
+                <p className="text-purple-100 text-xs">This cannot be undone.</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 py-5">
+            <p className="text-sm text-gray-600 mb-5 leading-snug">
+              This will permanently remove this {confirmDelete.type === 'core' ? 'resume' : 'job card'} from your archive.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="px-5 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleHardDelete}
+                disabled={archiveActionLoading}
+                className="px-5 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                style={{ background: '#e57373' }}
+              >
+                {archiveActionLoading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                {archiveActionLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
       {/* NEW SEARCH MODAL */}

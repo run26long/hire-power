@@ -331,8 +331,24 @@ useEffect(() => {
 
 // Contact Step Component
 function ContactStep({ resumeData, setResumeData, onNext }) {
+  const [warnings, setWarnings] = useState({});
+
   const handleChange = (field, value) => {
     setResumeData({ ...resumeData, [field]: value });
+    if (warnings[field]) setWarnings(prev => ({ ...prev, [field]: null }));
+  };
+
+  const validateOnBlur = (field, value) => {
+    if (!value.trim()) { setWarnings(prev => ({ ...prev, [field]: null })); return; }
+    if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setWarnings(prev => ({ ...prev, email: "This doesn't look like a valid email address." }));
+    }
+    if (field === 'linkedin' && value.trim() && !value.includes('linkedin.com')) {
+      setWarnings(prev => ({ ...prev, linkedin: "This doesn't look like a LinkedIn URL." }));
+    }
+    if (field === 'portfolio' && value.trim() && !value.includes('.')) {
+      setWarnings(prev => ({ ...prev, portfolio: "This doesn't look like a valid URL." }));
+    }
   };
 
   const isValid = resumeData.fullName && resumeData.email && resumeData.phone;
@@ -361,9 +377,11 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="email"
             value={resumeData.email}
             onChange={(e) => handleChange('email', e.target.value)}
+            onBlur={(e) => validateOnBlur('email', e.target.value)}
             placeholder="jane@example.com"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {warnings.email && <p className="text-xs text-amber-600 mt-1">{warnings.email}</p>}
         </div>
 
         <div>
@@ -400,9 +418,11 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="text"
             value={resumeData.linkedin}
             onChange={(e) => handleChange('linkedin', e.target.value)}
+            onBlur={(e) => validateOnBlur('linkedin', e.target.value)}
             placeholder="linkedin.com/in/janedoe"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {warnings.linkedin && <p className="text-xs text-amber-600 mt-1">{warnings.linkedin}</p>}
         </div>
 
         <div>
@@ -413,13 +433,16 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="text"
             value={resumeData.portfolio}
             onChange={(e) => handleChange('portfolio', e.target.value)}
+            onBlur={(e) => validateOnBlur('portfolio', e.target.value)}
             placeholder="janedoe.com"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {warnings.portfolio && <p className="text-xs text-amber-600 mt-1">{warnings.portfolio}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
+            Professional Title
             Professional Title <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
@@ -1229,6 +1252,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
 function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   const [showFields, setShowFields] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [linkWarning, setLinkWarning] = useState(null);
   const [currentProject, setCurrentProject] = useState({
     name: "",
     description: "",
@@ -1335,10 +1359,16 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
           <input
             type="text"
             value={currentProject.link}
-            onChange={(e) => setCurrentProject({ ...currentProject, link: e.target.value })}
+            onChange={(e) => { setCurrentProject({ ...currentProject, link: e.target.value }); setLinkWarning(null); }}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v && !v.includes('.')) setLinkWarning("This doesn't look like a valid URL.");
+              else setLinkWarning(null);
+            }}
             placeholder="github.com/username/project"
             className="w-full border border-gray-300 rounded p-2 text-sm"
           />
+          {linkWarning && <p className="text-xs text-amber-600 mt-1">{linkWarning}</p>}
         </div>
 
         <button
