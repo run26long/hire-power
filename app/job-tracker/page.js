@@ -1471,7 +1471,7 @@ export default function JobTrackerPage() {
                               {card.company}{card.application_date ? ` · Applied ${formatDate(card.application_date)}` : ''}
                             </p>
                             <div className="flex items-center gap-3 flex-wrap">
-                              {card.resumes && (
+                              {card.resumes && isPro && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); router.push(`/resume/${card.resumes.id}`); }}
                                   className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
