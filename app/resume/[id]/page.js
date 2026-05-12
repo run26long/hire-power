@@ -734,6 +734,19 @@ function formatDate(dateString, format = dateFormat) {
         return
       }
 
+      // Block free users from accessing job-specific resumes
+      if (data.resume_type === 'job_specific') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single()
+        if (profile?.subscription_tier !== 'pro') {
+          router.push('/resume-coach')
+          return
+        }
+      }
+
       setResume(data)
 
 if (data.ai_analysis) {

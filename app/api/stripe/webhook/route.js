@@ -77,6 +77,31 @@ async function syncTierToLoops(userId, tier) {
   }
 }
 
+// When a user leaves Pro, archive their JS resumes and cover letters.
+// Data is preserved (not deleted) so Vault users can still view it
+// and Pro re-subscribers can restore it.
+async function archiveProContent(userId) {
+  const now = new Date().toISOString();
+  try {
+    const { error: jsError } = await supabase
+      .from('resumes')
+      .update({ is_active: false, updated_at: now })
+      .eq('user_id', userId)
+      .eq('resume_type', 'job_specific')
+      .eq('is_active', true);
+    if (jsError) console.error('archiveProContent: JS resume archive failed', { userId, error: jsError });
+
+    const { error: clError } = await supabase
+      .from('cover_letters')
+      .update({ is_active: false, updated_at: now })
+      .eq('user_id', userId)
+      .eq('is_active', true);
+    if (clError) console.error('archiveProContent: cover letter archive failed', { userId, error: clError });
+  } catch (err) {
+    console.error('archiveProContent: unexpected error', { userId, error: err });
+  }
+}
+
 export async function POST(req) {
   const body = await req.text();
   const sig = req.headers.get('stripe-signature');
@@ -220,7 +245,10 @@ export async function POST(req) {
             return Response.json({ error: 'DB update failed' }, { status: 500 });
           }
 
-          if (existingProfile?.id) await syncTierToLoops(existingProfile.id, 'vault');
+          if (existingProfile?.id) {
+            await archiveProContent(existingProfile.id);
+            await syncTierToLoops(existingProfile.id, 'vault');
+          }
         } catch (vaultError) {
           // Vault subscription failed (e.g. card declined). Drop to free
           // and clear pending state so user can re-subscribe from profile.
@@ -247,7 +275,10 @@ export async function POST(req) {
             return Response.json({ error: 'DB update failed' }, { status: 500 });
           }
 
-          if (existingProfile?.id) await syncTierToLoops(existingProfile.id, 'free');
+          if (existingProfile?.id) {
+            await archiveProContent(existingProfile.id);
+            await syncTierToLoops(existingProfile.id, 'free');
+          }
         }
       } else {
         // Normal cancel — drop to free
@@ -272,7 +303,10 @@ export async function POST(req) {
           return Response.json({ error: 'DB update failed' }, { status: 500 });
         }
 
-        if (cancelledProfile?.id) await syncTierToLoops(cancelledProfile.id, 'free');
+        if (cancelledProfile?.id) {
+          await archiveProContent(cancelledProfile.id);
+          await syncTierToLoops(cancelledProfile.id, 'free');
+        }
       }
 
       break;
