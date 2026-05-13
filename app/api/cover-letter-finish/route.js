@@ -452,19 +452,6 @@ Instead, set "canWrite" to false in your JSON output, write a one-sentence "refu
 Refusal is reserved for genuine, severe mismatches. If the candidate has transferable skills that can honestly be reframed, even if the fit is not perfect, write the letter. Refusal is the exception, not the default.
 
 ═══════════════════════════════════════════════
-SOURCE MATERIAL
-═══════════════════════════════════════════════
-
-RESUME DATA:
-${JSON.stringify(resumeData, null, 2)}
-
-TARGET ROLE: ${jobTitle}${jobCompany ? ` at ${jobCompany}` : ''}
-
-JOB DESCRIPTION:
-${jobDescription}
-
-
-═══════════════════════════════════════════════
 OUTPUT FORMAT
 ═══════════════════════════════════════════════
 
@@ -478,9 +465,9 @@ Return ONLY valid JSON. No markdown. No backticks. No explanation.
   "phone": "phone from resume",
   "location": "location from resume",
   "linkedin": "linkedin from resume or empty string",
- "date": "${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}",
-  "companyName": "${jobCompany || 'company name'}",
-  "jobTitle": "${jobTitle}",
+ "date": "use the date provided in the source material below, formatted as 'Month D, YYYY'",
+  "companyName": "use the company name from the source material below, or 'company name' if none provided",
+  "jobTitle": "use the job title from the source material below",
   "opening": "the full opening paragraph as a single string — 3 sentences only",
   "bridge": "the single bridge sentence that opens the second paragraph",
   "bulletsIntro": "Highlights of how my experience aligns with this role include:",
@@ -536,7 +523,21 @@ export async function POST(request) {
       return NextResponse.json({ error: 'CL_LIMIT_REACHED' }, { status: 403 })
     }
 
-    const prompt = buildCoverLetterPrompt({ resumeData, jobTitle, jobCompany, jobDescription })
+    const systemPrompt = buildCoverLetterPrompt({ resumeData, jobTitle, jobCompany, jobDescription })
+
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+    const userMessage = `SOURCE MATERIAL
+
+RESUME DATA:
+${JSON.stringify(resumeData, null, 2)}
+
+TARGET ROLE: ${jobTitle}${jobCompany ? ` at ${jobCompany}` : ''}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+TODAY'S DATE: ${today}`
 
     let message
     let attempts = 0
@@ -545,7 +546,14 @@ export async function POST(request) {
         message = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }]
+          system: [
+            {
+              type: 'text',
+              text: systemPrompt,
+              cache_control: { type: 'ephemeral' }
+            }
+          ],
+          messages: [{ role: 'user', content: userMessage }]
         })
         break
       } catch (err) {
