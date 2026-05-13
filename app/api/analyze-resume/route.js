@@ -431,6 +431,60 @@ NO HALLUCINATION: Only evaluate what is explicitly stated. Do not assume, infer,
 
 `
 
+const ANALYSIS_INSTRUCTIONS = `STRENGTHS (3-5 specific things done well):
+- Reference specific content from the resume
+- Explain why it communicates effectively for this career stage and job type
+
+WEAKNESSES (3-5 areas needing improvement):
+- Focus on vague language, weak verbs, and missing specificity
+- For Zone 1 roles: flag missing metrics where expected
+- For Zone 2 and 3 roles: flag missing scope and scale indicators
+- Do NOT penalize for missing career achievements or experience not yet accumulated
+- Do NOT critique summary length or formatting
+
+SUGGESTIONS — provide exactly this many based on overall score:
+- Score 80 or above: exactly 3 suggestions
+- Score 70-79: exactly 4 suggestions  
+- Score below 70: exactly 5 suggestions
+
+Order suggestions from highest to lowest expected score impact. The suggestion most 
+likely to improve the score goes first. Keywords and missing field vocabulary almost 
+always have high impact and should not be buried last.
+
+NOTE: All suggestions must be relevant and appropriate to each candidate’s Career Length, Job Level and Job Type. Feedback that does NOT consider all 3 factors will be considered a failure.
+
+- When a suggestion refers to a specific job or role, start with the company name referenced in the sentence. If it applies to the whole resume, no prefix needed.
+- Each suggestion identifies a specific gap and tells the candidate exactly what information to add
+- Format: state what is missing or vague, then instruct them to add the specific category of information that would fill it
+- NEVER invent specific numbers, outcomes, or details — name the type of information, not the answer
+- Example format: "Your vendor management bullet lacks scale. Add the number of vendors you manage and your approximate annual spend."
+- Example format: "Your Asana bullet doesn't show impact. Add what measurably improved after the rollout — project visibility, response time, or follow-up volume."
+- NEVER write example bullets with invented numbers or fabricated details
+- NEVER suggest content not supported by what is already on the resume
+- NEVER suggest adding specific tools, software, certifications, or credentials the candidate has not mentioned. You may tell them their skills section could include more field-specific terminology, but you may not name specific tools or credentials as examples unless they already appear on the resume.
+- Likewise, NEVER suggest removing tools that may be important to their career goals. You can suggest removing soft skills only.
+- The goal is to show the candidate exactly what information they need to find, not to invent it for them
+- Suggestions must be appropriate for this candidate's career length, job level, and role type. Do not suggest metrics that don't apply to their field
+- For early career and entry level candidates, suggestions should focus on adding specificity and scope (how many, how often, how much), not results or impact metrics that would be unlikely for someone at this stage to have tracked or caused. Do not ask an entry level candidate to prove organizational impact.
+- NEVER use internal assessment terminology in candidate-facing feedback. Do not reference "Zone 1," "Zone 2," "Zone 3," "Track A," "Track B," "career length," "job level," "job type," or any other internal framework language. Write as if speaking directly to the candidate in plain language.
+- Do not flag a bullet as problematic when its concepts are directly interconnected parts of one idea. A vendor management bullet that names the scope, the activity, and the outcome is one idea — not three crammed concepts.
+- NEVER flag absence of career progression, promotions, title changes, or upward moves as a weakness, gap, or suggestion at any career length or level. Do not tell the candidate their career "lacks growth," "shows longevity but no progression," "plateaued," or any similar framing. Long tenure is a valid career path. Absence of vertical movement is never a resume weakness.
+- NEVER surface rubric mechanics or internal calibration reasoning as feedback. This includes observations about verb appropriateness ("uses accurate verbs," "avoids overstating," "appropriately calibrated"), about specificity levels ("strong on specificity," "lacks scope metrics"), about scoring categories ("scores well on clarity"), or about anything else that describes HOW the resume is being evaluated rather than WHAT specifically to change. Feedback tells the candidate what to do. It never explains the scoring logic to them.
+- The test for every strength, weakness, and suggestion before outputting: would the candidate find this specific and actionable, or would it read as the system commenting on itself? If the latter, cut it or rewrite as concrete advice about their actual content.
+CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
+
+{
+  "overallScore": <number 0-100>,
+  "breakdown": {
+    "impact": <number 0-50>,
+    "clarity": <number 0-30>,
+    "keywords": <number 0-20>
+  },
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "weaknesses": ["weakness 1", "weakness 2", "weakness 3"],
+  "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
+}`
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
@@ -502,66 +556,20 @@ Respond with ONLY one word: entry, mid, or senior`
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
       temperature: 0,  // Deterministic scoring
+      system: [
+        {
+          type: 'text',
+          text: `${systemPrompt}
+
+${ANALYSIS_INSTRUCTIONS}`,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
       messages: [{
         role: 'user',
-        content: `${systemPrompt}
+        content: `Analyze this resume:
 
-Analyze this resume:
-${textToAnalyze}
-
-STRENGTHS (3-5 specific things done well):
-- Reference specific content from the resume
-- Explain why it communicates effectively for this career stage and job type
-
-WEAKNESSES (3-5 areas needing improvement):
-- Focus on vague language, weak verbs, and missing specificity
-- For Zone 1 roles: flag missing metrics where expected
-- For Zone 2 and 3 roles: flag missing scope and scale indicators
-- Do NOT penalize for missing career achievements or experience not yet accumulated
-- Do NOT critique summary length or formatting
-
-SUGGESTIONS — provide exactly this many based on overall score:
-- Score 80 or above: exactly 3 suggestions
-- Score 70-79: exactly 4 suggestions  
-- Score below 70: exactly 5 suggestions
-
-Order suggestions from highest to lowest expected score impact. The suggestion most 
-likely to improve the score goes first. Keywords and missing field vocabulary almost 
-always have high impact and should not be buried last.
-
-NOTE: All suggestions must be relevant and appropriate to each candidate’s Career Length, Job Level and Job Type. Feedback that does NOT consider all 3 factors will be considered a failure.
-
-- When a suggestion refers to a specific job or role, start with the company name referenced in the sentence. If it applies to the whole resume, no prefix needed.
-- Each suggestion identifies a specific gap and tells the candidate exactly what information to add
-- Format: state what is missing or vague, then instruct them to add the specific category of information that would fill it
-- NEVER invent specific numbers, outcomes, or details — name the type of information, not the answer
-- Example format: "Your vendor management bullet lacks scale. Add the number of vendors you manage and your approximate annual spend."
-- Example format: "Your Asana bullet doesn't show impact. Add what measurably improved after the rollout — project visibility, response time, or follow-up volume."
-- NEVER write example bullets with invented numbers or fabricated details
-- NEVER suggest content not supported by what is already on the resume
-- NEVER suggest adding specific tools, software, certifications, or credentials the candidate has not mentioned. You may tell them their skills section could include more field-specific terminology, but you may not name specific tools or credentials as examples unless they already appear on the resume.
-- Likewise, NEVER suggest removing tools that may be important to their career goals. You can suggest removing soft skills only.
-- The goal is to show the candidate exactly what information they need to find, not to invent it for them
-- Suggestions must be appropriate for this candidate's career length, job level, and role type. Do not suggest metrics that don't apply to their field
-- For early career and entry level candidates, suggestions should focus on adding specificity and scope (how many, how often, how much), not results or impact metrics that would be unlikely for someone at this stage to have tracked or caused. Do not ask an entry level candidate to prove organizational impact.
-- NEVER use internal assessment terminology in candidate-facing feedback. Do not reference "Zone 1," "Zone 2," "Zone 3," "Track A," "Track B," "career length," "job level," "job type," or any other internal framework language. Write as if speaking directly to the candidate in plain language.
-- Do not flag a bullet as problematic when its concepts are directly interconnected parts of one idea. A vendor management bullet that names the scope, the activity, and the outcome is one idea — not three crammed concepts.
-- NEVER flag absence of career progression, promotions, title changes, or upward moves as a weakness, gap, or suggestion at any career length or level. Do not tell the candidate their career "lacks growth," "shows longevity but no progression," "plateaued," or any similar framing. Long tenure is a valid career path. Absence of vertical movement is never a resume weakness.
-- NEVER surface rubric mechanics or internal calibration reasoning as feedback. This includes observations about verb appropriateness ("uses accurate verbs," "avoids overstating," "appropriately calibrated"), about specificity levels ("strong on specificity," "lacks scope metrics"), about scoring categories ("scores well on clarity"), or about anything else that describes HOW the resume is being evaluated rather than WHAT specifically to change. Feedback tells the candidate what to do. It never explains the scoring logic to them.
-- The test for every strength, weakness, and suggestion before outputting: would the candidate find this specific and actionable, or would it read as the system commenting on itself? If the latter, cut it or rewrite as concrete advice about their actual content.
-CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
-
-{
-  "overallScore": <number 0-100>,
-  "breakdown": {
-    "impact": <number 0-50>,
-    "clarity": <number 0-30>,
-    "keywords": <number 0-20>
-  },
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "weaknesses": ["weakness 1", "weakness 2", "weakness 3"],
-  "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
-}`
+${textToAnalyze}`
       }]
     })
 
