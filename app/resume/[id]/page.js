@@ -734,19 +734,6 @@ function formatDate(dateString, format = dateFormat) {
         return
       }
 
-      // Block free users from accessing job-specific resumes
-      if (data.resume_type === 'job_specific') {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .single()
-        if (profile?.subscription_tier !== 'pro') {
-          router.push('/resume-coach')
-          return
-        }
-      }
-
       setResume(data)
 
 if (data.ai_analysis) {
@@ -952,7 +939,7 @@ if (data.ai_analysis) {
             onClick={() => router.push('/resume-coach')}
             className="mt-4 text-purple-600 hover:text-purple-700"
           >
-            ← Back to My Resumes
+            ← Back to Resume Coach
           </button>
         </div>
       </div>
@@ -1922,7 +1909,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               onClick={() => window.location.href = '/resume-coach'}
               className="text-gray-400 text-sm md:text-xs hover:text-gray-600"
             >
-              ← Back to My Resumes
+              ← Back to Resume Coach
             </button>
           </div>
         </div>
@@ -5629,7 +5616,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
             onClick={() => window.location.href = '/resume-coach'}
             className="text-gray-400 text-sm md:text-xs hover:text-gray-600 mt-1"
           >
-            ← Back to My Resumes
+            ← Back to Resume Coach
           </button>
         </div>
       </div>

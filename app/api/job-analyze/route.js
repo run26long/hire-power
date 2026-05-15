@@ -195,6 +195,24 @@ coreStrengths: The 3-5 strongest, most direct matches between this resume and th
 summary: Coaching bullets for the candidate. 2-3 bullets starting with "✓ " naming the strongest fit points with specifics. 1-2 bullets starting with "○ " identifying the most important gaps as opportunities, not criticisms. Coach tone — tell them what to add or address, not what they're missing.
 `;
 
+const OUTPUT_INSTRUCTIONS = `Apply the scoring rubric above. Be consistent — the same resume against the same JD should always produce the same score. Do not reward or penalize based on assumptions. Evaluate only what is on the resume against only what is in the JD.
+
+CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
+
+You MUST score each dimension separately first, then sum them for matchScore. Do not guess a holistic score. Work through each rubric, assign a number within the stated range, then add them.
+
+{
+  "keywordScore": <number 0-50, scored against the keyword rubric above>,
+  "experienceScore": <number 0-30, scored against the experience rubric above>,
+  "credentialScore": <number 0-20, scored against the credentials rubric above>,
+  "matchScore": <keywordScore + experienceScore + credentialScore>,
+  "matchedKeywords": [<meaningful skill/vocabulary terms from JD present on resume>],
+  "missingKeywords": [<terms from JD genuinely absent from resume and not covered by hiddenPower>],
+  "hiddenPower": [<"Resume skill → JD requirement" strings>],
+  "coreStrengths": [<3-5 strongest direct matches>],
+  "summary": [<coaching bullets: 2-3 starting with "✓ ", 1-2 starting with "○ ">]
+}`;
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -229,37 +247,28 @@ export async function POST(request) {
 
     const resumeText = convertResumeToText(resumeData);
 
-    const analysisPrompt = `${JOB_MATCH_PROMPT}
+    const systemPrompt = `${JOB_MATCH_PROMPT}
 
-RESUME:
+${OUTPUT_INSTRUCTIONS}`;
+
+    const userMessage = `RESUME:
 ${resumeText}
 
 JOB DESCRIPTION (${jobTitle} at ${jobCompany}):
-${jobDescription}
-
-Apply the scoring rubric above. Be consistent — the same resume against the same JD should always produce the same score. Do not reward or penalize based on assumptions. Evaluate only what is on the resume against only what is in the JD.
-
-CRITICAL: Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
-
-You MUST score each dimension separately first, then sum them for matchScore. Do not guess a holistic score. Work through each rubric, assign a number within the stated range, then add them.
-
-{
-  "keywordScore": <number 0-50, scored against the keyword rubric above>,
-  "experienceScore": <number 0-30, scored against the experience rubric above>,
-  "credentialScore": <number 0-20, scored against the credentials rubric above>,
-  "matchScore": <keywordScore + experienceScore + credentialScore>,
-  "matchedKeywords": [<meaningful skill/vocabulary terms from JD present on resume>],
-  "missingKeywords": [<terms from JD genuinely absent from resume and not covered by hiddenPower>],
-  "hiddenPower": [<"Resume skill → JD requirement" strings>],
-  "coreStrengths": [<3-5 strongest direct matches>],
-  "summary": [<coaching bullets: 2-3 starting with "✓ ", 1-2 starting with "○ ">]
-}`;
+${jobDescription}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
       temperature: 0,
-      messages: [{ role: 'user', content: analysisPrompt }]
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
+      messages: [{ role: 'user', content: userMessage }]
     });
 
     const rawText = response.content[0].text.trim();

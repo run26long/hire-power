@@ -560,7 +560,7 @@ function DashboardContent() {
           <HomeCard active={activeCard === 'career'} onClick={() => router.push('/career-coach')} num="01">
             {(lit) => (
               <>
-                <span style={{ ...SP.base, ...SP.free }}>Free · Unlimited</span>
+                <span style={{ ...SP.base, ...SP.free }}>Set Your Direction</span>
                 <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>The best 5-minute investment you can make in your career. Same field, new field, or figuring it out. The more know about your goals, the stronger your resume becomes.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', justifyContent: 'flex-end', gap: 8 }}>
