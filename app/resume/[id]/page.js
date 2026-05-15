@@ -1883,7 +1883,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           <p className="text-sm md:text-xs font-semibold text-purple-800 mb-2">
             🔒 {matchedCount} skills matched · {missingCount} to address
           </p>
-          <p className="text-sm md:text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap — so your resume becomes a stronger match for this specific job.</p>
+          <p className="text-sm md:text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap so your resume becomes a stronger match for this specific job.</p>
           <button
             onClick={() => setShowUpgradeModal(true)}
             className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"

@@ -133,10 +133,16 @@ ${JSON.stringify(resumeData, null, 2)}
 
 Now have a genuine career conversation. Make them feel heard, supported, and excited about their next steps.`;
 
-  const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+ const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
       max_tokens: 8000,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
       messages: messages
     });
 
@@ -175,7 +181,7 @@ Conversation:
 ${JSON.stringify(messages, null, 2)}`;
 
       const extractionResponse = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         messages: [
           { role: 'user', content: extractionPrompt }
