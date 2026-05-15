@@ -176,6 +176,17 @@ For senior by organizational rank (Directors, VPs, executives): organizational i
 The goal: a recruiter reads this and immediately understands the scope and quality of this person's contribution.`
 }
 
+const ALL_LEVEL_INSTRUCTIONS = `LEVEL-SPECIFIC GUIDANCE — apply the section that matches the candidate's level (the level will be specified in the user message):
+
+═══ ENTRY-LEVEL ═══
+${LEVEL_INSTRUCTIONS.entry}
+
+═══ MID-CAREER ═══
+${LEVEL_INSTRUCTIONS.mid}
+
+═══ SENIOR ═══
+${LEVEL_INSTRUCTIONS.senior}`
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -213,7 +224,9 @@ CAREER CONTEXT:
 
     const systemPrompt = `${WRITING_CONSTITUTION}
 
-${levelNote}
+${ALL_LEVEL_INSTRUCTIONS}`
+
+    const userMessage = `CANDIDATE LEVEL: ${level} (apply the matching level guidance from the system prompt above)
 
 ${careerContextBlock}
 
@@ -271,7 +284,14 @@ Return ONLY a valid JSON object. No markdown. No explanation. No backticks.
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      messages: [{ role: 'user', content: systemPrompt }]
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
+      messages: [{ role: 'user', content: userMessage }]
     })
 
     const responseText = message.content[0].text
