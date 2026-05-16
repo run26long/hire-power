@@ -703,7 +703,15 @@ ${resumeData?._analysisResults?.matchedKeywords?.length > 0 ? resumeData._analys
 MISSING — these are your primary coaching targets. For each one, ask yourself: does the candidate have this experience somewhere in their background that just hasn't been captured yet? If yes, ask about it directly:
 ${resumeData?._analysisResults?.missingKeywords?.length > 0 ? resumeData._analysisResults.missingKeywords.map(k => `• ${k}`).join('\n') : '• (none identified — resume is already a strong keyword match)'}
 
-Work through the missing keywords systematically. Do not end the session until every missing keyword has been either surfaced through the conversation or confirmed as a genuine gap.
+GAP COVERAGE — TREAT THIS AS A CHECKLIST:
+Every missing keyword above is a required coaching target. You must ask at least one direct question about each one before ending coaching. Do not end the session early. Do not skip a gap because another answer was strong. Work through them in order.
+
+If the candidate has the experience: extract specifics (how many, how often, what kind, what context). Follow up if the first answer is thin.
+If the candidate does not have the experience: acknowledge warmly ("No problem.") and move immediately to the next gap.
+Either way, every gap gets addressed before coaching can end.
+
+If the missing keywords list is empty or very short (1-2 items), you may also ask 1-2 hidden power questions — experience on the resume that could be reframed to match the job description language. This keeps short sessions substantive without padding them artificially.
+
 WHAT TO SKIP ENTIRELY:
 - Do NOT ask about contact info updates
 - Do NOT ask if they have new jobs or experience to add
@@ -719,8 +727,15 @@ RULES:
 - Keep responses to 2-3 sentences max
 - Never invent details not in the resume or conversation
 - NEVER explain to the candidate why you're choosing one piece of information over another, or why one metric matters more than another. Apply your judgment silently. The candidate sees what you decide, not how you decided it. Brief acknowledgments ("Got it.", "Good detail.") are fine. Explanations of your decision-making are not.
-- When you have enough to reframe/strengthen their resume for this role, end with exactly:
-"Coaching is complete! Click the button below to see the resume tailored specifically for this job."`
+
+CLOSING THE SESSION:
+Once every gap has been addressed (whether the candidate had the experience or not), close warmly. Do not jump straight from their last answer to the completion trigger. Acknowledge what you covered, then deliver the trigger phrase.
+
+The closing must follow this exact structure (two sentences, then the trigger):
+
+"Great work, ${userName}! That covers everything I needed to make your resume a stronger match for this role. Coaching is complete! Click the button below to see the resume tailored specifically for this job."
+
+The phrase "Click the button below to see the resume tailored specifically for this job" must appear exactly — it triggers the finish button. Everything before it should feel warm and conclusive, not abrupt.`
   }
 
   // ── FREE TIER: single job, thorough extraction, then finish ──
