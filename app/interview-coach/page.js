@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -101,6 +101,9 @@ export default function MyInterviewsPage() {
           job_card_id,
           generated_at,
           last_refreshed_at,
+          core_power,
+          hidden_power,
+          power_gaps,
           applications:job_card_id (
             id,
             title,
@@ -115,19 +118,39 @@ export default function MyInterviewsPage() {
         .eq('user_id', user.id)
         .order('last_refreshed_at', { ascending: false, nullsFirst: false });
 
+      // Load completed story counts per job card
+      const { data: storyRows } = await supabase
+        .from('interview_stories')
+        .select('job_card_id, coaching_complete')
+        .eq('user_id', user.id)
+        .eq('coaching_complete', true);
+
+      const storyCountByJobCard = {};
+      (storyRows || []).forEach(row => {
+        storyCountByJobCard[row.job_card_id] = (storyCountByJobCard[row.job_card_id] || 0) + 1;
+      });
+
       const cards = (paRows || [])
         .filter(row => row.applications && row.applications.application_status !== 'archived')
-        .map(row => ({
-          paId: row.id,
-          jobCardId: row.job_card_id,
-          generatedAt: row.last_refreshed_at || row.generated_at,
-          title: row.applications.title,
-          company: row.applications.company,
-          interviewDate: row.applications.interview_date,
-          level: row.applications.interview_level || 0,
-          sessionsCount: row.applications.interview_sessions_count || 0,
-          matchScore: row.applications.match_score
-        }));
+        .map(row => {
+          const totalItems =
+            (row.core_power?.length || 0) +
+            (row.hidden_power?.length || 0) +
+            (row.power_gaps?.length || 0);
+          return {
+            paId: row.id,
+            jobCardId: row.job_card_id,
+            generatedAt: row.last_refreshed_at || row.generated_at,
+            title: row.applications.title,
+            company: row.applications.company,
+            interviewDate: row.applications.interview_date,
+            level: row.applications.interview_level || 0,
+            sessionsCount: row.applications.interview_sessions_count || 0,
+            matchScore: row.applications.match_score,
+            storiesCoached: storyCountByJobCard[row.job_card_id] || 0,
+            totalStoryItems: totalItems
+          };
+        });
 
       setPracticeCards(cards);
       setLoading(false);
@@ -220,56 +243,79 @@ export default function MyInterviewsPage() {
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
-          <p className="text-[15px] font-bold text-white leading-tight tracking-tight mt-3">
-            AI-spoken interview practice that mimics a real interview
-          </p>
         </div>
 
-        <div className="flex-1 px-6 pt-1 pb-6 flex flex-col justify-between">
-          <div>
-            <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">FREE</h4>
-              <ul className="space-y-1 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>General - unlimited practice</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Job-specific - 1 practice</span></li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Power Analysis reveal <span className="text-[10px] text-white text-opacity-60">(view only)</span></span>
+        <div className="px-6 pb-6">
+
+          {/* Intro copy */}
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.88)', lineHeight: 1.4, marginBottom: 14 }}>
+            <span style={{ fontWeight: 700, color: '#fff' }}>AI can generate interview answers. The problem is, they aren't yours.</span> We extract your real stories through conversation, then turn them into answers that prove you can do this specific job.
+          </p>
+
+          {/* How it works — 3 steps */}
+          <div style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              How it works
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {[
+                { num: '1', title: 'Power Analysis', desc: 'We map your resume to this job and surface what to highlight, reframe, and address.' },
+                { num: '2', title: 'STAR Story Coaching', desc: 'Through dialogue, we extract Situation, Task, Action, and Result for each item.' },
+                { num: '3', title: 'Mock Interview', desc: 'Practice with tailored questions, get feedback, and level up as you go.' }
+              ].map(step => (
+                <div key={step.num} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.18)', color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, marginTop: 1
+                  }}>{step.num}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 1 }}>{step.title}</p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)', lineHeight: 1.3, marginBottom: 0 }}>{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Feature List */}
+          <div style={{ marginBottom: 14 }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {[
+                { label: 'Power Analysis' },
+                { label: 'STAR Story Coaching', pro: true },
+                { label: 'Mock Interview Practice' },
+                { label: 'Company research integration', pro: true },
+                { label: 'Post-practice feedback', pro: true }
+              ].map(({ label, pro }) => (
+                <li key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>•</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', lineHeight: 1.2 }}>
+                    {label}{pro && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginLeft: 3 }}>(Pro)</span>}
+                  </span>
                 </li>
-              </ul>
-            </div>
-
-            <div className="mb-4">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">PRO</h4>
-              <ul className="space-y-1 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Pre-interview coaching</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Power Analysis for every job</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Company research integration</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Unlimited job-specific sessions</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Post-practice feedback</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Gamified progression</span></li>
-              </ul>
-            </div>
+              ))}
+            </ul>
           </div>
 
-          <div className="mt-auto">
-            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
-            <div>
-              <p className="text-xs text-white text-opacity-90 leading-snug mb-5">
-                Interview Coach prepares you to present your experience with confidence, for every role you pursue
-              </p>
-              <div className="flex items-center gap-2.5 text-white">
-                <img
-                  src="/images/Hire_Power_icon.png"
-                  alt="Lightning"
-                  className="h-5 w-auto flex-shrink-0"
-                />
-                <p className="text-sm font-medium leading-tight">
-                  Practice until it feels real.
-                </p>
-              </div>
-            </div>
+          {/* Bottom section */}
+          <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 11 }}></div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 11 }}>
+            Practice until it feels real.
+          </p>
+          <div className="flex items-center gap-2.5 text-white">
+            <img
+              src="/images/Hire_Power_icon.png"
+              alt="Lightning"
+              className="h-5 w-auto flex-shrink-0"
+            />
+            <p className="text-sm font-medium leading-tight">
+              Confidence by conversation.
+            </p>
           </div>
+
         </div>
       </div>
 
@@ -288,10 +334,12 @@ export default function MyInterviewsPage() {
                 {/* Practice History Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-lg font-semibold text-gray-900">Interview Practices</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
-                  <p className="text-sm md:text-xs text-gray-500 mb-2">Your saved practice sessions will appear here, each tied to a specific job.</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-2">
+                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all three, or jump to what you need.
+                  </p>
 
                   {/* New Practice Button */}
                   <button
@@ -331,22 +379,23 @@ export default function MyInterviewsPage() {
                       </>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center text-center border border-dashed border-gray-200 rounded-lg bg-gray-50 px-4">
-                        <div className="text-3xl mb-1">🎤</div>
-                        <p className="text-base md:text-sm font-semibold text-gray-700 mb-1">Your practice sessions will live here</p>
-                        <p className="text-sm md:text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-                          Each practice is tied to a specific job, with a level badge, score history, and coaching notes so you can track improvement over time.
+                        <p className="text-base md:text-sm font-semibold text-gray-700 mb-1">Your interviews will live here</p>
+                        <p className="text-sm md:text-xs text-gray-500 max-w-sm mx-auto leading-relaxed mb-4">
+                          Each job gets three prep tools. Use any or all to walk into your interview ready.
                         </p>
-                        <div className="flex items-center justify-center gap-3 mt-3">
-                          {[1, 2, 3, 4, 5].map((level) => (
-                            <div key={level} className="flex flex-col items-center gap-1">
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                                level === 1 ? 'border-purple-300 bg-purple-50 text-purple-500' : 'border-gray-200 bg-white text-gray-300'
-                              }`}>
-                                {level}
-                              </div>
-                              <span className="text-[11px] md:text-[9px] text-gray-400">L{level}</span>
-                            </div>
-                          ))}
+                        <div className="flex items-center justify-center gap-6">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="text-2xl">🎯</div>
+                            <span className="text-[11px] md:text-[10px] font-semibold text-gray-600">Power Analysis</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="text-2xl">🎤</div>
+                            <span className="text-[11px] md:text-[10px] font-semibold text-gray-600">Story Coaching</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="text-2xl">🎙️</div>
+                            <span className="text-[11px] md:text-[10px] font-semibold text-gray-600">Interview Practice</span>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -621,68 +670,117 @@ export default function MyInterviewsPage() {
 }
 
 // ============================================================================
-// Practice Card Component (compact row layout)
+// Practice Card Component
+// Smart CTA + Jump to menu, status pills below.
+// State-driven: card knows what's next, user can override.
 // ============================================================================
 function PracticeCard({ card, onClick }) {
-  const hasAnalyzed = true;
-  const hasCoached = false;
+  const router = useRouter();
+
+  const storiesCoached = card.storiesCoached || 0;
+  const totalStoryItems = card.totalStoryItems || 0;
+  const hasAnalyzed = true; // card only appears if PA exists
+  const hasCoached = storiesCoached > 0;
+  const allCoached = totalStoryItems > 0 && storiesCoached === totalStoryItems;
   const hasPracticed = (card.sessionsCount || 0) > 0;
 
   const interviewIsUpcoming = card.interviewDate && new Date(card.interviewDate).getTime() > Date.now();
+  const interviewIsPast = card.interviewDate && new Date(card.interviewDate).getTime() < Date.now();
+
+  // Determine smart CTA label based on state
+  let primaryCtaLabel;
+  if (interviewIsPast) {
+    primaryCtaLabel = 'Review →';
+  } else if (!hasCoached) {
+    primaryCtaLabel = 'Start Story Coaching →';
+  } else if (!allCoached) {
+    primaryCtaLabel = 'Continue Coaching →';
+  } else if (!hasPracticed) {
+    primaryCtaLabel = 'Start Interview Practice →';
+  } else {
+    primaryCtaLabel = 'Practice Again →';
+  }
+
+  const goToDetail = (e, anchor) => {
+    if (e) e.stopPropagation();
+    const url = anchor ? `/interview/${card.jobCardId}#${anchor}` : `/interview/${card.jobCardId}`;
+    router.push(url);
+  };
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full text-left border border-gray-200 rounded-lg px-3 py-2 hover:border-purple-300 hover:bg-purple-50 transition-all flex items-center gap-3 group"
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-sm md:text-xs font-semibold text-gray-900 truncate">{card.title}</p>
-          {interviewIsUpcoming && (
-            <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
-              Upcoming
-            </span>
-          )}
+    <div className="border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all">
+      {/* Top row: title + match info + CTA group */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-sm md:text-xs font-semibold text-gray-900 truncate">{card.title}</p>
+            {interviewIsUpcoming && (
+              <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
+                Upcoming
+              </span>
+            )}
+          </div>
+          <p className="text-xs md:text-[10px] text-gray-500 truncate">
+            {interviewIsPast ? (
+              <>Past · {new Date(card.interviewDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
+            ) : (
+              <>{card.company}</>
+            )}
+            {card.matchScore && <span className="text-gray-400"> · Match {card.matchScore}</span>}
+          </p>
         </div>
-        <p className="text-xs md:text-[10px] text-gray-500 truncate">
-          {card.company}
-          {card.matchScore && <span className="text-gray-400"> • Match {card.matchScore}</span>}
-        </p>
+
+        {/* CTA group */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {!interviewIsPast && (
+            <JumpToMenu
+              jobCardId={card.jobCardId}
+              hasCoachedAny={hasCoached}
+              onNavigate={goToDetail}
+            />
+          )}
+          <button
+            onClick={(e) => goToDetail(e, null)}
+            className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+          >
+            {primaryCtaLabel}
+          </button>
+        </div>
       </div>
 
-      <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+      {/* Bottom row: status pills */}
+      <div className="flex items-center gap-1.5 mt-2">
         <StepPill label="Analyzed" complete={hasAnalyzed} />
-        <StepPill label="Coached" complete={hasCoached} />
-        <StepPill label="Practiced" complete={hasPracticed} />
+        <StepPill
+          label={hasCoached ? `Coached ${storiesCoached}/${totalStoryItems}` : 'Coached'}
+          complete={allCoached}
+          partial={hasCoached && !allCoached}
+        />
+        <StepPill
+          label={hasPracticed && card.level > 0 ? `Practiced L${card.level}` : 'Practiced'}
+          complete={hasPracticed}
+        />
       </div>
-
-      <div className="flex md:hidden items-center gap-1 flex-shrink-0">
-        <StatusDot complete={hasAnalyzed} />
-        <StatusDot complete={hasCoached} />
-        <StatusDot complete={hasPracticed} />
-      </div>
-
-      <svg className="w-4 h-4 text-gray-400 group-hover:text-purple-600 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
-  );
-}
-
-function StepPill({ label, complete }) {
-  return (
-    <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${
-      complete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
-    }`}>
-      <span className="text-xs md:text-[10px] font-bold">{complete ? '✓' : '○'}</span>
-      <span className="text-xs md:text-[10px] font-semibold">{label}</span>
     </div>
   );
 }
 
-function StatusDot({ complete }) {
+function StepPill({ label, complete, partial }) {
+  let className;
+  if (complete) {
+    className = 'bg-green-100 text-green-700';
+  } else if (partial) {
+    className = 'bg-purple-50 text-purple-700';
+  } else {
+    className = 'bg-gray-100 text-gray-400';
+  }
+  const icon = complete ? '✓' : partial ? '◐' : '○';
   return (
-    <div className={`w-2 h-2 rounded-full ${complete ? 'bg-green-500' : 'bg-gray-300'}`} />
+    <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${className}`}>
+      <span className="text-xs md:text-[10px] font-bold">{icon}</span>
+      <span className="text-xs md:text-[10px] font-semibold">{label}</span>
+    </div>
   );
 }
 
@@ -706,44 +804,93 @@ function ChecklistItem({ label }) {
         {label}
       </span>
     </button>
-  );{/* Practice Cards List OR Empty State */}
-                  {visibleCards.length > 0 ? (
-                    <>
-                      <div className="space-y-1.5">
-                        {visibleCards.map((card) => (
-                          <PracticeCard key={card.jobCardId} card={card} onClick={() => router.push(`/interview/${card.jobCardId}`)} />
-                        ))}
-                      </div>
-                      {hasOlder && (
-                        <div className="mt-2 text-center">
-                          <button
-                            onClick={() => setShowOlderModal(true)}
-                            className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold"
-                          >
-                            See {olderCards.length} older practice{olderCards.length === 1 ? '' : 's'} →
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-4 border border-dashed border-gray-200 rounded-lg bg-gray-50">
-                      <div className="text-3xl mb-1">🎤</div>
-                      <p className="text-base md:text-sm font-semibold text-gray-700 mb-1">Your practice sessions will live here</p>
-                      <p className="text-sm md:text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-                        Each practice is tied to a specific job, with a level badge, score history, and coaching notes so you can track improvement over time.
-                      </p>
-                      <div className="flex items-center justify-center gap-3 mt-3">
-                        {[1, 2, 3, 4, 5].map((level) => (
-                          <div key={level} className="flex flex-col items-center gap-1">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                              level === 1 ? 'border-purple-300 bg-purple-50 text-purple-500' : 'border-gray-200 bg-white text-gray-300'
-                            }`}>
-                              {level}
-                            </div>
-                            <span className="text-[11px] md:text-[9px] text-gray-400">L{level}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+  );
+}
+
+// ============================================================================
+// Jump To Menu Component
+// Phase navigation dropdown. All three phases always enabled
+// (user gets full control per spec).
+// ============================================================================
+function JumpToMenu({ jobCardId, hasCoachedAny, onNavigate }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target) &&
+        buttonRef.current && !buttonRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    }
+    function handleEscape(e) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open]);
+
+  const handleSelect = (anchor) => {
+    setOpen(false);
+    onNavigate(null, anchor);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        className="border border-gray-200 rounded-md py-1.5 px-2.5 text-xs md:text-[11px] font-semibold text-gray-600 hover:border-purple-300 hover:text-purple-700 transition-colors whitespace-nowrap flex items-center gap-1"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        Jump to
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-30"
+          style={{ minWidth: '180px' }}
+          role="menu"
+        >
+          <button
+            onClick={() => handleSelect('power-analysis')}
+            className="w-full text-left px-3 py-2 text-xs md:text-[11px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2"
+            role="menuitem"
+          >
+            <span className="text-sm">🎯</span>
+            Power Analysis
+          </button>
+          <button
+            onClick={() => handleSelect('coaching')}
+            className="w-full text-left px-3 py-2 text-xs md:text-[11px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2 border-t border-gray-100"
+            role="menuitem"
+          >
+            <span className="text-sm">🎤</span>
+            Story Coaching
+          </button>
+          <button
+            onClick={() => handleSelect('practice')}
+            className="w-full text-left px-3 py-2 text-xs md:text-[11px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2 border-t border-gray-100"
+            role="menuitem"
+          >
+            <span className="text-sm">🎙️</span>
+            Interview Practice
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
