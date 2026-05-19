@@ -17,7 +17,7 @@ function getTierForPriceId(priceId) {
 }
 
 // Sync tier change to Loops (non-blocking — failure shouldn't break webhook)
-async function syncTierToLoops(userId, tier) {
+async function syncTierToLoops(userId, tier, previousTier) {
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
@@ -31,7 +31,7 @@ async function syncTierToLoops(userId, tier) {
     }
 
     const isInitialSync = !profile.loops_synced_at;
-    const isFreeToProUpgrade = tier === 'pro' && !isInitialSync && !profile.t6_sent_at;
+    const isFreeToProUpgrade = tier === 'pro' && previousTier === 'free' && !profile.t6_sent_at;
     const t6Now = isFreeToProUpgrade ? new Date().toISOString() : null;
 
     const payload = {
@@ -134,6 +134,13 @@ export async function POST(req) {
         return Response.json({ error: 'Unknown priceId' }, { status: 500 });
       }
 
+      const { data: prevProfile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .single();
+      const previousTier = prevProfile?.subscription_tier || 'free';
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -158,7 +165,7 @@ export async function POST(req) {
         return Response.json({ error: 'DB update failed' }, { status: 500 });
       }
 
-      await syncTierToLoops(userId, tier);
+      await syncTierToLoops(userId, tier, previousTier);
 
       break;
     }
@@ -202,7 +209,7 @@ export async function POST(req) {
           return Response.json({ error: 'DB update failed' }, { status: 500 });
         }
 
-        if (updated?.id) await syncTierToLoops(updated.id, newTier);
+        if (updated?.id) await syncTierToLoops(updated.id, newTier, existing.subscription_tier);
       }
 
       break;
@@ -247,7 +254,7 @@ export async function POST(req) {
 
           if (existingProfile?.id) {
             await archiveProContent(existingProfile.id);
-            await syncTierToLoops(existingProfile.id, 'vault');
+            await syncTierToLoops(existingProfile.id, 'vault', 'pro');
           }
         } catch (vaultError) {
           // Vault subscription failed (e.g. card declined). Drop to free
@@ -277,7 +284,7 @@ export async function POST(req) {
 
           if (existingProfile?.id) {
             await archiveProContent(existingProfile.id);
-            await syncTierToLoops(existingProfile.id, 'free');
+            await syncTierToLoops(existingProfile.id, 'free', 'pro');
           }
         }
       } else {
@@ -305,7 +312,7 @@ export async function POST(req) {
 
         if (cancelledProfile?.id) {
           await archiveProContent(cancelledProfile.id);
-          await syncTierToLoops(cancelledProfile.id, 'free');
+          await syncTierToLoops(cancelledProfile.id, 'free', 'pro');
         }
       }
 

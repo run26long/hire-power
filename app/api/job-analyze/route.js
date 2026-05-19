@@ -344,10 +344,29 @@ ${jobDescription}`;
     const analysis = JSON.parse(cleanText);
 
     if (isFree && userId) {
+      const newCount = (profile.jms_count ?? 0) + 1
       await supabase
         .from('profiles')
-        .update({ jms_count: (profile.jms_count ?? 0) + 1 })
+        .update({ jms_count: newCount })
         .eq('id', userId)
+      if (newCount === 3) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single()
+        if (prof?.email) {
+          fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/loops/sync-contact`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: prof.email,
+              userId,
+              thirdJmsReached: new Date().toISOString()
+            })
+          }).catch(e => console.error('B2 Loops sync failed (non-blocking):', e))
+        }
+      }
     }
 
     const computedScore = (analysis.keywordScore ?? 0) + (analysis.experienceScore ?? 0) + (analysis.credentialScore ?? 0)
