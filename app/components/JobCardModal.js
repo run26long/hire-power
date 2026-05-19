@@ -315,8 +315,8 @@ export default function JobCardModal({
                         action: 'new-cover-letter',
                         ...(card.title && { jobTitle: card.title }),
                         ...(card.company && { jobCompany: card.company }),
-                        ...(card.description && { jobDescription: card.description }),
                         ...(card.resume_id && { resumeId: card.resume_id }),
+                        ...(card.id && { applicationId: card.id }),
                       });
                       router.push(`/resume-coach?${params.toString()}`);
                     }}

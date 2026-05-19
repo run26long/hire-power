@@ -143,6 +143,26 @@ export default function CoverLetterPage() {
         }
       }
 
+      // Check if a card already exists for this job title + company before creating
+      const { data: matchingCards, error: matchError } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('title', coverLetter.job_title || '')
+        .eq('company', coverLetter.job_company || '')
+        .limit(1)
+      if (matchError) throw matchError
+
+      if (matchingCards?.[0]) {
+        // Card exists for this job — link CL to it
+        const { error: updateError } = await supabase
+          .from('applications')
+          .update({ cover_letter_id: coverLetter.id })
+          .eq('id', matchingCards[0].id)
+        if (updateError) throw updateError
+        return
+      }
+
       // No existing card — create one (never link a core resume to a job card)
       const { error: insertError } = await supabase
         .from('applications')

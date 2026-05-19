@@ -99,6 +99,7 @@ export async function POST(request) {
       font,
       spacing,
       accentColor,
+      dateFormat,
       action,
       versionId,
       isJobVersion,
@@ -141,7 +142,8 @@ export async function POST(request) {
       font: fontToUse,
       fontSize: fontSize || 11,
       spacing: spacing || 1,
-      accentColor: accentColor || '#5b4fcf'
+      accentColor: accentColor || '#5b4fcf',
+      dateFormat: dateFormat || 'short'
     })
 
     const pdfBuffer = await renderToBuffer(element)

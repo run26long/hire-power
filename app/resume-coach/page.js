@@ -183,12 +183,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     if (params.get('action') === 'new-cover-letter') {
       const jobTitle = params.get('jobTitle') || '';
       const jobCompany = params.get('jobCompany') || '';
-      const jobDescription = params.get('jobDescription') || '';
       const resumeId = params.get('resumeId') || '';
+      const applicationId = params.get('applicationId') || '';
       setClJobTitle(jobTitle);
       setClCompany(jobCompany);
-      setClJobDescription(jobDescription);
       setClSelectedJSId(resumeId);
+      if (applicationId) {
+        supabase.from('applications').select('description').eq('id', applicationId).single().then(({ data }) => {
+          if (data?.description) setClJobDescription(data.description);
+        });
+      }
       setShowCLModal(true);
       window.history.replaceState({}, '', '/resume-coach');
     }
@@ -2304,7 +2308,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       } else {
                         const selected = jobSources.find(s => s.id === val);
                         setSelectedJobSourceId(val);
-                        setClSelectedJSId('');
+                        setClSelectedJSId(selected?.resume_id || '');
                         setClJobTitle(selected?.title || '');
                         setClCompany(selected?.company || '');
                         setClJobDescription(selected?.description || '');

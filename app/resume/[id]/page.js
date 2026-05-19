@@ -220,6 +220,7 @@ const handleAutoFit = async () => {
           fontSize: size,
           font: selectedFont,
           accentColor: accentColor,
+          dateFormat,
           spacing,
           action: 'check',
           userId: user.id
@@ -341,6 +342,7 @@ const handleDownload = async () => {
   fontSize: selectedSize,
   font: selectedFont,
   accentColor: accentColor,
+          dateFormat,
           spacing: selectedSpacing,
           action: 'download',
         resumeId: resume.id,
@@ -684,6 +686,7 @@ function formatDate(dateString, format = dateFormat) {
             fontSize: selectedSize,
             font: selectedFont,
             accentColor: accentColor,
+            dateFormat,
             spacing: selectedSpacing,
             action: 'check',
             userId: user.id
@@ -1208,7 +1211,7 @@ if (data.ai_analysis) {
                       const response = await fetch('/api/generate-pdf', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
+                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
                       })
                       if (response.ok) {
                         const data = await response.json()
@@ -1433,6 +1436,7 @@ if (data.ai_analysis) {
                         fontSize: selectedSize,
                         font: selectedFont,
                         accentColor: accentColor,
+                        dateFormat,
                         spacing: selectedSpacing,
                         action: 'preview-url',
                         userId: user.id

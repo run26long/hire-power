@@ -308,6 +308,23 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     onUpdate(newData)
   }
 
+  function parseDateInput(text) {
+    if (!text || !text.trim()) return null
+    const t = text.trim()
+    // "2024" → "2024"
+    if (/^\d{4}$/.test(t)) return t
+    // "1/2024" or "01/2024" → "2024-01"
+    const slashMatch = t.match(/^(\d{1,2})\/(\d{4})$/)
+    if (slashMatch) return `${slashMatch[2]}-${slashMatch[1].padStart(2, '0')}`
+    // "January 2024" or "Jan 2024" → "2024-01"
+    const months = { january:'01', february:'02', march:'03', april:'04', may:'05', june:'06', july:'07', august:'08', september:'09', october:'10', november:'11', december:'12', jan:'01', feb:'02', mar:'03', apr:'04', jun:'06', jul:'07', aug:'08', sep:'09', oct:'10', nov:'11', dec:'12' }
+    const wordMatch = t.match(/^([a-zA-Z]+)\s+(\d{4})$/)
+    if (wordMatch && months[wordMatch[1].toLowerCase()]) return `${wordMatch[2]}-${months[wordMatch[1].toLowerCase()]}`
+    // "2024-01" already correct
+    if (/^\d{4}-\d{2}$/.test(t)) return t
+    return null
+  }
+
   const activeSectionOrder = (selectedTemplate === 'edge'
     ? edgeSectionOrder
     : (resumeData.sectionOrder?.length ? resumeData.sectionOrder : defaultSectionOrder))
@@ -601,8 +618,46 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                         </p>
                       )}
                     </div>
-                    {selectedTemplate !== 'sharp' && selectedTemplate !== 'edge' && (
-                      <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</span>
+                    {(
+                      <span className="text-sm text-gray-600 ml-2 shrink-0" style={ts.date || {}}>
+                        {!readOnly ? (
+                          <>
+                            <span
+                              className="cursor-text hover:bg-purple-100 px-0.5 rounded"
+                              contentEditable
+                              suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const parsed = parseDateInput(e.currentTarget.textContent)
+                                if (parsed) updateNestedField(`experience[${jobIndex}].startDate`, parsed)
+                                else e.currentTarget.textContent = formatDate(job.startDate)
+                              }}
+                            >{formatDate(job.startDate)}</span>
+                            {' - '}
+                            <span
+                              className="cursor-text hover:bg-purple-100 px-0.5 rounded"
+                              contentEditable
+                              suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const text = e.currentTarget.textContent.trim()
+                                if (text.toLowerCase() === 'present') {
+                                  updateNestedField(`experience[${jobIndex}].current`, true)
+                                  updateNestedField(`experience[${jobIndex}].endDate`, null)
+                                } else {
+                                  const parsed = parseDateInput(text)
+                                  if (parsed) {
+                                    updateNestedField(`experience[${jobIndex}].current`, false)
+                                    updateNestedField(`experience[${jobIndex}].endDate`, parsed)
+                                  } else {
+                                    e.currentTarget.textContent = job.current ? 'Present' : formatDate(job.endDate)
+                                  }
+                                }
+                              }}
+                            >{job.current ? 'Present' : formatDate(job.endDate)}</span>
+                          </>
+                        ) : (
+                          <>{formatDate(job.startDate)} - {job.current ? 'Present' : formatDate(job.endDate)}</>
+                        )}
+                      </span>
                     )}
                   </div>
                   <div className="flex justify-between items-start mb-2">
@@ -682,7 +737,45 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                         <div className="flex justify-between items-start mb-1">
                           <div className="flex items-center gap-1 flex-1 flex-wrap">
                             <h4 className={`font-bold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
-                            <span className="text-sm text-gray-600 font-normal" style={ts.date || {}}>({roleDateText})</span>
+                            <span className="text-sm text-gray-600 font-normal" style={ts.date || {}}>
+                              ({!readOnly ? (
+                                <>
+                                  <span
+                                    className="cursor-text hover:bg-purple-100 px-0.5 rounded"
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onBlur={(e) => {
+                                      const parsed = parseDateInput(e.currentTarget.textContent)
+                                      if (parsed) updateNestedField(`experience[${jobIndex}].startDate`, parsed)
+                                      else e.currentTarget.textContent = formatDate(job.startDate)
+                                    }}
+                                  >{formatDate(job.startDate)}</span>
+                                  {' - '}
+                                  <span
+                                    className="cursor-text hover:bg-purple-100 px-0.5 rounded"
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onBlur={(e) => {
+                                      const text = e.currentTarget.textContent.trim()
+                                      if (text.toLowerCase() === 'present') {
+                                        updateNestedField(`experience[${jobIndex}].current`, true)
+                                        updateNestedField(`experience[${jobIndex}].endDate`, null)
+                                      } else {
+                                        const parsed = parseDateInput(text)
+                                        if (parsed) {
+                                          updateNestedField(`experience[${jobIndex}].current`, false)
+                                          updateNestedField(`experience[${jobIndex}].endDate`, parsed)
+                                        } else {
+                                          e.currentTarget.textContent = job.current ? 'Present' : formatDate(job.endDate)
+                                        }
+                                      }
+                                    }}
+                                  >{job.current ? 'Present' : formatDate(job.endDate)}</span>
+                                </>
+                              ) : (
+                                <>{roleDateText}</>
+                              )})
+                            </span>
                             {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
                               <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
                                 <span className="text-gray-600">Delete role?</span>

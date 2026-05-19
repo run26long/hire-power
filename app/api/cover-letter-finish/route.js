@@ -449,7 +449,7 @@ When this happens, do NOT attempt to write the letter. Do NOT fabricate experien
 
 Instead, set "canWrite" to false in your JSON output, write a one-sentence "refusalReason" describing what is missing, and leave the opening, bridge, bulletsIntro, and closing fields as empty strings, and the bullets field as an empty array. Contact fields (candidateName, email, phone, location, linkedin, date, companyName, jobTitle, recipientName) should still be populated as normal.
 
-Refusal is reserved for genuine, severe mismatches. If the candidate has transferable skills that can honestly be reframed, even if the fit is not perfect, write the letter. Refusal is the exception, not the default.
+Refusal is reserved for genuine, severe mismatches where the candidate's actual work has zero meaningful overlap with the role. A mismatch in job titles is NOT a reason to refuse. A candidate whose resume shows technical writing, content strategy, prompt engineering, and AI evaluation work is a strong match for a Writing Specialist role regardless of whether their title says "Founder" or "CEO." Always evaluate the actual skills and experience described in the resume, never the titles. If the candidate has transferable skills that can honestly be reframed, even if the fit is not perfect, write the letter. Refusal is the exception, not the default. When in doubt, write the letter.
 
 ═══════════════════════════════════════════════
 OUTPUT FORMAT
@@ -587,7 +587,8 @@ TODAY'S DATE: ${today}`
 
     if (coverLetterData.canWrite === false) {
       return NextResponse.json({
-        error: 'RESUME_JD_MISMATCH',
+        error: "Your resume and this job description don't appear to match closely enough to write a cover letter. Try using a job-specific resume or a different job description.",
+        code: 'RESUME_JD_MISMATCH',
         reason: coverLetterData.refusalReason || ''
       }, { status: 422 })
     }
