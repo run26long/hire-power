@@ -732,7 +732,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       onUpdate(newData)
                     }}
                   >{degreeText || (!readOnly ? 'Degree' : '')}</span>
-                  {(dateText || !readOnly) && (
+                  {dateText ? (
                     <>
                       <span className="font-normal"> | </span>
                       <span
@@ -741,10 +741,16 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                         suppressContentEditableWarning
                         onBlur={(e) => {
                           if (isUndoingRef.current) return
-                          updateNestedField(`education[${eduIndex}].graduationDate`, e.currentTarget.textContent.trim())
+                          const val = e.currentTarget.textContent.trim()
+                          updateNestedField(`education[${eduIndex}].graduationDate`, val || null)
                         }}
-                      >{dateText || 'Date'}</span>
+                      >{dateText}</span>
                     </>
+                  ) : !readOnly && (
+                    <button
+                      onClick={() => updateNestedField(`education[${eduIndex}].graduationDate`, '2025')}
+                      className="font-normal text-purple-500 opacity-0 group-hover/entry:opacity-100 ml-1 text-xs"
+                    >+ Add Date</button>
                   )}
                 </p>
               )

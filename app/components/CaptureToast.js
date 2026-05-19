@@ -54,6 +54,12 @@ export default function CaptureToast({ message, onClose }) {
             {message}
           </p>
         </div>
+        <button
+          onClick={onClose}
+          className="flex-shrink-0 text-purple-400 hover:text-purple-600 text-sm leading-none -mt-0.5 -mr-1"
+        >
+          ✕
+        </button>
       </div>
     </div>
   )

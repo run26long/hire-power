@@ -253,8 +253,23 @@ export async function POST(request) {
                   .update({ t3_sent_at: now })
                   .eq('id', userId)
 
-                // Fire Loops event
+                // Fire Loops event — update contact first so branch filter sees correct tier
                 if (process.env.LOOPS_API_KEY && profileRow.email) {
+                  // Step 1: Sync contact properties before firing event
+                  await fetch('https://app.loops.so/api/v1/contacts/update', {
+                    method: 'PUT',
+                    headers: {
+                      'Authorization': `Bearer ${process.env.LOOPS_API_KEY}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      email: profileRow.email,
+                      subscriptionTier: profileRow.subscription_tier || 'free',
+                      firstName: profileRow.first_name || ''
+                    })
+                  })
+
+                  // Step 2: Fire event — contact now has correct tier for branch evaluation
                   const loopsResponse = await fetch('https://app.loops.so/api/v1/events/send', {
                     method: 'POST',
                     headers: {

@@ -183,7 +183,7 @@ export default function ResumePDFVibe({ resumeData, font = 'Lato', fontSize = 11
               return (
                 <View key="education">
                   <View wrap={false}>
-                    <SH title={resumeData.sectionTitles?.education || 'Work Experience'} />
+                    <SH title={resumeData.sectionTitles?.education || 'Education'} />
                     <View style={{ marginBottom: restGroups.length > 0 ? Math.round(8*sp) : 0 }}>
                       {renderEduGroup(firstGroup)}
                     </View>

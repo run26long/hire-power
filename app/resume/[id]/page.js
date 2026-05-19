@@ -168,6 +168,22 @@ const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
 const [mobilePanel, setMobilePanel] = useState('coach')
 const [mobileToolbar, setMobileToolbar] = useState(null)
 const [showEditTip, setShowEditTip] = useState(false)
+const [showEditorTip, setShowEditorTip] = useState(false)
+const [templatePicked, setTemplatePicked] = useState(false)
+
+  useEffect(() => {
+    if (!localStorage.getItem('hp_editor_tip_dismissed')) {
+      setShowEditorTip(true)
+    }
+    if (localStorage.getItem('hp_template_picked')) {
+      setTemplatePicked(true)
+    }
+  }, [])
+
+  const dismissEditorTip = () => {
+    setShowEditorTip(false)
+    localStorage.setItem('hp_editor_tip_dismissed', '1')
+  }
 
   useEffect(() => {
     const updateMobileScale = () => {
@@ -1008,6 +1024,15 @@ if (data.ai_analysis) {
 {/* Mobile Toolbar */}
       {mobilePanel === 'resume' && (
         <div className="md:hidden bg-white border-b border-gray-200 flex-shrink-0">
+          {showEditorTip && (
+            <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
+              <p className="text-xs text-purple-700 text-center">
+                ✏️ Tap any section to edit    ·    📄 Format for templates and fonts<br />
+                ⚡ Actions to save, undo, or re-assess
+              </p>
+              <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-2 flex-shrink-0 text-sm">✕</button>
+            </div>
+          )}
           {/* Toolbar row */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
             {/* Pencil — leftmost */}
@@ -1222,17 +1247,27 @@ if (data.ai_analysis) {
 
 {/* Toolbar - STICKY */}
       <div className={`bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible ${mobilePanel === 'coach' ? 'hidden md:block' : 'hidden md:block'}`}>
-        <div className="px-6 pt-4 pb-2 max-w-7xl mx-auto w-full overflow-visible">
+        <div className={`px-6 ${showEditorTip ? 'pt-0' : 'pt-4'} pb-2 max-w-7xl mx-auto w-full overflow-visible`}>
+          {showEditorTip && (
+            <div className="bg-purple-50 rounded px-3 py-1 mt-5 mb-0.5 flex items-center justify-between">
+              <p className="text-xs text-purple-700">
+                ✏️ Click any section to edit directly<span className="mx-5 text-purple-300">·</span>↕️ Arrows reorder content<span className="mx-5 text-purple-300">·</span>🗑️ Trash to delete<span className="mx-5 text-purple-300">·</span>🎨 Toolbar below for templates, fonts, and colors
+              </p>
+              <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-4 flex-shrink-0 text-sm">✕</button>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-xs flex-nowrap overflow-x-auto md:overflow-visible">
 
             {/* Template */}
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span>📄</span>
               <select
-                value={selectedTemplate}
+                value={templatePicked ? selectedTemplate : ''}
                 onChange={(e) => {
                   const t = e.target.value
                   setSelectedTemplate(t)
+                  setTemplatePicked(true)
+                  localStorage.setItem('hp_template_picked', '1')
                   const templateDefaultFonts = {
                     crisp: 'Source Serif 4',
                     sharp: 'Helvetica',
@@ -1248,6 +1283,7 @@ if (data.ai_analysis) {
                 }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
+                {!templatePicked && <option value="" disabled>Template</option>}
                 <option value="command">Command</option>
                 <option value="crisp">Crisp</option>
                 <option value="current">Current</option>               
@@ -5467,11 +5503,12 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
       </p>
 
       <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
-        <div className="text-sm md:text-xs text-purple-900 space-y-1.5">
-          <div>✓ Run ⚡<strong>Auto-fit</strong> to optimize font size and spacing for one perfect page</div>
-          <div>✓ Try different templates from the toolbar</div>
-          <div>✓ Adjust font or size if you prefer</div>
-          <div>✓ Preview how the PDF download will look</div>
+        <div className="text-sm md:text-xs text-purple-900 space-y-2">
+          <div><strong>✏️ Edit directly</strong> — Click any section of your resume to edit text, reorder content, or delete what you don't need.</div>
+          <div><strong>🎨 Style it</strong> — Use the toolbar to switch templates, change fonts, adjust size, pick an accent color, or change date formats.</div>
+          <div><strong>⚡ Auto-fit</strong> — One click optimizes font size and spacing to fit everything on one perfect page (when possible).</div>
+          <div><strong>👀 Preview</strong> — See exactly how your PDF will look before downloading.</div>
+          <div><strong>💾 Save anytime</strong> — Your progress auto-saves, but you can also save manually from the toolbar.</div>
         </div>
       </div>
 
