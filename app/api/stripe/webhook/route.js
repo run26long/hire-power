@@ -77,7 +77,7 @@ async function syncTierToLoops(userId, tier, previousTier) {
   }
 }
 
-// When a user leaves Pro, archive their JS resumes and cover letters.
+// When a user leaves Pro, archive their job specific resumes and cover letters.
 // Data is preserved (not deleted) so Vault users can still view it
 // and Pro re-subscribers can restore it.
 async function archiveProContent(userId) {
@@ -89,7 +89,7 @@ async function archiveProContent(userId) {
       .eq('user_id', userId)
       .eq('resume_type', 'job_specific')
       .eq('is_active', true);
-    if (jsError) console.error('archiveProContent: JS resume archive failed', { userId, error: jsError });
+    if (jsError) console.error('archiveProContent: job specific resume archive failed', { userId, error: jsError });
 
     const { error: clError } = await supabase
       .from('cover_letters')

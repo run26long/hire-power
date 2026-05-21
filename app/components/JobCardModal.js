@@ -629,7 +629,7 @@ export default function JobCardModal({
         </div>
       )}
 
-      {/* ── JD MODAL ── */}
+      {/* ── job description MODAL ── */}
       {showJdModal && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"

@@ -121,14 +121,14 @@ KEYWORD COVERAGE (50 points)
 Measures how well the resume speaks the language of this specific job description. ATS systems scan for exact terms and close equivalents before a human ever sees the resume.
 
 What counts as a keyword match:
-- Direct match: JD says "Salesforce", resume says "Salesforce" → full credit
-- Clear equivalent: JD says "CRM software", resume shows "Salesforce" → full credit
-- Demonstrated without being named: JD requires "stakeholder management", resume shows coordinating with vendors, clients, and leadership → partial credit (flag as hidden power, not a gap)
-- Field vocabulary: industry-specific terminology from the JD that appears naturally in the resume
+- Direct match: job description says "Salesforce", resume says "Salesforce" → full credit
+- Clear equivalent: job description says "CRM software", resume shows "Salesforce" → full credit
+- Demonstrated without being named: job description requires "stakeholder management", resume shows coordinating with vendors, clients, and leadership → partial credit (flag as hidden power, not a gap)
+- Field vocabulary: industry-specific terminology from the job description that appears naturally in the resume
 
 What does NOT count:
-- Soft skills and traits ("communication," "teamwork," "leadership") — these are not ATS keywords unless the JD explicitly requires certification or measurement of them
-- Generic verbs ("managed," "led") without the specific context the JD requires
+- Soft skills and traits ("communication," "teamwork," "leadership") — these are not ATS keywords unless the job description explicitly requires certification or measurement of them
+- Generic verbs ("managed," "led") without the specific context the job description requires
 - Assumed knowledge — if it's not on the resume, it doesn't count
 
 Scoring:
@@ -137,7 +137,7 @@ Scoring:
 30-39: Moderate coverage. Core terms present but several role-specific tools, methods, or vocabulary missing
 20-29: Partial coverage. Some relevant terms but significant keyword gaps that would likely fail ATS
 10-19: Weak coverage. Few JD-specific terms on the resume
-0-9: Little to no overlap between JD language and resume language
+0-9: Little to no overlap between job description language and resume language
 
 EXPERIENCE RELEVANCE (30 points)
 Measures how closely the candidate's actual work history maps to what this role requires day-to-day. This is the human-reader dimension — does a recruiter look at this resume and see someone who has done this work?
@@ -158,7 +158,7 @@ Scoring:
 CREDENTIALS (20 points)
 Measures degree field, education level, certifications, and years of experience against any stated requirements in the job description.
 
-If the JD states no specific credential requirements, award full credit by default — the absence of a requirement is not a gap.
+If the job description states no specific credential requirements, award full credit by default — the absence of a requirement is not a gap.
 
 Scoring:
 18-20: Meets or exceeds all stated credential requirements
@@ -181,11 +181,11 @@ Below 60: Significant gaps. Major coaching needed to compete.
 KEYWORD MATCHING RULES
 ═══════════════════════════════════════════════
 
-matchedKeywords: Include only meaningful skill terms and field vocabulary from the JD that appear on the resume (directly or as clear equivalents). No generic words. No soft skills unless the JD specifically requires measurement of them.
+matchedKeywords: Include only meaningful skill terms and field vocabulary from the job description that appear on the resume (directly or as clear equivalents). No generic words. No soft skills unless the job description specifically requires measurement of them.
 
 missingKeywords: Include only terms the candidate genuinely lacks evidence of — not things covered by hiddenPower. If a skill is demonstrated but not named, it belongs in hiddenPower, not missingKeywords.
 
-hiddenPower: Skills or experience on the resume that indirectly satisfy a JD requirement the candidate might not recognize. Be generous here. Format as: "Resume skill → JD requirement". Examples:
+hiddenPower: Skills or experience on the resume that indirectly satisfy a job description requirement the candidate might not recognize. Be generous here. Format as: "Resume skill → job description requirement". Examples:
 - "Safety curriculum development → Risk management"
 - "Event budget management → Financial planning"
 - "Coordinating vendors and performers → Stakeholder management"
@@ -207,7 +207,7 @@ Coaching bullets in the summary use this voice. The ✓ bullets celebrate genuin
 
 WRITE LIKE THIS:
 ✓ "Your event coordination experience maps directly to the project management responsibilities in this role — budgets, timelines, stakeholders."
-○ "The JD emphasizes Agile experience. Surface any iterative project work you've done in past roles and frame it in that vocabulary."
+○ "The job description emphasizes Agile experience. Surface any iterative project work you've done in past roles and frame it in that vocabulary."
 
 DO NOT WRITE LIKE THIS:
 ✗ "Resume lacks core Agile experience."

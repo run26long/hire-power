@@ -110,7 +110,7 @@ export default function CoverLetterPage() {
 
       if (existingCards?.[0]) return // already linked, nothing to do
 
-      // Check if a card exists for the linked JS resume (only if it's job-specific)
+      // Check if a card exists for the linked job specific resume (only if it's job-specific)
       if (coverLetter.linked_resume_id) {
         const { data: linkedResume, error: linkedResumeError } = await supabase
           .from('resumes')

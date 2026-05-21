@@ -495,6 +495,7 @@ const handleResumeUpdate = async (updatedData) => {
                   </div>
                 </div>
               )}
+              <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
             </div>
           </div>
         </div>

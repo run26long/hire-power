@@ -165,7 +165,7 @@ export default function CareerVaultPage() {
         if (archiveError) throw archiveError.error;
       }
 
-      // Archive all JS resumes (core resume stays active)
+      // Archive all job specific resumes (core resume stays active)
       const { error: jsError } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
@@ -271,7 +271,7 @@ export default function CareerVaultPage() {
           .order('updated_at', { ascending: false });
         if (activeResumesError) throw activeResumesError;
 
-        // Sort: core first, then JS by most recently updated
+        // Sort: core first, then job specific by most recently updated
         const sortedResumes = (allActiveResumes || []).sort((a, b) => {
           if (a.resume_type === 'core' && b.resume_type !== 'core') return -1;
           if (a.resume_type !== 'core' && b.resume_type === 'core') return 1;
@@ -315,7 +315,7 @@ export default function CareerVaultPage() {
         if (activeAppsError) throw activeAppsError;
         setActiveApplications(activeApps || []);
 
-        // Load JS resumes for linking
+        // Load job specific resumes for linking
         const { data: jsResumesData, error: jsResumesError } = await supabase
           .from('resumes')
           .select('id, display_name, current_score')
@@ -514,7 +514,7 @@ export default function CareerVaultPage() {
     try {
       const now = new Date().toISOString();
 
-      // If core, archive all child JS resumes too
+      // If core, archive all child job specific resumes too
       if (resume.resume_type === 'core') {
         await supabase
           .from('resumes')
@@ -1219,7 +1219,7 @@ export default function CareerVaultPage() {
                                 >📄 View Resume</button>
                               )}
                               {card.application_status === 'hired' && (
-                                <span className="text-[10px] text-gray-400">🔒 JD saved to Vault</span>
+                                <span className="text-[10px] text-gray-400">🔒 job description saved to Vault</span>
                               )}
                             </div>
                           </div>
@@ -1296,7 +1296,7 @@ export default function CareerVaultPage() {
             <div className="p-6 space-y-4">
               {jsResumes.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Link a JS Resume <span className="font-normal text-gray-400">(optional)</span></label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Link a job specific Resume <span className="font-normal text-gray-400">(optional)</span></label>
                   <select
                     value={setJobResumeId}
                     onChange={e => {

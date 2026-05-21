@@ -40,141 +40,156 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
           </View>
         )}
 
-        {resumeData.experience?.length > 0 && (() => {
-          const expGroups = groupExperience(resumeData.experience)
-          if (!expGroups.length) return null
+        {(() => {
+          const sectionOrder = resumeData.sectionOrder || ['experience', 'education', 'skills']
 
-          const renderBullets = (job) => (job.bullets || []).map((b, k) => (
-            <View key={k} style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
-              <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
-              <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
-            </View>
-          ))
+          const renderExperience = () => {
+            if (!resumeData.experience?.length) return null
+            const expGroups = groupExperience(resumeData.experience)
+            if (!expGroups.length) return null
 
-          const renderGroup = (group) => {
-            if (group.roles.length === 1) {
-              const job = group.roles[0]
+            const renderBullets = (job) => (job.bullets || []).map((b, k) => (
+              <View key={k} style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
+              </View>
+            ))
+
+            const renderGroup = (group) => {
+              if (group.roles.length === 1) {
+                const job = group.roles[0]
+                return (
+                  <>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
+                        <Text style={{ textTransform: 'uppercase' }}>{job.company || ''}</Text>
+                        {job.location ? <Text>{` | ${job.location}`}</Text> : null}
+                      </Text>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
+                    </View>
+                    <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(4*sp) }}>{job.title || ''}</Text>
+                    {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
+                    {renderBullets(job)}
+                  </>
+                )
+              }
               return (
                 <>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
                     <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
-                      <Text style={{ textTransform: 'uppercase' }}>{job.company || ''}</Text>
-                      {job.location ? <Text>{` | ${job.location}`}</Text> : null}
+                      <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
+                      {group.location ? <Text>{` | ${group.location}`}</Text> : null}
                     </Text>
-                    <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
+                    <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
                   </View>
-                  <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(4*sp) }}>{job.title || ''}</Text>
-                  {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
-                  {renderBullets(job)}
+                  {group.roles.map((job, ri) => (
+                    <View key={ri} style={{ paddingLeft: 12, marginBottom: ri < group.roles.length - 1 ? Math.round(6*sp) : 0 }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}>
+                        <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
+                        <Text style={{ color: '#555555' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
+                      </Text>
+                      {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
+                      {renderBullets(job)}
+                    </View>
+                  ))}
                 </>
               )
             }
+
             return (
-              <>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
-                  <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
-                    <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
-                    {group.location ? <Text>{` | ${group.location}`}</Text> : null}
-                  </Text>
-                  <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
-                </View>
-                {group.roles.map((job, ri) => (
-                  <View key={ri} style={{ paddingLeft: 12, marginBottom: ri < group.roles.length - 1 ? Math.round(6*sp) : 0 }}>
-                    <Text style={{ fontFamily: f, fontSize: base }}>
-                      <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
-                      <Text style={{ color: '#555555' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
-                    </Text>
-                    {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
-                    {renderBullets(job)}
+              <View style={{ marginTop: Math.round(16*sp) }}>
+                <SH title="Experience" />
+                {expGroups.map((group, gi) => (
+                  <View key={gi} style={{ marginBottom: gi < expGroups.length - 1 ? Math.round(12*sp) : 0 }}>
+                    {renderGroup(group)}
                   </View>
                 ))}
-              </>
+              </View>
             )
           }
 
-          return (
-            <View style={{ marginTop: Math.round(16*sp) }}>
-              <SH title="Experience" />
-              {expGroups.map((group, gi) => (
-                <View key={gi} style={{ marginBottom: gi < expGroups.length - 1 ? Math.round(12*sp) : 0 }}>
-                  {renderGroup(group)}
-                </View>
-              ))}
-            </View>
-          )
-        })()}
+          const renderEducation = () => {
+            if (!resumeData.education?.length) return null
+            const eduGroups = groupEducation(resumeData.education)
+            if (!eduGroups.length) return null
 
-        {resumeData.education?.length > 0 && (() => {
-          const eduGroups = groupEducation(resumeData.education)
-          if (!eduGroups.length) return null
-
-          const renderDegreeAndDate = (ed) => {
-            const degreeText = ed.degreeDisplay || [ed.degree, ed.field].filter(Boolean).join(', ')
-            const dateText = ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : ''
-            if (!degreeText && !dateText) return null
-            return (
-              <Text style={{ fontFamily: f, fontSize: base }}>
-                <Text style={{ fontWeight: 'bold' }}>{degreeText}</Text>
-                {dateText ? <Text style={{ color: '#555555' }}>{` | ${dateText}`}</Text> : null}
-              </Text>
-            )
-          }
-
-          const renderEduLines = (ed) => {
-            const lines = (ed.lines || []).filter(l => l && l.trim() !== '')
-            if (!lines.length) return null
-            return <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{lines.join(' | ')}</Text>
-          }
-
-          const renderEduGroup = (group) => {
-            if (group.degrees.length === 1) {
-              const ed = group.degrees[0]
+            const renderDegreeAndDate = (ed) => {
+              const degreeText = ed.degreeDisplay || [ed.degree, ed.field].filter(Boolean).join(', ')
+              const dateText = ed.graduationDate ? formatDate(ed.graduationDate, dateFormat) : ''
+              if (!degreeText && !dateText) return null
               return (
-                <>
-                  <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', textTransform: 'uppercase' }}>{ed.school || ''}</Text>
-                  {renderDegreeAndDate(ed)}
-                  {renderEduLines(ed)}
-                </>
+                <Text style={{ fontFamily: f, fontSize: base }}>
+                  <Text style={{ fontWeight: 'bold' }}>{degreeText}</Text>
+                  {dateText ? <Text style={{ color: '#555555' }}>{` | ${dateText}`}</Text> : null}
+                </Text>
               )
             }
-            return (
-              <>
-                <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: Math.round(2*sp) }}>{group.school || ''}</Text>
-                {group.degrees.map((ed, di) => (
-                  <View key={di} style={{ paddingLeft: 12, marginBottom: di < group.degrees.length - 1 ? Math.round(4*sp) : 0 }}>
+
+            const renderEduLines = (ed) => {
+              const lines = (ed.lines || []).filter(l => l && l.trim() !== '')
+              if (!lines.length) return null
+              return <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{lines.join(' | ')}</Text>
+            }
+
+            const renderEduGroup = (group) => {
+              if (group.degrees.length === 1) {
+                const ed = group.degrees[0]
+                return (
+                  <>
+                    <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', textTransform: 'uppercase' }}>{ed.school || ''}</Text>
                     {renderDegreeAndDate(ed)}
                     {renderEduLines(ed)}
+                  </>
+                )
+              }
+              return (
+                <>
+                  <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: Math.round(2*sp) }}>{group.school || ''}</Text>
+                  {group.degrees.map((ed, di) => (
+                    <View key={di} style={{ paddingLeft: 12, marginBottom: di < group.degrees.length - 1 ? Math.round(4*sp) : 0 }}>
+                      {renderDegreeAndDate(ed)}
+                      {renderEduLines(ed)}
+                    </View>
+                  ))}
+                </>
+              )
+            }
+
+            return (
+              <View style={{ marginTop: Math.round(16*sp) }}>
+                <SH title="Education" />
+                {eduGroups.map((group, gi) => (
+                  <View key={gi} style={{ marginBottom: gi < eduGroups.length - 1 ? Math.round(12*sp) : 0 }}>
+                    {renderEduGroup(group)}
                   </View>
                 ))}
-              </>
+              </View>
             )
           }
 
-          return (
-            <View style={{ marginTop: Math.round(16*sp) }}>
-              <SH title="Education" />
-              {eduGroups.map((group, gi) => (
-                <View key={gi} style={{ marginBottom: gi < eduGroups.length - 1 ? Math.round(12*sp) : 0 }}>
-                  {renderEduGroup(group)}
-                </View>
-              ))}
-            </View>
-          )
-        })()}
-
-        {Object.keys(skills).length > 0 && (
-          <View style={{ marginTop: Math.round(16*sp) }}>
-            <SH title="Skills" />
-            {Object.entries(skills).map(([cat, items]) => (
-              <View key={cat} style={{ marginBottom: Math.round(4*sp) }}>
-                {Object.keys(skills).length > 1
-                  ? <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text><Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text></Text>
-                  : <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{items.join(' \u2022 ')}</Text>
-                }
+          const renderSkills = () => {
+            if (!Object.keys(skills).length) return null
+            return (
+              <View style={{ marginTop: Math.round(16*sp) }}>
+                <SH title="Skills" />
+                {Object.entries(skills).map(([cat, items]) => (
+                  <View key={cat} style={{ marginBottom: Math.round(4*sp) }}>
+                    {Object.keys(skills).length > 1
+                      ? <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text><Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text></Text>
+                      : <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{items.join(' \u2022 ')}</Text>
+                    }
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        )}
+            )
+          }
+
+          const sectionMap = { experience: renderExperience, education: renderEducation, skills: renderSkills }
+
+          return sectionOrder.map((section, i) => (
+            <React.Fragment key={i}>{sectionMap[section] ? sectionMap[section]() : null}</React.Fragment>
+          ))
+        })()}
 
         {resumeData.certifications?.length > 0 && (
           <View style={{ marginTop: Math.round(16*sp) }}>

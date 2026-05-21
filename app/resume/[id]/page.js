@@ -395,7 +395,7 @@ const handleReassess = async (overrideData = null) => {
     const isJobSpecific = resume.resume_type === 'job_specific'
 
     if (isJobSpecific) {
-      // JS resume: job match analysis
+      // job specific resume: job match analysis
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       const { data: { session: jobAnalyzeSession } } = await supabase.auth.getSession()
@@ -3542,6 +3542,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
               </button>
             </div>
           )}
+
+        <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
         </div>
         <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       </>
@@ -3657,7 +3659,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         )}
 
         {/* Pro finish button */}
-        {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && (
+        {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && !coachingComplete && (
           <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
            <button
               onClick={finishCoaching}
@@ -3687,6 +3689,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
             </button>
           </div>
         )}
+
+        <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
       </div>
 
       {/* Trial Reveal Modal */}

@@ -4,7 +4,7 @@
 //
 // Each entry has:
 //   - id, title, company, description, displayLabel
-//   - has_resume: true if a JS resume is already linked
+//   - has_resume: true if a job specific resume is already linked
 //   - has_cover_letter: true if a cover letter is already linked
 
 export async function getJobSources(supabase, userId) {

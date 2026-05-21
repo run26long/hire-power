@@ -1328,13 +1328,13 @@ WHAT YOU CAN DO:
 
 1. REORDER BULLETS within each role so JD-relevant bullets appear first. A recruiter scanning the first 2 bullets per role should see the strongest match for this specific job.
 
-2. REFRAME BULLET WORDING where existing content genuinely maps to JD language. If the JD asks for "stakeholder management" and the candidate's bullet says "coordinated with vendors, performers, and clients," reframe it to make the stakeholder management visible. The underlying experience must already be there. You are translating, not inventing.
+2. REFRAME BULLET WORDING where existing content genuinely maps to job description language. If the job description asks for "stakeholder management" and the candidate's bullet says "coordinated with vendors, performers, and clients," reframe it to make the stakeholder management visible. The underlying experience must already be there. You are translating, not inventing.
 
 3. TAILOR THE SUMMARY toward the target role using existing experience. The summary positioning can shift to emphasize aspects of the candidate's background most relevant to this JD. The summary will be written in the dedicated second pass — set it to "" in your output.
 
-4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the JD requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
+4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the job description requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
 
-5. CUT IRRELEVANT CONTENT if it dilutes the case for this specific role. A bullet that does nothing for this JD can be removed if a stronger bullet from the same role tells a more relevant story. Be conservative — when in doubt, leave it.
+5. CUT IRRELEVANT CONTENT if it dilutes the case for this specific role. A bullet that does nothing for this job description can be removed if a stronger bullet from the same role tells a more relevant story. Be conservative — when in doubt, leave it.
 
 WHAT YOU ABSOLUTELY CANNOT DO:
 
@@ -1342,13 +1342,13 @@ WHAT YOU ABSOLUTELY CANNOT DO:
 
 2. DO NOT INVENT METRICS, NUMBERS, OR SCOPE. If a bullet says "managed events," do not turn it into "managed 50+ events." If the original didn't have the number, you don't have the number.
 
-3. DO NOT ADD NEW SKILLS to the skills section that aren't already demonstrated somewhere on the original resume. If the JD requires "Salesforce" and the original resume has no mention of Salesforce, do not add it. ATS keyword stuffing with skills the candidate doesn't have is fabrication.
+3. DO NOT ADD NEW SKILLS to the skills section that aren't already demonstrated somewhere on the original resume. If the job description requires "Salesforce" and the original resume has no mention of Salesforce, do not add it. ATS keyword stuffing with skills the candidate doesn't have is fabrication.
 
-4. DO NOT ADD JD KEYWORDS to bullets unless the existing bullet content genuinely supports the keyword. Reframing "coordinated vendors" as "managed stakeholder relationships" is acceptable because the underlying activity supports both phrasings. Reframing "answered phones" as "led cross-functional initiatives" is fabrication.
+4. DO NOT ADD job description KEYWORDS to bullets unless the existing bullet content genuinely supports the keyword. Reframing "coordinated vendors" as "managed stakeholder relationships" is acceptable because the underlying activity supports both phrasings. Reframing "answered phones" as "led cross-functional initiatives" is fabrication.
 
 5. DO NOT INFER RESPONSIBILITIES that are typical for the job title. If the candidate's resume says "Server" and the bullets describe taking orders and running food, do not add "trained new staff" because servers often do that. The resume is the only source of what they actually did.
 
-6. DO NOT FILL GAPS the candidate hasn't filled. If the JD requires 5 years of Python experience and the resume shows none, that gap stays. Your job is not to make this candidate look qualified for jobs they aren't qualified for. Your job is to make sure they get full credit for what they ACTUALLY have.
+6. DO NOT FILL GAPS the candidate hasn't filled. If the job description requires 5 years of Python experience and the resume shows none, that gap stays. Your job is not to make this candidate look qualified for jobs they aren't qualified for. Your job is to make sure they get full credit for what they ACTUALLY have.
 
 THE TEST FOR EVERY EDIT:
 Before changing any bullet, ask: "Could the candidate defend every word of this in an interview based on what was already on their resume?" If yes, the edit is legitimate. If no, revert it.

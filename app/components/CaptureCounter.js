@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export default function CaptureCounter({ counts, bumpKey }) {
   const [bumped, setBumped] = useState(null)
+  const [dismissed, setDismissed] = useState(false)
   const lastBumpKeyRef = useRef(null)
 
   useEffect(() => {
@@ -35,9 +36,11 @@ export default function CaptureCounter({ counts, bumpKey }) {
     { key: 'wins', label: counts?.wins === 1 ? 'win' : 'wins', value: counts?.wins || 0 },
   ].filter(item => item.value > 0)
 
+  if (dismissed) return null
+
   return (
     <div
-      className="px-4 py-1.5 border-b flex items-center justify-center gap-1 text-xs"
+      className="px-4 py-1.5 border-b flex items-center justify-center gap-1 text-xs relative"
       style={{
         background: 'linear-gradient(to right, rgba(102,126,234,0.06), rgba(118,75,162,0.06))',
         borderColor: 'rgba(102,126,234,0.15)',
@@ -61,6 +64,11 @@ export default function CaptureCounter({ counts, bumpKey }) {
           {i < items.length - 1 && <span className="mx-1.5 text-gray-400">·</span>}
         </span>
       ))}
+      <button
+        onClick={() => setDismissed(true)}
+        className="absolute right-2 text-gray-400 hover:text-gray-600 text-sm leading-none"
+        title="Dismiss"
+      >×</button>
     </div>
   )
 }

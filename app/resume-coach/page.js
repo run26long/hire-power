@@ -225,7 +225,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setData(resData);
       setUserProfile(resData.userProfile);
 
-      // Load job sources for the JS Resume + CL modal dropdowns
+      // Load job sources for the job specific Resume + CL modal dropdowns
       const sources = await getJobSources(supabase, user.id);
       setJobSources(sources);
 
@@ -586,7 +586,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setDeletingId(resumeId);
       const now = new Date().toISOString();
 
-      // Archive children first (JS resumes parented to this resume)
+      // Archive children first (job specific resumes parented to this resume)
       const { error: childError } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
@@ -1387,10 +1387,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
 
-                {/* Right Column: JS Resumes + Cover Letters */}
+                {/* Right Column: job specific Resumes + Cover Letters */}
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
-                  {/* Card 1: JS Resumes (Pro) / Job Match Scores (Free) */}
+                  {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
@@ -1933,7 +1933,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
 
-                {/* Right Column: JS Resumes + Cover Letters (empty state) */}
+                {/* Right Column: job specific Resumes + Cover Letters (empty state) */}
                 <div className="col-span-1 md:col-span-4 flex flex-col" style={{ height: '100%' }}>
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px', marginBottom: '16px' }}>
                     {isPro ? (
@@ -2372,7 +2372,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
       )}
 
-      {/* Older JS Resumes Modal */}
+      {/* Older job specific Resumes Modal */}
       {showOlderJSModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">

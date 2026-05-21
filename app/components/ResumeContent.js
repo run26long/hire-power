@@ -469,6 +469,53 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           </div>
           {extraContent && <div className="flex justify-center mt-1">{extraContent}</div>}
         </div>
+      ) : selectedTemplate === 'signature' ? (
+        <div className="mb-2 w-full">
+          <div style={ts.sectionHeader || {}} className="w-full">
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0', background: 'transparent' }}>
+              {!readOnly && editingSection === sectionKey ? (
+                <input
+                  autoFocus
+                  defaultValue={getSectionTitle(sectionKey)}
+                  className="font-semibold bg-purple-50 border border-purple-300 rounded px-1 outline-none text-center"
+                  style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0' }}
+                  onBlur={(e) => updateSectionTitle(sectionKey, e.target.value.trim() || defaultSectionTitles[sectionKey])}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.target.blur()
+                    if (e.key === 'Escape') setEditingSection(null)
+                  }}
+                />
+              ) : (
+                <span
+                  className={!readOnly ? 'cursor-pointer hover:text-purple-600' : ''}
+                  onClick={() => !readOnly && setEditingSection(sectionKey)}
+                >
+                  {getSectionTitle(sectionKey)}
+                </span>
+              )}
+            </h2>
+            {!readOnly && (
+              <span className="absolute right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
+                <button onClick={() => moveSectionUp(sectionKey)} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
+                <button onClick={() => moveSectionDown(sectionKey)} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
+                {deletableSections.includes(sectionKey) && (
+                  confirmingDelete === `section-${sectionKey}` ? (
+                    <span className="flex items-center gap-1 text-xs font-normal">
+                      <span className="text-gray-600">Remove section?</span>
+                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+                  )
+                )}
+              </span>
+            )}
+          </div>
+          </div>
+          {extraContent && <div className="flex justify-center mt-1">{extraContent}</div>}
+        </div>
       ) : (
       <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3 flex items-center gap-1" style={ts.sectionHeader || {}}>
       {!readOnly && editingSection === sectionKey ? (
@@ -1266,7 +1313,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0' }}>
                   <span className={!readOnly ? 'cursor-pointer hover:text-purple-600' : ''} onClick={() => !readOnly && setEditingSection('summary')}>
-                    {resumeData.sectionTitles?.summary || 'SUMMARY'}
+                    {resumeData.sectionTitles?.summary || (selectedTemplate === 'signature' ? 'PROFESSIONAL SUMMARY' : 'SUMMARY')}
                   </span>
                 </h2>
                 {!readOnly && (
@@ -1276,7 +1323,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               <div style={ts.vibeSectionLine} />
             </div>
           ) : (
-          <h2 className={`text-lg font-semibold flex items-center gap-1 ${selectedTemplate === 'edge' ? 'mb-2 justify-center' : 'border-b border-gray-300 pb-1 mb-2'}`} style={ts.sectionHeader || {}}>
+          <h2 className={`text-lg font-semibold flex items-center gap-1 ${selectedTemplate === 'edge' || selectedTemplate === 'signature' ? 'mb-2 justify-center' : 'border-b border-gray-300 pb-1 mb-2'}`} style={ts.sectionHeader || {}}>
             {!readOnly && editingSection === 'summary' ? (
               <input
                 autoFocus
@@ -1287,7 +1334,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               />
             ) : (
               <span className={!readOnly ? 'cursor-pointer hover:text-purple-600' : ''} onClick={() => !readOnly && setEditingSection('summary')}>
-                {resumeData.sectionTitles?.summary || 'SUMMARY'}
+                {resumeData.sectionTitles?.summary || (selectedTemplate === 'signature' ? 'PROFESSIONAL SUMMARY' : 'SUMMARY')}
               </span>
             )}
             {!readOnly && (

@@ -1478,7 +1478,7 @@ export default function JobTrackerPage() {
                                 >📄 View Resume</button>
                               )}
                               {card.application_status === 'hired' && (
-                                <span className="text-[10px] text-gray-400">🔒 JD saved to Vault</span>
+                                <span className="text-[10px] text-gray-400">🔒 job description saved to Vault</span>
                               )}
                             </div>
                           </div>
