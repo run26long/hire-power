@@ -972,7 +972,7 @@ if (data.ai_analysis) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+     <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100vh', height: '100dvh' }}>
         {showUpgradedBanner && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-3 py-3 px-6 shadow-lg">
           <span>🎉 Welcome to Pro! Your full coaching session is ready.</span>
@@ -1537,7 +1537,7 @@ if (data.ai_analysis) {
       
 
     {/* Main Content: Resume + Right Panel */}
-         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
+         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
           <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
 
