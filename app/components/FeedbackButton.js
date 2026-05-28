@@ -50,6 +50,7 @@ export default function FeedbackButton() {
       {/* Side tab trigger */}
       <button
         onClick={() => setOpen(true)}
+        className="hidden md:block"
         style={{
           position: 'fixed',
           right: '-1px',
