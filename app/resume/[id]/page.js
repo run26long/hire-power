@@ -3530,7 +3530,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
               </div>
             </div>
           ) : (
-            <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
+            <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
               <button
                 onClick={finishResumeChat}
                 disabled={isFinishing}
@@ -3619,7 +3619,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && !proCoachingLocked && (
-          <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
+          <div className="border-t pt-2 pb-1 flex-shrink-0 md:-mx-3 md:px-3" style={{ backgroundColor: 'white' }}>
             <div className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
@@ -3660,7 +3660,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Pro finish button */}
         {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && !coachingComplete && (
-          <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
+          <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
            <button
               onClick={finishCoaching}
               disabled={isFinishing}
@@ -3677,7 +3677,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Trial finish button */}
        {isTrialCoachingComplete && userTier === 'free' && !trialComplete && (
-          <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
+          <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
             <button
               onClick={finishTrialCoaching}
               disabled={isFinishing}
