@@ -3492,7 +3492,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
            <div ref={messagesEndRef} />
           </div>
          {coachingComplete ? null : !isChatComplete ? (
-            <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
+           <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 md:-mx-3 md:px-3" style={{ backgroundColor: 'white' }}>
               <div className="flex gap-2 items-end">
                 <textarea
                   ref={inputRef}
@@ -3509,6 +3509,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendResumeChat() } }}
                   placeholder="Type your response..."
                   disabled={sending}
+                  autoComplete="off"
                   rows={2}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
@@ -3619,7 +3620,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && !proCoachingLocked && (
-          <div className="border-t pt-2 pb-1 flex-shrink-0 md:-mx-3 md:px-3" style={{ backgroundColor: 'white' }}>
+          <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 md:-mx-3 md:px-3" style={{ backgroundColor: 'white' }}>
             <div className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
@@ -3636,6 +3637,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 placeholder="Type your response..."
                 disabled={sending}
+                autoComplete="off"
                 rows={2}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
