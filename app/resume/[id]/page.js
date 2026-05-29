@@ -1751,7 +1751,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
  const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat' && !resume?.coaching_complete
 
  return (
-   <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 pl-4 pr-2 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6"}>
+   <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 px-3 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 px-3 md:pl-0 md:pr-3 md:pb-6"}>
       
  <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-3 md:pt-4'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
  {isJobSpecific ? (
