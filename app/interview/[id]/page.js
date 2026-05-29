@@ -564,7 +564,7 @@ export default function InterviewDetailPage() {
   // ============================================================================
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100vh', height: '100dvh' }}>
       <MainNav currentPage="my-interviews" userProfile={userProfile} />
       <div className="hidden md:block">
         <Breadcrumb items={breadcrumbItems} />
@@ -594,7 +594,7 @@ export default function InterviewDetailPage() {
         </button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
+      <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
         <div className="flex-1 flex gap-3 md:gap-6 p-3 md:p-6 max-w-7xl mx-auto w-full overflow-hidden">
 
           {/* LEFT COLUMN — Power Analysis */}
@@ -1209,6 +1209,14 @@ function CoachingView({
               ref={coachInputRef}
               value={coachInput}
               onChange={e => setCoachInput(e.target.value)}
+              onInput={e => {
+                if (window.innerWidth < 768) return;
+                e.target.style.height = 'auto';
+                const maxHeight = 6 * 24;
+                const target = Math.min(e.target.scrollHeight, maxHeight);
+                e.target.style.height = target + 'px';
+                e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
+              }}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -1219,6 +1227,11 @@ function CoachingView({
               disabled={coachSending || coachStarting}
               rows={2}
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              style={
+                typeof window !== 'undefined' && window.innerWidth < 768
+                  ? { height: '4.5rem', overflowY: 'auto' }
+                  : { overflowY: 'hidden', maxHeight: '144px' }
+              }
             />
             <button
               onClick={onSend}
