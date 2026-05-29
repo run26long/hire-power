@@ -991,7 +991,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 { label: 'Skill Identification', pro: true },
                 { label: 'Auto Improvements', pro: true },
                 { label: 'Cover Letters' },
-                { label: 'Match Score' },
+                { label: 'Job Match Score' },
                 { label: 'Job-Specific Resumes', pro: true },
               ].map(({ label, pro }) => (
                 <li key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
