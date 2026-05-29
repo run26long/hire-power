@@ -463,6 +463,14 @@ const handleResumeUpdate = async (updatedData) => {
                       ref={inputRef}
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
+                      onInput={(e) => {
+                        if (window.innerWidth < 768) return;
+                        e.target.style.height = 'auto';
+                        const maxHeight = 6 * 24;
+                        const target = Math.min(e.target.scrollHeight, maxHeight);
+                        e.target.style.height = target + 'px';
+                        e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
+                      }}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -474,6 +482,11 @@ const handleResumeUpdate = async (updatedData) => {
                       disabled={isAIThinking}
                       rows={2}
                       className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      style={
+                        typeof window !== 'undefined' && window.innerWidth < 768
+                          ? { height: '4.5rem', overflowY: 'auto' }
+                          : { overflowY: 'hidden', maxHeight: '144px' }
+                      }
                     />
                     <button
                       onClick={() => {
