@@ -3492,7 +3492,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
            <div ref={messagesEndRef} />
           </div>
          {coachingComplete ? null : !isChatComplete ? (
-           <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 md:-mx-3 md:px-3" style={{ backgroundColor: 'white' }}>
+           <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 px-1 md:px-3 md:-mx-3" style={{ backgroundColor: 'white' }}>
               <div className="flex gap-2 items-end">
                 <textarea
                   ref={inputRef}
