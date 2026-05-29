@@ -3627,6 +3627,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                onInput={(e) => {
+                  if (window.innerWidth < 768) return
                   e.target.style.height = 'auto'
                   const maxHeight = window.innerHeight - 310
                   const target = Math.min(e.target.scrollHeight, maxHeight)
@@ -3640,7 +3641,11 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 autoComplete="off"
                 rows={2}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
+                style={
+                  typeof window !== 'undefined' && window.innerWidth < 768
+                    ? { height: '4.5rem', overflowY: 'auto' }
+                    : { overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }
+                }
               />
               <button
                 onClick={sendMessage}
