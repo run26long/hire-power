@@ -95,6 +95,7 @@ function DashboardContent() {
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
   const [toast, setToast] = useState(null);
+  const [applicationCount, setApplicationCount] = useState(0);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -169,6 +170,12 @@ function DashboardContent() {
           console.warn('Dashboard resumes load issue (non-fatal):', resumesError);
         }
         if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
+
+        const { count: appCount } = await supabase
+          .from('applications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        if (appCount) setApplicationCount(appCount);
 
         if (searchParams.get('cancelled') === 'true') {
           setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
@@ -612,7 +619,9 @@ function DashboardContent() {
           >
             {(lit) => (
               <>
-                <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
+                <span style={{ ...SP.base, ...(applicationCount > 0 ? SP.prog : SP.start) }}>
+                  {applicationCount > 0 ? `${applicationCount} Application${applicationCount !== 1 ? 's' : ''}` : 'Not Started'}
+                </span>
                 <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>{c4desc}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', borderRight: 'none' }}>

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 // bumpKey: optional string that changes when a count was just incremented
 //   (used to flash the relevant number)
 
-export default function CaptureCounter({ counts, bumpKey }) {
+export default function CaptureCounter({ counts, bumpKey, journeyStep }) {
   const [bumped, setBumped] = useState(null)
   const [dismissed, setDismissed] = useState(false)
   const lastBumpKeyRef = useRef(null)
@@ -38,11 +38,13 @@ export default function CaptureCounter({ counts, bumpKey }) {
 
   if (dismissed) return null
 
+  if (journeyStep && journeyStep !== 'coach' && journeyStep !== 'chat' && journeyStep !== 'assess') return null
+
   return (
     <div
       className="px-4 py-1.5 border-b flex items-center justify-center gap-1 text-xs relative"
       style={{
-        background: 'linear-gradient(to right, rgba(102,126,234,0.06), rgba(118,75,162,0.06))',
+        background: 'linear-gradient(to right, #f6f7fe, #f7f4f9)',
         borderColor: 'rgba(102,126,234,0.15)',
         color: '#5b4fcf'
       }}

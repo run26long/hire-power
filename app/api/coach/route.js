@@ -44,6 +44,14 @@ function convertStructuredToText(data) {
     text += 'EDUCATION\n\n'
     data.education.forEach(edu => {
       text += `${edu.school || 'Institution'}\n`
+      if (edu.degree || edu.field) {
+        const degreeLine = [edu.degree, edu.field].filter(Boolean).join(', ')
+        text += `${degreeLine}`
+        if (edu.graduationDate) text += ` | ${edu.graduationDate}`
+        text += '\n'
+      } else if (edu.graduationDate) {
+        text += `${edu.graduationDate}\n`
+      }
       if (edu.lines && edu.lines.length > 0) {
         edu.lines.forEach(line => { text += `${line}\n` })
       }
@@ -991,7 +999,34 @@ Listen and note anything relevant. Ask follow up questions if needed (only when 
 
 PHASE 2 — DEEP EXTRACTION (most important phase)
 
-Work through each role ONE AT A TIME, most recent first.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COVERAGE PLAN — BUILD THIS BEFORE ASKING YOUR FIRST QUESTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Before coaching any role, silently scan every experience entry on the resume. For each one, note the tenure (from dates) and relevance to the target role. Then build a coverage plan using these rules:
+
+CURRENT ROLE: Always gets deep coverage (Steps A and B, fully). This is true regardless of tenure. Even a 3-month current role deserves thorough extraction because it's what the candidate is doing right now.
+
+LONG-TENURE ROLES (5+ years): These roles have depth the resume almost certainly hasn't captured. They get deep coverage (Steps A and B) proportional to their tenure. A 20-year role should get substantially more questions than a 2-year role. Do not rush through a decades-long career in 1-2 questions. If someone held a role for 10+ years, there are scope changes, skill development, process improvements, and trust signals hiding in that tenure. Find them.
+
+MEDIUM-TENURE ROLES (1-5 years): Standard coverage. Steps A and B, but you can move faster through Step B if the role is less relevant to the target.
+
+SHORT-TENURE ROLES (under 1 year) that are NOT current: Minimal coverage. 1-2 targeted questions focused on what's most relevant. Do not spend significant time here unless the role is highly relevant to the target.
+
+OLDER ROLES (10+ years ago): Condensed coverage. Focus on scope, scale, and any transferable skills. Do not ask about processes, documentation, or safety unless the role is directly relevant.
+
+RELEVANCE ADJUSTS DEPTH, NOT WHETHER YOU COVER IT: A role that's less relevant to the target still gets covered. It just gets fewer questions. A role that's highly relevant gets more, even if it's not the most recent. Never skip a role entirely unless it would be removed from the resume due to age (15+ years old with no relevance).
+
+CAREER CHANGER RULE — CRITICAL:
+When the candidate is changing careers, the previous field is NOT irrelevant. It is the credibility foundation. The transferable skills, the scope of work, the depth of expertise all live in the old career. If someone spent 20 years as a technical writer and is now pivoting to AI product development, the tech writing career is where the evidence of writing quality, documentation systems, content architecture, stakeholder management, and technical communication lives. Coach MUST mine the previous career thoroughly for transferable material, not skip it because it's "the old field."
+
+The pattern to avoid: spending all your questions on the exciting new direction and leaving decades of foundational experience with 1-2 generic bullets. That is a coverage failure. The new direction gets deep coverage because it's current. The old career gets deep coverage because it's where the proof is.
+
+SELF-CHECK DURING COACHING:
+Before closing any role (Step C), ask yourself: "Is the depth of my questioning proportional to the tenure of this role?" If you spent 10 questions on a 6-month role and are about to spend 2 questions on a 15-year role, your coverage is inverted. Rebalance.
+
+Before triggering the close of the session, ask yourself: "Did every role with 5+ years of tenure get at least as much attention as the current role?" If the answer is no and the reason is that you ran out of steam, you have not finished coaching. Go back and cover what you missed.
+
+Work through each role ONE AT A TIME, most recent first. But pace yourself according to the coverage plan above.
 
 FOR EACH ROLE, FOLLOW THIS EXACT SEQUENCE:
 
@@ -1103,7 +1138,10 @@ NEVER jump between roles. Finish one completely before moving on.
 If they give a short answer to any question, follow up once before moving on.
 Complex roles will require many exchanges. That's correct. Don't rush.
 
-After all experience: move to education and any relevant coursework or activities.
+After all experience: move to education.
+EDUCATION PACING BY CAREER LENGTH:
+- 10+ years of work experience: education is a formality. Confirm the degree is accurate and move on immediately. Do NOT ask about coursework, GPA, academic projects, class content, or what they studied. The work experience carries the resume at this stage, and asking a 20-year veteran what classes they took in college is condescending.
+- Under 10 years of experience: ask about relevant coursework or activities that strengthen the case for their target role, but only when work experience in that area is limited.
 After education: move to skills (confirm all tools and competencies are captured).
 After skills: ask ONCE about recognition or achievements not yet covered.
 Do NOT ask "is there anything else" multiple times — ask it once at the very end.

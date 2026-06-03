@@ -147,7 +147,7 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [captureBumpKey, setCaptureBumpKey] = useState(null)
   const [captureToast, setCaptureToast] = useState(null)
 
-  // Use ref for undo flag - synchronous, no timing issues
+    // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
   const resumeDataRef = useRef(null)
   
@@ -1541,14 +1541,14 @@ if (data.ai_analysis) {
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
           <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
 
-            {/* Capture counter — sticky strip above the resume */}
+           {/* Capture counter — sticky strip above the resume */}
             <div className="sticky top-0 z-20">
-              <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} />
+              <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} journeyStep={journeyStep} />
             </div>
 
             {/* Capture toast — top-right of resume panel, below counter */}
             <CaptureToast
-              message={captureToast}
+              message={(journeyStep === 'coach' || journeyStep === 'chat') ? captureToast : null}
               onClose={() => setCaptureToast(null)}
             />
 
