@@ -45,7 +45,7 @@ export default function CoverLetterPDFSharp({ coverLetterData, font = 'Open Sans
         {(cl.bullets || []).filter(b => b?.trim()).map((bullet, i) => (
           <View key={i} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(8*sp), paddingLeft: 8 }}>
             <Text style={{ fontFamily: f, fontSize: base, width: 10, lineHeight }}>{'\u2022'}</Text>
-            <Text style={{ fontFamily: f, fontSize: base, flex: 1, lineHeight }}>{bullet}</Text>
+            <Text style={{ fontFamily: f, fontSize: base, flex: 1, lineHeight }}>{bullet.replace(/\*\*/g, '')}</Text>
           </View>
         ))}
 

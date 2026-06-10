@@ -1762,11 +1762,9 @@ Position for a role TYPE, not a specific job or company.
 Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
 SENTENCE 1: Professional identity and scope with a unique twist
-Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
-
-Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and acts as a hook to make a recruiter want to keep reading. DEAD STOP AFTER THE HOOK. DO NOT WRITE ANOTHER WORD IN THAT SENTENCE.
 
 STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique twist showing benefit to employer):
 "Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
@@ -2021,11 +2019,9 @@ Position for a role TYPE, not a specific job or company.
 Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
 SENTENCE 1 IDENTITY RULE: NON-NEGOTIABLE:
-Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
-
-Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and acts as a hook to make a recruiter want to keep reading. DEAD STOP AFTER THE HOOK. DO NOT WRITE ANOTHER WORD IN THIS SENTENCE.
 
 STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique benefit to employer):
 "Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."

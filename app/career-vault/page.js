@@ -514,16 +514,8 @@ export default function CareerVaultPage() {
     try {
       const now = new Date().toISOString();
 
-      // If core, archive all child job specific resumes too
-      if (resume.resume_type === 'core') {
-        await supabase
-          .from('resumes')
-          .update({ is_active: false, updated_at: now })
-          .eq('parent_resume_id', resume.id)
-          .eq('user_id', user.id);
-      }
-
-      // Archive the resume itself
+      // Archive the resume itself. JS resumes parented to a core resume stay active —
+      // they're standalone artifacts tied to their own job cards.
       const { error } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
@@ -1856,7 +1848,7 @@ export default function CareerVaultPage() {
           <div className="px-6 py-5">
             <p className="text-sm text-gray-700 mb-5 leading-snug">
               {confirmArchiveResume.resume_type === 'core'
-                ? 'This will move your core resume and any related job-specific versions to your archive. You can restore or permanently delete from there.'
+                ? 'This will move your core resume to your archive. Job-specific resumes stay where they are. You can restore or permanently delete from your archive.'
                 : 'This will move this job-specific resume to your archive. You can restore or permanently delete from there.'
               }
             </p>

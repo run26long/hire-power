@@ -247,7 +247,7 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
             <p contentEditable suppressContentEditableWarning className={`${editableClass} flex-1`}
               style={{ ...body, display: 'block' }}
               onBlur={e => updateBullet(i, e.currentTarget.textContent)}
-            >{bullet}</p>
+            >{bullet.replace(/\*\*/g, '')}</p>
             <button onClick={() => removeBullet(i)}
               className="opacity-0 group-hover/bullet:opacity-100 text-red-400 hover:text-red-600 text-xs px-1 flex-shrink-0 transition-opacity"
               title="Remove bullet"

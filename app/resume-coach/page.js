@@ -586,15 +586,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setDeletingId(resumeId);
       const now = new Date().toISOString();
 
-      // Archive children first (job specific resumes parented to this resume)
-      const { error: childError } = await supabase
-        .from('resumes')
-        .update({ is_active: false, updated_at: now })
-        .eq('parent_resume_id', resumeId)
-        .eq('user_id', user.id);
-      if (childError) throw childError;
-
-      // Archive the resume itself
+      // Archive the resume itself. JS resumes parented to this one stay active —
+      // they're standalone artifacts tied to their own job cards.
       const { error } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
