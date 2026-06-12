@@ -304,7 +304,7 @@ Experienced aerial arts performer and production professional with hands-on expe
 - "Looking to bring" - candidate-first language. Summaries show what the employer gets, never what the candidate wants.
 
 SUMMARY PASSES THE CONCISENESS TEST:
-Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics such as show resets, cue coordination, and rigging, and produces original works from concept through opening night. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain.
+Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics for 9-15 live shows annually, coordinates show resets across theme park and corporate productions, and trains 60+ students weekly in aerial disciplines. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain.
 
 BULLET FAILS THE CONCISENESS TEST:
 Resolve 3 to 4 client escalations per week independently, handling billing disputes, shipment issues, and service complaints through to resolution without management involvement except in high-stakes situations, totaling an estimated 150 to 200 escalations resolved annually
@@ -630,6 +630,10 @@ Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 wi
 
 Sentence 2 must tell the strongest story of the candidate’s career history and impact as a high-level overview.  Only use metrics if they are relevant and important to the career target. 
 
+Each proof point in sentence 2 is one verb + one object + one quick scope marker, and ends there. DEAD STOP AT THE SCOPE MARKER. Do not write a single extra word after it. No "with" clauses listing what's inside. No "from X through Y" phase sequences. No "that [does something]" trailing clauses.
+
+DEAD STOP AFTER THE LAST PROOF POINT. Do not write a single extra word in this sentence.
+
 Important metrics: Manages $500K-$1M in annual vendor spend across 10-15 vendors (makes their impact sound big)
 
 Unimportant metrics: Choreographed a 4-person act for a holiday production (makes their impact sound small. Cast size is not an important metric, and a one-time event like a holiday production is a bullet, not high-level summary material).
@@ -658,6 +662,8 @@ CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
+DEAD STOP AFTER THE HOOK. Do not write a single extra word in this sentence.
+
 SUMMARY EXAMPLES:
 
 STRONG SENTENCE 1 (Professional Identity & Scope):
@@ -682,9 +688,9 @@ WHY IT FAILS:
 - "spanning operations, finance, IT, facilities, and HR": too much operational detail for a summary; this is bullet material
 - "at a volume of 150 to 200 per year": too many words. Should be "150-200 annually"
 
-STRONG SENTENCE 2: 
-Produces documentation that show directors rely on to plan rigging positions, motor cues, and stage entrances and exits, and supports the backstage logistics that keep shows running from tech through close.
-WHY IT WORKS: Demonstrates scope of experience across many different projects and events, making the experience more impactful than just listing 2-3 specific events. “Supports” is appropriate language for a student just learning this field and doesn’t make it sound like she did more than she actually has.
+STRONG SENTENCE 2:
+"Manages 6-8 patients per shift across a 50-bed acute care unit, coordinates handoffs with 4-5 physicians and specialists daily, and trains 3-4 new nurses annually on the unit's protocols."
+WHY IT WORKS: Three parallel proof points. Each one is verb + object + scope marker with no trailing clauses, no nested "with X and Y" qualifiers, and no "that [does something]" extensions. Each one DEAD STOPS at the scope marker. The proof points mirror each other structurally, giving the sentence a clean rhythm.
 
 WEAK SENTENCE 2 (no results):
 " Built and documented a group act from concept through a 9-show run, coordinated with a show director through tech and dress rehearsals, and supported student performers on-site at private events."
@@ -706,7 +712,7 @@ WEAK SENTENCE 3 (vague and unspecific):
 "Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
-STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to
+STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to
 every production.
 
 STRONG SUMMARY: Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
@@ -762,7 +768,7 @@ PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
 PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
-Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to every production.
+Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to every production.
 
 TOO SHORT: DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
@@ -1790,6 +1796,10 @@ Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 wi
 
 Sentence 2 must tell the strongest story of the candidate’s career history and impact as a high-level overview.  Only use metrics if they are relevant and important to the career target. 
 
+Each proof point in sentence 2 is one verb + one object + one quick scope marker, and ends there. DEAD STOP AT THE SCOPE MARKER. Do not write a single extra word after it. No "with" clauses listing what's inside. No "from X through Y" phase sequences. No "that [does something]" trailing clauses.
+
+DEAD STOP AFTER THE LAST PROOF POINT. Do not write a single extra word in this sentence.
+
 Important metrics: Manages $500K-$1M in annual vendor spend across 10-15 vendors (makes their impact sound big)
 
 Unimportant metrics: Choreographed a 4-person act for a holiday production (makes their impact sound small. Cast size is not an important metric, and a one-time event like a holiday production is a bullet, not high-level summary material).
@@ -1818,6 +1828,8 @@ CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
+DEAD STOP AFTER THE HOOK. Do not write a single extra word in this sentence.
+
 SUMMARY EXAMPLES:
 
 STRONG SENTENCE 1 (Professional Identity & Scope):
@@ -1842,9 +1854,9 @@ WHY IT FAILS:
 - "spanning operations, finance, IT, facilities, and HR": too much operational detail for a summary; this is bullet material
 - "at a volume of 150 to 200 per year": too many words. Should be "150-200 annually"
 
-STRONG SENTENCE 2: 
-Produces documentation that show directors rely on to plan rigging positions, motor cues, and stage entrances and exits, and supports the backstage logistics that keep shows running from tech through close.
-WHY IT WORKS: Demonstrates scope of experience across many different projects and events, making the experience more impactful than just listing 2-3 specific events. “Supports” is appropriate language for a student just learning this field and doesn’t make it sound like she did more than she actually has.
+STRONG SENTENCE 2:
+"Manages 6-8 patients per shift across a 50-bed acute care unit, coordinates handoffs with 4-5 physicians and specialists daily, and trains 3-4 new nurses annually on the unit's protocols."
+WHY IT WORKS: Three parallel proof points. Each one is verb + object + scope marker with no trailing clauses, no nested "with X and Y" qualifiers, and no "that [does something]" extensions. Each one DEAD STOPS at the scope marker. The proof points mirror each other structurally, giving the sentence a clean rhythm.
 
 WEAK SENTENCE 2 (no results):
 " Built and documented a group act from concept through a 9-show run, coordinated with a show director through tech and dress rehearsals, and supported student performers on-site at private events."
@@ -1866,7 +1878,7 @@ WEAK SENTENCE 3 (vague and unspecific):
 "Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
-STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to
+STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to
 every production.
 
 STRONG SUMMARY: Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
@@ -1922,7 +1934,7 @@ PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
 PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
-Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to every production.
+Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to every production.
 
 TOO SHORT: DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
