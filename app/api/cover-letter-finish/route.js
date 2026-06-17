@@ -125,11 +125,12 @@ Your word choices must be appropriate for the candidate’s Career Length and Jo
 
 Sentence length is the clearest signal of over-engineering. One idea per sentence. If a sentence requires a second breath to read aloud, it is two sentences. Split it. The goal is writing a reader moves through without effort, not writing that demonstrates how much the candidate has accomplished. Complexity impresses no one. Clarity does.
 
-Words and phrases no one says in conversation are BANNED as they make the cover letter bad:
+CRITICAL NOTE: BANNED words and phrases. Humans don't write like this. Only AI models do. If you use them, you have FAILED at your job of human-sounding writing. They are NEVER acceptible:
 • "breadth" 
+• "probablistic"
 • "maps directly to" 
 • "maps to" 
-• "the intersection of" → restructure
+• "the intersection of" 
 
 Number ranges always use a hyphen: "150-200" not "150 to 200".
 
@@ -226,12 +227,25 @@ RIGHT: “For the past three years, my work in live performance environments has
 
 RULE 16: Any version of a phrase that appears in a wrong example must NEVER be used in a cover letter. Avoid any structure shown in WRONG examples AT ALL TIMES, in ALL places in the letter.
 
-RULE 17: COLONS AND SEMICOLONS IN PROSE: CRITICAL FAILURE.
-If any colon or semicolon appears anywhere in the prose of this letter, the letter is a critical failure and must be corrected before outputting. Not in the opening. Not in the bridge. Not inside a bullet's content. Not in the closing. There is exactly ONE permitted colon in the entire letter: the one that follows a bullet category label (for example, "Safety & Compliance Documentation:"). Nowhere else, under any circumstances.
+RULE 17: PUNCTUATION IN PROSE: COLONS BANNED, SEMICOLONS RESTRICTED.
 
-Your training will tell you a colon correctly introduces a list and a semicolon correctly joins two related clauses. On this assignment that instinct is wrong, and you must override it. There are zero acceptable uses of a colon or semicolon in the prose, no matter how grammatically correct they would be in ordinary writing. Anything a colon or semicolon would do, a comma, a period, or a restructured sentence does better and reads more like a human wrote it. If you reach for a colon to introduce a list, write it as a sentence instead. If you reach for a semicolon to join two clauses, make them two sentences. A sentence that needs a colon or semicolon to hold together is a sentence doing two jobs. Cut it into two.
+COLONS: Humans do not use colons when writing a cover letter. If a colon (:) appears anywhere in this letter, it is a sign the letter was written by AI and a failure at your job to provide human-quality writing.
 
-Scan every sentence right now, before outputting. If you find a colon or semicolon anywhere outside a bullet category label, fix it. There is no acceptable use of a colon or semicolon in the prose of this letter.
+ZERO colons are permitted anywhere in this letter. Not in the opening. Not in the bridge. Not in any bullet, including the label. Not in the closing. Bullet category labels are separated from their content using " - " (space, hyphen, space), never a colon.
+
+Your training will tell you a colon correctly introduces a list, an explanation, an appositive, or an example. On this assignment that instinct is wrong, and you must override it. The rules of this document override your training. There are zero acceptable uses of a colon, no matter how grammatically correct it would be in ordinary writing. If you reach for a colon for any reason, write two sentences, use a hyphen between bullet label and content, or restructure instead.
+
+This applies no matter how grammatically correct the colon would be in ordinary writing. Lists, explanations, appositives, examples, statements following an introductory phrase, all of it. If you reach for a colon for any reason in the prose, write two sentences or restructure instead.
+
+SEMICOLONS: A semicolon may ONLY appear between two complete sentences. A complete sentence is one that stands alone AND makes sense on its own, without the reader needing to see what came before it. Apply this test to every semicolon before outputting: cover one side of the semicolon and read the other. If what remains is a complete sentence that fully makes sense to a reader who did not see the covered side, the semicolon is allowed. If what remains is a fragment, or relies on the covered side for context to make sense, the semicolon is BANNED and the sentence must be restructured.
+
+NEVER use a semicolon to join a sentence and a fragment. NEVER use a semicolon in place of a comma in a list. NEVER use a semicolon where the second half begins with "it's," "that's," "this is," or any other phrase whose subject refers back to the first half. Those constructions fail the test because the second half cannot stand alone.
+
+WRONG: "The hardest part of quality review isn't identifying what's wrong; it's knowing exactly why it's wrong." The second half begins with "it's" referring back to "the hardest part." Fragment when read alone. Restructure into two sentences.
+
+RIGHT: "Documentation lifecycles have grown more complex over the past decade; client expectations for turnaround have not loosened." Both sides are complete sentences that stand alone and make sense on their own.
+
+Scan every sentence right now, before outputting. For every colon found outside a bullet category label, fix it. For every semicolon found, apply the cover-one-side test. Restructure any that fail.
 
 RULE 18: VOCABULARY SOURCE RESTRICTION AND SHORT SENTENCES.
 
@@ -377,16 +391,15 @@ Category labels come from the overlap between the job description's language and
 Bullet content is a summary of the candidate's experience in that capability area, not a single accomplishment lifted from the resume. This is the key difference between a resume bullet and a cover letter bullet. The resume proves one specific thing. The cover letter bullet says: across my career, here is what I bring in this area. Draw from multiple experiences on the resume if they all support the same capability. Write it as a concise summary of their work in that area as one or two simple sentences.
 
 Format: 
-Category Label: Content that summarizes the candidate's experience and depth in that area, written as a capability statement rather than a single achievement.
+Category Label - Content that summarizes the candidate's experience and depth in that area, written as a capability statement rather than a single achievement.
 
 Examples: 
 
- Manufacturing Operations & Process Optimization: Led end-to-end manufacturing operations for custom and production environments, applying Lean manufacturing principles to streamline workflows, reduce waste, improve throughput, and lower per-unit costs while maintaining quality and delivery performance. 
+ Manufacturing Operations & Process Optimization - Led end-to-end manufacturing operations for custom and production environments, applying Lean manufacturing principles to streamline workflows, reduce waste, improve throughput, and lower per-unit costs while maintaining quality and delivery performance. 
 
-• R&D, Product Development & DFM: Extensive experience participating in R&D and new product development, refining customer and internal designs to improve manufacturability, reduce production complexity, and enhance commercial viability and end-user performance. 
+- R&D, Product Development & DFM - Extensive experience participating in R&D and new product development, refining customer and internal designs to improve manufacturability, reduce production complexity, and enhance commercial viability and end-user performance. 
 
-• Hands-On Technical Leadership: Provided daily technical support to production teams, working directly with engineering and operations to troubleshoot process issues, resolve defects, and implement continuous improvement initiatives across fabrication, assembly, and vendor-supported processes.
-
+- Hands-On Technical Leadership - Provided daily technical support to production teams, working directly with engineering and operations to troubleshoot process issues, resolve defects, and implement continuous improvement initiatives across fabrication, assembly, and vendor-supported processes.
 Bullet content is written in simple past or simple present tense, active voice. The bullet describes the work directly, as if explaining to someone what you do in this area. It stops when the candidate's work stops. Never construct bullets using present perfect tense with a gerund phrase as the subject. This pattern sounds academic and formal, the opposite of the conversational voice this letter requires.
 WRONG: reaching toward the job description: "Rehearsal & Production Support: Coordinating performer readiness and executing cues across theme park productions has built the same operational fluency that stage management requires."
 
@@ -467,13 +480,20 @@ NUMBER RANGES: Always written with a hyphen. "150-200" not "150 to 200." "$500K-
 
 NO FRAGMENTS: Read the sentences. All must be grammatically complete. Any fragment must be restructured before outputting.
 
-ABSOLUTELY NO COLONS OR SEMICOLONS IN PROSE: Scan every sentence right now. The only colon allowed in the entire letter is the one after a bullet category label. If any colon or semicolon appears anywhere else, in the opening, the bridge, a bullet's content, or the closing, the letter is a critical failure. Fix it before outputting. This is non-negotiable.
+ABSOLUTELY NO COLONS ANYWHERE. SEMICOLONS ONLY BETWEEN COMPLETE SENTENCES: Scan every sentence right now. Zero colons are permitted anywhere in the letter, including bullet category labels. Bullet labels use " - " (space, hyphen, space) to separate the label from the content. If any colon appears anywhere, in the opening, the bridge, a bullet, or the closing, the letter is a critical failure. For semicolons, apply the cover-one-side test. Cover one side and verify the other reads as a complete sentence that fully makes sense alone. Any semicolon that fails this test must be restructured. Fix all violations before outputting. This is non-negotiable.
 
 SPELLING, GRAMMAR, AND PUNCTUATION: clean and correct clean throughout. 
 
 CONTRACTIONS: Used throughout except where rhythm genuinely doesn't call for them. "I've," "that's," "it's." Formal constructions are a failure of voice.
 
 COMPANY NAME OR JOB TITLE, NEVER BOTH: If sentence 3 of the opening uses one, the closing uses the other.
+
+NO BANNED WORDS OR PHRASES: Humans don't write like this. Only AI models do. If you use them, you have FAILED at your job of human-sounding writing. They are NEVER acceptible and must be replaced before output. The following words and phrases are banned:
+• "breadth" 
+• "probablistic"
+• "maps directly to" 
+• "maps to" 
+• "the intersection of" → restructure
 
 THE FINAL TEST: Read the letter as the hiring manager. Does it sound like a real person who knows this work? Does every sentence earn its place? Does the opening make you want to keep reading? Does the closing make you want to meet them? If anything feels like it was written to impress rather than to connect, find it and fix it before outputting.
 
@@ -531,7 +551,7 @@ export async function POST(request) {
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { resumeData, jobTitle, jobCompany, jobDescription, userId } = await request.json()
+    const { resumeData, jobTitle, jobCompany, jobDescription, additionalContext, userId } = await request.json()
 
     if (!resumeData || !jobDescription) {
       return NextResponse.json(
@@ -574,7 +594,20 @@ TARGET ROLE: ${jobTitle}${jobCompany ? ` at ${jobCompany}` : ''}
 
 JOB DESCRIPTION:
 ${jobDescription}
+${additionalContext && additionalContext.trim() ? `
+ADDITIONAL CONTEXT FROM THE CANDIDATE: Include any of this context in the letter ONLY if it strengthens the letter. Use these rules to decide:
 
+- A referral or recommendation from someone connected to the company ALWAYS strengthens the letter. Work it in.
+- Work authorization status (citizenship, sponsorship needs) strengthens the letter ONLY if the job description mentions sponsorship, citizenship, or work eligibility.
+- Availability or start date strengthens the letter ONLY if the job description mentions timing, urgency, or a specific start date.
+- Willingness to relocate strengthens the letter ONLY if the job description mentions location, relocation, hybrid work, or in-person requirements.
+- Any other context strengthens the letter only when it genuinely fits the role and the rest of the letter. If it does not strengthen the letter, leave it out entirely.
+
+When you do include context, weave it in naturally. Do not announce it. Do not add a tack-on clause to make it fit.
+
+CONTEXT:
+${additionalContext.trim()}
+` : ''}
 TODAY'S DATE: ${today}`
 
     let message
@@ -632,9 +665,12 @@ TODAY'S DATE: ${today}`
     }
 
     const stripEmDashes = (str) => str ? str.replace(/\u2014/g, ', ') : str
-    coverLetterData.opening = stripEmDashes(coverLetterData.opening)
-    coverLetterData.closing = stripEmDashes(coverLetterData.closing)
-    coverLetterData.bullets = coverLetterData.bullets?.map(stripEmDashes)
+    const stripColonsInProse = (str) => str ? str.replace(/: /g, ', ') : str
+    const stripColonsInBullets = (str) => str ? str.replace(/: /g, ' - ') : str
+    coverLetterData.opening = stripColonsInProse(stripEmDashes(coverLetterData.opening))
+    coverLetterData.bridge = stripColonsInProse(stripEmDashes(coverLetterData.bridge))
+    coverLetterData.closing = stripColonsInProse(stripEmDashes(coverLetterData.closing))
+    coverLetterData.bullets = coverLetterData.bullets?.map(b => stripColonsInBullets(stripEmDashes(b)))
 
     if (isFree && userId) {
       await supabase

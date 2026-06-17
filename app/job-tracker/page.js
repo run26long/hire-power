@@ -444,7 +444,7 @@ export default function JobTrackerPage() {
   };
 
   const handleAddCard = async () => {
-    if (!newTitle || !newCompany) return;
+    if (!newTitle) return;
     setAddLoading(true);
 
     try {
@@ -1007,7 +1007,7 @@ export default function JobTrackerPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Job Description</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Job Description *</label>
                 <textarea
                   value={newDescription}
                   onChange={e => setNewDescription(e.target.value)}

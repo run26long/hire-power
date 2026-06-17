@@ -104,7 +104,20 @@ function DashboardContent() {
 
   useEffect(() => {
     const code = searchParams.get('code');
-    if (code) { setShowLoginModal(true); setLoginView('reset'); }
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          console.error('Code exchange failed:', error);
+          setToast('This reset link has expired. Please request a new one.');
+          setShowLoginModal(true);
+          setLoginView('forgot');
+        } else {
+          setShowLoginModal(true);
+          setLoginView('reset');
+        }
+      });
+      window.history.replaceState({}, '', '/dashboard');
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -120,6 +133,14 @@ function DashboardContent() {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles').select('*').eq('id', user.id).single();
+        if (profileError && profileError.code === 'PGRST116') {
+          // Profile row doesn't exist — deleted account with a stale session
+          await supabase.auth.signOut();
+          setShowLoginModal(true);
+          setLoginView('login');
+          setLoginError('account_deleted');
+          return;
+        }
         if (profileError) {
           console.warn('Dashboard profile load issue (non-fatal):', profileError);
         }
@@ -229,7 +250,7 @@ function DashboardContent() {
         .select('deletion_requested_at')
         .eq('id', data.user.id)
         .single();
-      if (profileCheck?.deletion_requested_at) {
+      if (!profileCheck || profileCheck.deletion_requested_at) {
         await supabase.auth.signOut();
         setLoginLoading(false);
         setLoginError('account_deleted');

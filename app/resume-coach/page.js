@@ -136,6 +136,7 @@ export default function MyResumesPage() {
   const [clJobTitle, setClJobTitle] = useState('');
   const [clCompany, setClCompany] = useState('');
   const [clJobDescription, setClJobDescription] = useState('');
+  const [clAdditionalContext, setClAdditionalContext] = useState('');
   const [creatingCL, setCreatingCL] = useState(false);
   const [clCreateError, setClCreateError] = useState(null);
   const [confirmDeleteCLId, setConfirmDeleteCLId] = useState(null);
@@ -534,17 +535,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           'Authorization': `Bearer ${dlSession.access_token}`
         },
         body: JSON.stringify({
-          resumeData: resume.resume_data,
-          templateName: templateForApi,
-          fontSize: resume.font_size || 11,
-          font: resume.font_family || 'Lato',
-          accentColor: resume.accent_color || '#5b4fcf',
-          spacing: resume.spacing || 1,
-          action: 'download',
-          versionId: null,
-          isJobVersion: false,
-          userId: user.id
-        })
+            resumeData: resume.resume_data,
+            resumeId: resumeId,
+            templateName: templateForApi,
+            fontSize: resume.font_size || 11,
+            font: resume.font_family || 'Lato',
+            accentColor: resume.accent_color || '#5b4fcf',
+            spacing: resume.spacing || 1,
+            action: 'download',
+            versionId: null,
+            isJobVersion: false,
+            userId: user.id
+          })
       });
 
       if (!response.ok) {
@@ -726,6 +728,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             jobTitle,
             jobCompany,
             jobDescription,
+            additionalContext: clAdditionalContext,
             userId: user?.id
           })
         });
@@ -2345,6 +2348,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   onChange={e => setClJobDescription(e.target.value)}
                   placeholder="Paste the full job description here..."
                   rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Additional context (optional)</label>
+                <textarea
+                  value={clAdditionalContext}
+                  onChange={e => setClAdditionalContext(e.target.value)}
+                  placeholder="Anything else worth mentioning? Referrals, availability, willingness to relocate, etc."
+                  rows={2}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
