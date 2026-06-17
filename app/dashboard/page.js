@@ -96,6 +96,7 @@ function DashboardContent() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [toast, setToast] = useState(null);
   const [applicationCount, setApplicationCount] = useState(0);
+  const [hasBuildProgress, setHasBuildProgress] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -202,6 +203,17 @@ function DashboardContent() {
           setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
           window.history.replaceState({}, '', '/dashboard');
         }
+
+        // Check for in-progress form builder session
+        try {
+          const buildProgress = localStorage.getItem(`hp_build_progress_${user.id}`);
+          if (buildProgress) {
+            const parsed = JSON.parse(buildProgress);
+            if (parsed.data && Object.values(parsed.data).some(v => v && (typeof v === 'string' ? v.trim() : Array.isArray(v) ? v.length > 0 : false))) {
+              setHasBuildProgress(true);
+            }
+          }
+        } catch (e) {}
       } catch (err) {
         console.error('Dashboard load failed:', err);
         setToast("We couldn't load your dashboard. Please refresh the page.");
@@ -250,7 +262,7 @@ function DashboardContent() {
         .select('deletion_requested_at')
         .eq('id', data.user.id)
         .single();
-      if (!profileCheck || profileCheck.deletion_requested_at) {
+      if (profileCheck?.deletion_requested_at) {
         await supabase.auth.signOut();
         setLoginLoading(false);
         setLoginError('account_deleted');
@@ -295,7 +307,8 @@ function DashboardContent() {
 
   let rcCta = 'Upload your resume';
   let rcStatus = 'not-started';
-  if (resumeInProgress)  { rcCta = 'Continue coaching'; rcStatus = 'in-progress'; }
+  if (hasBuildProgress) { rcCta = 'Continue in builder'; rcStatus = 'in-progress'; }
+  else if (resumeInProgress)  { rcCta = 'Continue coaching'; rcStatus = 'in-progress'; }
   else if (resumeCompleted) { rcCta = isPro ? 'Build a job-specific version' : 'View your resume'; rcStatus = 'done'; }
 
   const icCta = !resumeCompleted
@@ -600,7 +613,7 @@ function DashboardContent() {
           </HomeCard>
 
           {/* 02 RESUME COACH */}
-          <HomeCard active={activeCard === 'resume'} onClick={() => router.push('/resume-coach')} num="02">
+          <HomeCard active={activeCard === 'resume' || hasBuildProgress} onClick={() => router.push(hasBuildProgress ? '/build?from=resume-coach' : '/resume-coach')} num="02">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...(rcStatus === 'not-started' ? SP.start : rcStatus === 'in-progress' ? SP.prog : SP.done) }}>

@@ -22,6 +22,36 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     onUpdate(newData)
   }
 
+  function addExperience() {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    if (!newData.experience) newData.experience = []
+    newData.experience.push({
+      title: '',
+      company: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      current: false,
+      summary: '',
+      bullets: ['']
+    })
+    onUpdate(newData)
+  }
+
+  function addEducation() {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    if (!newData.education) newData.education = []
+    newData.education.push({
+      school: '',
+      degree: '',
+      field: '',
+      graduationDate: '',
+      location: '',
+      lines: []
+    })
+    onUpdate(newData)
+  }
+
   function addExperienceBullet(jobIndex) {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.experience[jobIndex].bullets) newData.experience[jobIndex].bullets = []
@@ -592,7 +622,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
             <div key={bulletIndex} className="relative flex items-start gap-1 mb-1 group/bullet">
               <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
-              <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet}</p>
+              <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(bullet ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!bullet) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet || 'Describe what you did and the impact you made'}</p>
               {!readOnly && (
                 <div className="absolute right-0 top-0 flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100 bg-white">
                   <button
@@ -641,9 +671,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                           style={ts.company || {}}
                         >
                           <span
-                            style={{ textTransform: 'uppercase' }}
+                            style={{ textTransform: 'uppercase', color: job.company ? 'inherit' : '#9ca3af', fontStyle: job.company ? 'normal' : 'italic' }}
                             contentEditable={!readOnly}
                             suppressContentEditableWarning
+                            onFocus={(e) => { if (!job.company) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
                             onBlur={(e) => {
                               if (isUndoingRef.current) return
                               updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent.trim())
@@ -653,8 +684,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                             <>
                               <span> | </span>
                               <span
+                                style={{ color: job.location ? 'inherit' : '#9ca3af', fontStyle: job.location ? 'normal' : 'italic' }}
                                 contentEditable={!readOnly}
                                 suppressContentEditableWarning
+                                onFocus={(e) => { if (!job.location) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
                                 onBlur={(e) => {
                                   if (isUndoingRef.current) return
                                   updateNestedField(`experience[${jobIndex}].location`, e.currentTarget.textContent.trim())
@@ -709,7 +742,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   </div>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-1 flex-1">
-                      <h3 className={`font-bold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
+                      <h3 className={`font-bold ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(job.title ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!job.title) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
                       {entryArrows('experience', jobIndex, resumeData.experience.length)}
                       {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
                         <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
@@ -744,9 +777,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       style={ts.company || {}}
                     >
                       <span
-                        style={{ textTransform: 'uppercase' }}
+                        style={{ textTransform: 'uppercase', color: group.company ? 'inherit' : '#9ca3af', fontStyle: group.company ? 'normal' : 'italic' }}
                         contentEditable={!readOnly}
                         suppressContentEditableWarning
+                        onFocus={(e) => { if (!group.company) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
                         onBlur={(e) => {
                           if (isUndoingRef.current) return
                           const newName = e.currentTarget.textContent.trim()
@@ -761,8 +795,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                         <>
                           <span> | </span>
                           <span
+                            style={{ color: group.location ? 'inherit' : '#9ca3af', fontStyle: group.location ? 'normal' : 'italic' }}
                             contentEditable={!readOnly}
                             suppressContentEditableWarning
+                            onFocus={(e) => { if (!group.location) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
                             onBlur={(e) => {
                               if (isUndoingRef.current) return
                               updateNestedField(`experience[${headerJobIndex}].location`, e.currentTarget.textContent.trim())
@@ -783,7 +819,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       <div key={`role-${jobIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
                         <div className="flex justify-between items-start mb-1">
                           <div className="flex items-center gap-1 flex-1 flex-wrap">
-                            <h4 className={`font-bold ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
+                           <h4 className={`font-bold ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(job.title ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!job.title) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
                             <span className="text-sm text-gray-600 font-normal" style={ts.date || {}}>
                               ({!readOnly ? (
                                 <>
@@ -845,6 +881,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               </div>
             )
           })}
+          {!readOnly && <button onClick={addExperience} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Job</button>}
         </div>
       )
     })() : null,
@@ -999,6 +1036,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               </div>
             )
           })}
+          {!readOnly && <button onClick={addEducation} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Education</button>}
         </div>
       )
     })() : null,
@@ -1265,7 +1303,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
                   onUpdate(newData)
                 }}
-              >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
+              >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean).join(' | ') || 'Contact Info'}</p>
             </div>
           </>
         ) : (
@@ -1298,7 +1336,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   const newData = { ...resumeData, location: parts[0] || '', phone: parts[1] || '', email: parts[2] || '', linkedin: parts[3] || '' }
                   onUpdate(newData)
                 }}
-              >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin].filter(Boolean).join(' | ') || 'Contact Info'}</p>
+              >{[resumeData.location, resumeData.phone, resumeData.email, resumeData.linkedin, resumeData.portfolio].filter(Boolean).join(' | ') || 'Contact Info'}</p>
             </div>
           </>
         )}

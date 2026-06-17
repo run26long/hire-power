@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -21,6 +21,7 @@ export default function BuildPage() {
   const [resumeId, setResumeId] = useState(null);
   const [errorToast, setErrorToast] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const isUndoingRef = useRef(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -28,9 +29,41 @@ export default function BuildPage() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+ // Restore saved progress from localStorage
+  const initialMountRef = useRef(true);
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const key = `hp_build_progress_${user.id}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.data) setResumeDataRaw(parsed.data);
+        if (typeof parsed.step === 'number') setCurrentStep(parsed.step);
+      }
+    } catch (e) {}
+    hasRestoredRef.current = true;
+  }, [user]);
+
+  // Save step changes to localStorage (skip initial mount)
+  useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      return;
+    }
+    if (!hasRestoredRef.current || !user?.id) return;
+    try {
+      const key = `hp_build_progress_${user.id}`;
+      const saved = localStorage.getItem(key);
+      const parsed = saved ? JSON.parse(saved) : {};
+      parsed.step = currentStep;
+      localStorage.setItem(key, JSON.stringify(parsed));
+    } catch (e) {}
+  }, [currentStep]);
   
   // Resume data
-  const [resumeData, setResumeData] = useState({
+  const [resumeData, setResumeDataRaw] = useState({
     fullName: "",
     email: "",
     phone: "",
@@ -51,6 +84,19 @@ export default function BuildPage() {
     additionalInfo: [],
     sectionOrder: ["experience", "education", "skills"]
   });
+
+  const hasRestoredRef = useRef(false);
+  const setResumeData = (data) => {
+    setResumeDataRaw(data);
+    if (!hasRestoredRef.current || !user?.id) return;
+    try {
+      const key = `hp_build_progress_${user.id}`;
+      const saved = localStorage.getItem(key);
+      const parsed = saved ? JSON.parse(saved) : {};
+      parsed.data = data;
+      localStorage.setItem(key, JSON.stringify(parsed));
+    } catch (e) {}
+  };
 
   // Format date function (REQUIRED for ResumeContent)
   function formatDate(dateString, format = 'short') {
@@ -151,6 +197,7 @@ useEffect(() => {
 
       if (error) throw error;
 
+      try { localStorage.removeItem(`hp_build_progress_${user.id}`); } catch (e) {}
       track('resume_uploaded', { method: 'build' })
       try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
       if (fromPage === 'career-coach') {
@@ -251,6 +298,7 @@ useEffect(() => {
               <ResumeContent 
                 resumeData={resumeData}
                 onUpdate={setResumeData}
+                isUndoingRef={isUndoingRef}
                 formatDate={formatDate}
                 readOnly={false}
               />
@@ -300,7 +348,7 @@ useEffect(() => {
 
             <p className="text-xs text-gray-700 mb-4">
               {currentStep === 0 && "Let's start with your contact information. This appears at the top of your resume."}
-              {currentStep === 1 && "A professional summary is a 2-3 sentence overview of your background and goals. It's optional but recommended."}
+              {currentStep === 1 && "A professional summary is a 2-3 sentence overview of your background and goals. It's optional but recommended. For Pro users, your resume coach can write this for you after coaching."}
               {currentStep === 2 && "Add your work experience. Start with your most recent position."}
               {currentStep === 3 && "Add your education. Use the 'lines' field for GPA, honors, or relevant coursework."}
               {currentStep === 4 && "Add your key skills. You can organize them into categories (Technical Skills, Professional Skills, etc.) by selecting the Add Category option under your skills list."}
@@ -442,7 +490,6 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Professional Title
             Professional Title <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
@@ -452,7 +499,7 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             placeholder="e.g., Marketing Manager, Software Engineer"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
-          <p className="text-xs text-gray-400 mt-1">Used on select templates. You can add or edit this later.</p>
+          <p className="text-xs text-gray-400 mt-1">Used on select templates. You can add or edit this later. For Pro users, your resume coach can write this for you after coaching.</p>
         </div>
       </div>
 
