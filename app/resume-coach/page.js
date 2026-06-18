@@ -1202,7 +1202,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                             
                             {/* Simple text labels with dots */}
-                           <div className="flex items-center justify-center gap-10 text-sm md:text-xs text-gray-600">
+                          <div className="flex items-center justify-center gap-3 md:gap-10 text-xs md:text-xs text-gray-600 flex-wrap">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },

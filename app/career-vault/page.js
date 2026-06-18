@@ -685,14 +685,14 @@ export default function CareerVaultPage() {
 
                 {/* Current Job Section */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-gray-900">Current Job</h2>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">Current Job</h2>
                       {currentJobEntry && <StatusBadge status="hired" />}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {!currentJobEntry && <span className="text-xs md:text-[10px] text-gray-400 font-medium">Not set</span>}
-                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
+                      <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
                     </div>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">
@@ -777,14 +777,14 @@ export default function CareerVaultPage() {
 
                 {/* Accomplishments Log */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 pt-4 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
-                        <span className="text-sm md:text-xs text-gray-400">{accomplishments.length} logged</span>
+                  <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-lg font-semibold text-gray-900 truncate">Accomplishments</h2>
+                        <span className="text-sm md:text-xs text-gray-400 flex-shrink-0">{accomplishments.length} logged</span>
                       </div>
                       <button
                         onClick={() => setShowLogModal(true)}
-                        className="text-sm md:text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap"
+                        className="text-sm md:text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap flex-shrink-0"
                       >
                         + Log a Win
                       </button>
@@ -832,8 +832,7 @@ export default function CareerVaultPage() {
                         <>
                           <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
                           <p className="text-sm md:text-xs text-gray-400 text-center leading-relaxed">
-                            The next time something good happens, log it here.<br />
-                            Takes 30 seconds. Saves hours later.
+                            The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
                           </p>
                         </>
                       )}

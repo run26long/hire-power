@@ -1097,7 +1097,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               ) : <button onClick={() => setConfirmingDelete(`projects-${projectIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete project">🗑️</button>)}
             </div>
             <p className={`text-sm text-gray-700 mb-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].description`, e.currentTarget.textContent)}>{project.description}</p>
-            {project.link && <p className={`text-sm text-purple-600 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].link`, e.currentTarget.textContent)}>{project.link}</p>}
+            {project.link && <p className={`text-sm text-purple-600 break-all ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].link`, e.currentTarget.textContent)}>{project.link}</p>}
           </div>
         ))}
         {!readOnly && <button onClick={addProject} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Project</button>}

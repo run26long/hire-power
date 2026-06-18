@@ -111,7 +111,7 @@ const supabase = createClient();
   }, []);
 
   return (
-    <>
+    <div style={{ overflowX: 'hidden', width: '100%' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;0,900;1,300;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -281,7 +281,19 @@ const supabase = createClient();
         @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
        @media (max-width: 768px) {
-          .hero { grid-template-columns: 1fr !important; padding: 32px 24px 48px !important; min-height: auto !important; }
+          html, body { overflow-x: hidden !important; }
+          .landing-page { max-width: 100vw !important; }
+          .hero { grid-template-columns: 1fr !important; padding: 32px 24px 48px !important; min-height: auto !important; overflow: hidden !important; }
+          .hero::before { display: none !important; }
+          .how { overflow: hidden !important; }
+          .how .container { max-width: 100% !important; box-sizing: border-box !important; }
+          .how-visual { max-width: 100% !important; overflow: hidden !important; }
+          .how-step { max-width: 100% !important; }
+          .step-content { min-width: 0 !important; }
+          .manifesto { max-width: 100vw !important; overflow: hidden !important; }
+          .never-start-section { padding: 48px 24px !important; max-width: 100vw !important; overflow: hidden !important; }
+          .finish-line-section { max-width: 100vw !important; overflow: hidden !important; }
+          .final-cta { max-width: 100vw !important; overflow: hidden !important; }
           .hero-visual { display: none !important; }
           .hero h1 { font-size: 38px !important; letter-spacing: -1px !important; }
           .hero-inner-pad { margin-left: 0 !important; }
@@ -332,7 +344,11 @@ const supabase = createClient();
           .how-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .how-grid .how-visual { order: 2; }
           .how-grid .how-steps { order: 1; }
-          .coaches-row { grid-template-columns: 1fr 1fr 1fr !important; }
+          .coaches-row { grid-template-columns: 1fr 1fr 1fr !important; gap: 6px !important; }
+          .coach-pill { padding: 10px 6px !important; }
+          .coach-pill h5 { font-size: 11px !important; }
+          .coach-pill p { font-size: 11px !important; }
+          .coach-pill-icon { font-size: 20px !important; margin-bottom: 4px !important; }
 
           .manifesto { padding: 60px 24px !important; }
 
@@ -797,7 +813,7 @@ const supabase = createClient();
       <section className="problem" id="problem">
         <div className="container">
           <div className="section-eyebrow">The Dirty Secret</div>
-          <h2 className="section-title">AI tools are <em> making up </em><br/>your resume.</h2>
+          <h2 className="section-title">AI tools are <em> making up </em>your resume.</h2>
           <p className="section-sub" style={{maxWidth:'760px'}}>
             A VP of Business Development with 20+ years selling to aerospace and defense. Tried two resume tools, theirs and ours. Here&apos;s a sample bullet from his resume and what each tool did with it:{' '}
             <strong><em style={{color:'rgba(255,255,255,0.92)'}}>&quot;Built strategic relationships with high-profile commercial customers including Boeing, managing long-cycle sales for complex technology packages.&quot;</em></strong>
@@ -1438,7 +1454,7 @@ const supabase = createClient();
 
       </div>
       <Footer />
-    </>
+    </div>
   );
 }
 function FinishLineSection() {
