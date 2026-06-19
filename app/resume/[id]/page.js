@@ -4264,7 +4264,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         )}
 
         {/* Buttons */}
-        <div className="flex gap-2 justify-center pt-1">
+        <div className="flex gap-2 justify-center pt-1 flex-wrap">
           {showPushHarder && (
             <button
               onClick={() => setShowGapsModal(true)}
