@@ -326,6 +326,10 @@ export default function CareerVaultPage() {
         setJsResumes(jsResumesData || []);
 
         const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('openArchive') === 'true') {
+          setShowArchiveModal(true);
+          window.history.replaceState({}, '', '/career-vault');
+        }
         if (urlParams.get('downgraded') === 'true') {
           setErrorToast("You've switched to Vault. Career history saved. Ready to log wins!");
           window.history.replaceState({}, '', '/career-vault');
@@ -499,12 +503,10 @@ export default function CareerVaultPage() {
         .update({ is_active: true })
         .eq('id', resumeId);
       if (error) throw error;
-      setArchivedCoreResumes(prev => prev.filter(r => r.id !== resumeId));
-      setResumeCount(prev => prev + 1);
+      router.push(`/resume/${resumeId}`);
     } catch (err) {
       console.error('Restore core resume failed:', err);
       setErrorToast("We couldn't restore that resume. Please try again.");
-    } finally {
       setArchiveActionLoading(false);
     }
   }
@@ -558,6 +560,8 @@ export default function CareerVaultPage() {
     setArchiveActionLoading(true);
     try {
       if (confirmDelete.type === 'core') {
+        // Detach any job-specific resumes that reference this core as parent
+        await supabase.from('resumes').update({ parent_resume_id: null }).eq('parent_resume_id', confirmDelete.id);
         const { error } = await supabase.from('resumes').delete().eq('id', confirmDelete.id);
         if (error) throw error;
         setArchivedCoreResumes(prev => prev.filter(r => r.id !== confirmDelete.id));

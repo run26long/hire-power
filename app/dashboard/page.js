@@ -100,6 +100,11 @@ function DashboardContent() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [archivedCoreCount, setArchivedCoreCount] = useState(0);
 
   const searchParams = useSearchParams();
 
@@ -187,11 +192,17 @@ function DashboardContent() {
         const { data: resumes, error: resumesError } = await supabase
           .from('resumes').select('*').eq('user_id', user.id)
           .eq('resume_type', 'core')
-          .order('updated_at', { ascending: false }).limit(1);
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false });
         if (resumesError) {
           console.warn('Dashboard resumes load issue (non-fatal):', resumesError);
         }
-        if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
+        // Filter out abandoned chat sessions (empty resume_data from unfinished brb)
+        const meaningfulResume = resumes?.find(r => {
+          if (r.journey_step === 'chat' && (!r.resume_data || Object.keys(r.resume_data).length === 0)) return false;
+          return true;
+        });
+        if (meaningfulResume) setCoreResume(meaningfulResume);
 
         const { count: appCount } = await supabase
           .from('applications')
@@ -202,6 +213,18 @@ function DashboardContent() {
         if (searchParams.get('cancelled') === 'true') {
           setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
           window.history.replaceState({}, '', '/dashboard');
+        }
+
+        // Show tour modal if user has no meaningful core resume
+        if (!meaningfulResume) {
+          const { count: archivedCount } = await supabase
+            .from('resumes')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('resume_type', 'core')
+            .eq('is_active', false);
+          setArchivedCoreCount(archivedCount || 0);
+          setShowTourModal(true);
         }
 
         // Check for in-progress form builder session
@@ -292,6 +315,52 @@ function DashboardContent() {
     setResetLoading(false);
     if (error) { setResetError(error.message); }
     else { setResetSuccess(true); setTimeout(() => { setShowLoginModal(false); window.location.href = '/dashboard'; }, 2000); }
+  };
+
+  const handleDashboardUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) throw new Error('Please upload a PDF or DOCX file.');
+      if (file.size > 10 * 1024 * 1024) throw new Error('File is too large. Maximum size is 10MB.');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      const { error: upErr } = await supabase.storage.from('resumes').upload(filePath, file);
+      if (upErr) throw new Error('Upload failed. Please try again.');
+      const { data: { session } } = await supabase.auth.getSession();
+      const parseRes = await fetch('/api/parse-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ filePath }) });
+      if (!parseRes.ok) throw new Error('Could not read file. Try a different format.');
+      const { text } = await parseRes.json();
+      const extractRes = await fetch('/api/extract-resume-structure', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ parsedText: text }) });
+      if (!extractRes.ok) throw new Error('Upload failed. Please try again.');
+      const { data: resumeData } = await extractRes.json();
+      const { data: savedResume, error: saveErr } = await supabase.from('resumes').insert({ user_id: user.id, resume_type: 'core', display_name: 'Core Resume', resume_data: resumeData, journey_step: 'review', file_path: filePath }).select().single();
+      if (saveErr) throw new Error('Upload failed. Please try again.');
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) {}
+      setShowTourModal(false);
+      router.push(`/resume/${savedResume.id}`);
+    } catch (err) {
+      setUploadError(err.message);
+      setUploading(false);
+    }
+  };
+
+  const handleDashboardChat = async () => {
+    setCreatingChat(true);
+    try {
+      const { data: newResume, error } = await supabase.from('resumes').insert({ user_id: user.id, resume_type: 'core', display_name: 'Core Resume', resume_data: {}, journey_step: 'chat', created_via: 'resume_chat' }).select().single();
+      if (error || !newResume) { setCreatingChat(false); return; }
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) {}
+      setShowTourModal(false);
+      router.push(`/resume/${newResume.id}`);
+    } catch (err) {
+      console.error('Resume chat start error:', err);
+      setCreatingChat(false);
+    }
   };
 
   // ── Derived state ──
@@ -668,6 +737,146 @@ function DashboardContent() {
 
         </div>
       </div>
+
+      {/* TOUR MODAL — shown when user has no core resume */}
+      {showTourModal && user && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') {
+              setShowTourModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', borderRadius: '8px' }}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+              className="px-6 py-5 relative"
+            >
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
+                  <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-5">
+              <div className="flex flex-col py-2">
+
+                {/* Option 1 — Upload */}
+                <div className="flex items-center gap-4 py-4">
+                  <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>1</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">Already have a resume?</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it here, and we'll coach it into something stronger.</p>
+                  </div>
+                  <label className="block cursor-pointer flex-shrink-0">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={handleDashboardUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <div
+                      className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Uploading...
+                        </>
+                      ) : 'Upload Resume'}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="border-t border-gray-100 mx-2" />
+
+                {/* Option 2 — Build with Coach */}
+                <div className="flex items-center gap-4 py-4">
+                  <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
+                  </div>
+                  <div className="flex-shrink-0 text-center">
+                    <button
+                      onClick={handleDashboardChat}
+                      disabled={creatingChat}
+                      className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap disabled:opacity-85"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
+                    >
+                      {creatingChat ? (
+                        <>
+                          <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Starting...
+                        </>
+                      ) : 'brb'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Option 3 — Restore from archive (only if archived cores exist) */}
+                {archivedCoreCount > 0 && (
+                  <>
+                    <div className="border-t border-gray-100 mx-2" />
+                    <div className="flex items-center gap-4 py-4">
+                      <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>3</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 leading-snug">Restore from archive</p>
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5">You have {archivedCoreCount} core resume{archivedCoreCount !== 1 ? 's' : ''} in your archive.</p>
+                      </div>
+                      <button
+                        onClick={() => { setShowTourModal(false); router.push('/career-vault?openArchive=true'); }}
+                        className="px-4 py-2 rounded-lg font-semibold text-xs text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', textAlign: 'center' }}
+                      >
+                        View Archive
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Builder link — desktop only */}
+                <div className="hidden md:block text-center mt-2" style={{ lineHeight: '1' }}>
+                  <span className="block text-xs text-gray-400">Not feeling chatty?</span>
+                  <button
+                    onClick={() => { setShowTourModal(false); router.push('/build?from=resume-coach'); }}
+                    className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline bg-transparent border-none cursor-pointer"
+                  >
+                    Build it yourself with our form-based resume builder.
+                  </button>
+                </div>
+
+                {/* Mobile note */}
+                <p className="md:hidden text-xs text-gray-400 text-center mt-2">
+                  Not feeling chatty? <br/> Use our form-based resume builder from your computer.
+                </p>
+
+                {uploadError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mt-3 text-center">
+                    {uploadError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ErrorToast message={toast} onClose={() => setToast(null)} />
     </>
