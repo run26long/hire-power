@@ -25,6 +25,14 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
     <Document hyphenationCallback={(w) => [w]}>
       <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', paddingTop: 36, paddingBottom: 36, paddingLeft: 43, paddingRight: 43, backgroundColor: '#ffffff' }}>
 
+        {/* Page 2+ continuation header */}
+        <View fixed style={{ position: 'absolute', top: 14, left: 43, right: 43 }} render={({ pageNumber }) => pageNumber > 1 ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#cccccc', paddingBottom: 4 }}>
+            <Text style={{ fontFamily: f, fontSize: base - 2, color: '#888888', letterSpacing: 1 }}>{(resumeData.fullName || '').toUpperCase()}</Text>
+            <Text style={{ fontFamily: f, fontSize: base - 2, color: '#888888' }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+          </View>
+        ) : null} />
+
         {/* Header */}
         <View style={{ alignItems: 'center', paddingBottom: Math.round(10*sp), marginBottom: Math.round(4*sp) }}>
           <Text style={{ fontFamily: f, fontSize: 24, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
@@ -49,58 +57,120 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
             if (!expGroups.length) return null
 
             const renderBullets = (job) => (job.bullets || []).map((b, k) => (
-              <View key={k} style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+              <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
                 <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
                 <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{(b || '').trim()}</Text>
               </View>
             ))
 
-            const renderGroup = (group) => {
+            const renderGroup = (group, includeHeader = false) => {
               if (group.roles.length === 1) {
                 const job = group.roles[0]
+                const hasSummary = job.summary && !job.summaryDismissed
+                const bullets = (job.bullets || []).filter(b => (b || '').trim())
                 return (
                   <>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
-                        <Text style={{ textTransform: 'uppercase' }}>{job.company || ''}</Text>
-                        {job.location ? <Text>{` | ${job.location}`}</Text> : null}
-                      </Text>
-                      <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
+                    <View wrap={false}>
+                      {includeHeader && <SH title={resumeData.sectionTitles?.experience || 'Experience'} />}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
+                          <Text style={{ textTransform: 'uppercase' }}>{job.company || ''}</Text>
+                          {job.location ? <Text>{` | ${job.location}`}</Text> : null}
+                        </Text>
+                        <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
+                      </View>
+                      <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(4*sp) }}>{job.title || ''}</Text>
+                      {hasSummary && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
+                      {!hasSummary && bullets.length > 0 && (
+                        <View style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(4*sp) }}>{job.title || ''}</Text>
-                    {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
-                    {renderBullets(job)}
+                    {(hasSummary ? bullets : bullets.slice(1)).map((b, k) => (
+                      <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                        <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                        <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                      </View>
+                    ))}
                   </>
                 )
               }
               return (
                 <>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
-                    <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
-                      <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
-                      {group.location ? <Text>{` | ${group.location}`}</Text> : null}
-                    </Text>
-                    <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
-                  </View>
-                  {group.roles.map((job, ri) => (
-                    <View key={ri} style={{ paddingLeft: 12, marginBottom: ri < group.roles.length - 1 ? Math.round(6*sp) : 0 }}>
-                      <Text style={{ fontFamily: f, fontSize: base }}>
-                        <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
-                        <Text style={{ color: '#555555' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
+                  <View wrap={false}>
+                    {includeHeader && <SH title={resumeData.sectionTitles?.experience || 'Experience'} />}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
+                        <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
+                        {group.location ? <Text>{` | ${group.location}`}</Text> : null}
                       </Text>
-                      {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
-                      {renderBullets(job)}
+                      <Text style={{ fontFamily: f, fontSize: base, color: '#555555' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
                     </View>
-                  ))}
+                    <View style={{ paddingLeft: 12 }}>
+                      <Text style={{ fontFamily: f, fontSize: base }}>
+                        <Text style={{ fontWeight: 'bold' }}>{group.roles[0].title || ''}</Text>
+                        <Text style={{ color: '#555555' }}>{` (${formatDateRange(group.roles[0].startDate, group.roles[0].endDate, group.roles[0].current, dateFormat)})`}</Text>
+                      </Text>
+                      {group.roles[0].summary && !group.roles[0].summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(3*sp) }}>{group.roles[0].summary}</Text>}
+                      {(() => {
+                        const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                        return bullets.length > 0 ? (
+                          <View style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                            <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                          </View>
+                        ) : null
+                      })()}
+                    </View>
+                  </View>
+                  {/* Remaining bullets for first role */}
+                  {(() => {
+                    const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                    return bullets.slice(1).map((b, k) => (
+                      <View key={`r0-b${k+1}`} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                        <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                        <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                      </View>
+                    ))
+                  })()}
+                  {/* Remaining roles */}
+                  {group.roles.slice(1).map((job, ri) => {
+                    const bullets = (job.bullets || []).filter(b => (b || '').trim())
+                    return (
+                      <React.Fragment key={ri+1}>
+                        <View wrap={false} style={{ paddingLeft: 12, marginTop: Math.round(6*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base }}>
+                            <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
+                            <Text style={{ color: '#555555' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
+                          </Text>
+                          {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(3*sp) }}>{job.summary}</Text>}
+                          {bullets.length > 0 && (
+                            <View style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                              <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                              <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                            </View>
+                          )}
+                        </View>
+                        {bullets.slice(1).map((b, k) => (
+                          <View key={k+1} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
+                            <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          </View>
+                        ))}
+                      </React.Fragment>
+                    )
+                  })}
                 </>
               )
             }
 
             return (
               <View style={{ marginTop: Math.round(16*sp) }}>
-                <SH title="Experience" />
                 {expGroups.map((group, gi) => (
                   <View key={gi} style={{ marginBottom: gi < expGroups.length - 1 ? Math.round(12*sp) : 0 }}>
+                    {gi === 0 && <SH title={resumeData.sectionTitles?.experience || 'Experience'} />}
                     {renderGroup(group)}
                   </View>
                 ))}

@@ -24,10 +24,18 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
 
   return (
     <Document hyphenationCallback={(w) => [w]}>
-      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', backgroundColor: '#ffffff', paddingTop: Math.round(20*sp), paddingBottom: Math.round(36*sp) }}>
+      <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.2, color: '#1a1a1a', backgroundColor: '#ffffff', paddingTop: Math.round(40*sp), paddingBottom: Math.round(36*sp) }}>
+
+        {/* Page 2+ continuation header */}
+        <View fixed style={{ position: 'absolute', top: 14, left: 52, right: 52 }} render={({ pageNumber }) => pageNumber > 1 ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color, paddingBottom: 3 }}>
+            <Text style={{ fontFamily: f, fontSize: base - 2, textTransform: 'uppercase', color: '#888888' }}>{resumeData.fullName || ''}</Text>
+            <Text style={{ fontFamily: f, fontSize: base - 2, color: '#888888' }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+          </View>
+        ) : null} />
 
         {/* Name block */}
-        <View style={{ marginTop: -Math.round(20*sp), paddingTop: Math.round(30*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp) }}>
+        <View style={{ marginTop: -Math.round(40*sp), paddingTop: Math.round(30*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp) }}>
           <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', textTransform: 'uppercase', color: '#1a1a1a', marginBottom: Math.round(16*sp) }}>{resumeData.fullName || ''}</Text>
           {titleLine ? <Text style={{ fontFamily: f, fontSize: base+1, fontWeight: 'bold', color: color, marginBottom: Math.round(4*sp) }}>{titleLine}</Text> : null}
         </View>
@@ -62,12 +70,15 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
                   </View>
                 ))
 
-                const renderGroup = (group) => {
+                const renderGroup = (group, includeHeader = false) => {
                   if (group.roles.length === 1) {
                     const job = group.roles[0]
+                    const hasSummary = job.summary && !job.summaryDismissed
+                    const bullets = (job.bullets || []).filter(b => (b || '').trim())
                     return (
                       <>
-                        <View>
+                        <View wrap={false}>
+                          {includeHeader && <SH title={resumeData.sectionTitles?.experience || 'Experience'} />}
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                             <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
                               <Text style={{ textTransform: 'uppercase' }}>{job.company || ''}</Text>
@@ -76,33 +87,91 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
                             <Text style={{ fontFamily: f, fontSize: base, color: '#666666', fontStyle: 'italic' }}>{formatDateRange(job.startDate, job.endDate, job.current, dateFormat)}</Text>
                           </View>
                           <Text style={{ fontFamily: f, fontWeight: 'bold', fontSize: base, marginBottom: Math.round(2*sp) }}>{job.title || ''}</Text>
-                          {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#333333', marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
+                          {hasSummary && <Text style={{ fontFamily: f, fontSize: base, color: '#333333', marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
+                          {!hasSummary && bullets.length > 0 && (
+                            <View style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                              <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                              <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                            </View>
+                          )}
                         </View>
-                        {renderBullets(job)}
+                        {(hasSummary ? bullets : bullets.slice(1)).map((b, k) => (
+                          <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                            <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          </View>
+                        ))}
                       </>
                     )
                   }
                   return (
                     <>
-                      <View wrap={false} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
-                        <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
-                          <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
-                          {group.location ? <Text>{` | ${group.location}`}</Text> : null}
-                        </Text>
-                        <Text style={{ fontFamily: f, fontSize: base, color: '#666666', fontStyle: 'italic' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
-                      </View>
-                      {group.roles.map((job, ri) => (
-                        <View key={ri} style={{ paddingLeft: 12, marginBottom: ri < group.roles.length - 1 ? Math.round(5*sp) : 0 }}>
-                          <View wrap={false}>
-                            <Text style={{ fontFamily: f, fontSize: base }}>
-                              <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
-                              <Text style={{ color: '#666666', fontStyle: 'italic' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
-                            </Text>
-                            {job.summary && !job.summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#333333', marginTop: Math.round(2*sp), marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
-                          </View>
-                          {renderBullets(job)}
+                      <View wrap={false}>
+                        {includeHeader && <SH title={resumeData.sectionTitles?.experience || 'Experience'} />}
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: Math.round(3*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base, color: '#1a1a1a', flex: 1 }}>
+                            <Text style={{ textTransform: 'uppercase' }}>{group.company || ''}</Text>
+                            {group.location ? <Text>{` | ${group.location}`}</Text> : null}
+                          </Text>
+                          <Text style={{ fontFamily: f, fontSize: base, color: '#666666', fontStyle: 'italic' }}>{formatDateRange(group.startDate, group.endDate, group.current, dateFormat)}</Text>
                         </View>
-                      ))}
+                        <View style={{ paddingLeft: 12 }}>
+                          <Text style={{ fontFamily: f, fontSize: base }}>
+                            <Text style={{ fontWeight: 'bold' }}>{group.roles[0].title || ''}</Text>
+                            <Text style={{ color: '#666666', fontStyle: 'italic' }}>{` (${formatDateRange(group.roles[0].startDate, group.roles[0].endDate, group.roles[0].current, dateFormat)})`}</Text>
+                          </Text>
+                          {group.roles[0].summary && !group.roles[0].summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#333333', marginTop: Math.round(2*sp), marginBottom: Math.round(2*sp) }}>{group.roles[0].summary}</Text>}
+                          {(() => {
+                            const hasSummary = group.roles[0].summary && !group.roles[0].summaryDismissed
+                            const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                            return !hasSummary && bullets.length > 0 ? (
+                              <View style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                                <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                                <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                              </View>
+                            ) : null
+                          })()}
+                        </View>
+                      </View>
+                      {/* Remaining bullets for first role */}
+                      {(() => {
+                        const hasSummary = group.roles[0].summary && !group.roles[0].summaryDismissed
+                        const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                        return (hasSummary ? bullets : bullets.slice(1)).map((b, k) => (
+                          <View key={`r0-b${k}`} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                            <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                          </View>
+                        ))
+                      })()}
+                      {/* Remaining roles */}
+                      {group.roles.slice(1).map((job, ri) => {
+                        const hasSummary = job.summary && !job.summaryDismissed
+                        const bullets = (job.bullets || []).filter(b => (b || '').trim())
+                        return (
+                          <React.Fragment key={ri+1}>
+                            <View wrap={false} style={{ paddingLeft: 12, marginTop: Math.round(5*sp) }}>
+                              <Text style={{ fontFamily: f, fontSize: base }}>
+                                <Text style={{ fontWeight: 'bold' }}>{job.title || ''}</Text>
+                                <Text style={{ color: '#666666', fontStyle: 'italic' }}>{` (${formatDateRange(job.startDate, job.endDate, job.current, dateFormat)})`}</Text>
+                              </Text>
+                              {hasSummary && <Text style={{ fontFamily: f, fontSize: base, color: '#333333', marginTop: Math.round(2*sp), marginBottom: Math.round(2*sp) }}>{job.summary}</Text>}
+                              {!hasSummary && bullets.length > 0 && (
+                                <View style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                                  <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                                  <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                                </View>
+                              )}
+                            </View>
+                            {(hasSummary ? bullets : bullets.slice(1)).map((b, k) => (
+                              <View key={k} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                                <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                                <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                              </View>
+                            ))}
+                          </React.Fragment>
+                        )
+                      })}
                     </>
                   )
                 }
@@ -111,11 +180,8 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
 
                 return (
                   <View key="experience" style={{ marginTop: Math.round(16*sp) }}>
-                    <View wrap={false}>
-                      <SH title={resumeData.sectionTitles?.experience || 'Experience'} />
-                      <View style={{ marginBottom: restGroups.length > 0 ? Math.round(10*sp) : 0 }}>
-                        {renderGroup(firstGroup)}
-                      </View>
+                    <View style={{ marginBottom: restGroups.length > 0 ? Math.round(10*sp) : 0 }}>
+                      {renderGroup(firstGroup, true)}
                     </View>
                     {restGroups.map((group, gi) => (
                       <View key={gi+1} style={{ marginBottom: gi < restGroups.length - 1 ? Math.round(10*sp) : 0 }}>
