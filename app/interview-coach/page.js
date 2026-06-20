@@ -74,59 +74,79 @@ export default function MyInterviewsPage() {
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
-          <p className="text-[15px] font-bold text-white leading-tight tracking-tight mt-3">
-            AI-spoken interview practice that mimics a real interview
-          </p>
-        </div>
-
-        <div className="flex-1 px-6 pt-1 pb-6 flex flex-col justify-between">
-          <div>
-            {/* Free Features */}
-            <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">FREE</h4>
-              <ul className="space-y-1 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>General - unlimited practice</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Job-specific - 1 practice</span></li>
-                <li className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>Power Analysis reveal <span className="text-[10px] text-white text-opacity-60">(view only)</span></span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Pro Features */}
-            <div className="mb-4">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-2">PRO</h4>
-              <ul className="space-y-1 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Pre-interview coaching</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Power Analysis for every job</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Company research integration</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Unlimited job-specific sessions</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Post-practice feedback</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Gamified progression</span></li>
-                
-              </ul>
-            </div>
           </div>
 
-          <div className="mt-auto">
-            <div className="mb-3 border-b border-gray-400 border-opacity-10"></div>
-            <div>
-              <p className="text-xs text-white text-opacity-90 leading-snug mb-5">
-                Interview Coach prepares you to present your experience with confidence, for every role you pursue
-              </p>
-              <div className="flex items-center gap-2.5 text-white">
-                <img
-                  src="/images/Hire_Power_icon.png"
-                  alt="Lightning"
-                  className="h-5 w-auto flex-shrink-0"
-                />
-                <p className="text-sm font-medium leading-tight">
-                  Practice until it feels real.
-                </p>
+        <div className="px-6 pt-0 pb-6">
+
+          {/* Steps */}
+          <div style={{ marginBottom: 16 }}>
+            {[
+              { 
+                num: '1', 
+                title: 'Power Analysis', 
+                desc: 'We analyze your resume against the job description and show you what to highlight in each interview.',
+          
+              },
+              { 
+                num: '2', 
+                title: 'STAR Story Coaching', 
+                desc: 'Through conversation, we extract your real Situation, Task, Action, and Result for each item so you know how to confidently tell each story.',
+                tag: 'Pro only'
+              },
+              { 
+                num: '3', 
+                title: 'Company Research', 
+                desc: 'Learn about the company to align your experience with business goals.',
+                tag: 'Pro only'
+              },
+              { 
+                num: '4', 
+                title: 'Mock Interview', 
+                desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
+                tag: 'Free: 1 session · Pro: Unlimited'
+              },
+              { 
+                num: '5', 
+                title: 'Interview Feedback', 
+                desc: 'Record yourself and get feedback on delivery, not just content.',
+                tag: 'Pro'
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: 0 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+
+          {/* Bottom section */}
+          <div>
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              You already have the experience. We help you tell it.
+            </p>
+          </div>
+
         </div>
       </div>
 
