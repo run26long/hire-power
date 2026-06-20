@@ -618,60 +618,82 @@ export default function CareerVaultPage() {
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
-          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
-            Three years from now, you won't remember today's achievements. 
-          </p>
-          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
-            But Hire Power will.
-          </p>
-        </div>
-
-        <div className="flex-1 px-6 pt-2 pb-6 flex flex-col justify-between">
-          <div>
-            <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHAT VAULT DOES</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Save your current job entry</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Log wins in 30 seconds</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Access all your resumes</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Run job match scores</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Basic interview practice</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Browse your archive</span></li>
-              </ul>
-            </div>
-
-            <div className="mb-3">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHEN YOU'RE READY</h4>
-              {isPro ? (
-                <ul className="space-y-1.5 text-sm">
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Jump back into Resume Coach</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes with your coach</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
-                </ul>
-              ) : (
-                <ul className="space-y-1.5 text-sm">
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Upgrade to Pro</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes with your coach</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
-                </ul>
-              )}
-            </div>
           </div>
 
-          <div className="mt-auto">
-            <div className="mb-4 border-b border-gray-400 border-opacity-10"></div>
-            <div>
-              <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-                While you're building your career, we're already building your next resume.
-              </p>
-              <div className="flex items-center gap-2.5 text-white">
-                <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
-                <p className="text-sm font-medium leading-tight">
-                  Log a win. It'll matter later.
-                </p>
+        <div className="px-6 pt-0 pb-6">
+
+          {/* Steps */}
+          <div style={{ marginBottom: 16 }}>
+            {[
+              { 
+                num: '1', 
+                title: 'Save Your Current Job', 
+                desc: 'Your title, company, and start date. The saved job description becomes foundation for your next resume.' 
+              },
+              { 
+                num: '2', 
+                title: 'Log Wins as They Happen', 
+                desc: 'Promotions, projects, metrics, skills. Takes 30 seconds. Saves hours later.' 
+              },
+              { 
+                num: '3', 
+                title: 'Prepare for Your Review', 
+                desc: 'Your logged wins organized by category, ready to reference during performance reviews.' 
+              },
+              { 
+                num: '4', 
+                title: 'Access All Your Resumes', 
+                desc: 'All in one place. Any time you need them.' 
+              },
+              { 
+                num: '5', 
+                title: 'Browse Your Archive', 
+                desc: 'Every resume you\'ve ever built, saved and searchable.' 
+              },
+              { 
+                num: '6', 
+                title: 'When You\'re Ready to Search', 
+                desc: 'Five minutes with your coach and your resume updates itself.' 
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: -2 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+
+          {/* Bottom section */}
+          <div>
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              Three years from now?
+            </p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              You won't remember today's achievements. But Hire Power will.
+            </p>
+          </div>
+
         </div>
       </div>
 

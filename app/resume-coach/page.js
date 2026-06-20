@@ -963,59 +963,76 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
         
         {/* Main Content */}
-        <div className="px-6 pt-3 pb-6">
+        <div className="px-6 pt-0 pb-6">
 
-          {/* Intro copy */}
-          <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 9 }}>
-              AI knows how to write a great résumé. The problem is, it doesn't know you.
-            </p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4, marginBottom: 0 }}>
-              Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a professional résumé writer would.
-            </p>
-          </div>
-
-          {/* Feature List */}
+          {/* Steps */}
           <div style={{ marginBottom: 16 }}>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {[
-                { label: 'AI Assessment' },
-                { label: 'Resume Power Score' },
-                { label: 'Detailed Action Plan' },
-                { label: 'Coaching Conversation', pro: true },
-                { label: 'Achievement Discovery', pro: true },
-                { label: 'Skill Identification', pro: true },
-                { label: 'Auto Improvements', pro: true },
-                { label: 'Cover Letters' },
-                { label: 'Job Match Score' },
-                { label: 'Job-Specific Resumes', pro: true },
-              ].map(({ label, pro }) => (
-                <li key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>•</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)', lineHeight: 1.2 }}>
-                    {label}{pro && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginLeft: 3 }}>(Pro)</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                     {[
+              { 
+                num: '1', 
+                title: 'Add Your Resume', 
+                desc: 'Upload or build from scratch' 
+              },
+              { 
+                num: '2', 
+                title: 'Build Your Core Resume', 
+                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resume is your foundation for every application.' 
+              },
+              { 
+                num: '3', 
+                title: 'Job Match Score', 
+                desc: 'See how well your experience matches any job posting.',
+                tag: 'Free: 3 matches · Pro: Unlimited matches'
+              },
+              { 
+                num: '4', 
+                title: 'Job-Specific Resume', 
+                desc: 'Employers expect a tailored resume for every application. Hire Power lets you create one in minutes!',
+                tag: 'Pro only'
+              },
+              { 
+                num: '5', 
+                title: 'Cover Letter', 
+                desc: 'Written for this job, not every job.',
+                tag: 'Free: 3 letters ·  Pro: Unlimited letters'
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: 0 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
-        {/* Bottom section */}
-          <div style={{ marginTop: 16 }}>
+          {/* Bottom section */}
+          <div>
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 30 }}>
-              The AI that interviews you like a professional résumé writer would.
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              Ready to apply?
             </p>
-            <div className="flex items-center gap-2.5 text-white">
-              <img 
-                src="/images/Hire_Power_icon.png" 
-                alt="Lightning" 
-                className="h-5 w-auto flex-shrink-0"
-              />
-              <p className="text-sm font-medium leading-tight">
-                Let's start your conversation.
-              </p>
-            </div>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              Job cards are created automatically for each job-specific resume or cover letter. Visit your Job Tracker board to track that application through the entire process.
+            </p>
           </div>
 
         </div>
