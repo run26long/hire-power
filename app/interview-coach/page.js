@@ -245,74 +245,74 @@ export default function MyInterviewsPage() {
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
 
-        <div className="px-6 pb-6">
+        <div className="px-6 pt-0 pb-6">
 
-          {/* Intro copy */}
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.88)', lineHeight: 1.4, marginBottom: 14 }}>
-            <span style={{ fontWeight: 700, color: '#fff' }}>AI can generate interview answers. The problem is, they aren't yours.</span> We extract your real stories through conversation, then turn them into answers that prove you can do this specific job.
-          </p>
-
-          {/* How it works — 3 steps */}
-          <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-              How it works
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {[
-                { num: '1', title: 'Power Analysis', desc: 'We map your resume to this job and surface what to highlight, reframe, and address.' },
-                { num: '2', title: 'STAR Story Coaching', desc: 'Through dialogue, we extract Situation, Task, Action, and Result for each item.' },
-                { num: '3', title: 'Mock Interview', desc: 'Practice with tailored questions, get feedback, and level up as you go.' }
-              ].map(step => (
-                <div key={step.num} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 18, height: 18, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.18)', color: '#fff',
-                    fontSize: 10, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, marginTop: 1
-                  }}>{step.num}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 1 }}>{step.title}</p>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.78)', lineHeight: 1.3, marginBottom: 0 }}>{step.desc}</p>
-                  </div>
+          {/* Steps */}
+          <div style={{ marginBottom: 16 }}>
+            {[
+              { 
+                num: '1', 
+                title: 'Power Analysis', 
+                desc: 'We analyze your resume against the job description and show you what to highlight in each interview.',
+          
+              },
+              { 
+                num: '2', 
+                title: 'STAR Story Coaching', 
+                desc: 'Through conversation, we extract your real Situation, Task, Action, and Result for each item so you know how to confidently tell each story.',
+                tag: 'Pro only'
+              },
+              { 
+                num: '3', 
+                title: 'Company Research', 
+                desc: 'Learn about the company to align your experience with business goals.',
+                tag: 'Pro only'
+              },
+              { 
+                num: '4', 
+                title: 'Mock Interview', 
+                desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
+                tag: 'Free: 1 session · Pro: Unlimited'
+              },
+              { 
+                num: '5', 
+                title: 'Interview Feedback', 
+                desc: 'Record yourself and get feedback on delivery, not just content.',
+                tag: 'Pro'
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Feature List */}
-          <div style={{ marginBottom: 14 }}>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {[
-                { label: 'Power Analysis' },
-                { label: 'STAR Story Coaching', pro: true },
-                { label: 'Mock Interview Practice' },
-                { label: 'Company research integration', pro: true },
-                { label: 'Post-practice feedback', pro: true }
-              ].map(({ label, pro }) => (
-                <li key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>•</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)', lineHeight: 1.2 }}>
-                    {label}{pro && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginLeft: 3 }}>(Pro)</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: 0 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Bottom section */}
-          <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 11 }}></div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 11 }}>
-            Practice until it feels real.
-          </p>
-          <div className="flex items-center gap-2.5 text-white">
-            <img
-              src="/images/Hire_Power_icon.png"
-              alt="Lightning"
-              className="h-5 w-auto flex-shrink-0"
-            />
-            <p className="text-sm font-medium leading-tight">
-              Confidence by conversation.
+          <div>
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              You already have the experience. We help you tell it.
             </p>
           </div>
 
