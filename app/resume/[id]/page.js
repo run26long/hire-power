@@ -12,6 +12,7 @@ import ResumeContent from '../../components/ResumeContent'
 import ErrorToast from '../../components/ErrorToast'
 import CaptureCounter from '../../components/CaptureCounter'
 import CaptureToast from '../../components/CaptureToast'
+import CoachReviseModal from '../../components/CoachReviseModal'
 import PDFViewer from '../../components/PDFViewer'
 import { parseCaptureTags, replayCaptures } from '../../utils/parseCaptureTags'
 import { track } from '../../utils/analytics'
@@ -141,6 +142,8 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
   const [remainingGaps, setRemainingGaps] = useState([])
   const [recoachAttempts, setRecoachAttempts] = useState(0)
+  const [reviseModalState, setReviseModalState] = useState(null)
+  const [bulletSelectMode, setBulletSelectMode] = useState(null)
 
   // Capture system state — counter + toast queue
   const [captureCounts, setCaptureCounts] = useState({ jobs: 0, education: 0, skills: 0, wins: 0 })
@@ -1030,10 +1033,18 @@ if (data.ai_analysis) {
           {showEditorTip && (
             <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
               <p className="text-xs text-purple-700 text-center">
-                ✏️ Tap any section to edit    ·    📄 Format for templates and fonts<br />
-                ⚡ Actions to save, undo, or re-assess
+                ✏️ Tap any section to edit · 📄 Format for templates and fonts · {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete
+                  ? '⚡ Actions to Reword or Fix, Re-assess, or Preview'
+                  : '⚡ Actions to save, undo, or re-assess'
+                }
               </p>
               <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-2 flex-shrink-0 text-sm">✕</button>
+            </div>
+          )}
+          {bulletSelectMode && (
+            <div className="bg-purple-100 border-b border-purple-200 px-3 py-2 flex items-center justify-between">
+              <p className="text-xs text-purple-800 font-medium">⚡ Tap the sentence you want to change</p>
+              <button onClick={() => setBulletSelectMode(null)} className="text-purple-500 hover:text-purple-700 text-sm font-medium">Cancel</button>
             </div>
           )}
           {/* Toolbar row */}
@@ -1049,10 +1060,10 @@ if (data.ai_analysis) {
             >
               ✏️
             </button>
-            {/* Format */}
+           {/* Format */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
-              className="py-1 px-3 text-sm md:text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 px-2 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
                 color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
@@ -1065,7 +1076,7 @@ if (data.ai_analysis) {
             {/* Actions */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'actions' ? null : 'actions')}
-              className="py-1 px-3 text-sm md:text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 px-2 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
                 color: mobileToolbar === 'actions' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'actions' ? 'rgba(147, 51, 234, 0.08)' : 'white',
@@ -1091,10 +1102,10 @@ if (data.ai_analysis) {
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="flex-1 py-1 rounded text-sm md:text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+              className="flex-1 py-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
-              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Downloading...</> : '⬇️ Download'}
+              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div></> : '⬇️ Download'}
             </button>
           </div>
 
@@ -1182,67 +1193,132 @@ if (data.ai_analysis) {
                       'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+                    {isAutoFitting ? '...' : '⚡ Auto-fit'}
+                  </button>
+                  <button
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
+                    className="flex-1 py-1 rounded text-sm md:text-xs font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    ↶ Undo
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Actions panel */}
+         {/* Actions panel */}
           {mobileToolbar === 'actions' && (
             <div className="px-4 pt-2 pb-3 space-y-2">
-              {/* Single row: Re-assess / Preview / Undo / Save */}
-              <div className="grid grid-cols-4 gap-1.5">
-                <button
-                  onClick={() => handleReassess()}
-                  disabled={isAnalyzing || journeyStep === 'review'}
-                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</> : 'Re-assess'}
-                </button>
-                <button
-                  onClick={async () => {
-                    setIsLoadingPreview(true)
-                    try {
-                      const { data: { user } } = await supabase.auth.getUser()
-                      const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
-                      const { data: { session: previewSession } } = await supabase.auth.getSession()
-                      const response = await fetch('/api/generate-pdf', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
-                      })
-                      if (response.ok) {
-                        const data = await response.json()
-                        setPreviewUrl(data.previewUrl)
-                        setShowPreview(true)
-                      }
-                    } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
-                  }}
-                  disabled={isLoadingPreview}
-                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {isLoadingPreview ? '...' : 'Preview'}
-                </button>
-                <button
-                  onClick={undo}
-                  disabled={historyIndex <= 0}
-                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
-                >
-                  ↶ Undo
-                </button>
-                <button
-                  onClick={save}
-                  className={`py-1.5 rounded text-sm md:text-xs font-semibold ${
-                    saveSuccess ? 'bg-green-600 text-white' :
-                    hasUnsavedChanges ? 'bg-purple-600 text-white' :
-                    'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
-                </button>
-              </div>
+              {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete ? (
+               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '6px' }}>
+                  <button
+                    onClick={() => {
+                      setBulletSelectMode(true)
+                      setMobileToolbar(null)
+                      setMobilePanel('resume')
+                    }}
+                    className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50 whitespace-nowrap"
+                  >
+                    ⚡ Reword or Fix
+                  </button>
+                  <button
+                    onClick={() => handleReassess()}
+                    disabled={isAnalyzing || journeyStep === 'review'}
+                    className="py-1.5 border border-gray-300 rounded font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                    style={{ fontSize: '12px' }}
+                  >
+                    {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div></> : 'Re-assess'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsLoadingPreview(true)
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser()
+                        const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                        const { data: { session: previewSession } } = await supabase.auth.getSession()
+                        const response = await fetch('/api/generate-pdf', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
+                          body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
+                        })
+                        if (response.ok) {
+                          const data = await response.json()
+                          setPreviewUrl(data.previewUrl)
+                          setShowPreview(true)
+                        }
+                      } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
+                    }}
+                    disabled={isLoadingPreview}
+                    className="py-1.5 border border-gray-300 rounded font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                    style={{ fontSize: '12px' }}
+                  >
+                    {isLoadingPreview ? '...' : 'Preview'}
+                  </button>
+                  <button
+                    onClick={save}
+                    className={`py-1.5 rounded font-semibold ${
+                      saveSuccess ? 'bg-green-600 text-white' :
+                      hasUnsavedChanges ? 'bg-purple-600 text-white' :
+                      'bg-gray-200 text-gray-500'
+                    }`}
+                    style={{ fontSize: '12px' }}
+                  >
+                    {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    onClick={() => handleReassess()}
+                    disabled={isAnalyzing || journeyStep === 'review'}
+                    className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</> : 'Re-assess'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setIsLoadingPreview(true)
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser()
+                        const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                        const { data: { session: previewSession } } = await supabase.auth.getSession()
+                        const response = await fetch('/api/generate-pdf', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
+                          body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
+                        })
+                        if (response.ok) {
+                          const data = await response.json()
+                          setPreviewUrl(data.previewUrl)
+                          setShowPreview(true)
+                        }
+                      } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
+                    }}
+                    disabled={isLoadingPreview}
+                    className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {isLoadingPreview ? '...' : 'Preview'}
+                  </button>
+                  <button
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
+                    className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    ↶ Undo
+                  </button>
+                  <button
+                    onClick={save}
+                    className={`py-1.5 rounded text-sm md:text-xs font-semibold ${
+                      saveSuccess ? 'bg-green-600 text-white' :
+                      hasUnsavedChanges ? 'bg-purple-600 text-white' :
+                      'bg-gray-200 text-gray-500'
+                    }`}
+                  >
+                    {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1254,7 +1330,11 @@ if (data.ai_analysis) {
           {showEditorTip && (
             <div className="bg-purple-50 rounded px-3 py-1 mt-5 mb-0.5 flex items-center justify-between">
               <p className="text-xs text-purple-700">
-                ✏️ Click any section to edit directly<span className="mx-5 text-purple-300">·</span>↕️ Arrows reorder content<span className="mx-5 text-purple-300">·</span>🗑️ Trash to delete<span className="mx-5 text-purple-300">·</span>🎨 Toolbar below for templates, fonts, and colors
+                ✏️ Click any section to edit directly
+                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
+                  <><span className="mx-5 text-purple-300">·</span>⚡Click to reword or fix any sentence</>
+                )}
+                <span className="mx-5 text-purple-300">·</span><span className="text-gray-400">▲▼</span> Arrows reorder content<span className="mx-5 text-purple-300">·</span>🗑️ Trash deletes content<span className="mx-5 text-purple-300">·</span>🎨 Toolbar below contains templates, fonts, and colors
               </p>
               <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-4 flex-shrink-0 text-sm">✕</button>
             </div>
@@ -1577,7 +1657,12 @@ if (data.ai_analysis) {
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
                   templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
-                  selectedTemplate={selectedTemplate} 
+                  selectedTemplate={selectedTemplate}
+                  onBulletAction={['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete ? (text, location) => {
+                    setBulletSelectMode(null)
+                    setReviseModalState({ mode: 'choose', text, location })
+                  } : null}
+                  bulletSelectMode={bulletSelectMode}
                 />
             </div>
           </div>
@@ -1626,6 +1711,9 @@ if (data.ai_analysis) {
           handleDownload={handleDownload}
           isDownloading={isDownloading}
           resetHistory={resetHistory}
+          setReviseModalState={setReviseModalState}
+          bulletSelectMode={bulletSelectMode}
+          setBulletSelectMode={setBulletSelectMode}
             />
           </div>
         </div>
@@ -1693,12 +1781,34 @@ if (data.ai_analysis) {
           </div>
         </div>
       )}
+
+      {reviseModalState && (
+        <CoachReviseModal
+          state={reviseModalState}
+          onClose={() => { setReviseModalState(null); setBulletSelectMode(null) }}
+          resumeData={resumeData}
+          coachingMessages={coachingMessages}
+          careerContext={careerContext}
+          supabase={supabase}
+          resumeId={params?.id}
+          setResume={setResume}
+          onUpdate={updateResumeData}
+          onReviewChangeUpdate={(changeIndex, newText) => {
+            setResumeChanges(prev => {
+              const updated = [...prev]
+              updated[changeIndex] = { ...updated[changeIndex], after: newText }
+              return updated
+            })
+            setReviseModalState(null)
+          }}
+        />
+      )}
     </>
   )
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast }) {
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2453,8 +2563,13 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           changesAccepted={resume?.changes_accepted || false}
           coachingMessages={coachingMessages}
           careerContext={careerContext}
+          setReviseModalState={setReviseModalState}
+          bulletSelectMode={bulletSelectMode}
+          setBulletSelectMode={setBulletSelectMode}
         />
       )}
+
+      
 
       {displayStep === 'format' && (
   <FormatStep
@@ -3845,7 +3960,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode }) {
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -4012,7 +4127,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               </div>
             )}
           </div>
-          <div className="flex justify-center pt-1">
+          <div className="flex justify-center gap-2 pt-1 flex-wrap">
+            <button
+              onClick={() => setReviseModalState({ mode: 'add' })}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+            >
+              ⚡ More to add?
+            </button>
             <button
               onClick={async () => {
                 const { error: saveError } = await supabase
@@ -4264,7 +4385,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         )}
 
         {/* Buttons */}
-        <div className="flex gap-2 justify-center pt-1 flex-wrap">
+        <div className="flex gap-2 justify-center pt-1">
           {showPushHarder && (
             <button
               onClick={() => setShowGapsModal(true)}
@@ -4273,6 +4394,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               Push for a higher score →
             </button>
           )}
+          <button
+            onClick={() => setReviseModalState({ mode: 'add' })}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+          >
+            ⚡ More to add?
+          </button>
           <button
             onClick={async () => {
               const { error: saveError } = await supabase
@@ -4738,12 +4865,21 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                         setShowChangeModal(false)
                         finishReview([...acceptedChanges])
                       }
-                      // Modal stays open for next change
                     }}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
                   >
                     ✗ Keep Original
                   </button>
+                  {currentChange.after && setReviseModalState && (
+                    <button
+                      onClick={() => {
+                        setReviseModalState({ mode: 'choose', text: currentChange.after, location: { type: 'reviewChange', changeIndex: currentChangeIndex } })
+                      }}
+                      className="px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg text-xs font-medium hover:bg-purple-50 transition-colors"
+                    >
+                      ⚡ Try Different
+                    </button>
+                  )}
                   {!editingChange ? (
                     <button
                       onClick={() => { setEditingChange(true); setEditedText(currentChange.after) }}

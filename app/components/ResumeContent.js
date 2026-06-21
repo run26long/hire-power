@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { groupExperience } from '../utils/groupExperience'
 import { groupEducation } from '../utils/groupEducation'
 
-export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {}, selectedTemplate = 'crisp', combineBannerDismissed = false, setCombineBannerDismissed = () => {} }) {
+export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {}, selectedTemplate = 'crisp', combineBannerDismissed = false, setCombineBannerDismissed = () => {}, onBulletAction = null, bulletSelectMode = null }) {
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [editingSection, setEditingSection] = useState(null)
   const ts = templateStyles
@@ -609,9 +609,22 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       const renderRoleBody = (job, jobIndex) => (
         <>
           {job.summary ? (
-            <div className="mb-2">
-              <p className={`text-sm text-gray-700 italic ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
-              {!readOnly && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-[#e57373] text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
+            <div className="mb-2 relative group/jobsummary">
+              <p className={`text-sm text-gray-700 italic ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
+              {!readOnly && !onBulletAction && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-[#e57373] text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
+              {onBulletAction && !bulletSelectMode && (
+                <button
+                  onClick={() => onBulletAction(job.summary, { type: 'jobSummary', jobIndex })}
+                  className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded opacity-100 md:opacity-0 md:group-hover/jobsummary:opacity-100"
+                  title="Click to reword or fix this"
+                >⚡</button>
+              )}
+              {bulletSelectMode && (
+                <button
+                  onClick={() => onBulletAction(job.summary, { type: 'jobSummary', jobIndex })}
+                  className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300"
+                />
+              )}
             </div>
           ) : !readOnly && job.summaryDismissed !== true && (
             <div className="flex items-center gap-2 mb-2">
@@ -622,7 +635,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
             <div key={bulletIndex} className="relative flex items-start gap-1 mb-1 group/bullet">
               <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
-              <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(bullet ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!bullet) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet || 'Describe what you did and the impact you made'}</p>
+              <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(bullet ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onFocus={(e) => { if (!bullet) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet || 'Describe what you did and the impact you made'}</p>
               {!readOnly && (
                 <div className="absolute right-0 top-0 flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100 bg-white">
                   <button
@@ -640,7 +653,20 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   ) : (
                     <button onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
                   )}
+                  {onBulletAction && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onBulletAction(bullet, { type: 'bullet', jobIndex, bulletIndex }) }}
+                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded opacity-100 md:opacity-0 md:group-hover/bullet:opacity-100"
+                      title="Click to reword or fix this"
+                    >⚡</button>
+                  )}
                 </div>
+              )}
+              {bulletSelectMode && (
+                <button
+                  onClick={() => onBulletAction(bullet, { type: 'bullet', jobIndex, bulletIndex })}
+                  className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300"
+                />
               )}
             </div>
           ))}
@@ -1380,13 +1406,28 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             )}
           </h2>
           )}
-          <p
-            className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
-            style={ts.body || {}}
-            contentEditable={!readOnly}
-            suppressContentEditableWarning
-            onBlur={(e) => updateField('summary', e.currentTarget.textContent)}
-          >{resumeData.summary}</p>
+          <div className="relative group/summary">
+            <p
+              className={`text-sm ${!readOnly && !bulletSelectMode && 'cursor-text hover:bg-purple-50 p-1 rounded'}`}
+              style={ts.body || {}}
+              contentEditable={!readOnly && !bulletSelectMode}
+              suppressContentEditableWarning
+              onBlur={(e) => updateField('summary', e.currentTarget.textContent)}
+            >{resumeData.summary}</p>
+            {onBulletAction && !bulletSelectMode && (
+              <button
+                onClick={() => onBulletAction(resumeData.summary, { type: 'summary' })}
+                className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded opacity-100 md:opacity-0 md:group-hover/summary:opacity-100"
+                title="Click to reword or fix this"
+              >⚡</button>
+            )}
+            {bulletSelectMode && (
+              <button
+                onClick={() => onBulletAction(resumeData.summary, { type: 'summary' })}
+                className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300"
+              />
+            )}
+          </div>
         </div>
       )}
 
