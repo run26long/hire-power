@@ -89,6 +89,7 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
     const result = await callApi('add', userInput)
     if (result) {
       setAddResult(result)
+      setUserInput('')
     }
   }
 
