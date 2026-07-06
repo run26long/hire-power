@@ -1022,12 +1022,13 @@ export default function CareerVaultPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-          onClick={() => { setShowLogModal(false); setLogText(''); setLogDate(''); setLogError(null); }}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { setShowLogModal(false); setLogText(''); setLogDate(''); setLogError(null); } }}
         >
           <div
             className="bg-white shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col"
             style={{ borderRadius: '8px' }}
-            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             {/* Header */}
             <div

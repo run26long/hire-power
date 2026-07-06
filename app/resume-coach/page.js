@@ -1985,11 +1985,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => { setShowJobModal(false); setJobCreateError(null); }}
         >
           <div
             className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
-            onClick={e => e.stopPropagation()}
           >
             <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">
@@ -2275,11 +2273,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => { setShowCLModal(false); setClSourceType(null); setClCreateError(null); }}
         >
           <div
             className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
-            onClick={e => e.stopPropagation()}
           >
             <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">

@@ -168,12 +168,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-          onClick={onClose}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
         >
           <div
             className="bg-white shadow-2xl flex flex-col"
             style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
-            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             <div
               style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -209,12 +210,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
       <div
         className="fixed inset-0 z-[60] flex items-center justify-center p-4"
         style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-        onClick={onClose}
+        onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+        onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
       >
         <div
           className="bg-white shadow-2xl flex flex-col"
           style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
-          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
         >
           <div
             style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -272,12 +274,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-          onClick={onClose}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
         >
           <div
             className="bg-white shadow-2xl flex flex-col"
             style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
-            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             <div
               style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -314,12 +317,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-6"
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-          onClick={onClose}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
         >
           <div
             className="bg-white shadow-2xl w-full max-w-2xl border border-gray-200 flex flex-col h-[85vh] md:h-[480px]"
             style={{ borderRadius: '8px' }}
-            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             <div
               style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -404,12 +408,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
             <div
               className="fixed inset-0 z-[80] flex items-center justify-center p-4"
               style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-              onClick={() => setEditingReword(false)}
+              onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+              onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { setEditingReword(false); } }}
             >
               <div
                 className="bg-white shadow-2xl flex flex-col"
                 style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '400px' }}
-                onClick={e => e.stopPropagation()}
+                onMouseDown={e => e.stopPropagation()}
               >
                 <div
                   style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -453,12 +458,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
       <div
         className="fixed inset-0 z-[60] flex items-center justify-center p-4"
         style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-        onClick={onClose}
+        onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+        onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
       >
         <div
           className="bg-white shadow-2xl flex flex-col"
           style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
-          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
         >
           <div
             style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -521,12 +527,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
           <div
             className="fixed inset-0 z-[70] flex items-center justify-center p-6"
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-            onClick={onClose}
+            onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+            onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
           >
             <div
               className="bg-white shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col"
               style={{ borderRadius: '8px', height: '380px' }}
-              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
             >
               <div
                 style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -614,12 +621,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
       <div
         className="fixed inset-0 z-[60] flex items-center justify-center p-4"
         style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-        onClick={onClose}
+        onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+        onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
       >
         <div
           className="bg-white shadow-2xl flex flex-col"
           style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
-          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
         >
           <div
             style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
@@ -705,12 +713,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
           <div
             className="fixed inset-0 z-[70] flex items-center justify-center p-6"
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-            onClick={onClose}
+            onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+            onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { onClose(); } }}
           >
             <div
               className="bg-white shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col"
               style={{ borderRadius: '8px', height: '380px' }}
-              onClick={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
             >
               <div
                 style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}

@@ -1731,10 +1731,8 @@ if (data.ai_analysis) {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowTooLongModal(false)}
         >
           <div
-            onClick={e => e.stopPropagation()}
             className="bg-white rounded-xl shadow-2xl overflow-hidden"
             style={{ width: '364px' }}
           >
@@ -2617,10 +2615,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => !isSkipCoachingFinishing && setShowSkipCoachingModal(false)}
         >
           <div
-            onClick={e => e.stopPropagation()}
             className="bg-white rounded-xl shadow-2xl overflow-hidden"
             style={{ width: '364px' }}
           >
@@ -4764,12 +4760,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-            onClick={() => setShowChangeModal(false)}
           >
             <div
               className="bg-white shadow-2xl w-full max-w-2xl border border-gray-200 flex flex-col"
               style={{ borderRadius: '8px', height: '480px' }}
-              onClick={e => e.stopPropagation()}
             >
               <div
                 style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
