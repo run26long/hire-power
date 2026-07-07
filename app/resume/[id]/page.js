@@ -10,6 +10,7 @@ import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
 import ErrorToast from '../../components/ErrorToast'
+import SuccessToast from '../../components/SuccessToast'
 import CaptureCounter from '../../components/CaptureCounter'
 import CaptureToast from '../../components/CaptureToast'
 import CoachReviseModal from '../../components/CoachReviseModal'
@@ -139,6 +140,7 @@ const [coachingMessages, setCoachingMessages] = useState([])
 const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
+  const [successToast, setSuccessToast] = useState(null)
   const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
   const [remainingGaps, setRemainingGaps] = useState([])
   const [recoachAttempts, setRecoachAttempts] = useState(0)
@@ -442,6 +444,17 @@ const handleReassess = async (overrideData = null) => {
       setResume(prev => ({ ...prev, current_score: result.matchScore }))
       setScoreAfterCoaching(result.matchScore)
 
+      const prevScore = resume?.current_score
+      if (prevScore && result.matchScore > prevScore) {
+        setSuccessToast(`${prevScore} → ${result.matchScore} — +${result.matchScore - prevScore} points. Your changes moved the needle.`)
+      } else if (prevScore && result.matchScore === prevScore) {
+        setSuccessToast(`${result.matchScore}% — no change. Your content is already dialed in.`)
+      } else if (prevScore && result.matchScore < prevScore) {
+        setSuccessToast(`${prevScore} → ${result.matchScore} — score shifted. Small fluctuations are normal.`)
+      } else {
+        setSuccessToast(`${result.matchScore}% — your resume has been scored.`)
+      }
+
       // Update job card match score if one exists
       if (currentUser) {
         const { data: existingCard, error: cardLookupError } = await supabase
@@ -517,6 +530,17 @@ const handleReassess = async (overrideData = null) => {
       }))
 
       setScoreAfterCoaching(result.score)
+
+      const prevScore = resume?.current_score
+      if (prevScore && result.score > prevScore) {
+        setSuccessToast(`${prevScore} → ${result.score} — +${result.score - prevScore} points. Your changes moved the needle.`)
+      } else if (prevScore && result.score === prevScore) {
+        setSuccessToast(`${result.score}/100 — no change. Your content is already dialed in.`)
+      } else if (prevScore && result.score < prevScore) {
+        setSuccessToast(`${prevScore} → ${result.score} — score shifted. Small fluctuations are normal.`)
+      } else {
+        setSuccessToast(`${result.score}/100 — your resume has been scored.`)
+      }
 
     }
 
@@ -1720,6 +1744,7 @@ if (data.ai_analysis) {
       </div>
       </div>
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
 
       <UpgradeModal
         isOpen={showUpgradeModal}
@@ -2564,6 +2589,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setReviseModalState={setReviseModalState}
           bulletSelectMode={bulletSelectMode}
           setBulletSelectMode={setBulletSelectMode}
+          setViewingStep={setViewingStep}
         />
       )}
 
@@ -2580,6 +2606,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     userTier={userTier}
     setReviseModalState={setReviseModalState}
     coachingComplete={resume?.coaching_complete}
+    setViewingStep={setViewingStep}
   />
 )}
 
@@ -3958,7 +3985,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -4145,7 +4172,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 }
                 setResume(prev => ({ ...prev, journey_step: 'format' }))
               }}
-              className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Format & Finish →
@@ -4277,8 +4304,9 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   return
                 }
                 setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
+                if (setViewingStep) setViewingStep(null)
               }}
-              className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Looks Good → Format & Finish
@@ -4410,8 +4438,9 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 return
               }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
+              if (setViewingStep) setViewingStep(null)
             }}
-            className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+            className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Format & Finish →
@@ -5330,6 +5359,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
                 return
               }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
+              if (setViewingStep) setViewingStep(null)
             }}
             className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -5642,7 +5672,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 // ─────────────────────────────────────────────
 // FORMAT STEP
 // ─────────────────────────────────────────────
-function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier, setReviseModalState, coachingComplete }) {
+function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier, setReviseModalState, coachingComplete, setViewingStep }) {
   const [advancing, setAdvancing] = useState(false)
   const [errorToastFormat, setErrorToastFormat] = useState(null)
 
@@ -5695,6 +5725,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
                 return
               }
               setResume(prev => ({ ...prev, journey_step: 'save' }))
+              if (setViewingStep) setViewingStep(null)
             } catch (err) {
               console.error('Unexpected error advancing to save step:', err)
               setErrorToastFormat("Something went wrong. Please try again.")
