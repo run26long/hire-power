@@ -2578,6 +2578,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     isAnalyzing={isAnalyzing}
     score={score}
     userTier={userTier}
+    setReviseModalState={setReviseModalState}
+    coachingComplete={resume?.coaching_complete}
   />
 )}
 
@@ -5640,7 +5642,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 // ─────────────────────────────────────────────
 // FORMAT STEP
 // ─────────────────────────────────────────────
-function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier }) {
+function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier, setReviseModalState, coachingComplete }) {
   const [advancing, setAdvancing] = useState(false)
   const [errorToastFormat, setErrorToastFormat] = useState(null)
 
@@ -5670,7 +5672,15 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           </p>
         </div>
       )}
-      <div className="flex flex-col items-center mt-3">
+     <div className="flex gap-2 justify-center pt-1">
+        {userTier !== 'free' && coachingComplete && (
+          <button
+            onClick={() => setReviseModalState({ mode: 'add' })}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+          >
+            ⚡ More to add?
+          </button>
+        )}
         <button
           onClick={async () => {
             setAdvancing(true)
@@ -5693,7 +5703,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
             }
           }}
           disabled={advancing}
-          className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90"
+          className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90 whitespace-nowrap"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           {advancing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
