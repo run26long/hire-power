@@ -1473,7 +1473,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                     onClick={() => setShowOlderJSModal(true)}
                                     className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
-                                    See {data.resumeVersions.length - 2} older version{data.resumeVersions.length - 2 > 1 ? 's' : ''} →
+                                    View all job-specific resumes →
                                   </button>
                               )}
                             </>
@@ -1657,7 +1657,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       onClick={() => setShowOlderCLModal(true)}
                                       className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                     >
-                                      See {data.coverLetters.length - 2} older letter{data.coverLetters.length - 2 > 1 ? 's' : ''} →
+                                      View all cover letters →
                                     </button>
                                 )}
                               </>
@@ -2399,7 +2399,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Job-Specific Resumes</h2>
-                  <p className="text-purple-100 text-xs">{data?.resumeVersions?.length} versions</p>
+                  <p className="text-purple-100 text-xs">{data?.resumeVersions?.length} resumes</p>
                 </div>
                 <button onClick={() => setShowOlderJSModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
@@ -2451,7 +2451,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Cover Letters</h2>
-                  <p className="text-purple-100 text-xs">{data?.coverLetters?.length} letters</p>
+                  <p className="text-purple-100 text-xs">{data?.coverLetters?.length} cover letters</p>
                 </div>
                 <button onClick={() => setShowOlderCLModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>

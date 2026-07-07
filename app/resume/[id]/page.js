@@ -4724,7 +4724,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             onClick={() => setShowChangeModal(true)}
             className="flex-1 bg-purple-600 text-white rounded-lg py-1.5 font-medium text-sm md:text-xs hover:bg-purple-700 transition-colors"
           >
-            Review Changes ({currentChangeIndex + 1}/{totalChanges})
+            Review Changes ({Math.min(currentChangeIndex + 1, totalChanges)}/{totalChanges})
           </button>
           <button
             onClick={() => {
@@ -4779,7 +4779,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     <h2 className="text-base font-bold text-white">
                       {currentChange.type === 'added' ? '✨ New Addition' : currentChange.type === 'removed' ? '🗑️ Removal' : '✏️ Improvement'}
                     </h2>
-                    <p className="text-purple-100 text-xs">Change {currentChangeIndex + 1} of {totalChanges}{currentChange.section ? ` · ${currentChange.section}` : ''}</p>
+                    <p className="text-purple-100 text-xs">Change {Math.min(currentChangeIndex + 1, totalChanges)} of {totalChanges}{currentChange.section ? ` · ${currentChange.section}` : ''}</p>
                   </div>
                 </div>
                 <button
