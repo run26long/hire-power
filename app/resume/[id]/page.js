@@ -4412,7 +4412,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 
         {/* Buttons */}
         <div className="flex gap-2 justify-center pt-1">
-          {showPushHarder && (
+         {showPushHarder && (
             <button
               onClick={() => setShowGapsModal(true)}
               className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
@@ -4420,12 +4420,6 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               Push for a higher score →
             </button>
           )}
-          <button
-            onClick={() => setReviseModalState({ mode: 'add' })}
-            className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
-          >
-            ⚡ More to add?
-          </button>
           <button
             onClick={async () => {
               const { error: saveError } = await supabase

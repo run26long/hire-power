@@ -1404,7 +1404,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
                   {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px', marginBottom: '16px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -1600,7 +1600,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
@@ -2237,8 +2237,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Archive this resume?</h3>
-            <p className="text-sm text-gray-600 mb-5">It will move to your archive. You can restore or permanently delete it from there.</p>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this resume?</h3>
+            <p className="text-sm text-gray-600 mb-5">Deletes this resume from Resume Coach. Job-specific resumes remain stored on the corresponding job card.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
@@ -2257,10 +2257,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Archiving...
+                    Deleting...
                   </>
                 ) : (
-                  'Yes, Archive'
+                  'Yes, Delete'
                 )}
               </button>
             </div>
@@ -2503,7 +2503,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this cover letter?</h3>
-            <p className="text-sm text-gray-600 mb-5">This removes it from Resume Coach. It will remain accessible from its job card if one exists.</p>
+            <p className="text-sm text-gray-600 mb-5">Deletes this cover letter from Resume Coach. Cover letters remain stored on the corresponding job card.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDeleteCLId(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
                 Cancel

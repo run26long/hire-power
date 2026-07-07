@@ -1033,6 +1033,9 @@ FOR EACH ROLE, FOLLOW THIS EXACT SEQUENCE:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP A — BULLET AUDIT (do this first, every time)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BEFORE AUDITING BULLETS — CHECK FOR MISSING BASICS:
+Before asking about achievements, check whether this role is missing a job title, company name, location (city/state), or dates of employment. If any of these are missing, ask for them first. One question at a time. Example: "I don't see a location for your role at [company]. What city and state was that in?" These are required resume fields and must be captured before moving to bullet work.
+
 Read every existing bullet on the resume for this role.
 For each bullet, ask yourself: "What is missing from this that would make it stronger?"
 
