@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -116,6 +116,8 @@ export default function ResumePage() {
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveToast, setSaveToast] = useState(null)
+  const [saveToastCount, setSaveToastCount] = useState(0)
  const [showPreview, setShowPreview] = useState(false)
 const [previewUrl, setPreviewUrl] = useState(null)
 const [isLoadingPreview, setIsLoadingPreview] = useState(false)
@@ -124,6 +126,20 @@ const [previewScale, setPreviewScale] = useState(1)
  const [isDownloading, setIsDownloading] = useState(false)
  const [showColorPicker, setShowColorPicker] = useState(false)
 const isAutoFitJustRanRef = useRef(false)
+
+  // Save reminder: toast first 3 times, then pulse handles it
+  useEffect(() => {
+    if (hasUnsavedChanges && !saveSuccess) {
+      const storageKey = `hp_save_toast_${resume?.id || 'unknown'}`
+      const count = parseInt(localStorage.getItem(storageKey) || '0')
+      setSaveToastCount(count)
+      if (count < 3) {
+        setSaveToast(window.innerWidth < 768 ? "You have unsaved changes. Tap Actions → Save when you're done editing." : "You have unsaved changes. Click Save when you're done editing.")
+        localStorage.setItem(storageKey, String(count + 1))
+        setSaveToastCount(count + 1)
+      }
+    }
+  }, [hasUnsavedChanges])
   const cardCreationRanRef = useRef(false)
 
   // Analysis state
@@ -1057,59 +1073,61 @@ if (data.ai_analysis) {
           {showEditorTip && (
             <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
               <p className="text-xs text-purple-700 text-center">
-                ✏️ Tap any section to edit · 📄 Format for templates and fonts · {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete
-                  ? '⚡ Actions to Reword or Fix, Re-assess, or Preview'
-                  : '⚡ Actions to save, undo, or re-assess'
+                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete
+                  ? '✏️ Tap any section to edit · 📄 Fonts & Templates · ⚡ Add or Change Content · ⚙️ Undo, Save & Download'
+                  : '✏️ Tap any section to edit · 📄 Format for templates and fonts · ⚙️ Actions to save, undo, or re-assess'
                 }
               </p>
               <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-2 flex-shrink-0 text-sm">✕</button>
             </div>
           )}
-          {bulletSelectMode && (
-            <div className="bg-purple-100 border-b border-purple-200 px-3 py-2 flex items-center justify-between">
-              <p className="text-xs text-purple-800 font-medium">⚡ Tap the sentence you want to change</p>
-              <button onClick={() => setBulletSelectMode(null)} className="text-purple-500 hover:text-purple-700 text-sm font-medium">Cancel</button>
-            </div>
-          )}
           {/* Toolbar row */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
-            {/* Pencil — leftmost */}
-            <button
-              onClick={() => {
-                setShowEditTip(prev => !prev)
-                if (!showEditTip) setTimeout(() => setShowEditTip(false), 3000)
-              }}
-              className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-              style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-            >
-              ✏️
-            </button>
+          <div className="flex items-center gap-1 px-1.5 py-1.5 bg-gray-50 border-b border-gray-200">
+           
            {/* Format */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
-              className="py-1 px-2 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
+                paddingLeft: 4, paddingRight: 4,
                 color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
                 border: mobileToolbar === 'format' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
               }}
             >
-              📄 Format
+              📄Format
             </button>
             {/* Actions */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'actions' ? null : 'actions')}
-              className="py-1 px-2 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
+                paddingLeft: 4, paddingRight: 4,
                 color: mobileToolbar === 'actions' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'actions' ? 'rgba(147, 51, 234, 0.08)' : 'white',
                 border: mobileToolbar === 'actions' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
               }}
             >
-              ⚡ Actions
+              ⚙️Actions
             </button>
+            {/* Improve — Pro with coaching only */}
+            {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
+              <button
+                onClick={() => setMobileToolbar(mobileToolbar === 'improve' ? null : 'improve')}
+                className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+                style={{
+                  paddingLeft: 4, paddingRight: 4,
+                  color: mobileToolbar === 'improve' ? '#7c3aed' : '#4b5563',
+                  backgroundColor: mobileToolbar === 'improve' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+                  border: mobileToolbar === 'improve' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+              >
+                ⚡Improve
+              </button>
+            )}
             {/* Score */}
             {score && (
               <div className={`py-1 px-2 rounded text-xs font-semibold flex-shrink-0 ${
@@ -1129,9 +1147,16 @@ if (data.ai_analysis) {
               className="flex-1 py-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
-              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div></> : '⬇️ Download'}
+              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div></> : '⬇️Download'}
             </button>
           </div>
+
+          {bulletSelectMode && (
+            <div className="bg-purple-100 border-b border-purple-200 px-3 py-2 flex items-center justify-between">
+              <p className="text-xs text-purple-800 font-medium">⚡ Tap the sentence you want to change</p>
+              <button onClick={() => setBulletSelectMode(null)} className="text-purple-500 hover:text-purple-700 text-sm font-medium">Cancel</button>
+            </div>
+          )}
 
           {/* Format panel */}
           {mobileToolbar === 'format' && (
@@ -1231,118 +1256,86 @@ if (data.ai_analysis) {
             </div>
           )}
 
-         {/* Actions panel */}
+         {/* Actions panel — utility operations */}
           {mobileToolbar === 'actions' && (
-            <div className="px-4 pt-2 pb-3 space-y-2">
-              {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete ? (
-               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '6px' }}>
-                  <button
-                    onClick={() => {
-                      setBulletSelectMode(true)
-                      setMobileToolbar(null)
-                      setMobilePanel('resume')
-                    }}
-                    className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50 whitespace-nowrap"
-                  >
-                    ⚡ Reword or Fix
-                  </button>
-                  <button
-                    onClick={() => handleReassess()}
-                    disabled={isAnalyzing || journeyStep === 'review'}
-                    className="py-1.5 border border-gray-300 rounded font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
-                    style={{ fontSize: '12px' }}
-                  >
-                    {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div></> : 'Re-assess'}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setIsLoadingPreview(true)
-                      try {
-                        const { data: { user } } = await supabase.auth.getUser()
-                        const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
-                        const { data: { session: previewSession } } = await supabase.auth.getSession()
-                        const response = await fetch('/api/generate-pdf', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                          body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
-                        })
-                        if (response.ok) {
-                          const data = await response.json()
-                          setPreviewUrl(data.previewUrl)
-                          setShowPreview(true)
-                        }
-                      } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
-                    }}
-                    disabled={isLoadingPreview}
-                    className="py-1.5 border border-gray-300 rounded font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
-                    style={{ fontSize: '12px' }}
-                  >
-                    {isLoadingPreview ? '...' : 'Preview'}
-                  </button>
-                  <button
-                    onClick={save}
-                    className={`py-1.5 rounded font-semibold ${
-                      saveSuccess ? 'bg-green-600 text-white' :
-                      hasUnsavedChanges ? 'bg-purple-600 text-white' :
-                      'bg-gray-200 text-gray-500'
-                    }`}
-                    style={{ fontSize: '12px' }}
-                  >
-                    {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-1.5">
-                  <button
-                    onClick={() => handleReassess()}
-                    disabled={isAnalyzing || journeyStep === 'review'}
-                    className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</> : 'Re-assess'}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setIsLoadingPreview(true)
-                      try {
-                        const { data: { user } } = await supabase.auth.getUser()
-                        const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
-                        const { data: { session: previewSession } } = await supabase.auth.getSession()
-                        const response = await fetch('/api/generate-pdf', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                          body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
-                        })
-                        if (response.ok) {
-                          const data = await response.json()
-                          setPreviewUrl(data.previewUrl)
-                          setShowPreview(true)
-                        }
-                      } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
-                    }}
-                    disabled={isLoadingPreview}
-                    className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {isLoadingPreview ? '...' : 'Preview'}
-                  </button>
-                  <button
-                    onClick={undo}
-                    disabled={historyIndex <= 0}
-                    className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
-                  >
-                    ↶ Undo
-                  </button>
-                  <button
-                    onClick={save}
-                    className={`py-1.5 rounded text-sm md:text-xs font-semibold ${
-                      saveSuccess ? 'bg-green-600 text-white' :
-                      hasUnsavedChanges ? 'bg-purple-600 text-white' :
-                      'bg-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
-                  </button>
-                </div>
-              )}
+            <div className="px-4 pt-2 pb-3">
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  onClick={save}
+                  className={`py-1.5 rounded text-[12px] font-semibold ${
+                    saveSuccess ? 'bg-green-600 text-white' :
+                    hasUnsavedChanges ? `bg-purple-600 text-white ${saveToastCount >= 3 ? 'animate-pulse' : ''}` :
+                    'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+                </button>
+                <button
+                  onClick={() => handleReassess()}
+                  disabled={isAnalyzing || journeyStep === 'review'}
+                  className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {isAnalyzing ? <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> : 'Re-assess'}
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsLoadingPreview(true)
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                      const { data: { session: previewSession } } = await supabase.auth.getSession()
+                      const response = await fetch('/api/generate-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
+                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
+                      })
+                      if (response.ok) {
+                        const data = await response.json()
+                        setPreviewUrl(data.previewUrl)
+                        setShowPreview(true)
+                      }
+                    } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
+                  }}
+                  disabled={isLoadingPreview}
+                  className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {isLoadingPreview ? '...' : 'Preview'}
+                </button>
+                <button
+                  onClick={undo}
+                  disabled={historyIndex <= 0}
+                  className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
+                >
+                  ↶ Undo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Improve panel — AI editing tools (Pro with coaching only) */}
+          {mobileToolbar === 'improve' && (
+            <div className="px-4 pt-2 pb-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => {
+                    setBulletSelectMode(true)
+                    setMobileToolbar(null)
+                    setMobilePanel('resume')
+                  }}
+                  className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+                >
+                  ✏️ Reword or Fix
+                </button>
+                <button
+                  onClick={() => {
+                    setReviseModalState({ mode: 'add' })
+                    setMobileToolbar(null)
+                  }}
+                  className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+                >
+                  ✨ Add More
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1586,7 +1579,7 @@ if (data.ai_analysis) {
                 saveSuccess
                   ? 'bg-green-600 text-white'
                   : hasUnsavedChanges
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  ? `bg-purple-600 text-white hover:bg-purple-700 ${saveToastCount >= 3 ? 'animate-pulse' : ''}`
                   : 'bg-gray-300 text-gray-600'
               }`}
             >
@@ -1744,6 +1737,7 @@ if (data.ai_analysis) {
       </div>
       </div>
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <SuccessToast message={saveToast} onClose={() => setSaveToast(null)} />
       <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
 
       <UpgradeModal

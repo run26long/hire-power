@@ -1,11 +1,24 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { groupExperience } from '../utils/groupExperience'
 import { groupEducation } from '../utils/groupEducation'
 
 export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {}, selectedTemplate = 'crisp', combineBannerDismissed = false, setCombineBannerDismissed = () => {}, onBulletAction = null, bulletSelectMode = null }) {
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [editingSection, setEditingSection] = useState(null)
+  const [focusedBullet, setFocusedBullet] = useState(null)
+
+  useEffect(() => {
+    if (!focusedBullet) return
+    const handler = (e) => {
+      if (!e.target.closest('[data-bullet-group]')) {
+        setFocusedBullet(null)
+      }
+    }
+    document.addEventListener('click', handler, true)
+    return () => document.removeEventListener('click', handler, true)
+  }, [focusedBullet])
+
   const ts = templateStyles
   const sectionClass = selectedTemplate === 'current' ? 'mb-0 group' : 'mb-6 group'
 
@@ -615,7 +628,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               {onBulletAction && !bulletSelectMode && (
                 <button
                   onClick={() => onBulletAction(job.summary, { type: 'jobSummary', jobIndex })}
-                  className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded opacity-100 md:opacity-0 md:group-hover/jobsummary:opacity-100"
+                  className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block md:opacity-0 md:group-hover/jobsummary:opacity-100"
                   title="Click to reword or fix this"
                 >⚡</button>
               )}
@@ -633,17 +646,17 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             </div>
           )}
           {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
-            <div key={bulletIndex} className="relative flex items-start gap-1 mb-1 group/bullet">
+           <div key={bulletIndex} data-bullet-group={`${jobIndex}-${bulletIndex}`} className="relative flex items-start gap-1 mb-1 group/bullet" onClick={() => { if (window.innerWidth < 768) setFocusedBullet(`${jobIndex}-${bulletIndex}`) }}>
               <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
               <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(bullet ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onFocus={(e) => { if (!bullet) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, e.currentTarget.textContent)}>{bullet || 'Describe what you did and the impact you made'}</p>
               {!readOnly && (
-                <div className="absolute right-0 top-0 flex items-center gap-1 opacity-0 group-hover/bullet:opacity-100 bg-white">
+                <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === `${jobIndex}-${bulletIndex}` ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/bullet:opacity-100'}`}>
                   <button
-                    onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
-                    onClick={() => moveExperienceBulletUp(jobIndex, bulletIndex)} disabled={bulletIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                    onMouseDown={(e) => { e.preventDefault(); const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
+                    onClick={(e) => { e.stopPropagation(); moveExperienceBulletUp(jobIndex, bulletIndex); if (bulletIndex > 0) { setFocusedBullet(`${jobIndex}-${bulletIndex - 1}`); setTimeout(() => { if (window.innerWidth < 768) { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex - 1}"]`); if (el) el.focus() } }, 50) } }} disabled={bulletIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
                   <button
-                    onMouseDown={() => { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
-                    onClick={() => moveExperienceBulletDown(jobIndex, bulletIndex)} disabled={bulletIndex === job.bullets.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                    onMouseDown={(e) => { e.preventDefault(); const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex}"]`); if (el) updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, el.textContent); }}
+                    onClick={(e) => { e.stopPropagation(); moveExperienceBulletDown(jobIndex, bulletIndex); if (bulletIndex < job.bullets.length - 1) { setFocusedBullet(`${jobIndex}-${bulletIndex + 1}`); setTimeout(() => { if (window.innerWidth < 768) { const el = document.querySelector(`[data-bullet="${jobIndex}-${bulletIndex + 1}"]`); if (el) el.focus() } }, 50) } }} disabled={bulletIndex === job.bullets.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
                   {confirmingDelete === `experience-${jobIndex}-${bulletIndex}` ? (
                     <div className="flex items-center gap-1 text-xs">
                       <span className="text-gray-600">Delete?</span>
@@ -651,12 +664,12 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
+                    <button onMouseDown={(e) => e.preventDefault()} onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`experience-${jobIndex}-${bulletIndex}`) }} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete bullet">🗑️</button>
                   )}
                   {onBulletAction && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onBulletAction(bullet, { type: 'bullet', jobIndex, bulletIndex }) }}
-                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded opacity-100 md:opacity-0 md:group-hover/bullet:opacity-100"
+                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block md:opacity-0 md:group-hover/bullet:opacity-100"
                       title="Click to reword or fix this"
                     >⚡</button>
                   )}
@@ -1417,7 +1430,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             {onBulletAction && !bulletSelectMode && (
               <button
                 onClick={() => onBulletAction(resumeData.summary, { type: 'summary' })}
-                className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded opacity-100 md:opacity-0 md:group-hover/summary:opacity-100"
+                className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block md:opacity-0 md:group-hover/summary:opacity-100"
                 title="Click to reword or fix this"
               >⚡</button>
             )}
