@@ -217,7 +217,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   function addProject() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.projects) newData.projects = []
-    newData.projects.push({ name: 'New Project', description: 'Project description', link: '' })
+    newData.projects.push({ name: '', description: '', link: '' })
     onUpdate(newData)
   }
 
@@ -230,7 +230,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   function addCertification() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.certifications) newData.certifications = []
-    newData.certifications.push({ name: 'New Certification', details: 'Issuing organization | Date' })
+    newData.certifications.push({ name: '', details: '' })
     onUpdate(newData)
   }
 
@@ -243,7 +243,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   function addVolunteer() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.volunteer) newData.volunteer = []
-    newData.volunteer.push({ organization: 'Organization Name', description: 'Role and responsibilities' })
+    newData.volunteer.push({ organization: '', description: '' })
     onUpdate(newData)
   }
 
@@ -253,10 +253,23 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     onUpdate(newData)
   }
 
+  function addReference() {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    if (!newData.references) newData.references = []
+    newData.references.push({ name: '', title: '', company: '', phone: '', email: '', relationship: '' })
+    onUpdate(newData)
+  }
+
+  function deleteReference(refIndex) {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    newData.references.splice(refIndex, 1)
+    onUpdate(newData)
+  }
+
   function addLanguage() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.languages) newData.languages = []
-    newData.languages.push({ language: 'Language', proficiency: 'Professional' })
+    newData.languages.push({ language: '', proficiency: 'Professional' })
     onUpdate(newData)
   }
 
@@ -295,14 +308,15 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     volunteer: 'VOLUNTEER',
     languages: 'LANGUAGES',
     additionalInfo: 'ADDITIONAL INFORMATION',
+    references: 'REFERENCES',
   }
 
   function getSectionTitle(key) {
     return resumeData.sectionTitles?.[key] || defaultSectionTitles[key]
   }
 
-  const edgeSectionOrder = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
-  const defaultSectionOrder = selectedTemplate === 'edge' ? edgeSectionOrder : ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
+  const edgeSectionOrder = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo', 'references']
+  const defaultSectionOrder = selectedTemplate === 'edge' ? edgeSectionOrder : ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo', 'references']
 
   function moveSectionUp(sectionName) {
     const newData = JSON.parse(JSON.stringify(resumeData))
@@ -406,6 +420,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     if (sectionKey === 'volunteer') newData.volunteer = []
     if (sectionKey === 'languages') newData.languages = []
     if (sectionKey === 'additionalInfo') newData.additionalInfo = []
+    if (sectionKey === 'references') newData.references = []
     if (newData.sectionOrder) {
       newData.sectionOrder = newData.sectionOrder.filter(s => s !== sectionKey)
     }
@@ -413,7 +428,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     setConfirmingDelete(null)
   }
 
-  const deletableSections = ['projects', 'certifications', 'volunteer', 'languages', 'additionalInfo']
+  const deletableSections = ['projects', 'certifications', 'volunteer', 'languages', 'additionalInfo', 'references']
 
   // Section header with title editing + section move arrows + optional delete
   const sectionHeader = (sectionKey, extraContent = null) => (
@@ -950,34 +965,36 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 <p className={`text-sm mb-1`} style={ts.jobTitle || {}}>
                   <span
                     className={`font-bold ${!readOnly && 'cursor-text'}`}
+                    style={{ color: degreeText ? 'inherit' : '#9ca3af', fontStyle: degreeText ? 'normal' : 'italic', minWidth: '80px', display: 'inline-block' }}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
+                    onFocus={(e) => { if (!degreeText) e.currentTarget.textContent = '' }}
                     onBlur={(e) => {
                       if (isUndoingRef.current) return
+                      const val = e.currentTarget.textContent.trim()
+                      if (!val) e.currentTarget.textContent = 'Degree'
                       const newData = JSON.parse(JSON.stringify(resumeData))
-                      newData.education[eduIndex].degreeDisplay = e.currentTarget.textContent.trim()
+                      newData.education[eduIndex].degreeDisplay = val
                       onUpdate(newData)
                     }}
-                  >{degreeText || (!readOnly ? 'Degree' : '')}</span>
-                  {dateText ? (
+                  >{degreeText || 'Degree'}</span>
+                  {(dateText || !readOnly) && (
                     <>
                       <span className="font-normal"> | </span>
                       <span
                         className={`font-normal ${!readOnly && 'cursor-text'}`}
+                        style={{ color: dateText ? 'inherit' : '#9ca3af', fontStyle: dateText ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }}
                         contentEditable={!readOnly}
                         suppressContentEditableWarning
+                        onFocus={(e) => { if (!dateText) e.currentTarget.textContent = '' }}
                         onBlur={(e) => {
                           if (isUndoingRef.current) return
                           const val = e.currentTarget.textContent.trim()
+                          if (!val) e.currentTarget.textContent = 'Graduation Date'
                           updateNestedField(`education[${eduIndex}].graduationDate`, val || null)
                         }}
-                      >{dateText}</span>
+                      >{dateText || 'Graduation Date'}</span>
                     </>
-                  ) : !readOnly && (
-                    <button
-                      onClick={() => updateNestedField(`education[${eduIndex}].graduationDate`, '2025')}
-                      className="font-normal text-purple-500 opacity-0 group-hover/entry:opacity-100 ml-1 text-xs"
-                    >+ Add Date</button>
                   )}
                 </p>
               )
@@ -1016,12 +1033,18 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 <div key={`edu-group-${groupIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
                   <div className="flex items-center justify-between gap-1 mb-1">
                     <p
-                      className={`text-sm uppercase text-gray-800 flex-1 ${!readOnly && 'cursor-text'}`}
-                      style={ts.company || {}}
+                      className={`text-sm uppercase flex-1 ${!readOnly && 'cursor-text'}`}
+                      style={{ ...(ts.company || {}), ...(edu.school ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '100px' }}
                       contentEditable={!readOnly}
                       suppressContentEditableWarning
-                      onBlur={(e) => updateNestedField(`education[${eduIndex}].school`, e.currentTarget.textContent)}
-                    >{edu.school}</p>
+                      onFocus={(e) => { if (!edu.school) e.currentTarget.textContent = '' }}
+                      onBlur={(e) => {
+                        if (isUndoingRef.current) return
+                        const val = e.currentTarget.textContent.trim()
+                        if (!val) e.currentTarget.textContent = 'School Name'
+                        updateNestedField(`education[${eduIndex}].school`, val)
+                      }}
+                    >{edu.school || 'School Name'}</p>
                     {entryArrows('education', eduIndex, resumeData.education.length)}
                     {!readOnly && (confirmingDelete === `education-${eduIndex}` ? (
                       <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
@@ -1045,20 +1068,22 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             return (
               <div key={`edu-group-${groupIndex}`} className={`mb-3 p-2 rounded ${!readOnly && 'hover:bg-purple-50/50'}`}>
                 <p
-                  className={`text-sm uppercase text-gray-800 mb-2 ${!readOnly && 'cursor-text'}`}
-                  style={ts.company || {}}
+                  className={`text-sm uppercase mb-2 ${!readOnly && 'cursor-text'}`}
+                  style={{ ...(ts.company || {}), ...(group.school ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '100px' }}
                   contentEditable={!readOnly}
                   suppressContentEditableWarning
+                  onFocus={(e) => { if (!group.school) e.currentTarget.textContent = '' }}
                   onBlur={(e) => {
                     if (isUndoingRef.current) return
-                    const newName = e.currentTarget.textContent
+                    const newName = e.currentTarget.textContent.trim()
+                    if (!newName) e.currentTarget.textContent = 'School Name'
                     const newData = JSON.parse(JSON.stringify(resumeData))
                     group.degrees.forEach(d => {
                       newData.education[d._originalIndex].school = newName
                     })
                     onUpdate(newData)
                   }}
-                >{group.school}</p>
+                >{group.school || 'School Name'}</p>
                 <div className="pl-4 border-l-2 border-purple-100">
                   {group.degrees.map((edu) => {
                     const eduIndex = edu._originalIndex
@@ -1135,7 +1160,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           <div key={projectIndex} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex items-center gap-1 flex-1">
-                <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].name`, e.currentTarget.textContent)}>{project.name}</h3>
+                <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(project.name ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Project Name'; updateNestedField(`projects[${projectIndex}].name`, val) }}>{project.name || 'Project Name'}</h3>
                 {entryArrows('projects', projectIndex, resumeData.projects.length)}
               </div>
               {!readOnly && (confirmingDelete === `projects-${projectIndex}` ? (
@@ -1146,8 +1171,8 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 </div>
               ) : <button onClick={() => setConfirmingDelete(`projects-${projectIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete project">🗑️</button>)}
             </div>
-            <p className={`text-sm text-gray-700 mb-1 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].description`, e.currentTarget.textContent)}>{project.description}</p>
-            {project.link && <p className={`text-sm text-purple-600 break-all ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`projects[${projectIndex}].link`, e.currentTarget.textContent)}>{project.link}</p>}
+            <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(project.description ? { color: '#374151' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.description) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Project description'; updateNestedField(`projects[${projectIndex}].description`, val) }}>{project.description || 'Project description'}</p>
+            {(project.link || !readOnly) && <p className={`text-sm break-all ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(project.link ? { color: '#7c3aed' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.link) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'https://link (optional)'; updateNestedField(`projects[${projectIndex}].link`, val) }}>{project.link || 'https://link (optional)'}</p>}
           </div>
         ))}
         {!readOnly && <button onClick={addProject} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Project</button>}
@@ -1162,10 +1187,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-1">
-                  <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`certifications[${certIndex}].name`, e.currentTarget.textContent)}>{cert.name}</h3>
+                  <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(cert.name ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!cert.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Certification Name'; updateNestedField(`certifications[${certIndex}].name`, val) }}>{cert.name || 'Certification Name'}</h3>
                   {entryArrows('certifications', certIndex, resumeData.certifications.length)}
                 </div>
-                <p className={`text-sm ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`certifications[${certIndex}].details`, e.currentTarget.textContent)}>{cert.details}</p>
+                <p className={`text-sm ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(cert.details ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!cert.details) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Issuing organization | Date'; updateNestedField(`certifications[${certIndex}].details`, val) }}>{cert.details || 'Issuing organization | Date'}</p>
               </div>
               {!readOnly && (confirmingDelete === `certifications-${certIndex}` ? (
                 <div className="flex items-center gap-1 text-xs">
@@ -1188,7 +1213,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           <div key={volIndex} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex items-center gap-1 flex-1">
-                <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={ts.jobTitle || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`volunteer[${volIndex}].organization`, e.currentTarget.textContent)}>{vol.organization}</h3>
+                <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(vol.organization ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!vol.organization) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Organization Name'; updateNestedField(`volunteer[${volIndex}].organization`, val) }}>{vol.organization || 'Organization Name'}</h3>
                 {entryArrows('volunteer', volIndex, resumeData.volunteer.length)}
               </div>
               {!readOnly && (confirmingDelete === `volunteer-${volIndex}` ? (
@@ -1199,7 +1224,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 </div>
               ) : <button onClick={() => setConfirmingDelete(`volunteer-${volIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete volunteer">🗑️</button>)}
             </div>
-            <p className={`text-sm text-gray-700 ${!readOnly && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`volunteer[${volIndex}].description`, e.currentTarget.textContent)}>{vol.description}</p>
+            <p className={`text-sm ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(vol.description ? { color: '#374151' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!vol.description) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Role and responsibilities'; updateNestedField(`volunteer[${volIndex}].description`, val) }}>{vol.description || 'Role and responsibilities'}</p>
           </div>
         ))}
         {!readOnly && <button onClick={addVolunteer} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Volunteer Experience</button>}
@@ -1212,7 +1237,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         {resumeData.languages.map((lang, langIndex) => (
           <div key={langIndex} className={`mb-2 p-2 rounded group/entry flex items-center justify-between ${!readOnly && 'hover:bg-purple-50'}`}>
             <div className="flex items-center gap-3 flex-1">
-              <span className={`font-semibold ${!readOnly && 'cursor-text'}`} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => updateNestedField(`languages[${langIndex}].language`, e.currentTarget.textContent)}>{lang.language}</span>
+              <span className={`font-semibold ${!readOnly && 'cursor-text'}`} style={{ color: lang.language ? 'inherit' : '#9ca3af', fontStyle: lang.language ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!lang.language) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Language'; updateNestedField(`languages[${langIndex}].language`, val) }}>{lang.language || 'Language'}</span>
               <span className="text-gray-400">|</span>
               {readOnly ? (
                 <span className="text-sm text-gray-600">{lang.proficiency || 'Professional'}</span>
@@ -1250,31 +1275,34 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 <div className="flex items-center gap-2">
                   <span
                     className={`font-semibold text-sm ${!readOnly && 'cursor-text'}`}
-                    style={ts.jobTitle || {}}
+                    style={{ ...(ts.jobTitle || {}), ...(item.label ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '60px', display: 'inline-block' }}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].label`, e.currentTarget.textContent)}
-                  >{item.label}</span>
-                  {item.detail && item.detail.length <= 80 && <span className="text-gray-400 text-sm shrink-0">|</span>}
+                    onFocus={(e) => { if (!item.label) e.currentTarget.textContent = '' }}
+                    onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Item Name'; updateNestedField(`additionalInfo[${itemIndex}].label`, val) }}
+                  >{item.label || 'Item Name'}</span>
+                  {(item.detail || !readOnly) && item.detail && item.detail.length <= 80 && <span className="text-gray-400 text-sm shrink-0">|</span>}
                   {item.detail && item.detail.length <= 80 && (
                     <span
-                      className={`text-sm text-gray-600 flex-1 ${!readOnly && 'cursor-text'}`}
-                      style={ts.body || {}}
+                      className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`}
+                      style={{ ...(ts.body || {}), ...(item.detail ? { color: '#4b5563' } : { color: '#9ca3af', fontStyle: 'italic' }) }}
                       contentEditable={!readOnly}
                       suppressContentEditableWarning
-                      onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].detail`, e.currentTarget.textContent)}
-                    >{item.detail}</span>
+                      onFocus={(e) => { if (!item.detail) e.currentTarget.textContent = '' }}
+                      onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Additional detail'; updateNestedField(`additionalInfo[${itemIndex}].detail`, val) }}
+                    >{item.detail || 'Additional detail'}</span>
                   )}
                   {entryArrows('additionalInfo', itemIndex, resumeData.additionalInfo.length)}
                 </div>
                 {item.detail && item.detail.length > 80 && (
                   <span
-                    className={`text-sm text-gray-600 block mt-1 ${!readOnly && 'cursor-text'}`}
-                    style={ts.body || {}}
+                    className={`text-sm block mt-1 ${!readOnly && 'cursor-text'}`}
+                    style={{ ...(ts.body || {}), ...(item.detail ? { color: '#4b5563' } : { color: '#9ca3af', fontStyle: 'italic' }) }}
                     contentEditable={!readOnly}
                     suppressContentEditableWarning
-                    onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].detail`, e.currentTarget.textContent)}
-                  >{item.detail}</span>
+                    onFocus={(e) => { if (!item.detail) e.currentTarget.textContent = '' }}
+                    onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Additional detail'; updateNestedField(`additionalInfo[${itemIndex}].detail`, val) }}
+                  >{item.detail || 'Additional detail'}</span>
                 )}
               </div>
               {!readOnly && (confirmingDelete === `additionalInfo-${itemIndex}` ? (
@@ -1297,12 +1325,47 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             onClick={() => {
               const newData = JSON.parse(JSON.stringify(resumeData))
               if (!newData.additionalInfo) newData.additionalInfo = []
-              newData.additionalInfo.push({ label: 'Item Name', detail: 'Additional detail' })
+              newData.additionalInfo.push({ label: '', detail: '' })
               onUpdate(newData)
             }}
             className="text-purple-600 text-xs opacity-0 group-hover:opacity-100"
           >+ Add Item</button>
         )}
+      </div>
+    ) : null,
+
+    references: resumeData.references?.length > 0 ? (
+      <div className="mb-6 group" key="references">
+        {sectionHeader('references')}
+        {resumeData.references.map((ref, refIndex) => (
+          <div key={refIndex} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1 flex-1">
+                <h3 className={`font-bold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(ref.name ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!ref.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Reference Name'; updateNestedField(`references[${refIndex}].name`, val) }}>{ref.name || 'Reference Name'}</h3>
+                {entryArrows('references', refIndex, resumeData.references.length)}
+              </div>
+              {!readOnly && (confirmingDelete === `references-${refIndex}` ? (
+                <div className="flex items-center gap-1 text-xs">
+                  <span className="text-gray-600">Delete?</span>
+                  <button onClick={() => { deleteReference(refIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                  <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                </div>
+              ) : <button onClick={() => setConfirmingDelete(`references-${refIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete reference">🗑️</button>)}
+            </div>
+            <p className={`text-sm text-gray-700 ${!readOnly && 'cursor-text'}`} style={ts.body || {}}>
+              <span style={{ color: ref.title ? 'inherit' : '#9ca3af', fontStyle: ref.title ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!ref.title) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Job Title'; updateNestedField(`references[${refIndex}].title`, val) }}>{ref.title || 'Job Title'}</span>
+              {' at '}
+              <span style={{ color: ref.company ? 'inherit' : '#9ca3af', fontStyle: ref.company ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!ref.company) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Company'; updateNestedField(`references[${refIndex}].company`, val) }}>{ref.company || 'Company'}</span>
+              {' · '}
+              <span style={{ color: ref.phone ? 'inherit' : '#9ca3af', fontStyle: ref.phone ? 'normal' : 'italic', minWidth: '80px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!ref.phone) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = '(555) 555-5555'; updateNestedField(`references[${refIndex}].phone`, val) }}>{ref.phone || '(555) 555-5555'}</span>
+              {' | '}
+              <span style={{ color: ref.email ? 'inherit' : '#9ca3af', fontStyle: ref.email ? 'normal' : 'italic', minWidth: '100px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!ref.email) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'email@example.com'; updateNestedField(`references[${refIndex}].email`, val) }}>{ref.email || 'email@example.com'}</span>
+              {' · '}
+              <span className="italic" style={{ color: ref.relationship ? '#6b7280' : '#9ca3af', minWidth: '80px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!ref.relationship) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Professional colleague'; updateNestedField(`references[${refIndex}].relationship`, val) }}>{ref.relationship || 'Professional colleague'}</span>
+            </p>
+          </div>
+        ))}
+        {!readOnly && <button onClick={addReference} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Reference</button>}
       </div>
     ) : null,
   }
@@ -1562,6 +1625,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           { key: 'volunteer', label: 'Volunteer Experience', check: () => !resumeData.volunteer?.length },
           { key: 'languages', label: 'Languages', check: () => !resumeData.languages?.length },
           { key: 'additionalInfo', label: 'Additional Information', check: () => !resumeData.additionalInfo?.length },
+          { key: 'references', label: 'References', check: () => !resumeData.references?.length },
         ]
         const missing = allOptional.filter(s => s.check())
         if (missing.length === 0) return null
@@ -1577,11 +1641,12 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   key={s.key}
                   onClick={() => {
                     const newData = JSON.parse(JSON.stringify(resumeData))
-                    if (s.key === 'projects') newData.projects = [{ name: 'Project Name', description: 'Project description', link: '' }]
-                    if (s.key === 'certifications') newData.certifications = [{ name: 'Certification Name', details: 'Issuing organization | Date' }]
-                    if (s.key === 'volunteer') newData.volunteer = [{ organization: 'Organization Name', description: 'Role and responsibilities' }]
-                    if (s.key === 'languages') newData.languages = [{ language: 'Language', proficiency: 'Professional' }]
-                    if (s.key === 'additionalInfo') newData.additionalInfo = [{ type: 'certification', label: 'Item Label', detail: 'Detail or description' }]
+                    if (s.key === 'projects') newData.projects = [{ name: '', description: '', link: '' }]
+                    if (s.key === 'certifications') newData.certifications = [{ name: '', details: '' }]
+                    if (s.key === 'volunteer') newData.volunteer = [{ organization: '', description: '' }]
+                    if (s.key === 'languages') newData.languages = [{ language: '', proficiency: 'Professional' }]
+                    if (s.key === 'additionalInfo') newData.additionalInfo = [{ label: '', detail: '' }]
+                    if (s.key === 'references') newData.references = [{ name: '', title: '', company: '', phone: '', email: '', relationship: '' }]
                     if (!newData.sectionOrder) newData.sectionOrder = [...defaultSectionOrder]
                     if (!newData.sectionOrder.includes(s.key)) newData.sectionOrder.push(s.key)
                     newData._combineDismissed = false
