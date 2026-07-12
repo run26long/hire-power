@@ -710,26 +710,30 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                           style={ts.company || {}}
                         >
                           <span
-                            style={{ textTransform: 'uppercase', color: job.company ? 'inherit' : '#9ca3af', fontStyle: job.company ? 'normal' : 'italic' }}
+                            style={{ textTransform: 'uppercase', color: job.company ? 'inherit' : '#9ca3af', fontStyle: job.company ? 'normal' : 'italic', minWidth: '80px', display: 'inline-block' }}
                             contentEditable={!readOnly}
                             suppressContentEditableWarning
-                            onFocus={(e) => { if (!job.company) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
+                            onFocus={(e) => { if (!job.company) { e.currentTarget.textContent = '' } }}
                             onBlur={(e) => {
                               if (isUndoingRef.current) return
-                              updateNestedField(`experience[${jobIndex}].company`, e.currentTarget.textContent.trim())
+                              const val = e.currentTarget.textContent.trim()
+                              if (!val) e.currentTarget.textContent = 'Company'
+                              updateNestedField(`experience[${jobIndex}].company`, val)
                             }}
                           >{job.company || 'Company'}</span>
                           {(job.location || !readOnly) && (
                             <>
                               <span> | </span>
                               <span
-                                style={{ color: job.location ? 'inherit' : '#9ca3af', fontStyle: job.location ? 'normal' : 'italic' }}
+                                style={{ color: job.location ? 'inherit' : '#9ca3af', fontStyle: job.location ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }}
                                 contentEditable={!readOnly}
                                 suppressContentEditableWarning
-                                onFocus={(e) => { if (!job.location) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
+                                onFocus={(e) => { if (!job.location) { e.currentTarget.textContent = '' } }}
                                 onBlur={(e) => {
                                   if (isUndoingRef.current) return
-                                  updateNestedField(`experience[${jobIndex}].location`, e.currentTarget.textContent.trim())
+                                  const val = e.currentTarget.textContent.trim()
+                                  if (!val) e.currentTarget.textContent = 'Location'
+                                  updateNestedField(`experience[${jobIndex}].location`, val)
                                 }}
                               >{job.location || 'Location'}</span>
                             </>
@@ -781,7 +785,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   </div>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-1 flex-1">
-                      <h3 className={`font-bold ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(job.title ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!job.title) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h3>
+                      <h3 className={`font-bold ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(job.title ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!job.title) { e.currentTarget.textContent = '' } }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Job Title'; updateNestedField(`experience[${jobIndex}].title`, val) }}>{job.title || 'Job Title'}</h3>
                       {entryArrows('experience', jobIndex, resumeData.experience.length)}
                       {!readOnly && (confirmingDelete === `experience-entry-${jobIndex}` ? (
                         <div className="flex items-center gap-1 text-xs opacity-0 group-hover/entry:opacity-100">
@@ -816,13 +820,14 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       style={ts.company || {}}
                     >
                       <span
-                        style={{ textTransform: 'uppercase', color: group.company ? 'inherit' : '#9ca3af', fontStyle: group.company ? 'normal' : 'italic' }}
+                        style={{ textTransform: 'uppercase', color: group.company ? 'inherit' : '#9ca3af', fontStyle: group.company ? 'normal' : 'italic', minWidth: '80px', display: 'inline-block' }}
                         contentEditable={!readOnly}
                         suppressContentEditableWarning
-                        onFocus={(e) => { if (!group.company) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
+                        onFocus={(e) => { if (!group.company) { e.currentTarget.textContent = '' } }}
                         onBlur={(e) => {
                           if (isUndoingRef.current) return
                           const newName = e.currentTarget.textContent.trim()
+                          if (!newName) e.currentTarget.textContent = 'Company'
                           const newData = JSON.parse(JSON.stringify(resumeData))
                           group.roles.forEach(r => {
                             newData.experience[r._originalIndex].company = newName
@@ -834,13 +839,15 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                         <>
                           <span> | </span>
                           <span
-                            style={{ color: group.location ? 'inherit' : '#9ca3af', fontStyle: group.location ? 'normal' : 'italic' }}
+                            style={{ color: group.location ? 'inherit' : '#9ca3af', fontStyle: group.location ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }}
                             contentEditable={!readOnly}
                             suppressContentEditableWarning
-                            onFocus={(e) => { if (!group.location) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }}
+                            onFocus={(e) => { if (!group.location) { e.currentTarget.textContent = '' } }}
                             onBlur={(e) => {
                               if (isUndoingRef.current) return
-                              updateNestedField(`experience[${headerJobIndex}].location`, e.currentTarget.textContent.trim())
+                              const val = e.currentTarget.textContent.trim()
+                              if (!val) e.currentTarget.textContent = 'Location'
+                              updateNestedField(`experience[${headerJobIndex}].location`, val)
                             }}
                           >{group.location || 'Location'}</span>
                         </>
@@ -858,7 +865,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                       <div key={`role-${jobIndex}`} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
                         <div className="flex justify-between items-start mb-1">
                           <div className="flex items-center gap-1 flex-1 flex-wrap">
-                           <h4 className={`font-bold ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(job.title ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!job.title) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => updateNestedField(`experience[${jobIndex}].title`, e.currentTarget.textContent)}>{job.title || 'Job Title'}</h4>
+                           <h4 className={`font-bold ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(job.title ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!job.title) { e.currentTarget.textContent = '' } }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Job Title'; updateNestedField(`experience[${jobIndex}].title`, val) }}>{job.title || 'Job Title'}</h4>
                             <span className="text-sm text-gray-600 font-normal" style={ts.date || {}}>
                               ({!readOnly ? (
                                 <>
@@ -1235,23 +1242,36 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         {resumeData.additionalInfo.map((item, itemIndex) => (
          <div key={itemIndex} className={`py-0.5 px-1 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2 flex-1">
-                <span
-                  className={`font-semibold text-sm ${!readOnly && 'cursor-text'}`}
-                  style={ts.jobTitle || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].label`, e.currentTarget.textContent)}
-                >{item.label}</span>
-                {item.detail && <span className="text-gray-400 text-sm shrink-0">|</span>}
-                <span
-                  className={`text-sm text-gray-600 flex-1 ${!readOnly && 'cursor-text'}`}
-                  style={ts.body || {}}
-                  contentEditable={!readOnly}
-                  suppressContentEditableWarning
-                  onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].detail`, e.currentTarget.textContent)}
-                >{item.detail}</span>
-                {entryArrows('additionalInfo', itemIndex, resumeData.additionalInfo.length)}
+              <div className={`flex-1 ${item.detail && item.detail.length > 80 ? '' : 'flex items-center gap-2'}`}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-semibold text-sm ${!readOnly && 'cursor-text'}`}
+                    style={ts.jobTitle || {}}
+                    contentEditable={!readOnly}
+                    suppressContentEditableWarning
+                    onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].label`, e.currentTarget.textContent)}
+                  >{item.label}</span>
+                  {item.detail && item.detail.length <= 80 && <span className="text-gray-400 text-sm shrink-0">|</span>}
+                  {item.detail && item.detail.length <= 80 && (
+                    <span
+                      className={`text-sm text-gray-600 flex-1 ${!readOnly && 'cursor-text'}`}
+                      style={ts.body || {}}
+                      contentEditable={!readOnly}
+                      suppressContentEditableWarning
+                      onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].detail`, e.currentTarget.textContent)}
+                    >{item.detail}</span>
+                  )}
+                  {entryArrows('additionalInfo', itemIndex, resumeData.additionalInfo.length)}
+                </div>
+                {item.detail && item.detail.length > 80 && (
+                  <span
+                    className={`text-sm text-gray-600 block mt-1 ${!readOnly && 'cursor-text'}`}
+                    style={ts.body || {}}
+                    contentEditable={!readOnly}
+                    suppressContentEditableWarning
+                    onBlur={(e) => updateNestedField(`additionalInfo[${itemIndex}].detail`, e.currentTarget.textContent)}
+                  >{item.detail}</span>
+                )}
               </div>
               {!readOnly && (confirmingDelete === `additionalInfo-${itemIndex}` ? (
                 <div className="flex items-center gap-1 text-xs">
