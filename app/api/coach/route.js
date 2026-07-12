@@ -116,6 +116,45 @@ function convertStructuredToText(data) {
 function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
 
   // ── DECLARED FIRST — used by all paths below ──
+  const capabilityBlock = tier === 'free'
+    ? `CAPABILITY BOUNDARIES — Do not promise anything outside this list.
+
+What the platform can do:
+- Score and assess a resume
+- Create 3 cover letters
+
+What the platform cannot do:
+- Create a full resume through coaching (upgrade to Pro)
+- Create job-specific resumes (upgrade to Pro)
+- Reword or fix resume content (upgrade to Pro)
+- Add new information after a session (upgrade to Pro)
+- Design custom layouts or multi-column formats
+- Search for or apply to jobs
+- Access external websites or job boards
+- Edit cover letters after generation
+- Anything not listed above
+
+If a user asks for something outside these capabilities, be honest and suggest the closest alternative within the platform.`
+    : `CAPABILITY BOUNDARIES — Do not promise anything outside this list.
+
+What the platform can do:
+- Create one core resume per user through coaching
+- Create unlimited job-specific resumes (via Tailor for a Specific Job)
+- Create unlimited cover letters
+- Reword or fix existing resume content
+- Add new information to a resume after coaching
+- Score and assess a resume
+
+What the platform cannot do:
+- Create multiple separate resumes in one session
+- Design custom layouts or multi-column formats
+- Search for or apply to jobs
+- Access external websites or job boards
+- Edit cover letters after generation
+- Anything not listed above
+
+If a user asks for something outside these capabilities, be honest and suggest the closest alternative within the platform.`
+
   const extractionPhilosophy = `
 CORE COACHING PHILOSOPHY — READ THIS FIRST:
 
@@ -299,6 +338,8 @@ You may ONLY reference information explicitly stated in the resume or told to yo
 NEVER invent numbers, company details, dates, or achievements.
 If you need a metric and they can't provide one, use their qualitative answer exactly as given.
 When in doubt, ask — never assume.
+
+${capabilityBlock}
 `
 
   const levelInstructions = {

@@ -1158,20 +1158,33 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         {sectionHeader('projects')}
         {resumeData.projects.map((project, projectIndex) => (
           <div key={projectIndex} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <div className="flex items-center gap-1 flex-1">
-                <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(project.name ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Project Name'; updateNestedField(`projects[${projectIndex}].name`, val) }}>{project.name || 'Project Name'}</h3>
-                {entryArrows('projects', projectIndex, resumeData.projects.length)}
-              </div>
-              {!readOnly && (confirmingDelete === `projects-${projectIndex}` ? (
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-gray-600">Delete?</span>
-                  <button onClick={() => { deleteProject(projectIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                  <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
-                </div>
-              ) : <button onClick={() => setConfirmingDelete(`projects-${projectIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete project">🗑️</button>)}
+            <div className="mb-1">
+              <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(project.name ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Project Name'; updateNestedField(`projects[${projectIndex}].name`, val) }}>{project.name || 'Project Name'}</h3>
             </div>
-            <p className={`text-sm mb-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(project.description ? { color: '#374151' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.description) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Project description'; updateNestedField(`projects[${projectIndex}].description`, val) }}>{project.description || 'Project description'}</p>
+            <div data-bullet-group={`proj-${projectIndex}`} className="relative flex items-start gap-1 mb-1 group/projectdesc" onClick={() => { if (window.innerWidth < 768) setFocusedBullet(`proj-${projectIndex}`) }}>
+              <p className={`text-sm flex-1 ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(project.description ? { color: '#374151' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onFocus={(e) => { if (!project.description) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Project description'; updateNestedField(`projects[${projectIndex}].description`, val) }}>{project.description || 'Project description'}</p>
+              {!readOnly && (
+                <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === `proj-${projectIndex}` ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/projectdesc:opacity-100'}`}>
+                  <button onClick={(e) => { e.stopPropagation(); moveEntryUp('projects', projectIndex) }} disabled={projectIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                  <button onClick={(e) => { e.stopPropagation(); moveEntryDown('projects', projectIndex) }} disabled={projectIndex === resumeData.projects.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                  {confirmingDelete === `projects-${projectIndex}` ? (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="text-gray-600">Delete?</span>
+                      <button onClick={(e) => { e.stopPropagation(); deleteProject(projectIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`projects-${projectIndex}`) }} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete project">🗑️</button>
+                  )}
+                  {onBulletAction && (
+                    <button onClick={(e) => { e.stopPropagation(); onBulletAction(project.description, { type: 'projectDescription', projectIndex }) }} className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block" title="Click to reword or fix this">⚡</button>
+                  )}
+                </div>
+              )}
+              {bulletSelectMode && (
+                <button onClick={() => onBulletAction(project.description, { type: 'projectDescription', projectIndex })} className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300" />
+              )}
+            </div>
             {(project.link || !readOnly) && <p className={`text-sm break-all ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(project.link ? { color: '#7c3aed' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!project.link) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'https://link (optional)'; updateNestedField(`projects[${projectIndex}].link`, val) }}>{project.link || 'https://link (optional)'}</p>}
           </div>
         ))}
@@ -1211,20 +1224,33 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         {sectionHeader('volunteer')}
         {resumeData.volunteer.map((vol, volIndex) => (
           <div key={volIndex} className={`mb-3 p-2 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <div className="flex items-center gap-1 flex-1">
-                <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(vol.organization ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!vol.organization) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Organization Name'; updateNestedField(`volunteer[${volIndex}].organization`, val) }}>{vol.organization || 'Organization Name'}</h3>
-                {entryArrows('volunteer', volIndex, resumeData.volunteer.length)}
-              </div>
-              {!readOnly && (confirmingDelete === `volunteer-${volIndex}` ? (
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-gray-600">Delete?</span>
-                  <button onClick={() => { deleteVolunteer(volIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                  <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
-                </div>
-              ) : <button onClick={() => setConfirmingDelete(`volunteer-${volIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete volunteer">🗑️</button>)}
+            <div className="mb-1">
+              <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(vol.organization ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!vol.organization) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Organization Name'; updateNestedField(`volunteer[${volIndex}].organization`, val) }}>{vol.organization || 'Organization Name'}</h3>
             </div>
-            <p className={`text-sm ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(vol.description ? { color: '#374151' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!vol.description) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Role and responsibilities'; updateNestedField(`volunteer[${volIndex}].description`, val) }}>{vol.description || 'Role and responsibilities'}</p>
+            <div data-bullet-group={`vol-${volIndex}`} className="relative flex items-start gap-1 group/voldesc" onClick={() => { if (window.innerWidth < 768) setFocusedBullet(`vol-${volIndex}`) }}>
+              <p className={`text-sm flex-1 ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(vol.description ? { color: '#374151' } : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onFocus={(e) => { if (!vol.description) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Role and responsibilities'; updateNestedField(`volunteer[${volIndex}].description`, val) }}>{vol.description || 'Role and responsibilities'}</p>
+              {!readOnly && (
+                <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === `vol-${volIndex}` ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/voldesc:opacity-100'}`}>
+                  <button onClick={(e) => { e.stopPropagation(); moveEntryUp('volunteer', volIndex) }} disabled={volIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                  <button onClick={(e) => { e.stopPropagation(); moveEntryDown('volunteer', volIndex) }} disabled={volIndex === resumeData.volunteer.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                  {confirmingDelete === `volunteer-${volIndex}` ? (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="text-gray-600">Delete?</span>
+                      <button onClick={(e) => { e.stopPropagation(); deleteVolunteer(volIndex); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`volunteer-${volIndex}`) }} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete volunteer">🗑️</button>
+                  )}
+                  {onBulletAction && (
+                    <button onClick={(e) => { e.stopPropagation(); onBulletAction(vol.description, { type: 'volunteerDescription', volIndex }) }} className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block" title="Click to reword or fix this">⚡</button>
+                  )}
+                </div>
+              )}
+              {bulletSelectMode && (
+                <button onClick={() => onBulletAction(vol.description, { type: 'volunteerDescription', volIndex })} className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300" />
+              )}
+            </div>
           </div>
         ))}
         {!readOnly && <button onClick={addVolunteer} className="text-purple-600 text-xs opacity-0 group-hover:opacity-100">+ Add Volunteer Experience</button>}
@@ -1269,55 +1295,92 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       <div className="mb-6 group" key="additionalInfo">
         {sectionHeader('additionalInfo')}
         {resumeData.additionalInfo.map((item, itemIndex) => (
-         <div key={itemIndex} className={`py-0.5 px-1 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className={`flex-1 ${item.detail && item.detail.length > 80 ? '' : 'flex items-center gap-2'}`}>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`font-semibold text-sm ${!readOnly && 'cursor-text'}`}
-                    style={{ ...(ts.jobTitle || {}), ...(item.label ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '60px', display: 'inline-block' }}
-                    contentEditable={!readOnly}
-                    suppressContentEditableWarning
-                    onFocus={(e) => { if (!item.label) e.currentTarget.textContent = '' }}
-                    onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Item Name'; updateNestedField(`additionalInfo[${itemIndex}].label`, val) }}
-                  >{item.label || 'Item Name'}</span>
-                  {(item.detail || !readOnly) && item.detail && item.detail.length <= 80 && <span className="text-gray-400 text-sm shrink-0">|</span>}
-                  {item.detail && item.detail.length <= 80 && (
+         <div key={itemIndex} data-bullet-group={`info-${itemIndex}`} className={`relative py-0.5 px-1 rounded group/entry ${!readOnly && 'hover:bg-purple-50'}`} onClick={() => { if (window.innerWidth < 768) setFocusedBullet(`info-${itemIndex}`) }}>
+            <div className={`flex-1 ${item.detail && item.detail.length > 80 ? '' : 'flex items-center gap-2'}`}>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`font-semibold text-sm ${!readOnly && 'cursor-text'}`}
+                  style={{ ...(ts.jobTitle || {}), ...(item.label ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '60px', display: 'inline-block' }}
+                  contentEditable={!readOnly}
+                  suppressContentEditableWarning
+                  onFocus={(e) => { if (!item.label) e.currentTarget.textContent = '' }}
+                  onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Item Name'; updateNestedField(`additionalInfo[${itemIndex}].label`, val) }}
+                >{item.label || 'Item Name'}</span>
+                {(item.detail || !readOnly) && item.detail && item.detail.length <= 80 && <span className="text-gray-400 text-sm shrink-0">|</span>}
+                {item.detail && item.detail.length <= 80 && (
+                  <span className="relative group/additionaldetail flex-1">
                     <span
-                      className={`text-sm flex-1 ${!readOnly && 'cursor-text'}`}
+                      className={`text-sm ${!readOnly && !bulletSelectMode && 'cursor-text'}`}
                       style={{ ...(ts.body || {}), ...(item.detail ? { color: '#4b5563' } : { color: '#9ca3af', fontStyle: 'italic' }) }}
-                      contentEditable={!readOnly}
+                      contentEditable={!readOnly && !bulletSelectMode}
                       suppressContentEditableWarning
                       onFocus={(e) => { if (!item.detail) e.currentTarget.textContent = '' }}
                       onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Additional detail'; updateNestedField(`additionalInfo[${itemIndex}].detail`, val) }}
                     >{item.detail || 'Additional detail'}</span>
-                  )}
-                  {entryArrows('additionalInfo', itemIndex, resumeData.additionalInfo.length)}
-                </div>
-                {item.detail && item.detail.length > 80 && (
+                    {bulletSelectMode && (
+                      <button
+                        onClick={() => onBulletAction(item.detail, { type: 'additionalDetail', itemIndex })}
+                        className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300"
+                      />
+                    )}
+                  </span>
+                )}
+              </div>
+              {item.detail && item.detail.length > 80 && (
+                <div data-bullet-group={`info-${itemIndex}`} className="mt-1 relative group/additionaldetail" onClick={() => { if (window.innerWidth < 768) setFocusedBullet(`info-${itemIndex}`) }}>
                   <span
-                    className={`text-sm block mt-1 ${!readOnly && 'cursor-text'}`}
+                    className={`text-sm block ${!readOnly && !bulletSelectMode && 'cursor-text'}`}
                     style={{ ...(ts.body || {}), ...(item.detail ? { color: '#4b5563' } : { color: '#9ca3af', fontStyle: 'italic' }) }}
-                    contentEditable={!readOnly}
+                    contentEditable={!readOnly && !bulletSelectMode}
                     suppressContentEditableWarning
                     onFocus={(e) => { if (!item.detail) e.currentTarget.textContent = '' }}
                     onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Additional detail'; updateNestedField(`additionalInfo[${itemIndex}].detail`, val) }}
                   >{item.detail || 'Additional detail'}</span>
-                )}
-              </div>
-              {!readOnly && (confirmingDelete === `additionalInfo-${itemIndex}` ? (
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-gray-600">Delete?</span>
-                  <button onClick={() => {
-                    const newData = JSON.parse(JSON.stringify(resumeData))
-                    newData.additionalInfo.splice(itemIndex, 1)
-                    onUpdate(newData)
-                    setConfirmingDelete(null)
-                  }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                  <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                  {!readOnly && (
+                    <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === `info-${itemIndex}` ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/additionaldetail:opacity-100'}`}>
+                      <button onClick={(e) => { e.stopPropagation(); moveEntryUp('additionalInfo', itemIndex) }} disabled={itemIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                      <button onClick={(e) => { e.stopPropagation(); moveEntryDown('additionalInfo', itemIndex) }} disabled={itemIndex === resumeData.additionalInfo.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                      {confirmingDelete === `additionalInfo-${itemIndex}` ? (
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-gray-600">Delete?</span>
+                          <button onClick={(e) => { e.stopPropagation(); const newData = JSON.parse(JSON.stringify(resumeData)); newData.additionalInfo.splice(itemIndex, 1); onUpdate(newData); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                          <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`additionalInfo-${itemIndex}`) }} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete item">🗑️</button>
+                      )}
+                      {onBulletAction && (
+                        <button onClick={(e) => { e.stopPropagation(); onBulletAction(item.detail, { type: 'additionalDetail', itemIndex }) }} className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block" title="Click to reword or fix this">⚡</button>
+                      )}
+                    </div>
+                  )}
+                  {bulletSelectMode && (
+                    <button
+                      onClick={() => onBulletAction(item.detail, { type: 'additionalDetail', itemIndex })}
+                      className="absolute inset-0 z-10 cursor-pointer rounded hover:bg-purple-50 hover:ring-1 hover:ring-purple-300"
+                    />
+                  )}
                 </div>
-              ) : <button onClick={() => setConfirmingDelete(`additionalInfo-${itemIndex}`)} className="text-[#e57373] hover:bg-red-50 px-1 rounded opacity-0 group-hover/entry:opacity-100" title="Delete item">🗑️</button>)}
+              )}
             </div>
+            {!readOnly && (!item.detail || item.detail.length <= 80) && (
+              <span className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === `info-${itemIndex}` ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/entry:opacity-100'}`}>
+                <button onClick={(e) => { e.stopPropagation(); moveEntryUp('additionalInfo', itemIndex) }} disabled={itemIndex === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move up">▲</button>
+                <button onClick={(e) => { e.stopPropagation(); moveEntryDown('additionalInfo', itemIndex) }} disabled={itemIndex === resumeData.additionalInfo.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move down">▼</button>
+                {confirmingDelete === `additionalInfo-${itemIndex}` ? (
+                  <span className="flex items-center gap-1 text-xs">
+                    <span className="text-gray-600">Delete?</span>
+                    <button onClick={(e) => { e.stopPropagation(); const newData = JSON.parse(JSON.stringify(resumeData)); newData.additionalInfo.splice(itemIndex, 1); onUpdate(newData); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                  </span>
+                ) : (
+                  <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`additionalInfo-${itemIndex}`) }} className="text-[#e57373] hover:bg-red-50 px-1 rounded" title="Delete item">🗑️</button>
+                )}
+                {onBulletAction && (
+                  <button onClick={(e) => { e.stopPropagation(); onBulletAction(item.detail, { type: 'additionalDetail', itemIndex }) }} className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block" title="Click to reword or fix this">⚡</button>
+                )}
+              </span>
+            )}
           </div>
         ))}
         {!readOnly && (
