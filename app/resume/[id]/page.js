@@ -1360,6 +1360,13 @@ if (data.ai_analysis) {
 
             {/* Template */}
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+              <div className="relative group/templatetip">
+                <span className="text-purple-400 hover:text-purple-600 cursor-help text-[10px]">ⓘ</span>
+                <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-purple-200 rounded-lg shadow-lg p-3 hidden group-hover/templatetip:block z-50">
+                  <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-purple-200 rotate-45"></div>
+                  <p className="text-xs text-gray-700 leading-snug relative z-10">Yes, our templates are plain on purpose. Fancy layouts lose up to 50% of your skills and experience in ATS scans. We'd rather get you hired than win a design award.</p>
+                </div>
+              </div>
               <span>📄</span>
               <select
                 value={templatePicked ? selectedTemplate : ''}
@@ -5674,8 +5681,9 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
 
       <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
         <div className="text-sm md:text-xs text-purple-900 space-y-2">
+          <div><strong>📄 Pick a template</strong> — 98% of large companies run your resume through ATS software before a human ever sees it. Two-column layouts, graphics, and fancy formatting confuse that software, making half your skills and experience disappear before anyone reads a word. Our templates are simple and ATS-proof by design, because a gorgeous resume that a computer can't read is just a beautiful rejection.</div>
           <div><strong>✏️ Edit directly</strong> — Click any section of your resume to edit text, reorder content, or delete what you don't need.</div>
-          <div><strong>🎨 Style it</strong> — Use the toolbar to switch templates, change fonts, adjust size, pick an accent color, or change date formats.</div>
+          <div><strong>🎨 Style it</strong> — Change fonts, adjust size, pick an accent color, or change date formats from the toolbar.</div>
           <div><strong>⚡ Auto-fit</strong> — One click optimizes font size and spacing to fit everything on one perfect page (when possible).</div>
           <div><strong>👀 Preview</strong> — See exactly how your PDF will look before downloading.</div>
           <div><strong>💾 Save anytime</strong> — Your progress auto-saves, but you can also save manually from the toolbar.</div>

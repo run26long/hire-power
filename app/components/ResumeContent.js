@@ -7,17 +7,21 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   const [confirmingDelete, setConfirmingDelete] = useState(null)
   const [editingSection, setEditingSection] = useState(null)
   const [focusedBullet, setFocusedBullet] = useState(null)
+  const [focusedSection, setFocusedSection] = useState(null)
 
   useEffect(() => {
-    if (!focusedBullet) return
+    if (!focusedBullet && !focusedSection) return
     const handler = (e) => {
-      if (!e.target.closest('[data-bullet-group]')) {
+      if (focusedBullet && !e.target.closest('[data-bullet-group]')) {
         setFocusedBullet(null)
+      }
+      if (focusedSection && !e.target.closest('[data-section-group]')) {
+        setFocusedSection(null)
       }
     }
     document.addEventListener('click', handler, true)
     return () => document.removeEventListener('click', handler, true)
-  }, [focusedBullet])
+  }, [focusedBullet, focusedSection])
 
   const ts = templateStyles
   const sectionClass = selectedTemplate === 'current' ? 'mb-0 group' : 'mb-6 group'
@@ -419,7 +423,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         <>
         <div style={ts.vibeSectionDivider}>
           <div style={ts.vibeSectionLine} />
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div data-section-group={sectionKey} onClick={() => { if (window.innerWidth < 768) setFocusedSection(sectionKey) }} style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0' }}>
               {!readOnly && editingSection === sectionKey ? (
                 <input
@@ -444,18 +448,18 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               )}
             </h2>
             {!readOnly && (
-              <span className="absolute right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
-                <button onClick={() => moveSectionUp(sectionKey)} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
-                <button onClick={() => moveSectionDown(sectionKey)} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
+              <span className={`absolute right-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedSection === sectionKey ? 'opacity-100 md:opacity-0' : 'opacity-0 md:group-hover:opacity-100'}`}>
+                <button onClick={(e) => { e.stopPropagation(); moveSectionUp(sectionKey) }} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
+                <button onClick={(e) => { e.stopPropagation(); moveSectionDown(sectionKey) }} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
                 {deletableSections.includes(sectionKey) && (
                   confirmingDelete === `section-${sectionKey}` ? (
                     <span className="flex items-center gap-1 text-xs font-normal">
                       <span className="text-gray-600">Remove section?</span>
-                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteSection(sectionKey) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`section-${sectionKey}`) }} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
                   )
                 )}
               </span>
@@ -468,7 +472,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       ) : selectedTemplate === 'edge' ? (
         <div className="mb-2 w-full">
           <div style={ts.sectionHeader || {}} className="w-full">
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div data-section-group={sectionKey} onClick={() => { if (window.innerWidth < 768) setFocusedSection(sectionKey) }} style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0', background: 'transparent' }}>
               {!readOnly && editingSection === sectionKey ? (
                 <input
@@ -492,18 +496,18 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               )}
             </h2>
             {!readOnly && (
-              <span className="absolute right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
-                <button onClick={() => moveSectionUp(sectionKey)} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
-                <button onClick={() => moveSectionDown(sectionKey)} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
+              <span className={`absolute right-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedSection === sectionKey ? 'opacity-100 md:opacity-0' : 'opacity-0 md:group-hover:opacity-100'}`}>
+                <button onClick={(e) => { e.stopPropagation(); moveSectionUp(sectionKey) }} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
+                <button onClick={(e) => { e.stopPropagation(); moveSectionDown(sectionKey) }} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
                 {deletableSections.includes(sectionKey) && (
                   confirmingDelete === `section-${sectionKey}` ? (
                     <span className="flex items-center gap-1 text-xs font-normal">
                       <span className="text-gray-600">Remove section?</span>
-                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteSection(sectionKey) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`section-${sectionKey}`) }} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
                   )
                 )}
               </span>
@@ -515,7 +519,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       ) : selectedTemplate === 'signature' ? (
         <div className="mb-2 w-full">
           <div style={ts.sectionHeader || {}} className="w-full">
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div data-section-group={sectionKey} onClick={() => { if (window.innerWidth < 768) setFocusedSection(sectionKey) }} style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <h2 style={{ ...ts.sectionHeader, marginTop: '0', marginBottom: '0', background: 'transparent' }}>
               {!readOnly && editingSection === sectionKey ? (
                 <input
@@ -539,18 +543,18 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               )}
             </h2>
             {!readOnly && (
-              <span className="absolute right-0 opacity-0 group-hover:opacity-100 flex items-center gap-1">
-                <button onClick={() => moveSectionUp(sectionKey)} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
-                <button onClick={() => moveSectionDown(sectionKey)} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
+              <span className={`absolute right-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedSection === sectionKey ? 'opacity-100 md:opacity-0' : 'opacity-0 md:group-hover:opacity-100'}`}>
+                <button onClick={(e) => { e.stopPropagation(); moveSectionUp(sectionKey) }} disabled={activeSectionOrder[0] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section up">▲</button>
+                <button onClick={(e) => { e.stopPropagation(); moveSectionDown(sectionKey) }} disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs" title="Move section down">▼</button>
                 {deletableSections.includes(sectionKey) && (
                   confirmingDelete === `section-${sectionKey}` ? (
                     <span className="flex items-center gap-1 text-xs font-normal">
                       <span className="text-gray-600">Remove section?</span>
-                      <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                      <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteSection(sectionKey) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </span>
                   ) : (
-                    <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+                    <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`section-${sectionKey}`) }} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
                   )
                 )}
               </span>
@@ -560,7 +564,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
           {extraContent && <div className="flex justify-center mt-1">{extraContent}</div>}
         </div>
       ) : (
-      <h2 className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3 flex items-center gap-1" style={ts.sectionHeader || {}}>
+      <h2 data-section-group={sectionKey} onClick={() => { if (window.innerWidth < 768) setFocusedSection(sectionKey) }} className="text-lg font-semibold border-b border-gray-300 pb-1 mb-3 flex items-center gap-1" style={ts.sectionHeader || {}}>
       {!readOnly && editingSection === sectionKey ? (
         <input
           autoFocus
@@ -583,15 +587,15 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
         </span>
       )}
       {!readOnly && (
-        <span className="opacity-0 group-hover:opacity-100 ml-1 flex items-center gap-1">
+        <span className={`ml-1 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedSection === sectionKey ? 'opacity-100 md:opacity-0' : 'opacity-0 md:group-hover:opacity-100'}`}>
           <button
-            onClick={() => moveSectionUp(sectionKey)}
+            onClick={(e) => { e.stopPropagation(); moveSectionUp(sectionKey) }}
             disabled={activeSectionOrder[0] === sectionKey}
             className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs"
             title="Move section up"
           >▲</button>
           <button
-            onClick={() => moveSectionDown(sectionKey)}
+            onClick={(e) => { e.stopPropagation(); moveSectionDown(sectionKey) }}
             disabled={activeSectionOrder[activeSectionOrder.length - 1] === sectionKey}
             className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs"
             title="Move section down"
@@ -600,11 +604,11 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             confirmingDelete === `section-${sectionKey}` ? (
               <span className="flex items-center gap-1 text-xs font-normal">
                 <span className="text-gray-600">Remove section?</span>
-                <button onClick={() => deleteSection(sectionKey)} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
-                <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
+                <button onClick={(e) => { e.stopPropagation(); deleteSection(sectionKey) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(null) }} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
               </span>
             ) : (
-              <button onClick={() => setConfirmingDelete(`section-${sectionKey}`)} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
+              <button onClick={(e) => { e.stopPropagation(); setConfirmingDelete(`section-${sectionKey}`) }} className="text-red-400 hover:text-red-600 hover:bg-red-50 px-1 rounded text-xs font-normal" title="Remove this section">🗑️</button>
             )
           )}
         </span>
