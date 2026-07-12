@@ -138,8 +138,8 @@ function DashboardContent() {
         }
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code === 'PGRST116') {
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (!profile && !profileError) {
           // Profile row doesn't exist — deleted account with a stale session
           await supabase.auth.signOut();
           setShowLoginModal(true);
@@ -284,7 +284,7 @@ function DashboardContent() {
         .from('profiles')
         .select('deletion_requested_at')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
       if (profileCheck?.deletion_requested_at) {
         await supabase.auth.signOut();
         setLoginLoading(false);

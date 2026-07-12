@@ -265,7 +265,7 @@ export async function GET(req) {
       .from('profiles')
       .select('subscription_tier, display_name, photo_url, search_status, cl_count, jms_count')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     
     if (profileError) {
       console.error('Profile error:', profileError);
@@ -358,7 +358,7 @@ export async function GET(req) {
       .from('career_context')
       .select('completed_at')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
     // Format core resume data
     const coreResumeData = coreResume ? {

@@ -92,7 +92,7 @@ export default function Profile() {
           .from('profiles')
           .select('email')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
         const data = await fetchJSON('/api/stripe/checkout', {
           method: 'POST',
           headers: {
@@ -121,8 +121,8 @@ export default function Profile() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/dashboard'); return }
       setUser(user)
-      const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (pError && pError.code !== 'PGRST116') {
+      const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+      if (pError) {
         console.error('Profile load failed:', pError)
         setToastError("We couldn't load your profile. Please refresh the page.")
       }
@@ -237,7 +237,7 @@ export default function Profile() {
       setExportLoading(true)
       const [resumesRes, profileRes, careerRes] = await Promise.all([
         supabase.from('resumes').select('*').eq('user_id', user.id),
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('career_context').select('*').eq('user_id', user.id).maybeSingle(),
       ])
       if (resumesRes.error || profileRes.error || careerRes.error) {

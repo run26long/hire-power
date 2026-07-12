@@ -59,7 +59,7 @@ async function fireJT2IfFirst(supabase) {
       .from('profiles')
       .select('first_applied_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.first_applied_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ first_applied_at: now }).eq('id', user.id)
@@ -85,7 +85,7 @@ async function fireJT1IfFirst(supabase) {
       .from('profiles')
       .select('first_card_created_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.first_card_created_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ first_card_created_at: now }).eq('id', user.id)
@@ -251,8 +251,8 @@ export default function JobTrackerPage() {
         setUser(user);
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') {
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (profileError) {
           throw profileError;
         }
         setUserProfile(profile);
@@ -1313,7 +1313,7 @@ export default function JobTrackerPage() {
                               .from('profiles')
                               .select('email')
                               .eq('id', user.id)
-                              .single();
+                              .maybeSingle();
                             const data = await fetchJSON('/api/stripe/checkout', {
                               method: 'POST',
                               headers: {

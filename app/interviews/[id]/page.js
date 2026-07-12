@@ -28,7 +28,7 @@ export default function InterviewDetailPage() {
       setUser(user);
 
       const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', user.id).single();
+        .from('profiles').select('*').eq('id', user.id).maybeSingle();
       setUserProfile(profile);
       setIsPro(profile?.subscription_tier === 'pro');
 

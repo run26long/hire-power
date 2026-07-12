@@ -148,7 +148,7 @@ export default function BuildPage() {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     setUserProfile(profile);
 
     // Get URL params

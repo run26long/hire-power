@@ -34,7 +34,7 @@ async function fireJT1MarkerIfFirst(supabase) {
       .from('profiles')
       .select('first_card_created_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.first_card_created_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ first_card_created_at: now }).eq('id', user.id)
@@ -60,7 +60,7 @@ async function fireT4IfFirst(supabase) {
       .from('profiles')
       .select('t4_sent_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.t4_sent_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ t4_sent_at: now }).eq('id', user.id)
@@ -86,7 +86,7 @@ async function fireO4MarkerIfFirst(supabase) {
       .from('profiles')
       .select('reached_improve_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.reached_improve_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ reached_improve_at: now }).eq('id', user.id)
@@ -863,7 +863,7 @@ if (data.ai_analysis) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Error loading user profile:', error)
@@ -3090,7 +3090,7 @@ const getMessageText = (msg) => {
           .from('profiles')
           .select('subscription_tier')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profileError) {
           console.error('Error loading profile tier in CoachStep:', profileError)
@@ -3438,7 +3438,7 @@ const getMessageText = (msg) => {
           .from('profiles')
           .select('coaching_samples_used')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profileError) {
           console.error('Error reading profile sample count:', profileError)

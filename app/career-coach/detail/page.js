@@ -131,8 +131,8 @@ const handleResumeUpdate = async (updatedData) => {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+          .maybeSingle();
+        if (profileError) throw profileError;
         setUserProfile(profile);
 
         // Check for resumeId in URL

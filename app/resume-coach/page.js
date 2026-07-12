@@ -21,7 +21,7 @@ async function fireT8IfFirst(supabase) {
       .from('profiles')
       .select('t8_sent_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.t8_sent_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ t8_sent_at: now }).eq('id', user.id)
@@ -46,7 +46,7 @@ async function fireT5IfFirst(supabase) {  try {
       .from('profiles')
       .select('t5_sent_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.t5_sent_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ t5_sent_at: now }).eq('id', user.id)
@@ -72,7 +72,7 @@ async function fireB2IfThird(supabase) {
       .from('profiles')
       .select('b2_sent_at, jms_count, subscription_tier')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.b2_sent_at) return
     if (profile.subscription_tier !== 'free') return
     if ((profile.jms_count ?? 0) < 3) return
@@ -154,7 +154,7 @@ useEffect(() => {
       .from('career_context')
       .select('completed_at')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     setCareerContext(data);
   };
   if (user?.id) fetchCareerContext();

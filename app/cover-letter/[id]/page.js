@@ -227,8 +227,8 @@ export default function CoverLetterPage() {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError) throw authError
       if (!user) return
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (error && error.code !== 'PGRST116') throw error
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+      if (error) throw error
       setUserProfile(data)
     } catch (err) {
       console.error('Load user profile failed:', err)

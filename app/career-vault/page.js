@@ -232,8 +232,8 @@ export default function CareerVaultPage() {
         setUser(user);
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (profileError) throw profileError;
         setUserProfile(profile);
         setTier(profile?.subscription_tier || 'vault');
 
