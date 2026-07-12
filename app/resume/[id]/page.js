@@ -4412,15 +4412,23 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         )}
 
         {/* Buttons */}
-        <div className="flex gap-2 justify-center pt-1 flex-wrap px-2">
-         {showPushHarder && (
+        {showPushHarder && (
+          <div className="flex justify-center pt-1">
             <button
               onClick={() => setShowGapsModal(true)}
               className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
             >
               Push for a higher score →
             </button>
-          )}
+          </div>
+        )}
+        <div className="flex justify-center gap-2 pt-1 flex-wrap">
+          <button
+            onClick={() => setReviseModalState({ mode: 'add' })}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+          >
+            ⚡ More to add?
+          </button>
           <button
             onClick={async () => {
               const { error: saveError } = await supabase
@@ -4676,15 +4684,17 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       return
     }
     if (change.field === 'sectionOrder') {
+      let parsed
       if (Array.isArray(change.after)) {
-        data.sectionOrder = change.after
+        parsed = change.after
       } else {
         try {
-          data.sectionOrder = JSON.parse(change.after)
+          parsed = JSON.parse(change.after)
         } catch {
-          data.sectionOrder = change.after.split(',').map(s => s.trim()).filter(Boolean)
+          parsed = change.after.split(',').map(s => s.trim()).filter(Boolean)
         }
       }
+      data.sectionOrder = parsed.map(s => String(s).replace(/[\[\]]/g, ''))
       return
     }
 
@@ -5698,7 +5708,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           </p>
         </div>
       )}
-     <div className="flex gap-2 justify-center pt-1">
+     <div className="flex gap-2 justify-center pt-1 px-1">
         {userTier !== 'free' && coachingComplete && (
           <button
             onClick={() => setReviseModalState({ mode: 'add' })}
@@ -5730,7 +5740,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
             }
           }}
           disabled={advancing}
-          className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90 whitespace-nowrap"
+          className="text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90 whitespace-nowrap"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           {advancing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
