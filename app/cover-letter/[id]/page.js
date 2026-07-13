@@ -9,6 +9,7 @@ import CoverLetterContent from '@/app/components/CoverLetterContent'
 import ErrorToast from '@/app/components/ErrorToast'
 import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
+import CoachReviseModal from '@/app/components/CoachReviseModal'
 
 export default function CoverLetterPage() {
   const params = useParams()
@@ -42,6 +43,12 @@ export default function CoverLetterPage() {
   const [mobileToolbar, setMobileToolbar] = useState(null)
   const [mobileScale, setMobileScale] = useState(1)
   const [showEditTip, setShowEditTip] = useState(false)
+  const [showEditorTip, setShowEditorTip] = useState(false)
+  const [reviseModalState, setReviseModalState] = useState(null)
+  const [bulletSelectMode, setBulletSelectMode] = useState(null)
+  const [history, setHistory] = useState([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const isUndoingRef = useRef(false)
   const clPanelRef = useRef(null)
 
   const templateFonts = {
@@ -69,6 +76,17 @@ export default function CoverLetterPage() {
     window.addEventListener('resize', updateMobileScale)
     return () => window.removeEventListener('resize', updateMobileScale)
   }, [loading])
+
+  useEffect(() => {
+    if (!localStorage.getItem('hp_cl_editor_tip_dismissed')) {
+      setShowEditorTip(true)
+    }
+  }, [])
+
+  const dismissEditorTip = () => {
+    setShowEditorTip(false)
+    localStorage.setItem('hp_cl_editor_tip_dismissed', '1')
+  }
 
   useEffect(() => {
     loadCoverLetter()
@@ -238,9 +256,40 @@ export default function CoverLetterPage() {
   }
 
   function updateCoverLetterData(newData) {
-    setCoverLetter(prev => ({ ...prev, cover_letter_data: newData }))
+    if (isUndoingRef.current) return
+    const cloned = JSON.parse(JSON.stringify(newData))
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1)
+      newHistory.push(cloned)
+      return newHistory
+    })
+    setHistoryIndex(prev => prev + 1)
+    setCoverLetter(prev => ({ ...prev, cover_letter_data: cloned }))
     setHasUnsavedChanges(true)
   }
+
+  function undo() {
+    if (historyIndex > 0) {
+      isUndoingRef.current = true
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      setCoverLetter(prev => ({ ...prev, cover_letter_data: JSON.parse(JSON.stringify(history[newIndex])) }))
+      setHasUnsavedChanges(true)
+      requestAnimationFrame(() => { isUndoingRef.current = false })
+    }
+  }
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      const isUndoShortcut = (e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey
+      if (isUndoShortcut && historyIndex > 0) {
+        e.preventDefault()
+        undo()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [historyIndex, history])
 
   async function save(overrides = {}) {
     try {
@@ -514,66 +563,85 @@ export default function CoverLetterPage() {
 
       {/* Mobile Toolbar */}
       <div className="md:hidden bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-1.5 px-3 py-2.5 bg-gray-50 border-b border-gray-200">
-          {/* Pencil */}
-          <button
-            onClick={() => {
-              setShowEditTip(prev => !prev)
-              if (!showEditTip) setTimeout(() => setShowEditTip(false), 3000)
-            }}
-            className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-            style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-          >
-            ✏️
-          </button>
+        {/* Instruction banner */}
+        {showEditorTip && (
+          <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
+            <p className="text-xs text-purple-700 text-center">
+              {(userProfile?.subscription_tier || 'free') !== 'free'
+                ? '✏️ Tap any section to edit · 📄 Fonts & Templates · ⚙️ Undo, Save & Download · ⚡ Add or Change · ▲▼ Reorder'
+                : '✏️ Tap any section to edit · 📄 Format for templates and fonts · ⚙️ Actions to save or undo'
+              }
+            </p>
+            <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-2 flex-shrink-0 text-sm">✕</button>
+          </div>
+        )}
+
+        {/* Toolbar row */}
+        <div className="flex items-center gap-1 px-1.5 py-1.5 bg-gray-50 border-b border-gray-200">
           {/* Format */}
           <button
             onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
-            className="flex-1 py-1 px-1 text-xs font-medium rounded transition-colors"
+            className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
             style={{
+              paddingLeft: 4, paddingRight: 4,
               color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
               backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
               border: mobileToolbar === 'format' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }}
           >
-            📄 Format
+            📄Format
           </button>
-          {/* Save */}
+          {/* Actions */}
           <button
-            onClick={save}
-            className={`flex-1 py-1.5 rounded text-xs font-semibold ${
-              saveSuccess ? 'bg-green-600 text-white' :
-              hasUnsavedChanges ? 'bg-purple-600 text-white' :
-              'bg-gray-200 text-gray-500'
-            }`}
+            onClick={() => setMobileToolbar(mobileToolbar === 'actions' ? null : 'actions')}
+            className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+            style={{
+              paddingLeft: 4, paddingRight: 4,
+              color: mobileToolbar === 'actions' ? '#7c3aed' : '#4b5563',
+              backgroundColor: mobileToolbar === 'actions' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+              border: mobileToolbar === 'actions' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}
           >
-            {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+            ⚙️Actions
           </button>
-          {/* Preview */}
-          <button
-            onClick={handlePreview}
-            disabled={isLoadingPreview}
-            className="flex-1 py-1 px-1 text-xs font-medium rounded disabled:opacity-50"
-            style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-          >
-            {isLoadingPreview ? '...' : 'Preview'}
-          </button>
+          {/* Improve — Pro users only */}
+          {(userProfile?.subscription_tier || 'free') !== 'free' && (
+            <button
+              onClick={() => setMobileToolbar(mobileToolbar === 'improve' ? null : 'improve')}
+              className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              style={{
+                paddingLeft: 4, paddingRight: 4,
+                color: mobileToolbar === 'improve' ? '#7c3aed' : '#4b5563',
+                backgroundColor: mobileToolbar === 'improve' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+                border: mobileToolbar === 'improve' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              ⚡Improve
+            </button>
+          )}
           {/* Download */}
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className="flex-1 py-1 px-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+            className="flex-1 py-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
-            {isDownloading ? '...' : '⬇️ Download'}
+            {isDownloading ? <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> : '⬇️Download'}
           </button>
         </div>
-        {showEditTip && (
-          <div className="px-4 pb-1 pt-1 text-xs text-amber-700 text-center">
-            Editing works best on desktop. Tap any section to try.
+
+        {/* bulletSelectMode banner */}
+        {bulletSelectMode && (
+          <div className="bg-purple-100 border-b border-purple-200 px-3 py-2 flex items-center justify-between">
+            <p className="text-xs text-purple-800 font-medium">⚡ Tap the sentence you want to change</p>
+            <button onClick={() => setBulletSelectMode(null)} className="text-purple-500 hover:text-purple-700 text-sm font-medium">Cancel</button>
           </div>
         )}
+
+        {/* Format panel */}
         {mobileToolbar === 'format' && (
           <div className="px-4 pb-3 grid grid-cols-2 gap-2 pt-2">
             <div className="flex flex-col gap-1">
@@ -648,6 +716,58 @@ export default function CoverLetterPage() {
                 }`}
               >
                 {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Actions panel */}
+        {mobileToolbar === 'actions' && (
+          <div className="px-4 pt-2 pb-3">
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                onClick={save}
+                className={`py-1.5 rounded text-[12px] font-semibold ${
+                  saveSuccess ? 'bg-green-600 text-white' :
+                  hasUnsavedChanges ? 'bg-purple-600 text-white' :
+                  'bg-gray-200 text-gray-500'
+                }`}
+              >
+                {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+              </button>
+              <button
+                onClick={handlePreview}
+                disabled={isLoadingPreview}
+                className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                {isLoadingPreview ? '...' : 'Preview'}
+              </button>
+              <button
+                onClick={undo}
+                disabled={historyIndex <= 0}
+                className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
+              >
+                ↶ Undo
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Improve panel */}
+        {mobileToolbar === 'improve' && (
+          <div className="px-4 pt-2 pb-3">
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => { setBulletSelectMode(true); setMobileToolbar(null) }}
+                className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+              >
+                ✏️ Reword or Fix
+              </button>
+              <button
+                onClick={() => { setReviseModalState({ mode: 'add' }); setMobileToolbar(null) }}
+                className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+              >
+                ✨ Add More
               </button>
             </div>
           </div>
@@ -837,6 +957,10 @@ export default function CoverLetterPage() {
                 selectedTemplate={selectedTemplate}
                 selectedFont={selectedFont}
                 selectedSize={selectedSize}
+                onBulletAction={(userProfile?.subscription_tier || 'free') !== 'free'
+                  ? (text, location) => { setBulletSelectMode(null); setReviseModalState({ mode: 'choose', text, location }) }
+                  : null}
+                bulletSelectMode={bulletSelectMode}
               />
             </div>
           </div>
@@ -853,7 +977,20 @@ export default function CoverLetterPage() {
             <div className="space-y-2">
               <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
                 <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">How to edit</p>
-                <p className="text-xs text-gray-700 leading-snug">Click any section to edit directly. Your changes save automatically when you click Save.</p>
+                <ul className="space-y-1">
+                  {[
+                    { icon: '✏️', label: 'Click any section to edit text directly' },
+                    { icon: '⚡', label: 'Click for help rewording or fixing any sentence' },
+                    { icon: '▲▼', label: 'Use arrows to reorder bullets' },
+                    { icon: '🗑️', label: 'Click the trash icon to delete content' },
+                    { icon: '💾', label: 'Use the save button to save your changes' },
+                  ].map(({ icon, label }) => (
+                    <li key={icon} className="flex items-center gap-2 text-xs text-gray-700">
+                      <span className="font-semibold text-purple-600 flex-shrink-0 w-5 text-center">{icon}</span>
+                      <span>{label}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               <div>
@@ -861,7 +998,6 @@ export default function CoverLetterPage() {
                 <ul className="space-y-1">
                   {[
                     'Keep the opening focused on what you bring to them, not what you want from them.',
-                    'Each bullet should lead with a result or specific proof, not a category label.',
                     'Run Auto-fit to fit your letter on one pages.',
                     'Match the template to your resume for a cohesive application package.',
                   ].map((tip, i) => (
@@ -874,17 +1010,28 @@ export default function CoverLetterPage() {
               </div>
 
               <div className="pt-2 border-t border-gray-100">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2 text-center">When you're done</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">When you're done</p>
                 <div className="flex flex-col gap-2">
-                  <button
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    className="block mx-auto text-white rounded-lg py-2 px-8 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                  >
-                    {isDownloading && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                    {isDownloading ? 'Generating...' : 'Download PDF'}
-                  </button>
+                  <div className="flex gap-2 items-stretch">
+                    {(userProfile?.subscription_tier || 'free') !== 'free' && (
+                      <button
+                        onClick={() => setReviseModalState({ mode: 'add' })}
+                        className="flex-shrink-0 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+                      >
+                        ⚡ Add More
+                      </button>
+                    )}
+                    <button
+                      onClick={handleDownload}
+                      disabled={isDownloading}
+                      className="flex-1 text-white rounded-lg py-2 px-4 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                    >
+                      {isDownloading && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                      {isDownloading ? 'Generating...' : 'Download PDF'}
+                    </button>
+                  </div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mt-3 mb-1">Next Steps</p>
                  <div className="flex gap-2">
                     <button
                       onClick={() => router.push('/resume-coach')}
@@ -924,6 +1071,46 @@ export default function CoverLetterPage() {
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
+      {reviseModalState && (
+        <CoachReviseModal
+          state={reviseModalState}
+          onClose={() => { setReviseModalState(null); setBulletSelectMode(null) }}
+          resumeData={coverLetter.cover_letter_data}
+          coachingMessages={[]}
+          careerContext={null}
+          supabase={supabase}
+          resumeId={params.id}
+          setResume={() => {}}
+          onUpdate={updateCoverLetterData}
+          documentLabel="Cover Letter"
+          onApplyChange={(newText, location) => {
+            const newData = { ...(coverLetter.cover_letter_data || {}) }
+            if (location.type === 'bullet') {
+              const bullets = [...(newData.bullets || [])]
+              bullets[location.bulletIndex] = newText
+              newData.bullets = bullets
+            } else if (location.type === 'opening') {
+              newData.opening = newText
+            } else if (location.type === 'closing') {
+              newData.closing = newText
+            }
+            updateCoverLetterData(newData)
+            supabase.from('cover_letters').update({ cover_letter_data: newData, updated_at: new Date().toISOString() }).eq('id', params.id)
+          }}
+          onApplyAdd={(result) => {
+            const newData = { ...(coverLetter.cover_letter_data || {}) }
+            const content = result.type === 'skill'
+              ? result.skills?.join(', ')
+              : result.content
+            if (content) {
+              newData.bullets = [...(newData.bullets || []), content]
+            }
+            updateCoverLetterData(newData)
+            supabase.from('cover_letters').update({ cover_letter_data: newData, updated_at: new Date().toISOString() }).eq('id', params.id)
+          }}
+        />
+      )}
 
       {/* Too Long Modal */}
       {showTooLongModal && (

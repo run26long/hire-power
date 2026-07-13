@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-export default function CoachReviseModal({ state, onClose, resumeData, coachingMessages, careerContext, supabase, resumeId, setResume, onUpdate, onReviewChangeUpdate }) {
+export default function CoachReviseModal({ state, onClose, resumeData, coachingMessages, careerContext, supabase, resumeId, setResume, onUpdate, onReviewChangeUpdate, onApplyChange, onApplyAdd, documentLabel = 'Resume' }) {
   const [loading, setLoading] = useState(false)
   const [alternatives, setAlternatives] = useState([])
   const [revised, setRevised] = useState(null)
@@ -24,9 +24,41 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
   const rawText = state.text || ''
   const location = state.location || {}
 
-  // Split into sentences for summary types with multiple sentences
-  const isSummaryType = location.type === 'summary' || location.type === 'jobSummary'
-  const sentences = isSummaryType ? rawText.match(/[^.!?]+[.!?]+/g)?.map(s => s.trim()).filter(s => s.length > 0) || [rawText] : [rawText]
+  // Split into sentences for summary types with multiple sentences.
+  // Only treat a period as a sentence boundary when followed by whitespace then
+  // an uppercase letter (or at end of text) — avoids splitting on emails,
+  // phone numbers like 407.221.3381, URLs, etc.
+  function splitSentences(text) {
+    const result = []
+    let current = ''
+    for (let i = 0; i < text.length; i++) {
+      current += text[i]
+      const ch = text[i]
+      if (ch === '!' || ch === '?') {
+        result.push(current.trim())
+        current = ''
+      } else if (ch === '.') {
+        const rest = text.slice(i + 1)
+        const nextNonSpaceIdx = rest.search(/\S/)
+        if (nextNonSpaceIdx === -1) {
+          // Period at end of text (only trailing spaces remain)
+          result.push(current.trim())
+          current = ''
+        } else if (nextNonSpaceIdx > 0 && /[A-Z]/.test(rest[nextNonSpaceIdx])) {
+          // Period followed by at least one space then a capital letter = sentence end
+          result.push(current.trim())
+          current = ''
+        }
+        // Otherwise: period inside email, URL, phone number, abbreviation — not a boundary
+      }
+    }
+    if (current.trim()) result.push(current.trim())
+    return result.filter(s => s.length > 0)
+  }
+
+  const isSummaryType = location.type === 'summary' || location.type === 'jobSummary' || location.type === 'opening' || location.type === 'closing'
+  const sentences = isSummaryType ? splitSentences(rawText) : [rawText]
+  if (isSummaryType && sentences.length === 0) sentences.push(rawText)
   const hasMultipleSentences = sentences.length > 1
   const currentText = selectedSentence !== null ? sentences[selectedSentence] : rawText
 
@@ -45,7 +77,7 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
           mode: apiMode,
           currentText: currentText,
           userInput: input || undefined,
-          textType: location.type === 'summary' ? 'summary' : location.type === 'jobSummary' ? 'job summary' : 'bullet',
+          textType: location.type === 'summary' ? 'summary' : location.type === 'jobSummary' ? 'job summary' : location.type === 'opening' ? 'opening paragraph' : location.type === 'closing' ? 'closing paragraph' : 'bullet',
           resumeData: resumeData,
           coachingTranscript: coachingMessages || [],
           careerContext: careerContext || null
@@ -96,6 +128,11 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
   function applyBulletChange(newText) {
     if (location.type === 'reviewChange' && onReviewChangeUpdate) {
       onReviewChangeUpdate(location.changeIndex, newText)
+      onClose()
+      return
+    }
+    if (onApplyChange) {
+      onApplyChange(newText, location)
       onClose()
       return
     }
@@ -159,7 +196,7 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
     }
   }
 
-  const textLabel = location.type === 'summary' ? 'Summary' : location.type === 'jobSummary' ? 'Job Summary' : 'Bullet'
+  const textLabel = location.type === 'summary' ? 'Summary' : location.type === 'jobSummary' ? 'Job Summary' : location.type === 'opening' ? 'Opening Paragraph' : location.type === 'closing' ? 'Closing Paragraph' : 'Bullet'
 
   // ── ACTION CHOOSER ──
   if (state.mode === 'choose' && !mode) {
@@ -733,7 +770,8 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
                   <div>
                     <h2 className="text-base font-bold text-white">✨ Adding New Information</h2>
                     <p className="text-purple-100 text-xs">
-                      {addResult.type === 'bullet' ? resumeData.experience?.[addResult.jobIndex]?.company || 'Your role' :
+                      {documentLabel !== 'Resume' ? `${documentLabel} Bullet` :
+                       addResult.type === 'bullet' ? resumeData.experience?.[addResult.jobIndex]?.company || 'Your role' :
                        addResult.type === 'summary' ? 'Professional Summary' :
                        addResult.type === 'skill' ? addResult.category : 'Resume'}
                     </p>
@@ -766,7 +804,8 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Where This Goes</p>
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-2.5 flex-1">
                       <p className="text-xs text-gray-700 leading-snug mb-2">
-                        {addResult.type === 'bullet' ? `${resumeData.experience?.[addResult.jobIndex]?.title || 'Role'} at ${resumeData.experience?.[addResult.jobIndex]?.company || 'this company'}` :
+                        {documentLabel !== 'Resume' ? `${documentLabel} — Bullets section` :
+                         addResult.type === 'bullet' ? `${resumeData.experience?.[addResult.jobIndex]?.title || 'Role'} at ${resumeData.experience?.[addResult.jobIndex]?.company || 'this company'}` :
                          addResult.type === 'summary' ? 'Professional Summary' :
                          addResult.type === 'skill' ? `${addResult.category} skills` : 'Your resume'}
                       </p>
@@ -803,17 +842,18 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
                   )}
                   <button
                     onClick={() => {
-                      if (editingAdd) {
-                        const edited = { ...addResult, content: editedAddText }
-                        applyAddResult(edited)
+                      const finalResult = editingAdd ? { ...addResult, content: editedAddText } : addResult
+                      if (onApplyAdd) {
+                        onApplyAdd(finalResult)
+                        onClose()
                       } else {
-                        applyAddResult(addResult)
+                        applyAddResult(finalResult)
                       }
                     }}
                     className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90"
                     style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
-                    ✓ Add to Resume
+                    ✓ Add to {documentLabel}
                   </button>
                 </div>
               </div>

@@ -1074,7 +1074,7 @@ if (data.ai_analysis) {
             <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
               <p className="text-xs text-purple-700 text-center">
                 {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete
-                  ? '✏️ Tap any section to edit · 📄 Fonts & Templates · ⚡ Add or Change Content · ⚙️ Undo, Save & Download'
+                  ? '✏️ Tap any section to edit · 📄 Fonts & Templates · ⚙️ Undo, Save & Download · ⚡ Add or Change · ▲▼ Reorder'
                   : '✏️ Tap any section to edit · 📄 Format for templates and fonts · ⚙️ Actions to save, undo, or re-assess'
                 }
               </p>

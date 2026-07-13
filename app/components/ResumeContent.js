@@ -687,9 +687,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   )}
                   {onBulletAction && (
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => { e.stopPropagation(); onBulletAction(bullet, { type: 'bullet', jobIndex, bulletIndex }) }}
-                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block md:opacity-0 md:group-hover/bullet:opacity-100"
-                      title="Click to reword or fix this"
+                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded text-xs"
+                      title="Reword or Fix"
                     >⚡</button>
                   )}
                 </div>

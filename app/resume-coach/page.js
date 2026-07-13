@@ -706,8 +706,22 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       const jobTitle = clJobTitle;
       const jobCompany = clCompany;
       const jobDescription = clJobDescription;
-      const linkedResumeId = clSelectedJSId || data.coreResume.id;
-      const sourceResumeId = clSelectedJSId || data.coreResume.id;
+      let resolvedSourceId = clSelectedJSId;
+      if (!resolvedSourceId && jobTitle) {
+        let matchQuery = supabase
+          .from('applications')
+          .select('resume_id')
+          .eq('user_id', user.id)
+          .ilike('title', jobTitle.trim())
+          .not('resume_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (jobCompany) matchQuery = matchQuery.ilike('company', jobCompany.trim());
+        const { data: matchingCard } = await matchQuery.maybeSingle();
+        resolvedSourceId = matchingCard?.resume_id || null;
+      }
+      const linkedResumeId = resolvedSourceId || data.coreResume.id;
+      const sourceResumeId = resolvedSourceId || data.coreResume.id;
       const { data: sourceResume } = await supabase
         .from('resumes')
         .select('resume_data, template_id, font_family')
