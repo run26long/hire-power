@@ -26,7 +26,7 @@ export default function MainNav({ currentPage, userProfile }) {
 
   const navItems = [
     { id: 'dashboard',       label: 'Dashboard',       path: '/dashboard' },
-    { id: 'career-coach',    label: 'Career Coach',    path: '/career-coach' },
+    // { id: 'career-coach',    label: 'Career Coach',    path: '/career-coach' },  // HIDDEN — restore to re-enable
     { id: 'resume-coach',    label: 'Resume Coach',    path: '/resume-coach' },
     { id: 'interview-coach', label: 'Interview Coach', path: '/interview-coach' },
     isVaultTier

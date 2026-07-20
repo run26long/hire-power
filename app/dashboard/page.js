@@ -13,13 +13,13 @@ function WhereBadge() {
     <div style={{
       position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
       background: 'linear-gradient(to right,#667eea,#764ba2)',
-      color: 'white', fontSize: 10, fontWeight: 700,
-      padding: '3px 14px 5px', borderRadius: '0 0 10px 10px',
-      display: 'flex', alignItems: 'center', gap: 5,
+      color: 'white', fontSize: 12, fontWeight: 700,
+      padding: '5px 20px 7px', borderRadius: '0 0 12px 12px',
+      display: 'flex', alignItems: 'center', gap: 7,
       whiteSpace: 'nowrap', letterSpacing: '0.02em', zIndex: 2,
     }}>
       <span style={{
-        width: 6, height: 6, borderRadius: '50%',
+        width: 8, height: 8, borderRadius: '50%',
         background: 'rgba(255,255,255,0.7)', flexShrink: 0,
         animation: 'hp-pulse 2s ease-in-out infinite',
       }} />
@@ -53,7 +53,7 @@ function HomeCard({ active, onClick, num, numColor, children }) {
         fontFamily: "'Fraunces', serif", fontWeight: 900,
         fontSize: 'clamp(80px,8vw,108px)',
         lineHeight: 1, letterSpacing: '-7px',
-        color: lit ? (numColor || '#ddd6fe') : '#ede9fe',
+        color: hovered ? '#9333ea' : '#ddd6fe',
         marginBottom: 0, transition: 'color 0.2s',
       }}>
         {num}
@@ -370,7 +370,6 @@ function DashboardContent() {
 
   const resumeCompleted = !!coreResume?.completed_at;
   const resumeInProgress = !!coreResume && !resumeCompleted;
-  const activeCard = resumeInProgress ? 'resume' : null;
 
   const ccCta = !coreResume ? 'Start the conversation' : 'Update your direction';
 
@@ -664,14 +663,15 @@ function DashboardContent() {
         </div>
 
         {/* CARDS */}
-        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
+        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', overflow: 'hidden' }}>
 
-          {/* 01 CAREER COACH */}
+          {/* 01 CAREER COACH — HIDDEN: comment block below, restore num="01" and re-add to grid to re-enable */}
+          {false && (
           <HomeCard active={activeCard === 'career'} onClick={() => router.push('/career-coach')} num="01">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.free }}>Set Your Direction</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>The best 5-minute investment you can make in your career. Same field, new field, or figuring it out. The more know about your goals, the stronger your resume becomes.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', justifyContent: 'flex-end', gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{ccCta}</span>
@@ -680,15 +680,16 @@ function DashboardContent() {
               </>
             )}
           </HomeCard>
+          )}
 
-          {/* 02 RESUME COACH */}
-          <HomeCard active={activeCard === 'resume' || hasBuildProgress} onClick={() => router.push(hasBuildProgress ? '/build?from=resume-coach' : '/resume-coach')} num="02">
+          {/* 01 RESUME COACH */}
+          <HomeCard onClick={() => router.push(hasBuildProgress ? '/build?from=resume-coach' : '/resume-coach')} num="01">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...(rcStatus === 'not-started' ? SP.start : rcStatus === 'in-progress' ? SP.prog : SP.done) }}>
                   {rcStatus === 'not-started' ? 'Not Started' : rcStatus === 'in-progress' ? 'In Progress' : 'Completed'}
                 </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a $500 résumé writer would. Free tells you what's wrong. Pro fixes it for you.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{rcCta}</span>
@@ -698,12 +699,12 @@ function DashboardContent() {
             )}
           </HomeCard>
 
-          {/* 03 INTERVIEW COACH */}
-          <HomeCard active={activeCard === 'interview'} onClick={() => router.push('/interview-coach')} num="03">
+          {/* 02 INTERVIEW COACH */}
+          <HomeCard onClick={() => router.push('/interview-coach')} num="02">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>AI-spoken practice that mimics a real interview using your resume and the job description. Get coaching on how to present your experience for each specific job.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{icCta}</span>
@@ -713,19 +714,17 @@ function DashboardContent() {
             )}
           </HomeCard>
 
-          {/* 04 JOB TRACKER / CAREER VAULT */}
+          {/* 03 JOB TRACKER / CAREER VAULT */}
           <HomeCard
-            active={activeCard === 'tracker'}
             onClick={() => router.push(c4path)}
-            num="04"
-            numColor={isVaultTier ? '#ddd6fe' : '#bbf7d0'}
+            num="03"
           >
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...(applicationCount > 0 ? SP.prog : SP.start) }}>
                   {applicationCount > 0 ? `${applicationCount} Application${applicationCount !== 1 ? 's' : ''}` : 'Not Started'}
                 </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>{c4desc}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', borderRight: 'none' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{c4cta}</span>

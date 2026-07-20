@@ -7,6 +7,7 @@ import MainNav from '@/app/components/MainNav'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import CoverLetterContent from '@/app/components/CoverLetterContent'
 import ErrorToast from '@/app/components/ErrorToast'
+import SuccessToast from '@/app/components/SuccessToast'
 import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
 import CoachReviseModal from '@/app/components/CoachReviseModal'
@@ -21,6 +22,8 @@ export default function CoverLetterPage() {
   const [userProfile, setUserProfile] = useState(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveToast, setSaveToast] = useState(null)
+  const [saveToastCount, setSaveToastCount] = useState(0)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -34,6 +37,8 @@ export default function CoverLetterPage() {
   // Toolbar state
   const [selectedTemplate, setSelectedTemplate] = useState('current')
   const [selectedFont, setSelectedFont] = useState('Lato')
+  const [userChangedTemplate, setUserChangedTemplate] = useState(false)
+  const [userChangedFont, setUserChangedFont] = useState(false)
   const [selectedSize, setSelectedSize] = useState(11)
   const [selectedSpacing, setSelectedSpacing] = useState(1)
   const [zoom, setZoom] = useState(100)
@@ -87,6 +92,19 @@ export default function CoverLetterPage() {
     setShowEditorTip(false)
     localStorage.setItem('hp_cl_editor_tip_dismissed', '1')
   }
+
+  useEffect(() => {
+    if (hasUnsavedChanges && !saveSuccess) {
+      const storageKey = `hp_save_toast_cl_${params.id}`
+      const count = parseInt(localStorage.getItem(storageKey) || '0')
+      setSaveToastCount(count)
+      if (count < 3) {
+        setSaveToast(window.innerWidth < 768 ? "You have unsaved changes. Tap Actions → Save when you're done editing." : "You have unsaved changes. Click Save when you're done editing.")
+        localStorage.setItem(storageKey, String(count + 1))
+        setSaveToastCount(count + 1)
+      }
+    }
+  }, [hasUnsavedChanges, saveSuccess])
 
   useEffect(() => {
     loadCoverLetter()
@@ -729,7 +747,7 @@ export default function CoverLetterPage() {
                 onClick={save}
                 className={`py-1.5 rounded text-[12px] font-semibold ${
                   saveSuccess ? 'bg-green-600 text-white' :
-                  hasUnsavedChanges ? 'bg-purple-600 text-white' :
+                  hasUnsavedChanges ? `bg-purple-600 text-white ${saveToastCount >= 3 ? 'animate-pulse' : ''}` :
                   'bg-gray-200 text-gray-500'
                 }`}
               >
@@ -783,24 +801,26 @@ export default function CoverLetterPage() {
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span>📄</span>
               <select
-                value={selectedTemplate}
+                value={userChangedTemplate ? selectedTemplate : ''}
                 onChange={(e) => {
                   const t = e.target.value
                   setSelectedTemplate(t)
+                  setUserChangedTemplate(true)
                   setSelectedFont(templateFonts[t] || 'Lato')
                   setHasUnsavedChanges(true)
                 }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
               >
+                <option value="" disabled>Template</option>
                 <option value="command">Command</option>
                 <option value="crisp">Crisp</option>
-                <option value="current">Current</option>               
+                <option value="current">Current</option>
                 <option value="edge">Edge</option>
                 <option value="prestige">Prestige</option>
                 <option value="signature">Signature</option>
                 <option value="sharp">Sharp (Compact)</option>
                 <option value="vibe">Vibe (Compact) </option>
-                
+
               </select>
             </div>
 
@@ -808,10 +828,11 @@ export default function CoverLetterPage() {
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span className="font-bold">A</span>
               <select
-                value={selectedFont}
-                onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
+                value={userChangedFont ? selectedFont : ''}
+                onChange={(e) => { setSelectedFont(e.target.value); setUserChangedFont(true); setHasUnsavedChanges(true) }}
                 className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
               >
+                <option value="" disabled>Font</option>
                 <option value="EB Garamond">EB Garamond</option>
                 <option value="Lato">Lato</option>
                 <option value="Open Sans">Open Sans</option>
@@ -907,12 +928,21 @@ export default function CoverLetterPage() {
               </button>
             </div>
 
+            {/* Undo */}
+            <button
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              className="px-3 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ↶ Undo
+            </button>
+
             {/* Save */}
             <button
               onClick={save}
               className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                 saveSuccess ? 'bg-green-600 text-white'
-                : hasUnsavedChanges ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : hasUnsavedChanges ? `bg-purple-600 text-white hover:bg-purple-700 ${saveToastCount >= 3 ? 'animate-pulse' : ''}`
                 : 'bg-gray-300 text-gray-600'
               }`}
             >
@@ -1071,6 +1101,7 @@ export default function CoverLetterPage() {
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <SuccessToast message={saveToast} onClose={() => setSaveToast(null)} />
 
       {reviseModalState && (
         <CoachReviseModal

@@ -191,6 +191,7 @@ const [mobileToolbar, setMobileToolbar] = useState(null)
 const [showEditTip, setShowEditTip] = useState(false)
 const [showEditorTip, setShowEditorTip] = useState(false)
 const [templatePicked, setTemplatePicked] = useState(false)
+const [userChangedFont, setUserChangedFont] = useState(false)
 
   useEffect(() => {
     if (!localStorage.getItem('hp_editor_tip_dismissed')) {
@@ -1388,9 +1389,9 @@ if (data.ai_analysis) {
                   setSelectedFont(templateDefaultFonts[t] || 'Lato')
                   setHasUnsavedChanges(true)
                 }}
-                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[120px]"
               >
-                {!templatePicked && <option value="" disabled>Template</option>}
+                <option value="" disabled>Template</option>
                 <option value="command">Command</option>
                 <option value="crisp">Crisp</option>
                 <option value="current">Current</option>               
@@ -1407,11 +1408,12 @@ if (data.ai_analysis) {
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span className="font-bold">A</span>
               <select
-                value={selectedFont}
-                onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
-                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
+                value={userChangedFont ? selectedFont : ''}
+                onChange={(e) => { setSelectedFont(e.target.value); setUserChangedFont(true); setHasUnsavedChanges(true) }}
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[100px]"
               >
-               <option value="EB Garamond">EB Garamond</option>
+                <option value="" disabled>Font</option>
+                <option value="EB Garamond">EB Garamond</option>
                 <option value="Lato">Lato</option>
                 <option value="Open Sans">Open Sans</option>
                 <option value="Source Serif 4">Source Serif 4</option>
@@ -4806,6 +4808,24 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               className="px-6 py-4 flex items-center justify-between flex-shrink-0"
             >
               <div className="flex items-center gap-3">
+                  {currentChangeIndex > 0 && (
+                    <button
+                      onClick={() => {
+                        const prevIndex = currentChangeIndex - 1
+                        const lastDecision = decisionStack[decisionStack.length - 1]
+                        if (lastDecision === 'accept') {
+                          setAcceptedChanges(prev => prev.slice(0, -1))
+                        } else {
+                          setRejectedChanges(prev => prev.slice(0, -1))
+                        }
+                        setDecisionStack(prev => prev.slice(0, -1))
+                        setCurrentChangeIndex(prevIndex)
+                        setEditingChange(false)
+                        setEditedText('')
+                      }}
+                      className="text-white hover:text-purple-200 text-sm font-medium flex-shrink-0 transition-colors"
+                    >←</button>
+                  )}
                   <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
                     <span className="text-purple-600 font-bold text-lg">⚡</span>
                   </div>
@@ -4862,27 +4882,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   <p className="text-xs text-gray-700 leading-snug">{currentChange.reason}</p>
                 </div>
 
-                <div className="flex justify-end gap-2 flex-shrink-0">
-                  {currentChangeIndex > 0 && (
-                    <button
-                      onClick={() => {
-                        const prevIndex = currentChangeIndex - 1
-                        const lastDecision = decisionStack[decisionStack.length - 1]
-                        if (lastDecision === 'accept') {
-                          setAcceptedChanges(prev => prev.slice(0, -1))
-                        } else {
-                          setRejectedChanges(prev => prev.slice(0, -1))
-                        }
-                        setDecisionStack(prev => prev.slice(0, -1))
-                        setCurrentChangeIndex(prevIndex)
-                        setEditingChange(false)
-                        setEditedText('')
-                      }}
-                      className="px-4 py-2 bg-white text-gray-500 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      ← Back
-                    </button>
-                  )}
+                <div className="grid grid-cols-2 gap-2 flex-shrink-0 md:flex md:justify-end">
                  <button
                     onClick={() => {
                       setRejectedChanges(prev => [...prev, currentChange])
@@ -4941,7 +4941,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       }
                       // Modal stays open for next change
                     }}
-                    className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90"
+                    className={`px-4 py-2 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 ${!(currentChange.after && setReviseModalState) ? 'col-span-2 justify-self-center md:col-span-1 md:justify-self-auto' : ''}`}
                     style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
                     ✓ Apply Change
