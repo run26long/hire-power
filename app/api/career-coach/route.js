@@ -12,7 +12,17 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { messages, resumeData, userId } = await req.json();
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const token = authHeader.replace('Bearer ', '');
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = user.id;
+
+    const { messages, resumeData } = await req.json();
 
     const systemPrompt = `You are a warm, supportive career coach having a genuine conversation with someone about their career direction. This conversation happens BEFORE resume work begins.
 

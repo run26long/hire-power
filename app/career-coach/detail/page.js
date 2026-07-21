@@ -237,13 +237,16 @@ const handleResumeUpdate = async (updatedData) => {
     setIsAIThinking(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const data = await fetchJSON('/api/career-coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           messages: newMessages,
-          resumeData: resumeData,
-          userId: user?.id
+          resumeData: resumeData
         })
       });
 

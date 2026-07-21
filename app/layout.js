@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PostHogProvider } from "./components/PostHogProvider";
 import FeedbackButton from "./components/FeedbackButton";
+import HelpPanel from "./components/HelpPanel";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 const geistSans = Geist({
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
           <PostHogProvider>
             {children}
             <FeedbackButton />
+          <HelpPanel />
           </PostHogProvider>
         </ErrorBoundary>
       </body>
