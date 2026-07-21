@@ -188,7 +188,7 @@ export default function ResumePDF({
                 if (group.roles.length === 1) {
                   const job = group.roles[0]
                   const hasSummary = job.summary && !job.summaryDismissed
-                  const bullets = (job.bullets || []).filter(b => (b || '').trim())
+                  const bullets = (job.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                   return (
                     <>
                       <View wrap={false}>
@@ -237,7 +237,7 @@ export default function ResumePDF({
                         {group.roles[0].summary && !group.roles[0].summaryDismissed ? <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#444444', fontStyle: 'italic', marginTop: Math.round(2 * sp), marginBottom: Math.round(2 * sp), lineHeight: 1.25 }}>{group.roles[0].summary}</Text> : null}
                         {(() => {
                           const hasSummary = group.roles[0].summary && !group.roles[0].summaryDismissed
-                          const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                          const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                           return !hasSummary && bullets.length > 0 ? (
                             <View style={{ flexDirection: 'row', marginBottom: Math.round(1 * sp) }}>
                               <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, width: 10, flexShrink: 0 }}>{'\u2022 '}</Text>
@@ -250,7 +250,7 @@ export default function ResumePDF({
                     {/* Remaining bullets for first role */}
                     {(() => {
                       const hasSummary = group.roles[0].summary && !group.roles[0].summaryDismissed
-                      const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                      const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                       return (hasSummary ? bullets : bullets.slice(1)).map((b, k) => (
                         <View key={`r0-b${k}`} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(1 * sp) }}>
                           <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25, width: 10, flexShrink: 0 }}>{'\u2022 '}</Text>
@@ -261,7 +261,7 @@ export default function ResumePDF({
                     {/* Remaining roles */}
                     {group.roles.slice(1).map((job, ri) => {
                       const hasSummary = job.summary && !job.summaryDismissed
-                      const bullets = (job.bullets || []).filter(b => (b || '').trim())
+                      const bullets = (job.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                       return (
                         <React.Fragment key={ri+1}>
                           <View wrap={false} style={{ paddingLeft: 12, marginTop: Math.round(5 * sp) }}>

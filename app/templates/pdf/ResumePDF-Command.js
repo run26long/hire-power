@@ -97,7 +97,7 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
 
                 const renderSingleWithHeader = (role, showHeader) => {
                   const hasSummary = role.summary && !role.summaryDismissed
-                  const bullets = (role.bullets || []).filter(b => (b || '').trim())
+                  const bullets = (role.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                   return (
                     <>
                       <View wrap={false}>
@@ -123,7 +123,7 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
                 const renderMultiWithHeader = (group, showHeader) => {
                   const firstRole = group.roles[0]
                   const hasSummary = firstRole.summary && !firstRole.summaryDismissed
-                  const firstBullets = (firstRole.bullets || []).filter(b => (b || '').trim())
+                  const firstBullets = (firstRole.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                   return (
                     <>
                       <View wrap={false}>
@@ -147,7 +147,7 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
                       ))}
                       {group.roles.slice(1).map((role, ri) => {
                         const roleSummary = role.summary && !role.summaryDismissed
-                        const roleBullets = (role.bullets || []).filter(b => (b || '').trim())
+                        const roleBullets = (role.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                         return (
                           <React.Fragment key={ri+1}>
                             <View wrap={false} style={{ paddingLeft: 12, marginTop: Math.round(4*sp) }}>

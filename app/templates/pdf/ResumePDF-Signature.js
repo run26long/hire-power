@@ -67,7 +67,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
               if (group.roles.length === 1) {
                 const job = group.roles[0]
                 const hasSummary = job.summary && !job.summaryDismissed
-                const bullets = (job.bullets || []).filter(b => (b || '').trim())
+                const bullets = (job.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                 return (
                   <>
                     <View wrap={false}>
@@ -115,7 +115,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
                       </Text>
                       {group.roles[0].summary && !group.roles[0].summaryDismissed && <Text style={{ fontFamily: f, fontSize: base, color: '#444444', marginTop: Math.round(2*sp), marginBottom: Math.round(3*sp) }}>{group.roles[0].summary}</Text>}
                       {(() => {
-                        const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                        const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                         return bullets.length > 0 ? (
                           <View style={{ flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
                             <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
@@ -127,7 +127,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
                   </View>
                   {/* Remaining bullets for first role */}
                   {(() => {
-                    const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim())
+                    const bullets = (group.roles[0].bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                     return bullets.slice(1).map((b, k) => (
                       <View key={`r0-b${k+1}`} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(2*sp) }}>
                         <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
@@ -137,7 +137,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
                   })()}
                   {/* Remaining roles */}
                   {group.roles.slice(1).map((job, ri) => {
-                    const bullets = (job.bullets || []).filter(b => (b || '').trim())
+                    const bullets = (job.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
                     return (
                       <React.Fragment key={ri+1}>
                         <View wrap={false} style={{ paddingLeft: 12, marginTop: Math.round(6*sp) }}>
