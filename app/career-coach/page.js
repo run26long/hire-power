@@ -422,7 +422,9 @@ export default function MyCareerPage() {
                         const tier = userProfile?.subscription_tier;
                         const isGated = (tier === 'free' || tier === 'vault') && hasContext;
                         if (isGated) return 'Upgrade to Continue →';
-                        return hasContext ? 'Update Goals →' : 'Start Conversation →';
+                        if (hasContext) return 'Update Goals →';
+                        if (existingResume?.career_coaching_conversation?.length > 0) return 'Resume Conversation →';
+                        return 'Start Conversation →';
                       })()}
                     </button>
                   </div>

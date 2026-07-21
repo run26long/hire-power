@@ -1877,12 +1877,12 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const displayIndex = steps.indexOf(displayStep)
   const panelRef = useRef(null)
 
-  // Scroll to top when journey step changes to 'assess'
+  // Scroll panel to bottom when landing on any step with an action button at the bottom.
+  // 'review' is excluded (user reads from top). coach/chat use overflow-hidden so scrollTo is a no-op.
   useEffect(() => {
-    if (journeyStep === 'assess' && panelRef.current) {
-      panelRef.current.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }, [journeyStep])
+    if (!panelRef.current || displayStep === 'review') return
+    panelRef.current.scrollTo({ top: panelRef.current.scrollHeight, behavior: 'smooth' })
+  }, [displayStep])
 
  const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat' && !resume?.coaching_complete
 
@@ -3677,6 +3677,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   </svg>
                 </button>
               </div>
+              <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
             </div>
           ) : (
             <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
@@ -3810,6 +3811,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 </svg>
               </button>
             </div>
+            <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
           </div>
         )}
 
@@ -5656,6 +5658,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
                   <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                 </svg>
               </button>
+              <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
             </div>
           ) : (
             <button

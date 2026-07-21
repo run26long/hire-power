@@ -1406,7 +1406,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </>
                         ) : (
                           <>
-                            {getButtonText(displayStep)} {displayStep !== 'save' && '→'}
+                            {displayStep === 'coach' && data.coreResume?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
                           </>
                         )}
                       </button>

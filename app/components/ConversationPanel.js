@@ -20,6 +20,7 @@ export default function ConversationPanel({
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
  // Auto-scroll to bottom when messages change (but not on initial load)
   useEffect(() => {
@@ -28,12 +29,16 @@ export default function ConversationPanel({
     }
   }, [messages.length]); // Only trigger when length changes, not initial render
 
+  const resetHeight = () => {
+    if (inputRef.current) inputRef.current.style.height = 'auto';
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading || disabled) return;
-    
     onSendMessage(input.trim());
     setInput('');
+    resetHeight();
   };
 
   const handleKeyDown = (e) => {
@@ -41,6 +46,12 @@ export default function ConversationPanel({
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const handleInput = (e) => {
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+    e.target.style.overflowY = e.target.scrollHeight > 120 ? 'auto' : 'hidden';
   };
 
   return (
@@ -91,23 +102,29 @@ export default function ConversationPanel({
       )}
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled || isLoading}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || disabled || isLoading}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all font-medium text-sm"
-        >
-          Send
-        </button>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-1">
+        <div className="flex gap-2">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            placeholder={placeholder}
+            disabled={disabled || isLoading}
+            rows={2}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-sm resize-none"
+            style={{ overflowY: 'hidden', maxHeight: '120px' }}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || disabled || isLoading}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all font-medium text-sm self-end"
+          >
+            Send
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-400 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
       </form>
     </div>
   );

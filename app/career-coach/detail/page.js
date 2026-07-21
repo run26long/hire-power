@@ -99,17 +99,18 @@ const handleResumeUpdate = async (updatedData) => {
   const inputRef = useRef(null);
   const previousMessageCount = useRef(0);
   
-  // Initial focus on mount (without scrolling)
+  // Focus input after load completes (covers both fresh start and restored conversation)
   useEffect(() => {
-    inputRef.current?.focus({ preventScroll: true });
-  }, []);
-  
-  // Auto-scroll only after user sends first message
+    if (!loading) {
+      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 100);
+    }
+  }, [loading]);
+
+  // Auto-scroll and re-focus after each exchange, and on restore
   useEffect(() => {
     const hasUserMessage = messages.some(m => m.role === 'user');
-    if (hasUserMessage && messages.length > previousMessageCount.current && previousMessageCount.current > 0) {
+    if (hasUserMessage && messages.length > previousMessageCount.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      // Re-focus after scroll
       setTimeout(() => {
         inputRef.current?.focus({ preventScroll: true });
       }, 100);
@@ -162,7 +163,18 @@ const handleResumeUpdate = async (updatedData) => {
 
         setResumeId(urlResumeId);
         setResumeData(resume.resume_data);
-        startCareerConversation(resume.resume_data);
+
+        if (resume.career_coaching_conversation?.length > 0) {
+          setMessages(resume.career_coaching_conversation);
+          const lastAssistant = [...resume.career_coaching_conversation]
+            .reverse()
+            .find(m => m.role === 'assistant');
+          if (lastAssistant?.content?.toLowerCase().includes('continue to resume coach')) {
+            setIsConversationComplete(true);
+          }
+        } else {
+          startCareerConversation(resume.resume_data);
+        }
 
       } catch (err) {
         console.error('Career detail load failed:', err);
@@ -250,13 +262,20 @@ const handleResumeUpdate = async (updatedData) => {
         })
       });
 
-      setMessages([
+      const finalMessages = [
         ...newMessages,
-        {
-          role: 'assistant',
-          content: data.response
-        }
-      ]);
+        { role: 'assistant', content: data.response }
+      ];
+      setMessages(finalMessages);
+
+      // Auto-save conversation progress
+      if (resumeId) {
+        const { error: saveError } = await supabase
+          .from('resumes')
+          .update({ career_coaching_conversation: finalMessages })
+          .eq('id', resumeId);
+        if (saveError) console.error('Error saving career coach conversation:', saveError);
+      }
 
       // Check if conversation is complete
       if (data.isComplete) {
@@ -460,37 +479,40 @@ const handleResumeUpdate = async (updatedData) => {
                   </button>
                 </div>
               ) : (
-              <div className="sticky bottom-0 bg-white border-t pt-3 pb-4 px-4 md:px-6">
+              <div className="sticky bottom-0 bg-white border-t pt-3 pb-2 px-4 md:px-6">
                   <div className="flex gap-2 items-stretch">
-                    <textarea
-                      ref={inputRef}
-                      value={userInput}
-                      onChange={(e) => setUserInput(e.target.value)}
-                      onInput={(e) => {
-                        if (window.innerWidth < 768) return;
-                        e.target.style.height = 'auto';
-                        const maxHeight = 6 * 24;
-                        const target = Math.min(e.target.scrollHeight, maxHeight);
-                        e.target.style.height = target + 'px';
-                        e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage(userInput);
-                          setUserInput('');
+                    <div className="flex-1 flex flex-col">
+                      <textarea
+                        ref={inputRef}
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onInput={(e) => {
+                          if (window.innerWidth < 768) return;
+                          e.target.style.height = 'auto';
+                          const maxHeight = 6 * 24;
+                          const target = Math.min(e.target.scrollHeight, maxHeight);
+                          e.target.style.height = target + 'px';
+                          e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
+                        }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage(userInput);
+                            setUserInput('');
+                          }
+                        }}
+                        placeholder="Type your response..."
+                        disabled={isAIThinking}
+                        rows={2}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                        style={
+                          typeof window !== 'undefined' && window.innerWidth < 768
+                            ? { height: '4.5rem', overflowY: 'auto' }
+                            : { overflowY: 'hidden', maxHeight: '144px' }
                         }
-                      }}
-                      placeholder="Type your response..."
-                      disabled={isAIThinking}
-                      rows={2}
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                      style={
-                        typeof window !== 'undefined' && window.innerWidth < 768
-                          ? { height: '4.5rem', overflowY: 'auto' }
-                          : { overflowY: 'hidden', maxHeight: '144px' }
-                      }
-                    />
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
+                    </div>
                     <button
                       onClick={() => {
                         handleSendMessage(userInput);
