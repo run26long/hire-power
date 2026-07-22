@@ -20,7 +20,7 @@ export async function POST(req) {
       if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { userId } = await req.json();
+    const { userId, vaultPriceId } = await req.json();
     if (!userId) return Response.json({ error: 'Missing userId' }, { status: 400 });
 
     const { data: profile, error: profileError } = await supabase
@@ -57,6 +57,7 @@ export async function POST(req) {
       .update({
         pending_change_type: 'downgrade',
         pending_change_date: new Date(periodEnd * 1000).toISOString(),
+        pending_vault_price_id: vaultPriceId || null,
       })
       .eq('id', userId);
 

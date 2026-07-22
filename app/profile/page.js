@@ -62,8 +62,39 @@ export default function Profile() {
 
   const [editingEmail, setEditingEmail] = useState(false)
   const [newEmail, setNewEmail] = useState('')
+  const [vaultBillingInterval, setVaultBillingInterval] = useState('monthly')
 
   useEffect(() => { loadProfile() }, [])
+
+  // Detect email change confirmation redirect from Supabase
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    // PKCE flow: Supabase lands on /profile?code=xxx
+    const searchParams = new URLSearchParams(window.location.search)
+    const code = searchParams.get('code')
+    if (code) {
+      window.history.replaceState({}, '', '/profile')
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error) {
+          setToastSuccess('Your email has been updated successfully.')
+          loadProfile()
+        }
+      })
+      return
+    }
+
+    // Implicit flow: Supabase lands on /profile#type=email_change&access_token=...
+    const hash = window.location.hash
+    if (hash) {
+      const hashParams = new URLSearchParams(hash.substring(1))
+      if (hashParams.get('type') === 'email_change') {
+        window.history.replaceState({}, '', '/profile')
+        setToastSuccess('Your email has been updated successfully.')
+        loadProfile()
+      }
+    }
+  }, [])
 
   // Auto-open upgrade modal when arriving from email link (?upgrade=true)
   useEffect(() => {
@@ -176,7 +207,10 @@ export default function Profile() {
     try {
       setSaving(true)
       if (editingEmail && newEmail && newEmail !== user?.email) {
-        const { error } = await supabase.auth.updateUser({ email: newEmail })
+        const { error } = await supabase.auth.updateUser(
+          { email: newEmail },
+          { emailRedirectTo: window.location.origin + '/profile' }
+        )
         if (error) {
           setToastError(error.message)
         } else {
@@ -203,13 +237,17 @@ export default function Profile() {
   async function handleDowngrade() {
     try {
       setProcessing(true)
+      const vaultPriceId = vaultBillingInterval === 'annual'
+        ? process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
+        : process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID
       const { data: { session: downgradeSession } } = await supabase.auth.getSession()
       const data = await fetchJSON('/api/stripe/downgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${downgradeSession.access_token}` },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({ userId: user.id, vaultPriceId })
       })
       setShowDowngradeModal(false)
+      setVaultBillingInterval('monthly')
       await loadProfile()
       const dateStr = data.scheduled_date
         ? new Date(data.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -434,10 +472,10 @@ export default function Profile() {
           <div className="hp-profile-inner" style={{ padding: '16px 24px', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* SINGLE ROW: Left stack | Right stack */}
-            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto', alignItems: 'start' }}>
+            <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto', alignItems: 'stretch' }}>
 
               {/* LEFT STACK: Personal Info + Career Context + Your Career Your Info */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 {/* PERSONAL INFO */}
                 <div style={cardBase}>
@@ -556,7 +594,7 @@ export default function Profile() {
                 )}
 
                 {/* YOUR CAREER YOUR INFO */}
-                <div style={cardBase}>
+                <div style={{ ...cardBase, flex: 1 }}>
                   <div style={cardHeader()}>
                     <span style={cardTitle}>Your career. Your info.</span>
                   </div>
@@ -739,25 +777,44 @@ export default function Profile() {
           <div style={modalBox}>
             <div style={modalHead()}>
               <p style={modalTitle}>Switch to Vault</p>
-              <p style={modalSub}>$4.99/month between job searches</p>
+              <p style={modalSub}>{vaultBillingInterval === 'annual' ? '$49.99/year · Save 2 months' : '$4.99/month between job searches'}</p>
             </div>
            <div style={modalBody}>
               <p style={{ fontSize: 16, fontWeight: 700, color: '#6b21a8', marginBottom: 14 }}>Three years from now, you won't remember today's achievements. But Hire Power will.</p>
-             
+
+              {/* Billing interval selector */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <button
+                  onClick={() => setVaultBillingInterval('monthly')}
+                  style={{ flex: 1, padding: '10px 8px', borderRadius: 8, border: vaultBillingInterval === 'monthly' ? '2px solid #7c3aed' : '1.5px solid #e5e7eb', background: vaultBillingInterval === 'monthly' ? '#f5f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}
+                >
+                  <p style={{ fontSize: 13, fontWeight: 700, color: vaultBillingInterval === 'monthly' ? '#6b21a8' : '#374151', marginBottom: 2 }}>Monthly</p>
+                  <p style={{ fontSize: 12, color: '#6b7280' }}>$4.99/month</p>
+                </button>
+                <button
+                  onClick={() => setVaultBillingInterval('annual')}
+                  style={{ flex: 1, padding: '10px 8px', borderRadius: 8, border: vaultBillingInterval === 'annual' ? '2px solid #7c3aed' : '1.5px solid #e5e7eb', background: vaultBillingInterval === 'annual' ? '#f5f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}
+                >
+                  <p style={{ fontSize: 13, fontWeight: 700, color: vaultBillingInterval === 'annual' ? '#6b21a8' : '#374151', marginBottom: 2 }}>Annual</p>
+                  <p style={{ fontSize: 12, color: '#6b7280' }}>$49.99/year</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#10b981', marginTop: 2 }}>Save 2 months</p>
+                </button>
+              </div>
+
               <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Switching to Vault, you'll keep:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 10, lineHeight: 1.8 }}>
                 <li>All resumes and coaching conversations</li>
                 <li>Career Vault achievement tracking</li>
                 <li>Unlimited downloads and premium templates</li>
               </ul>
-             
+
               <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You just won't have access to:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
                 <li>Resume coaching and job customization</li>
                 <li>Interview practice and AI feedback</li>
                 <li>New resume generation</li>
               </ul>
-             
+
               <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 18 }}>
                 <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.5 }}>Vault builds your next resume while you build your career. Getting back to Pro takes one click whenever you are job searching again.</p>
               </div>

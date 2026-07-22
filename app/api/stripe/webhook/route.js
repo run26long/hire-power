@@ -13,6 +13,7 @@ const supabase = createClient(
 function getTierForPriceId(priceId) {
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) return 'pro';
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID) return 'vault';
+  if (priceId === process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID) return 'vault';
   return null;
 }
 
@@ -221,16 +222,19 @@ export async function POST(req) {
       // Check if this deletion was scheduled as a downgrade to Vault
       const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('id, pending_change_type')
+        .select('id, pending_change_type, pending_vault_price_id')
         .eq('stripe_customer_id', customerId)
         .single();
 
       if (existingProfile?.pending_change_type === 'downgrade') {
-        // Create new Vault subscription on the existing customer
+        // Create new Vault subscription on the existing customer,
+        // using the price the user selected (monthly or annual).
+        const vaultPriceId = existingProfile.pending_vault_price_id
+          || process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID;
         try {
           const vaultSub = await stripe.subscriptions.create({
             customer: customerId,
-            items: [{ price: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID }],
+            items: [{ price: vaultPriceId }],
           });
 
           const { error: vaultUpdateError } = await supabase

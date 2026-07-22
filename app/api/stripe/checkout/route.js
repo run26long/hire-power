@@ -6,6 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const ALLOWED_PRICE_IDS = [
   process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
   process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+  process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID,
 ].filter(Boolean);
 
 export async function POST(req) {
