@@ -62,9 +62,6 @@ export default function Profile() {
 
   const [editingEmail, setEditingEmail] = useState(false)
   const [newEmail, setNewEmail] = useState('')
-  const [emailSaving, setEmailSaving] = useState(false)
-  const [emailMessage, setEmailMessage] = useState('')
-  const [emailError, setEmailError] = useState('')
 
   useEffect(() => { loadProfile() }, [])
 
@@ -178,6 +175,16 @@ export default function Profile() {
   async function saveProfile() {
     try {
       setSaving(true)
+      if (editingEmail && newEmail && newEmail !== user?.email) {
+        const { error } = await supabase.auth.updateUser({ email: newEmail })
+        if (error) {
+          setToastError(error.message)
+        } else {
+          setToastSuccess('A confirmation link has been sent to your new email address. Please check your inbox to complete the change.')
+        }
+      }
+      setEditingEmail(false)
+      setNewEmail('')
       const computedDisplayName = `${firstName.trim()} ${lastName.trim()}`.trim() || displayName
       const { error } = await supabase.from('profiles')
         .upsert({ id: user.id, first_name: firstName.trim(), last_name: lastName.trim(), display_name: computedDisplayName, photo_url: photoUrl, updated_at: new Date().toISOString() })
@@ -190,21 +197,6 @@ export default function Profile() {
       setToastError("We couldn't save your changes. Please try again.")
     } finally {
       setSaving(false)
-    }
-  }
-
-  async function handleSaveEmail() {
-    if (!newEmail || newEmail === user?.email) { setEditingEmail(false); return }
-    setEmailSaving(true)
-    setEmailError('')
-    const { error } = await supabase.auth.updateUser({ email: newEmail })
-    setEmailSaving(false)
-    if (error) {
-      console.log('Email update error:', error)
-      setEmailError(error.message)
-    } else {
-      setEmailMessage('A confirmation link has been sent to your new email address. Please check your inbox to complete the change.')
-      setEditingEmail(false)
     }
   }
 
@@ -484,51 +476,37 @@ export default function Profile() {
                         </div>
                         <div className="hp-email-desktop">
                           <label style={labelSm}>Email</label>
-                          {editingEmail ? (
-                            <>
-                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputSm} placeholder="New email address" autoFocus />
-                              {emailError && <p style={{ fontSize: 10, color: '#ef4444', marginTop: 3 }}>{emailError}</p>}
-                              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                                <button onClick={handleSaveEmail} disabled={emailSaving} style={{ ...btnPurple, fontSize: 10, padding: '4px 10px', opacity: emailSaving ? 0.6 : 1 }}>{emailSaving ? 'Saving...' : 'Save'}</button>
-                                <button onClick={() => { setEditingEmail(false); setNewEmail(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 10px' }}>Cancel</button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
-                                <button onClick={() => { setNewEmail(user?.email || ''); setEditingEmail(true); setEmailMessage(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', whiteSpace: 'nowrap' }}>Edit</button>
-                              </div>
-                              {emailMessage
-                                ? <p style={{ fontSize: 10, color: '#7c3aed', marginTop: 3, lineHeight: 1.4 }}>{emailMessage}</p>
-                                : <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>}
-                            </>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {editingEmail ? (
+                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1 }} placeholder="New email address" autoFocus />
+                            ) : (
+                              <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
+                            )}
+                            <button
+                              onClick={editingEmail ? () => { setEditingEmail(false); setNewEmail(''); } : () => { setNewEmail(user?.email || ''); setEditingEmail(true); }}
+                              style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', whiteSpace: 'nowrap' }}
+                            >
+                              {editingEmail ? 'Cancel' : 'Edit'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                     <div className="hp-email-mobile" style={{ display: 'none' }}>
                       <label style={labelSm}>Email</label>
-                      {editingEmail ? (
-                        <>
-                          <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputSm} placeholder="New email address" />
-                          {emailError && <p style={{ fontSize: 10, color: '#ef4444', marginTop: 3 }}>{emailError}</p>}
-                          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                            <button onClick={handleSaveEmail} disabled={emailSaving} style={{ ...btnPurple, fontSize: 10, padding: '4px 10px', opacity: emailSaving ? 0.6 : 1 }}>{emailSaving ? 'Saving...' : 'Save'}</button>
-                            <button onClick={() => { setEditingEmail(false); setNewEmail(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 10px' }}>Cancel</button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
-                            <button onClick={() => { setNewEmail(user?.email || ''); setEditingEmail(true); setEmailMessage(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', whiteSpace: 'nowrap' }}>Edit</button>
-                          </div>
-                          {emailMessage
-                            ? <p style={{ fontSize: 10, color: '#7c3aed', marginTop: 3, lineHeight: 1.4 }}>{emailMessage}</p>
-                            : <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>}
-                        </>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {editingEmail ? (
+                          <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1 }} placeholder="New email address" />
+                        ) : (
+                          <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
+                        )}
+                        <button
+                          onClick={editingEmail ? () => { setEditingEmail(false); setNewEmail(''); } : () => { setNewEmail(user?.email || ''); setEditingEmail(true); }}
+                          style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', whiteSpace: 'nowrap' }}
+                        >
+                          {editingEmail ? 'Cancel' : 'Edit'}
+                        </button>
+                      </div>
                     </div>
                     <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                       {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
@@ -941,6 +919,7 @@ export default function Profile() {
                       </div>
                     );
                   })()}
+                  <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
@@ -962,6 +941,7 @@ export default function Profile() {
                       )}
                     </button>
                   </div>
+                  <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                 </div>
                 <button type="submit" disabled={changePasswordLoading}
                   className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"

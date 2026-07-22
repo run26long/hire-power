@@ -596,6 +596,7 @@ function DashboardContent() {
                             </div>
                           );
                         })()}
+                        <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
@@ -617,6 +618,7 @@ function DashboardContent() {
                             )}
                           </button>
                         </div>
+                        <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                       </div>
                       <button type="submit" disabled={resetLoading}
                         className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"

@@ -592,6 +592,7 @@ const supabase = createClient();
                           </div>
                         );
                       })()}
+                      <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                     </div>
 
                     {/* Pro checkbox */}
