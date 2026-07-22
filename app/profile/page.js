@@ -60,6 +60,12 @@ export default function Profile() {
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
   const [changePasswordError, setChangePasswordError] = useState('')
 
+  const [editingEmail, setEditingEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailError, setEmailError] = useState('')
+
   useEffect(() => { loadProfile() }, [])
 
   // Auto-open upgrade modal when arriving from email link (?upgrade=true)
@@ -187,7 +193,22 @@ export default function Profile() {
     }
   }
 
- async function handleDowngrade() {
+  async function handleSaveEmail() {
+    if (!newEmail || newEmail === user?.email) { setEditingEmail(false); return }
+    setEmailSaving(true)
+    setEmailError('')
+    const { error } = await supabase.auth.updateUser({ email: newEmail })
+    setEmailSaving(false)
+    if (error) {
+      console.log('Email update error:', error)
+      setEmailError(error.message)
+    } else {
+      setEmailMessage('A confirmation link has been sent to your new email address. Please check your inbox to complete the change.')
+      setEditingEmail(false)
+    }
+  }
+
+  async function handleDowngrade() {
     try {
       setProcessing(true)
       const { data: { session: downgradeSession } } = await supabase.auth.getSession()
@@ -448,28 +469,66 @@ export default function Profile() {
                         </label>
                       </div>
                       {/* Fields */}
-                      <div className="hp-name-email-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                        <div>
-                          <label style={labelSm}>First Name</label>
-                          <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={inputSm} placeholder="First" />
-                          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
-                        </div>
-                        <div>
-                          <label style={labelSm}>Last Name</label>
-                          <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={inputSm} placeholder="Last" />
-                          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div className="hp-name-email-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div>
+                            <label style={labelSm}>First Name</label>
+                            <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={inputSm} placeholder="First" />
+                            <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>What Coach will call you</p>
+                          </div>
+                          <div>
+                            <label style={labelSm}>Last Name</label>
+                            <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={inputSm} placeholder="Last" />
+                            <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>
+                          </div>
                         </div>
                         <div className="hp-email-desktop">
                           <label style={labelSm}>Email</label>
-                          <input type="email" value={user?.email || ''} disabled style={inputDis} />
-                          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
+                          {editingEmail ? (
+                            <>
+                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputSm} placeholder="New email address" autoFocus />
+                              {emailError && <p style={{ fontSize: 10, color: '#ef4444', marginTop: 3 }}>{emailError}</p>}
+                              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                <button onClick={handleSaveEmail} disabled={emailSaving} style={{ ...btnPurple, fontSize: 10, padding: '4px 10px', opacity: emailSaving ? 0.6 : 1 }}>{emailSaving ? 'Saving...' : 'Save'}</button>
+                                <button onClick={() => { setEditingEmail(false); setNewEmail(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 10px' }}>Cancel</button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
+                                <button onClick={() => { setNewEmail(user?.email || ''); setEditingEmail(true); setEmailMessage(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', whiteSpace: 'nowrap' }}>Edit</button>
+                              </div>
+                              {emailMessage
+                                ? <p style={{ fontSize: 10, color: '#7c3aed', marginTop: 3, lineHeight: 1.4 }}>{emailMessage}</p>
+                                : <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>}
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
                     <div className="hp-email-mobile" style={{ display: 'none' }}>
                       <label style={labelSm}>Email</label>
-                      <input type="email" value={user?.email || ''} disabled style={inputDis} />
-                      <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>Cannot be changed</p>
+                      {editingEmail ? (
+                        <>
+                          <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputSm} placeholder="New email address" />
+                          {emailError && <p style={{ fontSize: 10, color: '#ef4444', marginTop: 3 }}>{emailError}</p>}
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                            <button onClick={handleSaveEmail} disabled={emailSaving} style={{ ...btnPurple, fontSize: 10, padding: '4px 10px', opacity: emailSaving ? 0.6 : 1 }}>{emailSaving ? 'Saving...' : 'Save'}</button>
+                            <button onClick={() => { setEditingEmail(false); setNewEmail(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 10px' }}>Cancel</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
+                            <button onClick={() => { setNewEmail(user?.email || ''); setEditingEmail(true); setEmailMessage(''); setEmailError(''); }} style={{ ...btnOutline, fontSize: 10, padding: '4px 8px', whiteSpace: 'nowrap' }}>Edit</button>
+                          </div>
+                          {emailMessage
+                            ? <p style={{ fontSize: 10, color: '#7c3aed', marginTop: 3, lineHeight: 1.4 }}>{emailMessage}</p>
+                            : <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>}
+                        </>
+                      )}
                     </div>
                     <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                       {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
@@ -480,7 +539,8 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* CAREER CONTEXT */}
+                {false && (
+                /* CAREER CONTEXT */
                 <div style={cardBase}>
                   <div style={cardHeader()}>
                     <span style={cardTitle}>Career Context</span>
@@ -515,6 +575,7 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* YOUR CAREER YOUR INFO */}
                 <div style={cardBase}>
