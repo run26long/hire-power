@@ -1884,7 +1884,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     panelRef.current.scrollTo({ top: panelRef.current.scrollHeight, behavior: 'smooth' })
   }, [displayStep])
 
- const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat' && !resume?.coaching_complete
+ const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && !resume?.coaching_complete
 
  return (
    <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 px-3 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 px-3 md:pl-0 md:pr-3 md:pb-6"}>
@@ -2717,7 +2717,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         return
                       }
 
-                      setResume(prev => ({ ...prev, journey_step: 'improve' }))
+                      setResume(prev => ({ ...prev, journey_step: 'improve', coaching_complete: true }))
                       setShowSkipCoachingModal(false)
                       fireT4IfFirst(supabase)
                     } catch (err) {
@@ -3021,7 +3021,8 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         ...prev,
         resume_data: data.rewrittenResume,
         journey_step: 'improve',
-        current_score: newScore
+        current_score: newScore,
+        coaching_complete: true
       }))
       fireO4MarkerIfFirst(supabase)
 
@@ -3385,7 +3386,7 @@ const getMessageText = (msg) => {
         return
       }
 
-      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
+      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true }))
       if (isJobSpecific) fireT4IfFirst(supabase)
       fireO4MarkerIfFirst(supabase)
 

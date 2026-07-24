@@ -8,9 +8,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   const [editingSection, setEditingSection] = useState(null)
   const [focusedBullet, setFocusedBullet] = useState(null)
   const [focusedSection, setFocusedSection] = useState(null)
+  const [focusedSummary, setFocusedSummary] = useState(null)
 
   useEffect(() => {
-    if (!focusedBullet && !focusedSection) return
+    if (!focusedBullet && !focusedSection && !focusedSummary) return
     const handler = (e) => {
       if (focusedBullet && !e.target.closest('[data-bullet-group]')) {
         setFocusedBullet(null)
@@ -18,10 +19,13 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       if (focusedSection && !e.target.closest('[data-section-group]')) {
         setFocusedSection(null)
       }
+      if (focusedSummary && !e.target.closest('[data-summary-group]')) {
+        setFocusedSummary(null)
+      }
     }
     document.addEventListener('click', handler, true)
     return () => document.removeEventListener('click', handler, true)
-  }, [focusedBullet, focusedSection])
+  }, [focusedBullet, focusedSection, focusedSummary])
 
   const ts = templateStyles
   const sectionClass = selectedTemplate === 'current' ? 'mb-0 group' : 'mb-6 group'
@@ -641,15 +645,25 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       const renderRoleBody = (job, jobIndex) => (
         <>
           {job.summary ? (
-            <div className="mb-2 relative group/jobsummary">
+            <div className="mb-2 relative group/jobsummary" data-summary-group={jobIndex} onClick={() => { if (window.innerWidth < 768) { setFocusedSummary(`${jobIndex}`); setFocusedBullet(null) } }}>
               <p className={`text-sm text-gray-700 italic ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={ts.body || {}} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onBlur={(e) => updateNestedField(`experience[${jobIndex}].summary`, e.currentTarget.textContent)}>{job.summary}</p>
               {!readOnly && !onBulletAction && <button onClick={() => removeExperienceSummary(jobIndex)} className="text-[#e57373] text-xs mt-1 opacity-50 hover:opacity-100">× Remove Summary</button>}
               {onBulletAction && !bulletSelectMode && (
-                <button
-                  onClick={() => onBulletAction(job.summary, { type: 'jobSummary', jobIndex })}
-                  className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block md:opacity-0 md:group-hover/jobsummary:opacity-100"
-                  title="Click to reword or fix this"
-                >⚡</button>
+                <>
+                  <button
+                    onClick={() => onBulletAction(job.summary, { type: 'jobSummary', jobIndex })}
+                    className="absolute right-0 top-0 text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded hidden md:block md:opacity-0 md:group-hover/jobsummary:opacity-100"
+                    title="Click to reword or fix this"
+                  >⚡</button>
+                  <div className={`absolute right-0 top-0 flex items-center bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 md:hidden ${focusedSummary === `${jobIndex}` ? 'opacity-100' : 'opacity-0'}`}>
+                    <button
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => { e.stopPropagation(); onBulletAction(job.summary, { type: 'jobSummary', jobIndex }) }}
+                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded text-xs"
+                      title="Reword or Fix"
+                    >⚡</button>
+                  </div>
+                </>
               )}
               {bulletSelectMode && (
                 <button
@@ -665,7 +679,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             </div>
           )}
           {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
-           <div key={bulletIndex} data-bullet-group={`${jobIndex}-${bulletIndex}`} className="relative flex items-start gap-1 mb-1 group/bullet" onClick={() => { if (window.innerWidth < 768) setFocusedBullet(`${jobIndex}-${bulletIndex}`) }}>
+           <div key={bulletIndex} data-bullet-group={`${jobIndex}-${bulletIndex}`} className="relative flex items-start gap-1 mb-1 group/bullet" onClick={() => { if (window.innerWidth < 768) { setFocusedBullet(`${jobIndex}-${bulletIndex}`); setFocusedSummary(null) } }}>
               <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
               <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(bullet ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onFocus={(e) => { if (!bullet) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => { const t = e.currentTarget.textContent; updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, t === 'Describe what you did and the impact you made' ? '' : t) }}>{bullet || (!readOnly && 'Describe what you did and the impact you made')}</p>
               {!readOnly && (

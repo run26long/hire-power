@@ -98,7 +98,7 @@ export default function HelpPanel() {
       {/* Floating Button */}
       <button
         onClick={handleOpen}
-        className="fixed bottom-5 right-5 md:right-14 z-40 w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+        className="fixed bottom-5 right-5 md:right-4 z-40 w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
         style={{ backgroundColor: '#7c3aed' }}
         aria-label="Help"
       >
