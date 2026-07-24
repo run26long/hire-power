@@ -134,7 +134,7 @@ const helpContent = [
       },
       {
         question: 'Do I need a computer?',
-        answer: 'No. brb is designed for your phone, so you can build your resume by typing your answers.'
+        answer: 'No. brb is designed for your phone, so you can build your resume by typing your answers or using talk-to-text on your mobile device.'
       },
       {
         question: 'Do I get access to the full Hire Power platform through brb?',

@@ -253,7 +253,7 @@ export default function BrbLandingPage() {
               <div className="how-line"></div>
               <div className="how-steps">
                 <div className="how-step"><span className="how-num">01</span><span>coach asks the questions.</span></div>
-                <div className="how-step"><span className="how-num">02</span><span>you answer. type or use talk-to-text.</span></div>
+                <div className="how-step"><span className="how-num">02</span><span>you answer. type or talk-to-text on your phone.</span></div>
                 <div className="how-step"><span className="how-num">03</span><span>30 min later: a real resume. yours.</span></div>
               </div>
               <div className="how-scribble">yeah. we really do it all for you</div>

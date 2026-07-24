@@ -1508,7 +1508,7 @@ if (data.ai_analysis) {
               <button
                 onClick={handleAutoFit}
                 disabled={isAutoFitting}
-                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors ${
+                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors whitespace-nowrap ${
                   isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
                   : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
                   : 'border-gray-300 hover:bg-gray-50'
@@ -1560,7 +1560,7 @@ if (data.ai_analysis) {
                   }
                 }}
                 disabled={isLoadingPreview}
-                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
               >
                 {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
                 {isLoadingPreview ? 'Loading...' : 'Preview'}
@@ -1574,7 +1574,7 @@ if (data.ai_analysis) {
             <button
               onClick={undo}
               disabled={historyIndex <= 0}
-              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all ${
+              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
               }`}
             >
@@ -1584,7 +1584,7 @@ if (data.ai_analysis) {
             {/* Save */}
             <button
               onClick={save}
-              className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+              className={`px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 saveSuccess
                   ? 'bg-green-600 text-white'
                   : hasUnsavedChanges
@@ -1597,7 +1597,7 @@ if (data.ai_analysis) {
 
               {/* Score */}
               {score && (
-                <div className={`px-3 py-1 rounded font-semibold text-xs ${
+                <div className={`px-3 py-1 rounded font-semibold text-xs whitespace-nowrap ${
                   score >= 85 ? 'bg-purple-100 text-purple-700' :
                   score >= 75 ? 'bg-green-100 text-green-700' :
                   score >= 60 ? 'bg-yellow-100 text-yellow-700' :
@@ -1626,7 +1626,7 @@ if (data.ai_analysis) {
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 text-white transition-opacity ${
+                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 whitespace-nowrap text-white transition-opacity ${
                   isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -5804,7 +5804,11 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
     <div className="space-y-1.5 -mt-2">
       <h3 className="font-semibold text-lg -mt-3">⭐ Resume Complete!</h3>
 
-      <p className="text-sm md:text-xs text-gray-500">Your resume is application-ready.</p>
+      {isJobSpecific ? (
+        <p className="text-sm md:text-xs text-gray-500">Your resume is application-ready.</p>
+      ) : (
+        <p className="text-sm md:text-xs text-gray-500 mb-2">Your core resume is complete. It captures your full career and works as the foundation for your job search.</p>
+      )}
 
       <div className="flex justify-center pt-1">
         <button
@@ -5818,8 +5822,12 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
         </button>
       </div>
 
+      {!isJobSpecific && (
+        <p className="text-sm md:text-xs text-gray-500">If you are ready to apply, research shows that tailored resumes get significantly more callbacks. Hire Power makes it easy to tailor your resume for each application in minutes versus hours, and your core resume stays untouched.</p>
+      )}
+
       <div className="pt-1 border-t border-gray-200">
-        <p className="text-sm md:text-xs text-gray-500 mb-3">Ready to put it to use?</p>
+        {isJobSpecific && <p className="text-sm md:text-xs text-gray-500 mb-3">Ready to put it to use?</p>}
         <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
           {isJobSpecific && (
             <button
@@ -5843,12 +5851,14 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
           >
             ✉️ Create a Cover Letter
           </button>
-          <button
-            onClick={() => window.location.href = '/interview-coach'}
-            className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
-          >
-            🎤 Start Interview Prep
-          </button>
+          {isJobSpecific && (
+            <button
+              onClick={() => window.location.href = '/interview-coach'}
+              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              🎤 Start Interview Prep
+            </button>
+          )}
           <button
             onClick={() => window.location.href = '/resume-coach'}
             className="text-gray-400 text-sm md:text-xs hover:text-gray-600 mt-1"
