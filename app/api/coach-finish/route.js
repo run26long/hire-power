@@ -1592,9 +1592,7 @@ CAREER CONTEXT:
 - Transferable skills: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
 ` : ''
 
-  return `${WRITING_CONSTITUTION}
-
-${skipCoaching ? JS_NO_COACH_RULES : JS_WRITING_CONSTITUTION}
+  return `${skipCoaching ? JS_NO_COACH_RULES : JS_WRITING_CONSTITUTION}
 
 ${levelInstructions}
 
@@ -2134,9 +2132,7 @@ No markdown. No explanation. No backticks.`
 function buildTargetedEnhancementPrompt({ rewrittenResume, newConversation, remainingGaps, level }) {
   const levelInstructions = LEVEL_WRITING_INSTRUCTIONS[level] || LEVEL_WRITING_INSTRUCTIONS.mid
   
-  return `${WRITING_CONSTITUTION}
-
-${levelInstructions}
+  return `${levelInstructions}
 
 You are performing a TARGETED ENHANCEMENT PASS on an already-improved resume.
 The resume was recently coached and rewritten. It is already significantly better than the original.
@@ -2232,8 +2228,6 @@ ${JSON.stringify(resumeData, null, 2)}`
   const conversationText = conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')
 
   return `${conversationalBlock}You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with, one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance and conciseness. You never include anything that doesn't serve the candidate's target role, and you tell the most powerful story in the simplest, most impactful way possible. Good enough is not good enough. Your works must be
-
-${WRITING_CONSTITUTION}
 
 ${levelInstructions}
 
@@ -2496,7 +2490,13 @@ export async function POST(request) {
       const enhancementMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{ role: 'user', content: enhancementPrompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: enhancementPrompt }
+          ]
+        }]
       })
 
       let cleanedEnhancement = enhancementMessage.content[0].text.trim()
@@ -2531,7 +2531,13 @@ export async function POST(request) {
         const retryMessage = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 8000,
-          messages: [{ role: 'user', content: retryPrompt }]
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: retryPrompt }
+            ]
+          }]
         })
 
         let cleanedRetry = retryMessage.content[0].text.trim()
@@ -2585,7 +2591,13 @@ export async function POST(request) {
       const convRewriteMsg = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{ role: 'user', content: convRewritePrompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: convRewritePrompt }
+          ]
+        }]
       })
 
       let cleanedConvRewrite = convRewriteMsg.content[0].text.trim()
@@ -2688,7 +2700,13 @@ Return this exact structure:
       const rewriteMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{ role: 'user', content: jsRewritePrompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: jsRewritePrompt }
+          ]
+        }]
       })
 
       let cleanedRewrite = rewriteMessage.content[0].text.trim()
@@ -2753,7 +2771,13 @@ Return this exact structure:
         rewriteMessage = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 8000,
-          messages: [{ role: 'user', content: rewritePrompt }]
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: rewritePrompt }
+            ]
+          }]
         })
         break
       } catch (err) {

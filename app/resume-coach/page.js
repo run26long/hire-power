@@ -1076,9 +1076,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     <div className="flex md:hidden gap-2 mb-4">
                       <button
                         onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                        className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-2 px-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
                       >
-                        👁 View
+                        View Resume
                       </button>
                       <button
                         onClick={() => handleDownloadResume(data.coreResume.id)}

@@ -1876,12 +1876,20 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const displayStep = viewingStep || journeyStep
   const displayIndex = steps.indexOf(displayStep)
   const panelRef = useRef(null)
+  const visitedStepsRef = useRef(new Set())
 
-  // Scroll panel to bottom when landing on any step with an action button at the bottom.
-  // 'review' is excluded (user reads from top). coach/chat use overflow-hidden so scrollTo is a no-op.
+  // Scroll panel when displayStep changes.
+  // First visit to a step → top so the user reads content from the beginning.
+  // Return visit → bottom so the action button is immediately visible.
+  // 'review' is excluded (always reads from top). coach/chat use overflow-hidden so scrollTo is a no-op.
   useEffect(() => {
     if (!panelRef.current || displayStep === 'review') return
-    panelRef.current.scrollTo({ top: panelRef.current.scrollHeight, behavior: 'smooth' })
+    if (visitedStepsRef.current.has(displayStep)) {
+      panelRef.current.scrollTo({ top: panelRef.current.scrollHeight, behavior: 'smooth' })
+    } else {
+      panelRef.current.scrollTo({ top: 0, behavior: 'instant' })
+    }
+    visitedStepsRef.current.add(displayStep)
   }, [displayStep])
 
  const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && !resume?.coaching_complete
