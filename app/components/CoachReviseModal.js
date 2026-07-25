@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-export default function CoachReviseModal({ state, onClose, resumeData, coachingMessages, careerContext, supabase, resumeId, setResume, onUpdate, onReviewChangeUpdate, onApplyChange, onApplyAdd, documentLabel = 'Resume' }) {
+export default function CoachReviseModal({ state, onClose, resumeData, coachingMessages, careerContext, supabase, resumeId, setResume, onUpdate, onReviewChangeUpdate, onApplyChange, onApplyAdd, documentLabel = 'Resume', isCoverLetter = false }) {
   const [loading, setLoading] = useState(false)
   const [alternatives, setAlternatives] = useState([])
   const [revised, setRevised] = useState(null)
@@ -80,7 +80,8 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
           textType: location.type === 'summary' ? 'summary' : location.type === 'jobSummary' ? 'job summary' : location.type === 'opening' ? 'opening paragraph' : location.type === 'closing' ? 'closing paragraph' : 'bullet',
           resumeData: resumeData,
           coachingTranscript: coachingMessages || [],
-          careerContext: careerContext || null
+          careerContext: careerContext || null,
+          isCoverLetter: isCoverLetter || false
         })
       })
 
@@ -770,10 +771,13 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
                   <div>
                     <h2 className="text-base font-bold text-white">✨ Adding New Information</h2>
                     <p className="text-purple-100 text-xs">
-                      {documentLabel !== 'Resume' ? `${documentLabel} Bullet` :
-                       addResult.type === 'bullet' ? resumeData.experience?.[addResult.jobIndex]?.company || 'Your role' :
-                       addResult.type === 'summary' ? 'Professional Summary' :
-                       addResult.type === 'skill' ? addResult.category : 'Resume'}
+                      {documentLabel !== 'Resume'
+                        ? addResult.section === 'opening' ? 'Opening section'
+                          : addResult.section === 'closing' ? 'Closing section'
+                          : 'Bullets section'
+                        : addResult.type === 'bullet' ? resumeData.experience?.[addResult.jobIndex]?.company || 'Your role'
+                        : addResult.type === 'summary' ? 'Professional Summary'
+                        : addResult.type === 'skill' ? addResult.category : 'Resume'}
                     </p>
                   </div>
                 </div>
@@ -804,10 +808,11 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Where This Goes</p>
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-2.5 flex-1">
                       <p className="text-xs text-gray-700 leading-snug mb-2">
-                        {documentLabel !== 'Resume' ? `${documentLabel} — Bullets section` :
-                         addResult.type === 'bullet' ? `${resumeData.experience?.[addResult.jobIndex]?.title || 'Role'} at ${resumeData.experience?.[addResult.jobIndex]?.company || 'this company'}` :
-                         addResult.type === 'summary' ? 'Professional Summary' :
-                         addResult.type === 'skill' ? `${addResult.category} skills` : 'Your resume'}
+                        {documentLabel !== 'Resume'
+                          ? `${documentLabel} — ${addResult.section === 'opening' ? 'Opening section' : addResult.section === 'closing' ? 'Closing section' : 'Bullets section'}`
+                          : addResult.type === 'bullet' ? `${resumeData.experience?.[addResult.jobIndex]?.title || 'Role'} at ${resumeData.experience?.[addResult.jobIndex]?.company || 'this company'}`
+                          : addResult.type === 'summary' ? 'Professional Summary'
+                          : addResult.type === 'skill' ? `${addResult.category} skills` : 'Your resume'}
                       </p>
                       {addResult.explanation && (
                         <p className="text-xs text-gray-500 leading-snug italic">

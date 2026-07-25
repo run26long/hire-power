@@ -149,6 +149,42 @@ If the description is too vague to write specific content:
 {"type": "clarification", "question": "A specific question to ask the candidate so you can write the content"}`
 }
 
+function buildAddPromptCoverLetter(userDescription, coverLetterData) {
+  return `You are a professional cover letter writer adding new content to a cover letter based on something the candidate forgot to mention.
+
+${writingRules}
+
+CONTEXT:
+The cover letter has three sections:
+- opening: the introductory paragraph establishing why the candidate is applying and what they bring
+- bullets: body accomplishments, qualifications, and relevant experience (this is where new content almost always belongs)
+- closing: the call-to-action paragraph and signoff
+
+New content should go in bullets unless it is clearly an opening statement or closing language. Never add content to the signoff line itself.
+
+FULL COVER LETTER:
+${JSON.stringify(coverLetterData, null, 2)}
+
+WHAT THE CANDIDATE WANTS TO ADD:
+"${userDescription}"
+
+Write the new content in the voice of the existing cover letter and determine which section it belongs in.
+
+Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
+
+If this belongs in bullets (most cases):
+{"section": "bullets", "content": "the new bullet text", "explanation": "One sentence explaining what was added."}
+
+If this is clearly opening content:
+{"section": "opening", "content": "the revised full opening paragraph incorporating the new information", "explanation": "Brief explanation of what changed."}
+
+If this is clearly closing content:
+{"section": "closing", "content": "the revised full closing paragraph incorporating the new information", "explanation": "Brief explanation of what changed."}
+
+If the description is too vague to write specific content:
+{"type": "clarification", "question": "A specific question to ask the candidate so you can write the content"}`
+}
+
 // ═══════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════
@@ -175,9 +211,10 @@ export async function POST(request) {
       currentText,    // the bullet/summary being acted on (reword, fix)
       userInput,      // user's explanation (fix) or description (add)
       textType,       // 'bullet' | 'summary' | 'job summary'
-      resumeData,     // full resume JSON
+      resumeData,     // full resume/cover letter JSON
       coachingTranscript, // full coaching conversation
       careerContext,  // career context object
+      isCoverLetter,  // true when called from the cover letter editor
     } = body
 
     if (!mode || !resumeData) {
@@ -203,7 +240,9 @@ export async function POST(request) {
         break
       case 'add':
         if (!userInput) return Response.json({ error: 'userInput required for add mode' }, { status: 400 })
-        prompt = buildAddPrompt(userInput, resumeData, transcriptText, careerContext)
+        prompt = isCoverLetter
+          ? buildAddPromptCoverLetter(userInput, resumeData)
+          : buildAddPrompt(userInput, resumeData, transcriptText, careerContext)
         break
       default:
         return Response.json({ error: 'Invalid mode. Use reword, fix, or add.' }, { status: 400 })

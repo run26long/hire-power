@@ -128,6 +128,7 @@ const [previewScale, setPreviewScale] = useState(1)
  const [isDownloading, setIsDownloading] = useState(false)
  const [showColorPicker, setShowColorPicker] = useState(false)
 const isAutoFitJustRanRef = useRef(false)
+const confirmedLeaveRef = useRef(false)
 
   // Save reminder: toast first 3 times, then pulse handles it
   useEffect(() => {
@@ -146,7 +147,11 @@ const isAutoFitJustRanRef = useRef(false)
   // Warn before browser close / refresh / hard navigation
   useEffect(() => {
     if (!hasUnsavedChanges) return
-    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    const handler = (e) => {
+      if (confirmedLeaveRef.current) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [hasUnsavedChanges])
@@ -1874,7 +1879,7 @@ if (data.ai_analysis) {
                 Save and Leave
               </button>
               <button
-                onClick={() => { window.location.href = unsavedNavTarget; setUnsavedNavTarget(null) }}
+                onClick={() => { confirmedLeaveRef.current = true; window.location.href = unsavedNavTarget; setUnsavedNavTarget(null) }}
                 className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Leave Without Saving

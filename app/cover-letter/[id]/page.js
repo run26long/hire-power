@@ -57,6 +57,7 @@ export default function CoverLetterPage() {
   const [historyIndex, setHistoryIndex] = useState(-1)
   const isUndoingRef = useRef(false)
   const clPanelRef = useRef(null)
+  const confirmedLeaveRef = useRef(false)
 
   const templateFonts = {
     crisp: 'Source Serif 4',
@@ -111,7 +112,11 @@ export default function CoverLetterPage() {
   // Warn before browser close / refresh / hard navigation
   useEffect(() => {
     if (!hasUnsavedChanges) return
-    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    const handler = (e) => {
+      if (confirmedLeaveRef.current) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [hasUnsavedChanges])
@@ -1140,6 +1145,7 @@ export default function CoverLetterPage() {
           setResume={() => {}}
           onUpdate={updateCoverLetterData}
           documentLabel="Cover Letter"
+          isCoverLetter={true}
           onApplyChange={(newText, location) => {
             const newData = { ...(coverLetter.cover_letter_data || {}) }
             if (location.type === 'bullet') {
@@ -1156,11 +1162,15 @@ export default function CoverLetterPage() {
           }}
           onApplyAdd={(result) => {
             const newData = { ...(coverLetter.cover_letter_data || {}) }
-            const content = result.type === 'skill'
-              ? result.skills?.join(', ')
-              : result.content
+            const content = result.content
             if (content) {
-              newData.bullets = [...(newData.bullets || []), content]
+              if (result.section === 'opening') {
+                newData.opening = content
+              } else if (result.section === 'closing') {
+                newData.closing = content
+              } else {
+                newData.bullets = [...(newData.bullets || []), content]
+              }
             }
             updateCoverLetterData(newData)
             supabase.from('cover_letters').update({ cover_letter_data: newData, updated_at: new Date().toISOString() }).eq('id', params.id)
@@ -1224,7 +1234,7 @@ export default function CoverLetterPage() {
                 Save and Leave
               </button>
               <button
-                onClick={() => { window.location.href = unsavedNavTarget; setUnsavedNavTarget(null) }}
+                onClick={() => { confirmedLeaveRef.current = true; window.location.href = unsavedNavTarget; setUnsavedNavTarget(null) }}
                 className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Leave Without Saving
