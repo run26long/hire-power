@@ -22,6 +22,8 @@ export default function CoverLetterPage() {
   const [userProfile, setUserProfile] = useState(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [unsavedNavTarget, setUnsavedNavTarget] = useState(null)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
   const [saveToast, setSaveToast] = useState(null)
   const [saveToastCount, setSaveToastCount] = useState(0)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -105,6 +107,25 @@ export default function CoverLetterPage() {
       }
     }
   }, [hasUnsavedChanges, saveSuccess])
+
+  // Warn before browser close / refresh / hard navigation
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [hasUnsavedChanges])
+
+  // Navigate after save completes — decoupled from the async save to avoid history stack interference
+  useEffect(() => {
+    if (!pendingNavigation || hasUnsavedChanges) return
+    window.location.href = pendingNavigation
+  }, [hasUnsavedChanges, pendingNavigation])
+
+  function safeNavigate(path) {
+    if (hasUnsavedChanges) { setUnsavedNavTarget(path); return }
+    router.push(path)
+  }
 
   useEffect(() => {
     loadCoverLetter()
@@ -573,7 +594,11 @@ export default function CoverLetterPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <MainNav currentPage="resume-coach" userProfile={userProfile} />
+      <MainNav
+        currentPage="resume-coach"
+        userProfile={userProfile}
+        onBeforeNavigate={(path) => { if (hasUnsavedChanges) { setUnsavedNavTarget(path); return true } return false }}
+      />
       <Breadcrumb items={[
         { label: 'Resume Coach', path: '/resume-coach' },
         { label: `Cover Letter — ${coverLetter.job_title || 'Draft'}` }
@@ -1064,13 +1089,13 @@ export default function CoverLetterPage() {
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mt-3 mb-1">Next Steps</p>
                  <div className="flex gap-2">
                     <button
-                      onClick={() => router.push('/resume-coach')}
+                      onClick={() => safeNavigate('/resume-coach')}
                       className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-purple-50 transition-colors"
                     >
                       ← Resume Coach
                     </button>
                     <button
-                      onClick={() => router.push('/job-tracker')}
+                      onClick={() => safeNavigate('/job-tracker')}
                       className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-purple-50 transition-colors"
                     >
                       Job Tracker →
@@ -1177,6 +1202,33 @@ export default function CoverLetterPage() {
                   Got it
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unsaved changes navigation warning */}
+      {unsavedNavTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-xl shadow-2xl overflow-hidden" style={{ width: '364px' }}>
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
+              <h2 className="text-base font-bold text-white">Unsaved Changes</h2>
+              <p className="text-purple-100 text-xs mt-0.5">You have edits that haven't been saved yet.</p>
+            </div>
+            <div className="px-6 py-5 flex flex-row gap-3">
+              <button
+                onClick={() => { setPendingNavigation(unsavedNavTarget); setUnsavedNavTarget(null); save() }}
+                className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+              >
+                Save and Leave
+              </button>
+              <button
+                onClick={() => { window.location.href = unsavedNavTarget; setUnsavedNavTarget(null) }}
+                className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Leave Without Saving
+              </button>
             </div>
           </div>
         </div>
