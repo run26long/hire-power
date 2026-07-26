@@ -2620,23 +2620,22 @@ export async function POST(request) {
         jobTitle: null,
         jobCompany: null
       })
-      const convSummaryMsg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: convSummaryPrompt }]
-      })
-      convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
 
-      // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
-      if (authenticatedUserId) {
-        try {
-          const careerContextExtractMsg = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 500,
-            temperature: 0,
-            messages: [{
-              role: 'user',
-              content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
+      // ── PARALLEL: summary + career context extraction ──
+      const [convSummaryMsg, careerContextExtractMsg] = await Promise.all([
+        anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          messages: [{ role: 'user', content: convSummaryPrompt }]
+        }),
+        authenticatedUserId
+          ? anthropic.messages.create({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 500,
+              temperature: 0,
+              messages: [{
+                role: 'user',
+                content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
 
 CONVERSATION:
 ${convText}
@@ -2653,9 +2652,16 @@ Return this exact structure:
   "timeline": "actively_searching or passively_looking or not_searching or null",
   "experience_level": "entry or mid or senior"
 }`
-            }]
-          })
+              }]
+            })
+          : Promise.resolve(null)
+      ])
 
+      convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
+
+      // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
+      if (authenticatedUserId && careerContextExtractMsg) {
+        try {
           let careerContextJson = careerContextExtractMsg.content[0].text.trim()
           if (careerContextJson.startsWith('```')) {
             careerContextJson = careerContextJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -2719,7 +2725,9 @@ Return this exact structure:
       }
       rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
-      // ── SUMMARY: Written last, from completed bullets ──
+      // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
+      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+
       const jsSummaryPrompt = buildSummaryPrompt({
         rewrittenResume,
         conversation,
@@ -2730,23 +2738,24 @@ Return this exact structure:
         jobTitle,
         jobCompany
       })
-      const jsSummaryMessage = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: jsSummaryPrompt }]
-      })
+      const jsChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
+
+      const [jsSummaryMessage, jsChangesMessage] = await Promise.all([
+        anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          messages: [{ role: 'user', content: jsSummaryPrompt }]
+        }),
+        anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: jsChangesPrompt }]
+        })
+      ])
+
       rewrittenResume.summary = jsSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
-      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
-
-      const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
-      const changesMessage = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: changesPrompt }]
-      })
-
-      let cleanedChanges = changesMessage.content[0].text.trim()
+      let cleanedChanges = jsChangesMessage.content[0].text.trim()
       if (cleanedChanges.startsWith('```')) {
         cleanedChanges = cleanedChanges.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
@@ -2807,7 +2816,9 @@ Return this exact structure:
     }
     rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
-    // ── SUMMARY: Written last, from completed bullets ──
+    // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
+    rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+
     const coreSummaryPrompt = buildSummaryPrompt({
       rewrittenResume,
       conversation,
@@ -2818,24 +2829,24 @@ Return this exact structure:
       jobTitle: null,
       jobCompany: null
     })
-    const coreSummaryMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: coreSummaryPrompt }]
-    })
+    const coreChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
+
+    const [coreSummaryMessage, coreChangesMessage] = await Promise.all([
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: coreSummaryPrompt }]
+      }),
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: coreChangesPrompt }]
+      })
+    ])
+
     rewrittenResume.summary = coreSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
-    rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
-
-    const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
-
-    const changesMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: changesPrompt }]
-    })
-
-    let cleanedChanges = changesMessage.content[0].text.trim()
+    let cleanedChanges = coreChangesMessage.content[0].text.trim()
     if (cleanedChanges.startsWith('```')) {
       cleanedChanges = cleanedChanges.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     }
