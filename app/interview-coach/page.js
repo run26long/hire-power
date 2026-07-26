@@ -76,6 +76,10 @@ export default function MyInterviewsPage() {
   // Error toast
   const [errorToast, setErrorToast] = useState(null);
 
+  // Delete confirmation
+  const [confirmDeletePracticeId, setConfirmDeletePracticeId] = useState(null);
+  const [deletingPracticeId, setDeletingPracticeId] = useState(null);
+
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   const questionOfTheDay = QUESTIONS_OF_THE_DAY[dayOfYear % QUESTIONS_OF_THE_DAY.length];
 
@@ -207,6 +211,35 @@ export default function MyInterviewsPage() {
       setPracticeCreateError(err.message || "We couldn't create this practice. Please try again.");
     } finally {
       setCreatingPractice(false);
+    }
+  }
+
+  async function handleDeletePractice(jobCardId) {
+    try {
+      setDeletingPracticeId(jobCardId);
+
+      const { error: storiesError } = await supabase
+        .from('interview_stories')
+        .delete()
+        .eq('job_card_id', jobCardId)
+        .eq('user_id', user.id);
+      if (storiesError) throw storiesError;
+
+      const { error: paError } = await supabase
+        .from('power_analysis')
+        .delete()
+        .eq('job_card_id', jobCardId)
+        .eq('user_id', user.id);
+      if (paError) throw paError;
+
+      setConfirmDeletePracticeId(null);
+      setPracticeCards(prev => prev.filter(c => c.jobCardId !== jobCardId));
+      setErrorToast("Interview practice deleted. Restart it anytime from your Job Tracker.");
+    } catch (error) {
+      console.error('Delete practice error:', error);
+      setErrorToast('Could not delete interview practice. Please try again.');
+    } finally {
+      setDeletingPracticeId(null);
     }
   }
 
@@ -363,7 +396,12 @@ export default function MyInterviewsPage() {
                       <>
                         <div className="space-y-1.5">
                           {visibleCards.map((card) => (
-                            <PracticeCard key={card.jobCardId} card={card} onClick={() => router.push(`/interview/${card.jobCardId}`)} />
+                            <PracticeCard
+                              key={card.jobCardId}
+                              card={card}
+                              onClick={() => router.push(`/interview/${card.jobCardId}`)}
+                              onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
+                            />
                           ))}
                         </div>
                         {hasOlder && (
@@ -657,8 +695,54 @@ export default function MyInterviewsPage() {
                     setShowOlderModal(false);
                     router.push(`/interview/${card.jobCardId}`);
                   }}
+                  onDeleteRequest={() => {
+                    setShowOlderModal(false);
+                    setConfirmDeletePracticeId(card.jobCardId);
+                  }}
                 />
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interview Practice Delete Confirmation */}
+      {confirmDeletePracticeId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setConfirmDeletePracticeId(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this interview practice?</h3>
+            <p className="text-sm text-gray-600 mb-5">This removes the Power Analysis and coached stories. The job card stays in your Job Tracker and you can restart practice anytime.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeletePracticeId(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeletePractice(confirmDeletePracticeId)}
+                disabled={deletingPracticeId === confirmDeletePracticeId}
+                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deletingPracticeId === confirmDeletePracticeId ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  'Yes, Delete'
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -674,7 +758,7 @@ export default function MyInterviewsPage() {
 // Smart CTA + Jump to menu, status pills below.
 // State-driven: card knows what's next, user can override.
 // ============================================================================
-function PracticeCard({ card, onClick }) {
+function PracticeCard({ card, onClick, onDeleteRequest }) {
   const router = useRouter();
 
   const storiesCoached = card.storiesCoached || 0;
@@ -708,7 +792,7 @@ function PracticeCard({ card, onClick }) {
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all">
+    <div className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all">
       {/* Top row: title + match info + CTA group */}
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
@@ -745,6 +829,15 @@ function PracticeCard({ card, onClick }) {
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             {primaryCtaLabel}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
+            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+            title="Delete practice"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         </div>
       </div>

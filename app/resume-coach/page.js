@@ -599,6 +599,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (error) throw error;
       setConfirmDeleteId(null);
       await loadData();
+      setErrorToast("Job-specific resume deleted. Restart it anytime from your Job Tracker.");
     } catch (error) {
       console.error('Archive error:', error?.message || error?.code || JSON.stringify(error));
       setErrorToast('Could not archive resume. Please try again.');
@@ -784,6 +785,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (error) throw error;
       setConfirmDeleteCLId(null);
       await loadData();
+      setErrorToast("Cover letter deleted. Restart it anytime from your Job Tracker.");
     } catch (error) {
       console.error('Delete CL error:', error);
       setErrorToast('Could not delete cover letter. Please try again.');

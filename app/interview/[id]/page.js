@@ -28,8 +28,8 @@ export default function InterviewDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [paError, setPaError] = useState(null);
 
-  // Right column state machine: 'idle' | 'checklist' | 'coaching'
-  const [rightColMode, setRightColMode] = useState('idle');
+  // Step navigation: 'analyze' | 'coach' | 'practice'
+  const [currentStep, setCurrentStep] = useState('analyze');
 
   // Coaching active state
   const [activeStory, setActiveStory] = useState(null);
@@ -154,13 +154,21 @@ export default function InterviewDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-generate Power Analysis on first landing if none exists
+  useEffect(() => {
+    if (!loading && jobCard && !powerAnalysis && !paError && !generating) {
+      handleGeneratePA();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, powerAnalysis]);
+
   // Handle Jump to navigation from hub: read URL hash and route to the right phase
   useEffect(() => {
     if (loading || !hasPA) return;
     const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
     if (!hash) return;
     if (hash === 'coaching') {
-      handleOpenBatchChecklist();
+      setCurrentStep('coach');
     }
     // 'power-analysis' is the default view, no action needed
     // 'practice' is Phase 4 territory, no-op for now
@@ -189,23 +197,23 @@ export default function InterviewDetailPage() {
   }, [nextInterviewDate]);
 
   useEffect(() => {
-    if (rightColMode === 'coaching' && coachingMessages.length > 0) {
+    if (currentStep === 'coach' && activeStory && coachingMessages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [coachingMessages, rightColMode]);
+  }, [coachingMessages, currentStep, activeStory]);
 
   useEffect(() => {
-    if (rightColMode === 'coaching' && !coachSending && !coachStarting) {
+    if (currentStep === 'coach' && activeStory && !coachSending && !coachStarting) {
       coachInputRef.current?.focus({ preventScroll: true });
     }
-  }, [rightColMode, coachSending, coachStarting]);
+  }, [currentStep, activeStory, coachSending, coachStarting]);
 
-  // Auto-switch mobile panel when coaching starts
+  // Auto-switch mobile panel when navigating to coach or practice
   useEffect(() => {
-    if (rightColMode === 'coaching' || rightColMode === 'checklist') {
+    if (currentStep === 'coach' || currentStep === 'practice') {
       setMobilePanel('coaching');
     }
-  }, [rightColMode]);
+  }, [currentStep]);
 
   // ============================================================================
   // POWER ANALYSIS GENERATION
@@ -246,7 +254,7 @@ export default function InterviewDetailPage() {
           setPaError({ type: 'incomplete', message: "This job card is missing a title or job description. Add those in Job Tracker first." });
           return;
         }
-        setErrorToast("We couldn't analyze this job right now. Try again in a moment.");
+        setPaError({ type: 'generic', message: "We couldn't analyze this job right now. Try again in a moment." });
         return;
       }
 
@@ -254,7 +262,7 @@ export default function InterviewDetailPage() {
 
     } catch (err) {
       console.error('Generate PA error:', err);
-      setErrorToast("We couldn't analyze this job right now. Try again in a moment.");
+      setPaError({ type: 'generic', message: "We couldn't analyze this job right now. Try again in a moment." });
     } finally {
       setGenerating(false);
     }
@@ -270,7 +278,7 @@ export default function InterviewDetailPage() {
     setActiveStory(null);
     setCoachingMessages([]);
     setBatchJustCompleted(null);
-    setRightColMode('coaching');
+    setCurrentStep('coach');
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -290,7 +298,6 @@ export default function InterviewDetailPage() {
       if (!res.ok) {
         if (data.error === 'STORY_ALREADY_COMPLETE') {
           setCoachError("This story is already saved. Tap the card to view it.");
-          setRightColMode('idle');
           return;
         }
         throw new Error(data.message || "We couldn't start coaching.");
@@ -398,11 +405,13 @@ export default function InterviewDetailPage() {
     }
   };
 
-  const handleOpenBatchChecklist = () => {
+  const handleOpenCoachStep = () => {
     setBatchChecks({});
     setBatchQueue([]);
     setBatchPosition(0);
-    setRightColMode('checklist');
+    setActiveStory(null);
+    setCoachingMessages([]);
+    setCurrentStep('coach');
   };
 
   const handleStartBatch = () => {
@@ -429,7 +438,6 @@ export default function InterviewDetailPage() {
     });
 
     if (queue.length === 0) {
-      setRightColMode('idle');
       return;
     }
 
@@ -445,7 +453,8 @@ export default function InterviewDetailPage() {
       setBatchQueue([]);
       setBatchPosition(0);
       setBatchJustCompleted(null);
-      setRightColMode('idle');
+      setActiveStory(null);
+      setBatchChecks({});
       return;
     }
     setBatchPosition(nextPos);
@@ -455,13 +464,13 @@ export default function InterviewDetailPage() {
   };
 
   const handleEndCoaching = () => {
-    setRightColMode('idle');
     setActiveStory(null);
     setCoachingMessages([]);
     setCoachInput('');
     setBatchQueue([]);
     setBatchPosition(0);
     setBatchJustCompleted(null);
+    setBatchChecks({});
   };
 
   // ============================================================================
@@ -552,13 +561,6 @@ export default function InterviewDetailPage() {
   const countdown = formatCountdown(nextInterviewDate);
   const interviewDateIsPast = nextInterviewDate && new Date(nextInterviewDate).getTime() < now;
 
-  let uncoachedCount = 0;
-  if (powerAnalysis) {
-    powerAnalysis.core_power.forEach((_, i) => { if (!isItemCoached('core_power', i)) uncoachedCount++; });
-    powerAnalysis.hidden_power.forEach((_, i) => { if (!isItemCoached('hidden_power', i)) uncoachedCount++; });
-    powerAnalysis.power_gaps.forEach((_, i) => { if (!isItemCoached('power_gap', i)) uncoachedCount++; });
-  }
-
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
@@ -609,6 +611,7 @@ export default function InterviewDetailPage() {
                   interviewDate={nextInterviewDate}
                   countdown={countdown}
                   interviewDateIsPast={interviewDateIsPast}
+                  currentStep={currentStep}
                 />
               )}
 
@@ -617,7 +620,7 @@ export default function InterviewDetailPage() {
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2.5">
                   <span className="text-base flex-shrink-0 leading-none mt-0.5">⚠️</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-amber-900 leading-relaxed">
+                    <p className="text-xs text-amber-900 leading-snug">
                       <strong>Your resume was updated since this analysis.</strong> This analysis reflects the previous version of your resume.
                     </p>
                   </div>
@@ -635,28 +638,11 @@ export default function InterviewDetailPage() {
                 </div>
               )}
 
-              {/* PA EMPTY STATE */}
-              {!hasPA && !paError && (
-                <div className="border border-dashed border-purple-300 rounded-lg p-4 md:p-6 bg-purple-50">
-                  <p className="text-sm md:text-xs text-gray-700 mb-3 leading-relaxed">
-                    Power Analysis shows you exactly what to highlight, what to reframe, and what to address in this specific interview.
-                  </p>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">
-                    We'll analyze {resume?.resume_type === 'job_specific' ? 'your tailored resume' : 'your core resume'} against this job description in about 20 seconds.
-                  </p>
-                  <button
-                    onClick={handleGeneratePA}
-                    disabled={generating}
-                    className="text-white rounded-lg py-2 px-6 font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-70 flex items-center justify-center gap-2 mx-auto"
-                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                  >
-                    {generating ? (
-                      <>
-                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        Analyzing...
-                      </>
-                    ) : 'Generate Power Analysis'}
-                  </button>
+              {/* AUTO-GENERATING PA */}
+              {!hasPA && generating && !paError && (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
+                  <p className="text-sm md:text-xs text-gray-600">Building your Power Analysis...</p>
                 </div>
               )}
 
@@ -665,7 +651,7 @@ export default function InterviewDetailPage() {
                   <div className="flex items-start gap-2">
                     <span className="text-base flex-shrink-0">⚠️</span>
                     <div className="flex-1">
-                      <p className="text-sm md:text-xs text-red-800 leading-relaxed mb-3">{paError.message}</p>
+                      <p className="text-sm md:text-xs text-red-800 leading-snug mb-3">{paError.message}</p>
                       <div className="flex flex-wrap gap-2">
                         {paError.type === 'mismatch' && (
                           <button onClick={() => router.push('/resume-coach')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Go to Resume Coach →</button>
@@ -676,6 +662,9 @@ export default function InterviewDetailPage() {
                         {paError.type === 'incomplete' && (
                           <button onClick={() => router.push('/job-tracker')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Edit in Job Tracker →</button>
                         )}
+                        {paError.type === 'generic' && (
+                          <button onClick={() => { setPaError(null); handleGeneratePA(); }} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Try Again</button>
+                        )}
                         <button onClick={() => setPaError(null)} className="text-sm md:text-xs text-gray-500 hover:text-gray-700">Dismiss</button>
                       </div>
                     </div>
@@ -684,84 +673,108 @@ export default function InterviewDetailPage() {
               )}
 
               {/* BUCKETS */}
-              {hasPA && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
-                  <BucketColumn
-                    title="Core Power"
-                    icon="✅"
-                    colorClass="green"
-                    items={powerAnalysis.core_power}
-                    itemType="core_power"
-                    emptyText="No core matches surfaced. Consider tailoring your resume."
-                    getTextField={(item) => item.evidence}
-                    getNameField={(item) => item.skill}
-                    isItemCoached={isItemCoached}
-                    onItemClick={handleItemClick}
-                  />
+              {hasPA && (() => {
+                const leftColMode = currentStep === 'analyze' ? 'readonly'
+                  : (currentStep === 'coach' && !activeStory) ? 'coach'
+                  : 'normal';
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+                    <BucketColumn
+                      title="Core Power"
+                      icon="✅"
+                      colorClass="green"
+                      items={powerAnalysis.core_power}
+                      itemType="core_power"
+                      emptyText="No core matches surfaced. Consider tailoring your resume."
+                      getTextField={(item) => item.evidence}
+                      getNameField={(item) => item.skill}
+                      isItemCoached={isItemCoached}
+                      onItemClick={handleItemClick}
+                      mode={leftColMode}
+                      batchChecks={batchChecks}
+                      setBatchChecks={setBatchChecks}
+                    />
 
-                  <BucketColumn
-                    title="Hidden Power"
-                    icon="💡"
-                    colorClass="yellow"
-                    items={powerAnalysis.hidden_power}
-                    itemType="hidden_power"
-                    emptyText="No hidden transferable skills surfaced."
-                    getTextField={(item) => item.evidence_reframe}
-                    getNameField={(item) => item.skill}
-                    getSourceField={(item) => item.source}
-                    isItemCoached={isItemCoached}
-                    onItemClick={handleItemClick}
-                  />
+                    <BucketColumn
+                      title="Hidden Power"
+                      icon="💡"
+                      colorClass="yellow"
+                      items={powerAnalysis.hidden_power}
+                      itemType="hidden_power"
+                      emptyText="No hidden transferable skills surfaced."
+                      getTextField={(item) => item.evidence_reframe}
+                      getNameField={(item) => item.skill}
+                      getSourceField={(item) => item.source}
+                      isItemCoached={isItemCoached}
+                      onItemClick={handleItemClick}
+                      mode={leftColMode}
+                      batchChecks={batchChecks}
+                      setBatchChecks={setBatchChecks}
+                    />
 
-                  <BucketColumn
-                    title="Power Gaps"
-                    icon="⚠️"
-                    colorClass="red"
-                    items={powerAnalysis.power_gaps}
-                    itemType="power_gap"
-                    emptyText="No major gaps. You're well positioned for this role."
-                    getTextField={(item) => item.bridge_strategy}
-                    getNameField={(item) => item.gap}
-                    getSeverityField={(item) => item.severity}
-                    isItemCoached={isItemCoached}
-                    onItemClick={handleItemClick}
-                  />
-                </div>
-              )}
+                    <BucketColumn
+                      title="Power Gaps"
+                      icon="⚠️"
+                      colorClass="red"
+                      items={powerAnalysis.power_gaps}
+                      itemType="power_gap"
+                      emptyText="No major gaps. You're well positioned for this role."
+                      getTextField={(item) => item.bridge_strategy}
+                      getNameField={(item) => item.gap}
+                      getSeverityField={(item) => item.severity}
+                      isItemCoached={isItemCoached}
+                      onItemClick={handleItemClick}
+                      mode={leftColMode}
+                      batchChecks={batchChecks}
+                      setBatchChecks={setBatchChecks}
+                    />
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
-          {/* RIGHT COLUMN — Interview Preparation + Coaching */}
+          {/* RIGHT COLUMN — Interview Preparation */}
           <div className={`flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex-col ${mobilePanel === 'coaching' ? 'flex' : 'hidden'} md:flex`}>
-            <div className="sticky top-0 bg-white z-10 p-4 pb-3 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-center font-semibold text-sm md:text-xs mb-3">Interview Preparation</h3>
+            <div className="sticky top-0 bg-white px-4 z-10 flex-shrink-0 pt-3 md:pt-4 pb-2 md:pb-3 border-b border-gray-100">
+              <div className="mb-3 text-center">
+                <h3 className="font-bold text-base md:text-sm text-gray-900 leading-tight">{jobCard.title}</h3>
+                <div className="mt-3">
+                  <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide">Interview Preparation</p>
+                </div>
+              </div>
               <div className="relative">
-                <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-200"></div>
+                <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
+                  <div className="h-full transition-all duration-300" style={{
+                    width: currentStep === 'analyze' ? '0%' : currentStep === 'coach' ? '50%' : '100%',
+                    background: 'linear-gradient(to right, #667eea, #764ba2)'
+                  }}></div>
+                </div>
                 <div className="relative flex justify-between">
-                  {['Analyze', 'Coach', 'Practice', 'Feedback'].map((step, i) => {
-                    const coachedAny = stories.some(s => s.coachingComplete);
-                    const stepStates = [
-                      { complete: hasPA, current: !hasPA },
-                      { complete: coachedAny, current: hasPA && !coachedAny },
-                      { complete: false, current: false },
-                      { complete: false, current: false }
-                    ];
-                    const { complete, current } = stepStates[i];
+                  {[
+                    { label: 'Analyze', key: 'analyze' },
+                    { label: 'Coach', key: 'coach' },
+                    { label: 'Practice', key: 'practice' }
+                  ].map(({ label, key }, i) => {
+                    const steps = ['analyze', 'coach', 'practice'];
+                    const currentIdx = steps.indexOf(currentStep);
+                    const complete = i < currentIdx;
+                    const current = i === currentIdx;
                     return (
-                      <div key={step} className="flex flex-col items-center">
+                      <div
+                        key={key}
+                        className="flex flex-col items-center cursor-pointer"
+                        onClick={() => key === 'coach' ? handleOpenCoachStep() : setCurrentStep(key)}
+                      >
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10 ${
-                          complete ? 'text-white' :
-                          current ? 'text-white' :
-                          'bg-white border-2 border-gray-200 text-gray-300'
-                        }`}
-                        style={(complete || current) ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
-                          {complete ? '✓' : current ? '●' : '○'}
+                          complete || current ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
+                        }`} style={(complete || current) ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
+                          {complete ? '✓' : current ? '●' : i + 1}
                         </div>
                         <span className={`text-xs md:text-[10px] mt-1 ${
                           current ? 'text-purple-600 font-semibold' :
-                          complete ? 'text-purple-600' :
-                          'text-gray-400'
-                        }`}>{step}</span>
+                          complete ? 'text-purple-600' : 'text-gray-400'
+                        }`}>{label}</span>
                       </div>
                     );
                   })}
@@ -771,30 +784,27 @@ export default function InterviewDetailPage() {
 
             <div className="flex-1 overflow-y-auto flex flex-col">
 
-              {rightColMode === 'idle' && (
-                <IdleRightColumn
-                  hasPA={hasPA}
-                  isPro={isPro}
-                  uncoachedCount={uncoachedCount}
-                  storiesCount={stories.filter(s => s.coachingComplete).length}
-                  onOpenBatch={handleOpenBatchChecklist}
-                  onUpgrade={() => setShowUpgradeModal(true)}
-                  onBack={() => router.push('/interview-coach')}
+              {currentStep === 'analyze' && (
+                <AnalyzeStepContent
+                  stepHeader="📊 Your Power Analysis"
+                  onGoToCoach={handleOpenCoachStep}
+                  onSkipToPractice={() => setCurrentStep('practice')}
                 />
               )}
 
-              {rightColMode === 'checklist' && hasPA && (
-                <BatchChecklist
-                  powerAnalysis={powerAnalysis}
-                  isItemCoached={isItemCoached}
+              {currentStep === 'coach' && !activeStory && hasPA && (
+                <CoachIdlePanel
                   batchChecks={batchChecks}
-                  setBatchChecks={setBatchChecks}
                   onStart={handleStartBatch}
-                  onCancel={() => setRightColMode('idle')}
+                  onSkipToPractice={() => setCurrentStep('practice')}
                 />
               )}
 
-              {rightColMode === 'coaching' && (
+              {currentStep === 'coach' && !activeStory && !hasPA && (
+                <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToCoach={handleOpenCoachStep} onSkipToPractice={() => setCurrentStep('practice')} />
+              )}
+
+              {currentStep === 'coach' && activeStory && (
                 <CoachingView
                   activeStory={activeStory}
                   coachingMessages={coachingMessages}
@@ -814,6 +824,13 @@ export default function InterviewDetailPage() {
                 />
               )}
 
+              {currentStep === 'practice' && (
+                <PracticeStepContent
+                  storiesCoached={stories.filter(s => s.coachingComplete).length}
+                  onGoToCoach={handleOpenCoachStep}
+                />
+              )}
+
             </div>
           </div>
 
@@ -828,13 +845,28 @@ export default function InterviewDetailPage() {
 }
 
 // ============================================================================
+// LABEL HELPERS
+// ============================================================================
+
+function bucketLabel(itemType) {
+  if (itemType === 'core_power') return 'Core Power';
+  if (itemType === 'hidden_power') return 'Hidden Power';
+  return 'Power Gap';
+}
+
+function itemLabel(itemType, itemIndex, skillName) {
+  return `${bucketLabel(itemType)} #${itemIndex + 1}: ${skillName}`;
+}
+
+// ============================================================================
 // BUCKET COLUMN
 // ============================================================================
 
 function BucketColumn({
   title, icon, colorClass, items, itemType, emptyText,
   getTextField, getNameField, getSourceField, getSeverityField,
-  isItemCoached, onItemClick
+  isItemCoached, onItemClick,
+  mode = 'normal', batchChecks = {}, setBatchChecks = () => {}
 }) {
   const colors = {
     green: { border: 'border-green-200', bg: 'bg-green-50', titleText: 'text-green-800', countText: 'text-green-700', emptyText: 'text-green-700' },
@@ -843,12 +875,33 @@ function BucketColumn({
   };
   const c = colors[colorClass];
 
+  const uncoachedKeys = items
+    .map((_, i) => `${itemType}:${i}`)
+    .filter((_, i) => !isItemCoached(itemType, i));
+  const allUncoachedSelected = uncoachedKeys.length > 0 && uncoachedKeys.every(k => batchChecks[k]);
+
+  function handleBucketToggleAll() {
+    const updates = {};
+    uncoachedKeys.forEach(k => { updates[k] = !allUncoachedSelected; });
+    setBatchChecks(prev => ({ ...prev, ...updates }));
+  }
+
   return (
     <div className={`border ${c.border} rounded-lg p-3 ${c.bg}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-base">{icon}</span>
         <h4 className={`text-sm md:text-xs font-bold ${c.titleText}`}>{title}</h4>
-        <span className={`text-xs md:text-[10px] ${c.countText} font-semibold ml-auto`}>{items.length}</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className={`text-xs md:text-[10px] ${c.countText} font-semibold`}>{items.length}</span>
+          {mode === 'coach' && uncoachedKeys.length > 0 && (
+            <button
+              onClick={handleBucketToggleAll}
+              className="text-xs md:text-[10px] text-purple-600 hover:text-purple-700 font-semibold"
+            >
+              {allUncoachedSelected ? 'Deselect all' : 'Select all'}
+            </button>
+          )}
+        </div>
       </div>
       {items.length === 0 ? (
         <p className={`text-sm md:text-xs ${c.emptyText} italic`}>{emptyText}</p>
@@ -857,7 +910,91 @@ function BucketColumn({
           {items.map((item, i) => {
             const coached = isItemCoached(itemType, i);
             const itemName = getNameField(item);
+            const checkKey = `${itemType}:${i}`;
+            const checked = !!batchChecks[checkKey];
 
+            if (mode === 'readonly') {
+              return (
+                <li key={i}>
+                  <div
+                    className="w-full text-left bg-white rounded p-2 border block"
+                    style={{ borderColor: coached ? '#bbf7d0' : '#e5e7eb', cursor: 'default' }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
+                      {coached && (
+                        <span className="text-xs md:text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
+                          ✓ Story
+                        </span>
+                      )}
+                    </div>
+                    {getTextField(item) && (
+                      <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
+                    )}
+                    {getSourceField && getSourceField(item) && (
+                      <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
+                    )}
+                  </div>
+                </li>
+              );
+            }
+
+            if (mode === 'coach') {
+              if (coached) {
+                return (
+                  <li key={i}>
+                    <button
+                      onClick={() => onItemClick(itemType, i, itemName)}
+                      className="w-full text-left bg-white rounded p-2 border hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer block"
+                      style={{ borderColor: '#bbf7d0' }}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
+                        <span className="text-xs md:text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
+                          ✓ Story
+                        </span>
+                      </div>
+                      {getTextField(item) && (
+                        <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
+                      )}
+                      {getSourceField && getSourceField(item) && (
+                        <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
+                      )}
+                    </button>
+                  </li>
+                );
+              }
+              return (
+                <li key={i}>
+                  <button
+                    onClick={() => setBatchChecks(prev => ({ ...prev, [checkKey]: !prev[checkKey] }))}
+                    className="w-full text-left bg-white rounded p-2 border hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer block"
+                    style={{ borderColor: checked ? '#a78bfa' : '#ffffff' }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
+                      <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
+                        checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
+                      }`}>
+                        {checked && (
+                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    {getTextField(item) && (
+                      <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
+                    )}
+                    {getSourceField && getSourceField(item) && (
+                      <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
+                    )}
+                  </button>
+                </li>
+              );
+            }
+
+            // mode === 'normal'
             return (
               <li key={i}>
                 <button
@@ -866,13 +1003,12 @@ function BucketColumn({
                   style={{ borderColor: coached ? '#bbf7d0' : '#ffffff' }}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">{itemName}</p>
+                    <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
                     {coached && (
                       <span className="text-xs md:text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
                         ✓ Story
                       </span>
                     )}
-                    
                   </div>
                   {getTextField(item) && (
                     <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
@@ -891,74 +1027,55 @@ function BucketColumn({
 }
 
 // ============================================================================
-// IDLE RIGHT COLUMN
+// ANALYZE STEP CONTENT
 // ============================================================================
 
-function IdleRightColumn({ hasPA, isPro, uncoachedCount, storiesCount, onOpenBatch, onUpgrade, onBack }) {
+function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
   return (
-    <div className="px-5 pb-5 pt-3 space-y-3 flex-1 flex flex-col">
-      {!hasPA ? (
-        <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-          <p className="text-sm md:text-xs text-gray-700 leading-snug font-medium mb-1">Start with your Power Analysis.</p>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">We'll surface what to highlight in this interview based on your resume.</p>
-        </div>
-      ) : (
-        <>
-          <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-            <p className="text-sm md:text-xs text-gray-700 leading-snug font-medium mb-1">
-              {storiesCount === 0
-                ? "Your Power Analysis is ready."
-                : `${storiesCount} ${storiesCount === 1 ? 'story' : 'stories'} saved.`}
-            </p>
-            <p className="text-sm md:text-xs text-gray-600 leading-snug">
-              {isPro
-                ? "Coach a story for each item one at a time, or use the button below to walk through several at once."
-                : "Pro users coach stories and get unlimited practice. Free users practice once."}
-            </p>
-          </div>
-
-          {isPro ? (
-            <>
-              <button
-                onClick={onOpenBatch}
-                disabled={uncoachedCount === 0}
-                className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-              >
-                {uncoachedCount === 0 ? 'All Items Coached' : 'Coach Me Through This'}
-              </button>
-              <button
-                disabled
-                className="w-full border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm transition-opacity disabled:opacity-60 disabled:cursor-not-allowed bg-white"
-                title="Interview practice launches in the next phase"
-              >
-                Start Interview Practice
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={onUpgrade}
-              className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              Unlock Coaching with Pro
-            </button>
-          )}
-
-          <p className="text-xs md:text-[10px] text-gray-400 text-center italic pt-1">
-            Practice launches in the next update
+    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        Your Power Analysis identifies three categories that matter in this interview:
+      </p>
+      <ul className="space-y-2">
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">✅</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+            <span className="font-bold text-green-800">Core Power:</span> items to lead with
           </p>
-        </>
-      )}
-
-      <div className="pt-2 mt-auto">
-        <button
-          onClick={onBack}
-          className="block mx-auto border border-gray-300 text-gray-500 rounded-lg py-1.5 px-6 text-xs md:text-[11px] font-medium hover:bg-gray-50 transition-colors"
-        >
-          ← Back to Interview Coach
-        </button>
-      </div>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">💡</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+            <span className="font-bold text-yellow-800">Hidden Power:</span> items to reframe
+          </p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">⚠️</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+            <span className="font-bold text-red-800">Power Gaps:</span> items to address proactively
+          </p>
+        </li>
+      </ul>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        For each item, you can build a polished <span className="font-bold text-gray-800">STAR story</span> (Situation, Task, Action, Result) through a quick coaching conversation so you walk in with a specific, clear answer ready when the question comes up.
+      </p>
+      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+        Click below to build your STAR stories.
+      </p>
+      <button
+        onClick={onGoToCoach}
+        className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90"
+        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+      >
+        Coach My Stories →
+      </button>
+      <button
+        onClick={onSkipToPractice}
+        className="w-full text-xs text-gray-400 hover:text-gray-600 hover:underline text-center transition-colors"
+      >
+        Skip to Interview Practice →
+      </button>
     </div>
   );
 }
@@ -967,78 +1084,45 @@ function IdleRightColumn({ hasPA, isPro, uncoachedCount, storiesCount, onOpenBat
 // BATCH CHECKLIST
 // ============================================================================
 
-function BatchChecklist({ powerAnalysis, isItemCoached, batchChecks, setBatchChecks, onStart, onCancel }) {
-  function toggle(itemType, itemIndex) {
-    const key = `${itemType}:${itemIndex}`;
-    setBatchChecks(prev => ({ ...prev, [key]: !prev[key] }));
-  }
-
-  function selectAll(itemType, items) {
-    const updates = {};
-    items.forEach((_, i) => {
-      if (!isItemCoached(itemType, i)) {
-        updates[`${itemType}:${i}`] = true;
-      }
-    });
-    setBatchChecks(prev => ({ ...prev, ...updates }));
-  }
-
+function CoachIdlePanel({ batchChecks, onStart, onSkipToPractice }) {
   const selectedCount = Object.values(batchChecks).filter(Boolean).length;
 
   return (
-    <div className="px-4 pt-3 pb-5 flex-1 flex flex-col overflow-hidden">
-      <div className="mb-3 flex-shrink-0">
-        <p className="text-sm md:text-xs font-bold text-gray-800 mb-1">Coach Me Through This</p>
-        <p className="text-xs md:text-[10px] text-gray-500 leading-snug">Pick the items you want to coach. We'll walk through them one at a time.</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-3 mb-3">
-        <ChecklistGroup
-          title="Core Power"
-          itemType="core_power"
-          items={powerAnalysis.core_power}
-          getNameField={(item) => item.skill}
-          batchChecks={batchChecks}
-          isItemCoached={isItemCoached}
-          onToggle={toggle}
-          onSelectAll={() => selectAll('core_power', powerAnalysis.core_power)}
-        />
-        <ChecklistGroup
-          title="Hidden Power"
-          itemType="hidden_power"
-          items={powerAnalysis.hidden_power}
-          getNameField={(item) => item.skill}
-          batchChecks={batchChecks}
-          isItemCoached={isItemCoached}
-          onToggle={toggle}
-          onSelectAll={() => selectAll('hidden_power', powerAnalysis.hidden_power)}
-        />
-        <ChecklistGroup
-          title="Power Gaps"
-          itemType="power_gap"
-          items={powerAnalysis.power_gaps}
-          getNameField={(item) => item.gap}
-          batchChecks={batchChecks}
-          isItemCoached={isItemCoached}
-          onToggle={toggle}
-          onSelectAll={() => selectAll('power_gap', powerAnalysis.power_gaps)}
-        />
-      </div>
-
-      <div className="flex-shrink-0 space-y-2">
-        <button
-          onClick={onStart}
-          disabled={selectedCount === 0}
+    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <h3 className="font-semibold text-lg -mt-3">✨ Prepare Your Answers</h3>
+      <p className="text-sm md:text-xs text-gray-600">
+        Building your STAR stories means walking into your interview with real, specific answers prepared and ready to go.
+      </p>
+      <ul className="space-y-2">
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">💬</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-snug">Coach just 1-2 stories, or develop them all.</p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">⏱️</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-snug">Coaching runs 4-5 minutes per story.</p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">📄</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-snug">Download stories as a PDF to help in your practice interviews (and the real one!)</p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm flex-shrink-0 leading-none mt-0.5">⏭️</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-snug">Don't want coaching? Skip to interview practice at any time.</p>
+        </li>
+      </ul>
+      <p className="text-sm md:text-xs text-gray-600">
+        Pick individual items to coach, or select all to coach everything one at a time.
+      </p>
+      <div className="mt-auto space-y-2">
+        <button onClick={onStart} disabled={selectedCount === 0}
           className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-        >
+          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
           Start Coaching ({selectedCount})
         </button>
-        <button
-          onClick={onCancel}
-          className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700"
-        >
-          Cancel
+        <button onClick={onSkipToPractice}
+          className="w-full text-xs text-gray-400 hover:text-gray-600 hover:underline text-center transition-colors">
+          Skip to Interview Practice →
         </button>
       </div>
     </div>
@@ -1080,11 +1164,43 @@ function ChecklistGroup({ title, itemType, items, getNameField, batchChecks, isI
                 {coached && <svg className="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                 {checked && !coached && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
               </div>
-              <span className="text-sm md:text-xs text-gray-700 leading-tight">{getNameField(item)}{coached && <span className="text-[9px] text-green-600 ml-1">(coached)</span>}</span>
+              <span className="text-sm md:text-xs text-gray-700 leading-tight">{itemLabel(itemType, i, getNameField(item))}{coached && <span className="text-[9px] text-green-600 ml-1">(coached)</span>}</span>
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PRACTICE STEP CONTENT
+// ============================================================================
+
+function PracticeStepContent({ storiesCoached, onGoToCoach }) {
+  return (
+    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        Interview practice is coming soon. You'll be able to run a mock interview using your coached stories.
+      </p>
+      {storiesCoached > 0 ? (
+        <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded-r">
+          <p className="text-xs text-green-800 font-medium leading-snug">
+            {storiesCoached} {storiesCoached === 1 ? 'story' : 'stories'} ready for practice.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
+          <p className="text-xs text-gray-700 leading-snug">Coach at least one story to prepare your answers before practice.</p>
+        </div>
+      )}
+      <button
+        onClick={onGoToCoach}
+        className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
+      >
+        ← Back to Coach
+      </button>
     </div>
   );
 }
@@ -1105,14 +1221,14 @@ function CoachingView({
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex-1 min-w-0">
+          <div className="flex-1">
             {isBatch && (
               <p className="text-xs md:text-[10px] text-purple-600 font-bold uppercase tracking-wide">
                 Coaching {batchPosition + 1} of {batchQueue.length}
               </p>
             )}
-            <p className="text-sm md:text-xs font-bold text-gray-900 truncate">
-              {activeStory?.itemSkill || 'Loading...'}
+            <p className="text-sm md:text-xs font-bold text-gray-900">
+              {activeStory ? itemLabel(activeStory.itemType, activeStory.itemIndex, activeStory.itemSkill) : 'Loading...'}
             </p>
           </div>
           
@@ -1137,13 +1253,13 @@ function CoachingView({
                       <p className="text-xs md:text-[10px] font-semibold text-gray-600">Coach</p>
                     </div>
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                      <p className="text-sm md:text-xs text-gray-800 leading-relaxed whitespace-pre-line">{msg.content}</p>
+                      <p className="text-sm md:text-xs text-gray-800 leading-snug whitespace-pre-line">{msg.content}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex justify-end">
                     <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 max-w-[85%]">
-                      <p className="text-sm md:text-xs text-gray-800 leading-relaxed whitespace-pre-line">{msg.content}</p>
+                      <p className="text-sm md:text-xs text-gray-800 leading-snug whitespace-pre-line">{msg.content}</p>
                     </div>
                   </div>
                 )}
@@ -1187,7 +1303,7 @@ function CoachingView({
                   className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90"
                   style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                 >
-                  Save and Continue →
+                  Next: {itemLabel(batchQueue[batchPosition + 1].itemType, batchQueue[batchPosition + 1].itemIndex, batchQueue[batchPosition + 1].itemSkill)} →
                 </button>
                 <button onClick={onEnd} className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700">
                   Done for now
@@ -1204,18 +1320,18 @@ function CoachingView({
             )}
           </div>
         ) : (
-          <div className="flex gap-2 items-stretch">
+          <div className="flex gap-2 items-end">
             <textarea
               ref={coachInputRef}
               value={coachInput}
               onChange={e => setCoachInput(e.target.value)}
               onInput={e => {
-                if (window.innerWidth < 768) return;
                 e.target.style.height = 'auto';
-                const maxHeight = 6 * 24;
+                const maxHeight = window.innerHeight - 310;
                 const target = Math.min(e.target.scrollHeight, maxHeight);
                 e.target.style.height = target + 'px';
                 e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
+                e.target.scrollIntoView({ block: 'end', behavior: 'instant' });
               }}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -1227,11 +1343,7 @@ function CoachingView({
               disabled={coachSending || coachStarting}
               rows={2}
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              style={
-                typeof window !== 'undefined' && window.innerWidth < 768
-                  ? { height: '4.5rem', overflowY: 'auto' }
-                  : { overflowY: 'hidden', maxHeight: '144px' }
-              }
+              style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
             />
             <button
               onClick={onSend}
@@ -1260,6 +1372,13 @@ function CoachingView({
 // ============================================================================
 
 function StoryModal({ story, onClose }) {
+  useEffect(() => {
+    if (!story) return;
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [story, onClose]);
+
   if (!story) return null;
 
   const hasStarBreakdown = story.starSituation || story.starTask || story.starAction || story.starResult;
@@ -1282,8 +1401,7 @@ function StoryModal({ story, onClose }) {
                 <span className="text-lg">📖</span>
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-bold text-white">Your STAR Story</h2>
-                <p className="text-purple-100 text-sm md:text-xs truncate">{story.itemSkill || ''}</p>
+                <h2 className="text-base font-bold text-white truncate">{itemLabel(story.itemType, story.itemIndex, story.itemSkill)}</h2>
               </div>
             </div>
             <button
@@ -1296,41 +1414,39 @@ function StoryModal({ story, onClose }) {
           </div>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto space-y-4">
-          {story.starSituation && (
-            <div>
-              <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Situation</p>
-              <p className="text-sm text-gray-800 leading-relaxed">{story.starSituation}</p>
+        <div className="p-6 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {story.polishedStory && (
+            <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.polishedStory}</p>
+          )}
+          {hasStarBreakdown && (
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Full STAR Breakdown</p>
+              {story.starSituation && (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Situation</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starSituation}</p>
+                </div>
+              )}
+              {story.starTask && (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Task</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starTask}</p>
+                </div>
+              )}
+              {story.starAction && (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Action</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starAction}</p>
+                </div>
+              )}
+              {story.starResult && (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Result</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starResult}</p>
+                </div>
+              )}
             </div>
           )}
-          {story.starTask && (
-            <div>
-              <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Task</p>
-              <p className="text-sm text-gray-800 leading-relaxed">{story.starTask}</p>
-            </div>
-          )}
-          {story.starAction && (
-            <div>
-              <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Action</p>
-              <p className="text-sm text-gray-800 leading-relaxed">{story.starAction}</p>
-            </div>
-          )}
-          {story.starResult && (
-            <div>
-              <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Result</p>
-              <p className="text-sm text-gray-800 leading-relaxed">{story.starResult}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="px-6 pb-5 pt-2 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm text-white transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-          >
-            Done
-          </button>
         </div>
       </div>
     </div>
@@ -1345,7 +1461,7 @@ function StoryModal({ story, onClose }) {
 
 function InterviewHeaderStrip({
   storiesCoached, totalStoryItems,
-  interviewDate, countdown, interviewDateIsPast
+  interviewDate, countdown, interviewDateIsPast, currentStep
 }) {
   const hasDate = !!interviewDate;
   const dateObj = hasDate ? new Date(interviewDate) : null;
@@ -1361,9 +1477,15 @@ function InterviewHeaderStrip({
 
         {/* TITLE + INSTRUCTIONS */}
         <div className="flex-1 min-w-0">
-          <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">Power Analysis</h2>
-          <p className="text-xs text-gray-500 leading-snug">
-            Tap any item to coach a STAR story, or use <span className="font-semibold text-purple-600">Coach Me Through This</span> for multiple at once.
+          <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
+            {currentStep === 'analyze' && 'Power Analysis'}
+            {currentStep === 'coach'   && 'STAR Story Coaching'}
+            {currentStep === 'practice' && 'Interview Practice'}
+          </h2>
+          <p className="text-xs text-gray-400 leading-snug">
+            {currentStep === 'analyze' && 'Interview Coach: Step 1 of 3'}
+            {currentStep === 'coach'   && 'Interview Coach: Step 2 of 3'}
+            {currentStep === 'practice' && 'Interview Coach: Step 3 of 3'}
           </p>
         </div>
 
