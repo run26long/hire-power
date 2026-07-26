@@ -212,7 +212,6 @@ const [isAutoFitting, setIsAutoFitting] = useState(false)
 const [selectedSpacing, setSelectedSpacing] = useState(1)
 const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
 const [showTooLongModal, setShowTooLongModal] = useState(false)
-const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
 const [mobilePanel, setMobilePanel] = useState('coach')
 const [mobileToolbar, setMobileToolbar] = useState(null)
 const [showEditTip, setShowEditTip] = useState(false)
@@ -709,14 +708,6 @@ function formatDate(dateString, format = dateFormat) {
   }, [resume?.id])
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('upgraded') === 'true') {
-      setShowUpgradedBanner(true)
-      window.history.replaceState({}, '', window.location.pathname)
-    }
-  }, [])
-
-  useEffect(() => {
     if (userProfile) {
       setCoachingSamplesUsed(userProfile.coaching_samples_used || 0)
     }
@@ -1044,15 +1035,6 @@ if (data.ai_analysis) {
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
      <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100vh', height: '100dvh' }}>
-        {showUpgradedBanner && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-3 py-3 px-6 shadow-lg">
-          <span>🎉 Welcome to Pro! Your full coaching session is ready.</span>
-          <button
-            onClick={() => setShowUpgradedBanner(false)}
-            className="text-white hover:text-purple-200 text-lg leading-none font-light"
-          >×</button>
-        </div>
-      )}
       <MainNav
         currentPage="resume-coach"
         userProfile={userProfile}
@@ -4353,15 +4335,22 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               </div>
             )}
           </div>
-          <p className="text-sm md:text-xs text-gray-700 text-center leading-snug">
-            Take a look at your résumé. Make sure Coach got everything right — dates, job titles, details. If anything looks off, use Fix It below.
-          </p>
-          <div className="flex flex-col gap-2 items-center">
+          <div>
+            <h3 className="font-semibold text-lg text-gray-900">Your Resume is Ready!</h3>
+            <p className="text-sm md:text-xs text-gray-600 mt-1 leading-snug">You talked. Coach listened. Here's what came out of it. A few quick edits and it's all yours.</p>
+          </div>
+          <ul className="space-y-1.5 text-sm md:text-xs text-gray-600 list-disc list-inside leading-snug">
+            <li>Click any section to edit text directly</li>
+            <li>Tap the lightning bolt to reword or fix any sentence</li>
+            <li>Use "More to add?" below to add anything you left out</li>
+            <li>Use arrows to reorder content and trash to remove what you don't need</li>
+          </ul>
+          <div className="flex justify-center gap-2 pt-1 flex-wrap">
             <button
-              onClick={() => setShowConvTargetedRecoach(true)}
-              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+              onClick={() => setReviseModalState({ mode: 'add' })}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
             >
-              Something's Off → Fix It
+              ⚡ More to add?
             </button>
             <button
               onClick={async () => {
@@ -4380,47 +4369,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
-              Looks Good → Format & Finish
+              Ready to Format →
             </button>
           </div>
         </div>
-        {showConvTargetedRecoach && (
-          <TargetedRecoachStep
-            resumeData={resumeData}
-            rewrittenResume={rewrittenResume}
-            remainingGaps={[]}
-            detectedLevel={detectedLevel}
-            userName={userName}
-            userProfile={userProfile}
-            supabase={supabase}
-            params={params}
-            setResume={setResume}
-            setRewrittenResume={setRewrittenResume}
-            setResumeChanges={setResumeChanges}
-            targetedMessages={convTargetedMessages}
-            setTargetedMessages={setConvTargetedMessages}
-            handleReassess={handleReassess}
-            setShowRevealModal={() => {}}
-            setRecoachAttempts={setRecoachAttempts}
-            score={score}
-            originalCoachingMessages={coachingMessages || []}
-            careerContext={careerContext}
-            isConversationalFix={true}
-            onClose={async () => {
-              setShowConvTargetedRecoach(false)
-              const { error: saveError } = await supabase
-                .from('resumes')
-                .update({ changes_accepted: true, updated_at: new Date().toISOString() })
-                .eq('id', params.id)
-              if (saveError) {
-                console.error('Error marking conversational changes accepted on close:', saveError)
-                setErrorToast("We couldn't save your changes. Please refresh the page.")
-                return
-              }
-              setResume(prev => ({ ...prev, changes_accepted: true }))
-            }}
-          />
-        )}
       </>
     )
   }

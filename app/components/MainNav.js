@@ -2,13 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UpgradeModal from '@/app/components/UpgradeModal';
 
 export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) {
   const router = useRouter();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showUpgradedBanner, setShowUpgradedBanner] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded') === 'true') {
+      setShowUpgradedBanner(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const navigate = (path) => {
     if (onBeforeNavigate?.(path)) return
@@ -46,6 +55,15 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
 
   return (
     <>
+      {showUpgradedBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-3 py-3 px-6 shadow-lg">
+          <span>🎉 Welcome to Pro! Your full coaching session is ready.</span>
+          <button
+            onClick={() => setShowUpgradedBanner(false)}
+            className="text-white hover:text-purple-200 text-lg leading-none font-light"
+          >×</button>
+        </div>
+      )}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="px-4 md:px-6 py-2 flex items-center justify-between">
 

@@ -122,7 +122,7 @@ const helpContent = [
     ]
   },
   {
-    title: 'brb (Mobile Resume Builder)',
+    title: 'brb (best resume builder)',
     questions: [
       {
         question: 'What is brb?',

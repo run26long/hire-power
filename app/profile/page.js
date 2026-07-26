@@ -34,6 +34,7 @@ export default function Profile() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [toastSuccess, setToastSuccess] = useState('')
   const [toastError, setToastError] = useState('')
+  const [subscriptionDetails, setSubscriptionDetails] = useState(null)
 
   // Password strength: returns { score: 0-3, label, color, width }
   const getPasswordStrength = (password) => {
@@ -166,6 +167,19 @@ export default function Profile() {
         setLastName(p.last_name || '')
         setDisplayName(p.display_name || user.email.split('@')[0])
         setPhotoUrl(p.photo_url || '')
+        if (p.subscription_tier && p.subscription_tier !== 'free') {
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.access_token) {
+              const subData = await fetchJSON('/api/stripe/subscription-details', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+              })
+              setSubscriptionDetails(subData)
+            }
+          } catch (e) {
+            console.error('Subscription details fetch failed:', e)
+          }
+        }
       } else {
         setDisplayName(user.email.split('@')[0])
       }
@@ -252,7 +266,7 @@ export default function Profile() {
       const dateStr = data.scheduled_date
         ? new Date(data.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : 'the end of your billing period'
-      setToastSuccess(`Switch to Vault confirmed. Pro access continues through ${dateStr}.`)
+      setToastSuccess(`Switch to Vault (${vaultBillingInterval}) confirmed. Pro access continues through ${dateStr}.`)
     } catch (e) {
       setToastError(e.message)
     } finally {
@@ -629,12 +643,23 @@ export default function Profile() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: tierBg[tier], border: `1px solid ${tierBorder[tier]}`, borderRadius: 10, marginBottom: 12 }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: tierColor[tier], flexShrink: 0 }}></div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 13, fontWeight: 800, color: tierColor[tier] }}>Hire Power {tierLabel[tier]}</p>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: tierColor[tier] }}>
+                          {tier === TIERS.VAULT ? 'Career Vault' : `Hire Power ${tierLabel[tier]}`}
+                        </p>
                         <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
                           {tier === TIERS.FREE && 'Always free. Limited features'}
                           {tier === TIERS.PRO && '$29.99/month · All features unlocked'}
-                          {tier === TIERS.VAULT && '$4.99/month · Career Vault access'}
+                          {tier === TIERS.VAULT && (
+                            subscriptionDetails?.price_id === process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
+                              ? '$49.99/year · Career Vault access'
+                              : '$4.99/month · Career Vault access'
+                          )}
                         </p>
+                        {subscriptionDetails?.current_period_end && !profile?.pending_change_type && (
+                          <p style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                            Renews on {new Date(subscriptionDetails.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        )}
                       </div>
                       {tier === TIERS.FREE && (
                         <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
