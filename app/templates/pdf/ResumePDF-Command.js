@@ -18,6 +18,14 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
     <Document hyphenationCallback={(w) => [w]}>
       <Page size="LETTER" style={{ fontFamily: f, fontSize: base, lineHeight: 1.3, color: '#1a1a1a', backgroundColor: '#ffffff', paddingTop: Math.round(20*sp), paddingBottom: Math.round(36*sp) }}>
 
+        {/* Page 2+ continuation header */}
+        <View fixed style={{ position: 'absolute', top: 14, left: 52, right: 52 }} render={({ pageNumber }) => pageNumber > 1 ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 2, borderBottomColor: color, paddingBottom: 3 }}>
+            <Text style={{ fontFamily: f, fontSize: base - 2, fontWeight: 'bold', textTransform: 'uppercase', color: color }}>{resumeData.fullName || ''}</Text>
+            <Text style={{ fontFamily: f, fontSize: base - 2, color: '#666666' }} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+          </View>
+        ) : null} />
+
         {/* Color header */}
         <View style={{ backgroundColor: color, marginTop: -Math.round(20*sp), paddingTop: Math.round(24*sp), paddingBottom: Math.round(18*sp), paddingLeft: Math.round(52*sp), paddingRight: Math.round(52*sp) }}>
           <Text style={{ fontFamily: f, fontSize: 22, fontWeight: 'bold', textAlign: 'center', color: '#ffffff', marginBottom: Math.round(14*sp) }}>{resumeData.fullName || ''}</Text>
@@ -83,53 +91,101 @@ export default function ResumePDFCommand({ resumeData, font = 'Lato', fontSize =
                   </>
                 )
 
-                return (
-                  <View key="experience" style={{ marginTop: Math.round(14*sp) }}>
-                    <View wrap={false}>
-                      <Text style={{ fontFamily: f, fontSize: base+1, fontWeight: 'bold', textTransform: 'uppercase', color: color, borderBottomWidth: 2, borderBottomColor: color, paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp) }}>{resumeData.sectionTitles?.experience || 'Experience'}</Text>
-                      <View style={{ marginBottom: restGroups.length > 0 ? Math.round(10*sp) : 0 }}>
-                        {firstGroup.roles.length === 1 ? (
-                          <>
-                            {renderRoleSingle(firstGroup.roles[0])}
-                            {renderBullets(firstGroup.roles[0])}
-                          </>
-                        ) : (
-                          <>
-                            {renderGroupHeader(firstGroup)}
-                            {firstGroup.roles.map((role, ri) => (
-                              <View key={ri} style={{ paddingLeft: 12, marginTop: ri > 0 ? Math.round(4*sp) : Math.round(2*sp) }}>
-                                {renderRoleInGroup(role)}
-                                {renderBullets(role)}
-                              </View>
-                            ))}
-                          </>
+                const SHExp = () => (
+                  <Text style={{ fontFamily: f, fontSize: base+1, fontWeight: 'bold', textTransform: 'uppercase', color: color, borderBottomWidth: 2, borderBottomColor: color, paddingBottom: Math.round(2*sp), marginBottom: Math.round(5*sp) }}>{resumeData.sectionTitles?.experience || 'Experience'}</Text>
+                )
+
+                const renderSingleWithHeader = (role, showHeader) => {
+                  const hasSummary = role.summary && !role.summaryDismissed
+                  const bullets = (role.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
+                  return (
+                    <>
+                      <View wrap={false}>
+                        {showHeader && <SHExp />}
+                        {renderRoleSingle(role)}
+                        {!hasSummary && bullets.length > 0 && (
+                          <View style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                            <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                            <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{bullets[0]}</Text>
+                          </View>
                         )}
                       </View>
+                      {(hasSummary ? bullets : bullets.slice(1)).map((b, k) => (
+                        <View key={k} wrap={false} style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )
+                }
+
+                const renderMultiWithHeader = (group, showHeader) => {
+                  const firstRole = group.roles[0]
+                  const hasSummary = firstRole.summary && !firstRole.summaryDismissed
+                  const firstBullets = (firstRole.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
+                  return (
+                    <>
+                      <View wrap={false}>
+                        {showHeader && <SHExp />}
+                        {renderGroupHeader(group)}
+                        <View style={{ paddingLeft: 12, marginTop: Math.round(2*sp) }}>
+                          {renderRoleInGroup(firstRole)}
+                          {!hasSummary && firstBullets.length > 0 && (
+                            <View style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                              <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                              <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{firstBullets[0]}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      {(hasSummary ? firstBullets : firstBullets.slice(1)).map((b, k) => (
+                        <View key={`r0-b${k}`} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                          <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                          <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                        </View>
+                      ))}
+                      {group.roles.slice(1).map((role, ri) => {
+                        const roleSummary = role.summary && !role.summaryDismissed
+                        const roleBullets = (role.bullets || []).filter(b => (b || '').trim() && (b || '').trim() !== 'Describe what you did and the impact you made')
+                        return (
+                          <React.Fragment key={ri+1}>
+                            <View wrap={false} style={{ paddingLeft: 12, marginTop: Math.round(4*sp) }}>
+                              {renderRoleInGroup(role)}
+                              {!roleSummary && roleBullets.length > 0 && (
+                                <View style={{ flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                                  <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                                  <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{roleBullets[0]}</Text>
+                                </View>
+                              )}
+                            </View>
+                            {(roleSummary ? roleBullets : roleBullets.slice(1)).map((b, k) => (
+                              <View key={k} wrap={false} style={{ paddingLeft: 12, flexDirection: 'row', marginBottom: Math.round(1*sp) }}>
+                                <Text style={{ fontFamily: f, fontSize: base, width: 10 }}>{'\u2022 '}</Text>
+                                <Text style={{ fontFamily: f, fontSize: base, flex: 1 }}>{b}</Text>
+                              </View>
+                            ))}
+                          </React.Fragment>
+                        )
+                      })}
+                    </>
+                  )
+                }
+
+                return (
+                  <View key="experience" style={{ marginTop: Math.round(14*sp) }}>
+                    <View style={{ marginBottom: restGroups.length > 0 ? Math.round(10*sp) : 0 }}>
+                      {firstGroup.roles.length === 1
+                        ? renderSingleWithHeader(firstGroup.roles[0], true)
+                        : renderMultiWithHeader(firstGroup, true)
+                      }
                     </View>
                     {restGroups.map((group, i) => (
                       <View key={i+1} style={{ marginBottom: i < restGroups.length - 1 ? Math.round(10*sp) : 0 }}>
-                        {group.roles.length === 1 ? (
-                          <>
-                            <View wrap={false}>
-                              {renderRoleSingle(group.roles[0])}
-                            </View>
-                            {renderBullets(group.roles[0])}
-                          </>
-                        ) : (
-                          <>
-                            <View wrap={false}>
-                              {renderGroupHeader(group)}
-                            </View>
-                            {group.roles.map((role, ri) => (
-                              <View key={ri} style={{ paddingLeft: 12, marginTop: ri > 0 ? Math.round(4*sp) : Math.round(2*sp) }}>
-                                <View wrap={false}>
-                                  {renderRoleInGroup(role)}
-                                </View>
-                                {renderBullets(role)}
-                              </View>
-                            ))}
-                          </>
-                        )}
+                        {group.roles.length === 1
+                          ? renderSingleWithHeader(group.roles[0], false)
+                          : renderMultiWithHeader(group, false)
+                        }
                       </View>
                     ))}
                   </View>

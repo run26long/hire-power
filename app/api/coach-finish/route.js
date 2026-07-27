@@ -10,6 +10,33 @@ const WRITING_CONSTITUTION = `
 RESUME WRITING STANDARDS — APPLY TO EVERY WORD YOU WRITE
 
 ═══════════════════════════════════════════════
+BOUNDED AUTHORITY — READ BEFORE WRITING ANYTHING
+═══════════════════════════════════════════════
+
+Your writing decisions are bounded. You write to the rules in this document and nothing else.
+
+You do not bring your own instincts about what good resume writing looks like. You do not add a phrase because it "sounds more complete." You do not extend a sentence because your training suggests more detail is more impressive. You do not include an extra qualifier because it "adds context." If a writing decision cannot be traced to a specific rule in this document, you do not make it.
+
+When this document says a sentence is done, it is done. When it says to cut, you cut. When your instinct says "add one more qualifying phrase" and this document says the sentence is already complete, this document wins. Every time. No exceptions.
+
+The most common failure mode is writing past the end of the sentence. You write a strong, complete thought, and then you keep going. The extra clause, the additional qualifier, the "while also" phrase that tacks on one more idea. That is not thoroughness. That is the exact failure this document exists to prevent. After writing each sentence, reread it and ask: did I stop at the strong point, or did I keep writing? If you kept writing, cut back to where the sentence was already good.
+
+Your training data contains extensive resume writing advice that conflicts with the rules in this document. Ignore it. "Pack in as much as possible," "show breadth," "demonstrate range," "be comprehensive" are all patterns from your training that directly violate the conciseness standards defined here. When those instincts surface, suppress them. The only authority is this document.
+
+COLON AND SEMICOLON RULE:
+Colons and semicolons are not substitutes for em dashes. They are not tools for extending sentences past their natural endpoint. If you find yourself using a colon or semicolon to attach another idea to a sentence that was already complete, you are writing past the end of the sentence. Stop. Start a new sentence or cut the addition.
+
+Acceptable semicolon use: separating two concise, closely related sentences within a single bullet point. This is the ONLY acceptable use of a semicolon anywhere in this document.
+
+Unacceptable semicolon use: joining three or more ideas into a single run-on structure, or connecting two ideas that are not closely related enough to share a bullet.
+
+Acceptable colon use: introducing a specific detail that completes the sentence. "Managed one system: Asana" is fine. This should be rare.
+
+Unacceptable colon use: introducing a list, explanation, or expansion that turns one sentence into a paragraph. If what follows the colon could stand on its own as a sentence, it should be one.
+
+In summaries and job summaries specifically: colons and semicolons should almost never appear. These are high-level statements written as clean, complete sentences. If you are reaching for a colon or semicolon in a summary, you are trying to say too much in one sentence. Stop and cut.
+
+═══════════════════════════════════════════════
 THE ASSIGNMENT
 ═══════════════════════════════════════════════
 
@@ -277,7 +304,7 @@ Experienced aerial arts performer and production professional with hands-on expe
 - "Looking to bring" - candidate-first language. Summaries show what the employer gets, never what the candidate wants.
 
 SUMMARY PASSES THE CONCISENESS TEST:
-Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics such as show resets, cue coordination, and rigging, and produces original works from concept through opening night. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain.
+Aerial arts performer and production professional with hands-on experience across ambient theme park productions, live event choreography, and backstage operations at professional event venues. Manages production logistics for 9-15 live shows annually, coordinates show resets across theme park and corporate productions, and trains 60+ students weekly in aerial disciplines. Brings the rare combination of performance instincts and production fluency that stage managers need on both sides of the curtain.
 
 BULLET FAILS THE CONCISENESS TEST:
 Resolve 3 to 4 client escalations per week independently, handling billing disputes, shipment issues, and service complaints through to resolution without management involvement except in high-stakes situations, totaling an estimated 150 to 200 escalations resolved annually
@@ -603,6 +630,10 @@ Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 wi
 
 Sentence 2 must tell the strongest story of the candidate’s career history and impact as a high-level overview.  Only use metrics if they are relevant and important to the career target. 
 
+Each proof point in sentence 2 is one verb + one object + one quick scope marker, and ends there. DEAD STOP AT THE SCOPE MARKER. Do not write a single extra word after it. No "with" clauses listing what's inside. No "from X through Y" phase sequences. No "that [does something]" trailing clauses.
+
+DEAD STOP AFTER THE LAST PROOF POINT. Do not write a single extra word in this sentence.
+
 Important metrics: Manages $500K-$1M in annual vendor spend across 10-15 vendors (makes their impact sound big)
 
 Unimportant metrics: Choreographed a 4-person act for a holiday production (makes their impact sound small. Cast size is not an important metric, and a one-time event like a holiday production is a bullet, not high-level summary material).
@@ -631,6 +662,8 @@ CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
+DEAD STOP AFTER THE HOOK. Do not write a single extra word in this sentence.
+
 SUMMARY EXAMPLES:
 
 STRONG SENTENCE 1 (Professional Identity & Scope):
@@ -655,9 +688,9 @@ WHY IT FAILS:
 - "spanning operations, finance, IT, facilities, and HR": too much operational detail for a summary; this is bullet material
 - "at a volume of 150 to 200 per year": too many words. Should be "150-200 annually"
 
-STRONG SENTENCE 2: 
-Produces documentation that show directors rely on to plan rigging positions, motor cues, and stage entrances and exits, and supports the backstage logistics that keep shows running from tech through close.
-WHY IT WORKS: Demonstrates scope of experience across many different projects and events, making the experience more impactful than just listing 2-3 specific events. “Supports” is appropriate language for a student just learning this field and doesn’t make it sound like she did more than she actually has.
+STRONG SENTENCE 2:
+"Manages 6-8 patients per shift across a 50-bed acute care unit, coordinates handoffs with 4-5 physicians and specialists daily, and trains 3-4 new nurses annually on the unit's protocols."
+WHY IT WORKS: Three parallel proof points. Each one is verb + object + scope marker with no trailing clauses, no nested "with X and Y" qualifiers, and no "that [does something]" extensions. Each one DEAD STOPS at the scope marker. The proof points mirror each other structurally, giving the sentence a clean rhythm.
 
 WEAK SENTENCE 2 (no results):
 " Built and documented a group act from concept through a 9-show run, coordinated with a show director through tech and dress rehearsals, and supported student performers on-site at private events."
@@ -679,7 +712,7 @@ WEAK SENTENCE 3 (vague and unspecific):
 "Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
-STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to
+STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to
 every production.
 
 STRONG SUMMARY: Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
@@ -735,7 +768,7 @@ PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
 PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
-Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to every production.
+Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to every production.
 
 TOO SHORT: DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
@@ -989,7 +1022,9 @@ Relevant coursework: Include only for students and very recent grads targeting r
 
 Academic projects: Include only when the deliverable itself demonstrates a skill the target role requires AND the scope is impressive enough to stand on its own. The bar is high. Would a hiring manager find this credible and relevant? Does it demonstrate stronger evidence than anything in the candidate's work experience for that skill? When in doubt, leave it out. Coursework is almost always enough. Right: "Developed a comprehensive event plan for the PGA Show covering logistics, operations, marketing, staffing, food and beverage, technology, and environmental impact". This is real event, multi-workstream deliverable, relevant to the target field. Wrong: "Created a leadership manifesto for a fictional live event.” This is fictional, single deliverable, demonstrates nothing specific.
 
-For experienced candidates (5+ years): education shrinks to institution name, degree, field of study, and graduation year only. No GPA, no coursework, no projects. The work experience carries the resume at this stage.
+For experienced candidates (5-15 years): education shrinks to institution name, degree, field of study, and graduation year only. No GPA, no coursework, no projects. The work experience carries the resume at this stage.
+
+For candidates with 20+ years of experience: education shrinks to institution name, degree, and field of study only. DROP the graduation year entirely. Including a graduation date on a resume with 20+ years of experience exposes the candidate to age discrimination. This is not optional. If the candidate has 20+ years of work history, the graduation year must not appear anywhere in the education section.
 
 INSTITUTION INCLUSION RULE:
 Only include an institution if it resulted in a completed degree or credential, OR if the coursework is directly and significantly relevant to the target role. Do NOT include transfer institutions where the candidate completed gen ed before moving on, community college attendance before transferring to a 4-year school, or any institution where no degree was earned and the coursework adds nothing to the target role. If a candidate started at Valencia and finished at UCF, list UCF only. If they earned a bachelor's from one school and a master's from another, list both.
@@ -1281,6 +1316,34 @@ ATS KEYWORD STRATEGY:
 - Matched keywords should already appear — confirm they are still present in the rewrite.
 - Do not keyword-stuff. Every keyword must appear in a context that makes sense.
 
+SKILLS FABRICATION — CATASTROPHIC FAILURE:
+Adding a skill, tool, methodology, or keyword to the skills section or bullets that does not appear
+on the candidate's original resume AND was not explicitly confirmed by the candidate during coaching
+is HALLUCINATION. It has the same severity as fabricating a metric or credential. The job description's
+missing keywords are a map of what to LOOK FOR in the candidate's existing material, not a shopping
+list of things to add. If the candidate never said it and it is not on their resume, it does not go
+on the rewritten resume. No exceptions. Before outputting, read every skill in skillsCategories and
+every keyword in every bullet. For each one, ask: where did this come from? If the answer is "the job
+description" and not "the candidate's resume or coaching conversation," remove it immediately.
+
+REFRAMING vs. CLAIMING — CRITICAL DISTINCTION:
+Bullets may describe the candidate's real work using language that maps to the job description.
+That is legitimate reframing. If the candidate evaluates AI output against a structured rubric,
+describing that work in a bullet using the phrase "quality evaluation" is accurate because the
+bullet describes what they actually do. The JD's vocabulary is being used to translate their
+real experience.
+
+The skills section is different. A skill listed in skillsCategories is a standalone claim: "I have
+this skill." If the candidate never used the term themselves, either on their resume or during
+coaching, it does not go in the skills section, even if Coach confirmed they do functionally
+equivalent work. The test: could the candidate say this skill name out loud in an interview and
+immediately explain what it means without hesitation? If they would stumble on the terminology
+because it came from the job description and not from their own vocabulary, it belongs in a
+bullet describing the work, not as a skill entry claiming the vocabulary.
+
+The candidate's own words go in skills. The JD's words can appear in bullets that describe
+matching work. Never the reverse.
+
 BULLET RELEVANCE ORDERING:
 - Within each role, reorder bullets so the most job description-relevant appear first.
 - A recruiter scanning for 5 seconds will read the first 2 bullets. Make them count.
@@ -1328,13 +1391,13 @@ WHAT YOU CAN DO:
 
 1. REORDER BULLETS within each role so JD-relevant bullets appear first. A recruiter scanning the first 2 bullets per role should see the strongest match for this specific job.
 
-2. REFRAME BULLET WORDING where existing content genuinely maps to JD language. If the JD asks for "stakeholder management" and the candidate's bullet says "coordinated with vendors, performers, and clients," reframe it to make the stakeholder management visible. The underlying experience must already be there. You are translating, not inventing.
+2. REFRAME BULLET WORDING where existing content genuinely maps to job description language. If the job description asks for "stakeholder management" and the candidate's bullet says "coordinated with vendors, performers, and clients," reframe it to make the stakeholder management visible. The underlying experience must already be there. You are translating, not inventing.
 
 3. TAILOR THE SUMMARY toward the target role using existing experience. The summary positioning can shift to emphasize aspects of the candidate's background most relevant to this JD. The summary will be written in the dedicated second pass — set it to "" in your output.
 
-4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the JD requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
+4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the job description requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
 
-5. CUT IRRELEVANT CONTENT if it dilutes the case for this specific role. A bullet that does nothing for this JD can be removed if a stronger bullet from the same role tells a more relevant story. Be conservative — when in doubt, leave it.
+5. CUT IRRELEVANT CONTENT if it dilutes the case for this specific role. A bullet that does nothing for this job description can be removed if a stronger bullet from the same role tells a more relevant story. Be conservative — when in doubt, leave it.
 
 WHAT YOU ABSOLUTELY CANNOT DO:
 
@@ -1342,13 +1405,13 @@ WHAT YOU ABSOLUTELY CANNOT DO:
 
 2. DO NOT INVENT METRICS, NUMBERS, OR SCOPE. If a bullet says "managed events," do not turn it into "managed 50+ events." If the original didn't have the number, you don't have the number.
 
-3. DO NOT ADD NEW SKILLS to the skills section that aren't already demonstrated somewhere on the original resume. If the JD requires "Salesforce" and the original resume has no mention of Salesforce, do not add it. ATS keyword stuffing with skills the candidate doesn't have is fabrication.
+3. DO NOT ADD NEW SKILLS to the skills section that aren't already demonstrated somewhere on the original resume. If the job description requires "Salesforce" and the original resume has no mention of Salesforce, do not add it. ATS keyword stuffing with skills the candidate doesn't have is fabrication.
 
-4. DO NOT ADD JD KEYWORDS to bullets unless the existing bullet content genuinely supports the keyword. Reframing "coordinated vendors" as "managed stakeholder relationships" is acceptable because the underlying activity supports both phrasings. Reframing "answered phones" as "led cross-functional initiatives" is fabrication.
+4. DO NOT ADD job description KEYWORDS to bullets unless the existing bullet content genuinely supports the keyword. Reframing "coordinated vendors" as "managed stakeholder relationships" is acceptable because the underlying activity supports both phrasings. Reframing "answered phones" as "led cross-functional initiatives" is fabrication.
 
 5. DO NOT INFER RESPONSIBILITIES that are typical for the job title. If the candidate's resume says "Server" and the bullets describe taking orders and running food, do not add "trained new staff" because servers often do that. The resume is the only source of what they actually did.
 
-6. DO NOT FILL GAPS the candidate hasn't filled. If the JD requires 5 years of Python experience and the resume shows none, that gap stays. Your job is not to make this candidate look qualified for jobs they aren't qualified for. Your job is to make sure they get full credit for what they ACTUALLY have.
+6. DO NOT FILL GAPS the candidate hasn't filled. If the job description requires 5 years of Python experience and the resume shows none, that gap stays. Your job is not to make this candidate look qualified for jobs they aren't qualified for. Your job is to make sure they get full credit for what they ACTUALLY have.
 
 THE TEST FOR EVERY EDIT:
 Before changing any bullet, ask: "Could the candidate defend every word of this in an interview based on what was already on their resume?" If yes, the edit is legitimate. If no, revert it.
@@ -1367,6 +1430,7 @@ const OUTPUT_STRUCTURE = {
   location: "string",
   linkedin: "string",
   portfolio: "string",
+  professionalTitle: "string — a short professional identity title displayed under the candidate's name. See PROFESSIONAL TITLE instructions.",
   summary: "string",
   hideSummary: false,
   experience: [{
@@ -1528,9 +1592,7 @@ CAREER CONTEXT:
 - Transferable skills: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
 ` : ''
 
-  return `${WRITING_CONSTITUTION}
-
-${skipCoaching ? JS_NO_COACH_RULES : JS_WRITING_CONSTITUTION}
+  return `${skipCoaching ? JS_NO_COACH_RULES : JS_WRITING_CONSTITUTION}
 
 ${levelInstructions}
 
@@ -1570,6 +1632,18 @@ YOUR REWRITE INSTRUCTIONS:
    The summary will be written in a dedicated second pass after all bullets are finalized.
    Do not write a summary in this pass under any circumstances.
 
+1b. PROFESSIONAL TITLE — Write a short professional identity title (2-6 words) tailored toward the target role.
+   This appears directly under the candidate's name on the resume. It is NOT their current job title pasted in.
+   It signals fit for the target role while only claiming what the candidate's experience actually supports.
+   
+   RULES:
+   - Reflect the candidate's real skills and experience as they relate to this specific role
+   - Never copy the job description's title verbatim unless the candidate currently holds that exact title
+   - Never overstate. If they haven't held the title, use language that positions them credibly without claiming it
+   - Good: "AI Prompt Systems Designer & Technical Writer" for a prompt engineering role held by someone who builds prompt systems and writes documentation
+   - Bad: "Senior Prompt Engineer" when they've never held that title
+   - Bad: "Founder and CEO" when it tells the recruiter nothing about fit for this role
+
 2. MISSING KEYWORDS — Work through each one:
    - Does the coaching conversation or resume give you material to support this keyword? Add it.
    - Best location: existing bullet where it fits naturally (reframe the bullet to include it).
@@ -1579,6 +1653,24 @@ YOUR REWRITE INSTRUCTIONS:
 
 3. BULLET REORDERING — Within each role, put the most job description-relevant bullets first.
    A recruiter will read the first 2. Make them the strongest match for this specific role.
+
+3b. BULLET ALLOCATION BY RELEVANCE — JS RESUMES ONLY:
+   The default bullet count rules allocate by tenure and recency (most recent role gets the most bullets).
+   For job-specific resumes, RELEVANCE overrides recency. The role most relevant to the target job
+   gets the most bullets, even if it is not the most recent role.
+
+   Before allocating bullets, ask for each role: how relevant is this role to the target job description?
+   The role with the strongest functional match to the JD gets 4-6 bullets. Other roles get 2-4 based
+   on their relevance. A role with minimal relevance to the target gets 1-2 or title/company/dates only.
+
+   Example: a candidate's current role is "Founder & AI Prompt Engineer" and their previous role is
+   "Senior Technical Writer" with 20+ years tenure. If the target job is "Technical Writer - AI Trainer,"
+   the technical writing role is the PRIMARY qualification and should get 4-6 bullets. The founder role
+   supports the AI angle but is secondary for this specific job and gets 3-4 bullets focused only on
+   what's relevant to the target.
+
+   The test: if a recruiter for THIS job reads the resume, which role should feel like the main event?
+   That role gets the most space regardless of where it falls chronologically.
 
 4. MATCHED KEYWORDS — Verify they are still present and prominent. Do not accidentally remove them.
 
@@ -1674,11 +1766,9 @@ Position for a role TYPE, not a specific job or company.
 Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
 SENTENCE 1: Professional identity and scope with a unique twist
-Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
-
-Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and acts as a hook to make a recruiter want to keep reading. DEAD STOP AFTER THE HOOK. DO NOT WRITE ANOTHER WORD IN THAT SENTENCE.
 
 STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique twist showing benefit to employer):
 "Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
@@ -1703,6 +1793,10 @@ For career changers: sentence 1 SHOWS how their experience qualifies them for th
 Sentence 2: Career-wide Actions & Results Relevant to Target Job - Sentence 2 will be your unique telling of the candidate’s body of work as it relates to their target job. Use 2-3 credible proof points (3 is absolute maximum) taken from across their entire career to demonstrate the ongoing scope of their work: what they manage, handle, or deliver on a regular basis. Sentence 2 may NEVER include one-time projects or accomplishments, especially if they are not relevant to the target job. These belong in the job experience bullets, not the summary. 
 
 Sentence 2 must tell the strongest story of the candidate’s career history and impact as a high-level overview.  Only use metrics if they are relevant and important to the career target. 
+
+Each proof point in sentence 2 is one verb + one object + one quick scope marker, and ends there. DEAD STOP AT THE SCOPE MARKER. Do not write a single extra word after it. No "with" clauses listing what's inside. No "from X through Y" phase sequences. No "that [does something]" trailing clauses.
+
+DEAD STOP AFTER THE LAST PROOF POINT. Do not write a single extra word in this sentence.
 
 Important metrics: Manages $500K-$1M in annual vendor spend across 10-15 vendors (makes their impact sound big)
 
@@ -1732,6 +1826,8 @@ CAREER CHANGER SENTENCE 2 RULE: If this candidate is a career changer, sentence 
 
 Sentence 3: Hook + What They Deliver - Answers the question: what does the employer actually GET when they hire this person that they won't easily find in the rest of the stack? One clean sentence that makes a recruiter want to pick up the phone. No proof or results here. The bullets handle that.
 
+DEAD STOP AFTER THE HOOK. Do not write a single extra word in this sentence.
+
 SUMMARY EXAMPLES:
 
 STRONG SENTENCE 1 (Professional Identity & Scope):
@@ -1756,9 +1852,9 @@ WHY IT FAILS:
 - "spanning operations, finance, IT, facilities, and HR": too much operational detail for a summary; this is bullet material
 - "at a volume of 150 to 200 per year": too many words. Should be "150-200 annually"
 
-STRONG SENTENCE 2: 
-Produces documentation that show directors rely on to plan rigging positions, motor cues, and stage entrances and exits, and supports the backstage logistics that keep shows running from tech through close.
-WHY IT WORKS: Demonstrates scope of experience across many different projects and events, making the experience more impactful than just listing 2-3 specific events. “Supports” is appropriate language for a student just learning this field and doesn’t make it sound like she did more than she actually has.
+STRONG SENTENCE 2:
+"Manages 6-8 patients per shift across a 50-bed acute care unit, coordinates handoffs with 4-5 physicians and specialists daily, and trains 3-4 new nurses annually on the unit's protocols."
+WHY IT WORKS: Three parallel proof points. Each one is verb + object + scope marker with no trailing clauses, no nested "with X and Y" qualifiers, and no "that [does something]" extensions. Each one DEAD STOPS at the scope marker. The proof points mirror each other structurally, giving the sentence a clean rhythm.
 
 WEAK SENTENCE 2 (no results):
 " Built and documented a group act from concept through a 9-show run, coordinated with a show director through tech and dress rehearsals, and supported student performers on-site at private events."
@@ -1780,7 +1876,7 @@ WEAK SENTENCE 3 (vague and unspecific):
 "Proven track record of improving efficiency and reducing costs."
 WHY IT FAILS: "Proven track record" proves nothing without numbers, and "improving efficiency and reducing costs" describes the goal of every operations hire ever. A recruiter learns nothing about this person that they couldn't assume from the job title.
 
-STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to
+STRONG SUMMARY: Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to
 every production.
 
 STRONG SUMMARY: Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
@@ -1836,7 +1932,7 @@ PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
 Operations coordinator with 6+ years of experience managing the vendor relationships, procurement workflows, and cross-departmental processes that keep mid-size organizations running without friction. Manages $500K-$1M in annual vendor spend across 10-15 vendors, coordinates 3-4 cross-departmental projects simultaneously, and resolves 150-200 client escalations annually. Brings the systems thinking to catch problems before they surface and the follow-through to make sure nothing gets dropped in the handoff.
 
 PERFECT LENGTH: WRITE LIKE THIS EVERY TIME:
-Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Produces documentation that show directors rely on to plan rigging, motor, and entrance/exit cues, and supports the backstage logistics that keep shows running from tech through close. Brings a working knowledge of both sides of the stage to every production.
+Aerial performer and production coordinator with hands-on experience across live entertainment venues, including 600+ shows during a 15-month run at EPCOT. Coordinates production logistics across theme park, holiday, and corporate productions, instructs 60+ students weekly in aerial disciplines, and produces choreography documentation for live shows from tech through close. Brings a working knowledge of both sides of the stage to every production.
 
 TOO SHORT: DO NOT WRITE LIKE THIS:
 Operations coordinator with six years of experience managing vendor relationships, cross-departmental workflows, and client escalations. Known for catching problems before they reach management.
@@ -1933,11 +2029,9 @@ Position for a role TYPE, not a specific job or company.
 Career context: If career context or coaching established a job target, tailor the entire summary towards that target. It is your job to help a recruiter envision why this candidate will excel in that role.
 
 SENTENCE 1 IDENTITY RULE: NON-NEGOTIABLE:
-Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement. 
+Sentence 1 must open from who they ARE professionally and at what scale to define the career at the highest level. Does not include specific results. When a credential, certification, named award, especially notable employer, or similar career-defining information shapes how the industry recognizes this person, it belongs here as part of the identity statement.
 
-Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and makes a recruiter want to keep reading. 
-
-Do not add an extra phrase at the end just to keep writing. The fewer words, the better. End on something strong and stop there instead of ruining it with an extra phrase that adds nothing. 
+Sentence 1 should be a short, concise sentence, and it must end with a specific benefit to the employer stated in a unique or unexpected way that sets them apart from all other candidates and acts as a hook to make a recruiter want to keep reading. DEAD STOP AFTER THE HOOK. DO NOT WRITE ANOTHER WORD IN THIS SENTENCE.
 
 STRONG SENTENCE 1 (Professional Identity & Scope; ends with unique benefit to employer):
 "Operations coordinator with six years of experience building the vendor relationships, procurement workflows, and cross-functional processes that keep mid-size offices running."
@@ -2038,9 +2132,7 @@ No markdown. No explanation. No backticks.`
 function buildTargetedEnhancementPrompt({ rewrittenResume, newConversation, remainingGaps, level }) {
   const levelInstructions = LEVEL_WRITING_INSTRUCTIONS[level] || LEVEL_WRITING_INSTRUCTIONS.mid
   
-  return `${WRITING_CONSTITUTION}
-
-${levelInstructions}
+  return `${levelInstructions}
 
 You are performing a TARGETED ENHANCEMENT PASS on an already-improved resume.
 The resume was recently coached and rewritten. It is already significantly better than the original.
@@ -2137,8 +2229,6 @@ ${JSON.stringify(resumeData, null, 2)}`
 
   return `${conversationalBlock}You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with, one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance and conciseness. You never include anything that doesn't serve the candidate's target role, and you tell the most powerful story in the simplest, most impactful way possible. Good enough is not good enough. Your works must be
 
-${WRITING_CONSTITUTION}
-
 ${levelInstructions}
 
 ${contextBlock}
@@ -2191,6 +2281,22 @@ STEP 4: WRITE THE RESUME:
 PROFESSIONAL SUMMARY:
 Set summary to an empty string: "".
 The summary is written in a dedicated second pass. Do not write it here under any circumstances.
+
+PROFESSIONAL TITLE:
+Write a short professional identity title (2-6 words) for the professionalTitle field.
+This appears directly under the candidate's name. It is NOT their current job title pasted in.
+It captures who they are professionally and where they're headed based on the coaching conversation.
+
+RULES:
+- Lead with their strongest professional identity as it relates to their career direction
+- If coaching established a target direction, lean the title toward it
+- If no direction was established, reflect their strongest professional identity based on their experience
+- Never use their current job title verbatim unless it genuinely captures their professional identity
+- Never use a target title they don't hold. Position them credibly without overclaiming
+- Good: "Operations Coordinator & Process Improvement Specialist" for someone in ops work moving toward process roles
+- Good: "AI Prompt Architect & Technical Writer" for someone who builds prompt systems and writes documentation
+- Bad: "Founder and CEO" when it tells a recruiter nothing about what they do
+- Bad: "VP of Operations" when they've never held that title
 
 EXPERIENCE:
 
@@ -2384,7 +2490,13 @@ export async function POST(request) {
       const enhancementMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{ role: 'user', content: enhancementPrompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: enhancementPrompt }
+          ]
+        }]
       })
 
       let cleanedEnhancement = enhancementMessage.content[0].text.trim()
@@ -2419,7 +2531,13 @@ export async function POST(request) {
         const retryMessage = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 8000,
-          messages: [{ role: 'user', content: retryPrompt }]
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: retryPrompt }
+            ]
+          }]
         })
 
         let cleanedRetry = retryMessage.content[0].text.trim()
@@ -2473,7 +2591,13 @@ export async function POST(request) {
       const convRewriteMsg = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{ role: 'user', content: convRewritePrompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: convRewritePrompt }
+          ]
+        }]
       })
 
       let cleanedConvRewrite = convRewriteMsg.content[0].text.trim()
@@ -2496,23 +2620,22 @@ export async function POST(request) {
         jobTitle: null,
         jobCompany: null
       })
-      const convSummaryMsg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: convSummaryPrompt }]
-      })
-      convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
 
-      // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
-      if (authenticatedUserId) {
-        try {
-          const careerContextExtractMsg = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 500,
-            temperature: 0,
-            messages: [{
-              role: 'user',
-              content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
+      // ── PARALLEL: summary + career context extraction ──
+      const [convSummaryMsg, careerContextExtractMsg] = await Promise.all([
+        anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          messages: [{ role: 'user', content: convSummaryPrompt }]
+        }),
+        authenticatedUserId
+          ? anthropic.messages.create({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 500,
+              temperature: 0,
+              messages: [{
+                role: 'user',
+                content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
 
 CONVERSATION:
 ${convText}
@@ -2529,9 +2652,16 @@ Return this exact structure:
   "timeline": "actively_searching or passively_looking or not_searching or null",
   "experience_level": "entry or mid or senior"
 }`
-            }]
-          })
+              }]
+            })
+          : Promise.resolve(null)
+      ])
 
+      convResume.summary = convSummaryMsg.content[0].text.trim().replace(/—/g, ', ')
+
+      // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
+      if (authenticatedUserId && careerContextExtractMsg) {
+        try {
           let careerContextJson = careerContextExtractMsg.content[0].text.trim()
           if (careerContextJson.startsWith('```')) {
             careerContextJson = careerContextJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -2576,7 +2706,13 @@ Return this exact structure:
       const rewriteMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
-        messages: [{ role: 'user', content: jsRewritePrompt }]
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: jsRewritePrompt }
+          ]
+        }]
       })
 
       let cleanedRewrite = rewriteMessage.content[0].text.trim()
@@ -2589,7 +2725,9 @@ Return this exact structure:
       }
       rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
-      // ── SUMMARY: Written last, from completed bullets ──
+      // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
+      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+
       const jsSummaryPrompt = buildSummaryPrompt({
         rewrittenResume,
         conversation,
@@ -2600,23 +2738,24 @@ Return this exact structure:
         jobTitle,
         jobCompany
       })
-      const jsSummaryMessage = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: jsSummaryPrompt }]
-      })
+      const jsChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
+
+      const [jsSummaryMessage, jsChangesMessage] = await Promise.all([
+        anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          messages: [{ role: 'user', content: jsSummaryPrompt }]
+        }),
+        anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: jsChangesPrompt }]
+        })
+      ])
+
       rewrittenResume.summary = jsSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
-      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
-
-      const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
-      const changesMessage = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: changesPrompt }]
-      })
-
-      let cleanedChanges = changesMessage.content[0].text.trim()
+      let cleanedChanges = jsChangesMessage.content[0].text.trim()
       if (cleanedChanges.startsWith('```')) {
         cleanedChanges = cleanedChanges.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
@@ -2641,7 +2780,13 @@ Return this exact structure:
         rewriteMessage = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 8000,
-          messages: [{ role: 'user', content: rewritePrompt }]
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: WRITING_CONSTITUTION, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: rewritePrompt }
+            ]
+          }]
         })
         break
       } catch (err) {
@@ -2671,7 +2816,9 @@ Return this exact structure:
     }
     rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
-    // ── SUMMARY: Written last, from completed bullets ──
+    // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
+    rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+
     const coreSummaryPrompt = buildSummaryPrompt({
       rewrittenResume,
       conversation,
@@ -2682,24 +2829,24 @@ Return this exact structure:
       jobTitle: null,
       jobCompany: null
     })
-    const coreSummaryMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: coreSummaryPrompt }]
-    })
+    const coreChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
+
+    const [coreSummaryMessage, coreChangesMessage] = await Promise.all([
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: coreSummaryPrompt }]
+      }),
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: coreChangesPrompt }]
+      })
+    ])
+
     rewrittenResume.summary = coreSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
-    rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
-
-    const changesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
-
-    const changesMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: changesPrompt }]
-    })
-
-    let cleanedChanges = changesMessage.content[0].text.trim()
+    let cleanedChanges = coreChangesMessage.content[0].text.trim()
     if (cleanedChanges.startsWith('```')) {
       cleanedChanges = cleanedChanges.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     }

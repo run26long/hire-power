@@ -2,13 +2,27 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UpgradeModal from '@/app/components/UpgradeModal';
 
-export default function MainNav({ currentPage, userProfile }) {
+export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) {
   const router = useRouter();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showUpgradedBanner, setShowUpgradedBanner] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgraded') === 'true') {
+      setShowUpgradedBanner(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const navigate = (path) => {
+    if (onBeforeNavigate?.(path)) return
+    router.push(path)
+  };
 
  const tier = userProfile?.subscription_tier;
   const isVaultTier = tier === 'vault' || tier === 'maintenance' || (tier === 'pro' && userProfile?.search_status === 'hired');
@@ -26,7 +40,7 @@ export default function MainNav({ currentPage, userProfile }) {
 
   const navItems = [
     { id: 'dashboard',       label: 'Dashboard',       path: '/dashboard' },
-    { id: 'career-coach',    label: 'Career Coach',    path: '/career-coach' },
+    // { id: 'career-coach',    label: 'Career Coach',    path: '/career-coach' },  // HIDDEN — restore to re-enable
     { id: 'resume-coach',    label: 'Resume Coach',    path: '/resume-coach' },
     { id: 'interview-coach', label: 'Interview Coach', path: '/interview-coach' },
     isVaultTier
@@ -36,18 +50,27 @@ export default function MainNav({ currentPage, userProfile }) {
 
   const handleNavClick = (path) => {
     setMenuOpen(false);
-    router.push(path);
+    navigate(path);
   };
 
   return (
     <>
+      {showUpgradedBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-3 py-3 px-6 shadow-lg">
+          <span>🎉 Welcome to Pro! Your full coaching session is ready.</span>
+          <button
+            onClick={() => setShowUpgradedBanner(false)}
+            className="text-white hover:text-purple-200 text-lg leading-none font-light"
+          >×</button>
+        </div>
+      )}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="px-4 md:px-6 py-2 flex items-center justify-between">
 
           {/* Logo + tagline */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push(userProfile ? '/dashboard' : '/landing')}
+              onClick={() => navigate(userProfile ? '/dashboard' : '/landing')}
               className="flex items-center gap-2"
             >
               <img
@@ -67,7 +90,7 @@ export default function MainNav({ currentPage, userProfile }) {
                 {navItems.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => !item.disabled && router.push(item.path)}
+                    onClick={() => !item.disabled && navigate(item.path)}
                     style={currentPage === item.id ? { backgroundColor: 'rgba(147, 51, 234, 0.08)' } : {}}
                     className={`text-xs ${
                       currentPage === item.id
@@ -86,7 +109,7 @@ export default function MainNav({ currentPage, userProfile }) {
 
             {userProfile ? (
               <button
-                onClick={() => router.push('/profile')}
+                onClick={() => navigate('/profile')}
                 className="flex items-center gap-2 text-gray-700 hover:text-purple-600"
               >
                 {tier === 'pro' && (

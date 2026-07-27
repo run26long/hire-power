@@ -13,11 +13,12 @@ const supabase = createClient(
 function getTierForPriceId(priceId) {
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) return 'pro';
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID) return 'vault';
+  if (priceId === process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID) return 'vault';
   return null;
 }
 
 // Sync tier change to Loops (non-blocking — failure shouldn't break webhook)
-async function syncTierToLoops(userId, tier) {
+async function syncTierToLoops(userId, tier, previousTier) {
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
@@ -31,7 +32,7 @@ async function syncTierToLoops(userId, tier) {
     }
 
     const isInitialSync = !profile.loops_synced_at;
-    const isFreeToProUpgrade = tier === 'pro' && !isInitialSync && !profile.t6_sent_at;
+    const isFreeToProUpgrade = tier === 'pro' && previousTier === 'free' && !profile.t6_sent_at;
     const t6Now = isFreeToProUpgrade ? new Date().toISOString() : null;
 
     const payload = {
@@ -77,7 +78,7 @@ async function syncTierToLoops(userId, tier) {
   }
 }
 
-// When a user leaves Pro, archive their JS resumes and cover letters.
+// When a user leaves Pro, archive their job specific resumes and cover letters.
 // Data is preserved (not deleted) so Vault users can still view it
 // and Pro re-subscribers can restore it.
 async function archiveProContent(userId) {
@@ -89,7 +90,7 @@ async function archiveProContent(userId) {
       .eq('user_id', userId)
       .eq('resume_type', 'job_specific')
       .eq('is_active', true);
-    if (jsError) console.error('archiveProContent: JS resume archive failed', { userId, error: jsError });
+    if (jsError) console.error('archiveProContent: job specific resume archive failed', { userId, error: jsError });
 
     const { error: clError } = await supabase
       .from('cover_letters')
@@ -134,6 +135,13 @@ export async function POST(req) {
         return Response.json({ error: 'Unknown priceId' }, { status: 500 });
       }
 
+      const { data: prevProfile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .single();
+      const previousTier = prevProfile?.subscription_tier || 'free';
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -158,7 +166,7 @@ export async function POST(req) {
         return Response.json({ error: 'DB update failed' }, { status: 500 });
       }
 
-      await syncTierToLoops(userId, tier);
+      await syncTierToLoops(userId, tier, previousTier);
 
       break;
     }
@@ -202,7 +210,7 @@ export async function POST(req) {
           return Response.json({ error: 'DB update failed' }, { status: 500 });
         }
 
-        if (updated?.id) await syncTierToLoops(updated.id, newTier);
+        if (updated?.id) await syncTierToLoops(updated.id, newTier, existing.subscription_tier);
       }
 
       break;
@@ -214,16 +222,19 @@ export async function POST(req) {
       // Check if this deletion was scheduled as a downgrade to Vault
       const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('id, pending_change_type')
+        .select('id, pending_change_type, pending_vault_price_id')
         .eq('stripe_customer_id', customerId)
         .single();
 
       if (existingProfile?.pending_change_type === 'downgrade') {
-        // Create new Vault subscription on the existing customer
+        // Create new Vault subscription on the existing customer,
+        // using the price the user selected (monthly or annual).
+        const vaultPriceId = existingProfile.pending_vault_price_id
+          || process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID;
         try {
           const vaultSub = await stripe.subscriptions.create({
             customer: customerId,
-            items: [{ price: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID }],
+            items: [{ price: vaultPriceId }],
           });
 
           const { error: vaultUpdateError } = await supabase
@@ -247,7 +258,7 @@ export async function POST(req) {
 
           if (existingProfile?.id) {
             await archiveProContent(existingProfile.id);
-            await syncTierToLoops(existingProfile.id, 'vault');
+            await syncTierToLoops(existingProfile.id, 'vault', 'pro');
           }
         } catch (vaultError) {
           // Vault subscription failed (e.g. card declined). Drop to free
@@ -277,7 +288,7 @@ export async function POST(req) {
 
           if (existingProfile?.id) {
             await archiveProContent(existingProfile.id);
-            await syncTierToLoops(existingProfile.id, 'free');
+            await syncTierToLoops(existingProfile.id, 'free', 'pro');
           }
         }
       } else {
@@ -305,7 +316,7 @@ export async function POST(req) {
 
         if (cancelledProfile?.id) {
           await archiveProContent(cancelledProfile.id);
-          await syncTierToLoops(cancelledProfile.id, 'free');
+          await syncTierToLoops(cancelledProfile.id, 'free', 'pro');
         }
       }
 

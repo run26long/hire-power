@@ -13,13 +13,13 @@ function WhereBadge() {
     <div style={{
       position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
       background: 'linear-gradient(to right,#667eea,#764ba2)',
-      color: 'white', fontSize: 10, fontWeight: 700,
-      padding: '3px 14px 5px', borderRadius: '0 0 10px 10px',
-      display: 'flex', alignItems: 'center', gap: 5,
+      color: 'white', fontSize: 12, fontWeight: 700,
+      padding: '5px 20px 7px', borderRadius: '0 0 12px 12px',
+      display: 'flex', alignItems: 'center', gap: 7,
       whiteSpace: 'nowrap', letterSpacing: '0.02em', zIndex: 2,
     }}>
       <span style={{
-        width: 6, height: 6, borderRadius: '50%',
+        width: 8, height: 8, borderRadius: '50%',
         background: 'rgba(255,255,255,0.7)', flexShrink: 0,
         animation: 'hp-pulse 2s ease-in-out infinite',
       }} />
@@ -53,7 +53,7 @@ function HomeCard({ active, onClick, num, numColor, children }) {
         fontFamily: "'Fraunces', serif", fontWeight: 900,
         fontSize: 'clamp(80px,8vw,108px)',
         lineHeight: 1, letterSpacing: '-7px',
-        color: lit ? (numColor || '#ddd6fe') : '#ede9fe',
+        color: hovered ? '#9333ea' : '#ddd6fe',
         marginBottom: 0, transition: 'color 0.2s',
       }}>
         {num}
@@ -95,15 +95,35 @@ function DashboardContent() {
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
   const [toast, setToast] = useState(null);
+  const [applicationCount, setApplicationCount] = useState(0);
+  const [hasBuildProgress, setHasBuildProgress] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [archivedCoreCount, setArchivedCoreCount] = useState(0);
 
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const code = searchParams.get('code');
-    if (code) { setShowLoginModal(true); setLoginView('reset'); }
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          console.error('Code exchange failed:', error);
+          setToast('This reset link has expired. Please request a new one.');
+          setShowLoginModal(true);
+          setLoginView('forgot');
+        } else {
+          setShowLoginModal(true);
+          setLoginView('reset');
+        }
+      });
+      window.history.replaceState({}, '', '/dashboard');
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -118,7 +138,15 @@ function DashboardContent() {
         }
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (!profile && !profileError) {
+          // Profile row doesn't exist — deleted account with a stale session
+          await supabase.auth.signOut();
+          setShowLoginModal(true);
+          setLoginView('login');
+          setLoginError('account_deleted');
+          return;
+        }
         if (profileError) {
           console.warn('Dashboard profile load issue (non-fatal):', profileError);
         }
@@ -164,16 +192,51 @@ function DashboardContent() {
         const { data: resumes, error: resumesError } = await supabase
           .from('resumes').select('*').eq('user_id', user.id)
           .eq('resume_type', 'core')
-          .order('updated_at', { ascending: false }).limit(1);
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false });
         if (resumesError) {
           console.warn('Dashboard resumes load issue (non-fatal):', resumesError);
         }
-        if (resumes && resumes.length > 0) setCoreResume(resumes[0]);
+        // Filter out abandoned chat sessions (empty resume_data from unfinished brb)
+        const meaningfulResume = resumes?.find(r => {
+          if (r.journey_step === 'chat' && (!r.resume_data || Object.keys(r.resume_data).length === 0)) return false;
+          return true;
+        });
+        if (meaningfulResume) setCoreResume(meaningfulResume);
+
+        const { count: appCount } = await supabase
+          .from('applications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        if (appCount) setApplicationCount(appCount);
 
         if (searchParams.get('cancelled') === 'true') {
           setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
           window.history.replaceState({}, '', '/dashboard');
         }
+
+        // Show tour modal if user has no meaningful core resume
+        if (!meaningfulResume) {
+          const { count: archivedCount } = await supabase
+            .from('resumes')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('resume_type', 'core')
+            .eq('is_active', false);
+          setArchivedCoreCount(archivedCount || 0);
+          setShowTourModal(true);
+        }
+
+        // Check for in-progress form builder session
+        try {
+          const buildProgress = localStorage.getItem(`hp_build_progress_${user.id}`);
+          if (buildProgress) {
+            const parsed = JSON.parse(buildProgress);
+            if (parsed.data && Object.values(parsed.data).some(v => v && (typeof v === 'string' ? v.trim() : Array.isArray(v) ? v.length > 0 : false))) {
+              setHasBuildProgress(true);
+            }
+          }
+        } catch (e) {}
       } catch (err) {
         console.error('Dashboard load failed:', err);
         setToast("We couldn't load your dashboard. Please refresh the page.");
@@ -221,7 +284,7 @@ function DashboardContent() {
         .from('profiles')
         .select('deletion_requested_at')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
       if (profileCheck?.deletion_requested_at) {
         await supabase.auth.signOut();
         setLoginLoading(false);
@@ -254,6 +317,52 @@ function DashboardContent() {
     else { setResetSuccess(true); setTimeout(() => { setShowLoginModal(false); window.location.href = '/dashboard'; }, 2000); }
   };
 
+  const handleDashboardUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) throw new Error('Please upload a PDF or DOCX file.');
+      if (file.size > 10 * 1024 * 1024) throw new Error('File is too large. Maximum size is 10MB.');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      const { error: upErr } = await supabase.storage.from('resumes').upload(filePath, file);
+      if (upErr) throw new Error('Upload failed. Please try again.');
+      const { data: { session } } = await supabase.auth.getSession();
+      const parseRes = await fetch('/api/parse-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ filePath }) });
+      if (!parseRes.ok) throw new Error('Could not read file. Try a different format.');
+      const { text } = await parseRes.json();
+      const extractRes = await fetch('/api/extract-resume-structure', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }, body: JSON.stringify({ parsedText: text }) });
+      if (!extractRes.ok) throw new Error('Upload failed. Please try again.');
+      const { data: resumeData } = await extractRes.json();
+      const { data: savedResume, error: saveErr } = await supabase.from('resumes').insert({ user_id: user.id, resume_type: 'core', display_name: 'Core Resume', resume_data: resumeData, journey_step: 'review', file_path: filePath }).select().single();
+      if (saveErr) throw new Error('Upload failed. Please try again.');
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) {}
+      setShowTourModal(false);
+      router.push(`/resume/${savedResume.id}`);
+    } catch (err) {
+      setUploadError(err.message);
+      setUploading(false);
+    }
+  };
+
+  const handleDashboardChat = async () => {
+    setCreatingChat(true);
+    try {
+      const { data: newResume, error } = await supabase.from('resumes').insert({ user_id: user.id, resume_type: 'core', display_name: 'Core Resume', resume_data: {}, journey_step: 'chat', created_via: 'resume_chat' }).select().single();
+      if (error || !newResume) { setCreatingChat(false); return; }
+      try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }) } catch (e) {}
+      setShowTourModal(false);
+      router.push(`/resume/${newResume.id}`);
+    } catch (err) {
+      console.error('Resume chat start error:', err);
+      setCreatingChat(false);
+    }
+  };
+
   // ── Derived state ──
   const tier = userProfile?.subscription_tier;
   const isPro = tier === 'pro';
@@ -261,13 +370,13 @@ function DashboardContent() {
 
   const resumeCompleted = !!coreResume?.completed_at;
   const resumeInProgress = !!coreResume && !resumeCompleted;
-  const activeCard = resumeInProgress ? 'resume' : null;
 
   const ccCta = !coreResume ? 'Start the conversation' : 'Update your direction';
 
   let rcCta = 'Upload your resume';
   let rcStatus = 'not-started';
-  if (resumeInProgress)  { rcCta = 'Continue coaching'; rcStatus = 'in-progress'; }
+  if (hasBuildProgress) { rcCta = 'Continue in builder'; rcStatus = 'in-progress'; }
+  else if (resumeInProgress)  { rcCta = 'Continue coaching'; rcStatus = 'in-progress'; }
   else if (resumeCompleted) { rcCta = isPro ? 'Build a job-specific version' : 'View your resume'; rcStatus = 'done'; }
 
   const icCta = !resumeCompleted
@@ -487,6 +596,7 @@ function DashboardContent() {
                             </div>
                           );
                         })()}
+                        <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
@@ -508,6 +618,7 @@ function DashboardContent() {
                             )}
                           </button>
                         </div>
+                        <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                       </div>
                       <button type="submit" disabled={resetLoading}
                         className="block mx-auto py-2 px-8 rounded-md text-sm font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
@@ -554,14 +665,15 @@ function DashboardContent() {
         </div>
 
         {/* CARDS */}
-        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
+        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', overflow: 'hidden' }}>
 
-          {/* 01 CAREER COACH */}
+          {/* 01 CAREER COACH — HIDDEN: comment block below, restore num="01" and re-add to grid to re-enable */}
+          {false && (
           <HomeCard active={activeCard === 'career'} onClick={() => router.push('/career-coach')} num="01">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.free }}>Set Your Direction</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>The best 5-minute investment you can make in your career. Same field, new field, or figuring it out. The more know about your goals, the stronger your resume becomes.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', justifyContent: 'flex-end', gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{ccCta}</span>
@@ -570,15 +682,16 @@ function DashboardContent() {
               </>
             )}
           </HomeCard>
+          )}
 
-          {/* 02 RESUME COACH */}
-          <HomeCard active={activeCard === 'resume'} onClick={() => router.push('/resume-coach')} num="02">
+          {/* 01 RESUME COACH */}
+          <HomeCard onClick={() => router.push(hasBuildProgress ? '/build?from=resume-coach' : '/resume-coach')} num="01">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...(rcStatus === 'not-started' ? SP.start : rcStatus === 'in-progress' ? SP.prog : SP.done) }}>
                   {rcStatus === 'not-started' ? 'Not Started' : rcStatus === 'in-progress' ? 'In Progress' : 'Completed'}
                 </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a $500 résumé writer would. Free tells you what's wrong. Pro fixes it for you.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{rcCta}</span>
@@ -588,12 +701,12 @@ function DashboardContent() {
             )}
           </HomeCard>
 
-          {/* 03 INTERVIEW COACH */}
-          <HomeCard active={activeCard === 'interview'} onClick={() => router.push('/interview-coach')} num="03">
+          {/* 02 INTERVIEW COACH */}
+          <HomeCard onClick={() => router.push('/interview-coach')} num="02">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>AI-spoken practice that mimics a real interview using your resume and the job description. Get coaching on how to present your experience for each specific job.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{icCta}</span>
@@ -603,17 +716,17 @@ function DashboardContent() {
             )}
           </HomeCard>
 
-          {/* 04 JOB TRACKER / CAREER VAULT */}
+          {/* 03 JOB TRACKER / CAREER VAULT */}
           <HomeCard
-            active={activeCard === 'tracker'}
             onClick={() => router.push(c4path)}
-            num="04"
-            numColor={isVaultTier ? '#ddd6fe' : '#bbf7d0'}
+            num="03"
           >
             {(lit) => (
               <>
-                <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 20, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
+                <span style={{ ...SP.base, ...(applicationCount > 0 ? SP.prog : SP.start) }}>
+                  {applicationCount > 0 ? `${applicationCount} Application${applicationCount !== 1 ? 's' : ''}` : 'Not Started'}
+                </span>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
                 <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>{c4desc}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', borderRight: 'none' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{c4cta}</span>
@@ -625,6 +738,146 @@ function DashboardContent() {
 
         </div>
       </div>
+
+      {/* TOUR MODAL — shown when user has no core resume */}
+      {showTourModal && user && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => {
+            if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') {
+              setShowTourModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white shadow-2xl max-w-lg w-full overflow-hidden border border-gray-200"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', borderRadius: '8px' }}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+              className="px-6 py-5 relative"
+            >
+              <button
+                onClick={() => setShowTourModal(false)}
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+              >×</button>
+              <div className="flex items-center gap-3">
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+                <div>
+                  <h2 className="text-xl font-bold text-white">Let's Get Started</h2>
+                  <p className="text-purple-100 text-xs">Your resume is the starting point.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-5">
+              <div className="flex flex-col py-2">
+
+                {/* Option 1 — Upload */}
+                <div className="flex items-center gap-4 py-4">
+                  <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>1</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">Already have a resume?</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Upload it here, and we'll coach it into something stronger.</p>
+                  </div>
+                  <label className="block cursor-pointer flex-shrink-0">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={handleDashboardUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <div
+                      className="text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90 font-semibold text-xs cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Uploading...
+                        </>
+                      ) : 'Upload Resume'}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="border-t border-gray-100 mx-2" />
+
+                {/* Option 2 — Build with Coach */}
+                <div className="flex items-center gap-4 py-4">
+                  <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk-to-text on your mobile device.</p>
+                  </div>
+                  <div className="flex-shrink-0 text-center">
+                    <button
+                      onClick={handleDashboardChat}
+                      disabled={creatingChat}
+                      className="px-4 py-2 rounded-lg font-semibold text-xs inline-flex items-center gap-1.5 text-white transition-opacity hover:opacity-90 whitespace-nowrap disabled:opacity-85"
+                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', justifyContent: 'center' }}
+                    >
+                      {creatingChat ? (
+                        <>
+                          <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></div>
+                          Starting...
+                        </>
+                      ) : 'brb'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Option 3 — Restore from archive (only if archived cores exist) */}
+                {archivedCoreCount > 0 && (
+                  <>
+                    <div className="border-t border-gray-100 mx-2" />
+                    <div className="flex items-center gap-4 py-4">
+                      <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>3</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 leading-snug">Restore from archive</p>
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5">You have {archivedCoreCount} core resume{archivedCoreCount !== 1 ? 's' : ''} in your archive.</p>
+                      </div>
+                      <button
+                        onClick={() => { setShowTourModal(false); router.push('/career-vault?openArchive=true'); }}
+                        className="px-4 py-2 rounded-lg font-semibold text-xs text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '140px', textAlign: 'center' }}
+                      >
+                        View Archive
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Builder link — desktop only */}
+                <div className="hidden md:block text-center mt-2" style={{ lineHeight: '1' }}>
+                  <span className="block text-xs text-gray-400">Not feeling chatty?</span>
+                  <button
+                    onClick={() => { setShowTourModal(false); router.push('/build?from=resume-coach'); }}
+                    className="text-xs text-purple-400 hover:text-purple-700 font-medium hover:underline bg-transparent border-none cursor-pointer"
+                  >
+                    Build it yourself with our form-based resume builder.
+                  </button>
+                </div>
+
+                {/* Mobile note */}
+                <p className="md:hidden text-xs text-gray-400 text-center mt-2">
+                  Not feeling chatty? <br/> Use our form-based resume builder from your computer.
+                </p>
+
+                {uploadError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm mt-3 text-center">
+                    {uploadError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ErrorToast message={toast} onClose={() => setToast(null)} />
     </>

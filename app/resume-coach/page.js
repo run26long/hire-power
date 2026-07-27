@@ -21,7 +21,7 @@ async function fireT8IfFirst(supabase) {
       .from('profiles')
       .select('t8_sent_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.t8_sent_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ t8_sent_at: now }).eq('id', user.id)
@@ -46,7 +46,7 @@ async function fireT5IfFirst(supabase) {  try {
       .from('profiles')
       .select('t5_sent_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.t5_sent_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ t5_sent_at: now }).eq('id', user.id)
@@ -72,7 +72,7 @@ async function fireB2IfThird(supabase) {
       .from('profiles')
       .select('b2_sent_at, jms_count, subscription_tier')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.b2_sent_at) return
     if (profile.subscription_tier !== 'free') return
     if ((profile.jms_count ?? 0) < 3) return
@@ -136,6 +136,7 @@ export default function MyResumesPage() {
   const [clJobTitle, setClJobTitle] = useState('');
   const [clCompany, setClCompany] = useState('');
   const [clJobDescription, setClJobDescription] = useState('');
+  const [clAdditionalContext, setClAdditionalContext] = useState('');
   const [creatingCL, setCreatingCL] = useState(false);
   const [clCreateError, setClCreateError] = useState(null);
   const [confirmDeleteCLId, setConfirmDeleteCLId] = useState(null);
@@ -153,7 +154,7 @@ useEffect(() => {
       .from('career_context')
       .select('completed_at')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     setCareerContext(data);
   };
   if (user?.id) fetchCareerContext();
@@ -183,12 +184,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     if (params.get('action') === 'new-cover-letter') {
       const jobTitle = params.get('jobTitle') || '';
       const jobCompany = params.get('jobCompany') || '';
-      const jobDescription = params.get('jobDescription') || '';
       const resumeId = params.get('resumeId') || '';
+      const applicationId = params.get('applicationId') || '';
       setClJobTitle(jobTitle);
       setClCompany(jobCompany);
-      setClJobDescription(jobDescription);
       setClSelectedJSId(resumeId);
+      if (applicationId) {
+        supabase.from('applications').select('description').eq('id', applicationId).single().then(({ data }) => {
+          if (data?.description) setClJobDescription(data.description);
+        });
+      }
       setShowCLModal(true);
       window.history.replaceState({}, '', '/resume-coach');
     }
@@ -221,7 +226,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setData(resData);
       setUserProfile(resData.userProfile);
 
-      // Load job sources for the JS Resume + CL modal dropdowns
+      // Load job sources for the job specific Resume + CL modal dropdowns
       const sources = await getJobSources(supabase, user.id);
       setJobSources(sources);
 
@@ -530,17 +535,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           'Authorization': `Bearer ${dlSession.access_token}`
         },
         body: JSON.stringify({
-          resumeData: resume.resume_data,
-          templateName: templateForApi,
-          fontSize: resume.font_size || 11,
-          font: resume.font_family || 'Lato',
-          accentColor: resume.accent_color || '#5b4fcf',
-          spacing: resume.spacing || 1,
-          action: 'download',
-          versionId: null,
-          isJobVersion: false,
-          userId: user.id
-        })
+            resumeData: resume.resume_data,
+            resumeId: resumeId,
+            templateName: templateForApi,
+            fontSize: resume.font_size || 11,
+            font: resume.font_family || 'Lato',
+            accentColor: resume.accent_color || '#5b4fcf',
+            spacing: resume.spacing || 1,
+            action: 'download',
+            versionId: null,
+            isJobVersion: false,
+            userId: user.id
+          })
       });
 
       if (!response.ok) {
@@ -582,15 +588,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setDeletingId(resumeId);
       const now = new Date().toISOString();
 
-      // Archive children first (JS resumes parented to this resume)
-      const { error: childError } = await supabase
-        .from('resumes')
-        .update({ is_active: false, updated_at: now })
-        .eq('parent_resume_id', resumeId)
-        .eq('user_id', user.id);
-      if (childError) throw childError;
-
-      // Archive the resume itself
+      // Archive the resume itself. JS resumes parented to this one stay active —
+      // they're standalone artifacts tied to their own job cards.
       const { error } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
@@ -708,8 +707,22 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       const jobTitle = clJobTitle;
       const jobCompany = clCompany;
       const jobDescription = clJobDescription;
-      const linkedResumeId = clSelectedJSId || data.coreResume.id;
-      const sourceResumeId = clSelectedJSId || data.coreResume.id;
+      let resolvedSourceId = clSelectedJSId;
+      if (!resolvedSourceId && jobTitle) {
+        let matchQuery = supabase
+          .from('applications')
+          .select('resume_id')
+          .eq('user_id', user.id)
+          .ilike('title', jobTitle.trim())
+          .not('resume_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (jobCompany) matchQuery = matchQuery.ilike('company', jobCompany.trim());
+        const { data: matchingCard } = await matchQuery.maybeSingle();
+        resolvedSourceId = matchingCard?.resume_id || null;
+      }
+      const linkedResumeId = resolvedSourceId || data.coreResume.id;
+      const sourceResumeId = resolvedSourceId || data.coreResume.id;
       const { data: sourceResume } = await supabase
         .from('resumes')
         .select('resume_data, template_id, font_family')
@@ -730,6 +743,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             jobTitle,
             jobCompany,
             jobDescription,
+            additionalContext: clAdditionalContext,
             userId: user?.id
           })
         });
@@ -965,59 +979,76 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
         
         {/* Main Content */}
-        <div className="px-6 pt-3 pb-6">
+        <div className="px-6 pt-0 pb-6">
 
-          {/* Intro copy */}
-          <div style={{ marginBottom: 14 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 9 }}>
-              AI knows how to write a great résumé. The problem is, it doesn't know you.
-            </p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4, marginBottom: 0 }}>
-              Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a professional résumé writer would.
-            </p>
-          </div>
-
-          {/* Feature List */}
+          {/* Steps */}
           <div style={{ marginBottom: 16 }}>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {[
-                { label: 'AI Assessment' },
-                { label: 'Resume Power Score' },
-                { label: 'Detailed Action Plan' },
-                { label: 'Coaching Conversation', pro: true },
-                { label: 'Achievement Discovery', pro: true },
-                { label: 'Skill Identification', pro: true },
-                { label: 'Auto Improvements', pro: true },
-                { label: 'Cover Letters' },
-                { label: 'Match Score' },
-                { label: 'Job-Specific Resumes', pro: true },
-              ].map(({ label, pro }) => (
-                <li key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>•</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)', lineHeight: 1.2 }}>
-                    {label}{pro && <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.55)', marginLeft: 3 }}>(Pro)</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                     {[
+              { 
+                num: '1', 
+                title: 'Add Your Resume', 
+                desc: 'Upload or build from scratch' 
+              },
+              { 
+                num: '2', 
+                title: 'Build Your Core Resume', 
+                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resume is your foundation for every application.' 
+              },
+              { 
+                num: '3', 
+                title: 'Job Match Score', 
+                desc: 'See how well your experience matches any job posting.',
+                tag: 'Free: 3 matches · Pro: Unlimited matches'
+              },
+              { 
+                num: '4', 
+                title: 'Job-Specific Resume', 
+                desc: 'Employers expect a tailored resume for every application. Hire Power lets you create one in minutes!',
+                tag: 'Pro only'
+              },
+              { 
+                num: '5', 
+                title: 'Cover Letter', 
+                desc: 'Written for this job, not every job.',
+                tag: 'Free: 3 letters ·  Pro: Unlimited letters'
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: 0 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
-        {/* Bottom section */}
-          <div style={{ marginTop: 16 }}>
+          {/* Bottom section */}
+          <div>
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginBottom: 30 }}>
-              The AI that interviews you like a professional résumé writer would.
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              Ready to apply?
             </p>
-            <div className="flex items-center gap-2.5 text-white">
-              <img 
-                src="/images/Hire_Power_icon.png" 
-                alt="Lightning" 
-                className="h-5 w-auto flex-shrink-0"
-              />
-              <p className="text-sm font-medium leading-tight">
-                Let's start your conversation.
-              </p>
-            </div>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              Job cards are created automatically for each job-specific resume or cover letter. Visit your Job Tracker board to track that application through the entire process.
+            </p>
           </div>
 
         </div>
@@ -1047,9 +1078,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     <div className="flex md:hidden gap-2 mb-4">
                       <button
                         onClick={() => router.push(`/resume/${data.coreResume.id}`)}
-                        className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-2 px-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
                       >
-                        👁 View
+                        View Resume
                       </button>
                       <button
                         onClick={() => handleDownloadResume(data.coreResume.id)}
@@ -1204,7 +1235,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                             
                             {/* Simple text labels with dots */}
-                           <div className="flex items-center justify-center gap-10 text-sm md:text-xs text-gray-600">
+                          <div className="flex items-center justify-center gap-3 md:gap-10 text-xs md:text-xs text-gray-600 flex-wrap">
   {[
     { color: '#e57373', label: 'Needs Work' },
     { color: '#ffc870', label: 'Developing' },
@@ -1377,7 +1408,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </>
                         ) : (
                           <>
-                            {getButtonText(displayStep)} {displayStep !== 'save' && '→'}
+                            {displayStep === 'coach' && data.coreResume?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
                           </>
                         )}
                       </button>
@@ -1385,11 +1416,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
 
-                {/* Right Column: JS Resumes + Cover Letters */}
+                {/* Right Column: job specific Resumes + Cover Letters */}
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
-                  {/* Card 1: JS Resumes (Pro) / Job Match Scores (Free) */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px', marginBottom: '16px' }}>
+                  {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -1458,7 +1489,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                     onClick={() => setShowOlderJSModal(true)}
                                     className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
-                                    See {data.resumeVersions.length - 2} older version{data.resumeVersions.length - 2 > 1 ? 's' : ''} →
+                                    View all job-specific resumes →
                                   </button>
                               )}
                             </>
@@ -1585,7 +1616,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ height: '262px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
@@ -1642,7 +1673,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                       onClick={() => setShowOlderCLModal(true)}
                                       className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                     >
-                                      See {data.coverLetters.length - 2} older letter{data.coverLetters.length - 2 > 1 ? 's' : ''} →
+                                      View all cover letters →
                                     </button>
                                 )}
                               </>
@@ -1931,7 +1962,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
                 </div>
 
-                {/* Right Column: JS Resumes + Cover Letters (empty state) */}
+                {/* Right Column: job specific Resumes + Cover Letters (empty state) */}
                 <div className="col-span-1 md:col-span-4 flex flex-col" style={{ height: '100%' }}>
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px', marginBottom: '16px' }}>
                     {isPro ? (
@@ -1970,11 +2001,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => { setShowJobModal(false); setJobCreateError(null); }}
         >
           <div
             className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
-            onClick={e => e.stopPropagation()}
           >
             <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">
@@ -2167,7 +2196,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
-                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
+                    <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk-to-text on your mobile device.</p>
                   </div>
                   <div className="flex-shrink-0 text-center">
                     <button
@@ -2224,8 +2253,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Archive this resume?</h3>
-            <p className="text-sm text-gray-600 mb-5">It will move to your archive. You can restore or permanently delete it from there.</p>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this resume?</h3>
+            <p className="text-sm text-gray-600 mb-5">Deletes this resume from Resume Coach. Job-specific resumes remain stored on the corresponding job card.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
@@ -2244,10 +2273,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Archiving...
+                    Deleting...
                   </>
                 ) : (
-                  'Yes, Archive'
+                  'Yes, Delete'
                 )}
               </button>
             </div>
@@ -2260,11 +2289,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => { setShowCLModal(false); setClSourceType(null); setClCreateError(null); }}
         >
           <div
             className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
-            onClick={e => e.stopPropagation()}
           >
             <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">
@@ -2306,7 +2333,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       } else {
                         const selected = jobSources.find(s => s.id === val);
                         setSelectedJobSourceId(val);
-                        setClSelectedJSId('');
+                        setClSelectedJSId(selected?.resume_id || '');
                         setClJobTitle(selected?.title || '');
                         setClCompany(selected?.company || '');
                         setClJobDescription(selected?.description || '');
@@ -2353,6 +2380,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
+              <div>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Additional context (optional)</label>
+                <textarea
+                  value={clAdditionalContext}
+                  onChange={e => setClAdditionalContext(e.target.value)}
+                  placeholder="Anything else worth mentioning? Referrals, availability, willingness to relocate, etc."
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
               {clCreateError && <p className="text-sm md:text-xs text-red-600">{clCreateError}</p>}
               <button
                 onClick={handleCreateCoverLetter}
@@ -2370,7 +2407,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         </div>
       )}
 
-      {/* Older JS Resumes Modal */}
+      {/* Older job specific Resumes Modal */}
       {showOlderJSModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
@@ -2378,7 +2415,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Job-Specific Resumes</h2>
-                  <p className="text-purple-100 text-xs">{data?.resumeVersions?.length} versions</p>
+                  <p className="text-purple-100 text-xs">{data?.resumeVersions?.length} resumes</p>
                 </div>
                 <button onClick={() => setShowOlderJSModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
@@ -2430,7 +2467,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">Cover Letters</h2>
-                  <p className="text-purple-100 text-xs">{data?.coverLetters?.length} letters</p>
+                  <p className="text-purple-100 text-xs">{data?.coverLetters?.length} cover letters</p>
                 </div>
                 <button onClick={() => setShowOlderCLModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
@@ -2482,7 +2519,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this cover letter?</h3>
-            <p className="text-sm text-gray-600 mb-5">This removes it from Resume Coach. It will remain accessible from its job card if one exists.</p>
+            <p className="text-sm text-gray-600 mb-5">Deletes this cover letter from Resume Coach. Cover letters remain stored on the corresponding job card.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDeleteCLId(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
                 Cancel

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -10,8 +10,10 @@ import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
 import ErrorToast from '../../components/ErrorToast'
+import SuccessToast from '../../components/SuccessToast'
 import CaptureCounter from '../../components/CaptureCounter'
 import CaptureToast from '../../components/CaptureToast'
+import CoachReviseModal from '../../components/CoachReviseModal'
 import PDFViewer from '../../components/PDFViewer'
 import { parseCaptureTags, replayCaptures } from '../../utils/parseCaptureTags'
 import { track } from '../../utils/analytics'
@@ -32,7 +34,7 @@ async function fireJT1MarkerIfFirst(supabase) {
       .from('profiles')
       .select('first_card_created_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.first_card_created_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ first_card_created_at: now }).eq('id', user.id)
@@ -58,7 +60,7 @@ async function fireT4IfFirst(supabase) {
       .from('profiles')
       .select('t4_sent_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.t4_sent_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ t4_sent_at: now }).eq('id', user.id)
@@ -84,7 +86,7 @@ async function fireO4MarkerIfFirst(supabase) {
       .from('profiles')
       .select('reached_improve_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.reached_improve_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ reached_improve_at: now }).eq('id', user.id)
@@ -114,6 +116,10 @@ export default function ResumePage() {
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [unsavedNavTarget, setUnsavedNavTarget] = useState(null)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
+  const [saveToast, setSaveToast] = useState(null)
+  const [saveToastCount, setSaveToastCount] = useState(0)
  const [showPreview, setShowPreview] = useState(false)
 const [previewUrl, setPreviewUrl] = useState(null)
 const [isLoadingPreview, setIsLoadingPreview] = useState(false)
@@ -122,6 +128,45 @@ const [previewScale, setPreviewScale] = useState(1)
  const [isDownloading, setIsDownloading] = useState(false)
  const [showColorPicker, setShowColorPicker] = useState(false)
 const isAutoFitJustRanRef = useRef(false)
+const confirmedLeaveRef = useRef(false)
+
+  // Save reminder: toast first 3 times, then pulse handles it
+  useEffect(() => {
+    if (hasUnsavedChanges && !saveSuccess) {
+      const storageKey = `hp_save_toast_${resume?.id || 'unknown'}`
+      const count = parseInt(localStorage.getItem(storageKey) || '0')
+      setSaveToastCount(count)
+      if (count < 3) {
+        setSaveToast(window.innerWidth < 768 ? "You have unsaved changes. Tap Actions → Save when you're done editing." : "You have unsaved changes. Click Save when you're done editing.")
+        localStorage.setItem(storageKey, String(count + 1))
+        setSaveToastCount(count + 1)
+      }
+    }
+  }, [hasUnsavedChanges])
+
+  // Warn before browser close / refresh / hard navigation
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const handler = (e) => {
+      if (confirmedLeaveRef.current) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [hasUnsavedChanges])
+
+  // Navigate after save completes — decoupled from the async save to avoid history stack interference
+  useEffect(() => {
+    if (!pendingNavigation || hasUnsavedChanges) return
+    window.location.href = pendingNavigation
+  }, [hasUnsavedChanges, pendingNavigation])
+
+  function safeNavigate(path) {
+    if (hasUnsavedChanges) { setUnsavedNavTarget(path); return }
+    router.push(path)
+  }
+
   const cardCreationRanRef = useRef(false)
 
   // Analysis state
@@ -138,16 +183,19 @@ const [coachingMessages, setCoachingMessages] = useState([])
 const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
+  const [successToast, setSuccessToast] = useState(null)
   const [postCoachingAnalysis, setPostCoachingAnalysis] = useState(null)
   const [remainingGaps, setRemainingGaps] = useState([])
   const [recoachAttempts, setRecoachAttempts] = useState(0)
+  const [reviseModalState, setReviseModalState] = useState(null)
+  const [bulletSelectMode, setBulletSelectMode] = useState(null)
 
   // Capture system state — counter + toast queue
   const [captureCounts, setCaptureCounts] = useState({ jobs: 0, education: 0, skills: 0, wins: 0 })
   const [captureBumpKey, setCaptureBumpKey] = useState(null)
   const [captureToast, setCaptureToast] = useState(null)
 
-  // Use ref for undo flag - synchronous, no timing issues
+    // Use ref for undo flag - synchronous, no timing issues
   const isUndoingRef = useRef(false)
   const resumeDataRef = useRef(null)
   
@@ -164,10 +212,26 @@ const [isAutoFitting, setIsAutoFitting] = useState(false)
 const [selectedSpacing, setSelectedSpacing] = useState(1)
 const [resumeExceedsPage, setResumeExceedsPage] = useState(false)
 const [showTooLongModal, setShowTooLongModal] = useState(false)
-const [showUpgradedBanner, setShowUpgradedBanner] = useState(false)
 const [mobilePanel, setMobilePanel] = useState('coach')
 const [mobileToolbar, setMobileToolbar] = useState(null)
 const [showEditTip, setShowEditTip] = useState(false)
+const [showEditorTip, setShowEditorTip] = useState(false)
+const [templatePicked, setTemplatePicked] = useState(false)
+const [userChangedFont, setUserChangedFont] = useState(false)
+
+  useEffect(() => {
+    if (!localStorage.getItem('hp_editor_tip_dismissed')) {
+      setShowEditorTip(true)
+    }
+    if (localStorage.getItem('hp_template_picked')) {
+      setTemplatePicked(true)
+    }
+  }, [])
+
+  const dismissEditorTip = () => {
+    setShowEditorTip(false)
+    localStorage.setItem('hp_editor_tip_dismissed', '1')
+  }
 
   useEffect(() => {
     const updateMobileScale = () => {
@@ -204,6 +268,7 @@ const handleAutoFit = async () => {
           fontSize: size,
           font: selectedFont,
           accentColor: accentColor,
+          dateFormat,
           spacing,
           action: 'check',
           userId: user.id
@@ -325,6 +390,7 @@ const handleDownload = async () => {
   fontSize: selectedSize,
   font: selectedFont,
   accentColor: accentColor,
+          dateFormat,
           spacing: selectedSpacing,
           action: 'download',
         resumeId: resume.id,
@@ -377,7 +443,7 @@ const handleReassess = async (overrideData = null) => {
     const isJobSpecific = resume.resume_type === 'job_specific'
 
     if (isJobSpecific) {
-      // JS resume: job match analysis
+      // job specific resume: job match analysis
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       const { data: { session: jobAnalyzeSession } } = await supabase.auth.getSession()
@@ -420,6 +486,17 @@ const handleReassess = async (overrideData = null) => {
 
       setResume(prev => ({ ...prev, current_score: result.matchScore }))
       setScoreAfterCoaching(result.matchScore)
+
+      const prevScore = resume?.current_score
+      if (prevScore && result.matchScore > prevScore) {
+        setSuccessToast(`${prevScore} → ${result.matchScore} — +${result.matchScore - prevScore} points. Your changes moved the needle.`)
+      } else if (prevScore && result.matchScore === prevScore) {
+        setSuccessToast(`${result.matchScore}% — no change. Your content is already dialed in.`)
+      } else if (prevScore && result.matchScore < prevScore) {
+        setSuccessToast(`${prevScore} → ${result.matchScore} — score shifted. Small fluctuations are normal.`)
+      } else {
+        setSuccessToast(`${result.matchScore}% — your resume has been scored.`)
+      }
 
       // Update job card match score if one exists
       if (currentUser) {
@@ -496,6 +573,17 @@ const handleReassess = async (overrideData = null) => {
       }))
 
       setScoreAfterCoaching(result.score)
+
+      const prevScore = resume?.current_score
+      if (prevScore && result.score > prevScore) {
+        setSuccessToast(`${prevScore} → ${result.score} — +${result.score - prevScore} points. Your changes moved the needle.`)
+      } else if (prevScore && result.score === prevScore) {
+        setSuccessToast(`${result.score}/100 — no change. Your content is already dialed in.`)
+      } else if (prevScore && result.score < prevScore) {
+        setSuccessToast(`${prevScore} → ${result.score} — score shifted. Small fluctuations are normal.`)
+      } else {
+        setSuccessToast(`${result.score}/100 — your resume has been scored.`)
+      }
 
     }
 
@@ -620,14 +708,6 @@ function formatDate(dateString, format = dateFormat) {
   }, [resume?.id])
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('upgraded') === 'true') {
-      setShowUpgradedBanner(true)
-      window.history.replaceState({}, '', window.location.pathname)
-    }
-  }, [])
-
-  useEffect(() => {
     if (userProfile) {
       setCoachingSamplesUsed(userProfile.coaching_samples_used || 0)
     }
@@ -668,6 +748,7 @@ function formatDate(dateString, format = dateFormat) {
             fontSize: selectedSize,
             font: selectedFont,
             accentColor: accentColor,
+            dateFormat,
             spacing: selectedSpacing,
             action: 'check',
             userId: user.id
@@ -801,7 +882,7 @@ if (data.ai_analysis) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Error loading user profile:', error)
@@ -936,7 +1017,7 @@ if (data.ai_analysis) {
         <div className="text-center">
           <p className="text-gray-600">Resume not found</p>
           <button
-            onClick={() => router.push('/resume-coach')}
+            onClick={() => safeNavigate('/resume-coach')}
             className="mt-4 text-purple-600 hover:text-purple-700"
           >
             ← Back to Resume Coach
@@ -953,17 +1034,13 @@ if (data.ai_analysis) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-        {showUpgradedBanner && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-3 py-3 px-6 shadow-lg">
-          <span>🎉 Welcome to Pro! Your full coaching session is ready.</span>
-          <button
-            onClick={() => setShowUpgradedBanner(false)}
-            className="text-white hover:text-purple-200 text-lg leading-none font-light"
-          >×</button>
-        </div>
-      )}
-      <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
+     <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100vh', height: '100dvh' }}>
+      <MainNav
+        currentPage="resume-coach"
+        userProfile={userProfile}
+        onUpgradeClick={() => setShowUpgradeModal(true)}
+        onBeforeNavigate={(path) => { if (hasUnsavedChanges) { setUnsavedNavTarget(path); return true } return false }}
+      />
 
       <Breadcrumb items={[
         { label: 'Resume Coach', path: '/resume-coach' },
@@ -1008,45 +1085,64 @@ if (data.ai_analysis) {
 {/* Mobile Toolbar */}
       {mobilePanel === 'resume' && (
         <div className="md:hidden bg-white border-b border-gray-200 flex-shrink-0">
+          {showEditorTip && (
+            <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
+              <p className="text-xs text-purple-700 text-center">
+                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete
+                  ? '✏️ Tap any section to edit · 📄 Fonts & Templates · ⚙️ Undo, Save & Download · ⚡ Add or Change · ▲▼ Reorder'
+                  : '✏️ Tap any section to edit · 📄 Format for templates and fonts · ⚙️ Actions to save, undo, or re-assess'
+                }
+              </p>
+              <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-2 flex-shrink-0 text-sm">✕</button>
+            </div>
+          )}
           {/* Toolbar row */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
-            {/* Pencil — leftmost */}
-            <button
-              onClick={() => {
-                setShowEditTip(prev => !prev)
-                if (!showEditTip) setTimeout(() => setShowEditTip(false), 3000)
-              }}
-              className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
-              style={{ border: '1px solid #d1d5db', backgroundColor: 'white', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-            >
-              ✏️
-            </button>
-            {/* Format */}
+          <div className="flex items-center gap-1 px-1.5 py-1.5 bg-gray-50 border-b border-gray-200">
+           
+           {/* Format */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'format' ? null : 'format')}
-              className="py-1 px-3 text-sm md:text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
+                paddingLeft: 4, paddingRight: 4,
                 color: mobileToolbar === 'format' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'format' ? 'rgba(147, 51, 234, 0.08)' : 'white',
                 border: mobileToolbar === 'format' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
               }}
             >
-              📄 Format
+              📄Format
             </button>
             {/* Actions */}
             <button
               onClick={() => setMobileToolbar(mobileToolbar === 'actions' ? null : 'actions')}
-              className="py-1 px-3 text-sm md:text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+              className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
               style={{
+                paddingLeft: 4, paddingRight: 4,
                 color: mobileToolbar === 'actions' ? '#7c3aed' : '#4b5563',
                 backgroundColor: mobileToolbar === 'actions' ? 'rgba(147, 51, 234, 0.08)' : 'white',
                 border: mobileToolbar === 'actions' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
               }}
             >
-              ⚡ Actions
+              ⚙️Actions
             </button>
+            {/* Improve — Pro with coaching only */}
+            {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
+              <button
+                onClick={() => setMobileToolbar(mobileToolbar === 'improve' ? null : 'improve')}
+                className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
+                style={{
+                  paddingLeft: 4, paddingRight: 4,
+                  color: mobileToolbar === 'improve' ? '#7c3aed' : '#4b5563',
+                  backgroundColor: mobileToolbar === 'improve' ? 'rgba(147, 51, 234, 0.08)' : 'white',
+                  border: mobileToolbar === 'improve' ? '1px solid rgba(147,51,234,0.3)' : '1px solid #d1d5db',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+              >
+                ⚡Improve
+              </button>
+            )}
             {/* Score */}
             {score && (
               <div className={`py-1 px-2 rounded text-xs font-semibold flex-shrink-0 ${
@@ -1063,12 +1159,19 @@ if (data.ai_analysis) {
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="flex-1 py-1 rounded text-sm md:text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+              className="flex-1 py-1 rounded text-xs font-semibold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
-              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Downloading...</> : '⬇️ Download'}
+              {isDownloading ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div></> : '⬇️Download'}
             </button>
           </div>
+
+          {bulletSelectMode && (
+            <div className="bg-purple-100 border-b border-purple-200 px-3 py-2 flex items-center justify-between">
+              <p className="text-xs text-purple-800 font-medium">⚡ Tap the sentence you want to change</p>
+              <button onClick={() => setBulletSelectMode(null)} className="text-purple-500 hover:text-purple-700 text-sm font-medium">Cancel</button>
+            </div>
+          )}
 
           {/* Format panel */}
           {mobileToolbar === 'format' && (
@@ -1154,24 +1257,40 @@ if (data.ai_analysis) {
                       'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
+                    {isAutoFitting ? '...' : '⚡ Auto-fit'}
+                  </button>
+                  <button
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
+                    className="flex-1 py-1 rounded text-sm md:text-xs font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    ↶ Undo
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Actions panel */}
+         {/* Actions panel — utility operations */}
           {mobileToolbar === 'actions' && (
-            <div className="px-4 pt-2 pb-3 space-y-2">
-              {/* Single row: Re-assess / Preview / Undo / Save */}
+            <div className="px-4 pt-2 pb-3">
               <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  onClick={save}
+                  className={`py-1.5 rounded text-[12px] font-semibold ${
+                    saveSuccess ? 'bg-green-600 text-white' :
+                    hasUnsavedChanges ? `bg-purple-600 text-white ${saveToastCount >= 3 ? 'animate-pulse' : ''}` :
+                    'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+                </button>
                 <button
                   onClick={() => handleReassess()}
                   disabled={isAnalyzing || journeyStep === 'review'}
-                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {isAnalyzing ? <><div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</> : 'Re-assess'}
+                  {isAnalyzing ? <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> : 'Re-assess'}
                 </button>
                 <button
                   onClick={async () => {
@@ -1183,7 +1302,7 @@ if (data.ai_analysis) {
                       const response = await fetch('/api/generate-pdf', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
+                        body: JSON.stringify({ resumeData: resume.resume_data, templateName: templateForApi, fontSize: selectedSize, font: selectedFont, accentColor, dateFormat, spacing: selectedSpacing, action: 'preview-url', resumeId: resume.id, userId: user.id })
                       })
                       if (response.ok) {
                         const data = await response.json()
@@ -1193,26 +1312,43 @@ if (data.ai_analysis) {
                     } catch (e) { console.error(e) } finally { setIsLoadingPreview(false) }
                   }}
                   disabled={isLoadingPreview}
-                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
                   {isLoadingPreview ? '...' : 'Preview'}
                 </button>
                 <button
                   onClick={undo}
                   disabled={historyIndex <= 0}
-                  className="py-1.5 border border-gray-300 rounded text-sm md:text-xs font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
+                  className="py-1.5 border border-gray-300 rounded text-[12px] font-medium bg-white hover:bg-gray-50 disabled:opacity-40"
                 >
                   ↶ Undo
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Improve panel — AI editing tools (Pro with coaching only) */}
+          {mobileToolbar === 'improve' && (
+            <div className="px-4 pt-2 pb-3">
+              <div className="grid grid-cols-2 gap-1.5">
                 <button
-                  onClick={save}
-                  className={`py-1.5 rounded text-sm md:text-xs font-semibold ${
-                    saveSuccess ? 'bg-green-600 text-white' :
-                    hasUnsavedChanges ? 'bg-purple-600 text-white' :
-                    'bg-gray-200 text-gray-500'
-                  }`}
+                  onClick={() => {
+                    setBulletSelectMode(true)
+                    setMobileToolbar(null)
+                    setMobilePanel('resume')
+                  }}
+                  className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
                 >
-                  {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
+                  ✏️ Reword or Fix
+                </button>
+                <button
+                  onClick={() => {
+                    setReviseModalState({ mode: 'add' })
+                    setMobileToolbar(null)
+                  }}
+                  className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+                >
+                  ✨ Add More
                 </button>
               </div>
             </div>
@@ -1222,17 +1358,38 @@ if (data.ai_analysis) {
 
 {/* Toolbar - STICKY */}
       <div className={`bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible ${mobilePanel === 'coach' ? 'hidden md:block' : 'hidden md:block'}`}>
-        <div className="px-6 pt-4 pb-2 max-w-7xl mx-auto w-full overflow-visible">
+        <div className={`px-6 ${showEditorTip ? 'pt-0' : 'pt-4'} pb-2 max-w-7xl mx-auto w-full overflow-visible`}>
+          {showEditorTip && (
+            <div className="bg-purple-50 rounded px-3 py-1 mt-5 mb-0.5 flex items-center justify-between">
+              <p className="text-xs text-purple-700">
+                ✏️ Click any section to edit directly
+                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
+                  <><span className="mx-5 text-purple-300">·</span>⚡Click to reword or fix any sentence</>
+                )}
+                <span className="mx-5 text-purple-300">·</span><span className="text-gray-400">▲▼</span> Arrows reorder content<span className="mx-5 text-purple-300">·</span>🗑️ Trash deletes content<span className="mx-5 text-purple-300">·</span>🎨 Toolbar below contains templates, fonts, and colors
+              </p>
+              <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-4 flex-shrink-0 text-sm">✕</button>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-xs flex-nowrap overflow-x-auto md:overflow-visible">
 
             {/* Template */}
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+              <div className="relative group/templatetip">
+                <span className="text-purple-400 hover:text-purple-600 cursor-help text-[10px]">ⓘ</span>
+                <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-purple-200 rounded-lg shadow-lg p-3 hidden group-hover/templatetip:block z-50">
+                  <div className="absolute -top-1.5 left-3 w-3 h-3 bg-white border-l border-t border-purple-200 rotate-45"></div>
+                  <p className="text-xs text-gray-700 leading-snug relative z-10">Yes, our templates are plain on purpose. Fancy layouts lose up to 50% of your skills and experience in ATS scans. We'd rather get you hired than win a design award.</p>
+                </div>
+              </div>
               <span>📄</span>
               <select
-                value={selectedTemplate}
+                value={templatePicked ? selectedTemplate : ''}
                 onChange={(e) => {
                   const t = e.target.value
                   setSelectedTemplate(t)
+                  setTemplatePicked(true)
+                  localStorage.setItem('hp_template_picked', '1')
                   const templateDefaultFonts = {
                     crisp: 'Source Serif 4',
                     sharp: 'Helvetica',
@@ -1246,8 +1403,9 @@ if (data.ai_analysis) {
                   setSelectedFont(templateDefaultFonts[t] || 'Lato')
                   setHasUnsavedChanges(true)
                 }}
-                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[90px]"
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[120px]"
               >
+                <option value="" disabled>Template</option>
                 <option value="command">Command</option>
                 <option value="crisp">Crisp</option>
                 <option value="current">Current</option>               
@@ -1264,11 +1422,12 @@ if (data.ai_analysis) {
             <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span className="font-bold">A</span>
               <select
-                value={selectedFont}
-                onChange={(e) => { setSelectedFont(e.target.value); setHasUnsavedChanges(true) }}
-                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[70px]"
+                value={userChangedFont ? selectedFont : ''}
+                onChange={(e) => { setSelectedFont(e.target.value); setUserChangedFont(true); setHasUnsavedChanges(true) }}
+                className="bg-transparent border-none text-xs focus:outline-none cursor-pointer max-w-[100px]"
               >
-               <option value="EB Garamond">EB Garamond</option>
+                <option value="" disabled>Font</option>
+                <option value="EB Garamond">EB Garamond</option>
                 <option value="Lato">Lato</option>
                 <option value="Open Sans">Open Sans</option>
                 <option value="Source Serif 4">Source Serif 4</option>
@@ -1363,7 +1522,7 @@ if (data.ai_analysis) {
               <button
                 onClick={handleAutoFit}
                 disabled={isAutoFitting}
-                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors ${
+                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors whitespace-nowrap ${
                   isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
                   : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
                   : 'border-gray-300 hover:bg-gray-50'
@@ -1397,6 +1556,7 @@ if (data.ai_analysis) {
                         fontSize: selectedSize,
                         font: selectedFont,
                         accentColor: accentColor,
+                        dateFormat,
                         spacing: selectedSpacing,
                         action: 'preview-url',
                         userId: user.id
@@ -1414,7 +1574,7 @@ if (data.ai_analysis) {
                   }
                 }}
                 disabled={isLoadingPreview}
-                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
               >
                 {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
                 {isLoadingPreview ? 'Loading...' : 'Preview'}
@@ -1428,7 +1588,7 @@ if (data.ai_analysis) {
             <button
               onClick={undo}
               disabled={historyIndex <= 0}
-              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all ${
+              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
               }`}
             >
@@ -1438,11 +1598,11 @@ if (data.ai_analysis) {
             {/* Save */}
             <button
               onClick={save}
-              className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+              className={`px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 saveSuccess
                   ? 'bg-green-600 text-white'
                   : hasUnsavedChanges
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  ? `bg-purple-600 text-white hover:bg-purple-700 ${saveToastCount >= 3 ? 'animate-pulse' : ''}`
                   : 'bg-gray-300 text-gray-600'
               }`}
             >
@@ -1451,7 +1611,7 @@ if (data.ai_analysis) {
 
               {/* Score */}
               {score && (
-                <div className={`px-3 py-1 rounded font-semibold text-xs ${
+                <div className={`px-3 py-1 rounded font-semibold text-xs whitespace-nowrap ${
                   score >= 85 ? 'bg-purple-100 text-purple-700' :
                   score >= 75 ? 'bg-green-100 text-green-700' :
                   score >= 60 ? 'bg-yellow-100 text-yellow-700' :
@@ -1480,7 +1640,7 @@ if (data.ai_analysis) {
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 text-white transition-opacity ${
+                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 whitespace-nowrap text-white transition-opacity ${
                   isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -1497,18 +1657,18 @@ if (data.ai_analysis) {
       
 
     {/* Main Content: Resume + Right Panel */}
-         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}>
+         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
         <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
           <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
 
-            {/* Capture counter — sticky strip above the resume */}
+           {/* Capture counter — sticky strip above the resume */}
             <div className="sticky top-0 z-20">
-              <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} />
+              <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} journeyStep={journeyStep} />
             </div>
 
             {/* Capture toast — top-right of resume panel, below counter */}
             <CaptureToast
-              message={captureToast}
+              message={(journeyStep === 'coach' || journeyStep === 'chat') ? captureToast : null}
               onClose={() => setCaptureToast(null)}
             />
 
@@ -1537,7 +1697,12 @@ if (data.ai_analysis) {
                   isUndoingRef={isUndoingRef}
                   formatDate={formatDate}
                   templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
-                  selectedTemplate={selectedTemplate} 
+                  selectedTemplate={selectedTemplate}
+                  onBulletAction={['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete ? (text, location) => {
+                    setBulletSelectMode(null)
+                    setReviseModalState({ mode: 'choose', text, location })
+                  } : null}
+                  bulletSelectMode={bulletSelectMode}
                 />
             </div>
           </div>
@@ -1586,12 +1751,17 @@ if (data.ai_analysis) {
           handleDownload={handleDownload}
           isDownloading={isDownloading}
           resetHistory={resetHistory}
+          setReviseModalState={setReviseModalState}
+          bulletSelectMode={bulletSelectMode}
+          setBulletSelectMode={setBulletSelectMode}
             />
           </div>
         </div>
       </div>
       </div>
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <SuccessToast message={saveToast} onClose={() => setSaveToast(null)} />
+      <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
 
       <UpgradeModal
         isOpen={showUpgradeModal}
@@ -1603,10 +1773,8 @@ if (data.ai_analysis) {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowTooLongModal(false)}
         >
           <div
-            onClick={e => e.stopPropagation()}
             className="bg-white rounded-xl shadow-2xl overflow-hidden"
             style={{ width: '364px' }}
           >
@@ -1653,12 +1821,61 @@ if (data.ai_analysis) {
           </div>
         </div>
       )}
+
+      {reviseModalState && (
+        <CoachReviseModal
+          state={reviseModalState}
+          onClose={() => { setReviseModalState(null); setBulletSelectMode(null) }}
+          resumeData={resumeData}
+          coachingMessages={coachingMessages}
+          careerContext={careerContext}
+          supabase={supabase}
+          resumeId={params?.id}
+          setResume={setResume}
+          onUpdate={updateResumeData}
+          onReviewChangeUpdate={(changeIndex, newText) => {
+            setResumeChanges(prev => {
+              const updated = [...prev]
+              updated[changeIndex] = { ...updated[changeIndex], after: newText }
+              return updated
+            })
+            setReviseModalState(null)
+          }}
+        />
+      )}
+
+      {/* Unsaved changes navigation warning */}
+      {unsavedNavTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-xl shadow-2xl overflow-hidden" style={{ width: '364px' }}>
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
+              <h2 className="text-base font-bold text-white">Unsaved Changes</h2>
+              <p className="text-purple-100 text-xs mt-0.5">You have edits that haven't been saved yet.</p>
+            </div>
+            <div className="px-6 py-5 flex flex-row gap-3">
+              <button
+                onClick={() => { setPendingNavigation(unsavedNavTarget); setUnsavedNavTarget(null); save() }}
+                className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+              >
+                Save and Leave
+              </button>
+              <button
+                onClick={() => { confirmedLeaveRef.current = true; window.location.href = unsavedNavTarget; setUnsavedNavTarget(null) }}
+                className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Leave Without Saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast }) {
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -1700,18 +1917,26 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
   const displayStep = viewingStep || journeyStep
   const displayIndex = steps.indexOf(displayStep)
   const panelRef = useRef(null)
+  const visitedStepsRef = useRef(new Set())
 
-  // Scroll to top when journey step changes to 'assess'
+  // Scroll panel when displayStep changes.
+  // First visit to a step → top so the user reads content from the beginning.
+  // Return visit → bottom so the action button is immediately visible.
+  // 'review' is excluded (always reads from top). coach/chat use overflow-hidden so scrollTo is a no-op.
   useEffect(() => {
-    if (journeyStep === 'assess' && panelRef.current) {
-      panelRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    if (!panelRef.current || displayStep === 'review') return
+    if (visitedStepsRef.current.has(displayStep)) {
+      panelRef.current.scrollTo({ top: panelRef.current.scrollHeight, behavior: 'smooth' })
+    } else {
+      panelRef.current.scrollTo({ top: 0, behavior: 'instant' })
     }
-  }, [journeyStep])
+    visitedStepsRef.current.add(displayStep)
+  }, [displayStep])
 
- const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && resume?.created_via === 'resume_chat' && !resume?.coaching_complete
+ const isConvCoach = (journeyStep === 'coach' || journeyStep === 'chat') && !resume?.coaching_complete
 
  return (
-   <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 pl-4 pr-2 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 pl-4 pr-2 md:pl-0 md:pr-3 md:pb-6"}>
+   <div ref={panelRef} className={isConvCoach ? "flex flex-col overflow-hidden flex-1 px-3 md:pl-0 md:pr-3" : "overflow-y-auto overflow-x-hidden flex-1 pb-6 px-3 md:pl-0 md:pr-3 md:pb-6"}>
       
  <div className={`sticky top-0 bg-white px-4 md:-mx-6 md:px-6 z-10 flex-shrink-0 ${isConvCoach ? '' : 'pt-3 md:pt-4'} ${isJobSpecific && userTier === 'free' ? 'mb-2 pb-2 border-b border-gray-100' : isConvCoach ? 'mb-1 pb-2 border-b border-gray-100' : 'mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-100'}`} style={isConvCoach ? { paddingTop: '18px' } : {}}>
  {isJobSpecific ? (
@@ -2413,8 +2638,14 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           changesAccepted={resume?.changes_accepted || false}
           coachingMessages={coachingMessages}
           careerContext={careerContext}
+          setReviseModalState={setReviseModalState}
+          bulletSelectMode={bulletSelectMode}
+          setBulletSelectMode={setBulletSelectMode}
+          setViewingStep={setViewingStep}
         />
       )}
+
+      
 
       {displayStep === 'format' && (
   <FormatStep
@@ -2425,10 +2656,11 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
     isAnalyzing={isAnalyzing}
     score={score}
     userTier={userTier}
+    setReviseModalState={setReviseModalState}
+    coachingComplete={resume?.coaching_complete}
+    setViewingStep={setViewingStep}
   />
 )}
-
-     <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
       {displayStep === 'save' && (
         <SaveStep
@@ -2462,10 +2694,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => !isSkipCoachingFinishing && setShowSkipCoachingModal(false)}
         >
           <div
-            onClick={e => e.stopPropagation()}
             className="bg-white rounded-xl shadow-2xl overflow-hidden"
             style={{ width: '364px' }}
           >
@@ -2534,7 +2764,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         return
                       }
 
-                      setResume(prev => ({ ...prev, journey_step: 'improve' }))
+                      setResume(prev => ({ ...prev, journey_step: 'improve', coaching_complete: true }))
                       setShowSkipCoachingModal(false)
                       fireT4IfFirst(supabase)
                     } catch (err) {
@@ -2838,7 +3068,8 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         ...prev,
         resume_data: data.rewrittenResume,
         journey_step: 'improve',
-        current_score: newScore
+        current_score: newScore,
+        coaching_complete: true
       }))
       fireO4MarkerIfFirst(supabase)
 
@@ -2909,7 +3140,7 @@ const getMessageText = (msg) => {
           .from('profiles')
           .select('subscription_tier')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profileError) {
           console.error('Error loading profile tier in CoachStep:', profileError)
@@ -3202,7 +3433,7 @@ const getMessageText = (msg) => {
         return
       }
 
-      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume }))
+      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true }))
       if (isJobSpecific) fireT4IfFirst(supabase)
       fireO4MarkerIfFirst(supabase)
 
@@ -3257,7 +3488,7 @@ const getMessageText = (msg) => {
           .from('profiles')
           .select('coaching_samples_used')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profileError) {
           console.error('Error reading profile sample count:', profileError)
@@ -3452,13 +3683,14 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
            <div ref={messagesEndRef} />
           </div>
          {coachingComplete ? null : !isChatComplete ? (
-            <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
+           <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 px-1 md:px-3 md:-mx-3" style={{ backgroundColor: 'white' }}>
               <div className="flex gap-2 items-end">
                 <textarea
                   ref={inputRef}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onInput={(e) => {
+                  if (window.innerWidth < 768) return
                   e.target.style.height = 'auto'
                   const maxHeight = window.innerHeight - 310
                   const target = Math.min(e.target.scrollHeight, maxHeight)
@@ -3469,9 +3701,14 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendResumeChat() } }}
                   placeholder="Type your response..."
                   disabled={sending}
+                  autoComplete="off"
                   rows={2}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
+                  style={
+                    typeof window !== 'undefined' && window.innerWidth < 768
+                      ? { height: '4.5rem', overflowY: 'auto' }
+                      : { overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }
+                  }
                 />
                 <button
                   onClick={sendResumeChat}
@@ -3488,9 +3725,10 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                   </svg>
                 </button>
               </div>
+              <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
             </div>
           ) : (
-            <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
+            <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
               <button
                 onClick={finishResumeChat}
                 disabled={isFinishing}
@@ -3502,6 +3740,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
               </button>
             </div>
           )}
+
+        <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
         </div>
         <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       </>
@@ -3577,13 +3817,14 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Input */}
         {!isProCoachingComplete && !isTrialCoachingComplete && !proCoachingLocked && (
-          <div className="border-t pt-2 pb-1 flex-shrink-0 -mx-3 px-3" style={{ backgroundColor: 'white' }}>
+          <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 px-1 md:px-3 md:-mx-3" style={{ backgroundColor: 'white' }}>
             <div className="flex gap-2 items-end">
               <textarea
                 ref={inputRef}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                onInput={(e) => {
+                  if (window.innerWidth < 768) return
                   e.target.style.height = 'auto'
                   const maxHeight = window.innerHeight - 310
                   const target = Math.min(e.target.scrollHeight, maxHeight)
@@ -3594,9 +3835,14 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                 placeholder="Type your response..."
                 disabled={sending}
+                autoComplete="off"
                 rows={2}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
+                style={
+                  typeof window !== 'undefined' && window.innerWidth < 768
+                    ? { height: '4.5rem', overflowY: 'auto' }
+                    : { overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }
+                }
               />
               <button
                 onClick={sendMessage}
@@ -3613,12 +3859,13 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
                 </svg>
               </button>
             </div>
+            <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
           </div>
         )}
 
         {/* Pro finish button */}
-        {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && (
-          <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
+        {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && !coachingComplete && (
+          <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
            <button
               onClick={finishCoaching}
               disabled={isFinishing}
@@ -3635,7 +3882,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 
         {/* Trial finish button */}
        {isTrialCoachingComplete && userTier === 'free' && !trialComplete && (
-          <div className="border-t pt-2 pb-3 flex-shrink-0 -mx-3 px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
+          <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
             <button
               onClick={finishTrialCoaching}
               disabled={isFinishing}
@@ -3647,6 +3894,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
             </button>
           </div>
         )}
+
+        <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
       </div>
 
       {/* Trial Reveal Modal */}
@@ -3789,7 +4038,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -3956,7 +4205,13 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               </div>
             )}
           </div>
-          <div className="flex justify-center pt-1">
+          <div className="flex justify-center gap-2 pt-1 flex-wrap">
+            <button
+              onClick={() => setReviseModalState({ mode: 'add' })}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+            >
+              ⚡ More to add?
+            </button>
             <button
               onClick={async () => {
                 const { error: saveError } = await supabase
@@ -3970,7 +4225,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 }
                 setResume(prev => ({ ...prev, journey_step: 'format' }))
               }}
-              className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Format & Finish →
@@ -4080,15 +4335,22 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               </div>
             )}
           </div>
-          <p className="text-sm md:text-xs text-gray-700 text-center leading-snug">
-            Take a look at your résumé. Make sure Coach got everything right — dates, job titles, details. If anything looks off, use Fix It below.
-          </p>
-          <div className="flex flex-col gap-2 items-center">
+          <div>
+            <h3 className="font-semibold text-lg text-gray-900">Your Resume is Ready!</h3>
+            <p className="text-sm md:text-xs text-gray-600 mt-1 leading-snug">You talked. Coach listened. Here's what came out of it. A few quick edits and it's all yours.</p>
+          </div>
+          <ul className="space-y-1.5 text-sm md:text-xs text-gray-600 list-disc list-inside leading-snug">
+            <li>Click any section to edit text directly</li>
+            <li>Tap the lightning bolt to reword or fix any sentence</li>
+            <li>Use "More to add?" below to add anything you left out</li>
+            <li>Use arrows to reorder content and trash to remove what you don't need</li>
+          </ul>
+          <div className="flex justify-center gap-2 pt-1 flex-wrap">
             <button
-              onClick={() => setShowConvTargetedRecoach(true)}
-              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-6 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+              onClick={() => setReviseModalState({ mode: 'add' })}
+              className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
             >
-              Something's Off → Fix It
+              ⚡ More to add?
             </button>
             <button
               onClick={async () => {
@@ -4102,51 +4364,15 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   return
                 }
                 setResume(prev => ({ ...prev, changes_accepted: true, journey_step: 'format' }))
+                if (setViewingStep) setViewingStep(null)
               }}
-              className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+              className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
-              Looks Good → Format & Finish
+              Ready to Format →
             </button>
           </div>
         </div>
-        {showConvTargetedRecoach && (
-          <TargetedRecoachStep
-            resumeData={resumeData}
-            rewrittenResume={rewrittenResume}
-            remainingGaps={[]}
-            detectedLevel={detectedLevel}
-            userName={userName}
-            userProfile={userProfile}
-            supabase={supabase}
-            params={params}
-            setResume={setResume}
-            setRewrittenResume={setRewrittenResume}
-            setResumeChanges={setResumeChanges}
-            targetedMessages={convTargetedMessages}
-            setTargetedMessages={setConvTargetedMessages}
-            handleReassess={handleReassess}
-            setShowRevealModal={() => {}}
-            setRecoachAttempts={setRecoachAttempts}
-            score={score}
-            originalCoachingMessages={coachingMessages || []}
-            careerContext={careerContext}
-            isConversationalFix={true}
-            onClose={async () => {
-              setShowConvTargetedRecoach(false)
-              const { error: saveError } = await supabase
-                .from('resumes')
-                .update({ changes_accepted: true, updated_at: new Date().toISOString() })
-                .eq('id', params.id)
-              if (saveError) {
-                console.error('Error marking conversational changes accepted on close:', saveError)
-                setErrorToast("We couldn't save your changes. Please refresh the page.")
-                return
-              }
-              setResume(prev => ({ ...prev, changes_accepted: true }))
-            }}
-          />
-        )}
       </>
     )
   }
@@ -4208,15 +4434,23 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
         )}
 
         {/* Buttons */}
-        <div className="flex gap-2 justify-center pt-1">
-          {showPushHarder && (
+        {showPushHarder && (
+          <div className="flex justify-center pt-1">
             <button
               onClick={() => setShowGapsModal(true)}
               className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
             >
               Push for a higher score →
             </button>
-          )}
+          </div>
+        )}
+        <div className="flex justify-center gap-2 pt-1 flex-wrap">
+          <button
+            onClick={() => setReviseModalState({ mode: 'add' })}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+          >
+            ⚡ More to add?
+          </button>
           <button
             onClick={async () => {
               const { error: saveError } = await supabase
@@ -4229,8 +4463,9 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                 return
               }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
+              if (setViewingStep) setViewingStep(null)
             }}
-            className="text-white rounded-lg px-6 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+            className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
             Format & Finish →
@@ -4471,15 +4706,17 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       return
     }
     if (change.field === 'sectionOrder') {
+      let parsed
       if (Array.isArray(change.after)) {
-        data.sectionOrder = change.after
+        parsed = change.after
       } else {
         try {
-          data.sectionOrder = JSON.parse(change.after)
+          parsed = JSON.parse(change.after)
         } catch {
-          data.sectionOrder = change.after.split(',').map(s => s.trim()).filter(Boolean)
+          parsed = change.after.split(',').map(s => s.trim()).filter(Boolean)
         }
       }
+      data.sectionOrder = parsed.map(s => String(s).replace(/[\[\]]/g, ''))
       return
     }
 
@@ -4543,7 +4780,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             onClick={() => setShowChangeModal(true)}
             className="flex-1 bg-purple-600 text-white rounded-lg py-1.5 font-medium text-sm md:text-xs hover:bg-purple-700 transition-colors"
           >
-            Review Changes ({currentChangeIndex + 1}/{totalChanges})
+            Review Changes ({Math.min(currentChangeIndex + 1, totalChanges)}/{totalChanges})
           </button>
           <button
             onClick={() => {
@@ -4581,18 +4818,34 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-6"
             style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-            onClick={() => setShowChangeModal(false)}
           >
             <div
               className="bg-white shadow-2xl w-full max-w-2xl border border-gray-200 flex flex-col"
               style={{ borderRadius: '8px', height: '480px' }}
-              onClick={e => e.stopPropagation()}
             >
               <div
                 style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
               className="px-6 py-4 flex items-center justify-between flex-shrink-0"
             >
               <div className="flex items-center gap-3">
+                  {currentChangeIndex > 0 && (
+                    <button
+                      onClick={() => {
+                        const prevIndex = currentChangeIndex - 1
+                        const lastDecision = decisionStack[decisionStack.length - 1]
+                        if (lastDecision === 'accept') {
+                          setAcceptedChanges(prev => prev.slice(0, -1))
+                        } else {
+                          setRejectedChanges(prev => prev.slice(0, -1))
+                        }
+                        setDecisionStack(prev => prev.slice(0, -1))
+                        setCurrentChangeIndex(prevIndex)
+                        setEditingChange(false)
+                        setEditedText('')
+                      }}
+                      className="text-white hover:text-purple-200 text-sm font-medium flex-shrink-0 transition-colors"
+                    >←</button>
+                  )}
                   <div className="h-8 w-8 bg-white rounded flex items-center justify-center flex-shrink-0">
                     <span className="text-purple-600 font-bold text-lg">⚡</span>
                   </div>
@@ -4600,7 +4853,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                     <h2 className="text-base font-bold text-white">
                       {currentChange.type === 'added' ? '✨ New Addition' : currentChange.type === 'removed' ? '🗑️ Removal' : '✏️ Improvement'}
                     </h2>
-                    <p className="text-purple-100 text-xs">Change {currentChangeIndex + 1} of {totalChanges}{currentChange.section ? ` · ${currentChange.section}` : ''}</p>
+                    <p className="text-purple-100 text-xs">Change {Math.min(currentChangeIndex + 1, totalChanges)} of {totalChanges}{currentChange.section ? ` · ${currentChange.section}` : ''}</p>
                   </div>
                 </div>
                 <button
@@ -4649,27 +4902,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   <p className="text-xs text-gray-700 leading-snug">{currentChange.reason}</p>
                 </div>
 
-                <div className="flex justify-end gap-2 flex-shrink-0">
-                  {currentChangeIndex > 0 && (
-                    <button
-                      onClick={() => {
-                        const prevIndex = currentChangeIndex - 1
-                        const lastDecision = decisionStack[decisionStack.length - 1]
-                        if (lastDecision === 'accept') {
-                          setAcceptedChanges(prev => prev.slice(0, -1))
-                        } else {
-                          setRejectedChanges(prev => prev.slice(0, -1))
-                        }
-                        setDecisionStack(prev => prev.slice(0, -1))
-                        setCurrentChangeIndex(prevIndex)
-                        setEditingChange(false)
-                        setEditedText('')
-                      }}
-                      className="px-4 py-2 bg-white text-gray-500 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      ← Back
-                    </button>
-                  )}
+                <div className="grid grid-cols-2 gap-2 flex-shrink-0 md:flex md:justify-end">
                  <button
                     onClick={() => {
                       setRejectedChanges(prev => [...prev, currentChange])
@@ -4682,12 +4915,21 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                         setShowChangeModal(false)
                         finishReview([...acceptedChanges])
                       }
-                      // Modal stays open for next change
                     }}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
                   >
                     ✗ Keep Original
                   </button>
+                  {currentChange.after && setReviseModalState && (
+                    <button
+                      onClick={() => {
+                        setReviseModalState({ mode: 'choose', text: currentChange.after, location: { type: 'reviewChange', changeIndex: currentChangeIndex } })
+                      }}
+                      className="px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg text-xs font-medium hover:bg-purple-50 transition-colors"
+                    >
+                      ⚡ Try Different
+                    </button>
+                  )}
                   {!editingChange ? (
                     <button
                       onClick={() => { setEditingChange(true); setEditedText(currentChange.after) }}
@@ -4719,7 +4961,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       }
                       // Modal stays open for next change
                     }}
-                    className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90"
+                    className={`px-4 py-2 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 ${!(currentChange.after && setReviseModalState) ? 'col-span-2 justify-self-center md:col-span-1 md:justify-self-auto' : ''}`}
                     style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
                     ✓ Apply Change
@@ -5142,6 +5384,7 @@ function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSam
                 return
               }
               setResume(prev => ({ ...prev, journey_step: 'format' }))
+              if (setViewingStep) setViewingStep(null)
             }}
             className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -5433,6 +5676,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
                   <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                 </svg>
               </button>
+              <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
             </div>
           ) : (
             <button
@@ -5454,7 +5698,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 // ─────────────────────────────────────────────
 // FORMAT STEP
 // ─────────────────────────────────────────────
-function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier }) {
+function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier, setReviseModalState, coachingComplete, setViewingStep }) {
   const [advancing, setAdvancing] = useState(false)
   const [errorToastFormat, setErrorToastFormat] = useState(null)
 
@@ -5467,11 +5711,13 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
       </p>
 
       <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
-        <div className="text-sm md:text-xs text-purple-900 space-y-1.5">
-          <div>✓ Run ⚡<strong>Auto-fit</strong> to optimize font size and spacing for one perfect page</div>
-          <div>✓ Try different templates from the toolbar</div>
-          <div>✓ Adjust font or size if you prefer</div>
-          <div>✓ Preview how the PDF download will look</div>
+        <div className="text-sm md:text-xs text-purple-900 space-y-2">
+          <div><strong>📄 Pick a template</strong> — 98% of large companies run your resume through ATS software before a human ever sees it. Two-column layouts, graphics, and fancy formatting confuse that software, making half your skills and experience disappear before anyone reads a word. Our templates are simple and ATS-proof by design, because a gorgeous resume that a computer can't read is just a beautiful rejection.</div>
+          <div><strong>✏️ Edit directly</strong> — Click any section of your resume to edit text, reorder content, or delete what you don't need.</div>
+          <div><strong>🎨 Style it</strong> — Change fonts, adjust size, pick an accent color, or change date formats from the toolbar.</div>
+          <div><strong>⚡ Auto-fit</strong> — One click optimizes font size and spacing to fit everything on one perfect page (when possible).</div>
+          <div><strong>👀 Preview</strong> — See exactly how your PDF will look before downloading.</div>
+          <div><strong>💾 Save anytime</strong> — Your progress auto-saves, but you can also save manually from the toolbar.</div>
         </div>
       </div>
 
@@ -5483,7 +5729,15 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
           </p>
         </div>
       )}
-      <div className="flex flex-col items-center mt-3">
+     <div className="flex gap-2 justify-center pt-1 px-1">
+        {userTier !== 'free' && coachingComplete && (
+          <button
+            onClick={() => setReviseModalState({ mode: 'add' })}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+          >
+            ⚡ More to add?
+          </button>
+        )}
         <button
           onClick={async () => {
             setAdvancing(true)
@@ -5498,6 +5752,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
                 return
               }
               setResume(prev => ({ ...prev, journey_step: 'save' }))
+              if (setViewingStep) setViewingStep(null)
             } catch (err) {
               console.error('Unexpected error advancing to save step:', err)
               setErrorToastFormat("Something went wrong. Please try again.")
@@ -5506,7 +5761,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
             }
           }}
           disabled={advancing}
-          className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90"
+          className="text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs disabled:opacity-75 flex items-center gap-2 transition-opacity hover:opacity-90 whitespace-nowrap"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           {advancing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
@@ -5567,7 +5822,11 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
     <div className="space-y-1.5 -mt-2">
       <h3 className="font-semibold text-lg -mt-3">⭐ Resume Complete!</h3>
 
-      <p className="text-sm md:text-xs text-gray-500">Your resume is application-ready.</p>
+      {isJobSpecific ? (
+        <p className="text-sm md:text-xs text-gray-500">Your resume is application-ready.</p>
+      ) : (
+        <p className="text-sm md:text-xs text-gray-500 mb-2">Your core resume is complete. It captures your full career and works as the foundation for your job search.</p>
+      )}
 
       <div className="flex justify-center pt-1">
         <button
@@ -5581,8 +5840,12 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
         </button>
       </div>
 
+      {!isJobSpecific && (
+        <p className="text-sm md:text-xs text-gray-500">If you are ready to apply, research shows that tailored resumes get significantly more callbacks. Hire Power makes it easy to tailor your resume for each application in minutes versus hours, and your core resume stays untouched.</p>
+      )}
+
       <div className="pt-1 border-t border-gray-200">
-        <p className="text-sm md:text-xs text-gray-500 mb-3">Ready to put it to use?</p>
+        {isJobSpecific && <p className="text-sm md:text-xs text-gray-500 mb-3">Ready to put it to use?</p>}
         <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
           {isJobSpecific && (
             <button
@@ -5606,12 +5869,14 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
           >
             ✉️ Create a Cover Letter
           </button>
-          <button
-            onClick={() => window.location.href = '/interview-coach'}
-            className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
-          >
-            🎤 Start Interview Prep
-          </button>
+          {isJobSpecific && (
+            <button
+              onClick={() => window.location.href = '/interview-coach'}
+              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              🎤 Start Interview Prep
+            </button>
+          )}
           <button
             onClick={() => window.location.href = '/resume-coach'}
             className="text-gray-400 text-sm md:text-xs hover:text-gray-600 mt-1"

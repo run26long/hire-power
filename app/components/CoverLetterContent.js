@@ -1,6 +1,8 @@
 'use client'
+import { useState } from 'react'
 
-export default function CoverLetterContent({ clData, onUpdate, selectedTemplate, selectedFont, selectedSize }) {
+export default function CoverLetterContent({ clData, onUpdate, selectedTemplate, selectedFont, selectedSize, onBulletAction, bulletSelectMode }) {
+  const [focusedBullet, setFocusedBullet] = useState(null)
 
   function update(field, value) {
     onUpdate({ ...clData, [field]: value })
@@ -17,7 +19,25 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
   }
 
   function removeBullet(index) {
+    setFocusedBullet(null)
     onUpdate({ ...clData, bullets: (clData.bullets || []).filter((_, i) => i !== index) })
+  }
+
+  function moveBulletUp(index) {
+    if (index === 0) return
+    const newBullets = [...(clData.bullets || [])]
+    ;[newBullets[index - 1], newBullets[index]] = [newBullets[index], newBullets[index - 1]]
+    setFocusedBullet(index - 1)
+    onUpdate({ ...clData, bullets: newBullets })
+  }
+
+  function moveBulletDown(index) {
+    const bullets = clData.bullets || []
+    if (index === bullets.length - 1) return
+    const newBullets = [...bullets]
+    ;[newBullets[index], newBullets[index + 1]] = [newBullets[index + 1], newBullets[index]]
+    setFocusedBullet(index + 1)
+    onUpdate({ ...clData, bullets: newBullets })
   }
 
  const base = selectedSize || 11
@@ -228,10 +248,30 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
       </div>
 
       {/* Opening paragraph */}
-      <p contentEditable suppressContentEditableWarning className={editableClass}
-        style={{ ...body, display: 'block', marginBottom: '16px' }}
-        onBlur={e => update('opening', e.currentTarget.textContent)}
-      >{clData.opening || 'Opening paragraph...'}</p>
+      <div className="relative group/opening" style={{ marginBottom: '16px' }}
+        onClick={() => { if (!bulletSelectMode && window.innerWidth < 768) setFocusedBullet('opening') }}
+      >
+        <p contentEditable suppressContentEditableWarning className={editableClass}
+          style={{ ...body, display: 'block' }}
+          onBlur={e => update('opening', e.currentTarget.textContent)}
+        >{clData.opening || 'Opening paragraph...'}</p>
+        {onBulletAction && !bulletSelectMode && (
+          <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === 'opening' ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/opening:opacity-100'}`}>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => { e.stopPropagation(); onBulletAction(clData.opening || '', { type: 'opening' }) }}
+              className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded text-xs"
+              title="Reword or Fix"
+            >⚡</button>
+          </div>
+        )}
+        {onBulletAction && bulletSelectMode && (
+          <button
+            onClick={() => onBulletAction(clData.opening || '', { type: 'opening' })}
+            className="absolute inset-0 w-full h-full z-10 flex items-center justify-center bg-purple-50 bg-opacity-80 rounded text-purple-700 text-sm font-semibold"
+          >⚡ Tap to reword / fix</button>
+        )}
+      </div>
 
       {/* Bullets intro */}
       <p contentEditable suppressContentEditableWarning className={editableClass}
@@ -241,29 +281,99 @@ export default function CoverLetterContent({ clData, onUpdate, selectedTemplate,
 
       {/* Bullets */}
       <div style={{ marginBottom: '20px', paddingLeft: '8px' }}>
-        {(clData.bullets || []).map((bullet, i) => (
-          <div key={i} className="group/bullet flex items-start gap-2 mb-3 relative">
-            <span style={{ ...body, flexShrink: 0, marginTop: '1px' }}>•</span>
-            <p contentEditable suppressContentEditableWarning className={`${editableClass} flex-1`}
-              style={{ ...body, display: 'block' }}
-              onBlur={e => updateBullet(i, e.currentTarget.textContent)}
-            >{bullet}</p>
-            <button onClick={() => removeBullet(i)}
-              className="opacity-0 group-hover/bullet:opacity-100 text-red-400 hover:text-red-600 text-xs px-1 flex-shrink-0 transition-opacity"
-              title="Remove bullet"
-            >🗑️</button>
-          </div>
-        ))}
+        {(clData.bullets || []).map((bullet, i) => {
+          const bullets = clData.bullets || []
+          const panelVisible = focusedBullet === i
+          const showPanel = !bulletSelectMode
+          return (
+            <div
+              key={i}
+              className="group/bullet flex items-start gap-2 mb-3 relative"
+              onClick={() => { if (!bulletSelectMode && window.innerWidth < 768) setFocusedBullet(i) }}
+            >
+              <span style={{ ...body, flexShrink: 0, marginTop: '1px' }}>•</span>
+              <p
+                contentEditable={!bulletSelectMode}
+                suppressContentEditableWarning
+                className={`${editableClass} flex-1`}
+                style={{ ...body, display: 'block' }}
+                onBlur={e => updateBullet(i, e.currentTarget.textContent)}
+              >{bullet.replace(/\*\*/g, '')}</p>
+
+              {/* Action panel — desktop: group-hover; mobile: tap-to-show (focusedBullet) */}
+              {showPanel && (
+                <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${panelVisible ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/bullet:opacity-100'}`}>
+                  <button
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={e => { e.stopPropagation(); moveBulletUp(i) }}
+                    disabled={i === 0}
+                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs"
+                    title="Move up"
+                  >▲</button>
+                  <button
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={e => { e.stopPropagation(); moveBulletDown(i) }}
+                    disabled={i === bullets.length - 1}
+                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs"
+                    title="Move down"
+                  >▼</button>
+                  <button
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={e => { e.stopPropagation(); removeBullet(i) }}
+                    className="text-[#e57373] hover:bg-red-50 px-1 rounded text-xs"
+                    title="Remove bullet"
+                  >🗑️</button>
+                  {onBulletAction && (
+                    <button
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={e => { e.stopPropagation(); onBulletAction(bullet, { type: 'bullet', bulletIndex: i }) }}
+                      className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded text-xs"
+                      title="Reword or Fix"
+                    >⚡</button>
+                  )}
+                </div>
+              )}
+
+              {/* Mobile bulletSelectMode: full-overlay tap button */}
+              {bulletSelectMode && onBulletAction && (
+                <button
+                  onClick={e => { e.stopPropagation(); onBulletAction(bullet, { type: 'bullet', bulletIndex: i }) }}
+                  className="absolute inset-0 w-full h-full z-10 flex items-center justify-end pr-2 bg-purple-50 bg-opacity-70 rounded text-purple-700 text-xs font-semibold"
+                >⚡</button>
+              )}
+            </div>
+          )
+        })}
         <button onClick={addBullet}
           className="text-purple-600 text-xs hover:text-purple-700 mt-1 opacity-50 hover:opacity-100"
         >+ Add bullet</button>
       </div>
 
       {/* Closing */}
-      <p contentEditable suppressContentEditableWarning className={editableClass}
-        style={{ ...body, display: 'block', marginBottom: '20px' }}
-        onBlur={e => update('closing', e.currentTarget.textContent)}
-      >{clData.closing || 'Closing paragraph...'}</p>
+      <div className="relative group/closing" style={{ marginBottom: '20px' }}
+        onClick={() => { if (!bulletSelectMode && window.innerWidth < 768) setFocusedBullet('closing') }}
+      >
+        <p contentEditable suppressContentEditableWarning className={editableClass}
+          style={{ ...body, display: 'block' }}
+          onBlur={e => update('closing', e.currentTarget.textContent)}
+        >{clData.closing || 'Closing paragraph...'}</p>
+        {onBulletAction && !bulletSelectMode && (
+          <div className={`absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 ${focusedBullet === 'closing' ? 'opacity-100 md:opacity-0' : 'opacity-0 group-hover/closing:opacity-100'}`}>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={e => { e.stopPropagation(); onBulletAction(clData.closing || '', { type: 'closing' }) }}
+              className="text-purple-400 hover:text-purple-600 hover:bg-purple-50 px-1 rounded text-xs"
+              title="Reword or Fix"
+            >⚡</button>
+          </div>
+        )}
+        {onBulletAction && bulletSelectMode && (
+          <button
+            onClick={() => onBulletAction(clData.closing || '', { type: 'closing' })}
+            className="absolute inset-0 w-full h-full z-10 flex items-center justify-center bg-purple-50 bg-opacity-80 rounded text-purple-700 text-sm font-semibold"
+          >⚡ Tap to reword / fix</button>
+        )}
+      </div>
 
       {/* Signature */}
       <div style={body}>

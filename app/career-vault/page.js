@@ -165,7 +165,7 @@ export default function CareerVaultPage() {
         if (archiveError) throw archiveError.error;
       }
 
-      // Archive all JS resumes (core resume stays active)
+      // Archive all job specific resumes (core resume stays active)
       const { error: jsError } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
@@ -232,8 +232,8 @@ export default function CareerVaultPage() {
         setUser(user);
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (profileError) throw profileError;
         setUserProfile(profile);
         setTier(profile?.subscription_tier || 'vault');
 
@@ -271,7 +271,7 @@ export default function CareerVaultPage() {
           .order('updated_at', { ascending: false });
         if (activeResumesError) throw activeResumesError;
 
-        // Sort: core first, then JS by most recently updated
+        // Sort: core first, then job specific by most recently updated
         const sortedResumes = (allActiveResumes || []).sort((a, b) => {
           if (a.resume_type === 'core' && b.resume_type !== 'core') return -1;
           if (a.resume_type !== 'core' && b.resume_type === 'core') return 1;
@@ -315,7 +315,7 @@ export default function CareerVaultPage() {
         if (activeAppsError) throw activeAppsError;
         setActiveApplications(activeApps || []);
 
-        // Load JS resumes for linking
+        // Load job specific resumes for linking
         const { data: jsResumesData, error: jsResumesError } = await supabase
           .from('resumes')
           .select('id, display_name, current_score')
@@ -326,6 +326,10 @@ export default function CareerVaultPage() {
         setJsResumes(jsResumesData || []);
 
         const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('openArchive') === 'true') {
+          setShowArchiveModal(true);
+          window.history.replaceState({}, '', '/career-vault');
+        }
         if (urlParams.get('downgraded') === 'true') {
           setErrorToast("You've switched to Vault. Career history saved. Ready to log wins!");
           window.history.replaceState({}, '', '/career-vault');
@@ -499,12 +503,10 @@ export default function CareerVaultPage() {
         .update({ is_active: true })
         .eq('id', resumeId);
       if (error) throw error;
-      setArchivedCoreResumes(prev => prev.filter(r => r.id !== resumeId));
-      setResumeCount(prev => prev + 1);
+      router.push(`/resume/${resumeId}`);
     } catch (err) {
       console.error('Restore core resume failed:', err);
       setErrorToast("We couldn't restore that resume. Please try again.");
-    } finally {
       setArchiveActionLoading(false);
     }
   }
@@ -514,16 +516,8 @@ export default function CareerVaultPage() {
     try {
       const now = new Date().toISOString();
 
-      // If core, archive all child JS resumes too
-      if (resume.resume_type === 'core') {
-        await supabase
-          .from('resumes')
-          .update({ is_active: false, updated_at: now })
-          .eq('parent_resume_id', resume.id)
-          .eq('user_id', user.id);
-      }
-
-      // Archive the resume itself
+      // Archive the resume itself. JS resumes parented to a core resume stay active —
+      // they're standalone artifacts tied to their own job cards.
       const { error } = await supabase
         .from('resumes')
         .update({ is_active: false, updated_at: now })
@@ -566,6 +560,8 @@ export default function CareerVaultPage() {
     setArchiveActionLoading(true);
     try {
       if (confirmDelete.type === 'core') {
+        // Detach any job-specific resumes that reference this core as parent
+        await supabase.from('resumes').update({ parent_resume_id: null }).eq('parent_resume_id', confirmDelete.id);
         const { error } = await supabase.from('resumes').delete().eq('id', confirmDelete.id);
         if (error) throw error;
         setArchivedCoreResumes(prev => prev.filter(r => r.id !== confirmDelete.id));
@@ -622,60 +618,82 @@ export default function CareerVaultPage() {
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
-          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
-            Three years from now, you won't remember today's achievements. 
-          </p>
-          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
-            But Hire Power will.
-          </p>
-        </div>
-
-        <div className="flex-1 px-6 pt-2 pb-6 flex flex-col justify-between">
-          <div>
-            <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHAT VAULT DOES</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Save your current job entry</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Log wins in 30 seconds</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Access all your resumes</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Run job match scores</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Basic interview practice</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Browse your archive</span></li>
-              </ul>
-            </div>
-
-            <div className="mb-3">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHEN YOU'RE READY</h4>
-              {isPro ? (
-                <ul className="space-y-1.5 text-sm">
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Jump back into Resume Coach</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes with your coach</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
-                </ul>
-              ) : (
-                <ul className="space-y-1.5 text-sm">
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Upgrade to Pro</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>5-minutes with your coach</span></li>
-                  <li className="flex items-start"><span className="mr-2">•</span><span>Your resume builds itself</span></li>
-                </ul>
-              )}
-            </div>
           </div>
 
-          <div className="mt-auto">
-            <div className="mb-4 border-b border-gray-400 border-opacity-10"></div>
-            <div>
-              <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-                While you're building your career, we're already building your next resume.
-              </p>
-              <div className="flex items-center gap-2.5 text-white">
-                <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
-                <p className="text-sm font-medium leading-tight">
-                  Log a win. It'll matter later.
-                </p>
+        <div className="px-6 pt-0 pb-6">
+
+          {/* Steps */}
+          <div style={{ marginBottom: 16 }}>
+            {[
+              { 
+                num: '1', 
+                title: 'Save Your Current Job', 
+                desc: 'Your title, company, and start date. The saved job description becomes foundation for your next resume.' 
+              },
+              { 
+                num: '2', 
+                title: 'Log Wins as They Happen', 
+                desc: 'Promotions, projects, metrics, skills. Takes 30 seconds. Saves hours later.' 
+              },
+              { 
+                num: '3', 
+                title: 'Prepare for Your Review', 
+                desc: 'Your logged wins organized by category, ready to reference during performance reviews.' 
+              },
+              { 
+                num: '4', 
+                title: 'Access All Your Resumes', 
+                desc: 'All in one place. Any time you need them.' 
+              },
+              { 
+                num: '5', 
+                title: 'Browse Your Archive', 
+                desc: 'Every resume you\'ve ever built, saved and searchable.' 
+              },
+              { 
+                num: '6', 
+                title: 'When You\'re Ready to Search', 
+                desc: 'Five minutes with your coach and your resume updates itself.' 
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: -2 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+
+          {/* Bottom section */}
+          <div>
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              Three years from now?
+            </p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              You won't remember today's achievements. But Hire Power will.
+            </p>
+          </div>
+
         </div>
       </div>
 
@@ -693,14 +711,14 @@ export default function CareerVaultPage() {
 
                 {/* Current Job Section */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-gray-900">Current Job</h2>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">Current Job</h2>
                       {currentJobEntry && <StatusBadge status="hired" />}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       {!currentJobEntry && <span className="text-xs md:text-[10px] text-gray-400 font-medium">Not set</span>}
-                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
+                      <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
                     </div>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">
@@ -785,14 +803,14 @@ export default function CareerVaultPage() {
 
                 {/* Accomplishments Log */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 pt-4 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-gray-900">Accomplishments</h2>
-                        <span className="text-sm md:text-xs text-gray-400">{accomplishments.length} logged</span>
+                  <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-lg font-semibold text-gray-900 truncate">Accomplishments</h2>
+                        <span className="text-sm md:text-xs text-gray-400 flex-shrink-0">{accomplishments.length} logged</span>
                       </div>
                       <button
                         onClick={() => setShowLogModal(true)}
-                        className="text-sm md:text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap"
+                        className="text-sm md:text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap flex-shrink-0"
                       >
                         + Log a Win
                       </button>
@@ -840,8 +858,7 @@ export default function CareerVaultPage() {
                         <>
                           <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
                           <p className="text-sm md:text-xs text-gray-400 text-center leading-relaxed">
-                            The next time something good happens, log it here.<br />
-                            Takes 30 seconds. Saves hours later.
+                            The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
                           </p>
                         </>
                       )}
@@ -1005,12 +1022,13 @@ export default function CareerVaultPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-          onClick={() => { setShowLogModal(false); setLogText(''); setLogDate(''); setLogError(null); }}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop') { setShowLogModal(false); setLogText(''); setLogDate(''); setLogError(null); } }}
         >
           <div
             className="bg-white shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col"
             style={{ borderRadius: '8px' }}
-            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             {/* Header */}
             <div
@@ -1219,7 +1237,7 @@ export default function CareerVaultPage() {
                                 >📄 View Resume</button>
                               )}
                               {card.application_status === 'hired' && (
-                                <span className="text-[10px] text-gray-400">🔒 JD saved to Vault</span>
+                                <span className="text-[10px] text-gray-400">🔒 job description saved to Vault</span>
                               )}
                             </div>
                           </div>
@@ -1296,7 +1314,7 @@ export default function CareerVaultPage() {
             <div className="p-6 space-y-4">
               {jsResumes.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Link a JS Resume <span className="font-normal text-gray-400">(optional)</span></label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Link a job specific Resume <span className="font-normal text-gray-400">(optional)</span></label>
                   <select
                     value={setJobResumeId}
                     onChange={e => {
@@ -1856,7 +1874,7 @@ export default function CareerVaultPage() {
           <div className="px-6 py-5">
             <p className="text-sm text-gray-700 mb-5 leading-snug">
               {confirmArchiveResume.resume_type === 'core'
-                ? 'This will move your core resume and any related job-specific versions to your archive. You can restore or permanently delete from there.'
+                ? 'This will move your core resume to your archive. Job-specific resumes stay where they are. You can restore or permanently delete from your archive.'
                 : 'This will move this job-specific resume to your archive. You can restore or permanently delete from there.'
               }
             </p>

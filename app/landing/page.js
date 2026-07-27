@@ -103,7 +103,7 @@ const supabase = createClient();
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         setUserProfile(profile);
       }
     }
@@ -111,7 +111,7 @@ const supabase = createClient();
   }, []);
 
   return (
-    <>
+    <div style={{ overflowX: 'hidden', width: '100%' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,700;0,900;1,300;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
@@ -281,7 +281,19 @@ const supabase = createClient();
         @keyframes panelFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
        @media (max-width: 768px) {
-          .hero { grid-template-columns: 1fr !important; padding: 32px 24px 48px !important; min-height: auto !important; }
+          html, body { overflow-x: hidden !important; }
+          .landing-page { max-width: 100vw !important; }
+          .hero { grid-template-columns: 1fr !important; padding: 32px 24px 48px !important; min-height: auto !important; overflow: hidden !important; }
+          .hero::before { display: none !important; }
+          .how { overflow: hidden !important; }
+          .how .container { max-width: 100% !important; box-sizing: border-box !important; }
+          .how-visual { max-width: 100% !important; overflow: hidden !important; }
+          .how-step { max-width: 100% !important; }
+          .step-content { min-width: 0 !important; }
+          .manifesto { max-width: 100vw !important; overflow: hidden !important; }
+          .never-start-section { padding: 48px 24px !important; max-width: 100vw !important; overflow: hidden !important; }
+          .finish-line-section { max-width: 100vw !important; overflow: hidden !important; }
+          .final-cta { max-width: 100vw !important; overflow: hidden !important; }
           .hero-visual { display: none !important; }
           .hero h1 { font-size: 38px !important; letter-spacing: -1px !important; }
           .hero-inner-pad { margin-left: 0 !important; }
@@ -332,7 +344,11 @@ const supabase = createClient();
           .how-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .how-grid .how-visual { order: 2; }
           .how-grid .how-steps { order: 1; }
-          .coaches-row { grid-template-columns: 1fr 1fr 1fr !important; }
+          .coaches-row { grid-template-columns: 1fr 1fr 1fr !important; gap: 6px !important; }
+          .coach-pill { padding: 10px 6px !important; }
+          .coach-pill h5 { font-size: 11px !important; }
+          .coach-pill p { font-size: 11px !important; }
+          .coach-pill-icon { font-size: 20px !important; margin-bottom: 4px !important; }
 
           .manifesto { padding: 60px 24px !important; }
 
@@ -576,6 +592,7 @@ const supabase = createClient();
                           </div>
                         );
                       })()}
+                      <p className="text-xs text-gray-400 mt-1">Must include at least 1 uppercase, 1 lowercase, 1 number & 1 symbol</p>
                     </div>
 
                     {/* Pro checkbox */}
@@ -797,7 +814,7 @@ const supabase = createClient();
       <section className="problem" id="problem">
         <div className="container">
           <div className="section-eyebrow">The Dirty Secret</div>
-          <h2 className="section-title">AI tools are <em> making up </em><br/>your resume.</h2>
+          <h2 className="section-title">AI tools are <em> making up </em>your resume.</h2>
           <p className="section-sub" style={{maxWidth:'760px'}}>
             A VP of Business Development with 20+ years selling to aerospace and defense. Tried two resume tools, theirs and ours. Here&apos;s a sample bullet from his resume and what each tool did with it:{' '}
             <strong><em style={{color:'rgba(255,255,255,0.92)'}}>&quot;Built strategic relationships with high-profile commercial customers including Boeing, managing long-cycle sales for complex technology packages.&quot;</em></strong>
@@ -983,15 +1000,20 @@ const supabase = createClient();
       <section className="how" id="how">
         <div className="container">
           <div className="section-eyebrow">How It Works</div>
-          <h2 className="section-title">Three conversations.<br/> One complete picture.</h2>
-          <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other, so nothing falls through the cracks.</p>
+          {/* HIDDEN: Career Coach - restore when feature is re-enabled */}
+          {/* <h2 className="section-title">Three conversations.<br/> One complete picture.</h2> */}
+          <h2 className="section-title">Three tools.<br/> One complete picture.</h2>
+          {/* HIDDEN: Career Coach - restore when feature is re-enabled */}
+          {/* <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other, so nothing falls through the cracks.</p> */}
+          <p className="section-sub">Resume Coach and Interview Coach share context and build on each other, so nothing falls through the cracks.</p>
           <div className="how-grid" style={{marginTop: '36px'}}>
             <div className="how-steps" style={{gap: '4px', paddingTop: '0px'}}>
               {[
-                {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. The best five-minute investment in your career."},
-                {n:'2',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
-                {n:'3',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
-                {n:'4',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
+                // HIDDEN: Career Coach - restore when feature is re-enabled
+                // {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. The best five-minute investment in your career."},
+                {n:'1',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
+                {n:'2',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
+                {n:'3',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(
                 <div key={step.n} className="how-step" style={{marginBottom: '8px'}}>
                   <div className="step-num">{step.n}</div>
@@ -1004,7 +1026,7 @@ const supabase = createClient();
             </div>
             <div className="how-visual">
               <div className="coaches-row">
-                {[{icon:'🧭',name:'Career Coach',desc:'Direction & goals'},{icon:'📄',name:'Resume Coach',desc:'Your full story'},{icon:'🎯',name:'Interview Coach',desc:'Practice & power'}].map(c=>(
+                {[/* HIDDEN: Career Coach - restore when feature is re-enabled */ /* {icon:'🧭',name:'Career Coach',desc:'Direction & goals'}, */{icon:'📄',name:'Resume Coach',desc:'Your full story'},{icon:'🎯',name:'Interview Coach',desc:'Practice & power'},{icon:'🏦',name:'Career Vault',desc:'Your career archive'}].map(c=>(
                   <div key={c.name} className="coach-pill">
                     <div className="coach-pill-icon">{c.icon}</div>
                     <h5>{c.name}</h5>
@@ -1012,7 +1034,7 @@ const supabase = createClient();
                   </div>
                 ))}
               </div>
-              <div className="context-arrow">Shared context flows between all three coaches</div>
+              <div className="context-arrow">Shared context flows between all three</div>
               <div className="power-score-visual">
                 <div className="power-score-label">Your Power Analysis</div>
                 {[
@@ -1192,7 +1214,8 @@ const supabase = createClient();
               <div className="tier-price">$0</div>
               <p className="tier-desc">Get a real feel for conversation-based coaching. No credit card. No expiration.</p>
               <ul className="tier-features">
-                <li><span className="check">✓</span> Career Coach - one session</li>
+                {/* HIDDEN: Career Coach - restore when feature is re-enabled */}
+                {/* <li><span className="check">✓</span> Career Coach - one session</li> */}
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Coach</li>
                 <li><span className="check">✓</span> Core resume with AI analysis</li>
                 <li><span className="check">✓</span> Resume Power Score</li>
@@ -1297,7 +1320,8 @@ const supabase = createClient();
                 onCta: () => setShowSignupModal(true),
                 featured: false,
                 features: [
-                  'Career Coach: full access, unlimited',
+                  // HIDDEN: Career Coach - restore when feature is re-enabled
+                  // 'Career Coach: full access, unlimited',
                   'Core resume with AI analysis',
                   'Resume Power Score',
                   'Improvement Action Plan (you apply the changes)',
@@ -1430,7 +1454,7 @@ const supabase = createClient();
       {/* FINAL CTA */}
       <section className="final-cta">
         <h2>Your career deserves <br/>a <em>real conversation.</em></h2>
-        <p>Start with Career Coach - free, unlimited, and the most valuable five minutes of your job search.</p>
+       
         <div className="final-cta-actions">
           <button onClick={() => { setSignupAsPro(false); setShowSignupModal(true); }} style={{display:'inline-flex',alignItems:'center',background:'white',color:'#0D0D0D',padding:'10px 24px',borderRadius:'8px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer',boxShadow:'0 4px 24px rgba(0,0,0,0.2)',transition:'all 0.2s'}}>Start now for free</button>
         </div>
@@ -1438,7 +1462,7 @@ const supabase = createClient();
 
       </div>
       <Footer />
-    </>
+    </div>
   );
 }
 function FinishLineSection() {

@@ -59,7 +59,7 @@ async function fireJT2IfFirst(supabase) {
       .from('profiles')
       .select('first_applied_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.first_applied_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ first_applied_at: now }).eq('id', user.id)
@@ -85,7 +85,7 @@ async function fireJT1IfFirst(supabase) {
       .from('profiles')
       .select('first_card_created_at')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     if (!profile || profile.first_card_created_at) return
     const now = new Date().toISOString()
     await supabase.from('profiles').update({ first_card_created_at: now }).eq('id', user.id)
@@ -251,8 +251,8 @@ export default function JobTrackerPage() {
         setUser(user);
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') {
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (profileError) {
           throw profileError;
         }
         setUserProfile(profile);
@@ -444,7 +444,7 @@ export default function JobTrackerPage() {
   };
 
   const handleAddCard = async () => {
-    if (!newTitle || !newCompany) return;
+    if (!newTitle) return;
     setAddLoading(true);
 
     try {
@@ -724,46 +724,77 @@ export default function JobTrackerPage() {
           <p className="text-[13px] text-white leading-tight mb-0.5">Job hunting is small talk.</p>
           <p className="text-[13px] text-white leading-tight">Your career deserves a conversation.</p>
           <div className="mt-4 border-b border-white border-opacity-10"></div>
-          <p className="text-[13px] font-bold text-white leading-tight tracking-tight mt-3">
-            Every application in one place. Nothing slips through the cracks.
-          </p>
-        </div>
+          </div>
 
-        <div className="flex-1 px-6 pt-2 pb-6 flex flex-col justify-between">
+        <div className="px-6 pt-0 pb-6">
+
+          {/* Steps */}
+          <div style={{ marginBottom: 16 }}>
+            {[
+              { 
+                num: '1', 
+                title: 'Cards Create Themselves', 
+                desc: 'Every Job Match Score, Job-Specific Resume, and Cover Letter automatically creates a card here.' 
+              },
+              { 
+                num: '2', 
+                title: 'Everything Stays Linked', 
+                desc: 'Each job description, tailored resume, and cover letter stay attached for easy reference.' 
+              },
+              { 
+                num: '3', 
+                title: 'Track Your Progress', 
+                desc: 'Drag cards from Prepping → Applied → Interview → Rejected or Hired as each job moves through the process.' 
+              },
+              { 
+                num: '4', 
+                title: 'Log Notes Along the Way', 
+                desc: 'Interview dates, contact names, follow-ups notes. Keep everything in one place for each application.' 
+              },
+              { 
+                num: '5', 
+                title: 'When You Get Hired', 
+                desc: 'Job card moves to your Career Vault. Hire Power builds your next resume while you build your career.' 
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: -2 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom section */}
           <div>
-            <div className="mb-5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHAT TRACKER DOES</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Track every application</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Move cards as you progress</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Link your resume & cover letter</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Store and view the job posting</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Log notes along the way</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Stay organized start to finish</span></li>
-              </ul>
-            </div>
-
-            <div className="mb-3">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-1">WHEN YOU GET HIRED</h4>
-              <ul className="space-y-1.5 text-sm">
-                <li className="flex items-start"><span className="mr-2">•</span><span>Card moves to Career Vault</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Job description saved</span></li>
-                <li className="flex items-start"><span className="mr-2">•</span><span>Track wins from day one</span></li>
-              </ul>
-            </div>
-            
-          </div>
-
-          <div className="mt-auto">
-            <div className="mb-4 border-b border-white border-opacity-10"></div>
-            <p className="text-xs text-white text-opacity-90 leading-relaxed mb-3">
-              While you're building your career, we're already building your next resume.
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              Need a card manually?
             </p>
-            <div className="flex items-center gap-2.5 text-white">
-              <img src="/images/Hire_Power_icon.png" alt="Lightning" className="h-5 w-auto flex-shrink-0" />
-              <p className="text-sm font-medium leading-tight">Saves to Vault when hired.</p>
-            </div>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              Use <span style={{ fontWeight: 800 }}>+ Add Job</span> to create one anytime. But letting Resume Coach create them keeps everything linked automatically.
+            </p>
           </div>
+
         </div>
       </div>
 
@@ -1007,7 +1038,7 @@ export default function JobTrackerPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Job Description</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Job Description *</label>
                 <textarea
                   value={newDescription}
                   onChange={e => setNewDescription(e.target.value)}
@@ -1282,7 +1313,7 @@ export default function JobTrackerPage() {
                               .from('profiles')
                               .select('email')
                               .eq('id', user.id)
-                              .single();
+                              .maybeSingle();
                             const data = await fetchJSON('/api/stripe/checkout', {
                               method: 'POST',
                               headers: {
@@ -1478,7 +1509,7 @@ export default function JobTrackerPage() {
                                 >📄 View Resume</button>
                               )}
                               {card.application_status === 'hired' && (
-                                <span className="text-[10px] text-gray-400">🔒 JD saved to Vault</span>
+                                <span className="text-[10px] text-gray-400">🔒 job description saved to Vault</span>
                               )}
                             </div>
                           </div>

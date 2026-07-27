@@ -315,8 +315,8 @@ export default function JobCardModal({
                         action: 'new-cover-letter',
                         ...(card.title && { jobTitle: card.title }),
                         ...(card.company && { jobCompany: card.company }),
-                        ...(card.description && { jobDescription: card.description }),
                         ...(card.resume_id && { resumeId: card.resume_id }),
+                        ...(card.id && { applicationId: card.id }),
                       });
                       router.push(`/resume-coach?${params.toString()}`);
                     }}
@@ -635,7 +635,7 @@ export default function JobCardModal({
         </div>
       )}
 
-      {/* ── JD MODAL ── */}
+      {/* ── job description MODAL ── */}
       {showJdModal && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"

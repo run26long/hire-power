@@ -33,8 +33,8 @@ export default function MyCareerPage() {
         setUser(user);
 
         const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('*').eq('id', user.id).single();
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+          .from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (profileError) throw profileError;
         setUserProfile(profile);
 
         const { data: context, error: contextError } = await supabase
@@ -422,7 +422,9 @@ export default function MyCareerPage() {
                         const tier = userProfile?.subscription_tier;
                         const isGated = (tier === 'free' || tier === 'vault') && hasContext;
                         if (isGated) return 'Upgrade to Continue →';
-                        return hasContext ? 'Update Goals →' : 'Start Conversation →';
+                        if (hasContext) return 'Update Goals →';
+                        if (existingResume?.career_coaching_conversation?.length > 0) return 'Resume Conversation →';
+                        return 'Start Conversation →';
                       })()}
                     </button>
                   </div>
@@ -660,7 +662,7 @@ export default function MyCareerPage() {
                     <span className="text-6xl font-black text-gray-200 leading-none flex-shrink-0 w-10" style={{ fontFamily: 'Fraunces, serif' }}>2</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">No resume? No problem!</p>
-                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk to text.</p>
+                      <p className="text-xs text-gray-500 leading-snug mt-0.5">Meet brb — best resume builder. Writes your resume from one conversation. Mobile friendly, desktop optional. Type your answers, or use talk-to-text on your mobile device.</p>
                     </div>
                     <div className="flex-shrink-0 text-center">
                       <button

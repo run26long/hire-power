@@ -265,7 +265,7 @@ export async function GET(req) {
       .from('profiles')
       .select('subscription_tier, display_name, photo_url, search_status, cl_count, jms_count')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     
     if (profileError) {
       console.error('Profile error:', profileError);
@@ -358,7 +358,7 @@ export async function GET(req) {
       .from('career_context')
       .select('completed_at')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
     // Format core resume data
     const coreResumeData = coreResume ? {
@@ -373,7 +373,8 @@ export async function GET(req) {
       journey_step: coreResume.journey_step || 'review',
       updated_at: coreResume.updated_at,
       thumbnail_url: thumbnailUrl,
-      score_breakdown: coreResume.score_breakdown
+      score_breakdown: coreResume.score_breakdown,
+      has_coaching_conversation: !!(coreResume.coaching_conversation?.length > 0)
     } : null;
     
     // Format resume versions data (tier-specific)

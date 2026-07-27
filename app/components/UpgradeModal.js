@@ -18,7 +18,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
           .from('profiles')
           .select('b4_sent_at, subscription_tier')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
         if (!profile || profile.b4_sent_at) return
         if (profile.subscription_tier !== 'free') return
         const now = new Date().toISOString()
@@ -51,7 +51,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
         .from('profiles')
         .select('email')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (profileError) {
         console.warn('UpgradeModal: profile query failed, falling back to user.email', profileError)
