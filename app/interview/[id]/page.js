@@ -61,6 +61,10 @@ export default function InterviewDetailPage() {
   const messagesEndRef = useRef(null);
   const coachInputRef = useRef(null);
 
+  // Step completion derived from real data, not cursor position
+  const analyzeComplete = !!powerAnalysis;
+  const coachComplete = stories.some(s => s.coachingComplete);
+
   // ============================================================================
   // DATA LOAD
   // ============================================================================
@@ -122,16 +126,33 @@ export default function InterviewDetailPage() {
         setInterviewEvents(eventsData || []);
       }
 
+      let loadedStories = [];
       if (data.powerAnalysis) {
         const storiesRes = await fetch(`/api/story-coach/get?jobCardId=${params.id}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         if (storiesRes.ok) {
           const storiesData = await storiesRes.json();
-          setStories(storiesData.stories || []);
+          loadedStories = storiesData.stories || [];
+          setStories(loadedStories);
         }
       } else {
         setStories([]);
+      }
+
+      // Restore saved position. Runs before setLoading(false) so the persist
+      // effects don't fire with defaults and clobber what was saved.
+      const savedStep = data.jobCard?.interview_step;
+      if (savedStep === 'analyze' || savedStep === 'coach' || savedStep === 'practice') {
+        setCurrentStep(savedStep);
+      }
+
+      const savedStoryId = data.jobCard?.interview_active_story_id;
+      if (savedStoryId) {
+        const savedStory = loadedStories.find(s => s.id === savedStoryId && !s.coachingComplete);
+        if (savedStory) {
+          openCoachingForItem(savedStory.itemType, savedStory.itemIndex, savedStory.itemSkill);
+        }
       }
 
       setRetryCount(0);
@@ -214,6 +235,34 @@ export default function InterviewDetailPage() {
       setMobilePanel('coaching');
     }
   }, [currentStep]);
+
+  // Persist current step to applications.interview_step. Fire-and-forget:
+  // the UI never waits on this, and a failure is logged and otherwise ignored.
+  useEffect(() => {
+    if (loading) return;
+    supabase
+      .from('applications')
+      .update({ interview_step: currentStep })
+      .eq('id', params.id)
+      .then(({ error }) => {
+        if (error) console.error('Persist interview_step failed:', error);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, loading, params.id]);
+
+  // Persist the active story to applications.interview_active_story_id.
+  // Writes null when the conversation is closed. Fire-and-forget.
+  useEffect(() => {
+    if (loading) return;
+    supabase
+      .from('applications')
+      .update({ interview_active_story_id: activeStory?.id ?? null })
+      .eq('id', params.id)
+      .then(({ error }) => {
+        if (error) console.error('Persist interview_active_story_id failed:', error);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStory?.id, loading, params.id]);
 
   // ============================================================================
   // POWER ANALYSIS GENERATION
@@ -336,6 +385,7 @@ export default function InterviewDetailPage() {
     const optimisticMessages = [...coachingMessages, { role: 'user', content: text }];
     setCoachingMessages(optimisticMessages);
     setCoachInput('');
+    if (coachInputRef.current) coachInputRef.current.style.height = 'auto';
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -746,7 +796,7 @@ export default function InterviewDetailPage() {
               <div className="relative">
                 <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
                   <div className="h-full transition-all duration-300" style={{
-                    width: currentStep === 'analyze' ? '0%' : currentStep === 'coach' ? '50%' : '100%',
+                    width: `${(((analyzeComplete ? 1 : 0) + (coachComplete ? 1 : 0)) / 2) * 100}%`,
                     background: 'linear-gradient(to right, #667eea, #764ba2)'
                   }}></div>
                 </div>
@@ -756,10 +806,9 @@ export default function InterviewDetailPage() {
                     { label: 'Coach', key: 'coach' },
                     { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
-                    const steps = ['analyze', 'coach', 'practice'];
-                    const currentIdx = steps.indexOf(currentStep);
-                    const complete = i < currentIdx;
-                    const current = i === currentIdx;
+                    const completeByKey = { analyze: analyzeComplete, coach: coachComplete, practice: false };
+                    const complete = completeByKey[key];
+                    const current = key === currentStep;
                     return (
                       <div
                         key={key}
@@ -1217,6 +1266,15 @@ function CoachingView({
 }) {
   const isBatch = batchQueue.length > 0;
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="px-4 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
@@ -1320,12 +1378,14 @@ function CoachingView({
             )}
           </div>
         ) : (
+          <>
           <div className="flex gap-2 items-end">
             <textarea
               ref={coachInputRef}
               value={coachInput}
               onChange={e => setCoachInput(e.target.value)}
               onInput={e => {
+                if (isMobile) return;
                 e.target.style.height = 'auto';
                 const maxHeight = window.innerHeight - 310;
                 const target = Math.min(e.target.scrollHeight, maxHeight);
@@ -1343,7 +1403,11 @@ function CoachingView({
               disabled={coachSending || coachStarting}
               rows={2}
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              style={{ overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }}
+              style={
+                isMobile
+                  ? { height: '4.5rem', overflowY: 'auto' }
+                  : { overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }
+              }
             />
             <button
               onClick={onSend}
@@ -1360,6 +1424,8 @@ function CoachingView({
               </svg>
             </button>
           </div>
+          <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
+          </>
         )}
         <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
       </div>
@@ -1539,15 +1605,11 @@ function InterviewHeaderStrip({
           </div>
         </div>
 
-        {/* PROGRESS */}
+        {/* STORIES READY */}
         <div className="flex flex-col gap-1.5 md:items-end md:border-l md:border-gray-200 md:pl-6">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Coaching Progress</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Stories Ready</p>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-bold text-gray-900" style={{ lineHeight: 1 }}>{storiesCoached}</span>
-            <span className="text-sm font-medium text-gray-400">/ {totalStoryItems}</span>
-          </div>
-          <div className="w-32 h-1 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, background: 'linear-gradient(to right, #667eea, #764ba2)' }}></div>
           </div>
         </div>
 

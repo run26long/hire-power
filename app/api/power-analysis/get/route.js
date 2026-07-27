@@ -41,7 +41,7 @@ export async function GET(request) {
     // ---- LOAD JOB CARD ----
     const { data: jobCard, error: jobCardError } = await supabase
       .from('applications')
-      .select('id, title, company, description, resume_id, match_score, interview_level, interview_readiness_score, interview_sessions_count, interview_last_practiced_at')
+      .select('id, title, company, description, resume_id, match_score, interview_level, interview_readiness_score, interview_sessions_count, interview_last_practiced_at, interview_step, interview_active_story_id')
       .eq('id', jobCardId)
       .eq('user_id', userId)
       .single();
@@ -97,7 +97,9 @@ export async function GET(request) {
         interview_level: jobCard.interview_level ?? 0,
         interview_readiness_score: jobCard.interview_readiness_score ?? 0,
         interview_sessions_count: jobCard.interview_sessions_count ?? 0,
-        interview_last_practiced_at: jobCard.interview_last_practiced_at
+        interview_last_practiced_at: jobCard.interview_last_practiced_at,
+        interview_step: jobCard.interview_step ?? null,
+        interview_active_story_id: jobCard.interview_active_story_id ?? null
       },
       resume: resume ? {
         id: resume.id,
