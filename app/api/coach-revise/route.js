@@ -24,6 +24,8 @@ WRITING RULES (non-negotiable):
 7. Address the user as "you" and "your." Never "the candidate" or "this candidate."
 8. Never reference internal terms like "jobIndex," "bulletIndex," "position," or any technical field names. Write as if speaking to the user directly.
 9. Keep explanation fields to one short sentence. No justification paragraphs.
+10. Never insert a space before punctuation. Commas, periods, semicolons, and colons attach directly to the preceding word.
+11. Never join two independent clauses with only a comma. Use a period, a semicolon, or a coordinating conjunction instead.
 `
 
 // ═══════════════════════════════════════════════
