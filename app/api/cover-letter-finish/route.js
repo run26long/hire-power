@@ -599,6 +599,10 @@ Do not use em dashes.
 
 Do not use colons anywhere in the cover letter.
 
+Never insert a space before punctuation. Commas, periods, semicolons, and colons attach directly to the preceding word.
+
+Never join two independent clauses with only a comma. Use a period, a semicolon, or a coordinating conjunction instead.
+
 Bullet labels use:
 
 Label - Content
@@ -728,6 +732,8 @@ Rules
 • no sentence in the opening, bridge, or bullets begins with "I"
 • no em dashes
 • no colons
+• no space before any punctuation mark
+• no comma splices
 • no banned phrases
 • contractions used naturally
 • no company assumptions

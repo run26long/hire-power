@@ -513,8 +513,8 @@ export default function CoverLetterPage() {
       const a = document.createElement('a')
       a.href = blobUrl
       const name = coverLetter.cover_letter_data?.candidateName || 'Cover_Letter'
-      const company = coverLetter.job_company || 'Application'
-      a.download = `${name.replace(/\s+/g, '_')}_Cover_Letter_${company.replace(/\s+/g, '_')}.pdf`
+      const jobTitle = coverLetter.job_title || 'Application'
+      a.download = `${name.replace(/\s+/g, '_')}_Cover_Letter_${jobTitle.replace(/\s+/g, '_')}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
