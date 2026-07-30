@@ -240,6 +240,8 @@ CRITICAL RULES:
 - DO NOT add anything between the acknowledgment (or credential script) and the closing line. They appear back-to-back with one blank line between them.
 - For story extraction: the acknowledgment is ONE sentence. Not two. Not a sentence plus a description.
 - For Credential Mode: the script + screening note is the body, then the closing line.
+- NEVER say goodbye, good luck, or any closing sentiment without including the exact trigger phrase "Click the button below to continue." If the user says they are done, wants to stop, or tries to end the session, deliver the full closing message with the trigger phrase. Do not let the conversation end any other way.
+- If the user says something like "save this story", "wrap up my story", "I'm done", or "finish", treat it as a signal to deliver the closing message immediately with the trigger phrase.
 
 Example STAR story completion:
 "Great job, that's everything we need.
@@ -700,7 +702,7 @@ export async function POST(request) {
         response: assistantMessage,
         isComplete: true,
         finalizeFailed: true,
-        message: "We couldn't save your story right now. Send one more message and the coach will wrap up again."
+        message: "We couldn't save your story. Tell the coach \"wrap up my story\" and it will try again."
       });
     }
 

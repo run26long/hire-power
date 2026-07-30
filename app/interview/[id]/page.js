@@ -1121,7 +1121,7 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
         For each item, you can build a polished <span className="font-bold text-gray-800">STAR story</span> (Situation, Task, Action, Result) through a quick coaching conversation so you walk in with a specific, clear answer ready when the question comes up.
       </p>
-      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">Coaching completion rework and button standards
         Click below to build your STAR stories.
       </p>
       <button
@@ -1397,7 +1397,7 @@ function CoachingView({
                   className={practiceIsPrimary ? primaryClass : secondaryClass}
                   style={practiceIsPrimary ? primaryStyle : undefined}
                 >
-                  Interview Practice →
+                  Practice Interview →
                 </button>
               </div>
             )}
