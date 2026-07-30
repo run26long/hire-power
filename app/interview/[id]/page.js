@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../../components/MainNav';
 import Breadcrumb from '../../components/Breadcrumb';
 import ErrorToast from '../../components/ErrorToast';
+import SuccessToast from '../../components/SuccessToast';
 import UpgradeModal from '../../components/UpgradeModal';
 
 export default function InterviewDetailPage() {
@@ -55,6 +56,7 @@ export default function InterviewDetailPage() {
   const [now, setNow] = useState(Date.now());
 
  const [errorToast, setErrorToast] = useState(null);
+  const [successToast, setSuccessToast] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [interviewEvents, setInterviewEvents] = useState([]);
 
@@ -425,6 +427,8 @@ export default function InterviewDetailPage() {
           }];
         });
 
+        setSuccessToast('Story saved to your card.');
+
         if (batchQueue.length > 0) {
           setBatchJustCompleted({
             itemType: data.story.itemType,
@@ -521,6 +525,11 @@ export default function InterviewDetailPage() {
     setBatchPosition(0);
     setBatchJustCompleted(null);
     setBatchChecks({});
+  };
+
+  const handleGoToPractice = () => {
+    handleEndCoaching();
+    setCurrentStep('practice');
   };
 
   // ============================================================================
@@ -857,6 +866,7 @@ export default function InterviewDetailPage() {
                 <CoachingView
                   activeStory={activeStory}
                   coachingMessages={coachingMessages}
+                  completedStoryCount={stories.filter(s => s.coachingComplete).length}
                   coachInput={coachInput}
                   setCoachInput={setCoachInput}
                   coachSending={coachSending}
@@ -867,6 +877,7 @@ export default function InterviewDetailPage() {
                   batchJustCompleted={batchJustCompleted}
                   onSend={handleSendCoachMessage}
                   onEnd={handleEndCoaching}
+                  onGoToPractice={handleGoToPractice}
                   onAdvanceBatch={handleAdvanceBatch}
                   messagesEndRef={messagesEndRef}
                   coachInputRef={coachInputRef}
@@ -887,6 +898,7 @@ export default function InterviewDetailPage() {
       </div>
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
       <StoryModal story={viewingStory} onClose={() => setViewingStory(null)} />
     </div>
@@ -1259,12 +1271,16 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
 // ============================================================================
 
 function CoachingView({
-  activeStory, coachingMessages, coachInput, setCoachInput,
+  activeStory, coachingMessages, completedStoryCount, coachInput, setCoachInput,
   coachSending, coachStarting, coachError,
   batchQueue, batchPosition, batchJustCompleted,
-  onSend, onEnd, onAdvanceBatch, messagesEndRef, coachInputRef
+  onSend, onEnd, onGoToPractice, onAdvanceBatch, messagesEndRef, coachInputRef
 }) {
   const isBatch = batchQueue.length > 0;
+  const practiceIsPrimary = completedStoryCount >= 5;
+  const primaryClass = "flex-1 whitespace-nowrap text-white rounded-lg py-2 px-2 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90";
+  const primaryStyle = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
+  const secondaryClass = "flex-1 whitespace-nowrap bg-white border border-purple-300 text-purple-600 rounded-lg py-2 px-2 font-semibold text-sm md:text-xs hover:bg-purple-50 transition-colors";
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -1368,13 +1384,22 @@ function CoachingView({
                 </button>
               </>
             ) : (
-              <button
-                onClick={onEnd}
-                className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-              >
-                Save My Story →
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={onEnd}
+                  className={practiceIsPrimary ? secondaryClass : primaryClass}
+                  style={practiceIsPrimary ? undefined : primaryStyle}
+                >
+                  Coach More
+                </button>
+                <button
+                  onClick={onGoToPractice}
+                  className={practiceIsPrimary ? primaryClass : secondaryClass}
+                  style={practiceIsPrimary ? primaryStyle : undefined}
+                >
+                  Interview Practice →
+                </button>
+              </div>
             )}
           </div>
         ) : (

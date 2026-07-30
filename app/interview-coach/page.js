@@ -846,9 +846,8 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
       <div className="flex items-center gap-1.5 mt-2">
         <StepPill label="Analyzed" complete={hasAnalyzed} />
         <StepPill
-          label={hasCoached ? `Coached ${storiesCoached}/${totalStoryItems}` : 'Coached'}
-          complete={allCoached}
-          partial={hasCoached && !allCoached}
+          label={hasCoached ? `Coached ${storiesCoached}` : 'Coached'}
+          complete={hasCoached}
         />
         <StepPill
           label={hasPracticed && card.level > 0 ? `Practiced L${card.level}` : 'Practiced'}
