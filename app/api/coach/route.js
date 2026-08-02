@@ -113,7 +113,7 @@ function convertStructuredToText(data) {
 // ─────────────────────────────────────────────
 // COACHING SYSTEM PROMPTS BY CAREER LEVEL
 // ─────────────────────────────────────────────
-function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
+function buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
 
   // ── DECLARED FIRST — used by all paths below ──
   const capabilityBlock = tier === 'free'
@@ -1281,6 +1281,17 @@ ${phaseStructure}
 Be warm, direct, and genuinely curious. You are a professional resume coach who has helped thousands of people discover the value they didn't know they had. You know that everyone — including the person who thinks they have nothing impressive — has something worth putting on the page. Your job is to find it.`
 }
 
+// Appends the caller's confirmed career knowledge to whichever prompt variant the
+// base builder returned. It goes last so it can't disturb the prompt above it, and
+// it lives in the system block rather than the conversation so the coach treats it
+// as standing instruction instead of something the candidate just said.
+function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, careerKnowledgeBlock) {
+  const basePrompt = buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
+  const knowledge = typeof careerKnowledgeBlock === 'string' ? careerKnowledgeBlock.trim() : ''
+  if (!knowledge) return basePrompt
+  return `${basePrompt}\n\n${knowledge}`
+}
+
 // ─────────────────────────────────────────────
 // MAIN HANDLER
 // ─────────────────────────────────────────────
@@ -1311,7 +1322,8 @@ export async function POST(request) {
       isJobSpecific,
       jobDescription,
       jobTitle,
-      jobCompany
+      jobCompany,
+      careerKnowledgeBlock
     } = await request.json()
 
     const userTier = tier || 'pro'
@@ -1342,7 +1354,7 @@ export async function POST(request) {
       if (!['entry', 'mid', 'senior'].includes(level)) level = 'mid'
     }
 
-    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
+    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, careerKnowledgeBlock)
 
     const userMessages = conversation
       .filter(msg => msg.role !== 'system')
