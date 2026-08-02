@@ -725,16 +725,22 @@ async function startCoachingFromKnowledgeModal() {
   setShowKnowledgeModal(false)
   if ((resume?.journey_step || '') !== 'assess') return
   try {
+    const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+    // Stamp the pre-coaching baseline once. An already-persisted value
+    // is the real original, so it is never overwritten.
+    if (resume?.score_before_coaching == null) {
+      journeyUpdate.score_before_coaching = score
+    }
     const { error } = await supabase
       .from('resumes')
-      .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+      .update(journeyUpdate)
       .eq('id', params.id)
     if (error) {
       console.error('Error advancing to coach step:', error)
       setErrorToast("We couldn't start your coaching session. Please try again.")
       return
     }
-    setResume(prev => ({ ...prev, journey_step: 'coach' }))
+    setResume(prev => ({ ...prev, ...journeyUpdate }))
   } catch (err) {
     console.error('Unexpected error advancing to coach step:', err)
     setErrorToast("Something went wrong starting your coaching session. Please try again.")
@@ -963,6 +969,13 @@ function formatDate(dateString, format = dateFormat) {
       }
 
       setResume(data)
+
+    // Restore the persisted pre-coaching baseline so the before/after reveal
+    // survives a reload. Without this the only baseline is in-memory and a
+    // refresh after coaching would report the post-coaching score as "before".
+    if (data.score_before_coaching != null && scoreBeforeCoaching === null) {
+      setScoreBeforeCoaching(data.score_before_coaching)
+    }
 
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
@@ -2476,11 +2489,17 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               onClick={async () => {
                 setIsUpdatingJourney(true)
                 try {
+                  const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+                  // Stamp the pre-coaching baseline once. An already-persisted value
+                  // is the real original, so it is never overwritten.
+                  if (resume?.score_before_coaching == null) {
+                    journeyUpdate.score_before_coaching = score
+                  }
                   const { error } = await supabase
                     .from('resumes')
-                    .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+                    .update(journeyUpdate)
                     .eq('id', params.id)
-                  if (!error) setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                  if (!error) setResume(prev => ({ ...prev, ...journeyUpdate }))
                 } finally {
                   setIsUpdatingJourney(false)
                 }
@@ -2778,19 +2797,22 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                       onClick={async () => {
                         setIsUpdatingJourney(true)
                         try {
+                          const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+                          // Stamp the pre-coaching baseline once. An already-persisted
+                          // value is the real original, so it is never overwritten.
+                          if (resume?.score_before_coaching == null) {
+                            journeyUpdate.score_before_coaching = score
+                          }
                           const { error } = await supabase
                             .from('resumes')
-                            .update({
-                              journey_step: 'coach',
-                              updated_at: new Date().toISOString()
-                            })
+                            .update(journeyUpdate)
                             .eq('id', params.id)
                           if (error) {
                             console.error('Error starting free trial coaching:', error)
                             setErrorToast("We couldn't start your coaching session. Please try again.")
                             return
                           }
-                          setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                          setResume(prev => ({ ...prev, ...journeyUpdate }))
                        } catch (err) {
                         console.error('Unexpected error starting free trial coaching:', err)
                         setErrorToast("Something went wrong starting your coaching session. Please try again.")
@@ -2815,15 +2837,21 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                   onClick={async () => {
                     setIsUpdatingJourney(true)
                     try {
+                      const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+                      // Stamp the pre-coaching baseline once. An already-persisted
+                      // value is the real original, so it is never overwritten.
+                      if (resume?.score_before_coaching == null) {
+                        journeyUpdate.score_before_coaching = score
+                      }
                       const { error } = await supabase
                         .from('resumes')
-                        .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+                        .update(journeyUpdate)
                         .eq('id', params.id)
                       if (error) {
                         setErrorToast('Something went wrong. Please try again.')
                       } else {
                         track('assessment_completed', { score: score || 0 })
-                        setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                        setResume(prev => ({ ...prev, ...journeyUpdate }))
                       }
                     } catch (err) {
                       setErrorToast('Something went wrong. Please try again.')
@@ -3411,6 +3439,17 @@ const getMessageText = (msg) => {
       startResumeChat()
     }
   }, [isConversational])
+
+  // Baseline for the before/after reveal. Captured the moment the coach step
+  // opens, which is the last point at which current_score is still the original
+  // score — coach-finish and the accept-changes re-score both move it after this.
+  // Guarded so it is written once and never re-captured on a revisit.
+  useEffect(() => {
+    if (coachingComplete) return
+    if (score && !scoreBeforeCoaching) {
+      setScoreBeforeCoaching(score)
+    }
+  }, [score])
 
  // Standard coaching init — runs once at mount, skips empty resume data
   useEffect(() => {
@@ -4362,8 +4401,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   const [targetedMessages, setTargetedMessages] = useState([])
   const [isTargetedFinishing, setIsTargetedFinishing] = useState(false)
 
-  // Capture score before coaching when improve step loads
+  // Fallback for sessions that land on improve without passing through the coach
+  // step. Skipped once changes are accepted: at that point the re-score has already
+  // replaced current_score, so capturing here would report the post-coaching number
+  // as the baseline and show an identical before and after.
   useEffect(() => {
+    if (changesAccepted) return
     if (score && !scoreBeforeCoaching) {
       setScoreBeforeCoaching(score)
     }
