@@ -26,6 +26,26 @@ const styles = `
   }
 `
 
+// Cuts a knowledge statement back to its first meaningful clause so the modal
+// reads as a scannable list. Display only — the stored row and the coaching
+// context block both keep the full statement.
+const KNOWLEDGE_CLAUSE_BREAKS = [', including', ', where', ', with', ', using', ', by', ', so']
+
+function trimKnowledgeContent(content) {
+  const text = String(content || '').trim()
+  const haystack = text.toLowerCase()
+
+  let cut = -1
+  for (const marker of KNOWLEDGE_CLAUSE_BREAKS) {
+    const index = haystack.indexOf(marker)
+    if (index !== -1 && (cut === -1 || index < cut)) cut = index
+  }
+  if (cut !== -1) return text.slice(0, cut)
+
+  const comma = text.indexOf(',')
+  return comma !== -1 ? text.slice(0, comma) : text
+}
+
 async function fireJT1MarkerIfFirst(supabase) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -189,6 +209,13 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [recoachAttempts, setRecoachAttempts] = useState(0)
   const [reviseModalState, setReviseModalState] = useState(null)
   const [bulletSelectMode, setBulletSelectMode] = useState(null)
+
+  // Career knowledge carried over from previous coaching sessions
+  const [knowledgeMatches, setKnowledgeMatches] = useState([])
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
+  const [isKnowledgeRescoring, setIsKnowledgeRescoring] = useState(false)
+  const [knowledgeRescore, setKnowledgeRescore] = useState(null)
+  const knowledgeMatchRanRef = useRef(false)
 
   // Capture system state — counter + toast queue
   const [captureCounts, setCaptureCounts] = useState({ jobs: 0, education: 0, skills: 0, wins: 0 })
@@ -594,6 +621,126 @@ const handleReassess = async (overrideData = null) => {
     setIsAnalyzing(false)
   }
 }
+// ── CAREER KNOWLEDGE CARRY-OVER ──
+// Once a job match analysis exists, check whether anything already confirmed in a
+// previous coaching session closes one of the gaps it found. Purely additive: any
+// failure here is swallowed so coaching is never blocked over a knowledge lookup.
+const knowledgeStorageKey = params?.id ? `hp_ck_modal_${params.id}` : null
+
+async function loadKnowledgeMatches(missingKeywords) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    const response = await fetch('/api/career-knowledge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        action: 'match',
+        missingKeywords,
+        jobTitle: resume?.job_title || null,
+        jobCompany: resume?.job_company || null
+      })
+    })
+
+    if (!response.ok) {
+      console.error('Career knowledge match failed (non-blocking):', response.status)
+      return
+    }
+
+    const data = await response.json()
+    const matches = Array.isArray(data?.matches) ? data.matches : []
+    if (matches.length === 0) return
+
+    // The matches feed the coaching context regardless of whether the modal opens,
+    // so a user who already dismissed it still gets the benefit.
+    setKnowledgeMatches(matches)
+
+    const alreadyShown = knowledgeStorageKey ? localStorage.getItem(knowledgeStorageKey) : null
+    if (!alreadyShown) {
+      if (knowledgeStorageKey) localStorage.setItem(knowledgeStorageKey, '1')
+      setShowKnowledgeModal(true)
+    }
+  } catch (err) {
+    console.error('Career knowledge match failed (non-blocking):', err)
+  }
+}
+
+useEffect(() => {
+  if (knowledgeMatchRanRef.current) return
+  if (!resume || !userProfile) return
+  if (resume.resume_type !== 'job_specific') return
+  if ((userProfile.subscription_tier || 'free') === 'free') return
+  if (resume.coaching_complete) return
+  if ((resume.journey_step || '') !== 'assess') return
+
+  const missing = analysisResults?.analysis?.missingKeywords
+  if (!Array.isArray(missing) || missing.length === 0) return
+
+  knowledgeMatchRanRef.current = true
+  loadKnowledgeMatches(missing)
+}, [resume?.id, resume?.journey_step, analysisResults, userProfile])
+
+// What-if score only. The addendum is never written back to the resume.
+async function handleKnowledgeRescore() {
+  setIsKnowledgeRescoring(true)
+  try {
+    const { data: { user: rescoreUser } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    const addendum = `ADDITIONAL VERIFIED EXPERIENCE:\n${knowledgeMatches.map(m => m.content).join('\n')}`
+
+    const response = await fetch('/api/job-analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        resumeData: resume.resume_data,
+        resumeTextAddendum: addendum,
+        jobDescription: resume.job_description,
+        jobTitle: resume.job_title,
+        jobCompany: resume.job_company,
+        userId: rescoreUser?.id
+      })
+    })
+
+    if (!response.ok) throw new Error('Re-score failed')
+
+    const result = await response.json()
+    setKnowledgeRescore(result.matchScore)
+  } catch (err) {
+    console.error('Career knowledge re-score failed:', err)
+    setErrorToast("We couldn't update your score just now. You can still start coaching.")
+  } finally {
+    setIsKnowledgeRescoring(false)
+  }
+}
+
+async function startCoachingFromKnowledgeModal() {
+  setShowKnowledgeModal(false)
+  if ((resume?.journey_step || '') !== 'assess') return
+  try {
+    const { error } = await supabase
+      .from('resumes')
+      .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+    if (error) {
+      console.error('Error advancing to coach step:', error)
+      setErrorToast("We couldn't start your coaching session. Please try again.")
+      return
+    }
+    setResume(prev => ({ ...prev, journey_step: 'coach' }))
+  } catch (err) {
+    console.error('Unexpected error advancing to coach step:', err)
+    setErrorToast("Something went wrong starting your coaching session. Please try again.")
+  }
+}
+
 function formatDate(dateString, format = dateFormat) {
     if (!dateString) return ''
     
@@ -1030,6 +1177,25 @@ if (data.ai_analysis) {
   const resumeData = resume?.resume_data || {}
   const journeyStep = resume?.journey_step || 'start'
   const score = resume?.current_score || null
+
+  const careerKnowledgeBlock = knowledgeMatches.length > 0
+    ? `CAREER KNOWLEDGE BASE:
+These facts are already confirmed. You MUST NOT ask the candidate about any topic already covered here. If a job requirement maps to something in this list, treat it as satisfied and move on. Only ask about experience that is genuinely absent from this list.
+
+${knowledgeMatches.map(m => `- ${m.content}`).join('\n')}`
+    : null
+
+  // The modal shows at most five items, in the order the model ranked them.
+  // Grouping happens after the cap, so group order follows first appearance.
+  const knowledgeDisplayItems = knowledgeMatches.slice(0, 5)
+  const knowledgeOverflowCount = knowledgeMatches.length - knowledgeDisplayItems.length
+
+  const groupedKnowledge = knowledgeDisplayItems.reduce((acc, item) => {
+    const type = item.knowledge_type || 'other'
+    if (!acc[type]) acc[type] = []
+    acc[type].push(item)
+    return acc
+  }, {})
 
   return (
     <>
@@ -1754,6 +1920,7 @@ if (data.ai_analysis) {
           setReviseModalState={setReviseModalState}
           bulletSelectMode={bulletSelectMode}
           setBulletSelectMode={setBulletSelectMode}
+          careerKnowledgeBlock={careerKnowledgeBlock}
             />
           </div>
         </div>
@@ -1768,6 +1935,126 @@ if (data.ai_analysis) {
         onClose={() => setShowUpgradeModal(false)}
         resumeId={params.id}
       />
+
+      {/* Career Knowledge Carry-Over Modal */}
+      {showKnowledgeModal && knowledgeMatches.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+          >
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">🎯</span>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">We already know some of this</h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowKnowledgeModal(false)}
+                  className="text-white hover:opacity-70 text-2xl leading-none font-light"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-700 leading-snug">
+                Based on your previous coaching sessions, we have experience on file that's relevant to this role. It's been added to your coaching context so the coach won't ask about it again.
+              </p>
+
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Object.entries(groupedKnowledge).map(([type, items]) => (
+                  <div key={type}>
+                    <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </div>
+                    <ul className="space-y-1">
+                      {items.map(item => (
+                        <li key={item.id} className="flex items-start gap-2 text-sm text-gray-700 leading-snug">
+                          <span className="text-purple-600 mt-0.5 flex-shrink-0">✓</span>
+                          <span>{trimKnowledgeContent(item.content)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              {knowledgeOverflowCount > 0 && (
+                <p className="text-xs font-semibold leading-snug" style={{ color: '#7c3aed' }}>
+                  ...and {knowledgeOverflowCount} more {knowledgeOverflowCount === 1 ? 'piece' : 'pieces'} of verified experience added to your coaching context.
+                </p>
+              )}
+
+              <p className="text-xs text-gray-400 leading-snug">
+                All of your career history is saved automatically and grows smarter with every session.
+              </p>
+
+              {knowledgeRescore !== null && (
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between">
+                  <div className="text-center">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Score with Core Resume</div>
+                    <div
+                      className="text-2xl font-bold text-gray-800"
+                      style={score ? { color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' } : undefined}
+                    >
+                      {score || '--'}
+                    </div>
+                  </div>
+                  <span className="font-bold" style={{ fontSize: '1.25rem', color: '#9ca3af', lineHeight: 1 }}>➜</span>
+                  <div className="text-center">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Score with Career History Added</div>
+                    <div
+                      className="text-2xl font-bold"
+                      style={{ color: knowledgeRescore >= 85 ? '#9333ea' : knowledgeRescore >= 75 ? '#81c784' : knowledgeRescore >= 60 ? '#ffc870' : '#e57373' }}
+                    >
+                      {knowledgeRescore}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {knowledgeRescore !== null ? (
+                <button
+                  onClick={startCoachingFromKnowledgeModal}
+                  className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
+                >
+                  Start Coaching →
+                </button>
+              ) : (
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={handleKnowledgeRescore}
+                    disabled={isKnowledgeRescoring}
+                    className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: isKnowledgeRescoring ? 0.85 : 1 }}
+                  >
+                    <span key={isKnowledgeRescoring ? 'loading' : 'idle'} className="flex items-center gap-2">
+                      {isKnowledgeRescoring && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                      {isKnowledgeRescoring ? 'Updating Score...' : 'Update My Score'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={startCoachingFromKnowledgeModal}
+                    disabled={isKnowledgeRescoring}
+                    className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-sm font-semibold hover:bg-purple-50 transition-colors disabled:opacity-50"
+                  >
+                    Start Coaching
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTooLongModal && (
         <div
@@ -1875,7 +2162,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode }) {
+function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, careerKnowledgeBlock }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2602,6 +2889,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setCaptureCounts={setCaptureCounts}
           setCaptureBumpKey={setCaptureBumpKey}
           setCaptureToast={setCaptureToast}
+          careerKnowledgeBlock={careerKnowledgeBlock}
         />
       )}
 
@@ -2799,7 +3087,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast }) {
+function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, careerKnowledgeBlock }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -3201,7 +3489,14 @@ const getMessageText = (msg) => {
           jobDescription,
           jobTitle,
           jobCompany,
-          conversation: [{ role: 'user', content: "Hi! I'm ready to work on my resume." }]
+          // Confirmed facts from earlier sessions ride in front of the opening
+          // message so the coach doesn't re-ask what we already know.
+          conversation: [{
+            role: 'user',
+            content: careerKnowledgeBlock
+              ? `${careerKnowledgeBlock}\n\nHi! I'm ready to work on my resume.`
+              : "Hi! I'm ready to work on my resume."
+          }]
         })
       })
       const data = await response.json()
@@ -3260,7 +3555,11 @@ const getMessageText = (msg) => {
           jobDescription,
           jobTitle,
           jobCompany,
-          conversation: updatedMessages
+          // The opening seed message isn't kept in coachingMessages, so the
+          // knowledge block is re-attached each turn rather than lost after the first.
+          conversation: careerKnowledgeBlock
+            ? [{ role: 'user', content: careerKnowledgeBlock }, ...updatedMessages]
+            : updatedMessages
         })
       })
       const data = await response.json()

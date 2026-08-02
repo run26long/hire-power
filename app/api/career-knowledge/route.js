@@ -48,6 +48,19 @@ All three keys must be present. Use an empty array for any category with no item
 
 Return ONLY the JSON object. No preamble, no markdown code fences, no explanation.`
 
+// Static prefix for the match action. The missing-keyword list is the only part
+// that varies per call, so it is sent last and everything above it stays cacheable.
+const MATCH_INSTRUCTIONS = `You are matching a candidate's existing career knowledge against gaps identified in a job match analysis.
+
+For each knowledge item, determine whether it meaningfully addresses one or more of the missing keywords. A match means this knowledge, if added to the resume, would credibly close that gap.
+
+Be strict. Only return items that directly and specifically address a missing keyword. If an item is generally relevant to the candidate's background but does not close a specific gap named in the missing keywords list, do not include it. Aim for the 3-5 most directly relevant items. Return no more than 8.
+
+Return ONLY a JSON array of matched ids, in order of relevance. No preamble, no fences.
+["id1", "id2", ...]
+
+If nothing matches, return [].`
+
 const VALID_TYPES = ['skill', 'experience', 'achievement', 'relationship', 'credential', 'tool', 'industry', 'methodology']
 
 // Lowercase, strip everything but alphanumerics and spaces, collapse runs of
@@ -83,6 +96,121 @@ function buildKnowledgeBaseBlock(rows) {
   }
   const list = rows.map((r, i) => `${i + 1}. id: ${r.id} | ${r.content}`).join('\n')
   return `EXISTING KNOWLEDGE BASE\n\n${list}`
+}
+
+function buildMatchKnowledgeBlock(rows) {
+  const list = rows.map((r, i) => `${i + 1}. id: ${r.id} | ${r.content}`).join('\n')
+  return `CANDIDATE KNOWLEDGE BASE:\n\n${list}`
+}
+
+// Returns the subset of the candidate's confirmed knowledge that closes one of the
+// gaps this job analysis surfaced. Every failure path returns an empty match list —
+// the caller uses this to decorate coaching, never to gate it.
+async function handleMatch(supabase, user, { missingKeywords, jobTitle, jobCompany }) {
+  const empty = { matches: [] }
+
+  const keywords = (Array.isArray(missingKeywords) ? missingKeywords : [])
+    .map(k => (typeof k === 'string' ? k.trim() : ''))
+    .filter(Boolean)
+
+  if (keywords.length === 0) {
+    console.log('[career-knowledge] match — no missing keywords supplied, nothing to match')
+    return NextResponse.json(empty)
+  }
+
+  const { data: rows, error: kbError } = await supabase
+    .from('career_knowledge')
+    .select('id, knowledge_type, content, raw_phrasing, confidence, mention_count, last_referenced_at')
+    .eq('user_id', user.id)
+    .is('superseded_by', null)
+    .eq('confidence', 'explicit')
+    .order('mention_count', { ascending: false })
+    .order('last_referenced_at', { ascending: false })
+
+  if (kbError) {
+    console.error('[career-knowledge] match — knowledge base fetch failed:', kbError)
+    return NextResponse.json(empty)
+  }
+
+  const knowledgeBase = rows || []
+  console.log(
+    '[career-knowledge] match — job:', jobTitle || '(none)', 'at', jobCompany || '(none)',
+    '| explicit items:', knowledgeBase.length,
+    '| missing keywords:', keywords.length
+  )
+
+  if (knowledgeBase.length === 0) return NextResponse.json(empty)
+
+  let responseText
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: [
+          // Same two-breakpoint pattern as extract: fixed instructions, then the
+          // knowledge base, then the only per-call variable content.
+          { type: 'text', text: MATCH_INSTRUCTIONS, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: buildMatchKnowledgeBlock(knowledgeBase), cache_control: { type: 'ephemeral' } },
+          {
+            type: 'text',
+            text: `MISSING KEYWORDS FROM JOB ANALYSIS:
+${keywords.map(k => `- ${k}`).join('\n')}
+
+Return the JSON array now.`
+          }
+        ]
+      }]
+    })
+    responseText = message.content?.[0]?.text?.trim()
+  } catch (apiErr) {
+    console.error('[career-knowledge] match — Claude API error:', apiErr)
+    return NextResponse.json(empty)
+  }
+
+  if (!responseText) {
+    console.error('[career-knowledge] match — no content in API response')
+    return NextResponse.json(empty)
+  }
+
+  const cleaned = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim()
+
+  let parsed
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch (e) {
+    console.error('[career-knowledge] match — parse error:', e, '| first 500 chars:', responseText.slice(0, 500))
+    return NextResponse.json(empty)
+  }
+
+  if (!Array.isArray(parsed)) {
+    console.error('[career-knowledge] match — expected an array, received:', typeof parsed)
+    return NextResponse.json(empty)
+  }
+
+  const byId = new Map(knowledgeBase.map(r => [String(r.id), r]))
+  const seen = new Set()
+  const matches = []
+  for (const rawId of parsed) {
+    const id = rawId == null ? '' : String(rawId)
+    if (seen.has(id)) continue
+    const row = byId.get(id)
+    if (!row) {
+      console.log('[career-knowledge] match — SKIPPED unknown id:', JSON.stringify(rawId))
+      continue
+    }
+    seen.add(id)
+    matches.push({
+      id: row.id,
+      knowledge_type: row.knowledge_type,
+      content: row.content,
+      mention_count: row.mention_count
+    })
+  }
+
+  console.log('[career-knowledge] match — returning', matches.length, 'matched items')
+  return NextResponse.json({ matches })
 }
 
 // Shared by "new" and "conflicts" — both carry a full item payload and both are
@@ -131,7 +259,18 @@ export async function POST(request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { action, resumeId, transcript, resumeData, jobTitle, jobCompany } = await request.json()
+    const { action, resumeId, transcript, resumeData, jobTitle, jobCompany, missingKeywords } = await request.json()
+
+    if (action === 'match') {
+      // Own try/catch so an unexpected failure returns the match-shaped payload
+      // rather than the extract-shaped noop below.
+      try {
+        return await handleMatch(supabase, user, { missingKeywords, jobTitle, jobCompany })
+      } catch (matchError) {
+        console.error('[career-knowledge] match — unexpected error:', matchError)
+        return NextResponse.json({ matches: [] })
+      }
+    }
 
     if (action !== 'extract') {
       console.error('[career-knowledge] Unknown action:', action)

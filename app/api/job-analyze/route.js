@@ -298,7 +298,7 @@ export async function POST(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const { resumeData, jobDescription, jobTitle, jobCompany, userId } = await request.json();
+    const { resumeData, jobDescription, jobTitle, jobCompany, userId, resumeTextAddendum } = await request.json();
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -313,7 +313,10 @@ export async function POST(request) {
       return Response.json({ error: 'JMS_LIMIT_REACHED' }, { status: 403 })
     }
 
-    const resumeText = convertResumeToText(resumeData);
+    // Optional plain-text block appended to the resume for what-if scoring
+    // (e.g. previously confirmed career knowledge). Nothing is persisted from it.
+    const addendum = typeof resumeTextAddendum === 'string' ? resumeTextAddendum.trim() : '';
+    const resumeText = convertResumeToText(resumeData) + (addendum ? `\n\n${addendum}\n` : '');
 
     const systemPrompt = `${JOB_MATCH_PROMPT}
 
