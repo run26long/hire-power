@@ -586,7 +586,7 @@ CAREER COACH CONTEXT (from earlier conversation):
 - Skills not yet on resume: ${careerContext.skills_not_on_resume?.join(', ') || 'none noted'}
 - Timeline: ${careerContext.timeline || 'not specified'}
 
-Use this context to guide every coaching question. For career changers, actively look for 
+Use this context to guide every coaching question. For career changers, actively look for
 transferable skills. If skills_not_on_resume has entries, probe those specifically.
 ` : ''
 
@@ -1281,15 +1281,8 @@ ${phaseStructure}
 Be warm, direct, and genuinely curious. You are a professional resume coach who has helped thousands of people discover the value they didn't know they had. You know that everyone — including the person who thinks they have nothing impressive — has something worth putting on the page. Your job is to find it.`
 }
 
-// Appends the caller's confirmed career knowledge to whichever prompt variant the
-// base builder returned. It goes last so it can't disturb the prompt above it, and
-// it lives in the system block rather than the conversation so the coach treats it
-// as standing instruction instead of something the candidate just said.
-function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, careerKnowledgeBlock) {
-  const basePrompt = buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
-  const knowledge = typeof careerKnowledgeBlock === 'string' ? careerKnowledgeBlock.trim() : ''
-  if (!knowledge) return basePrompt
-  return `${basePrompt}\n\n${knowledge}`
+function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
+  return buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
 }
 
 // ─────────────────────────────────────────────
@@ -1323,7 +1316,7 @@ export async function POST(request) {
       jobDescription,
       jobTitle,
       jobCompany,
-      careerKnowledgeBlock
+      knowledgeBase
     } = await request.json()
 
     const userTier = tier || 'pro'
@@ -1354,7 +1347,19 @@ export async function POST(request) {
       if (!['entry', 'mid', 'senior'].includes(level)) level = 'mid'
     }
 
-    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, careerKnowledgeBlock)
+    // Confirmed facts from earlier sessions ride along with the resume so the coach
+    // reads them as background it already has, not as a separate instruction block.
+    // Appended after level detection so the detector still sees the resume alone.
+    const knowledgeAddendum = (Array.isArray(knowledgeBase) ? knowledgeBase : [])
+      .filter(f => typeof f === 'string' && f.trim())
+      .map(f => f.trim())
+      .join('\n')
+
+    if (knowledgeAddendum) {
+      textToCoach = textToCoach + '\n\nADDITIONAL VERIFIED EXPERIENCE:\n' + knowledgeAddendum
+    }
+
+    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
 
     const userMessages = conversation
       .filter(msg => msg.role !== 'system')

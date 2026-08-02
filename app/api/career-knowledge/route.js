@@ -141,10 +141,32 @@ async function handleMatch(supabase, user, { missingKeywords, jobTitle, jobCompa
 
   if (knowledgeBase.length === 0) return NextResponse.json(empty)
 
+  // Cheap lexical pre-filter so the model only reads plausibly relevant items.
+  // Words of three characters or fewer carry no signal, so they are ignored.
+  const meaningfulWords = text => new Set(
+    String(text ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 3)
+  )
+
+  const keywordWords = meaningfulWords(keywords.join(' '))
+  const prefiltered = knowledgeBase.filter(row => {
+    for (const word of meaningfulWords(row.content)) {
+      if (keywordWords.has(word)) return true
+    }
+    return false
+  })
+
+  // No overlap means the word test was too crude, not that nothing matches —
+  // fall through to the full list rather than short-circuiting to empty.
+  const candidates = prefiltered.length > 0 ? prefiltered : knowledgeBase
+  console.log(
+    '[career-knowledge] match — pre-filter kept', prefiltered.length, 'of', knowledgeBase.length, 'items',
+    prefiltered.length === 0 ? '(no overlap, falling back to the full list)' : ''
+  )
+
   let responseText
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1000,
       messages: [{
         role: 'user',
@@ -152,7 +174,7 @@ async function handleMatch(supabase, user, { missingKeywords, jobTitle, jobCompa
           // Same two-breakpoint pattern as extract: fixed instructions, then the
           // knowledge base, then the only per-call variable content.
           { type: 'text', text: MATCH_INSTRUCTIONS, cache_control: { type: 'ephemeral' } },
-          { type: 'text', text: buildMatchKnowledgeBlock(knowledgeBase), cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: buildMatchKnowledgeBlock(candidates), cache_control: { type: 'ephemeral' } },
           {
             type: 'text',
             text: `MISSING KEYWORDS FROM JOB ANALYSIS:
@@ -174,7 +196,8 @@ Return the JSON array now.`
     return NextResponse.json(empty)
   }
 
-  const cleaned = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim()
+  const arrayMatch = responseText.match(/\[[\s\S]*\]/)
+  const cleaned = arrayMatch ? arrayMatch[0] : responseText
 
   let parsed
   try {
@@ -209,8 +232,60 @@ Return the JSON array now.`
     })
   }
 
-  console.log('[career-knowledge] match — returning', matches.length, 'matched items')
-  return NextResponse.json({ matches })
+  // Second pass. The id match tells the modal which items to show; this tells the
+  // caller which gaps those items actually close, in the caller's own keyword
+  // strings. Judged semantically, since a fact rarely repeats a keyword verbatim.
+  // Non-blocking: any failure leaves coveredKeywords empty and nothing is filtered.
+  let coveredKeywords = []
+  if (candidates.length > 0) {
+    try {
+      const coverageMessage = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `A candidate has confirmed career knowledge from previous sessions. Review their knowledge against a list of missing keywords from a job match analysis and identify which keywords are covered.
+
+CONFIRMED KNOWLEDGE:
+${candidates.map((c, i) => `${i + 1}. ${c.content}`).join('\n')}
+
+MISSING KEYWORDS:
+${keywords.join('\n')}
+
+For each missing keyword, determine whether any item in the confirmed knowledge meaningfully covers it. Judge by meaning, not wording. A keyword is covered if the candidate's confirmed experience would satisfy that requirement to a hiring manager reading their resume.
+
+Return ONLY a JSON array of the keywords that are covered, using the exact keyword strings from the MISSING KEYWORDS list. No preamble, no markdown fences.
+
+["keyword1", "keyword2"]
+
+If nothing is covered, return [].`
+        }]
+      })
+
+      const coverageText = coverageMessage.content?.[0]?.text?.trim()
+      if (!coverageText) {
+        console.error('[career-knowledge] match — coverage pass returned no content')
+      } else {
+        const coverageArrayMatch = coverageText.match(/\[[\s\S]*\]/)
+        const coverageParsed = JSON.parse(coverageArrayMatch ? coverageArrayMatch[0] : coverageText)
+        if (!Array.isArray(coverageParsed)) {
+          console.error('[career-knowledge] match — coverage expected an array, received:', typeof coverageParsed)
+        } else {
+          coveredKeywords = coverageParsed
+            .filter(k => typeof k === 'string' && k.trim())
+            .map(k => k.trim())
+        }
+      }
+    } catch (coverageErr) {
+      console.error('[career-knowledge] match — coverage pass failed (non-blocking):', coverageErr)
+    }
+  }
+
+  console.log(
+    '[career-knowledge] match — returning', matches.length, 'matched items',
+    '| covered keywords:', coveredKeywords.length, 'of', keywords.length
+  )
+  return NextResponse.json({ matches, coveredKeywords })
 }
 
 // Everything this coaching session added to the knowledge base that has not yet

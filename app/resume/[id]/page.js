@@ -212,6 +212,9 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
 
   // Career knowledge carried over from previous coaching sessions
   const [knowledgeMatches, setKnowledgeMatches] = useState([])
+  // Same analysis with knowledge-covered gaps removed. Coach-only — every
+  // user-facing score and gap list keeps reading analysisResults.
+  const [filteredAnalysisResults, setFilteredAnalysisResults] = useState(null)
   const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
   const [isKnowledgeRescoring, setIsKnowledgeRescoring] = useState(false)
   const [knowledgeRescore, setKnowledgeRescore] = useState(null)
@@ -667,6 +670,28 @@ async function loadKnowledgeMatches(missingKeywords) {
     // The matches feed the coaching context regardless of whether the modal opens,
     // so a user who already dismissed it still gets the benefit.
     setKnowledgeMatches(matches)
+
+    // A gap a confirmed fact already covers is not a gap for the coach. The match
+    // endpoint judges coverage semantically and returns the keywords it cleared.
+    // Runs here so both the rescore path and the straight-to-coaching path get the
+    // same filtered list.
+    const currentMissing = analysisResults?.analysis?.missingKeywords
+    if (Array.isArray(currentMissing) && currentMissing.length > 0) {
+      const coveredKeywords = (data.coveredKeywords || [])
+        .map(k => k.toLowerCase())
+
+      const filteredMissingKeywords = currentMissing.filter(keyword =>
+        !coveredKeywords.includes(keyword.toLowerCase())
+      )
+
+      setFilteredAnalysisResults({
+        ...analysisResults,
+        analysis: {
+          ...analysisResults.analysis,
+          missingKeywords: filteredMissingKeywords
+        }
+      })
+    }
 
     const alreadyShown = knowledgeStorageKey ? localStorage.getItem(knowledgeStorageKey) : null
     if (!alreadyShown) {
@@ -1309,13 +1334,6 @@ if (data.ai_analysis) {
   const resumeData = resume?.resume_data || {}
   const journeyStep = resume?.journey_step || 'start'
   const score = resume?.current_score || null
-
-  const careerKnowledgeBlock = knowledgeMatches.length > 0
-    ? `CAREER KNOWLEDGE BASE:
-These facts are already confirmed. You MUST NOT ask the candidate about any topic already covered here. If a job requirement maps to something in this list, treat it as satisfied and move on. Only ask about experience that is genuinely absent from this list.
-
-${knowledgeMatches.map(m => `- ${m.content}`).join('\n')}`
-    : null
 
   // The modal shows at most five items, in the order the model ranked them.
   // Grouping happens after the cap, so group order follows first appearance.
@@ -2021,6 +2039,7 @@ ${knowledgeMatches.map(m => `- ${m.content}`).join('\n')}`
               journeyStep={journeyStep}
               score={score}
               analysisResults={analysisResults}
+              filteredAnalysisResults={filteredAnalysisResults}
               userTier={userProfile?.subscription_tier || 'free'}
               coachingSamplesUsed={coachingSamplesUsed}
               resumeName={resume.display_name || 'Core Resume'}
@@ -2063,7 +2082,7 @@ ${knowledgeMatches.map(m => `- ${m.content}`).join('\n')}`
           setReviseModalState={setReviseModalState}
           bulletSelectMode={bulletSelectMode}
           setBulletSelectMode={setBulletSelectMode}
-          careerKnowledgeBlock={careerKnowledgeBlock}
+          knowledgeMatches={knowledgeMatches}
           onChangesAccepted={handleChangesAccepted}
             />
           </div>
@@ -2412,7 +2431,7 @@ ${knowledgeMatches.map(m => `- ${m.content}`).join('\n')}`
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, careerKnowledgeBlock, onChangesAccepted }) {
+function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches, onChangesAccepted }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -3139,6 +3158,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           jobTitle={resume?.job_title || null}
           jobCompany={resume?.job_company || null}
           analysisResults={analysisResults}
+          filteredAnalysisResults={filteredAnalysisResults}
           showUpgradeModal={showUpgradeModal}
           setShowUpgradeModal={setShowUpgradeModal}
           scoreBeforeCoaching={scoreBeforeCoaching}
@@ -3154,7 +3174,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setCaptureCounts={setCaptureCounts}
           setCaptureBumpKey={setCaptureBumpKey}
           setCaptureToast={setCaptureToast}
-          careerKnowledgeBlock={careerKnowledgeBlock}
+          knowledgeMatches={knowledgeMatches}
         />
       )}
 
@@ -3353,7 +3373,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, careerKnowledgeBlock }) {
+function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, filteredAnalysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, knowledgeMatches }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -3755,7 +3775,7 @@ const getMessageText = (msg) => {
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
-            _analysisResults: analysisResults?.analysis || null,
+            _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null,
             _trialTranscript: trialTranscript || ((tier !== 'free' && coachingMessages?.length > 0) ? coachingMessages : null)
           },
           careerContext,
@@ -3766,9 +3786,9 @@ const getMessageText = (msg) => {
           jobDescription,
           jobTitle,
           jobCompany,
-          // Confirmed facts from earlier sessions. Sent alongside the conversation
-          // so the route can append them to the system prompt.
-          careerKnowledgeBlock,
+          // Confirmed facts from earlier sessions, sent as prompt context on every
+          // turn so the coach never re-asks something already established.
+          knowledgeBase: (knowledgeMatches || []).map(m => m.content),
           conversation: [{
             role: 'user',
             content: "Hi! I'm ready to work on my resume."
@@ -3821,7 +3841,7 @@ const getMessageText = (msg) => {
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
-            _analysisResults: analysisResults?.analysis || null
+            _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null
           },
           careerContext,
           detectedLevel,
@@ -3831,7 +3851,7 @@ const getMessageText = (msg) => {
           jobDescription,
           jobTitle,
           jobCompany,
-          careerKnowledgeBlock,
+          knowledgeBase: (knowledgeMatches || []).map(m => m.content),
           conversation: updatedMessages
         })
       })
