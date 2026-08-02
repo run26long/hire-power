@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { waitUntil } from '@vercel/functions'
 import { apiError } from '@/lib/apiError'
 
 // ─────────────────────────────────────────────
@@ -2406,6 +2407,7 @@ export async function POST(request) {
 
     const {
       resumeData,
+      resumeId,
       conversation,
       detectedLevel,
       careerContext,
@@ -2765,6 +2767,29 @@ Return this exact structure:
         changes = JSON.parse(cleanedChanges)
       } catch (e) {
         console.warn('Changes JSON truncated — continuing without change list')
+      }
+
+      // ── BACKGROUND: career knowledge extraction (job-specific resumes only) ──
+      // Runs after the rewrite fully succeeded. Does not block the response.
+      // Skipped when invoked via INTERNAL_API_SECRET — no user token to forward.
+      if (authenticatedUserId) {
+        waitUntil(
+          fetch(new URL('/api/career-knowledge', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader
+            },
+            body: JSON.stringify({
+              action: 'extract',
+              resumeId: resumeId || null,
+              transcript: conversation,
+              resumeData,
+              jobTitle: jobTitle || null,
+              jobCompany: jobCompany || null
+            })
+          }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+        )
       }
 
       return NextResponse.json({ rewrittenResume, changes, detectedLevel: level })

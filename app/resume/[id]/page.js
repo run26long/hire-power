@@ -2728,6 +2728,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         },
                         body: JSON.stringify({
                           resumeData,
+                          resumeId: params.id,
                           conversation: [],
                           detectedLevel,
                           careerContext,
@@ -3022,6 +3023,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({
           resumeData: {},
+          resumeId: params.id,
           conversation: coachingMessages,
           detectedLevel,
           careerContext,
@@ -3296,6 +3298,7 @@ const getMessageText = (msg) => {
 
       const coachFinishPayload = {
         resumeData: resumeDataWithAnalysis,
+        resumeId: params.id,
         conversation: coachingMessages,
         detectedLevel,
         careerContext,
