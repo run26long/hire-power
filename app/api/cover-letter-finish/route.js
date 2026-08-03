@@ -794,7 +794,7 @@ export async function POST(request) {
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { resumeData, jobTitle, jobCompany, jobDescription, additionalContext, userId } = await request.json()
+    const { resumeData, jobTitle, jobCompany, jobDescription, additionalContext, userId, knowledgeMatches } = await request.json()
 
     if (!resumeData || !jobDescription) {
       return NextResponse.json(
@@ -828,11 +828,31 @@ export async function POST(request) {
 
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
+    // Facts confirmed in previous coaching sessions. These stand alongside the
+    // resume as source material, so they sit with it rather than with the
+    // candidate's free-text context. The voice reference is nested inside because
+    // it is meaningless without the facts it quotes: items carrying no
+    // raw_phrasing contribute experience but no voice, and when none of them
+    // carry one the reference is dropped while the facts remain.
+    const knowledge = Array.isArray(knowledgeMatches) ? knowledgeMatches : []
+    const voiceItems = knowledge.filter(m => typeof m?.raw_phrasing === 'string' && m.raw_phrasing.trim())
+    const knowledgeBlock = knowledge.length > 0 ? `
+ADDITIONAL VERIFIED EXPERIENCE:
+The following facts about this candidate have been confirmed from previous coaching sessions. They may not appear on the resume above but are real and verified. Use them where relevant to strengthen the cover letter.
+
+${knowledge.map(m => `- ${m.content}`).join('\n')}
+${voiceItems.length > 0 ? `
+CANDIDATE VOICE REFERENCE:
+When writing this cover letter, use the following as a reference for how this candidate naturally describes their own work. The cover letter should sound like a polished version of their voice.
+
+${voiceItems.map(m => `Experience: ${m.content}\nIn their own words: "${m.raw_phrasing.trim()}"`).join('\n\n')}
+` : ''}` : ''
+
     const userMessage = `SOURCE MATERIAL
 
 RESUME DATA:
 ${JSON.stringify(resumeData, null, 2)}
-
+${knowledgeBlock}
 TARGET ROLE: ${jobTitle}${jobCompany ? ` at ${jobCompany}` : ''}
 
 JOB DESCRIPTION:

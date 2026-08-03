@@ -3074,7 +3074,8 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
                           jobCompany: resume?.job_company || null,
                           matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
                           missingKeywords: analysisResults?.analysis?.missingKeywords || [],
-                          skipCoaching: true
+                          skipCoaching: true,
+                          knowledgeMatches: knowledgeMatches || []
                         })
                       })
                       const data = await response.json()
@@ -3661,7 +3662,8 @@ const getMessageText = (msg) => {
         jobTitle: jobTitle || null,
         jobCompany: jobCompany || null,
         matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
-        missingKeywords: analysisResults?.analysis?.missingKeywords || []
+        missingKeywords: analysisResults?.analysis?.missingKeywords || [],
+        knowledgeMatches: knowledgeMatches || []
       }
 
       const { data: { session: finishSession } } = await supabase.auth.getSession()

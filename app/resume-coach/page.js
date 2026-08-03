@@ -724,11 +724,63 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       const sourceResumeId = resolvedSourceId || data.coreResume.id;
       const { data: sourceResume } = await supabase
         .from('resumes')
-        .select('resume_data, template_id, font_family')
+        .select('resume_data, template_id, font_family, ai_analysis')
         .eq('id', sourceResumeId)
         .single();
 
       const { data: { session: clSession } } = await supabase.auth.getSession()
+
+      // ── CAREER KNOWLEDGE (relevance-matched to this job) ──
+      // Send only the confirmed experience that closes a gap in THIS job
+      // description rather than the candidate's whole history. Purely additive:
+      // every failure path leaves the list empty and the letter is written from
+      // the resume alone, so a knowledge lookup can never block a cover letter.
+      let knowledgeMatches = [];
+      try {
+        // A job-specific source resume was already analyzed against this role,
+        // so reuse its keywords rather than paying for a second analysis. Only
+        // a core-resume source (which stores a quality analysis with no
+        // missingKeywords) falls through to the live call.
+        let missingKeywords = sourceResume?.ai_analysis?.missingKeywords;
+        if (!Array.isArray(missingKeywords) || missingKeywords.length === 0) {
+          const clAnalysis = await fetchJSON('/api/job-analyze', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${clSession.access_token}`
+            },
+            body: JSON.stringify({
+              resumeData: sourceResume?.resume_data,
+              jobDescription,
+              jobTitle,
+              jobCompany,
+              userId: user?.id
+            })
+          });
+          missingKeywords = Array.isArray(clAnalysis?.missingKeywords) ? clAnalysis.missingKeywords : [];
+        }
+
+        // match returns nothing without keywords, so skip the round trip.
+        if (missingKeywords.length > 0) {
+          const knowledgeData = await fetchJSON('/api/career-knowledge', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${clSession.access_token}`
+            },
+            body: JSON.stringify({
+              action: 'match',
+              missingKeywords,
+              jobTitle,
+              jobCompany
+            })
+          });
+          knowledgeMatches = Array.isArray(knowledgeData?.matches) ? knowledgeData.matches : [];
+        }
+      } catch (knowledgeErr) {
+        console.error('Career knowledge match for cover letter failed (non-blocking):', knowledgeErr);
+      }
+
       let generateData;
       try {
         generateData = await fetchJSON('/api/cover-letter-finish', {
@@ -743,7 +795,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             jobCompany,
             jobDescription,
             additionalContext: clAdditionalContext,
-            userId: user?.id
+            userId: user?.id,
+            knowledgeMatches: knowledgeMatches || []
           })
         });
       } catch (fetchErr) {

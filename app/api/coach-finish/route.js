@@ -1585,12 +1585,25 @@ function trimBulletsToLimit(resumeData, level) {
   return result
 }
 
-function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction, skipCoaching }) {
+function buildJobSpecificRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, jobDescription, jobTitle, jobCompany, matchedKeywords, missingKeywords, retryInstruction, skipCoaching, knowledgeMatches }) {
   const contextBlock = careerContext ? `
 CAREER CONTEXT:
 - Target roles: ${careerContext.target_roles?.join(', ') || jobTitle || 'not specified'}
 - Career changer: ${careerContext.is_career_changer ? `YES — from ${careerContext.previous_field}` : 'No'}
 - Transferable skills: ${careerContext.transferable_skills?.join(', ') || 'none noted'}
+` : ''
+
+  // How the candidate talks about their own work, quoted from earlier sessions.
+  // A style reference only — it never licenses a claim the resume and transcript
+  // do not already support. Items with no raw_phrasing carry no voice signal, so
+  // they are dropped, and the block disappears entirely when none are left.
+  const voiceItems = (Array.isArray(knowledgeMatches) ? knowledgeMatches : [])
+    .filter(m => typeof m?.raw_phrasing === 'string' && m.raw_phrasing.trim())
+  const voiceBlock = voiceItems.length > 0 ? `
+CANDIDATE VOICE REFERENCE:
+The following are direct quotes from this candidate describing their own experience, captured during previous coaching sessions. When writing bullets, use these as a reference for how this person naturally talks about their work. Write bullets that sound like a polished version of their voice, not generic resume language.
+
+${voiceItems.map(m => `Experience: ${m.content}\nIn their own words: "${m.raw_phrasing.trim()}"`).join('\n\n')}
 ` : ''
 
   return `${skipCoaching ? JS_NO_COACH_RULES : JS_WRITING_CONSTITUTION}
@@ -1626,7 +1639,7 @@ ${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: 
 
 ORIGINAL RESUME (what you are improving):
 ${JSON.stringify(resumeData, null, 2)}
-
+${voiceBlock}
 YOUR REWRITE INSTRUCTIONS:
 
 1. SUMMARY — Set the summary field to an empty string: "".
@@ -2421,7 +2434,8 @@ export async function POST(request) {
       isTargetedEnhancement,
       isConversationalSource,
       isConversationalFix,
-      skipCoaching
+      skipCoaching,
+      knowledgeMatches
     } = await request.json()
 
     if (!resumeData || !conversation) {
@@ -2702,7 +2716,8 @@ Return this exact structure:
         matchedKeywords: matchedKeywords || [],
         missingKeywords: missingKeywords || [],
         retryInstruction: retryInstruction || null,
-        skipCoaching: skipCoaching || false
+        skipCoaching: skipCoaching || false,
+        knowledgeMatches: knowledgeMatches || []
       })
 
       const rewriteMessage = await anthropic.messages.create({

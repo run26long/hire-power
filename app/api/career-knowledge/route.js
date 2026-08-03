@@ -228,6 +228,9 @@ Return the JSON array now.`
       id: row.id,
       knowledge_type: row.knowledge_type,
       content: row.content,
+      // The candidate's own wording. Carried through so downstream writing
+      // prompts can use it as a voice reference; the modal ignores it.
+      raw_phrasing: row.raw_phrasing,
       mention_count: row.mention_count
     })
   }
