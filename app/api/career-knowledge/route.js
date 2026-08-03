@@ -288,77 +288,6 @@ If nothing is covered, return [].`
   return NextResponse.json({ matches, coveredKeywords })
 }
 
-// Everything this coaching session added to the knowledge base that has not yet
-// been flagged for the core resume. Feeds the post-coaching checklist, so every
-// failure path returns an empty list rather than blocking the modal's caller.
-async function handleSessionItems(supabase, user, { resumeId }) {
-  const empty = { items: [] }
-
-  if (!resumeId) {
-    console.log('[career-knowledge] session_items — no resumeId supplied, nothing to list')
-    return NextResponse.json(empty)
-  }
-
-  const { data: rows, error } = await supabase
-    .from('career_knowledge')
-    .select('id, knowledge_type, content, confidence')
-    .eq('user_id', user.id)
-    .eq('resume_id', resumeId)
-    .is('superseded_by', null)
-    .eq('added_to_core', false)
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    console.error('[career-knowledge] session_items — fetch failed:', error)
-    return NextResponse.json(empty)
-  }
-
-  const items = rows || []
-  console.log('[career-knowledge] session_items — resume:', resumeId, '| items:', items.length)
-  return NextResponse.json({ items })
-}
-
-// Flags the chosen rows for inclusion in the core resume on its next coaching pass.
-// The user_id filter is the security boundary: ids arrive from the client, so a
-// forged id belonging to another user matches nothing and updates nothing.
-async function handleMarkForCore(supabase, user, { ids }) {
-  const failure = { success: false, updated: 0 }
-
-  const cleanIds = (Array.isArray(ids) ? ids : [])
-    .map(id => (id == null ? '' : String(id)))
-    .filter(Boolean)
-
-  if (cleanIds.length === 0) {
-    console.log('[career-knowledge] mark_for_core — no ids supplied, nothing to update')
-    return NextResponse.json({ success: true, updated: 0 })
-  }
-
-  const { data: updated, error } = await supabase
-    .from('career_knowledge')
-    .update({ added_to_core: true })
-    .in('id', cleanIds)
-    .eq('user_id', user.id)
-    .select('id')
-
-  if (error) {
-    console.error(
-      '[career-knowledge] mark_for_core — update failed. ids:', cleanIds.length,
-      '| message:', error.message,
-      '| code:', error.code,
-      '| details:', error.details,
-      '| hint:', error.hint
-    )
-    return NextResponse.json(failure)
-  }
-
-  const count = (updated || []).length
-  if (count !== cleanIds.length) {
-    console.log('[career-knowledge] mark_for_core — requested', cleanIds.length, 'rows, updated', count, '(ids not owned by this user are skipped)')
-  }
-  console.log('[career-knowledge] mark_for_core — rows flagged for core:', count)
-  return NextResponse.json({ success: true, updated: count })
-}
-
 // Shared by "new" and "conflicts" — both carry a full item payload and both are
 // written as rows, so both need the same per-row validation.
 function validateItem(item, label) {
@@ -406,26 +335,6 @@ export async function POST(request) {
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { action, resumeId, transcript, resumeData, jobTitle, jobCompany, missingKeywords, ids } = await request.json()
-
-    if (action === 'session_items') {
-      // Own try/catch so an unexpected failure returns the list-shaped payload
-      // rather than the extract-shaped noop below.
-      try {
-        return await handleSessionItems(supabase, user, { resumeId })
-      } catch (sessionItemsError) {
-        console.error('[career-knowledge] session_items — unexpected error:', sessionItemsError)
-        return NextResponse.json({ items: [] })
-      }
-    }
-
-    if (action === 'mark_for_core') {
-      try {
-        return await handleMarkForCore(supabase, user, { ids })
-      } catch (markError) {
-        console.error('[career-knowledge] mark_for_core — unexpected error:', markError)
-        return NextResponse.json({ success: false, updated: 0 })
-      }
-    }
 
     if (action === 'match') {
       // Own try/catch so an unexpected failure returns the match-shaped payload

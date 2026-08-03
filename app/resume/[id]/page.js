@@ -220,15 +220,6 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [knowledgeRescore, setKnowledgeRescore] = useState(null)
   const knowledgeMatchRanRef = useRef(false)
 
-  // Post-coaching checklist: facts this session added, offered for the core resume
-  const [showCoreChecklist, setShowCoreChecklist] = useState(false)
-  const [coreChecklistItems, setCoreChecklistItems] = useState([])
-  const [coreChecklistSelected, setCoreChecklistSelected] = useState(new Set())
-  const [coreChecklistDone, setCoreChecklistDone] = useState(false)
-  const [coreChecklistError, setCoreChecklistError] = useState(null)
-  const [isSavingCoreChecklist, setIsSavingCoreChecklist] = useState(false)
-  const coreChecklistFiredRef = useRef(false)
-
   // Capture system state — counter + toast queue
   const [captureCounts, setCaptureCounts] = useState({ jobs: 0, education: 0, skills: 0, wins: 0 })
   const [captureBumpKey, setCaptureBumpKey] = useState(null)
@@ -781,116 +772,6 @@ async function startCoachingFromKnowledgeModal() {
   }
 }
 
-// ── POST-COACHING CORE CHECKLIST ──
-// Once the coached changes are accepted, offer the facts this session captured for
-// promotion into the core resume. Purely additive: any failure is swallowed so a
-// knowledge lookup can never intrude on the finished-coaching view.
-async function loadCoreChecklistItems() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-
-    const response = await fetch('/api/career-knowledge', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        action: 'session_items',
-        resumeId: params.id
-      })
-    })
-
-    if (!response.ok) {
-      console.error('Career knowledge session items failed (non-blocking):', response.status)
-      return
-    }
-
-    const data = await response.json()
-    const items = Array.isArray(data?.items) ? data.items : []
-    if (items.length === 0) return
-
-    setCoreChecklistItems(items)
-    setShowCoreChecklist(true)
-  } catch (err) {
-    console.error('Career knowledge session items failed (non-blocking):', err)
-  }
-}
-
-// Called by the improve step once an accept action has actually completed. This is
-// an explicit hand-off rather than an effect watching changes_accepted: that flag
-// stays true forever, so observing it fired again on every later visit to the
-// improve step, not just on the session that captured the facts.
-function handleChangesAccepted() {
-  if (coreChecklistFiredRef.current) return
-  if (resume?.resume_type !== 'job_specific') return
-
-  coreChecklistFiredRef.current = true
-  loadCoreChecklistItems()
-}
-
-function toggleCoreChecklistItem(id) {
-  setCoreChecklistSelected(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    return next
-  })
-}
-
-function toggleAllCoreChecklistItems() {
-  setCoreChecklistSelected(prev =>
-    prev.size === coreChecklistItems.length ? new Set() : new Set(coreChecklistItems.map(i => i.id))
-  )
-}
-
-function dismissCoreChecklist() {
-  setShowCoreChecklist(false)
-  setCoreChecklistDone(true)
-  setCoreChecklistError(null)
-}
-
-// A failed write leaves the modal open with a note. The user can still close it,
-// but nothing is lost silently — the failure is logged and surfaced.
-async function saveCoreChecklist() {
-  const ids = Array.from(coreChecklistSelected)
-  if (ids.length === 0) {
-    dismissCoreChecklist()
-    return
-  }
-
-  setIsSavingCoreChecklist(true)
-  setCoreChecklistError(null)
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) throw new Error('No active session')
-
-    const response = await fetch('/api/career-knowledge', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ action: 'mark_for_core', ids })
-    })
-
-    const data = response.ok ? await response.json() : null
-    if (!data?.success) {
-      console.error('Career knowledge mark_for_core failed:', response.status, data)
-      setCoreChecklistError("We couldn't save these to your core resume just now. They're still in your career history.")
-      return
-    }
-
-    dismissCoreChecklist()
-  } catch (err) {
-    console.error('Career knowledge mark_for_core failed:', err)
-    setCoreChecklistError("We couldn't save these to your core resume just now. They're still in your career history.")
-  } finally {
-    setIsSavingCoreChecklist(false)
-  }
-}
-
 function formatDate(dateString, format = dateFormat) {
     if (!dateString) return ''
     
@@ -1346,17 +1227,6 @@ if (data.ai_analysis) {
     acc[type].push(item)
     return acc
   }, {})
-
-  // Post-coaching checklist shows every item this session captured, uncapped and
-  // untrimmed — the user is deciding what goes into their core resume.
-  const groupedCoreChecklist = coreChecklistItems.reduce((acc, item) => {
-    const type = item.knowledge_type || 'other'
-    if (!acc[type]) acc[type] = []
-    acc[type].push(item)
-    return acc
-  }, {})
-  const allCoreChecklistSelected =
-    coreChecklistItems.length > 0 && coreChecklistSelected.size === coreChecklistItems.length
 
   return (
     <>
@@ -2083,7 +1953,6 @@ if (data.ai_analysis) {
           bulletSelectMode={bulletSelectMode}
           setBulletSelectMode={setBulletSelectMode}
           knowledgeMatches={knowledgeMatches}
-          onChangesAccepted={handleChangesAccepted}
             />
           </div>
         </div>
@@ -2219,112 +2088,6 @@ if (data.ai_analysis) {
         </div>
       )}
 
-      {/* Post-Coaching Core Resume Checklist */}
-      {/* Held back while the score reveal is up — both are z-50 overlays and this
-          one renders later in the tree, so it would otherwise cover the reveal. */}
-      {showCoreChecklist && !coreChecklistDone && !showRevealModal && coreChecklistItems.length > 0 && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
-          >
-            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg">🎯</span>
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-white">New experience to save</h2>
-                  </div>
-                </div>
-                <button
-                  onClick={dismissCoreChecklist}
-                  className="text-white hover:opacity-70 text-2xl leading-none font-light"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-700 leading-snug">
-                These facts came up during this coaching session and have been saved to your career history. Check the ones you'd like added to your core resume.
-              </p>
-
-              <div className="bg-purple-50 border-l-4 border-purple-600 rounded-r p-3">
-                <p className="text-xs text-gray-900 leading-snug">
-                  <strong>Note:</strong> Checked items will be added to your core resume the next time you coach it. You'll review exactly where each piece of content lands before anything is placed.
-                </p>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={toggleAllCoreChecklistItems}
-                  className="text-xs font-semibold text-purple-600 hover:text-purple-700"
-                >
-                  {allCoreChecklistSelected ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {Object.entries(groupedCoreChecklist).map(([type, items]) => (
-                  <div key={type}>
-                    <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </div>
-                    <ul className="space-y-1">
-                      {items.map(item => (
-                        <li key={item.id}>
-                          <label className="flex items-start gap-2 text-sm text-gray-700 leading-snug cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={coreChecklistSelected.has(item.id)}
-                              onChange={() => toggleCoreChecklistItem(item.id)}
-                              className="mt-0.5 flex-shrink-0 accent-purple-600"
-                            />
-                            <span>{item.content}</span>
-                          </label>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-
-              {coreChecklistError && (
-                <p className="text-xs font-semibold leading-snug" style={{ color: '#e57373' }}>
-                  {coreChecklistError}
-                </p>
-              )}
-
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={saveCoreChecklist}
-                  disabled={isSavingCoreChecklist}
-                  className="rounded-lg py-2 px-6 font-semibold text-sm flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: isSavingCoreChecklist ? 0.85 : 1 }}
-                >
-                  <span key={isSavingCoreChecklist ? 'loading' : 'idle'} className="flex items-center gap-2">
-                    {isSavingCoreChecklist && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                    {isSavingCoreChecklist ? 'Saving...' : 'Save to Career History'}
-                  </span>
-                </button>
-                <button
-                  onClick={dismissCoreChecklist}
-                  disabled={isSavingCoreChecklist}
-                  className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm font-semibold hover:bg-purple-50 transition-colors disabled:opacity-50"
-                >
-                  No Thanks
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showTooLongModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -2431,7 +2194,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches, onChangesAccepted }) {
+function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -3215,7 +2978,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           bulletSelectMode={bulletSelectMode}
           setBulletSelectMode={setBulletSelectMode}
           setViewingStep={setViewingStep}
-          onChangesAccepted={onChangesAccepted}
         />
       )}
 
@@ -4633,7 +4395,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep, onChangesAccepted }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -5251,7 +5013,6 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       setResume(prev => ({ ...prev, resume_data: rewrittenResume, changes_accepted: true }))
       await handleReassess(rewrittenResume)
       setShowRevealModal(true)
-      if (onChangesAccepted) onChangesAccepted()
     } catch (err) {
       console.error('Error accepting changes:', err)
       setErrorToast("Something went wrong applying your changes. Please try again.")
@@ -5291,7 +5052,6 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       await handleReassess(finalData)
       setReviewMode(false)
       setShowRevealModal(true)
-      if (onChangesAccepted) onChangesAccepted()
     } catch (err) {
       console.error('Error finishing review:', err)
       setErrorToast("Something went wrong applying your reviewed changes. Please try again.")
