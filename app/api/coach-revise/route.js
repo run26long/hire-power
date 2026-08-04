@@ -136,6 +136,56 @@ Analyze the resume and determine:
 2. Where it belongs (which job's bullets, summary, skills, etc.)
 3. Write the content in the voice of the resume
 
+SHAPE RULES — READ BEFORE ANSWERING:
+The "content" field is ALWAYS a plain string. Never an object. Never an array. The only shape that
+carries structured data is the experience shape below, and it uses a "job" field, never "content".
+If what the candidate described fits none of the shapes below, do not invent a new one — use the
+unsupported shape at the bottom.
+
+ADDING A JOB THAT IS NOT ON THE RESUME:
+If the candidate is describing a role that does not appear in the resume above — a different employer,
+or a span of dates that no listed role covers — that is a NEW EXPERIENCE ENTRY, not a bullet on an
+existing job. Never attach it to an unrelated role just to place it somewhere.
+
+STEP 1 — ASK FIRST. Never create the entry on the first pass. Roles get left off resumes deliberately,
+and the candidate may have been telling you about this job for context rather than asking for it on the
+page. Return the confirmJob shape and ask whether they want it added.
+
+STEP 2 — ONLY AFTER THEY AGREE. The description you are given includes every turn of this exchange, so
+you can see their answer. If they declined, do not create the entry. If they agreed, you need all three
+of these before the entry can be created:
+1. The job TITLE they held
+2. The COMPANY or organization name
+3. DATES: at minimum a start year and an end year, or a start year plus an indication they are still there
+
+If ANY of the three is missing, do NOT create the entry. Return the clarification shape and ask for
+exactly what is missing, naming what you already have so they do not repeat themselves. Never guess a
+title from the duties described, never infer the company from context, and never estimate dates from
+the roles around it.
+
+Bullets for a new entry come only from what the candidate said about that job. If they gave you the
+role but little detail about the work, write 1-2 honest bullets rather than padding to a target count.
+Never add duties that are merely typical of the title.
+
+JOB SUMMARY FOR THE NEW ENTRY — REQUIRED:
+Every job on the resume above carries a job summary, the one-to-two sentence overview that sits between
+the job title and the bullets. A new entry without one looks broken next to the others, so write one.
+
+The job summary is the high-level overview of the role. Describe the function of the role and the
+employer in one sentence. It tells the recruiter where this person worked, what they did, and at what
+level, without detail. The details follow in the bullets. Match the voice, length, and level of
+abstraction of the job summaries already on the resume above.
+
+  Good: "Supported guest experience for a professional basketball franchise, handling ticketing,
+  seating, and escalations across a 41-game home season."
+  Bad: "Worked at the Orlando Magic." (too short, tells the recruiter nothing)
+  Bad: "Greeted guests, scanned tickets, resolved seating conflicts, and directed traffic." (a duty
+  list — that content belongs in bullets)
+
+Write it from what the candidate actually told you plus the plain function of the role and employer.
+Do not invent scale, scope, or metrics for the summary any more than you would for a bullet. If they
+told you very little, keep the summary to a single plain sentence naming the function and the employer.
+
 Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 
 If this is a bullet for an existing job:
@@ -147,8 +197,20 @@ If this is a summary addition or revision:
 If this is a new skill:
 {"type": "skill", "category": "Category Name", "skills": ["skill1", "skill2"], "explanation": "Brief explanation"}
 
-If the description is too vague to write specific content:
-{"type": "clarification", "question": "A specific question to ask the candidate so you can write the content"}`
+If this is a job that is not already on the resume and they have NOT yet agreed to add it:
+{"type": "confirmJob", "question": "Would you like me to add that as a new job in your experience section?", "jobLabel": "The shortest accurate label you can build from what they told you, e.g. 'Guest Services Representative at Orlando Magic' or just 'Orlando Magic' if that is all you have"}
+
+If this is a job that is not already on the resume, they HAVE agreed to add it, AND you have the title, company, and dates:
+{"type": "experience", "job": {"title": "the job title", "company": "the employer name", "location": "City, ST or an empty string if not stated", "startDate": "YYYY-MM", "endDate": "YYYY-MM, or null if they are still there", "current": false, "summary": "the 1-2 sentence job summary described above — required, never an empty string", "bullets": ["bullet 1", "bullet 2"]}, "explanation": "One sentence, e.g. 'Added as a new role between your positions at X and Y.'"}
+
+Dates use YYYY-MM. If the candidate gave only a year, use YYYY-01 for a start date and YYYY-12 for an
+end date. If they are still in the role, set "current": true and "endDate": null.
+
+If the description is too vague to write specific content, or a new job is missing its title, company, or dates:
+{"type": "clarification", "question": "A specific question to ask the candidate so you can write the content"}
+
+If this is something the feature cannot place at all:
+{"type": "unsupported", "reason": "other", "explanation": "One sentence naming what they described."}`
 }
 
 function buildAddPromptCoverLetter(userDescription, coverLetterData) {
@@ -171,6 +233,8 @@ WHAT THE CANDIDATE WANTS TO ADD:
 "${userDescription}"
 
 Write the new content in the voice of the existing cover letter and determine which section it belongs in.
+
+SHAPE RULE: The "content" field is ALWAYS a plain string. Never an object. Never an array.
 
 Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 

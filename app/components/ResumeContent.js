@@ -678,7 +678,12 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
               <button onClick={() => { const newData = JSON.parse(JSON.stringify(resumeData)); newData.experience[jobIndex].summaryDismissed = true; onUpdate(newData) }} className="text-gray-400 text-xs hover:text-gray-600">× Hide this field</button>
             </div>
           )}
-          {job.bullets?.length > 0 && job.bullets.map((bullet, bulletIndex) => (
+          {job.bullets?.length > 0 && job.bullets.map((rawBullet, bulletIndex) => {
+            // A non-string bullet — a malformed API result that reached the saved data —
+            // throws when rendered as a React child and takes the whole page down through
+            // the root ErrorBoundary. Degrade to an empty, editable bullet instead.
+            const bullet = typeof rawBullet === 'string' ? rawBullet : ''
+            return (
            <div key={bulletIndex} data-bullet-group={`${jobIndex}-${bulletIndex}`} className="relative flex items-start gap-1 mb-1 group/bullet" onClick={() => { if (window.innerWidth < 768) { setFocusedBullet(`${jobIndex}-${bulletIndex}`); setFocusedSummary(null) } }}>
               <span className="text-sm shrink-0" style={ts.bullet || {}}>•</span>
               <p data-bullet={`${jobIndex}-${bulletIndex}`} className={`text-sm flex-1 ${!readOnly && !bulletSelectMode && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(bullet ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly && !bulletSelectMode} suppressContentEditableWarning onFocus={(e) => { if (!bullet) { const range = document.createRange(); range.selectNodeContents(e.currentTarget); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range) } }} onBlur={(e) => { const t = e.currentTarget.textContent; updateNestedField(`experience[${jobIndex}].bullets[${bulletIndex}]`, t === 'Describe what you did and the impact you made' ? '' : t) }}>{bullet || (!readOnly && 'Describe what you did and the impact you made')}</p>
@@ -716,7 +721,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                 />
               )}
             </div>
-          ))}
+          )})}
           {!readOnly && <button onClick={() => addExperienceBullet(jobIndex)} className="text-purple-600 text-xs mt-2 opacity-0 group-hover/entry:opacity-100">+ Add Bullet</button>}
         </>
       )

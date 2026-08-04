@@ -1345,10 +1345,30 @@ bullet describing the work, not as a skill entry claiming the vocabulary.
 The candidate's own words go in skills. The JD's words can appear in bullets that describe
 matching work. Never the reverse.
 
+BULLET PRESERVATION FLOOR — OVERRIDES EVERY BULLET COUNT RULE IN THIS PROMPT, INCLUDING ANY THAT APPEAR BELOW:
+A job-specific rewrite reorders and reframes. It does not prune. Every role must end this pass with
+at least as many bullets as it had in the original resume. Before writing, count the bullets in each
+role of the original. That number is the floor for that role. Output fewer and the rewrite is a
+failure, no matter how well the surviving bullets match the job description.
+
+There are exactly two exceptions:
+- The candidate explicitly asked during coaching for specific content to be removed.
+- Two bullets in the original say the same thing; merging that pair into one is allowed.
+
+Nothing else justifies a lower count. Not tenure. Not recency. Not page length. Not "this bullet does
+nothing for this job description." If the per-role guideline says 4-6 bullets and the original role had
+9, the floor for that role is 9.
+
+Bullets that do not map to the job description are not noise. They carry scope, scale, quality,
+governance, and range — the evidence a hiring manager uses to decide whether a candidate is
+one-dimensional. A role stripped down to only its keyword matches reads as a thin career and loses
+the recruiter it was tailored for.
+
 BULLET RELEVANCE ORDERING:
 - Within each role, reorder bullets so the most job description-relevant appear first.
 - A recruiter scanning for 5 seconds will read the first 2 bullets. Make them count.
-- Bullets that do not connect to this specific job description can stay but go last.
+- Bullets that do not connect to this specific job description move to the bottom of the role. They stay.
+- Relevance controls POSITION, never SURVIVAL. Reordering is the only de-emphasis tool you have.
 
 SUMMARY:
 The summary is written in a dedicated second pass after bullets are finalized.
@@ -1398,7 +1418,7 @@ WHAT YOU CAN DO:
 
 4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the job description requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
 
-5. CUT IRRELEVANT CONTENT if it dilutes the case for this specific role. A bullet that does nothing for this job description can be removed if a stronger bullet from the same role tells a more relevant story. Be conservative — when in doubt, leave it.
+5. DE-EMPHASIZE LESS RELEVANT CONTENT by moving it to the bottom of its role, not by deleting it. A bullet that does nothing for this job description still establishes scope, range, and credibility for the candidate as a whole. Push it down the list so the JD-relevant bullets are read first. Leave it in.
 
 WHAT YOU ABSOLUTELY CANNOT DO:
 
@@ -1413,6 +1433,8 @@ WHAT YOU ABSOLUTELY CANNOT DO:
 5. DO NOT INFER RESPONSIBILITIES that are typical for the job title. If the candidate's resume says "Server" and the bullets describe taking orders and running food, do not add "trained new staff" because servers often do that. The resume is the only source of what they actually did.
 
 6. DO NOT FILL GAPS the candidate hasn't filled. If the job description requires 5 years of Python experience and the resume shows none, that gap stays. Your job is not to make this candidate look qualified for jobs they aren't qualified for. Your job is to make sure they get full credit for what they ACTUALLY have.
+
+7. DO NOT DELETE BULLETS. Every role must end this pass with at least as many bullets as it had in the original resume. Combined with rule 1, that means the bullet count per role stays exactly the same: same content, reordered and reframed. The only exception is a pair of original bullets that say the same thing, which may be merged into one. Cutting a bullet because it does not match the job description is a failure of this pass, not an optimization. Count the bullets in every role of the original resume, count the bullets in every role of your output, and confirm the numbers match before outputting.
 
 THE TEST FOR EVERY EDIT:
 Before changing any bullet, ask: "Could the candidate defend every word of this in an interview based on what was already on their resume?" If yes, the edit is legitimate. If no, revert it.
@@ -1562,20 +1584,46 @@ function normalizeSectionOrder(sectionOrder) {
   return deduped
 }
 
-function trimBulletsToLimit(resumeData, level) {
+function roleKey(job, index) {
+  const key = `${(job?.company || '').trim().toLowerCase()}|${(job?.title || '').trim().toLowerCase()}`
+  return key === '|' ? `#${index}` : key
+}
+
+// Per-role bullet floors taken from the resume as it came in. A job-specific rewrite
+// reorders and reframes but never prunes, so the trimmer may not take a role below the
+// count it started with, even when the resume is over the total-bullet target. Matched
+// by company + title, falling back to position when the model renamed a role.
+function bulletFloors(originalResume) {
+  const byKey = new Map()
+  const byIndex = []
+  ;(originalResume?.experience || []).forEach((job, i) => {
+    const count = (job.bullets || []).length
+    byKey.set(roleKey(job, i), count)
+    byIndex[i] = count
+  })
+  return { byKey, byIndex }
+}
+
+function trimBulletsToLimit(resumeData, level, originalResume = null) {
   const maxTotals = { entry: 8, mid: 9, senior: 12 }
   const maxTotal = maxTotals[level] || 9
 
   const totalBullets = (resumeData.experience || []).reduce((sum, job) => sum + (job.bullets || []).length, 0)
   if (totalBullets <= maxTotal) return resumeData
 
+  const floors = originalResume ? bulletFloors(originalResume) : null
   const result = JSON.parse(JSON.stringify(resumeData))
   let toRemove = totalBullets - maxTotal
 
-  // Trim from oldest roles first, never below 1 bullet per role
+  // Trim from oldest roles first, never below a role's floor (1 bullet, or the count
+  // it had in the original resume when floors are in effect)
   for (let i = result.experience.length - 1; i >= 0 && toRemove > 0; i--) {
     const bullets = result.experience[i].bullets || []
-    const canRemove = Math.max(0, Math.min(bullets.length - 1, toRemove))
+    const floor = Math.max(
+      1,
+      floors ? (floors.byKey.get(roleKey(result.experience[i], i)) ?? floors.byIndex[i] ?? 1) : 1
+    )
+    const canRemove = Math.max(0, Math.min(bullets.length - floor, toRemove))
     if (canRemove > 0) {
       result.experience[i].bullets = bullets.slice(0, bullets.length - canRemove)
       toRemove -= canRemove
@@ -1667,24 +1715,29 @@ YOUR REWRITE INSTRUCTIONS:
 
 3. BULLET REORDERING — Within each role, put the most job description-relevant bullets first.
    A recruiter will read the first 2. Make them the strongest match for this specific role.
+   Reordering is how a bullet gets de-emphasized. Deletion is not available to you. The bullets that
+   do not match the JD move to the bottom of their role and stay there.
 
-3b. BULLET ALLOCATION BY RELEVANCE — JS RESUMES ONLY:
+3b. BULLET EMPHASIS BY RELEVANCE — JS RESUMES ONLY:
    The default bullet count rules allocate by tenure and recency (most recent role gets the most bullets).
-   For job-specific resumes, RELEVANCE overrides recency. The role most relevant to the target job
-   gets the most bullets, even if it is not the most recent role.
+   For job-specific resumes, RELEVANCE overrides recency in deciding which role reads as the main event.
+   It does NOT override the bullet preservation floor. Emphasis is created by adding and sharpening,
+   never by shortening another role.
 
-   Before allocating bullets, ask for each role: how relevant is this role to the target job description?
-   The role with the strongest functional match to the JD gets 4-6 bullets. Other roles get 2-4 based
-   on their relevance. A role with minimal relevance to the target gets 1-2 or title/company/dates only.
+   Ask for each role: how relevant is this role to the target job description? The role with the
+   strongest functional match to the JD is where new bullets from the coaching conversation go, where
+   the sharpest metrics surface, and where the first two bullets do the heaviest work. Every other role
+   keeps every bullet it started with; its bullets get reordered and reframed, not cut.
 
    Example: a candidate's current role is "Founder & AI Prompt Engineer" and their previous role is
    "Senior Technical Writer" with 20+ years tenure. If the target job is "Technical Writer - AI Trainer,"
-   the technical writing role is the PRIMARY qualification and should get 4-6 bullets. The founder role
-   supports the AI angle but is secondary for this specific job and gets 3-4 bullets focused only on
-   what's relevant to the target.
+   the technical writing role is the PRIMARY qualification and gets any new bullets plus the strongest
+   framing. The founder role supports the AI angle but is secondary for this specific job, so it leads
+   with the bullets that map to the target — and keeps all the rest below them.
 
    The test: if a recruiter for THIS job reads the resume, which role should feel like the main event?
-   That role gets the most space regardless of where it falls chronologically.
+   That role gets the strongest opening bullets and any new material, regardless of where it falls
+   chronologically. No role gets shortened to make another look bigger.
 
 4. MATCHED KEYWORDS — Verify they are still present and prominent. Do not accidentally remove them.
 
@@ -1723,14 +1776,11 @@ DUPLICATE CHECK — MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
 BULLET COUNT CHECK — MANDATORY BEFORE OUTPUTTING:
-Count the bullets in every role. Most recent role for most candidates: 4-6 bullets. 0-5 years in this role: 4-5 bullets; 6-12 years in this role: 5-6 bullets; 13+ years in this role (OR 10+ years AND senior/executive level): 6-7 bullets. If any role exceeds these counts, cut the weakest bullets until it doesn't.
+Go role by role against the ORIGINAL RESUME above. For each role, count the bullets in the original and count the bullets you wrote. Your count must be greater than or equal to the original's. If any role came out short, restore the missing content before outputting — reordered to the bottom of the role and reframed in the JD's language where that is honest, but present. The only exceptions are content the candidate explicitly asked to remove during coaching, and a pair of original bullets that said the same thing.
 
-Then count total bullets across the entire resume:
-- Early Career: 6-8 total
-- Mid-Career: 7-9 total
-- Established Career: 8-10 total
-- Established Career AND Senior Level: 9-12 total
-If the total exceeds the limit for this candidate's career length, cut the weakest bullets from older or less relevant roles first. Do not output until both per-role and total counts are within limits.
+The per-role guidelines above (4-6 bullets for the most recent role, 1-2 for older or less relevant roles, 10-12 total) are CEILINGS ON NEW MATERIAL. They govern how many bullets you may ADD to a role. They never authorize cutting a role below what the original resume had. When a count guideline and the preservation floor conflict, the floor wins every time.
+
+If the resume runs long, the fix is tighter writing inside each bullet, not fewer bullets.
 
 CERTIFICATIONS AND SINGLE-ITEM SECTIONS — MANDATORY BEFORE OUTPUTTING:
 If the candidate has only ONE certification, do NOT create a certifications section. Set certifications: [] and add it as a skill entry in the most relevant skillsCategories category. Format: "SHRM-CP | Society for Human Resource Management, Active" as a single skill string. The same rule applies to languages and volunteer entries — a single item never gets its own section. Fold it into skillsCategories or Additional Information only if 3+ small items exist across categories. A standalone section for one credential is always wrong.
@@ -2236,6 +2286,44 @@ VALIDATION CHECK: Before outputting, verify that at least 3 of the gaps/action i
 are visibly addressed in your rewrite. If they are not, you have not finished the job.
 ` : ''
 
+  // Coaching asks whether anything has changed since the resume was written, so a job can
+  // reach the rewrite having never been on the resume. The coach is required to ask before
+  // any such role is created, and that answer — not the model's judgment — decides it.
+  const newRoleRule = isConversational ? '' : `
+NEW ROLES — ONLY WITH THE CANDIDATE'S EXPLICIT AGREEMENT:
+The transcript may describe a job that is not in the original resume data. Describing it is NOT
+permission to add it. Roles get left off resumes deliberately, and putting one back without being asked
+overrides a decision the candidate already made.
+
+Add a role to experience[] ONLY when BOTH of these are true in the transcript:
+
+1. THE CANDIDATE AGREED TO IT. The coach asked some form of "would you like me to add that as a new job
+   in your experience section," and the candidate answered yes. Find that exchange before you add
+   anything. If the candidate was never asked, do not add the role. If they were asked and declined, do
+   not add the role.
+
+2. ALL THREE FACTS ARE PRESENT: the job TITLE, the COMPANY name, and approximate DATES (a start year and
+   an end year, or a start year plus a statement they are still there).
+
+If they agreed but one of the three facts is missing, do not create the entry. An entry with a guessed
+title or an invented date range is worse than no entry: the candidate has to catch and repair it, and a
+recruiter who spots the inconsistency reads it as carelessness.
+
+Never guess a title from the duties described. Never infer the company from context. Never estimate
+dates from the roles around it. Never add a role that appears nowhere in the transcript.
+
+Bullets for an added role come only from what the candidate actually said about that job.
+
+An added role is a full entry, not a stub. It gets a job summary exactly like every other role on the
+resume — the 1-2 sentence overview that sits between the title and the bullets, written to the JOB
+SUMMARY standard above. A new role with an empty summary field renders as a visibly broken entry next
+to the roles around it. Write it from the function of the role and the employer as the candidate
+described them, and invent no scale or scope the transcript does not support.
+
+Before outputting, check every role in experience[] against two sources: the original resume data, and
+an explicit yes in the transcript. A role that is in neither does not belong in your output.
+`
+
   const existingResumeBlock = isConversational ? '' : `ORIGINAL RESUME DATA:
 ${JSON.stringify(resumeData, null, 2)}`
 
@@ -2352,6 +2440,7 @@ Most target-relevant bullets first. A recruiter scanning for 5 seconds reads the
 THE NO-REMOVAL DEFAULT:
 Before removing any content: Does the coaching conversation give a specific reason to remove this? Is it genuinely redundant or irrelevant to the target role? Am I replacing it with something strictly better?
 If not clearly YES on all three, preserve it.
+${newRoleRule}
 
 ADMIN EXPERIENCE: Never remove admin bullets for student or early-career resumes. Internship and coordinator roles explicitly require evidence of admin capability.
 
@@ -2743,7 +2832,8 @@ Return this exact structure:
       rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
 
       // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
-      rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
+      // resumeData sets the per-role floor: a job-specific pass reorders, it never prunes
+      rewrittenResume = trimBulletsToLimit(rewrittenResume, level, resumeData)
 
       const jsSummaryPrompt = buildSummaryPrompt({
         rewrittenResume,
