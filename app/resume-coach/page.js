@@ -2372,7 +2372,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               {jobSources.filter(s => !s.has_cover_letter).length > 0 && (
                 <div>
                   <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Use details from existing job</label>
-                  <p className="text-xs md:text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
                   <select
                     value={selectedJobSourceId}
                     onChange={e => {
