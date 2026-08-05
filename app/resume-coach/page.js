@@ -2435,11 +2435,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               </div>
               <div>
                 <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Your positioning statement (optional)</label>
-                <p className="text-xs md:text-[10px] text-gray-400 mb-1">Share your angle — why you're the right fit, what makes you unique, or what you want the letter to lead with.</p>
                 <textarea
                   value={positioningStatement}
                   onChange={e => setPositioningStatement(e.target.value)}
-                  rows={2}
+                  placeholder="Share your angle — why you're the right fit, what makes you unique, or what you want the letter to lead with."
+                  rows={1}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
