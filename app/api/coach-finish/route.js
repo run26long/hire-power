@@ -2341,9 +2341,40 @@ No markdown. No explanation. No backticks.`
 }
 
 // ─────────────────────────────────────────────
+// CANDIDATE VOICE LOOKUP
+// Explicit, still-current knowledge items that carry the candidate's own phrasing.
+// Used by the core and conversational rewrite paths as a style reference only.
+// Any failure is non-fatal: the rewrite proceeds without a voice block.
+// ─────────────────────────────────────────────
+async function fetchKnowledgeVoice(userId) {
+  if (!userId) return []
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    const { data, error } = await supabase
+      .from('career_knowledge')
+      .select('content, raw_phrasing')
+      .eq('user_id', userId)
+      .is('superseded_by', null)
+      .eq('confidence', 'explicit')
+      .not('raw_phrasing', 'is', null)
+      .order('mention_count', { ascending: false })
+      .limit(20)
+    if (error) {
+      console.error('[career-knowledge] Voice lookup failed (non-fatal):', error)
+      return []
+    }
+    return data || []
+  } catch (e) {
+    console.error('[career-knowledge] Voice lookup failed (non-fatal):', e)
+    return []
+  }
+}
+
+// ─────────────────────────────────────────────
 // CORE RESUME BUILD PROMPT (used by both core and conversational paths)
 // ─────────────────────────────────────────────
-function buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational = false }) {
+function buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational = false, knowledgeVoice }) {
   const conversationalBlock = isConversational ? `
 IMPORTANT: There is no existing resume and no pre-coaching assessment. The coaching conversation below is your sole source of content. Your quality standards are identical — impact, clarity, and keywords at the highest level the conversation allows. The coaching conversation IS the map. Read it the way you would read a strong resume combined with a coaching transcript, and write to the same standard you always would. Every number, date, company name, title, achievement, and credential must appear explicitly in that conversation. Do not infer, estimate, or add anything the candidate did not say.
 
@@ -2422,6 +2453,20 @@ an explicit yes in the transcript. A role that is in neither does not belong in 
   const existingResumeBlock = isConversational ? '' : `ORIGINAL RESUME DATA:
 ${JSON.stringify(resumeData, null, 2)}`
 
+  // How the candidate talks about their own work, quoted from earlier sessions.
+  // A style reference only — it never licenses a claim the resume and transcript
+  // do not already support. Items with no raw_phrasing carry no voice signal, so
+  // they are dropped, and the block disappears entirely when none are left.
+  const voiceItems = (knowledgeVoice || [])
+    .filter(i => i.raw_phrasing && i.raw_phrasing.trim())
+
+  const voiceBlock = voiceItems.length > 0 ? `
+CANDIDATE VOICE REFERENCE:
+When writing bullets, use the following as a reference for how this candidate naturally talks about their own work. Write bullets that sound like a polished version of their voice, not generic resume language.
+
+${voiceItems.map(i => `Experience: ${i.content}\nIn their own words: "${i.raw_phrasing}"`).join('\n\n')}
+` : ''
+
   const conversationText = conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')
 
   return `${conversationalBlock}You are the resume writer for a world-class career coaching platform. Your only job is to give this person a dramatically better resume than they arrived with, one that gets through ATS systems and impresses human recruiters enough to generate interviews. You are ruthless about relevance and conciseness. You never include anything that doesn't serve the candidate's target role, and you tell the most powerful story in the simplest, most impactful way possible. Good enough is not good enough. Your works must be
@@ -2436,7 +2481,7 @@ COACHING CONVERSATION (everything extracted — use all of it):
 ${conversationText}
 
 ${existingResumeBlock}
-
+${voiceBlock}
 ${careerContext?.is_career_changer === true ? `
 CAREER PIVOT INSTRUCTION:
 This candidate is transitioning from ${careerContext.previous_field || 'their previous field'} to ${careerContext.target_roles?.join(' / ') || 'a new field'}.
@@ -2787,7 +2832,9 @@ export async function POST(request) {
       const convLevel = ['entry', 'mid', 'senior'].includes(detectedLevelText) ? detectedLevelText : (detectedLevel || 'mid')
       const convLevelInstructions = LEVEL_WRITING_INSTRUCTIONS[convLevel] || LEVEL_WRITING_INSTRUCTIONS.mid
 
-      const convRewritePrompt = buildCoreRewritePrompt({ resumeData: null, conversation, level: convLevel, levelInstructions: convLevelInstructions, careerContext, isConversational: true })
+      const convKnowledgeVoice = await fetchKnowledgeVoice(authenticatedUserId)
+
+      const convRewritePrompt = buildCoreRewritePrompt({ resumeData: null, conversation, level: convLevel, levelInstructions: convLevelInstructions, careerContext, isConversational: true, knowledgeVoice: convKnowledgeVoice })
       const convRewriteMsg = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
@@ -2898,7 +2945,7 @@ Return this exact structure:
               action: 'extract',
               resumeId: resumeId || null,
               transcript: conversation,
-              resumeData,
+              resumeData: convResume,
               jobTitle: null,
               jobCompany: null
             })
@@ -3019,7 +3066,9 @@ Return this exact structure:
     }
 
   // ── CORE RESUME REWRITE PATH ──
-    const rewritePrompt = buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational: false })
+    const coreKnowledgeVoice = await fetchKnowledgeVoice(authenticatedUserId)
+
+    const rewritePrompt = buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational: false, knowledgeVoice: coreKnowledgeVoice })
 
     let rewriteMessage
     let rewriteAttempts = 0
