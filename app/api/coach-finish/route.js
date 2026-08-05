@@ -1295,6 +1295,25 @@ The goal: A recruiter reads this and immediately understands the depth and scale
 // ─────────────────────────────────────────────
 const JS_WRITING_CONSTITUTION = `
 
+═══════════════════════════════════════════════
+VERIFICATION RULE — APPLIES TO THE ENTIRE RESUME
+═══════════════════════════════════════════════
+
+Never add any experience, skill, tool, platform, technology, certification, methodology, domain knowledge, or claim to any part of the resume — including bullets, the summary, and the skills section — unless ONE of these two conditions is met:
+
+1. It already appears on the original resume provided.
+2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
+
+The following do NOT qualify:
+- The job description mentions it
+- The candidate said they could learn it, would learn it, or are willing to learn it
+- The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
+- The coach inferred it from context
+- It would be a logical skill or experience for someone in this role to have
+- It sounds like something they probably do based on their other work
+
+If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions.
+
 NO HALLUCINATION — CATASTROPHIC FAILURE:
 If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume or the coaching conversation, the entire rewrite is a catastrophic failure. This is the most serious rule in this prompt. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did the candidate say this, or did I invent it? If you cannot point to where it came from, remove it. When in doubt, write around it with qualitative strength or omit entirely.
 
@@ -1394,6 +1413,27 @@ If neither mentions it, do not add it — even if the job description requires i
 // because there is no coaching transcript to support new content.
 // ─────────────────────────────────────────────
 const JS_NO_COACH_RULES = `
+
+═══════════════════════════════════════════════
+VERIFICATION RULE — APPLIES TO THE ENTIRE RESUME
+═══════════════════════════════════════════════
+
+Never add any experience, skill, tool, platform, technology, certification, methodology, domain knowledge, or claim to any part of the resume — including bullets, the summary, and the skills section — unless ONE of these two conditions is met:
+
+1. It already appears on the original resume provided.
+2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
+
+There is NO coaching conversation in this pass, so condition 2 is unavailable. Condition 1 is the only way content qualifies.
+
+The following do NOT qualify:
+- The job description mentions it
+- The candidate said they could learn it, would learn it, or are willing to learn it
+- The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
+- The coach inferred it from context
+- It would be a logical skill or experience for someone in this role to have
+- It sounds like something they probably do based on their other work
+
+If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions.
 
 NO HALLUCINATION — CATASTROPHIC FAILURE:
 If any metric, achievement, company detail, date, credential, or responsibility appears in this resume that was not explicitly stated in the original resume, the entire rewrite is a catastrophic failure. There is NO coaching conversation in this pass. The original resume is your ONLY source of truth. A candidate who interviews based on fabricated content will be caught. A hallucination costs someone their credibility and potentially their job offer. Before outputting, read every number, every specific claim, and every achievement and ask: did this appear in the original resume? If not, remove it. When in doubt, write around it with qualitative strength or omit entirely.
@@ -1772,6 +1812,23 @@ SKILLS: Weight toward target field vocabulary. Previous-field-specific skills th
 SUMMARY: Follow all summary guidelines from the summary prompt exactly. No exceptions and no shortcuts. Name 2-3 skills from the job description requirements when the candidate genuinely has them. For career changers specifically: tailor the summary to the new role by demonstrating the skills and experience that qualify them for this role. Previous experience becomes evidence, not identity. 
 ` : ''}
 
+VERIFICATION RULE — APPLIES TO THE ENTIRE RESUME — MANDATORY BEFORE OUTPUTTING:
+Never add any experience, skill, tool, platform, technology, certification, methodology, domain knowledge, or claim to any part of the resume — including bullets, the summary, and the skills section — unless ONE of these two conditions is met:
+
+1. It already appears on the original resume provided above.
+2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
+
+The following do NOT qualify:
+- The job description mentions it
+- It appears in the MISSING KEYWORDS list above
+- The candidate said they could learn it, would learn it, or are willing to learn it
+- The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
+- The coach inferred it from context
+- It would be a logical skill or experience for someone in this role to have
+- It sounds like something they probably do based on their other work
+
+Before outputting, walk the entire resume item by item — every bullet, every skill in skillsCategories, every certification, and every term you worked in from the keyword list — and name the source for each: the original resume, or the candidate's own words in the transcript. If you cannot name one, delete it. If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the ATS keyword targets above.
+
 DUPLICATE CHECK — MANDATORY BEFORE OUTPUTTING:
 Read every bullet in every role. If any two bullets say the same thing, even in different words, delete one. No exceptions. A duplicate is an automatic failure regardless of how strong each bullet is individually.
 
@@ -2066,6 +2123,25 @@ Do not claim that the candidate IS the target title if the candidate does not cu
 
 In the summary, organically add 2-3 skills from the job description when possible, but only if the candidate genuinely has those skills. This improves ATS matching for this specific role.
 
+═══════════════════════════════════════════════
+VERIFICATION RULE — APPLIES TO THE ENTIRE RESUME
+═══════════════════════════════════════════════
+
+Never add any experience, skill, tool, platform, technology, certification, methodology, domain knowledge, or claim to any part of the resume — including bullets, the summary, and the skills section — unless ONE of these two conditions is met:
+
+1. It already appears on the original resume provided.
+2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
+
+The following do NOT qualify:
+- The job description mentions it
+- The candidate said they could learn it, would learn it, or are willing to learn it
+- The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
+- The coach inferred it from context
+- It would be a logical skill or experience for someone in this role to have
+- It sounds like something they probably do based on their other work
+
+If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the instruction above to work job description skills into the summary. A skill from the job description only goes in the summary when the finalized bullets or the candidate's own words in the transcript already establish it.
+
 CONCISENESS:
 Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
 
@@ -2206,6 +2282,25 @@ the resume. This may mean enhancing existing bullets, adding new bullets where t
 conversation surfaced content that has no home yet, or strengthening the summary to 
 reflect new positioning information. Be surgical where the original is strong. Be bold 
 where new material was provided that isn't yet on the resume at all.
+
+═══════════════════════════════════════════════
+VERIFICATION RULE — APPLIES TO THE ENTIRE RESUME
+═══════════════════════════════════════════════
+
+Never add any experience, skill, tool, platform, technology, certification, methodology, domain knowledge, or claim to any part of the resume — including bullets, the summary, and the skills section — unless ONE of these two conditions is met:
+
+1. It already appears on the resume provided below.
+2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
+
+The following do NOT qualify:
+- The job description mentions it
+- The candidate said they could learn it, would learn it, or are willing to learn it
+- The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
+- The coach inferred it from context
+- It would be a logical skill or experience for someone in this role to have
+- It sounds like something they probably do based on their other work
+
+A gap listed below is a prompt to look for material, not permission to supply it. If the follow-up conversation did not produce the candidate's own claim to something, the gap stays open. If content does not meet condition 1 or 2, it must not appear anywhere on the resume. This rule has no exceptions.
 
 REMAINING GAPS THAT WERE ADDRESSED IN THIS CONVERSATION:
 ${remainingGaps.map((gap, i) => `${i + 1}. ${gap}`).join('\n')}
@@ -2788,6 +2883,29 @@ Return this exact structure:
         }
       }
 
+      // ── BACKGROUND: career knowledge extraction (BRB/conversational path) ──
+      // Runs after the rewrite fully succeeded. Does not block the response.
+      // Skipped when invoked via INTERNAL_API_SECRET — no user token to forward.
+      if (authenticatedUserId) {
+        waitUntil(
+          fetch(new URL('/api/career-knowledge', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader
+            },
+            body: JSON.stringify({
+              action: 'extract',
+              resumeId: resumeId || null,
+              transcript: conversation,
+              resumeData,
+              jobTitle: null,
+              jobCompany: null
+            })
+          }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+        )
+      }
+
       return NextResponse.json({ rewrittenResume: convResume, changes: [], detectedLevel: convLevel })
     }
 
@@ -2987,6 +3105,29 @@ Return this exact structure:
     } catch (e) {
       console.warn('Changes JSON truncated or malformed — continuing without change list')
       changes = []
+    }
+
+    // ── BACKGROUND: career knowledge extraction (core resume path) ──
+    // Runs after the rewrite fully succeeded. Does not block the response.
+    // Skipped when invoked via INTERNAL_API_SECRET — no user token to forward.
+    if (authenticatedUserId) {
+      waitUntil(
+        fetch(new URL('/api/career-knowledge', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({
+            action: 'extract',
+            resumeId: resumeId || null,
+            transcript: conversation,
+            resumeData,
+            jobTitle: null,
+            jobCompany: null
+          })
+        }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+      )
     }
 
     return NextResponse.json({
