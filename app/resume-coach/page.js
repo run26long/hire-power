@@ -136,6 +136,7 @@ export default function MyResumesPage() {
   const [clJobTitle, setClJobTitle] = useState('');
   const [clCompany, setClCompany] = useState('');
   const [clJobDescription, setClJobDescription] = useState('');
+  const [positioningStatement, setPositioningStatement] = useState('');
   const [clAdditionalContext, setClAdditionalContext] = useState('');
   const [creatingCL, setCreatingCL] = useState(false);
   const [clCreateError, setClCreateError] = useState(null);
@@ -794,6 +795,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             jobTitle,
             jobCompany,
             jobDescription,
+            positioningStatement: positioningStatement.trim() || null,
             additionalContext: clAdditionalContext,
             userId: user?.id,
             knowledgeMatches: knowledgeMatches || []
@@ -2428,6 +2430,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   onChange={e => setClJobDescription(e.target.value)}
                   placeholder="Paste the full job description here..."
                   rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Your positioning statement (optional)</label>
+                <p className="text-xs md:text-[10px] text-gray-400 mb-1">Use this to share your angle — why you're the right fit despite any gaps, what makes your background uniquely suited to this role, or anything you want the letter to lead with.</p>
+                <textarea
+                  value={positioningStatement}
+                  onChange={e => setPositioningStatement(e.target.value)}
+                  rows={2}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>

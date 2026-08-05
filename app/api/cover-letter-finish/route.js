@@ -794,7 +794,7 @@ export async function POST(request) {
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { resumeData, jobTitle, jobCompany, jobDescription, additionalContext, userId, knowledgeMatches } = await request.json()
+    const { resumeData, jobTitle, jobCompany, jobDescription, positioningStatement, additionalContext, userId, knowledgeMatches } = await request.json()
 
     if (!resumeData || !jobDescription) {
       return NextResponse.json(
@@ -848,13 +848,22 @@ When writing this cover letter, use the following as a reference for how this ca
 ${voiceItems.map(m => `Experience: ${m.content}\nIn their own words: "${m.raw_phrasing.trim()}"`).join('\n\n')}
 ` : ''}` : ''
 
+    // The candidate's own framing of why they fit this role. Optional, and
+    // dropped entirely when they left the field blank.
+    const positioningBlock = typeof positioningStatement === 'string' && positioningStatement.trim() ? `
+CANDIDATE POSITIONING:
+The candidate has provided the following statement about why they are the right fit for this role. Use this to shape the framing and opening argument of the cover letter. This is not marketing copy — write it as a natural, confident part of the letter.
+
+${positioningStatement.trim()}
+` : ''
+
     const userMessage = `SOURCE MATERIAL
 
 RESUME DATA:
 ${JSON.stringify(resumeData, null, 2)}
 ${knowledgeBlock}
 TARGET ROLE: ${jobTitle}${jobCompany ? ` at ${jobCompany}` : ''}
-
+${positioningBlock}
 JOB DESCRIPTION:
 ${jobDescription}
 ${additionalContext && additionalContext.trim() ? `
