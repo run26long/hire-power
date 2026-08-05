@@ -2340,6 +2340,12 @@ ENHANCEMENT RULES:
 6. DO NOT change the summary unless the new information is directly relevant to the opening positioning
 7. DO NOT change the skills section unless new skills were explicitly mentioned in the follow-up conversation. If this is a career changer, any new skills added must serve the TARGET role vocabulary. Do not add previous-field-specific technical skills that don't transfer to the target role. Those belong at the bottom of the skills section or not at all. When in doubt, leave the skills section exactly as it is.
 
+═══════════════════════════════════════════════
+NEW JOB ENTRY RULE
+═══════════════════════════════════════════════
+
+When adding a completely new job entry to the resume, always include a 1-2 sentence summary paragraph between the job header and the bullets. This summary should be in italics in the resume data (use the summary field on the job object). It should briefly describe the scope of the role, the type of company or environment, and what the candidate was hired to do. Every other job entry on this resume has this summary — a new entry must match that format exactly.
+
 The goal is surgical improvement, not a new rewrite. Most of the resume should be identical 
 to what you received. Only the bullets where new specific material was provided should change.
 
