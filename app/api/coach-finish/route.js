@@ -1746,6 +1746,16 @@ YOUR REWRITE INSTRUCTIONS:
    - Bad: "Senior Prompt Engineer" when they've never held that title
    - Bad: "Founder and CEO" when it tells the recruiter nothing about fit for this role
 
+═══════════════════════════════════════════════
+EMPLOYER BOUNDARY RULE
+═══════════════════════════════════════════════
+
+Every bullet must describe only work performed at the employer it appears under. This rule has no exceptions.
+
+Never reference another employer by name inside a bullet. Never describe work that spans multiple employers in a single bullet. Never consolidate experience from two different jobs into one bullet, even if the candidate performed the same practice at both.
+
+If the candidate describes doing the same thing at multiple employers, write separate bullets under each respective employer. If there is only one employer in scope for this rewrite, each bullet describes only that employer's work.
+
 2. MISSING KEYWORDS — Work through each one:
    - Does the coaching conversation or resume give you material to support this keyword? Add it.
    - Best location: existing bullet where it fits naturally (reframe the bullet to include it).
@@ -2310,6 +2320,16 @@ ${newConversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'
 
 CURRENT RESUME (already improved — treat this as your baseline):
 ${JSON.stringify(rewrittenResume, null, 2)}
+
+═══════════════════════════════════════════════
+EMPLOYER BOUNDARY RULE
+═══════════════════════════════════════════════
+
+Every bullet must describe only work performed at the employer it appears under. This rule has no exceptions.
+
+Never reference another employer by name inside a bullet. Never describe work that spans multiple employers in a single bullet. Never consolidate experience from two different jobs into one bullet, even if the candidate performed the same practice at both.
+
+If the candidate describes doing the same thing at multiple employers, write separate bullets under each respective employer. If there is only one employer in scope for this rewrite, each bullet describes only that employer's work.
 
 ENHANCEMENT RULES:
 1. Find the bullets that relate to the gaps above
