@@ -1313,6 +1313,7 @@ The following do NOT qualify:
 - It sounds like something they probably do based on their other work
 - It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
 - It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
+- It uses terminology the candidate did not use, or terminology the model knows from its own training. The skills section must reflect only the candidate's own words and the terms they named. Do not substitute, upgrade, expand, or formalize their vocabulary with field-standard terms, synonyms, more technical names, or any term drawn from the model's own knowledge of the field. If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture." If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge." The skills section represents the candidate's knowledge and words, not the model's.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions.
 
@@ -1442,6 +1443,7 @@ The following do NOT qualify:
 - It sounds like something they probably do based on their other work
 - It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
 - It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
+- It uses terminology the candidate did not use, or terminology the model knows from its own training. The skills section must reflect only the candidate's own words and the terms they named. Do not substitute, upgrade, expand, or formalize their vocabulary with field-standard terms, synonyms, more technical names, or any term drawn from the model's own knowledge of the field. If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture." If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge." The skills section represents the candidate's knowledge and words, not the model's.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions.
 
@@ -1854,6 +1856,7 @@ The following do NOT qualify:
 - It sounds like something they probably do based on their other work
 - It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
 - It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
+- It uses terminology the candidate did not use, or terminology the model knows from its own training. The skills section must reflect only the candidate's own words and the terms they named. Do not substitute, upgrade, expand, or formalize their vocabulary with field-standard terms, synonyms, more technical names, or any term drawn from the model's own knowledge of the field. If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture." If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge." The skills section represents the candidate's knowledge and words, not the model's.
 
 Before outputting, walk the entire resume item by item — every bullet, every skill in skillsCategories, every certification, and every term you worked in from the keyword list — and name the source for each: the original resume, or the candidate's own words in the transcript. If you cannot name one, delete it. If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the ATS keyword targets above.
 
@@ -2169,6 +2172,7 @@ The following do NOT qualify:
 - It sounds like something they probably do based on their other work
 - It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
 - It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
+- It uses terminology the candidate did not use, or terminology the model knows from its own training. The skills section must reflect only the candidate's own words and the terms they named. Do not substitute, upgrade, expand, or formalize their vocabulary with field-standard terms, synonyms, more technical names, or any term drawn from the model's own knowledge of the field. If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture." If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge." The skills section represents the candidate's knowledge and words, not the model's.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the instruction above to work job description skills into the summary. A skill from the job description only goes in the summary when the finalized bullets or the candidate's own words in the transcript already establish it.
 
@@ -2337,6 +2341,7 @@ The following do NOT qualify:
 - It sounds like something they probably do based on their other work
 - It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
 - It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
+- It uses terminology the candidate did not use, or terminology the model knows from its own training. The skills section must reflect only the candidate's own words and the terms they named. Do not substitute, upgrade, expand, or formalize their vocabulary with field-standard terms, synonyms, more technical names, or any term drawn from the model's own knowledge of the field. If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture." If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge." The skills section represents the candidate's knowledge and words, not the model's.
 
 A gap listed below is a prompt to look for material, not permission to supply it. If the follow-up conversation did not produce the candidate's own claim to something, the gap stays open. If content does not meet condition 1 or 2, it must not appear anywhere on the resume. This rule has no exceptions.
 
