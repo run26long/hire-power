@@ -1366,6 +1366,12 @@ bullet describing the work, not as a skill entry claiming the vocabulary.
 The candidate's own words go in skills. The JD's words can appear in bullets that describe
 matching work. Never the reverse.
 
+═══════════════════════════════════════════════
+NUMERIC SPECIFICITY RULE
+═══════════════════════════════════════════════
+
+Never add specific numbers, quantities, counts, or measurements to bullets unless the candidate stated that exact figure. If you are uncertain of a number, omit it rather than estimate it.
+
 BULLET PRESERVATION FLOOR — OVERRIDES EVERY BULLET COUNT RULE IN THIS PROMPT, INCLUDING ANY THAT APPEAR BELOW:
 A job-specific rewrite reorders and reframes. It does not prune. Every role must end this pass with
 at least as many bullets as it had in the original resume. Before writing, count the bullets in each
@@ -2165,6 +2171,12 @@ The following do NOT qualify:
 - It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the instruction above to work job description skills into the summary. A skill from the job description only goes in the summary when the finalized bullets or the candidate's own words in the transcript already establish it.
+
+═══════════════════════════════════════════════
+NUMERIC SPECIFICITY RULE
+═══════════════════════════════════════════════
+
+Never add specific numbers, quantities, counts, or measurements to bullets unless the candidate stated that exact figure. If you are uncertain of a number, omit it rather than estimate it.
 
 CONCISENESS:
 Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
