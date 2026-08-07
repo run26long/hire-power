@@ -2176,7 +2176,7 @@ If content does not meet condition 1 or 2, it must not appear anywhere on the re
 NUMERIC SPECIFICITY RULE
 ═══════════════════════════════════════════════
 
-Never add specific numbers, quantities, counts, or measurements to bullets unless the candidate stated that exact figure. If you are uncertain of a number, omit it rather than estimate it.
+Never add specific numbers, quantities, counts, or measurements to anything you write unless the candidate stated that exact figure. If you are uncertain of a number, omit it rather than estimate it.
 
 CONCISENESS:
 Excellent summaries tell the most important parts of the story in as few words as possible. Conciseness is part of what makes them compelling and highly readable.
