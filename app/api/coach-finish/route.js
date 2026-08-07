@@ -1756,6 +1756,12 @@ Never reference another employer by name inside a bullet. Never describe work th
 
 If the candidate describes doing the same thing at multiple employers, write separate bullets under each respective employer. If there is only one employer in scope for this rewrite, each bullet describes only that employer's work.
 
+═══════════════════════════════════════════════
+NUMERIC SPECIFICITY RULE
+═══════════════════════════════════════════════
+
+Never add specific numbers, quantities, counts, or measurements to bullets unless the candidate stated that exact figure. If you are uncertain of a number, omit it rather than estimate it.
+
 2. MISSING KEYWORDS — Work through each one:
    - Does the coaching conversation or resume give you material to support this keyword? Add it.
    - Best location: existing bullet where it fits naturally (reframe the bullet to include it).
