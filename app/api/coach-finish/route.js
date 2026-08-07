@@ -1836,6 +1836,8 @@ The following do NOT qualify:
 - The coach inferred it from context
 - It would be a logical skill or experience for someone in this role to have
 - It sounds like something they probably do based on their other work
+- It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies to the skills section unless the candidate named them specifically.
+- It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
 
 Before outputting, walk the entire resume item by item — every bullet, every skill in skillsCategories, every certification, and every term you worked in from the keyword list — and name the source for each: the original resume, or the candidate's own words in the transcript. If you cannot name one, delete it. If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the ATS keyword targets above.
 
