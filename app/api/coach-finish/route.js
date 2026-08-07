@@ -1311,6 +1311,8 @@ The following do NOT qualify:
 - The coach inferred it from context
 - It would be a logical skill or experience for someone in this role to have
 - It sounds like something they probably do based on their other work
+- It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
+- It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions.
 
@@ -1432,6 +1434,8 @@ The following do NOT qualify:
 - The coach inferred it from context
 - It would be a logical skill or experience for someone in this role to have
 - It sounds like something they probably do based on their other work
+- It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
+- It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions.
 
@@ -2157,6 +2161,8 @@ The following do NOT qualify:
 - The coach inferred it from context
 - It would be a logical skill or experience for someone in this role to have
 - It sounds like something they probably do based on their other work
+- It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
+- It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
 
 If content does not meet condition 1 or 2, it must not appear anywhere on the rewritten resume. This rule has no exceptions and it overrides the instruction above to work job description skills into the summary. A skill from the job description only goes in the summary when the finalized bullets or the candidate's own words in the transcript already establish it.
 
@@ -2317,6 +2323,8 @@ The following do NOT qualify:
 - The coach inferred it from context
 - It would be a logical skill or experience for someone in this role to have
 - It sounds like something they probably do based on their other work
+- It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
+- It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
 
 A gap listed below is a prompt to look for material, not permission to supply it. If the follow-up conversation did not produce the candidate's own claim to something, the gap stays open. If content does not meet condition 1 or 2, it must not appear anywhere on the resume. This rule has no exceptions.
 
