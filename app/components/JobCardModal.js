@@ -245,11 +245,11 @@ export default function JobCardModal({
                     <div
                       className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
                       onClick={() => {
+                        // Pass the card id, not the job description. A JD runs to
+                        // thousands of characters and does not survive a query string.
                         const params = new URLSearchParams({
                           action: 'new-job-specific',
-                          ...(card.title && { jobTitle: card.title }),
-                          ...(card.company && { jobCompany: card.company }),
-                          ...(card.description && { jobDescription: card.description }),
+                          ...(card.id && { applicationId: card.id }),
                         })
                         router.push(`/resume-coach?${params.toString()}`)
                       }}

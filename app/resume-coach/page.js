@@ -173,11 +173,32 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     loadData();
     const params = new URLSearchParams(window.location.search);
 
-    // Check for job-specific creation trigger from SaveStep
+    // Check for job-specific creation trigger from SaveStep or JobCardModal
     if (params.get('action') === 'new-job-specific') {
       const fromId = params.get('from');
+      const applicationId = params.get('applicationId') || '';
       setJobModalSourceId(fromId);
-      setShowJobModal(true);
+      if (applicationId) {
+        // Arriving from a job card: the card owns the title, company, and JD,
+        // so read them from the record rather than from the URL.
+        supabase
+          .from('applications')
+          .select('title, company, description')
+          .eq('id', applicationId)
+          .single()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Load job card for tailored resume failed:', error);
+            } else if (data) {
+              setJobTitle(data.title || '');
+              setJobCompany(data.company || '');
+              setJobDescription(data.description || '');
+            }
+            setShowJobModal(true);
+          });
+      } else {
+        setShowJobModal(true);
+      }
       window.history.replaceState({}, '', '/resume-coach');
     }
 
