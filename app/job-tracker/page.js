@@ -1022,6 +1022,7 @@ export default function JobTrackerPage() {
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   onBlur={e => setNewTitle(toTitleCaseOnBlur(e.target.value))}
+                  maxLength={100}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -1033,6 +1034,7 @@ export default function JobTrackerPage() {
                   value={newCompany}
                   onChange={e => setNewCompany(e.target.value)}
                   onBlur={e => setNewCompany(toTitleCaseOnBlur(e.target.value))}
+                  maxLength={100}
                   placeholder="e.g. Acme Corp"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
