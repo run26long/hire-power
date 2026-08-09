@@ -1022,7 +1022,7 @@ export default function JobTrackerPage() {
                 <input
                   type="text"
                   value={newTitle}
-                  onChange={e => { setNewTitle(e.target.value); setNewTitleError(null); }}
+                  onChange={e => { setNewTitle(e.target.value); if (e.target.value.length <= 100) setNewTitleError(null); }}
                   onBlur={e => {
                     const v = toTitleCaseOnBlur(e.target.value);
                     setNewTitle(v);
@@ -1038,7 +1038,7 @@ export default function JobTrackerPage() {
                 <input
                   type="text"
                   value={newCompany}
-                  onChange={e => { setNewCompany(e.target.value); setNewCompanyError(null); }}
+                  onChange={e => { setNewCompany(e.target.value); if (e.target.value.length <= 100) setNewCompanyError(null); }}
                   onBlur={e => {
                     const v = toTitleCaseOnBlur(e.target.value);
                     setNewCompany(v);

@@ -122,7 +122,9 @@ export default function MyResumesPage() {
   const [showJobModal, setShowJobModal] = useState(false);
   const [jobModalSourceId, setJobModalSourceId] = useState(null);
   const [jobTitle, setJobTitle] = useState('');
+  const [jobTitleError, setJobTitleError] = useState(null);
   const [jobCompany, setJobCompany] = useState('');
+  const [jobCompanyError, setJobCompanyError] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
   const [jobSources, setJobSources] = useState([]);
   const [selectedJobSourceId, setSelectedJobSourceId] = useState('');
@@ -134,7 +136,9 @@ export default function MyResumesPage() {
   const [clSourceType, setClSourceType] = useState(null); // null | 'js_resume' | 'scratch'
   const [clSelectedJSId, setClSelectedJSId] = useState('');
   const [clJobTitle, setClJobTitle] = useState('');
+  const [clJobTitleError, setClJobTitleError] = useState(null);
   const [clCompany, setClCompany] = useState('');
+  const [clCompanyError, setClCompanyError] = useState(null);
   const [clJobDescription, setClJobDescription] = useState('');
   const [positioningStatement, setPositioningStatement] = useState('');
   const [clAdditionalContext, setClAdditionalContext] = useState('');
@@ -2135,22 +2139,32 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <input
                   type="text"
                   value={jobTitle}
-                  onChange={e => setJobTitle(e.target.value)}
-                  onBlur={e => setJobTitle(toTitleCaseOnBlur(e.target.value))}
+                  onChange={e => { setJobTitle(e.target.value); if (e.target.value.length <= 100) setJobTitleError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setJobTitle(v);
+                    setJobTitleError(v.length > 100 ? 'Please enter just the job title (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {jobTitleError && <p className="text-sm md:text-xs text-red-600 mt-1">{jobTitleError}</p>}
               </div>
               <div>
                 <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={jobCompany}
-                  onChange={e => setJobCompany(e.target.value)}
-                  onBlur={e => setJobCompany(toTitleCaseOnBlur(e.target.value))}
+                  onChange={e => { setJobCompany(e.target.value); if (e.target.value.length <= 100) setJobCompanyError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setJobCompany(v);
+                    setJobCompanyError(v.length > 100 ? 'Please enter just the company name (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Disney"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {jobCompanyError && <p className="text-sm md:text-xs text-red-600 mt-1">{jobCompanyError}</p>}
               </div>
               <div>
                 <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description *</label>
@@ -2169,7 +2183,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
               <button
                 onClick={handleCreateJobSpecific}
-                disabled={creatingJob}
+                disabled={creatingJob || !!jobTitleError || !!jobCompanyError}
                 className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: creatingJob ? 0.85 : 1 }}
               >
@@ -2426,22 +2440,32 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <input
                   type="text"
                   value={clJobTitle}
-                  onChange={e => setClJobTitle(e.target.value)}
-                  onBlur={e => setClJobTitle(toTitleCaseOnBlur(e.target.value))}
+                  onChange={e => { setClJobTitle(e.target.value); if (e.target.value.length <= 100) setClJobTitleError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setClJobTitle(v);
+                    setClJobTitleError(v.length > 100 ? 'Please enter just the job title (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {clJobTitleError && <p className="text-sm md:text-xs text-red-600 mt-1">{clJobTitleError}</p>}
               </div>
               <div>
                 <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={clCompany}
-                  onChange={e => setClCompany(e.target.value)}
-                  onBlur={e => setClCompany(toTitleCaseOnBlur(e.target.value))}
+                  onChange={e => { setClCompany(e.target.value); if (e.target.value.length <= 100) setClCompanyError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setClCompany(v);
+                    setClCompanyError(v.length > 100 ? 'Please enter just the company name (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Disney"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {clCompanyError && <p className="text-sm md:text-xs text-red-600 mt-1">{clCompanyError}</p>}
               </div>
               <div>
                 <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description *</label>
@@ -2476,7 +2500,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               {clCreateError && <p className="text-sm md:text-xs text-red-600">{clCreateError}</p>}
               <button
                 onClick={handleCreateCoverLetter}
-                disabled={creatingCL}
+                disabled={creatingCL || !!clJobTitleError || !!clCompanyError}
                 className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
                 style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto', opacity: creatingCL ? 0.85 : 1}}
               >
