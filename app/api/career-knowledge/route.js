@@ -26,7 +26,7 @@ Do not extract the coach's own statements, suggestions, or rewrites. Only extrac
 
 FIELD DEFINITIONS
 - knowledge_type: one of skill, experience, achievement, relationship, credential, tool, industry, methodology
-- content: a structured, factual, self-contained statement of the knowledge item. Written in third person without pronouns. Example: "Managed GSA Schedule 70 contracts for federal IT procurement"
+- content: a structured, factual, self-contained statement written in third person without pronouns. Use plain English descriptions of what the candidate actually said and did. Do not use field-standard terminology, technical labels, or vocabulary from your training that the candidate did not use themselves. If the candidate described "using one model to check another," write that — do not write "LLM-as-judge." If the candidate described "a branching workflow," write that — do not write "multi-agent architecture." The content must reflect the candidate's knowledge and language, not the model's. Example: "Managed GSA Schedule 70 contracts for federal IT procurement"
 - raw_phrasing: the candidate's own words describing this, verbatim or near verbatim, pulled directly from the transcript
 - confidence: "explicit" if the candidate directly stated the fact, "inferred" if you interpreted it from context, implication, or indirect reference
 - id: the id shown in the EXISTING KNOWLEDGE BASE for the item being matched or conflicted. Copy it exactly. Never invent an id.
