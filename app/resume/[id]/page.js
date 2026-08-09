@@ -853,6 +853,7 @@ function formatDate(dateString, format = dateFormat) {
           .select('id')
           .eq('resume_id', resume.id)
           .eq('user_id', user.id)
+          .neq('application_status', 'archived')
           .limit(1)
 
         if (resumeCardsError) {
@@ -887,6 +888,7 @@ function formatDate(dateString, format = dateFormat) {
             .eq('user_id', user.id)
             .eq('title', resume.job_title)
             .eq('company', resume.job_company)
+            .neq('application_status', 'archived')
             .limit(1)
 
           if (jobCardsError) {

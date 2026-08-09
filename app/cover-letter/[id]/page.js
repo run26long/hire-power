@@ -189,6 +189,7 @@ export default function CoverLetterPage() {
             .select('id')
             .eq('resume_id', coverLetter.linked_resume_id)
             .eq('user_id', user.id)
+            .neq('application_status', 'archived')
             .limit(1)
           if (resumeCardsError) throw resumeCardsError
 
@@ -221,6 +222,7 @@ export default function CoverLetterPage() {
           .eq('user_id', user.id)
           .eq('title', coverLetter.job_title)
           .eq('company', coverLetter.job_company)
+          .neq('application_status', 'archived')
           .limit(1)
         if (matchError) throw matchError
 
