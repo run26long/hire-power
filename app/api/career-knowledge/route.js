@@ -30,7 +30,7 @@ FIELD DEFINITIONS
 - raw_phrasing: the candidate's own words describing this, verbatim or near verbatim, pulled directly from the transcript
 - confidence: "explicit" if the candidate directly stated the fact, "inferred" if you interpreted it from context, implication, or indirect reference
 - id: the id shown in the EXISTING KNOWLEDGE BASE for the item being matched or conflicted. Copy it exactly. Never invent an id.
-- improved_content: a wording-only rewrite of the existing content statement, or null
+- improved_content: a wording-only rewrite of the existing content statement, or null. Apply the same vocabulary rule as content: use only plain English descriptions of what the candidate said. Do not upgrade their terminology to field-standard labels.
 - conflict_reason: one short sentence naming exactly what differs
 
 Do not extract plans, intentions, or future goals. Only extract things the candidate has actually done, built, used, or experienced. If the candidate says they plan to, are going to, hope to, or haven't done something yet, do not extract it.
