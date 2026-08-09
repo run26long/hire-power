@@ -204,7 +204,9 @@ export default function JobTrackerPage() {
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
   const [newTitle, setNewTitle] = useState('');
+  const [newTitleError, setNewTitleError] = useState(null);
   const [newCompany, setNewCompany] = useState('');
+  const [newCompanyError, setNewCompanyError] = useState(null);
   const [newDescription, setNewDescription] = useState('');
   const [newResumeId, setNewResumeId] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -1020,24 +1022,32 @@ export default function JobTrackerPage() {
                 <input
                   type="text"
                   value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  onBlur={e => setNewTitle(toTitleCaseOnBlur(e.target.value))}
-                  maxLength={100}
+                  onChange={e => { setNewTitle(e.target.value); setNewTitleError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setNewTitle(v);
+                    setNewTitleError(v.length > 100 ? 'Please enter just the job title (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
+                {newTitleError && <p className="text-xs text-red-600 mt-1">{newTitleError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={newCompany}
-                  onChange={e => setNewCompany(e.target.value)}
-                  onBlur={e => setNewCompany(toTitleCaseOnBlur(e.target.value))}
-                  maxLength={100}
+                  onChange={e => { setNewCompany(e.target.value); setNewCompanyError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setNewCompany(v);
+                    setNewCompanyError(v.length > 100 ? 'Please enter just the company name (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Acme Corp"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
+                {newCompanyError && <p className="text-xs text-red-600 mt-1">{newCompanyError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Job Description *</label>
@@ -1062,7 +1072,7 @@ export default function JobTrackerPage() {
               <div className="flex justify-center pt-1">
                 <button
                   onClick={handleAddCard}
-                  disabled={!newTitle || addLoading}
+                  disabled={!newTitle || addLoading || !!newTitleError || !!newCompanyError}
                   className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                   style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                 >
