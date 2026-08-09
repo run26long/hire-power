@@ -806,19 +806,48 @@ function formatDate(dateString, format = dateFormat) {
   }, [showPreview])
 
   useEffect(() => {
-    if (!resume || resume.resume_type !== 'job_specific') return
-    if (cardCreationRanRef.current) return
+    console.log(
+      '[card-debug] effect fired —',
+      'resume:', resume ? 'loaded' : String(resume),
+      '| id:', resume?.id ?? '(none)',
+      '| resume_type:', JSON.stringify(resume?.resume_type ?? null),
+      '| job_title:', JSON.stringify(resume?.job_title ?? null),
+      '| job_company:', JSON.stringify(resume?.job_company ?? null),
+      '| latch already set:', cardCreationRanRef.current
+    )
+
+    if (!resume || resume.resume_type !== 'job_specific') {
+      console.log(
+        '[card-debug] SKIP — effect condition not met:',
+        !resume
+          ? 'resume is null or undefined (not loaded yet)'
+          : `resume_type is ${JSON.stringify(resume.resume_type)}, not "job_specific"`
+      )
+      return
+    }
+    if (cardCreationRanRef.current) {
+      console.log('[card-debug] SKIP — effect condition not met: cardCreationRanRef latch is already true. This component instance has already attempted card creation and will not retry until it remounts.')
+      return
+    }
     cardCreationRanRef.current = true
+    console.log('[card-debug] latch set to true — calling createJobCard for resume', resume.id)
 
     async function createJobCard() {
+      console.log('[card-debug] createJobCard ENTERED — resume.id:', resume.id)
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError) {
+          console.log('[card-debug] RETURN — getUser() returned an auth error')
           console.error('Auth error in createJobCard:', authError)
           return
         }
-        if (!user) return
+        if (!user) {
+          console.log('[card-debug] RETURN — getUser() returned no user and no error (this path is otherwise silent)')
+          return
+        }
+        console.log('[card-debug] auth ok — user.id:', user.id)
 
+        console.log('[card-debug] duplicate check 1 (by resume_id) — starting. resume_id:', resume.id, '| NOTE: this query does not exclude archived cards')
         const { data: resumeCards, error: resumeCardsError } = await supabase
           .from('applications')
           .select('id')
@@ -827,12 +856,14 @@ function formatDate(dateString, format = dateFormat) {
           .limit(1)
 
         if (resumeCardsError) {
+          console.log('[card-debug] RETURN — duplicate check 1 errored:', JSON.stringify(resumeCardsError))
           console.error('Error checking for existing job card by resume:', resumeCardsError)
           setErrorToast("We couldn't link this resume to your job tracker. You can add it manually from the Job Tracker page.")
           return
         }
 
         const cardByResume = resumeCards?.[0] || null
+        console.log('[card-debug] duplicate check 1 done — rows returned:', resumeCards?.length ?? 0, '| cardByResume:', cardByResume?.id ?? 'none')
 
         // PostgREST filters travel in the query string, so an oversized title or
         // company overflows the request URL and the gateway answers with a body
@@ -841,9 +872,15 @@ function formatDate(dateString, format = dateFormat) {
         // POST, so it still succeeds.
         const titleOk = typeof resume.job_title === 'string' && resume.job_title.trim().length > 0 && resume.job_title.length <= 200
         const companyOk = typeof resume.job_company === 'string' && resume.job_company.trim().length > 0 && resume.job_company.length <= 200
+        console.log(
+          '[card-debug] length guard —',
+          'titleOk:', titleOk, '(length', resume.job_title?.length ?? 0, ')',
+          '| companyOk:', companyOk, '(length', resume.job_company?.length ?? 0, ')'
+        )
 
         let jobCardsData = null
         if (!cardByResume && titleOk && companyOk) {
+          console.log('[card-debug] duplicate check 2 (by title/company) — starting. title:', JSON.stringify(resume.job_title), '| company:', JSON.stringify(resume.job_company), '| NOTE: this query does not exclude archived cards')
           const { data: jobCards, error: jobCardsError } = await supabase
             .from('applications')
             .select('id')
@@ -853,16 +890,36 @@ function formatDate(dateString, format = dateFormat) {
             .limit(1)
 
           if (jobCardsError) {
+            console.log('[card-debug] RETURN — duplicate check 2 errored:', JSON.stringify(jobCardsError))
             console.error('Error checking for existing job card by title/company:', jobCardsError)
             setErrorToast("We couldn't link this resume to your job tracker. You can add it manually from the Job Tracker page.")
             return
           }
           jobCardsData = jobCards
+          console.log('[card-debug] duplicate check 2 done — rows returned:', jobCards?.length ?? 0, '| match:', jobCards?.[0]?.id ?? 'none')
+        } else {
+          console.log(
+            '[card-debug] duplicate check 2 SKIPPED —',
+            cardByResume
+              ? `already matched by resume_id (${cardByResume.id})`
+              : `length guard failed (titleOk=${titleOk}, companyOk=${companyOk})`
+          )
         }
 
         const existingCard = cardByResume || jobCardsData?.[0] || null
+        console.log(
+          '[card-debug] existingCard:', existingCard?.id ?? 'none',
+          '| matched by:', cardByResume ? 'resume_id' : (jobCardsData?.[0] ? 'title/company' : 'nothing')
+        )
 
         if (!existingCard) {
+          console.log(
+            '[card-debug] INSERT starting —',
+            'title:', JSON.stringify(resume.job_title || 'Untitled Role'),
+            '| company:', JSON.stringify(resume.job_company || 'Unknown Company'),
+            '| resume_id:', resume.id,
+            '| status: resume_in_progress'
+          )
           const { error: insertError } = await supabase
             .from('applications')
             .insert({
@@ -878,16 +935,24 @@ function formatDate(dateString, format = dateFormat) {
             })
 
           if (insertError) {
+            console.log('[card-debug] INSERT failed:', JSON.stringify(insertError))
             console.error('Error creating job card:', insertError)
             setErrorToast("We couldn't add this resume to your job tracker. You can add it manually from the Job Tracker page.")
             return
           }
+          console.log('[card-debug] INSERT succeeded — job card created for resume', resume.id)
           fireJT1MarkerIfFirst(supabase)
+        } else {
+          console.log('[card-debug] INSERT SKIPPED — an existing card satisfied the duplicate check:', existingCard.id, '. If that card is archived it will not appear on the Job Tracker board.')
         }
       } catch (err) {
+        console.log('[card-debug] RETURN — unexpected exception thrown')
         console.error('Unexpected error in createJobCard:', err)
         setErrorToast("Something went wrong adding this to your job tracker. You can add it manually from the Job Tracker page.")
       }
+      // Only reached when no early return fired, so its absence in the log is
+      // itself the signal that one of the RETURN lines above ran.
+      console.log('[card-debug] createJobCard reached the end without an early return')
     }
 
     createJobCard()
