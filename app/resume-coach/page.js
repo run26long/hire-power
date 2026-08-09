@@ -2184,8 +2184,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={handleCreateJobSpecific}
                 disabled={creatingJob || !!jobTitleError || !!jobCompanyError}
-                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: creatingJob ? 0.85 : 1 }}
+                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: (creatingJob || !!jobTitleError || !!jobCompanyError) ? 0.5 : 1 }}
               >
                 <span key={creatingJob ? 'loading' : 'idle'} className="flex items-center gap-2">
                   {creatingJob && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
@@ -2501,8 +2501,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <button
                 onClick={handleCreateCoverLetter}
                 disabled={creatingCL || !!clJobTitleError || !!clCompanyError}
-                className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto', opacity: creatingCL ? 0.85 : 1}}
+                className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                style={{background:'linear-gradient(to right, #667eea, #764ba2)', color: 'white', width: 'fit-content', margin: '0 auto', opacity: (creatingCL || !!clJobTitleError || !!clCompanyError) ? 0.5 : 1}}
               >
                 <span key={creatingCL ? 'loading' : 'idle'} className="flex items-center gap-2">
                   {creatingCL && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
