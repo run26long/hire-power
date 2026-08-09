@@ -1346,6 +1346,7 @@ export default function CareerVaultPage() {
                   type="text"
                   value={setJobTitle}
                   onChange={e => setSetJobTitle(e.target.value)}
+                  maxLength={100}
                   placeholder="e.g. Operations Coordinator"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
@@ -1356,6 +1357,7 @@ export default function CareerVaultPage() {
                   type="text"
                   value={setJobCompany}
                   onChange={e => setSetJobCompany(e.target.value)}
+                  maxLength={100}
                   placeholder="e.g. Freeman"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
