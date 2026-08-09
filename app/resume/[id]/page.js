@@ -834,8 +834,16 @@ function formatDate(dateString, format = dateFormat) {
 
         const cardByResume = resumeCards?.[0] || null
 
+        // PostgREST filters travel in the query string, so an oversized title or
+        // company overflows the request URL and the gateway answers with a body
+        // that isn't JSON — surfacing as an empty error object rather than a
+        // Postgres error. Skip the dedupe lookup instead: the insert below is a
+        // POST, so it still succeeds.
+        const titleOk = typeof resume.job_title === 'string' && resume.job_title.trim().length > 0 && resume.job_title.length <= 200
+        const companyOk = typeof resume.job_company === 'string' && resume.job_company.trim().length > 0 && resume.job_company.length <= 200
+
         let jobCardsData = null
-        if (!cardByResume && resume.job_title && resume.job_company) {
+        if (!cardByResume && titleOk && companyOk) {
           const { data: jobCards, error: jobCardsError } = await supabase
             .from('applications')
             .select('id')

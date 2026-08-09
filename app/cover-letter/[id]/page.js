@@ -205,24 +205,34 @@ export default function CoverLetterPage() {
         }
       }
 
-      // Check if a card already exists for this job title + company before creating
-      const { data: matchingCards, error: matchError } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('title', coverLetter.job_title || '')
-        .eq('company', coverLetter.job_company || '')
-        .limit(1)
-      if (matchError) throw matchError
+      // Check if a card already exists for this job title + company before creating.
+      // PostgREST filters travel in the query string, so an oversized title or
+      // company overflows the request URL and the gateway answers with a body that
+      // isn't JSON — surfacing as an empty error object rather than a Postgres
+      // error. Skip the lookup instead: the insert below is a POST, so it still
+      // succeeds.
+      const titleOk = typeof coverLetter.job_title === 'string' && coverLetter.job_title.trim().length > 0 && coverLetter.job_title.length <= 200
+      const companyOk = typeof coverLetter.job_company === 'string' && coverLetter.job_company.trim().length > 0 && coverLetter.job_company.length <= 200
 
-      if (matchingCards?.[0]) {
-        // Card exists for this job — link CL to it
-        const { error: updateError } = await supabase
+      if (titleOk && companyOk) {
+        const { data: matchingCards, error: matchError } = await supabase
           .from('applications')
-          .update({ cover_letter_id: coverLetter.id })
-          .eq('id', matchingCards[0].id)
-        if (updateError) throw updateError
-        return
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', coverLetter.job_title)
+          .eq('company', coverLetter.job_company)
+          .limit(1)
+        if (matchError) throw matchError
+
+        if (matchingCards?.[0]) {
+          // Card exists for this job — link CL to it
+          const { error: updateError } = await supabase
+            .from('applications')
+            .update({ cover_letter_id: coverLetter.id })
+            .eq('id', matchingCards[0].id)
+          if (updateError) throw updateError
+          return
+        }
       }
 
       // No existing card — create one (never link a core resume to a job card)
