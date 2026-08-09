@@ -288,6 +288,7 @@ If nothing is covered, return [].`
     '[career-knowledge] match — returning', matches.length, 'matched items',
     '| covered keywords:', coveredKeywords.length, 'of', keywords.length
   )
+  console.log('[career-knowledge] coverage — missing:', JSON.stringify(missingKeywords), '| covered:', JSON.stringify(coveredKeywords))
   return NextResponse.json({ matches, coveredKeywords })
 }
 
