@@ -918,7 +918,7 @@ export default function JobTrackerPage() {
           <div className="hidden md:flex px-6 pt-4 pb-2 items-center justify-between flex-shrink-0">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
-              <p className="text-xs text-gray-500">Drag cards between boards as your search progresses.</p>
+              <p className="text-xs text-gray-500">Drag cards up or down on a board to reorder, and move them between boards as your search progresses.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
