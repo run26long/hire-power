@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -155,6 +155,17 @@ const COLUMNS = [
   { id: 'hired',              label: 'Hired',        color: '#15803d', bg: 'rgba(21,128,61,0.06)',   border: 'rgba(21,128,61,0.2)'   },
 ];
 
+// Where a dragged card would land inside a column, based on pointer position
+// against each card's vertical midpoint. Returns 0..cards.length.
+function computeInsertIndex(containerEl, clientY) {
+  const cardEls = Array.from(containerEl.querySelectorAll('[data-card-id]'));
+  for (let i = 0; i < cardEls.length; i++) {
+    const rect = cardEls[i].getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) return i;
+  }
+  return cardEls.length;
+}
+
 function StatusBadge({ status }) {
   const config = {
     resume_in_progress: { label: 'Prepping', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
@@ -202,6 +213,7 @@ export default function JobTrackerPage() {
   const [errorToast, setErrorToast] = useState(null);
   const [dragCard, setDragCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const [newTitle, setNewTitle] = useState('');
   const [newTitleError, setNewTitleError] = useState(null);
@@ -264,7 +276,8 @@ export default function JobTrackerPage() {
           .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
           .eq('user_id', user.id)
           .not('application_status', 'eq', 'archived')
-          .order('sort_order', { ascending: true });
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true });
         if (appsError) throw appsError;
         setApplications(apps || []);
 
@@ -298,7 +311,19 @@ export default function JobTrackerPage() {
   }, []);
 
   const getColumnCards = (columnId) =>
-    applications.filter(a => a.application_status === columnId);
+    applications
+      .filter(a => a.application_status === columnId)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  // Rewrites sort_order as 0..n-1 for every card in a column. Columns hold a
+  // handful of cards, so writing all of them keeps the DB self-healing if an
+  // earlier write only partially landed.
+  const persistColumnOrder = async (orderedCards) => {
+    const results = await Promise.all(orderedCards.map((card, index) =>
+      supabase.from('applications').update({ sort_order: index }).eq('id', card.id)
+    ));
+    return results.find(r => r.error)?.error || null;
+  };
 
   const handleDragStart = (e, card) => {
     setDragCard(card);
@@ -309,38 +334,116 @@ export default function JobTrackerPage() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverColumn(columnId);
+    setDragOverIndex(computeInsertIndex(e.currentTarget, e.clientY));
+  };
+
+  const handleReorderWithinColumn = async (card, columnId, insertIndex) => {
+    const columnCards = getColumnCards(columnId);
+    const from = columnCards.findIndex(c => c.id === card.id);
+    if (from === -1) return;
+
+    // insertIndex counts gaps in the pre-move list, so dropping below the
+    // card's own slot shifts down by one once it's lifted out.
+    let to = insertIndex == null ? columnCards.length : insertIndex;
+    if (to > from) to -= 1;
+    to = Math.max(0, Math.min(to, columnCards.length - 1));
+    if (to === from) return;
+
+    const reordered = [...columnCards];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+
+    const previousOrders = new Map(columnCards.map(c => [c.id, c.sort_order ?? 0]));
+    const nextOrders = new Map(reordered.map((c, i) => [c.id, i]));
+
+    setApplications(prev => prev.map(a =>
+      nextOrders.has(a.id) ? { ...a, sort_order: nextOrders.get(a.id) } : a
+    ));
+
+    const error = await persistColumnOrder(reordered);
+    if (error) {
+      console.error('Reorder cards failed:', error);
+      setApplications(prev => prev.map(a =>
+        previousOrders.has(a.id) ? { ...a, sort_order: previousOrders.get(a.id) } : a
+      ));
+      setToast({ type: 'error', message: 'Reorder failed. Please try again.', card: null });
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
+
+    syncTrackerActivity(supabase);
   };
 
   const handleDrop = async (e, columnId) => {
     e.preventDefault();
-    if (!dragCard || dragCard.application_status === columnId) {
+    const insertIndex = dragOverIndex;
+    if (!dragCard) {
+      setDragOverColumn(null);
+      setDragOverIndex(null);
+      return;
+    }
+    if (dragCard.application_status === columnId) {
+      const reorderedCard = dragCard;
       setDragCard(null);
       setDragOverColumn(null);
+      setDragOverIndex(null);
+      await handleReorderWithinColumn(reorderedCard, columnId, insertIndex);
       return;
     }
     const droppedCard = dragCard;
     const previousStatus = dragCard.application_status;
 
+    // Slot the card into the destination column at the drop position.
+    const destCards = getColumnCards(columnId);
+    const targetIndex = Math.max(0, Math.min(insertIndex ?? destCards.length, destCards.length));
+    const destOrdered = [...destCards];
+    destOrdered.splice(targetIndex, 0, droppedCard);
+    const nextOrders = new Map(destOrdered.map((c, i) => [c.id, i]));
+    const previousOrders = new Map(destOrdered.map(c => [c.id, c.sort_order ?? 0]));
+
     // Optimistic update
-    setApplications(prev => prev.map(a =>
-      a.id === dragCard.id ? { ...a, application_status: columnId } : a
-    ));
+    setApplications(prev => prev.map(a => {
+      if (a.id === droppedCard.id) {
+        return { ...a, application_status: columnId, sort_order: nextOrders.get(a.id) };
+      }
+      return nextOrders.has(a.id) ? { ...a, sort_order: nextOrders.get(a.id) } : a;
+    }));
 
     const { error } = await supabase
       .from('applications')
-      .update({ application_status: columnId, updated_at: new Date().toISOString() })
+      .update({
+        application_status: columnId,
+        sort_order: nextOrders.get(droppedCard.id),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', dragCard.id);
 
     if (error) {
       // Revert optimistic update
-      setApplications(prev => prev.map(a =>
-        a.id === droppedCard.id ? { ...a, application_status: previousStatus } : a
-      ));
+      setApplications(prev => prev.map(a => {
+        if (a.id === droppedCard.id) {
+          return { ...a, application_status: previousStatus, sort_order: previousOrders.get(a.id) };
+        }
+        return previousOrders.has(a.id) ? { ...a, sort_order: previousOrders.get(a.id) } : a;
+      }));
       setToast({ type: 'error', message: 'Move failed. Please try again.', card: null });
       setTimeout(() => setToast(null), 4000);
       setDragCard(null);
       setDragOverColumn(null);
+      setDragOverIndex(null);
       return;
+    }
+
+    // Renumber the cards the moved card was inserted above. Best-effort: the
+    // status move already succeeded, so a failure here only costs the position.
+    const siblings = destOrdered.filter(c => c.id !== droppedCard.id);
+    if (siblings.length) {
+      Promise.all(siblings.map(c =>
+        supabase.from('applications').update({ sort_order: nextOrders.get(c.id) }).eq('id', c.id)
+      )).then(results => {
+        const orderError = results.find(r => r.error)?.error;
+        if (orderError) console.error('Persist destination column order failed:', orderError);
+      });
     }
 
     // Sync tracker activity + applied count
@@ -387,6 +490,7 @@ export default function JobTrackerPage() {
         setErrorToast("We couldn't update your hired status. Please refresh and try again.");
         setDragCard(null);
         setDragOverColumn(null);
+        setDragOverIndex(null);
         return;
       }
 
@@ -400,6 +504,7 @@ export default function JobTrackerPage() {
           setErrorToast("We couldn't update your hired status. Please refresh and try again.");
           setDragCard(null);
           setDragOverColumn(null);
+          setDragOverIndex(null);
           return;
         }
         setApplications(prev => prev.filter(a => a.id !== existingHired.id));
@@ -416,6 +521,7 @@ export default function JobTrackerPage() {
         setErrorToast("We couldn't update your hired status. Please refresh and try again.");
         setDragCard(null);
         setDragOverColumn(null);
+        setDragOverIndex(null);
         return;
       }
 
@@ -428,6 +534,7 @@ export default function JobTrackerPage() {
         setErrorToast("We couldn't update your hired status. Please refresh and try again.");
         setDragCard(null);
         setDragOverColumn(null);
+        setDragOverIndex(null);
         return;
       }
 
@@ -438,11 +545,13 @@ export default function JobTrackerPage() {
 
     setDragCard(null);
     setDragOverColumn(null);
+    setDragOverIndex(null);
   };
 
   const handleDragEnd = () => {
     setDragCard(null);
     setDragOverColumn(null);
+    setDragOverIndex(null);
   };
 
   const handleAddCard = async () => {
@@ -883,7 +992,7 @@ export default function JobTrackerPage() {
                     className={`flex-col flex-1 min-w-[170px] ${mobileColumn === col.id ? 'flex' : 'hidden'} md:flex`}
                     onDragOver={(e) => handleDragOver(e, col.id)}
                     onDrop={(e) => handleDrop(e, col.id)}
-                    onDragLeave={() => setDragOverColumn(null)}
+                    onDragLeave={() => { setDragOverColumn(null); setDragOverIndex(null); }}
                   >
                     {/* Column header */}
                     <div
@@ -918,9 +1027,13 @@ export default function JobTrackerPage() {
                         </div>
                       )}
 
-                      {cards.map(card => (
+                      {cards.map((card, index) => (
+                        <Fragment key={card.id}>
+                        {dragCard && isOver && dragOverIndex === index && (
+                          <div style={{ height: 2, marginTop: -5, marginBottom: -5, borderRadius: 2, background: col.color }} />
+                        )}
                         <div
-                          key={card.id}
+                          data-card-id={card.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, card)}
                           onDragEnd={handleDragEnd}
@@ -992,7 +1105,12 @@ export default function JobTrackerPage() {
                             )}
                           </div>
                         </div>
+                        </Fragment>
                       ))}
+
+                      {dragCard && isOver && dragOverIndex === cards.length && cards.length > 0 && (
+                        <div style={{ height: 2, marginTop: -5, marginBottom: -5, borderRadius: 2, background: col.color }} />
+                      )}
                     </div>
                   </div>
                 );
