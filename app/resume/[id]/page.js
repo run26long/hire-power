@@ -1249,10 +1249,19 @@ if (data.ai_analysis) {
         onBeforeNavigate={(path) => { if (hasUnsavedChanges) { setUnsavedNavTarget(path); return true } return false }}
       />
 
-      <Breadcrumb items={[
-        { label: 'Resume Coach', path: '/resume-coach' },
-        { label: resume.display_name || 'Core Resume' }
-      ]} />
+{/* Body: left column (breadcrumb + toolbar + resume) and right panel sidebar */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 md:max-w-7xl md:mx-auto md:w-full">
+
+{/* LEFT COLUMN */}
+        <div className={`flex flex-col overflow-hidden min-h-0 md:flex-[3] ${mobilePanel === 'resume' ? 'flex-1' : 'flex-none'}`}>
+
+      {/* Tight wrapper leaves the breadcrumb's sticky offset no room to shift into */}
+      <div className="flex-shrink-0">
+        <Breadcrumb items={[
+          { label: 'Resume Coach', path: '/resume-coach' },
+          { label: resume.display_name || 'Core Resume' }
+        ]} />
+      </div>
 
 {/* Mobile toggle */}
       <div className="md:hidden flex flex-col bg-white border-b border-gray-200 flex-shrink-0">
@@ -1556,25 +1565,31 @@ if (data.ai_analysis) {
         </div>
       )}
 
-{/* Toolbar - STICKY */}
-      <div className={`bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible ${mobilePanel === 'coach' ? 'hidden md:block' : 'hidden md:block'}`}>
-        <div className={`px-6 ${showEditorTip ? 'pt-0' : 'pt-4'} pb-2 max-w-7xl mx-auto w-full overflow-visible`}>
+{/* Toolbar — desktop only, spans the left column */}
+      <div className="hidden md:block flex-shrink-0 bg-white border-b border-gray-200 overflow-visible">
+        <div className="px-6 pt-3 pb-2 w-full overflow-visible">
           {showEditorTip && (
-            <div className="bg-purple-50 rounded px-3 py-1 mt-5 mb-0.5 flex items-center justify-between">
-              <p className="text-xs text-purple-700">
-                ✏️ Click any section to edit directly
+            <div className="bg-purple-50 rounded px-3 py-1 mb-2 flex items-center justify-between">
+              <p className="flex-1 flex items-center justify-between text-xs text-purple-700">
+                <span>✏️ Click any section to edit directly</span>
                 {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
-                  <><span className="mx-5 text-purple-300">·</span>⚡Click to reword or fix any sentence</>
+                  <span>⚡ Reword or fix any sentence</span>
                 )}
-                <span className="mx-5 text-purple-300">·</span><span className="text-gray-400">▲▼</span> Arrows reorder content<span className="mx-5 text-purple-300">·</span>🗑️ Trash deletes content<span className="mx-5 text-purple-300">·</span>🎨 Toolbar below contains templates, fonts, and colors
+                <span><span className="text-gray-400">▲▼</span> Reorder content</span>
+                <span>🗑️ Delete content</span>
               </p>
               <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-4 flex-shrink-0 text-sm">✕</button>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs flex-nowrap overflow-x-auto md:overflow-visible">
+
+          {/* Toolbar grid — column N of row 1 aligns with column N of row 2 */}
+          <div className="grid grid-cols-[max-content_repeat(6,auto)] gap-x-3 gap-y-2 text-xs overflow-visible">
+
+            {/* Row 1 — Format */}
+            <span className="col-start-1 row-start-1 flex items-center border-l-3 border-purple-500 pl-2 text-xs font-semibold text-purple-700 whitespace-nowrap">📄 Formatting Tools</span>
 
             {/* Template */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-2 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <div className="relative group/templatetip">
                 <span className="text-purple-400 hover:text-purple-600 cursor-help text-[10px]">ⓘ</span>
                 <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-purple-200 rounded-lg shadow-lg p-3 hidden group-hover/templatetip:block z-50">
@@ -1619,7 +1634,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Font */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-3 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span className="font-bold">A</span>
               <select
                 value={userChangedFont ? selectedFont : ''}
@@ -1635,7 +1650,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Size */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-4 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span>⚙️</span>
               <select
                 value={selectedSize}
@@ -1649,7 +1664,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Date */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-5 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
               <span>📅</span>
               <select
                 value={dateFormat}
@@ -1663,8 +1678,8 @@ if (data.ai_analysis) {
             </div>
 
             {/* Zoom dropdown */}
-            <div className="relative group/zoom">
-              <button className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 flex items-center gap-1">
+            <div className="col-start-6 row-start-1 relative group/zoom flex">
+              <button className="w-full px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 flex items-center gap-1">
                 🔍 <span>{zoom}%</span>
               </button>
               <div className="absolute left-0 top-full pt-1 z-50 hidden group-hover/zoom:block min-w-[80px]">
@@ -1684,11 +1699,14 @@ if (data.ai_analysis) {
 
          {/* Color picker */}
             {(
-              <div className="relative group/colorpick">
-                <button
-                  style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
-                  title="Change accent color"
-                />
+              <div className="col-start-7 row-start-1 relative group/colorpick flex">
+                <div className="w-full flex items-center justify-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+                  <span>Color</span>
+                  <button
+                    style={{ background: accentColor, width: '18px', height: '18px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
+                    title="Change accent color"
+                  />
+                </div>
                 <div className="absolute left-0 top-full z-50 hidden group-hover/colorpick:block pt-1" style={{ minWidth: '120px' }}>
                 <div className="bg-white border border-gray-200 rounded shadow-lg p-2">
                     <div className="flex gap-1 items-center mb-2 flex-wrap">
@@ -1717,12 +1735,29 @@ if (data.ai_analysis) {
               </div>
             )}
 
+            {/* Row 2 — Actions */}
+            <span className="col-start-1 row-start-2 flex items-center border-l-3 border-purple-500 pl-2 text-xs font-semibold text-purple-700 whitespace-nowrap">⚙️ Action Tools</span>
+
+            {/* Undo + Auto-fit share column 2 */}
+            <div className="col-start-2 row-start-2 flex items-center gap-2">
+
+            {/* Undo */}
+            <button
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              className={`flex-1 px-4 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
+                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
+              }`}
+            >
+              ↶ Undo
+            </button>
+
             {/* Auto-fit */}
-            <div className="relative group/autofit">
+            <div className="relative group/autofit flex-1 flex">
               <button
                 onClick={handleAutoFit}
                 disabled={isAutoFitting}
-                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors whitespace-nowrap ${
+                className={`w-full px-4 py-1 border rounded text-xs flex items-center justify-center gap-1 transition-colors whitespace-nowrap ${
                   isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
                   : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
                   : 'border-gray-300 hover:bg-gray-50'
@@ -1737,68 +1772,12 @@ if (data.ai_analysis) {
                 {'Automatically adjusts font size and spacing to best fill one page.' + (resumeExceedsPage ? ' Your resume currently exceeds one page.' : '')}
               </div>
             </div>
-
-            {/* Preview */}
-            <div className="relative group/preview">
-              <button
-                onClick={async () => {
-                  setIsLoadingPreview(true)
-                  try {
-                    const { data: { user } } = await supabase.auth.getUser()
-                    const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
-                    const { data: { session: previewSession } } = await supabase.auth.getSession()
-                    const response = await fetch('/api/generate-pdf', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                      body: JSON.stringify({
-                        resumeData: resume.resume_data,
-                        templateName: templateForApi,
-                        fontSize: selectedSize,
-                        font: selectedFont,
-                        accentColor: accentColor,
-                        dateFormat,
-                        spacing: selectedSpacing,
-                        action: 'preview-url',
-                        userId: user.id
-                      })
-                    })
-                    if (response.ok) {
-                      const data = await response.json()
-                      setPreviewUrl(data.previewUrl)
-                      setShowPreview(true)
-                    }
-                  } catch (e) {
-                    console.error('Preview error:', e)
-                  } finally {
-                    setIsLoadingPreview(false)
-                  }
-                }}
-                disabled={isLoadingPreview}
-                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-              >
-                {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                {isLoadingPreview ? 'Loading...' : 'Preview'}
-              </button>
-              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
-                See your resume at actual page size before downloading.
-              </div>
             </div>
-
-            {/* Undo */}
-            <button
-              onClick={undo}
-              disabled={historyIndex <= 0}
-              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
-                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
-              }`}
-            >
-              ↶ Undo
-            </button>
 
             {/* Save */}
             <button
               onClick={save}
-              className={`px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
+              className={`col-start-3 row-start-2 px-4 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 saveSuccess
                   ? 'bg-green-600 text-white'
                   : hasUnsavedChanges
@@ -1806,12 +1785,12 @@ if (data.ai_analysis) {
                   : 'bg-gray-300 text-gray-600'
               }`}
             >
-              {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No Changes'}
+              {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : '✓ No Changes'}
             </button>
 
               {/* Score */}
               {score && (
-                <div className={`px-3 py-1 rounded font-semibold text-xs whitespace-nowrap ${
+                <div className={`col-start-4 row-start-2 flex items-center justify-center px-3 py-1 rounded font-semibold text-xs whitespace-nowrap ${
                   score >= 85 ? 'bg-purple-100 text-purple-700' :
                   score >= 75 ? 'bg-green-100 text-green-700' :
                   score >= 60 ? 'bg-yellow-100 text-yellow-700' :
@@ -1825,7 +1804,7 @@ if (data.ai_analysis) {
               <button
                 onClick={() => handleReassess()}
                 disabled={isAnalyzing || journeyStep === 'review'}
-                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${
+                className={`col-start-5 row-start-2 px-4 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${
                   isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
                 }`}
                 title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
@@ -1833,14 +1812,60 @@ if (data.ai_analysis) {
                 {isAnalyzing && journeyStep !== 'review' && (
                   <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
                 )}
-                {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : 'Re-assess'}
+                {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : '🔄 Re-assess'}
               </button>
+
+              {/* Preview */}
+              <div className="col-start-6 row-start-2 relative group/preview flex">
+                <button
+                  onClick={async () => {
+                    setIsLoadingPreview(true)
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                      const { data: { session: previewSession } } = await supabase.auth.getSession()
+                      const response = await fetch('/api/generate-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
+                        body: JSON.stringify({
+                          resumeData: resume.resume_data,
+                          templateName: templateForApi,
+                          fontSize: selectedSize,
+                          font: selectedFont,
+                          accentColor: accentColor,
+                          dateFormat,
+                          spacing: selectedSpacing,
+                          action: 'preview-url',
+                          userId: user.id
+                        })
+                      })
+                      if (response.ok) {
+                        const data = await response.json()
+                        setPreviewUrl(data.previewUrl)
+                        setShowPreview(true)
+                      }
+                    } catch (e) {
+                      console.error('Preview error:', e)
+                    } finally {
+                      setIsLoadingPreview(false)
+                    }
+                  }}
+                  disabled={isLoadingPreview}
+                  className={`w-full px-4 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                >
+                  {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                  {isLoadingPreview ? 'Loading...' : '👁 Preview'}
+                </button>
+                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
+                  See your resume at actual page size before downloading.
+                </div>
+              </div>
 
               {/* Download */}
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 whitespace-nowrap text-white transition-opacity ${
+                className={`col-start-7 row-start-2 px-4 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 whitespace-nowrap text-white transition-opacity ${
                   isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -1848,7 +1873,7 @@ if (data.ai_analysis) {
                 {isDownloading && (
                   <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
                 )}
-                {isDownloading ? 'Generating...' : 'Download'}
+                {isDownloading ? 'Generating...' : '⬇️ Download'}
               </button>
 
             </div>
@@ -1856,10 +1881,8 @@ if (data.ai_analysis) {
         </div>
       
 
-    {/* Main Content: Resume + Right Panel */}
-         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
-        <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
-          <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
+    {/* Resume */}
+          <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 md:m-6 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
 
            {/* Capture counter — sticky strip above the resume */}
             <div className="sticky top-0 z-20">
@@ -1907,8 +1930,11 @@ if (data.ai_analysis) {
             </div>
           </div>
 
- <div className={`flex-1 bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col md:px-6 ${mobilePanel === 'coach' ? 'flex' : 'hidden'} md:flex`}>
-       <RightPanel 
+        </div>
+
+{/* RIGHT COLUMN — full-height sidebar */}
+        <div className={`flex-1 bg-white md:border-l md:border-gray-200 md:shadow-sm overflow-hidden flex flex-col md:px-6 ${mobilePanel === 'coach' ? 'flex' : 'hidden'} md:flex`}>
+       <RightPanel
               journeyStep={journeyStep}
               score={score}
               analysisResults={analysisResults}
@@ -1959,7 +1985,6 @@ if (data.ai_analysis) {
             />
           </div>
         </div>
-      </div>
       </div>
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       <SuccessToast message={saveToast} onClose={() => setSaveToast(null)} />
