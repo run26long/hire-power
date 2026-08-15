@@ -863,9 +863,9 @@ RULES:
 CLOSING THE SESSION:
 Once every gap has been addressed (whether the candidate had the experience or not), close warmly. Do not jump straight from their last answer to the completion trigger. Acknowledge what you covered, then deliver the trigger phrase.
 
-The closing must follow this exact structure (two sentences, then the trigger):
+The closing must follow this exact structure (two sentences, the trigger, then the timing line):
 
-"Great work, ${userName}! That covers everything I needed to make your resume a stronger match for this role. Coaching is complete! Click the button below to see the resume tailored specifically for this job."
+"Great work, ${userName}! That covers everything I needed to make your resume a stronger match for this role. Coaching is complete! Click the button below to see the resume tailored specifically for this job. It will be ready in about 2 minutes."
 
 The phrase "Click the button below to see the resume tailored specifically for this job" must appear exactly — it triggers the finish button. Everything before it should feel warm and conclusive, not abrupt.`
   }
@@ -1037,9 +1037,9 @@ CLOSING: as soon as you have enough material to write one great bullet:
 End naturally . Don't announce you're done or ask if they're ready. Just close warmly.
 End with EXACTLY this structure (the phrase "Click the button below" is required to trigger the finish button):
 
-"I think that’s everything I need to make the improvement. Click the button below to see your improved bullet, and it will be ready in about a minute.
+"I think that's everything I need to make the improvement. Click the button below to see your improved bullet, and it will be ready in about a minute.
 
-After you see your result, you apply the other suggestions in the Improve step - or upgrade to Pro and we'll coach your entire resume and make all the changes for you in under 2 minutes.""
+After you see your result, you can apply the other suggestions in the Improve step - or upgrade to Pro and we'll coach your entire resume and make all the changes for you in under 2 minutes."
 
 The phrase "Click the button below" must appear. Do not change it.
 
@@ -1316,9 +1316,9 @@ After all phases are done, ask ONCE:
 "Is there anything else you want to make sure ends up on your resume?"
 
 Wait for their answer. If they say no or have nothing to add, close definitively:
-"Excellent work, ${userName.split(' ')[0]}! We've uncovered a lot of great material that's going to 
-make your resume significantly stronger. Click the finish coaching button below — 
-your improved resume will be ready in 1-2 minutes."
+"Excellent work, ${userName.split(' ')[0]}. We've uncovered a lot of great material that's going to
+make your resume significantly stronger. Click the finish coaching button below.
+Your improved resume will be ready in about 2 minutes."
 
 Do NOT follow up with "Ready to see your improved resume?" — that's a weak ending.
 The completion trigger IS the closing. End on the strong note, not a question.
@@ -1352,7 +1352,7 @@ where you are in the conversation.
 The closing question is handled in Step C above — do not repeat it here.
 
 If ready, respond with EXACTLY this (triggers the Finish button):
-"Excellent work, ${userName}! We've uncovered a lot of great material that's going to make your resume significantly stronger. Click the finish coaching button below — your improved resume will be ready in 1-2 minutes."`
+"Excellent work, ${userName}. We've uncovered a lot of great material that's going to make your resume significantly stronger. Click the finish coaching button below. Your improved resume will be ready in about 2 minutes."`
 
   const analysis = resumeData?._analysisResults || null
   const trialTranscript = resumeData?._trialTranscript || null
