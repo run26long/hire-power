@@ -2590,8 +2590,9 @@ Never add any experience, skill, tool, platform, technology, certification, meth
 2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
 
 The following do NOT qualify:
+- The candidate was asked about it during coaching and said no, said they have not used it, or described their experience as being with a different tool or approach. A denied skill is permanently disqualified. The word appearing in the transcript inside a denial is not evidence. Example: Coach asks 'Have you used Notion?' and candidate says 'Not Notion specifically, I use Confluence.' Notion is disqualified. Confluence is confirmed.
 - The job description mentions it
-- The candidate said they could learn it or are willing to learn it
+- The candidate said they could learn it, would learn it, or are willing to learn it
 - The coach inferred it from context
 - It would be a logical skill for someone with this background
 - It sounds like something they probably do based on their other work
