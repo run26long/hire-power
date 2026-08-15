@@ -2735,108 +2735,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-// ─────────────────────────────────────────────
-// SKILLS VERIFICATION PASS
-// Post-processing only. Strips skills that cannot be traced back to the
-// original resume or the coaching conversation. Advisory by design: any
-// failure returns the rewrite untouched rather than blocking it.
-// ─────────────────────────────────────────────
-const SKILLS_VERIFY_SYSTEM = `You are a verification system. Your only job is to check whether each skill listed appears in or is directly supported by the source material provided. You do not evaluate quality, relevance, or usefulness. You only verify presence.
-
-A skill PASSES if:
-- It appears on the original resume (exact match or close variant), OR
-- The candidate directly claimed it in the coaching conversation — they said they have it, use it, built it, or are certified in it, in their own words, OR the candidate explicitly agreed when the coach named the term and asked if they had done it
-
-A skill FAILS if:
-- It appears in neither source
-- It is a technical term for something the candidate described in different words, unless the candidate agreed to that term when the coach used it
-- It comes from the job description but not from the candidate
-
-Return ONLY a JSON array of the skills that FAIL verification. Use the exact skill strings as provided. No preamble, no fences.
-["skill1", "skill2"]
-
-If all skills pass, return [].`
-
-async function verifySkills({ rewrittenResume, resumeData, conversation }) {
-  try {
-    const categories = rewrittenResume?.skillsCategories
-    if (!categories || typeof categories !== 'object') return rewrittenResume
-
-    const allSkills = []
-    for (const list of Object.values(categories)) {
-      if (Array.isArray(list)) {
-        allSkills.push(...list.filter(s => typeof s === 'string' && s.trim()))
-      }
-    }
-    if (allSkills.length === 0) return rewrittenResume
-
-    const conversationText = (conversation || [])
-      .map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`)
-      .join('\n\n')
-
-    const verifyMessage = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      temperature: 0,
-      system: SKILLS_VERIFY_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: `ORIGINAL RESUME DATA:
-${resumeData ? JSON.stringify(resumeData, null, 2) : 'No original resume was provided. The coaching conversation is the only source.'}
-
-COACHING CONVERSATION:
-${conversationText}
-
-SKILLS TO VERIFY:
-${JSON.stringify(allSkills, null, 2)}`
-      }]
-    })
-
-    let cleaned = verifyMessage.content[0].text.trim()
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    }
-    const arrayMatch = cleaned.match(/\[[\s\S]*\]/)
-    if (arrayMatch) cleaned = arrayMatch[0]
-
-    const failed = JSON.parse(cleaned)
-    if (!Array.isArray(failed) || failed.length === 0) return rewrittenResume
-
-    // Compare on a normalized key so a returned string that differs only in
-    // case or surrounding whitespace still matches the skill it names.
-    const failedKeys = new Set(
-      failed.filter(s => typeof s === 'string').map(s => s.trim().toLowerCase())
-    )
-    if (failedKeys.size === 0) return rewrittenResume
-
-    const verifiedCategories = {}
-    for (const [category, list] of Object.entries(categories)) {
-      if (!Array.isArray(list)) {
-        verifiedCategories[category] = list
-        continue
-      }
-      const survivors = list.filter(skill => {
-        const drop = typeof skill === 'string' && failedKeys.has(skill.trim().toLowerCase())
-        if (drop) {
-          console.log(`[skills-verify] Removed "${skill}" from category "${category}" — not found in the original resume or the coaching conversation`)
-        }
-        return !drop
-      })
-      // A category emptied by verification would render as a bare heading.
-      if (survivors.length > 0) {
-        verifiedCategories[category] = survivors
-      } else {
-        console.log(`[skills-verify] Dropped category "${category}" — every skill in it failed verification`)
-      }
-    }
-
-    return { ...rewrittenResume, skillsCategories: verifiedCategories }
-  } catch (e) {
-    console.error('[skills-verify] Verification failed (non-fatal) — returning the rewrite unmodified:', e)
-    return rewrittenResume
-  }
-}
-
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -3061,10 +2959,6 @@ export async function POST(request) {
       }
       convResume.sectionOrder = normalizeSectionOrder(convResume.sectionOrder)
 
-      // resumeData is null here to match the rewrite prompt: this path is built
-      // from the conversation alone, so the conversation is the only source.
-      convResume = await verifySkills({ rewrittenResume: convResume, resumeData: null, conversation })
-
       const convSummaryPrompt = buildSummaryPrompt({
         rewrittenResume: convResume,
         conversation,
@@ -3208,10 +3102,6 @@ Return this exact structure:
       // resumeData sets the per-role floor: a job-specific pass reorders, it never prunes
       rewrittenResume = trimBulletsToLimit(rewrittenResume, level, resumeData)
 
-      // Runs before the changes list is built so the list describes the resume
-      // the candidate actually receives.
-      rewrittenResume = await verifySkills({ rewrittenResume, resumeData, conversation })
-
       const jsSummaryPrompt = buildSummaryPrompt({
         rewrittenResume,
         conversation,
@@ -3327,10 +3217,6 @@ Return this exact structure:
 
     // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
     rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
-
-    // Runs before the changes list is built so the list describes the resume
-    // the candidate actually receives.
-    rewrittenResume = await verifySkills({ rewrittenResume, resumeData, conversation })
 
     const coreSummaryPrompt = buildSummaryPrompt({
       rewrittenResume,
