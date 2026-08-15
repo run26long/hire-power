@@ -747,6 +747,8 @@ Do not use em dashes.
 
 Do not construct sentences that would require em dash punctuation. Restructure as two shorter sentences or rewrite the clause so it does not need setting off. If you absolutely must set off a clause, use a hyphen. Never use a comma as a substitute for an em dash.
 
+When you catch yourself about to write an em dash, stop and look at what is on either side. If both sides are complete sentences, use a period and start a new sentence. If one side is a fragment or dependent clause, restructure the sentence to incorporate it naturally without special punctuation. Never join two complete sentences with a hyphen, comma, or dash of any kind.
+
 Do not use colons anywhere in the cover letter.
 
 Never insert a space before punctuation. Commas, periods, semicolons, and colons attach directly to the preceding word.
