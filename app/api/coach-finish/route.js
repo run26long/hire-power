@@ -1525,7 +1525,7 @@ const OUTPUT_STRUCTURE = {
     field: "string",
     graduationDate: "YYYY-MM",
     location: "string",
-    lines: ["string — supplementary info ONLY: GPA, honors, relevant coursework, honor societies, expected graduation. Do NOT put degree name or field of study in lines — those are already captured in the degree and field fields above. Putting them in lines too will cause them to display twice."]
+    lines: ["string — supplementary info ONLY: GPA, honors, relevant coursework, honor societies. Do NOT put degree name or field of study in lines — those are already captured in the degree and field fields above. Putting them in lines too will cause them to display twice. Do NOT put the graduation date in lines in any form — the graduationDate field is the only place a date belongs."]
   }],
   skillsCategories: {
     "Category Name": ["skill1", "skill2"]
@@ -1571,9 +1571,13 @@ function normalizeEducation(education) {
           if (fl && ll.includes(fl)) return false
           // Filter out lines that are just a graduation date duplicate
           if (ed.graduationDate) {
-            const yearMatch = ed.graduationDate.match(/^(\d{4})/)
+            const yearMatch = ed.graduationDate.match(/(\d{4})/)
             if (yearMatch) {
               const year = yearMatch[1]
+              // Any phrasing that names the graduation alongside the year:
+              // "Expected Graduation: December 2027", "Anticipated Graduation: May 2028",
+              // "Graduation Date: 2027", "Graduating December 2027".
+              if (/graduation|graduating/.test(ll) && ll.includes(year)) return false
               if (/^(expected\s+)?[a-z]+ \d{4}$/.test(ll) && ll.includes(year)) return false
               if (/^\d{1,2}\/\d{4}$/.test(ll) && ll.includes(year)) return false
             }
@@ -1811,6 +1815,12 @@ Never add specific numbers, quantities, counts, or measurements to bullets unles
 
 5. SKILLS SECTION — Add any missing keywords that could not fit into bullets.
    Keep all existing specific tool names — never consolidate into suite names.
+
+5b. EDUCATION:
+   Do not modify graduation dates or add any date-related text to education lines. You may add
+   relevant coursework, honors, or academic achievements to lines[] only if they were explicitly
+   discussed during coaching. Do not invent academic content. The graduationDate field is the only
+   place a date belongs.
 
 6. EVERYTHING ELSE — Apply standard resume writing quality to every bullet you write or improve.
    The keyword strategy is the priority, but every bullet must also pass both writing gates:
