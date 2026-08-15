@@ -3752,49 +3752,19 @@ const getMessageText = (msg) => {
       let finalResume = data.rewrittenResume
       let finalChanges = data.changes || []
 
-      // ── RETRY: If score didn't improve, try once more with explicit instruction ──
-      if (
-        attemptOneScore !== null &&
-        scoreBeforeCoaching !== null &&
-        attemptOneScore <= scoreBeforeCoaching
-      ) {
-        console.warn(`Score did not improve (before: ${scoreBeforeCoaching}, after: ${attemptOneScore}). Retrying with stronger instruction.`)
-
-        const retryResponse = await fetch('/api/coach-finish', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${finishSession.access_token}`
-          },
-          body: JSON.stringify({
-            ...coachFinishPayload,
-            retryInstruction: `Your first attempt produced a resume that scored ${attemptOneScore}, which did not improve on the original score of ${scoreBeforeCoaching}. This means your rewrite was too conservative or did not fully use the coaching conversation. Try again. Go deeper into the coaching material. Find every specific detail, every scope indicator, every trust signal, every skill mentioned — and make sure it appears in the resume. The standard is: every bullet should pass the Brain Test, and the overall resume must score higher than ${scoreBeforeCoaching}.`
-          })
-        })
-        const retryData = await retryResponse.json()
-
-        if (retryData.rewrittenResume) {
-          // Score the retry and use whichever attempt scored higher
-          const retryScoreResponse = await fetch('/api/analyze-resume', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${coachSession.access_token}`
-            },
-            body: JSON.stringify({ resumeData: retryData.rewrittenResume })
-          })
-          const retryScoreData = await retryScoreResponse.json()
-          const retryScore = retryScoreData?.score ?? null
-
-          if (retryScore !== null && retryScore > attemptOneScore) {
-            console.log(`Retry improved score: ${attemptOneScore} → ${retryScore}. Using retry result.`)
-            finalResume = retryData.rewrittenResume
-            finalChanges = retryData.changes || []
-          } else {
-            console.log(`Retry did not further improve score (${retryScore}). Using attempt 1 result.`)
-          }
-        }
-      }
+      // ── SCORE FLOOR ──
+      // The rewrite is kept either way: the content is the product of the coaching
+      // conversation, and a lower score reflects the scorer's variance, not worse
+      // writing. Only the number is clamped, so the reveal never reports coaching
+      // as having cost the candidate points.
+      // Falls back to the pre-coaching number when scoring itself failed, so a
+      // failed score check never writes null over a score the resume already had.
+      const displayScore =
+        attemptOneScore === null
+          ? scoreBeforeCoaching
+          : scoreBeforeCoaching !== null && attemptOneScore < scoreBeforeCoaching
+            ? scoreBeforeCoaching
+            : attemptOneScore
 
       // ── SAVE AND APPLY ──
       setRewrittenResume(finalResume)
@@ -3809,6 +3779,7 @@ const getMessageText = (msg) => {
           resume_changes: finalChanges,
           coaching_complete: true,
           remaining_gaps: gaps,
+          ...(displayScore !== null ? { current_score: displayScore } : {}),
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
@@ -3820,7 +3791,7 @@ const getMessageText = (msg) => {
         return
       }
 
-      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true }))
+      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true, ...(displayScore !== null ? { current_score: displayScore } : {}) }))
       if (isJobSpecific) fireT4IfFirst(supabase)
       fireO4MarkerIfFirst(supabase)
 
