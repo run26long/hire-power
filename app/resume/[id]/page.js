@@ -1572,8 +1572,9 @@ if (data.ai_analysis) {
             <div className="bg-purple-50 rounded px-3 py-1 mb-2 flex items-center justify-between">
               <p className="flex-1 flex items-center justify-between text-xs text-purple-700">
                 <span>✏️ Click any section to edit directly</span>
-                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
-                  <span>⚡ Reword or fix any sentence</span>
+                {/* Hidden outright for free or pre-coaching users; shown dimmed until the improve step makes it usable */}
+                {(userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
+                  <span className={['improve','format','save'].includes(resume?.journey_step) ? 'text-purple-700' : 'text-purple-300'}>⚡ Reword or fix any sentence</span>
                 )}
                 <span><span className="text-gray-400">▲▼</span> Reorder content</span>
                 <span>🗑️ Delete content</span>
