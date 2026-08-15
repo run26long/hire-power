@@ -1466,13 +1466,6 @@ if (data.ai_analysis) {
                   >
                     {isAutoFitting ? '...' : '⚡ Auto-fit'}
                   </button>
-                  <button
-                    onClick={undo}
-                    disabled={historyIndex <= 0}
-                    className="flex-1 py-1 rounded text-sm md:text-xs font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
-                  >
-                    ↶ Undo
-                  </button>
                 </div>
               </div>
             </div>
