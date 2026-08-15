@@ -5,6 +5,65 @@ import { apiError } from '@/lib/apiError'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+// ─────────────────────────────────────────────
+// CANDIDATE VOICE LOOKUP
+// Explicit, still-current knowledge items that carry the candidate's own phrasing.
+// Fetched directly rather than derived from the job's keyword matches, so a
+// candidate whose resume already covers the posting still gets their own voice.
+// Any failure is non-fatal: the letter is written without a voice block.
+// ─────────────────────────────────────────────
+async function fetchKnowledgeVoice(userId) {
+  if (!userId) return []
+  try {
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    const { data, error } = await supabase
+      .from('career_knowledge')
+      .select('content, raw_phrasing')
+      .eq('user_id', userId)
+      .is('superseded_by', null)
+      .eq('confidence', 'explicit')
+      .not('raw_phrasing', 'is', null)
+      .order('mention_count', { ascending: false })
+      .limit(20)
+    if (error) {
+      console.error('[career-knowledge] Cover letter voice lookup failed (non-fatal):', error)
+      return []
+    }
+    return data || []
+  } catch (e) {
+    console.error('[career-knowledge] Cover letter voice lookup failed (non-fatal):', e)
+    return []
+  }
+}
+
+// How the candidate talks about their own work, quoted from earlier coaching
+// sessions. A style reference only — it never licenses a claim the resume and
+// the supplementary material do not already support. Items with no raw_phrasing
+// carry no voice signal, so they are dropped, and the block is empty when none
+// are left. Kept out of buildCoverLetterPrompt so the static prompt stays
+// byte-identical across users and holds its cache; this ships as a separate,
+// uncached system block.
+function buildVoiceBlock(knowledgeVoice) {
+  const voiceItems = (knowledgeVoice || [])
+    .filter(i => i.raw_phrasing && i.raw_phrasing.trim())
+
+  if (voiceItems.length === 0) return ''
+
+  return `═══════════════════════════════════════════════
+CAPTURED VOICE DATA
+═══════════════════════════════════════════════
+
+This is the voice reference promised in the VOICE section above. It is source material, not output instructions. The OUTPUT FORMAT section above still governs what you return.
+
+The following are this candidate's own words describing their own work, recorded during previous coaching sessions.
+
+${voiceItems.map(i => `Experience: ${i.content}\nIn their own words: "${i.raw_phrasing.trim()}"`).join('\n\n')}
+
+Use these as the reference for rhythm, word choice, and how this person frames what they do. Write the letter as a polished version of this voice.
+
+They are a style reference, not a source of new claims. Nothing here licenses a statement the resume and the supplementary material do not already support.`
+}
+
 function buildCoverLetterPrompt({ resumeData, jobTitle, jobCompany, jobDescription }) {
   return `
 
@@ -39,7 +98,7 @@ The goal is to present the strongest relevant evidence so the hiring manager nat
 FOUNDATIONAL PRINCIPLES
 ═══════════════════════════════════════════════
 
-1. THE RESUME IS THE ONLY SOURCE OF TRUTH ABOUT THE CANDIDATE.
+1. THE RESUME IS THE PRIMARY SOURCE OF TRUTH ABOUT THE CANDIDATE.
 
 Everything written about the candidate must be supported by the resume or candidate-supplied context.
 
@@ -64,6 +123,93 @@ Never upgrade participation into ownership.
 Never upgrade ownership into leadership.
 
 Never claim experience the resume does not support.
+
+FABRICATION IS A CATASTROPHIC FAILURE.
+
+If any accomplishment, metric, company detail, date, credential, or responsibility appears in this cover letter that was not stated in the resume, the job description, or the authorized supplementary material provided with this request, the entire cover letter is a catastrophic failure.
+
+This is the most serious rule in this prompt.
+
+A candidate who interviews on the strength of a fabricated claim will be caught. It costs them their credibility and potentially the offer.
+
+When in doubt, write around it with qualitative strength, or leave it out.
+
+SUPPLEMENTARY MATERIAL.
+
+Career knowledge from previous coaching sessions may be included with this request.
+
+This is verified information the candidate provided in their own words during resume coaching. It is authorized supplementary material. You may use it to add depth, context, and specificity to the cover letter.
+
+However:
+
+• It does not override or replace what is on the resume
+• It does not license inventing anything the candidate did not say
+• Every claim sourced from career knowledge must still pass the same verification standard as resume claims
+• If career knowledge conflicts with the resume, the resume wins
+
+HOW CONTENT LOOKS SOURCED WHEN IT IS NOT.
+
+A claim qualifies only when it appears in the resume, or the candidate stated it in their own words in the supplementary material or the context they supplied, or the job description supplies it as a fact about the employer.
+
+The following do NOT qualify:
+
+• The job description mentions it, so the candidate must have it
+• The candidate said they could learn it, would learn it, or are willing to learn it
+• The candidate mentioned it only in the context of working alongside it, or being adjacent to it
+• The coach inferred it from context during a coaching session
+• It would be a logical skill or responsibility for someone in this role to have
+• It sounds like something they probably do based on their other work
+• It is standard vocabulary for this field that the candidate would logically know
+• It is a more formal or technical name for something the candidate described in their own words
+• It uses terminology the candidate did not use, or terminology you know from your own training
+
+None of these are sources. Each one is a fabrication wearing a source's clothes.
+
+DO NOT UPGRADE THE CANDIDATE'S VOCABULARY.
+
+Never substitute the candidate's plain words with field-standard terminology drawn from your own training.
+
+If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge."
+
+If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture."
+
+Do not substitute, upgrade, expand, or formalize their vocabulary with synonyms, more technical names, or any term you know from the field but they never used.
+
+The letter represents the candidate's knowledge and words, not yours. A term the candidate could not explain out loud in an interview should never appear in their own cover letter.
+
+NUMBERS.
+
+The capability bullets carry no metrics at all. Where a number appears anywhere else in the letter, use only figures the candidate provided, exactly as they provided them.
+
+Never estimate. Never round up. Never infer a figure from scope. Never turn a vague description into a number.
+
+If you are uncertain of a number, omit it and describe the scope in words instead.
+
+WRITE THE ACTION, NOT A DESCRIPTION OF IT.
+
+When a sentence opens with "drove," "led," "championed," or "spearheaded" followed by a noun, stop and ask what the candidate actually did. Write that instead.
+
+Weak
+
+"Drove process optimization across the department."
+
+Strong
+
+"Rebuilt the intake process so requests stopped stalling between teams."
+
+Never describe an action at a higher level of authority than the candidate performed it. If they supported the work, write supported. If they contributed, write contributed.
+
+Reaching for a stronger verb than the work supports is inflation, and it reads as inflation to anyone who has done the job.
+
+BEFORE OUTPUTTING, NAME THE SOURCE OF EVERY CLAIM.
+
+Walk the finished letter one claim at a time. The opening, every sentence of the body, every bullet, every capability label.
+
+For each one, name where it came from: the resume, the job description, the career knowledge supplied with this request, or the context the candidate supplied.
+
+If you cannot name a source, delete the claim.
+
+This check runs last, after every other rule in this prompt, and it overrides every instruction about making the candidate compelling. A weaker letter that is entirely true beats a stronger one that is not.
 
 2. THE JOB DESCRIPTION IS THE ONLY SOURCE OF TRUTH ABOUT THE EMPLOYER.
 
@@ -180,6 +326,8 @@ A recent graduate should not sound like a CEO.
 A CEO should not sound like a college student.
 
 Write the strongest version of the candidate's authentic voice.
+
+Captured voice data from coaching sessions may be provided below. When present, use it as your primary reference for how this candidate naturally describes their work. Write the cover letter as a polished version of their voice, not generic professional language.
 
 Confidence comes from clearly describing real work.
 
@@ -700,6 +848,7 @@ Accuracy
 • every candidate claim comes from the resume or supplied context
 • every employer claim comes from the job description
 • nothing has been invented
+• run the source-naming audit from FOUNDATIONAL PRINCIPLES now, claim by claim, and delete anything you cannot source
 
 Tone
 
@@ -824,29 +973,27 @@ export async function POST(request) {
       return NextResponse.json({ error: 'CL_LIMIT_REACHED' }, { status: 403 })
     }
 
+    // Fetched straight from the knowledge base rather than from this job's
+    // keyword matches, so voice does not depend on the posting having gaps.
+    const knowledgeVoice = await fetchKnowledgeVoice(userId)
+    const voiceBlock = buildVoiceBlock(knowledgeVoice)
+
     const systemPrompt = buildCoverLetterPrompt({ resumeData, jobTitle, jobCompany, jobDescription })
 
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
     // Facts confirmed in previous coaching sessions. These stand alongside the
     // resume as source material, so they sit with it rather than with the
-    // candidate's free-text context. The voice reference is nested inside because
-    // it is meaningless without the facts it quotes: items carrying no
-    // raw_phrasing contribute experience but no voice, and when none of them
-    // carry one the reference is dropped while the facts remain.
+    // candidate's free-text context. Voice is no longer derived from these
+    // items: it is fetched directly and lives in the system prompt, so a
+    // candidate with no keyword gaps still gets their own phrasing.
     const knowledge = Array.isArray(knowledgeMatches) ? knowledgeMatches : []
-    const voiceItems = knowledge.filter(m => typeof m?.raw_phrasing === 'string' && m.raw_phrasing.trim())
     const knowledgeBlock = knowledge.length > 0 ? `
 ADDITIONAL VERIFIED EXPERIENCE:
 The following facts about this candidate have been confirmed from previous coaching sessions. They may not appear on the resume above but are real and verified. Use them where relevant to strengthen the cover letter.
 
 ${knowledge.map(m => `- ${m.content}`).join('\n')}
-${voiceItems.length > 0 ? `
-CANDIDATE VOICE REFERENCE:
-When writing this cover letter, use the following as a reference for how this candidate naturally describes their own work. The cover letter should sound like a polished version of their voice.
-
-${voiceItems.map(m => `Experience: ${m.content}\nIn their own words: "${m.raw_phrasing.trim()}"`).join('\n\n')}
-` : ''}` : ''
+` : ''
 
     // The candidate's own framing of why they fit this role. Optional, and
     // dropped entirely when they left the field blank.
@@ -890,11 +1037,15 @@ TODAY'S DATE: ${today}`
           model: 'claude-sonnet-4-6',
           max_tokens: 2000,
           system: [
+            // Byte-identical for every user, so the cache breakpoint sits here.
             {
               type: 'text',
               text: systemPrompt,
               cache_control: { type: 'ephemeral' }
-            }
+            },
+            // Per-user, and omitted entirely when empty: an empty text block is
+            // an API error, and an unconditional one would break the cache above.
+            ...(voiceBlock ? [{ type: 'text', text: voiceBlock }] : [])
           ],
           messages: [{ role: 'user', content: userMessage }]
         })
