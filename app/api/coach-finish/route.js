@@ -583,7 +583,7 @@ KEYWORD DUPLICATION STRATEGY:
 The skills section is the ATS safety net. If a keyword appears in a bullet, it still goes in skills. ATS systems weight keywords appearing in multiple sections higher. Never duplicate within the same section. Always include in skills regardless of where else it appears.
 
 SKILLS EXTRACTION HAPPENS FIRST:
-Before writing any bullets, extract ALL skills from the resume and coaching conversation into skillsCategories. It is your job to find skills in the existing resume and coaching conversation that translate to ATS keyword strength on their resume. You should find skills they didn’t even know they had or didn’t know were important to list. These go in skillsCategories. Then write bullets for what remains that genuinely warrants bullet-level treatment. 
+Before writing any bullets, extract ALL skills from the resume and coaching conversation into skillsCategories. It is your job to find skills in the existing resume and coaching conversation that translate to ATS keyword strength on their resume. These go in skillsCategories. Then write bullets for what remains that genuinely warrants bullet-level treatment.
 
 ═══════════════════════════════════════════════
 RESUME ELEMENTS 1: WRITING GUIDELINES FOR PROFESSIONAL SUMMARY (REQUIRED SECTION)
@@ -980,15 +980,18 @@ If the original resume had a dedicated administrative or technical skills catego
 SEARCHABLE ADMIN KEYWORDS TO PRESERVE:
 Data Entry, Document Management, Record Keeping, Scheduling, Inventory Tracking, Order Processing, Customer Communication, Microsoft Office (Word, Excel, PowerPoint, Outlook). These are ATS keywords for admin-adjacent internship and coordinator roles. Keep them.
 
-SKILL EXTRACTION FROM COACHING: REQUIRED:
-Skills demonstrated in the coaching conversation but not on the resume must be extracted and added to skills section. This is not optional. It directly improves the Keywords score.
+SKILL EXTRACTION FROM COACHING:
+When the candidate describes doing something during coaching, extract it as a skill even if they did not name it formally. The test is recognition, not vocabulary: would the candidate recognize this skill name as something they actually do? If someone says 'I kept track of what we had in stock,' writing 'Inventory Management' is correct because they would recognize that as their work. If someone says 'I built a scoring rubric,' writing 'LLM-as-judge' is fabrication because they would not recognize that term as theirs.
 
-Examples of skills hiding inside experience descriptions:
-"I handled scheduling for the whole department" → Scheduling, Calendar Management
-"When problems came up I'd figure them out" → Troubleshooting, Problem Resolution
-"I was in charge of training the new people" → Staff Training, Onboarding, Knowledge Transfer
-"I kept track of what we had in stock" → Inventory Management, Supply Chain Coordination
-"I made sure the venue, vendors, and performers were all coordinated" → Vendor Relations, Logistics Coordination, Event Production
+Extract what they do. Name it in terms they would recognize. Do not upgrade their vocabulary to terminology from the model's own training.
+
+Examples of the recognition test:
+"I kept track of what we had in stock" → Inventory Management (they would recognize this) ✓
+"I kept track of what we had in stock" → Supply Chain Coordination (they would not say this) ✗
+"I built a scoring rubric" → Scoring Rubric (their words) ✓
+"I built a scoring rubric" → LLM-as-judge (model's vocabulary) ✗
+"No, I haven't used Notion" → Notion (denied) ✗
+"Not Notion specifically, I use Confluence" → Confluence (confirmed) ✓
 
 SKILLS SECTION LENGTH AND CONTENT:
 
@@ -1149,7 +1152,7 @@ IMPACT: Did I add or meaningfully improve bullets to be more specific, more achi
 
 CLARITY: Did I replace weak verbs, cut filler language, and strengthen the writing throughout? Is every bullet passing the brain test? If not, keep working. 
 
-KEYWORDS: Did I extract skills, tools, and field vocabulary from the coaching conversation and add them to the skills section? Is the industry terminology present at the right depth for this career stage? If not, go back to the conversation.
+KEYWORDS: Did I extract skills the candidate described doing, using terms they would recognize? Did I exclude any skill the candidate denied having? Is the industry terminology present at the right depth for this career stage? If not, go back to the conversation.
 
 CONCISENESS TEST:
 Read every bullet and summary sentence and remove filler words on the first pass. Filler words add length without adding meaning, cut them or replace them with a tighter word. After removing filler, read each sentence again. If any word could be removed without changing the meaning, remove it. Repeat until no more words can be cut. A sentence is done when removing one more word would change what it says.
@@ -1305,6 +1308,7 @@ Never add any experience, skill, tool, platform, technology, certification, meth
 2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
 
 The following do NOT qualify:
+- The candidate was asked about it during coaching and said no, said they have not used it, or described their experience as being with a different tool or approach. A denied skill is permanently disqualified. The word appearing in the transcript inside a denial is not evidence. Example: Coach asks 'Have you used Notion?' and candidate says 'Not Notion specifically, I use Confluence.' Notion is disqualified. Confluence is confirmed.
 - The job description mentions it
 - The candidate said they could learn it, would learn it, or are willing to learn it
 - The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
@@ -1435,6 +1439,7 @@ Never add any experience, skill, tool, platform, technology, certification, meth
 There is NO coaching conversation in this pass, so condition 2 is unavailable. Condition 1 is the only way content qualifies.
 
 The following do NOT qualify:
+- The candidate was asked about it during coaching and said no, said they have not used it, or described their experience as being with a different tool or approach. A denied skill is permanently disqualified. The word appearing in the transcript inside a denial is not evidence. Example: Coach asks 'Have you used Notion?' and candidate says 'Not Notion specifically, I use Confluence.' Notion is disqualified. Confluence is confirmed.
 - The job description mentions it
 - The candidate said they could learn it, would learn it, or are willing to learn it
 - The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
@@ -1738,7 +1743,9 @@ EXCLUDE: Small or irrelevant metrics. Do not add numbers just to have numbers. F
 EXCLUDE: Skills hiding inside a story — extract those to skillsCategories, not a bullet.
 
 ${skipCoaching ? `NO COACHING CONVERSATION:
-The candidate chose to tailor their resume without going through coaching. There is no transcript to draw from. The original resume below is your ONLY source of truth for what the candidate has done. Re-read the JS_NO_COACH_RULES above before writing anything.` : `COACHING CONVERSATION (everything the candidate revealed — use all of it):
+The candidate chose to tailor their resume without going through coaching. There is no transcript to draw from. The original resume below is your ONLY source of truth for what the candidate has done. Re-read the JS_NO_COACH_RULES above before writing anything.` : `COACHING CONVERSATION:
+This is the full conversation between the coach and the candidate. It contains questions, confirmations, AND denials. Read it contextually. When the candidate says they have done something, that is evidence. When the candidate says they have NOT done something, that is a hard disqualification. A word appearing in this transcript does not mean the candidate has that skill. Read what they actually said about it.
+
 ${conversation.map(msg => `${msg.role === 'assistant' ? 'Coach' : 'Candidate'}: ${msg.content}`).join('\n\n')}`}
 
 ORIGINAL RESUME (what you are improving):
@@ -1780,6 +1787,7 @@ Never add specific numbers, quantities, counts, or measurements to bullets unles
 
 2. MISSING KEYWORDS — Work through each one:
    - Does the coaching conversation or resume give you material to support this keyword? Add it.
+   - A keyword appearing in a denial is not material. If the candidate was asked about a missing keyword and said they do not have it, that keyword has no support. Leave it out entirely.
    - Best location: existing bullet where it fits naturally (reframe the bullet to include it).
    - Second best: new bullet if coaching surfaced relevant experience not yet captured.
    - Third option: skills section if it cannot fit naturally in experience.
@@ -1857,6 +1865,7 @@ Never add any experience, skill, tool, platform, technology, certification, meth
 2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
 
 The following do NOT qualify:
+- The candidate was asked about it during coaching and said no, said they have not used it, or described their experience as being with a different tool or approach. A denied skill is permanently disqualified. The word appearing in the transcript inside a denial is not evidence. Example: Coach asks 'Have you used Notion?' and candidate says 'Not Notion specifically, I use Confluence.' Notion is disqualified. Confluence is confirmed.
 - The job description mentions it
 - It appears in the MISSING KEYWORDS list above
 - The candidate said they could learn it, would learn it, or are willing to learn it
@@ -2174,6 +2183,7 @@ Never add any experience, skill, tool, platform, technology, certification, meth
 2. The candidate explicitly stated during coaching that they have it, use it, have used it, or are certified in it — in their own words, as a direct claim about their own background.
 
 The following do NOT qualify:
+- The candidate was asked about it during coaching and said no, said they have not used it, or described their experience as being with a different tool or approach. A denied skill is permanently disqualified. The word appearing in the transcript inside a denial is not evidence. Example: Coach asks 'Have you used Notion?' and candidate says 'Not Notion specifically, I use Confluence.' Notion is disqualified. Confluence is confirmed.
 - The job description mentions it
 - The candidate said they could learn it, would learn it, or are willing to learn it
 - The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
