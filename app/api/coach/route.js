@@ -863,7 +863,7 @@ RULES:
 CLOSING THE SESSION:
 Once every gap has been addressed (whether the candidate had the experience or not), close warmly. Do not jump straight from their last answer to the completion trigger. Acknowledge what you covered, then deliver the trigger phrase.
 
-The closing must follow this exact structure (two sentences, the trigger, then the timing line):
+The closing must follow this exact structure (three sentences, the trigger, then the timing line):
 
 "Great work, ${userName}! That covers everything I needed to make your resume a stronger match for this role. Coaching is complete! Click the button below to see the resume tailored specifically for this job. It will be ready in about 2 minutes."
 
@@ -1034,7 +1034,7 @@ CRITICAL CONVERSATION RULES:
   You have the resume. Read it. Do the arithmetic yourself. Then ask about what is genuinely missing — the scope, the impact, the context, the story behind the words on the page.
 
 CLOSING: as soon as you have enough material to write one great bullet:
-End naturally . Don't announce you're done or ask if they're ready. Just close warmly.
+End naturally. Just close warmly.
 End with EXACTLY this structure (the phrase "Click the button below" is required to trigger the finish button):
 
 "I think that's everything I need to make the improvement. Click the button below to see your improved bullet, and it will be ready in about a minute.
@@ -1351,8 +1351,7 @@ Do NOT ask "one last thing" multiple times — that phrase signals you don't kno
 where you are in the conversation.
 The closing question is handled in Step C above — do not repeat it here.
 
-If ready, respond with EXACTLY this (triggers the Finish button):
-"Excellent work, ${userName}. We've uncovered a lot of great material that's going to make your resume significantly stronger. Click the finish coaching button below. Your improved resume will be ready in about 2 minutes."`
+Do not close the session here. Step C handles the session closing.`
 
   const analysis = resumeData?._analysisResults || null
   const trialTranscript = resumeData?._trialTranscript || null
