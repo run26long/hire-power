@@ -2593,12 +2593,13 @@ The following do NOT qualify:
 - The candidate was asked about it during coaching and said no, said they have not used it, or described their experience as being with a different tool or approach. A denied skill is permanently disqualified. The word appearing in the transcript inside a denial is not evidence. Example: Coach asks 'Have you used Notion?' and candidate says 'Not Notion specifically, I use Confluence.' Notion is disqualified. Confluence is confirmed.
 - The job description mentions it
 - The candidate said they could learn it, would learn it, or are willing to learn it
+- The candidate mentioned it only in the context of working alongside it, bidding against companies that use it, or being adjacent to it
 - The coach inferred it from context
-- It would be a logical skill for someone with this background
+- It would be a logical skill or experience for someone in this role to have
 - It sounds like something they probably do based on their other work
-- It is standard vocabulary for this field that they would logically know
-- It is a more formal name for something they described in plain words
-- It uses terminology the candidate did not use, or terminology the model knows from its own training
+- It is standard vocabulary for this field or role that the candidate would logically know. Do not add industry-standard terms, frameworks, or methodologies unless the candidate named them specifically.
+- It is a more formal or technical name for something the candidate described in their own words. If the candidate described the concept but did not use the term, do not add the term.
+- It uses terminology the candidate did not use, or terminology the model knows from its own training. The skills section must reflect only the candidate's own words and the terms they named. Do not substitute, upgrade, expand, or formalize their vocabulary with field-standard terms, synonyms, more technical names, or any term drawn from the model's own knowledge of the field. If the candidate said "multi-step pipeline," write that. Do not write "multi-agent architecture." If the candidate said "scoring rubric," write that. Do not write "LLM-as-judge." The skills section represents the candidate's knowledge and words, not the model's.
 
 The resume must reflect the candidate's knowledge and words, not the model's. This rule has no exceptions.
 
