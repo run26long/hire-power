@@ -1000,7 +1000,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   >{degreeText || 'Degree'}</span>
                   {(dateText || !readOnly) && (
                     <>
-                      <span className="font-normal"> | </span>
+                      <span className="font-normal">{dateText ? ' | ' : ' '}</span>
                       <span
                         className={`font-normal ${!readOnly && 'cursor-text'}`}
                         style={{ color: dateText ? 'inherit' : '#9ca3af', fontStyle: dateText ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }}
