@@ -644,7 +644,7 @@ export async function POST(request) {
       if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { resumeText, resumeData } = await request.json()
+    const { resumeText, resumeData, skipDetection } = await request.json()
     
     // Handle both formats: plain text OR structured data
     let textToAnalyze = resumeText
@@ -662,7 +662,15 @@ export async function POST(request) {
     }
 
     // STEP 1: DETECT CAREER STAGE
-    const detectionPrompt = `Analyze this resume and determine the career stage:
+    // Skippable: detection only populates the detectedLevel field on the response.
+    // It does not feed the scoring prompt, so skipping it cannot change the score.
+    // Callers that read detectedLevel (initial assessment, re-assess) must not skip.
+    let detectedLevelFormatted = null
+
+    if (skipDetection) {
+      console.log('Skipping career level detection (skipDetection set by caller)')
+    } else {
+      const detectionPrompt = `Analyze this resume and determine the career stage:
 
 ${textToAnalyze}
 
@@ -674,25 +682,27 @@ Based on:
 
 Respond with ONLY one word: entry, mid, or senior`
 
-    const detectionMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 10,
-      temperature: 0,  // Deterministic detection
-      messages: [{
-        role: 'user',
-        content: detectionPrompt
-      }]
-    })
+      const detectionMessage = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 10,
+        temperature: 0,  // Deterministic detection
+        messages: [{
+          role: 'user',
+          content: detectionPrompt
+        }]
+      })
 
-    const detectedLevel = detectionMessage.content[0].text.trim().toLowerCase()
-    console.log('Detected career level:', detectedLevel)
+      const detectedLevel = detectionMessage.content[0].text.trim().toLowerCase()
+      console.log('Detected career level:', detectedLevel)
+
+      detectedLevelFormatted = detectedLevel.includes('entry') ? 'entry'
+        : detectedLevel.includes('senior') ? 'senior'
+        : 'mid'
+      console.log('Using unified evaluation criteria, detected level:', detectedLevelFormatted)
+    }
 
     // STEP 2: SELECT APPROPRIATE PROMPT
     const systemPrompt = UNIFIED_PROMPT
-    const detectedLevelFormatted = detectedLevel.includes('entry') ? 'entry' 
-      : detectedLevel.includes('senior') ? 'senior' 
-      : 'mid'
-    console.log('Using unified evaluation criteria, detected level:', detectedLevelFormatted)
 
     // STEP 3: ANALYZE WITH APPROPRIATE CRITERIA
     const message = await anthropic.messages.create({

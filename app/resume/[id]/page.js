@@ -3714,7 +3714,7 @@ const getMessageText = (msg) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${coachSession.access_token}`
         },
-        body: JSON.stringify({ resumeData: data.rewrittenResume })
+        body: JSON.stringify({ resumeData: data.rewrittenResume, skipDetection: true })
       })
       const scoreCheckData = await scoreCheckResponse.json()
       const attemptOneScore = scoreCheckData?.score ?? null
