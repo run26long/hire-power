@@ -2773,6 +2773,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'resumeData and conversation are required' }, { status: 400 })
     }
 
+    // Started here rather than immediately before the rewrite so the lookup
+    // overlaps the setup work in between instead of blocking on its own.
+    // Awaited only at prompt assembly, and only by the paths that use it.
+    // fetchKnowledgeVoice swallows its own errors and resolves to [], so this
+    // never rejects and never needs a catch on the paths that ignore it.
+    const knowledgeVoicePromise = fetchKnowledgeVoice(authenticatedUserId)
+
     // Strip placeholder bullets before they reach the rewrite prompt
     if (resumeData?.experience?.length > 0) {
       resumeData.experience = resumeData.experience.map(job => ({
@@ -2934,7 +2941,7 @@ export async function POST(request) {
       const convLevel = ['entry', 'mid', 'senior'].includes(detectedLevelText) ? detectedLevelText : (detectedLevel || 'mid')
       const convLevelInstructions = LEVEL_WRITING_INSTRUCTIONS[convLevel] || LEVEL_WRITING_INSTRUCTIONS.mid
 
-      const convKnowledgeVoice = await fetchKnowledgeVoice(authenticatedUserId)
+      const convKnowledgeVoice = await knowledgeVoicePromise
 
       const convRewritePrompt = buildCoreRewritePrompt({ resumeData: null, conversation, level: convLevel, levelInstructions: convLevelInstructions, careerContext, isConversational: true, knowledgeVoice: convKnowledgeVoice })
       const convRewriteMsg = await anthropic.messages.create({
@@ -3168,7 +3175,7 @@ Return this exact structure:
     }
 
   // ── CORE RESUME REWRITE PATH ──
-    const coreKnowledgeVoice = await fetchKnowledgeVoice(authenticatedUserId)
+    const coreKnowledgeVoice = await knowledgeVoicePromise
 
     const rewritePrompt = buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational: false, knowledgeVoice: coreKnowledgeVoice })
 
