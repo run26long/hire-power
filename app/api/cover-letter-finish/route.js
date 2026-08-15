@@ -745,6 +745,8 @@ Write complete sentences.
 
 Do not use em dashes.
 
+Do not construct sentences that would require em dash punctuation. Restructure as two shorter sentences or rewrite the clause so it does not need setting off. If you absolutely must set off a clause, use a hyphen. Never use a comma as a substitute for an em dash.
+
 Do not use colons anywhere in the cover letter.
 
 Never insert a space before punctuation. Commas, periods, semicolons, and colons attach directly to the preceding word.
@@ -1087,7 +1089,7 @@ TODAY'S DATE: ${today}`
       }, { status: 422 })
     }
 
-    const stripEmDashes = (str) => str ? str.replace(/\u2014/g, ', ') : str
+    const stripEmDashes = (str) => str ? str.replace(/\s*\u2014\s*/g, ' - ') : str
     const stripColonsInProse = (str) => str ? str.replace(/: /g, ', ') : str
     const stripColonsInBullets = (str) => str ? str.replace(/: /g, ' - ') : str
     coverLetterData.opening = stripColonsInProse(stripEmDashes(coverLetterData.opening))
