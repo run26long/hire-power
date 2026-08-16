@@ -12,6 +12,15 @@ import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
 import CoachReviseModal from '@/app/components/CoachReviseModal'
 
+// Mirrors the display_name convention job-specific resumes are created with,
+// so a job reads the same whichever document you are looking at.
+function coverLetterLabel(cl) {
+  const title = cl?.job_title?.trim()
+  const company = cl?.job_company?.trim()
+  if (title && company) return `${title} at ${company}`
+  return title || company || 'Draft'
+}
+
 export default function CoverLetterPage() {
   const params = useParams()
   const router = useRouter()
@@ -20,6 +29,7 @@ export default function CoverLetterPage() {
   const [coverLetter, setCoverLetter] = useState(null)
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
+  const [siblingCoverLetters, setSiblingCoverLetters] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [unsavedNavTarget, setUnsavedNavTarget] = useState(null)
@@ -283,6 +293,7 @@ export default function CoverLetterPage() {
       }
 
       setCoverLetter(data)
+      loadBreadcrumbLinks(user.id)
       const loadedTemplate = data.template_id || 'current'
       setSelectedTemplate(loadedTemplate)
       setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Lato')
@@ -293,6 +304,24 @@ export default function CoverLetterPage() {
       setErrorToast("We couldn't load your cover letter. Please refresh the page.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Breadcrumb dropdown targets. The linked resume already rides along on the
+  // cover letter row, so the only thing missing is the user's other letters.
+  async function loadBreadcrumbLinks(userId) {
+    try {
+      const { data } = await supabase
+        .from('cover_letters')
+        .select('id, job_title, job_company')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      setSiblingCoverLetters(data || [])
+    } catch (err) {
+      // Navigation shortcut only. Log it and leave the crumb without its menu.
+      console.warn('Breadcrumb links failed to load:', err)
     }
   }
 
@@ -618,7 +647,18 @@ export default function CoverLetterPage() {
       />
       <Breadcrumb items={[
         { label: 'Resume Coach', path: '/resume-coach' },
-        { label: `Cover Letter — ${coverLetter.job_title || 'Draft'}` }
+        {
+          label: coverLetterLabel(coverLetter),
+          options: siblingCoverLetters
+            .filter(cl => cl.id !== coverLetter.id)
+            .map(cl => ({ label: coverLetterLabel(cl), path: `/cover-letter/${cl.id}` }))
+        },
+        {
+          label: 'Cover Letter',
+          options: coverLetter.linked_resume_id
+            ? [{ label: 'Resume', path: `/resume/${coverLetter.linked_resume_id}` }]
+            : []
+        }
       ]} />
 
       {/* Mobile Toolbar */}
