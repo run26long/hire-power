@@ -132,6 +132,8 @@ export default function ResumePage() {
   const [resume, setResume] = useState(null)
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
+  const [siblingResumes, setSiblingResumes] = useState([])
+  const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -1004,6 +1006,7 @@ function formatDate(dateString, format = dateFormat) {
       }
 
       setResume(data)
+      loadBreadcrumbLinks(data, user.id)
 
     // Restore the persisted pre-coaching baseline so the before/after reveal
     // survives a reload. Without this the only baseline is in-memory and a
@@ -1061,6 +1064,38 @@ if (data.ai_analysis) {
       console.error('Unexpected error in loadResume:', err)
       setErrorToast("Something went wrong loading your resume. Please refresh the page.")
       setLoading(false)
+    }
+  }
+
+  // Breadcrumb dropdown targets: the user's other job-specific resumes, and
+  // this job's cover letter if one was written. Core resumes have neither, so
+  // they skip the queries entirely and keep their two static crumbs.
+  async function loadBreadcrumbLinks(resumeRow, userId) {
+    if (resumeRow?.resume_type !== 'job_specific') return
+
+    try {
+      const [{ data: versions }, { data: coverLetters }] = await Promise.all([
+        supabase
+          .from('resumes')
+          .select('id, display_name, resume_type')
+          .eq('user_id', userId)
+          .eq('resume_type', 'job_specific')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('cover_letters')
+          .select('id, job_title')
+          .eq('linked_resume_id', resumeRow.id)
+          .eq('is_active', true)
+          .limit(1)
+      ])
+
+      setSiblingResumes(versions || [])
+      setLinkedCoverLetter(coverLetters?.[0] || null)
+    } catch (err) {
+      // These only feed breadcrumb navigation. Losing them costs a shortcut,
+      // not the ability to edit, so log it rather than interrupting the user.
+      console.warn('Breadcrumb links failed to load:', err)
     }
   }
 
@@ -1257,10 +1292,31 @@ if (data.ai_analysis) {
 
       {/* Tight wrapper leaves the breadcrumb's sticky offset no room to shift into */}
       <div className="flex-shrink-0">
-        <Breadcrumb items={[
-          { label: 'Resume Coach', path: '/resume-coach' },
-          { label: resume.display_name || 'Core Resume' }
-        ]} />
+        <Breadcrumb items={
+          resume.resume_type === 'job_specific'
+            ? [
+                { label: 'Resume Coach', path: '/resume-coach' },
+                {
+                  label: resume.display_name || resume.job_title || 'Job Specific Resume',
+                  options: siblingResumes
+                    .filter(r => r.id !== resume.id)
+                    .map(r => ({
+                      label: r.display_name || 'Untitled Resume',
+                      path: `/resume/${r.id}`
+                    }))
+                },
+                {
+                  label: 'Resume',
+                  options: linkedCoverLetter
+                    ? [{ label: 'Cover Letter', path: `/cover-letter/${linkedCoverLetter.id}` }]
+                    : []
+                }
+              ]
+            : [
+                { label: 'Resume Coach', path: '/resume-coach' },
+                { label: resume.display_name || 'Core Resume' }
+              ]
+        } />
       </div>
 
 {/* Mobile toggle */}
@@ -1566,25 +1622,10 @@ if (data.ai_analysis) {
       )}
 
 {/* Toolbar — desktop only, spans the left column */}
-      <div className="hidden md:block flex-shrink-0 bg-white border-b border-gray-200 overflow-visible">
+      <div className="hidden md:block flex-shrink-0 bg-gray-50 border-b border-gray-200 overflow-visible">
         <div className="px-6 pt-3 pb-2 w-full overflow-visible">
-          {showEditorTip && (
-            <div className="bg-purple-50 rounded px-3 py-1 mb-2 flex items-center justify-between">
-              <p className="flex-1 flex items-center justify-between text-xs text-purple-700">
-                <span>✏️ Click any section to edit directly</span>
-                {/* Hidden outright for free users; shown dimmed until the improve step makes it usable */}
-                {(userProfile?.subscription_tier || 'free') !== 'free' && (
-                  <span className={['improve','format','save'].includes(resume?.journey_step) ? 'text-purple-700' : 'text-purple-300'}>⚡ Reword or fix any sentence</span>
-                )}
-                <span><span className="text-gray-400">▲▼</span> Reorder content</span>
-                <span>🗑️ Delete content</span>
-              </p>
-              <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-4 flex-shrink-0 text-sm">✕</button>
-            </div>
-          )}
-
           {/* Toolbar grid — column N of row 1 aligns with column N of row 2 */}
-          <div className="grid grid-cols-[max-content_repeat(6,auto)] gap-x-3 gap-y-2 text-xs overflow-visible">
+          <div className="grid grid-cols-[max-content_repeat(6,auto)] gap-x-2 gap-y-2 text-xs overflow-visible">
 
             {/* Row 1 — Format */}
             <span className="col-start-1 row-start-1 flex items-center border-l-3 border-purple-500 pl-2 text-xs font-semibold text-purple-700 whitespace-nowrap">📄 Formatting Tools</span>
@@ -1746,7 +1787,7 @@ if (data.ai_analysis) {
             <button
               onClick={undo}
               disabled={historyIndex <= 0}
-              className={`flex-1 px-4 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
+              className={`flex-1 px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
               }`}
             >
@@ -1758,7 +1799,7 @@ if (data.ai_analysis) {
               <button
                 onClick={handleAutoFit}
                 disabled={isAutoFitting}
-                className={`w-full px-4 py-1 border rounded text-xs flex items-center justify-center gap-1 transition-colors whitespace-nowrap ${
+                className={`w-full px-3 py-1 border rounded text-xs flex items-center justify-center gap-1 transition-colors whitespace-nowrap ${
                   isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
                   : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
                   : 'border-gray-300 hover:bg-gray-50'
@@ -1769,7 +1810,7 @@ if (data.ai_analysis) {
                 )}
                 {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
               </button>
-              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/autofit:block w-56 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
+              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/autofit:block w-56 bg-white border border-gray-200 rounded-md shadow-lg text-xs text-gray-700 px-2 py-1.5 pointer-events-none">
                 {'Automatically adjusts font size and spacing to best fill one page.' + (resumeExceedsPage ? ' Your resume currently exceeds one page.' : '')}
               </div>
             </div>
@@ -1778,7 +1819,7 @@ if (data.ai_analysis) {
             {/* Save */}
             <button
               onClick={save}
-              className={`col-start-3 row-start-2 px-4 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
+              className={`col-start-3 row-start-2 px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 saveSuccess
                   ? 'bg-green-600 text-white'
                   : hasUnsavedChanges
@@ -1805,7 +1846,7 @@ if (data.ai_analysis) {
               <button
                 onClick={() => handleReassess()}
                 disabled={isAnalyzing || journeyStep === 'review'}
-                className={`col-start-5 row-start-2 px-4 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${
+                className={`col-start-5 row-start-2 px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${
                   isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
                 }`}
                 title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
@@ -1852,12 +1893,12 @@ if (data.ai_analysis) {
                     }
                   }}
                   disabled={isLoadingPreview}
-                  className={`w-full px-4 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                  className={`w-full px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
                 >
                   {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
                   {isLoadingPreview ? 'Loading...' : '👁 Preview'}
                 </button>
-                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
+                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-white border border-gray-200 rounded-md shadow-lg text-xs text-gray-700 px-2 py-1.5 pointer-events-none">
                   See your resume at actual page size before downloading.
                 </div>
               </div>
@@ -1866,7 +1907,7 @@ if (data.ai_analysis) {
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className={`col-start-7 row-start-2 px-4 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 whitespace-nowrap text-white transition-opacity ${
+                className={`col-start-7 row-start-2 px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 whitespace-nowrap text-white transition-opacity ${
                   isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -1888,6 +1929,45 @@ if (data.ai_analysis) {
            {/* Capture counter — sticky strip above the resume */}
             <div className="sticky top-0 z-20">
               <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} journeyStep={journeyStep} />
+            </div>
+
+            {/* Editing affordances — sticky top-right. Zero height so the row
+                floats over the resume instead of pushing it down. */}
+            <div className="hidden md:flex sticky top-0 z-20 h-0 justify-end pointer-events-none">
+              <div className="absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 mt-2 mr-3 pointer-events-auto">
+
+                <div className="relative group/tipedit">
+                  <span className="block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default">✏️</span>
+                  <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipedit:block z-30">
+                    Click any section to edit directly
+                  </div>
+                </div>
+
+                {/* Hidden outright for free users; grayed until the improve step makes it usable */}
+                {(userProfile?.subscription_tier || 'free') !== 'free' && (
+                  <div className="relative group/tipreword">
+                    <span className={`block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default ${['improve','format','save'].includes(resume?.journey_step) ? '' : 'grayscale'}`}>⚡</span>
+                    <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipreword:block z-30">
+                      Reword or fix any sentence
+                    </div>
+                  </div>
+                )}
+
+                <div className="relative group/tiporder">
+                  <span className="block text-sm text-gray-400 opacity-50 hover:opacity-100 transition-opacity cursor-default">▲▼</span>
+                  <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tiporder:block z-30">
+                    Reorder content
+                  </div>
+                </div>
+
+                <div className="relative group/tipdelete">
+                  <span className="block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default">🗑️</span>
+                  <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipdelete:block z-30">
+                    Delete content
+                  </div>
+                </div>
+
+              </div>
             </div>
 
             {/* Capture toast — top-right of resume panel, below counter */}
