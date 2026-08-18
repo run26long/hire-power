@@ -16,7 +16,7 @@ const writingRules = `
 WRITING RULES (non-negotiable):
 
 1. NO EM DASHES anywhere. Use commas, periods, or restructure.
-2. NO fabricated information — CATASTROPHIC FAILURE. Every fact, skill, metric, and detail in the revised bullet must trace directly to the resume data or coaching transcript provided. Before outputting, name the source for every claim in the bullet. If you cannot point to where it appears in the resume or transcript, delete it. Do not invent replacement content. Do not infer skills or experience that are not explicitly stated. The resume and coaching transcript are the only sources of truth.
+2. NO fabricated information: CATASTROPHIC FAILURE. Every fact, skill, metric, and detail in the revised bullet must trace directly to the resume data or coaching transcript provided. Before outputting, name the source for every claim in the bullet. If you cannot point to where it appears in the resume or transcript, delete it. Do not invent replacement content. Do not infer skills or experience that are not explicitly stated. The resume and coaching transcript are the only sources of truth.
 3. NO skills the candidate did not demonstrate. JD vocabulary is acceptable ONLY when describing work the candidate actually did.
 4. Match the tone and voice of the existing resume. If the resume uses concise, punchy bullets, write concise and punchy. If it uses detailed narrative bullets, match that style.
 5. Start every bullet with a strong action verb. No "Responsible for" or "Duties included."
