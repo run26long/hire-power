@@ -16,7 +16,7 @@ const writingRules = `
 WRITING RULES (non-negotiable):
 
 1. NO EM DASHES anywhere. Use commas, periods, or restructure.
-2. NO fabricated information. Every detail must come from the resume data or coaching transcript provided.
+2. NO fabricated information — CATASTROPHIC FAILURE. Every fact, skill, metric, and detail in the revised bullet must trace directly to the resume data or coaching transcript provided. Before outputting, name the source for every claim in the bullet. If you cannot point to where it appears in the resume or transcript, delete it. Do not invent replacement content. Do not infer skills or experience that are not explicitly stated. The resume and coaching transcript are the only sources of truth.
 3. NO skills the candidate did not demonstrate. JD vocabulary is acceptable ONLY when describing work the candidate actually did.
 4. Match the tone and voice of the existing resume. If the resume uses concise, punchy bullets, write concise and punchy. If it uses detailed narrative bullets, match that style.
 5. Start every bullet with a strong action verb. No "Responsible for" or "Duties included."
@@ -26,6 +26,8 @@ WRITING RULES (non-negotiable):
 9. Keep explanation fields to one short sentence. No justification paragraphs.
 10. Never insert a space before punctuation. Commas, periods, semicolons, and colons attach directly to the preceding word.
 11. Never join two independent clauses with only a comma. Use a period, a semicolon, or a coordinating conjunction instead.
+12. Do NOT end bullets with periods. This is the current universal standard. Periods at the end of resume bullets are outdated. Omit them consistently. If a bullet contains two distinct thoughts, separate with a semicolon, not a period.
+13. When the user asks to remove part of a bullet, either shorten the bullet to what remains if it is strong enough to stand alone, or replace the removed portion with something sourced from the resume or coaching transcript. Never invent replacement content. If nothing suitable exists in the sources, the shorter bullet is the correct answer.
 `
 
 // ═══════════════════════════════════════════════
@@ -317,7 +319,7 @@ export async function POST(request) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1500,
-      temperature: mode === 'reword' ? 0.7 : 0,
+      temperature: mode === 'reword' ? 0.4 : 0,
       messages: [{ role: 'user', content: prompt }]
     })
 
