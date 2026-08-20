@@ -37,8 +37,8 @@ export default function Breadcrumb({ items }) {
   }, [openIndex]);
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200 sticky top-[57px] z-40">
-      <div className="px-6 py-1.5 flex items-center text-xs">
+    <div className="bg-white border-b border-gray-200 sticky top-[57px] z-40">
+      <div className="max-w-7xl mx-auto px-6 py-1.5 flex items-center text-xs">
         {items.map((item, index) => {
           const options = Array.isArray(item.options) ? item.options : [];
           const hasDropdown = options.length > 0;

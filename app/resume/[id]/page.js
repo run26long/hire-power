@@ -1284,13 +1284,8 @@ if (data.ai_analysis) {
         onBeforeNavigate={(path) => { if (hasUnsavedChanges) { setUnsavedNavTarget(path); return true } return false }}
       />
 
-{/* Body: left column (breadcrumb + toolbar + resume) and right panel sidebar */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 md:max-w-7xl md:mx-auto md:w-full">
-
-{/* LEFT COLUMN */}
-        <div className={`flex flex-col overflow-hidden min-h-0 md:flex-[3] ${mobilePanel === 'resume' ? 'flex-1' : 'flex-none'}`}>
-
-      {/* Tight wrapper leaves the breadcrumb's sticky offset no room to shift into */}
+{/* Breadcrumb — full viewport width, matching MainNav above it. Its inner row
+    is capped so the crumbs still line up with the capped body below. */}
       <div className="flex-shrink-0">
         <Breadcrumb items={
           resume.resume_type === 'job_specific'
@@ -1318,6 +1313,12 @@ if (data.ai_analysis) {
               ]
         } />
       </div>
+
+{/* Body: left column (toolbar + resume) and right panel sidebar */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 md:max-w-7xl md:mx-auto md:w-full">
+
+{/* LEFT COLUMN */}
+        <div className={`flex flex-col overflow-hidden min-h-0 md:flex-[3] ${mobilePanel === 'resume' ? 'flex-1' : 'flex-none'}`}>
 
 {/* Mobile toggle */}
       <div className="md:hidden flex flex-col bg-white border-b border-gray-200 flex-shrink-0">
@@ -1628,10 +1629,10 @@ if (data.ai_analysis) {
           <div className="grid grid-cols-[max-content_repeat(6,auto)] gap-x-2 gap-y-2 text-xs overflow-visible">
 
             {/* Row 1 — Format */}
-            <span className="col-start-1 row-start-1 flex items-center border-l-3 border-purple-500 pl-2 text-xs font-semibold text-purple-700 whitespace-nowrap">📄 Formatting Tools</span>
+            <span className="col-start-1 row-start-1 flex items-center justify-end border-r-3 border-purple-500 pr-2 text-xs font-semibold text-purple-700 whitespace-nowrap">📄 Formatting Tools</span>
 
             {/* Template */}
-            <div className="col-start-2 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-2 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <div className="relative group/templatetip">
                 <span className="text-purple-400 hover:text-purple-600 cursor-help text-[10px]">ⓘ</span>
                 <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-purple-200 rounded-lg shadow-lg p-3 hidden group-hover/templatetip:block z-50">
@@ -1676,7 +1677,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Font */}
-            <div className="col-start-3 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-3 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <span className="font-bold">A</span>
               <select
                 value={userChangedFont ? selectedFont : ''}
@@ -1692,7 +1693,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Size */}
-            <div className="col-start-4 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-4 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <span>⚙️</span>
               <select
                 value={selectedSize}
@@ -1706,7 +1707,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Date */}
-            <div className="col-start-5 row-start-1 flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-5 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <span>📅</span>
               <select
                 value={dateFormat}
@@ -1721,7 +1722,7 @@ if (data.ai_analysis) {
 
             {/* Zoom dropdown */}
             <div className="col-start-6 row-start-1 relative group/zoom flex">
-              <button className="w-full px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 flex items-center gap-1">
+              <button className="w-full px-2 py-1 border border-gray-300 bg-white rounded text-xs hover:bg-gray-100 flex items-center gap-1">
                 🔍 <span>{zoom}%</span>
               </button>
               <div className="absolute left-0 top-full pt-1 z-50 hidden group-hover/zoom:block min-w-[80px]">
@@ -1742,7 +1743,7 @@ if (data.ai_analysis) {
          {/* Color picker */}
             {(
               <div className="col-start-7 row-start-1 relative group/colorpick flex">
-                <div className="w-full flex items-center justify-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+                <div className="w-full flex items-center justify-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
                   <span>Color</span>
                   <button
                     style={{ background: accentColor, width: '18px', height: '18px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
@@ -1778,7 +1779,7 @@ if (data.ai_analysis) {
             )}
 
             {/* Row 2 — Actions */}
-            <span className="col-start-1 row-start-2 flex items-center border-l-3 border-purple-500 pl-2 text-xs font-semibold text-purple-700 whitespace-nowrap">⚙️ Action Tools</span>
+            <span className="col-start-1 row-start-2 flex items-center justify-end border-r-3 border-purple-500 pr-2 text-xs font-semibold text-purple-700 whitespace-nowrap">⚙️ Action Tools</span>
 
             {/* Undo + Auto-fit share column 2 */}
             <div className="col-start-2 row-start-2 flex items-center gap-2">
@@ -1787,8 +1788,8 @@ if (data.ai_analysis) {
             <button
               onClick={undo}
               disabled={historyIndex <= 0}
-              className={`flex-1 px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
-                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
+              className={`flex-1 px-3 py-1 border border-gray-300 bg-white rounded text-xs font-medium transition-all whitespace-nowrap ${
+                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'
               }`}
             >
               ↶ Undo
@@ -1800,9 +1801,9 @@ if (data.ai_analysis) {
                 onClick={handleAutoFit}
                 disabled={isAutoFitting}
                 className={`w-full px-3 py-1 border rounded text-xs flex items-center justify-center gap-1 transition-colors whitespace-nowrap ${
-                  isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
+                  isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300 bg-white'
                   : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
-                  : 'border-gray-300 hover:bg-gray-50'
+                  : 'border-gray-300 bg-white hover:bg-gray-100'
                 }`}
               >
                 {isAutoFitting && (
@@ -1846,8 +1847,8 @@ if (data.ai_analysis) {
               <button
                 onClick={() => handleReassess()}
                 disabled={isAnalyzing || journeyStep === 'review'}
-                className={`col-start-5 row-start-2 px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${
-                  isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                className={`col-start-5 row-start-2 px-3 py-1 border border-gray-300 bg-white rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${
+                  isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
                 }`}
                 title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
               >
@@ -1893,7 +1894,7 @@ if (data.ai_analysis) {
                     }
                   }}
                   disabled={isLoadingPreview}
-                  className={`w-full px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                  className={`w-full px-3 py-1 border border-gray-300 bg-white rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
                 >
                   {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
                   {isLoadingPreview ? 'Loading...' : '👁 Preview'}
