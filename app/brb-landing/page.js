@@ -82,6 +82,13 @@ export default function BrbLandingPage() {
     }
   }
 
+  // Supabase returns a raw character-class list when a password fails its rules.
+  // Point people at the requirements already shown under the field instead.
+  const friendlyAuthError = (message) =>
+    /password/i.test(message || '')
+      ? "Your password doesn't meet the requirements listed below."
+      : message
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -98,7 +105,7 @@ export default function BrbLandingPage() {
         if (data.error === 'ACCOUNT_EXISTS') {
           setAccountExists(true)
         } else {
-          setError(data.error || 'Something went wrong. Please try again.')
+          setError(friendlyAuthError(data.error) || 'Something went wrong. Please try again.')
         }
         return
       }

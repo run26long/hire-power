@@ -40,6 +40,13 @@ const supabase = createClient();
     return { score: 1, label: 'Weak', color: '#f59e0b', width: '40%' };
   };
 
+  // Supabase returns a raw character-class list when a password fails its rules.
+  // Point people at the requirements already shown under the field instead.
+  const friendlyAuthError = (message) =>
+    /password/i.test(message || '')
+      ? "Your password doesn't meet the requirements listed below."
+      : message;
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupLoading(true);
@@ -68,7 +75,7 @@ const supabase = createClient();
         setSignupAccountExists(true);
         setTimeout(() => router.push('/dashboard'), 2000);
       } else {
-        setSignupError(signUpError.message);
+        setSignupError(friendlyAuthError(signUpError.message));
       }
       return;
     }
@@ -501,7 +508,7 @@ const supabase = createClient();
                           if (data.error === 'ACCOUNT_EXISTS') {
                             setSignupAccountExists(true)
                           } else {
-                            setSignupError(data.error || 'Something went wrong. Please try again.')
+                            setSignupError(friendlyAuthError(data.error) || 'Something went wrong. Please try again.')
                           }
                           return
                         }
