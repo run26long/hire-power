@@ -137,6 +137,10 @@ export default function ResumePage() {
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  // Tracks content the user changed by hand since the last score was written. Separate
+  // from hasUnsavedChanges, which clears on Save and also flips for font and date
+  // formatting — neither of which the scorer ever sees.
+  const [hasManualEditsSinceScore, setHasManualEditsSinceScore] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [unsavedNavTarget, setUnsavedNavTarget] = useState(null)
   const [pendingNavigation, setPendingNavigation] = useState(null)
@@ -468,11 +472,19 @@ document.body.removeChild(a)
   }
 }
 
-const handleReassess = async (overrideData = null) => {
+const handleReassess = async (overrideData = null, { systemTriggered = false } = {}) => {
   setIsAnalyzing(true)
   setErrorToast(null)
   try {
     const isJobSpecific = resume.resume_type === 'job_specific'
+
+    // ── WHEN THE FLOOR APPLIES ──
+    // A system-triggered re-score (accept changes, finish review, targeted recoach)
+    // is rescoring content the user did not write, so a dip there is scorer variance
+    // and gets clamped. A user who edited their own resume and then asked for a fresh
+    // read gets the real number, up or down: they changed the content, so the score
+    // should reflect it.
+    const applyFloor = systemTriggered || !hasManualEditsSinceScore
 
     if (isJobSpecific) {
       // job specific resume: job match analysis
@@ -506,7 +518,7 @@ const handleReassess = async (overrideData = null) => {
       // scorer carries run-to-run variance, and a re-assess that lands a point or two
       // under the stored number reflects that variance, not worse content. The fresh
       // analysis is still saved in full — only the number is clamped.
-      const flooredScore = (resume?.current_score && result.matchScore < resume.current_score)
+      const flooredScore = (applyFloor && resume?.current_score && result.matchScore < resume.current_score)
         ? resume.current_score
         : result.matchScore
 
@@ -527,6 +539,9 @@ const handleReassess = async (overrideData = null) => {
 
       setResume(prev => ({ ...prev, current_score: flooredScore }))
       setScoreAfterCoaching(flooredScore)
+      // The stored score now reflects the edited content, so the next re-assess
+      // starts from a clean slate and floors again.
+      setHasManualEditsSinceScore(false)
 
       const prevScore = resume?.current_score
       if (prevScore && result.matchScore > prevScore) {
@@ -586,8 +601,8 @@ const handleReassess = async (overrideData = null) => {
 
       // ── SCORE FLOOR ──
       // Same rule as the job-specific path above: a re-assess can raise the stored
-      // score but never lower it.
-      const flooredScore = (resume?.current_score && result.score < resume.current_score)
+      // score but never lower it, unless the user edited the content by hand.
+      const flooredScore = (applyFloor && resume?.current_score && result.score < resume.current_score)
         ? resume.current_score
         : result.score
 
@@ -621,6 +636,8 @@ const handleReassess = async (overrideData = null) => {
       }))
 
       setScoreAfterCoaching(flooredScore)
+      // Same reset as the job-specific path: the score now matches the content.
+      setHasManualEditsSinceScore(false)
 
       const prevScore = resume?.current_score
       if (prevScore && result.score > prevScore) {
@@ -1172,8 +1189,9 @@ if (data.ai_analysis) {
     }
 
     resumeDataRef.current = clonedData
-    
+
     setHasUnsavedChanges(true)
+    setHasManualEditsSinceScore(true)
   }
 
   function undo() {
@@ -1182,11 +1200,12 @@ if (data.ai_analysis) {
       
       const newIndex = historyIndex - 1
       setHistoryIndex(newIndex)
-      setResume(prev => ({ 
-        ...prev, 
-        resume_data: JSON.parse(JSON.stringify(history[newIndex])) 
+      setResume(prev => ({
+        ...prev,
+        resume_data: JSON.parse(JSON.stringify(history[newIndex]))
       }))
       setHasUnsavedChanges(true)
+      setHasManualEditsSinceScore(true)
       
       // Clear flag after render
       requestAnimationFrame(() => {
@@ -5119,7 +5138,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       }
 
       setResume(prev => ({ ...prev, resume_data: rewrittenResume, changes_accepted: true }))
-      await handleReassess(rewrittenResume)
+      await handleReassess(rewrittenResume, { systemTriggered: true })
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error accepting changes:', err)
@@ -5157,7 +5176,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       }
 
       setResume(prev => ({ ...prev, resume_data: finalData, changes_accepted: true }))
-      await handleReassess(finalData)
+      await handleReassess(finalData, { systemTriggered: true })
       setReviewMode(false)
       setShowRevealModal(true)
     } catch (err) {
@@ -6032,7 +6051,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
       }
 
       setResume(prev => ({ ...prev, resume_data: data.rewrittenResume }))
-      await handleReassess(data.rewrittenResume)
+      await handleReassess(data.rewrittenResume, { systemTriggered: true })
       setShowRevealModal(true)
       onClose()
     } catch (err) {
