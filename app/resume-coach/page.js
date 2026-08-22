@@ -259,17 +259,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       setRetryCount(0);
       // Reset retry count on success
 
-      // Show tour modal only on first visit (when no resume and tour not yet seen)
-      // Returning users without a resume get the empty state page instead
+      // Show the tour on every visit until a core resume exists. Dismissing it lasts
+      // for the current page load only, so a returning user who still has no resume
+      // is asked again rather than landing on a hub with nothing to work from.
       if (!resData.coreResume) {
         setTimeout(() => {
-          const tourSeen = localStorage.getItem('hp_tour_seen');
-          if (!tourSeen) {
-            setHasSeenTour(false);
-            setShowTourModal(true);
-          } else {
-            setHasSeenTour(true);
-          }
+          setShowTourModal(true);
         }, 300); // 300ms delay
       }
 
@@ -366,12 +361,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   const handleSkipTour = () => {
-    localStorage.setItem('hp_tour_seen', 'true');
     setShowTourModal(false);
   };
 
   const handleCompleteTour = () => {
-    localStorage.setItem('hp_tour_seen', 'true');
     setShowTourModal(false);
   };
 
@@ -401,9 +394,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         return;
       }
       try { await fetch('/api/loops/mark-has-resume', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: chatUser.id }) }) } catch (e) { console.error('Loops hasResume update failed (non-blocking):', e) }
-      // Mark tour as seen, then navigate. Don't close the modal yet —
-      // it will unmount when navigation completes, avoiding empty-state flash.
-      localStorage.setItem('hp_tour_seen', 'true');
+      // Don't close the modal before navigating — it unmounts when navigation
+      // completes, which avoids a flash of the empty state on the way out.
       router.push(`/resume/${newResume.id}`);
     } catch (err) {
       console.error('Resume chat start error:', err);
