@@ -23,6 +23,7 @@ export default function Profile() {
   const supabase = createClient()
 
   const [showDowngradeModal, setShowDowngradeModal] = useState(false)
+  const [showAnnualModal, setShowAnnualModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -291,6 +292,7 @@ export default function Profile() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ userId: user.id, priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID })
       })
+      setShowAnnualModal(false)
       await loadProfile()
       setToastSuccess("You're on annual Vault — $49.99/year. We've prorated the change.")
     } catch (e) {
@@ -725,7 +727,7 @@ export default function Profile() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {isMonthlyVault && (
                           <button
-                            onClick={handleSwitchToAnnual}
+                            onClick={() => setShowAnnualModal(true)}
                             disabled={processing}
                             style={{ ...btnPurple, width: '100%', background: 'linear-gradient(135deg,#667eea,#764ba2)', opacity: processing ? 0.6 : 1 }}
                           >
@@ -834,6 +836,33 @@ export default function Profile() {
           .hp-mobile-bottom { display: none !important; }
         }
       `}</style>
+
+      {/* ── SWITCH TO ANNUAL MODAL ── */}
+      {showAnnualModal && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <div style={modalHead()}>
+              <p style={modalTitle}>Switch to annual billing?</p>
+              <p style={modalSub}>$49.99/year · Save 2 months</p>
+            </div>
+            <div style={modalBody}>
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, marginBottom: 18 }}>
+                Switch to annual billing at $49.99/yr? Your current plan will be prorated.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowAnnualModal(false)} disabled={processing} style={{ ...btnGhost, flex: 1 }}>Cancel</button>
+                <button
+                  onClick={handleSwitchToAnnual}
+                  disabled={processing}
+                  style={{ ...btnPurple, flex: 1, background: 'linear-gradient(135deg,#667eea,#764ba2)', opacity: processing ? 0.6 : 1 }}
+                >
+                  {processing ? 'Switching...' : 'Yes, switch'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── DOWNGRADE MODAL ── */}
       {showDowngradeModal && (
