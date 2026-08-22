@@ -115,41 +115,47 @@ export default function Profile() {
     if (typeof window === 'undefined' || !user) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('plan') !== 'vault') return
-    // Strip the param so a refresh doesn't re-trigger
+    const interval = params.get('interval') === 'annual' ? 'annual' : 'monthly'
+    // Strip the params so a refresh doesn't re-trigger
     params.delete('plan')
+    params.delete('interval')
     const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
     window.history.replaceState({}, '', newUrl)
     // Fire Vault checkout
-    async function startVaultCheckout() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', user.id)
-          .maybeSingle()
-        const data = await fetchJSON('/api/stripe/checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
-            userId: user.id,
-            email: prof?.email || user.email,
-          })
-        })
-        if (!data.url) {
-          throw new Error("We couldn't start checkout. Please try again in a moment.")
-        }
-        window.location.href = data.url
-      } catch (err) {
-        setToastError(err.message)
-      }
-    }
-    startVaultCheckout()
+    startVaultCheckout(interval)
   }, [user])
+
+  // Send the user to Stripe checkout for Vault at the requested billing interval.
+  async function startVaultCheckout(interval = 'monthly') {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', user.id)
+        .maybeSingle()
+      const data = await fetchJSON('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          priceId: interval === 'annual'
+            ? process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
+            : process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+          userId: user.id,
+          email: prof?.email || user.email,
+        })
+      })
+      if (!data.url) {
+        throw new Error("We couldn't start checkout. Please try again in a moment.")
+      }
+      window.location.href = data.url
+    } catch (err) {
+      setToastError(err.message)
+    }
+  }
 
   async function loadProfile() {
     try {
@@ -401,6 +407,10 @@ export default function Profile() {
 
   const tier = profile?.subscription_tier || TIERS.FREE
   const initials = displayName.charAt(0).toUpperCase()
+
+  // Only offer the annual switch to someone we can confirm is on the monthly Vault price.
+  const isMonthlyVault = tier === TIERS.VAULT &&
+    subscriptionDetails?.price_id === process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -693,6 +703,14 @@ export default function Profile() {
                     )}
                     {tier === TIERS.VAULT && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {isMonthlyVault && (
+                          <button
+                            onClick={() => startVaultCheckout('annual')}
+                            style={{ ...btnPurple, width: '100%', background: 'linear-gradient(135deg,#667eea,#764ba2)' }}
+                          >
+                            Switch to Annual — $49.99/yr
+                          </button>
+                        )}
                         <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button onClick={() => setShowUpgradeModal(true)} style={{ ...btnPurple, flex: 1 }}>Upgrade to Pro</button>

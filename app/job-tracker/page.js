@@ -204,6 +204,7 @@ export default function JobTrackerPage() {
   const [selectedCard, setSelectedCard] = useState(null);
  const [showHiredModal, setShowHiredModal] = useState(false);
   const [hiredCard, setHiredCard] = useState(null);
+  const [vaultBillingInterval, setVaultBillingInterval] = useState('monthly');
   const [rejectedPromptCard, setRejectedPromptCard] = useState(null);
 
   const [mobileColumn, setMobileColumn] = useState('resume_in_progress');
@@ -1433,6 +1434,37 @@ export default function JobTrackerPage() {
                       Upgrade to Vault and we'll track your achievements as they happen — so your next resume writes itself.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      {/* Billing interval selector */}
+                      <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '340px' }}>
+                        {[
+                          { id: 'monthly', label: 'Monthly', price: '$4.99/month', note: null },
+                          { id: 'annual', label: 'Annual', price: '$49.99/year', note: 'Save 2 months' },
+                        ].map(opt => {
+                          const active = vaultBillingInterval === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              onClick={() => setVaultBillingInterval(opt.id)}
+                              style={{
+                                flex: 1,
+                                fontFamily: "'DM Sans', sans-serif",
+                                padding: '10px 8px',
+                                borderRadius: '8px',
+                                border: active ? '2px solid #9333ea' : '1.5px solid rgba(255,255,255,0.15)',
+                                background: active ? 'rgba(147,51,234,0.15)' : 'rgba(255,255,255,0.04)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <p style={{ fontSize: '13px', fontWeight: 700, color: active ? '#c4b5fd' : 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>{opt.label}</p>
+                              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{opt.price}</p>
+                              {opt.note && (
+                                <p style={{ fontSize: '10px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>{opt.note}</p>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                       <button
                         onClick={async () => {
                           try {
@@ -1451,7 +1483,9 @@ export default function JobTrackerPage() {
                                 'Authorization': `Bearer ${session.access_token}`,
                               },
                               body: JSON.stringify({
-                                priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+                                priceId: vaultBillingInterval === 'annual'
+                                  ? process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
+                                  : process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
                                 userId: user.id,
                                 email: profile?.email || user.email,
                               })
@@ -1482,7 +1516,9 @@ export default function JobTrackerPage() {
                         onMouseOver={e => e.target.style.opacity = '0.9'}
                         onMouseOut={e => e.target.style.opacity = '1'}
                       >
-                        Upgrade to Vault — $4.99/mo →
+                        {vaultBillingInterval === 'annual'
+                          ? 'Upgrade to Vault — $49.99/yr →'
+                          : 'Upgrade to Vault — $4.99/mo →'}
                       </button>
                       <button
                         onClick={() => setShowHiredModal(false)}
