@@ -280,6 +280,26 @@ export default function Profile() {
     }
   }
 
+  // Swap the existing Vault subscription onto the annual price. Deliberately not
+  // a new checkout session — that would leave the user paying for two.
+  async function handleSwitchToAnnual() {
+    try {
+      setProcessing(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetchJSON('/api/stripe/update-billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ userId: user.id, priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID })
+      })
+      await loadProfile()
+      setToastSuccess("You're on annual Vault — $49.99/year. We've prorated the change.")
+    } catch (e) {
+      setToastError(e.message)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   async function handleCancel() {
     try {
       setProcessing(true)
@@ -705,10 +725,11 @@ export default function Profile() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {isMonthlyVault && (
                           <button
-                            onClick={() => startVaultCheckout('annual')}
-                            style={{ ...btnPurple, width: '100%', background: 'linear-gradient(135deg,#667eea,#764ba2)' }}
+                            onClick={handleSwitchToAnnual}
+                            disabled={processing}
+                            style={{ ...btnPurple, width: '100%', background: 'linear-gradient(135deg,#667eea,#764ba2)', opacity: processing ? 0.6 : 1 }}
                           >
-                            Switch to Annual — $49.99/yr
+                            {processing ? 'Switching...' : 'Switch to Annual — $49.99/yr'}
                           </button>
                         )}
                         <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
