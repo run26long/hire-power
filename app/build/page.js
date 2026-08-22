@@ -380,15 +380,33 @@ useEffect(() => {
 // Contact Step Component
 function ContactStep({ resumeData, setResumeData, onNext }) {
   const [warnings, setWarnings] = useState({});
+  const [errors, setErrors] = useState({});
 
   const handleChange = (field, value) => {
     setResumeData({ ...resumeData, [field]: value });
     if (warnings[field]) setWarnings(prev => ({ ...prev, [field]: null }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
   };
 
+  const hasFirstAndLast = (value) => (value || '').trim().split(/\s+/).filter(Boolean).length >= 2;
+  const hasEnoughDigits = (value) => (value || '').replace(/\D/g, '').length >= 10;
+  const isEmailFormat = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
+
   const validateOnBlur = (field, value) => {
+    if (field === 'fullName') {
+      setErrors(prev => ({ ...prev, fullName: hasFirstAndLast(value) ? null : 'Please enter your first and last name' }));
+      return;
+    }
+    if (field === 'phone') {
+      setErrors(prev => ({ ...prev, phone: hasEnoughDigits(value) ? null : 'Please enter a valid phone number' }));
+      return;
+    }
+    if (field === 'location') {
+      setErrors(prev => ({ ...prev, location: value.trim() ? null : 'Location is required' }));
+      return;
+    }
     if (!value.trim()) { setWarnings(prev => ({ ...prev, [field]: null })); return; }
-    if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    if (field === 'email' && !isEmailFormat(value)) {
       setWarnings(prev => ({ ...prev, email: "This doesn't look like a valid email address." }));
     }
     if (field === 'linkedin' && value.trim() && !value.includes('linkedin.com')) {
@@ -399,7 +417,11 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
     }
   };
 
-  const isValid = resumeData.fullName && resumeData.email && resumeData.phone;
+  const isValid =
+    hasFirstAndLast(resumeData.fullName) &&
+    isEmailFormat(resumeData.email) &&
+    hasEnoughDigits(resumeData.phone) &&
+    (resumeData.location || '').trim().length > 0;
 
   return (
     <>
@@ -412,9 +434,11 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="text"
             value={resumeData.fullName}
             onChange={(e) => handleChange('fullName', e.target.value)}
+            onBlur={(e) => validateOnBlur('fullName', e.target.value)}
             placeholder="Jane Doe"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
         </div>
 
         <div>
@@ -440,22 +464,26 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="tel"
             value={resumeData.phone}
             onChange={(e) => handleChange('phone', e.target.value)}
+            onBlur={(e) => validateOnBlur('phone', e.target.value)}
             placeholder="(555) 123-4567"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Location
+            Location *
           </label>
           <input
             type="text"
             value={resumeData.location}
             onChange={(e) => handleChange('location', e.target.value)}
+            onBlur={(e) => validateOnBlur('location', e.target.value)}
             placeholder="City, State"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
         </div>
 
         <div>
@@ -575,8 +603,18 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
   const [endYear, setEndYear] = useState('');
   const [showForm, setShowForm] = useState(resumeData.experience.length === 0);
 
+  const hasTitle = currentJob.title.trim().length >= 2;
+  const hasCompany = currentJob.company.trim().length >= 2;
+  const hasStartDate = Boolean(startMonth && startYear);
+  const hasEndDate = currentJob.current || Boolean(endMonth && endYear);
+  const hasBullet = currentJob.bullets.some(b => b.trim());
+  const canSaveJob = hasTitle && hasCompany && hasStartDate && hasEndDate && hasBullet;
+
+  // Only surface a blocker once the user has started filling the job in
+  const jobStarted = Boolean(currentJob.title.trim() || currentJob.company.trim() || startMonth || startYear);
+
   const addJob = (andContinue = false) => {
-    if (currentJob.title && currentJob.company && startMonth && startYear) {
+    if (canSaveJob) {
       const jobToAdd = {
         ...currentJob,
         startDate: `${startYear}-${startMonth}`,
@@ -687,6 +725,9 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                 placeholder="Event Coordinator"
                 className="w-full border border-gray-300 rounded p-2 text-sm"
               />
+              {currentJob.title.trim() && !hasTitle && (
+                <p className="text-red-500 text-xs mt-1">Job title must be at least 2 characters</p>
+              )}
             </div>
 
             <div>
@@ -700,6 +741,9 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                 placeholder="Antigravity Orlando"
                 className="w-full border border-gray-300 rounded p-2 text-sm"
               />
+              {currentJob.company.trim() && !hasCompany && (
+                <p className="text-red-500 text-xs mt-1">Company must be at least 2 characters</p>
+              )}
             </div>
 
             <div>
@@ -746,7 +790,7 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
 
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  End Date
+                  End Date *
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <select
@@ -785,6 +829,9 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                     ))}
                   </select>
                 </div>
+                {jobStarted && !hasEndDate && (
+                  <p className="text-red-500 text-xs mt-1">End date is required unless this is your current job</p>
+                )}
               </div>
             </div>
 
@@ -819,7 +866,7 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Achievements (bullets)
+                Achievements (bullets) *
               </label>
               {currentJob.bullets.map((bullet, index) => (
                 <div key={index} className="flex gap-2 mb-2">
@@ -846,20 +893,23 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
               >
                 + Add Another Achievement
               </button>
+              {jobStarted && !hasBullet && (
+                <p className="text-red-500 text-xs mt-1">Add at least one bullet describing what you did in this role</p>
+              )}
             </div>
 
             {/* Two-button layout - stacked */}
             <div className="space-y-2 pt-2">
               <button
                 onClick={() => addJob(false)}
-                disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
+                disabled={!canSaveJob}
                 className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
               >
                 Save Job & Add Another
               </button>
               <button
                 onClick={() => addJob(true)}
-                disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
+                disabled={!canSaveJob}
                 className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
               >
                 Save Job & Continue to Education
@@ -931,8 +981,16 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
     });
   };
 
+  const hasSchool = currentEdu.school.trim().length > 0;
+  const hasDegree = currentEdu.degree.trim().length > 0;
+  const hasGradDate = Boolean(gradMonth && gradYear);
+  const canSaveEdu = hasSchool && hasDegree && hasGradDate;
+
+  // Only surface a blocker once the user has started filling the entry in
+  const eduStarted = Boolean(hasSchool || hasDegree || gradMonth || gradYear);
+
   const addEducation = (andContinue = false) => {
-    if (currentEdu.school) {
+    if (canSaveEdu) {
       const eduToAdd = {
         ...currentEdu,
         graduationDate: gradMonth && gradYear ? `${gradYear}-${gradMonth}` : ""
@@ -1026,7 +1084,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Degree
+                Degree *
               </label>
               <input
                 type="text"
@@ -1035,6 +1093,9 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
                 placeholder="Bachelor of Science"
                 className="w-full border border-gray-300 rounded p-2 text-sm"
               />
+              {eduStarted && !hasDegree && (
+                <p className="text-red-500 text-xs mt-1">Degree is required</p>
+              )}
             </div>
 
             <div>
@@ -1052,7 +1113,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Graduation Date
+                Graduation Date *
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <select
@@ -1076,6 +1137,9 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
                   ))}
                 </select>
               </div>
+              {eduStarted && !hasGradDate && (
+                <p className="text-red-500 text-xs mt-1">Graduation date is required</p>
+              )}
             </div>
 
             <div>
@@ -1136,14 +1200,14 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
             <div className="space-y-2 pt-2">
               <button
                 onClick={() => addEducation(false)}
-                disabled={!currentEdu.school}
+                disabled={!canSaveEdu}
                 className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
               >
                 Save Education & Add Another
               </button>
               <button
                 onClick={() => addEducation(true)}
-                disabled={!currentEdu.school}
+                disabled={!canSaveEdu}
                 className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
               >
                 Save Education & Continue to Skills
@@ -1212,7 +1276,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
   };
 
   const totalSkills = Object.values(resumeData.skillsCategories).reduce((sum, skills) => sum + skills.length, 0);
-  const isValid = totalSkills > 0;
+  const isValid = totalSkills >= 3;
 
   return (
     <>
@@ -1273,6 +1337,10 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
               </div>
             ))}
           </div>
+        )}
+
+        {!isValid && (
+          <p className="text-red-500 text-xs mt-1">Add at least 3 skills ({totalSkills} of 3 added)</p>
         )}
       </div>
 
