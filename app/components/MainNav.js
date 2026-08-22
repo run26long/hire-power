@@ -90,6 +90,7 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                 {navItems.map((item) => (
                   <button
                     key={item.id}
+                    data-tour={item.id === 'job-tracker' ? 'job-tracker' : undefined}
                     onClick={() => !item.disabled && navigate(item.path)}
                     style={currentPage === item.id ? { backgroundColor: 'rgba(147, 51, 234, 0.08)' } : {}}
                     className={`text-xs ${

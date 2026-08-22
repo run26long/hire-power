@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -92,6 +92,363 @@ async function fireB2IfThird(supabase) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hub spotlight tour
+// Desktop only. Runs once, the first time a user lands on the hub with a core
+// resume already in hand. Each stop dims the page, cuts a hole around a real
+// element, and parks a tooltip beside it.
+// ─────────────────────────────────────────────────────────────────────────────
+const HUB_TOUR_KEY = 'hp_hub_tour_complete';
+const HUB_TIP_WIDTH = 320;
+const HUB_SPOT_PAD = 8;
+const HUB_TIP_GAP = 16;
+const HUB_VIEWPORT_MARGIN = 16;
+
+const HUB_TOUR_STEPS = [
+  {
+    id: 'core-actions',
+    targets: ['core-actions'],
+    placement: 'right',
+    title: 'Core resume quick actions',
+    body: 'Open and edit your resume, create a version for a specific job, download your PDF, or delete and start over. Everything starts here.'
+  },
+  {
+    id: 'score',
+    targets: ['score'],
+    placement: 'left',
+    title: 'Your Resume Power Score',
+    body: "This is how well your resume communicates your value. The breakdown shows exactly where you're strong and where there's room to grow: Impact, Clarity, and Keywords."
+  },
+  {
+    id: 'progress',
+    // Two elements, one spotlight — the progress bar and the panel under it.
+    targets: ['progress', 'progress-meaning'],
+    placement: 'bottom',
+    title: 'Where you are and what’s next',
+    body: 'The progress bar tracks every stage of your resume. The section below it always tells you what to do next.'
+  },
+  {
+    id: 'job-specific',
+    targets: ['job-specific'],
+    placement: 'left',
+    title: 'Tailor for every application',
+    body: "Employers expect a resume that matches their posting. Paste any job description and we'll customize your resume to fit. Each version lives here with its own match score."
+  },
+  {
+    id: 'cover-letters',
+    targets: ['cover-letters'],
+    placement: 'left',
+    title: 'Cover letters that connect the dots',
+    body: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. Works with or without a tailored resume for that job."
+  },
+  {
+    id: 'job-tracker',
+    targets: ['job-tracker'],
+    placement: 'bottom',
+    title: 'Everything for every job, one place',
+    body: 'When you create a resume or cover letter for a specific job, a job card is automatically created in your Job Tracker. It keeps the job description, your tailored resume, and your cover letter together so nothing gets lost.'
+  }
+];
+
+function hubTourAlreadySeen() {
+  try {
+    return !!window.localStorage.getItem(HUB_TOUR_KEY);
+  } catch (e) {
+    // Storage blocked (private mode) — treat it as unseen rather than crashing.
+    return false;
+  }
+}
+
+function markHubTourComplete() {
+  try {
+    window.localStorage.setItem(HUB_TOUR_KEY, 'true');
+  } catch (e) {
+    console.error('Could not persist hub tour completion (non-blocking):', e);
+  }
+}
+
+// Park the tooltip beside the spotlight, preferring the side the step asks for
+// and falling back through the others until one fits without overflowing.
+function computeHubTipPosition(rect, tipW, tipH, preferred) {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const M = HUB_VIEWPORT_MARGIN;
+  const GAP = HUB_TIP_GAP;
+  const clamp = (v, min, max) => Math.max(min, Math.min(v, Math.max(min, max)));
+
+  if (!rect) {
+    // No measurable target — centre the card and skip the spotlight/arrow.
+    return { top: clamp(vh / 2 - tipH / 2, M, vh - tipH - M), left: clamp(vw / 2 - tipW / 2, M, vw - tipW - M), placement: 'none', arrow: 0 };
+  }
+
+  const top = rect.top - HUB_SPOT_PAD;
+  const left = rect.left - HUB_SPOT_PAD;
+  const bottom = rect.top + rect.height + HUB_SPOT_PAD;
+  const right = rect.left + rect.width + HUB_SPOT_PAD;
+  const cx = (left + right) / 2;
+  const cy = (top + bottom) / 2;
+
+  const isVertical = preferred === 'top' || preferred === 'bottom';
+  const order = isVertical
+    ? [preferred, preferred === 'bottom' ? 'top' : 'bottom', 'right', 'left']
+    : [preferred, preferred === 'left' ? 'right' : 'left', 'bottom', 'top'];
+
+  for (const p of order) {
+    if (p === 'bottom' && bottom + GAP + tipH <= vh - M) {
+      const l = clamp(cx - tipW / 2, M, vw - tipW - M);
+      return { top: bottom + GAP, left: l, placement: 'bottom', arrow: clamp(cx - l, 18, tipW - 18) };
+    }
+    if (p === 'top' && top - GAP - tipH >= M) {
+      const l = clamp(cx - tipW / 2, M, vw - tipW - M);
+      return { top: top - GAP - tipH, left: l, placement: 'top', arrow: clamp(cx - l, 18, tipW - 18) };
+    }
+    if (p === 'right' && right + GAP + tipW <= vw - M) {
+      const t = clamp(cy - tipH / 2, M, vh - tipH - M);
+      return { top: t, left: right + GAP, placement: 'right', arrow: clamp(cy - t, 18, tipH - 18) };
+    }
+    if (p === 'left' && left - GAP - tipW >= M) {
+      const t = clamp(cy - tipH / 2, M, vh - tipH - M);
+      return { top: t, left: left - GAP - tipW, placement: 'left', arrow: clamp(cy - t, 18, tipH - 18) };
+    }
+  }
+
+  // Nothing fits cleanly — sit below the target and clamp into the viewport.
+  const l = clamp(cx - tipW / 2, M, vw - tipW - M);
+  const t = clamp(bottom + GAP, M, vh - tipH - M);
+  return { top: t, left: l, placement: 'bottom', arrow: clamp(cx - l, 18, tipW - 18) };
+}
+
+// CSS-triangle arrow, drawn twice so it picks up the card's 1px grey edge.
+function hubArrowStyles(placement, offset) {
+  const S = 8;
+  const O = S + 1;
+  if (placement === 'bottom') {
+    return {
+      outer: { top: -O, left: offset - O, borderLeft: `${O}px solid transparent`, borderRight: `${O}px solid transparent`, borderBottom: `${O}px solid #e5e7eb` },
+      inner: { top: -S, left: offset - S, borderLeft: `${S}px solid transparent`, borderRight: `${S}px solid transparent`, borderBottom: `${S}px solid #ffffff` }
+    };
+  }
+  if (placement === 'top') {
+    return {
+      outer: { bottom: -O, left: offset - O, borderLeft: `${O}px solid transparent`, borderRight: `${O}px solid transparent`, borderTop: `${O}px solid #e5e7eb` },
+      inner: { bottom: -S, left: offset - S, borderLeft: `${S}px solid transparent`, borderRight: `${S}px solid transparent`, borderTop: `${S}px solid #ffffff` }
+    };
+  }
+  if (placement === 'right') {
+    return {
+      outer: { left: -O, top: offset - O, borderTop: `${O}px solid transparent`, borderBottom: `${O}px solid transparent`, borderRight: `${O}px solid #e5e7eb` },
+      inner: { left: -S, top: offset - S, borderTop: `${S}px solid transparent`, borderBottom: `${S}px solid transparent`, borderRight: `${S}px solid #ffffff` }
+    };
+  }
+  if (placement === 'left') {
+    return {
+      outer: { right: -O, top: offset - O, borderTop: `${O}px solid transparent`, borderBottom: `${O}px solid transparent`, borderLeft: `${O}px solid #e5e7eb` },
+      inner: { right: -S, top: offset - S, borderTop: `${S}px solid transparent`, borderBottom: `${S}px solid transparent`, borderLeft: `${S}px solid #ffffff` }
+    };
+  }
+  return null;
+}
+
+function HubTour({ onStepChange, onClose }) {
+  // Lock the stop list at mount so the dots match what's actually on screen —
+  // a Vault-tier user has no Job Tracker link, for instance.
+  const [steps] = useState(() =>
+    HUB_TOUR_STEPS.filter(s => document.querySelector(`[data-tour="${s.targets[0]}"]`))
+  );
+  const [index, setIndex] = useState(0);
+  const [rect, setRect] = useState(null);
+  const [tip, setTip] = useState(null);
+  const tipRef = useRef(null);
+
+  const step = steps[index] || null;
+  const isLast = index === steps.length - 1;
+
+  const finish = useCallback(() => {
+    markHubTourComplete();
+    onClose();
+  }, [onClose]);
+
+  const measure = useCallback(() => {
+    if (!step) return;
+    const rects = step.targets
+      .map(t => document.querySelector(`[data-tour="${t}"]`))
+      .filter(Boolean)
+      .map(el => el.getBoundingClientRect())
+      .filter(r => r.width > 0 && r.height > 0);
+    if (!rects.length) {
+      setRect(null);
+      return;
+    }
+    const top = Math.min(...rects.map(r => r.top));
+    const left = Math.min(...rects.map(r => r.left));
+    const height = Math.max(...rects.map(r => r.bottom)) - top;
+    const width = Math.max(...rects.map(r => r.right)) - left;
+    setRect(prev => {
+      if (prev && Math.abs(prev.top - top) < 0.5 && Math.abs(prev.left - left) < 0.5
+        && Math.abs(prev.width - width) < 0.5 && Math.abs(prev.height - height) < 0.5) return prev;
+      return { top, left, width, height };
+    });
+  }, [step]);
+
+  // Nothing to point at — don't strand the user behind a backdrop.
+  useEffect(() => {
+    if (!steps.length) finish();
+  }, [steps.length, finish]);
+
+  useLayoutEffect(() => {
+    if (!step) return;
+    const el = document.querySelector(`[data-tour="${step.targets[0]}"]`);
+    if (el) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    measure();
+  }, [step, measure]);
+
+  useEffect(() => {
+    onStepChange?.(step ? step.id : null);
+  }, [step, onStepChange]);
+
+  useEffect(() => {
+    const onChange = () => measure();
+    window.addEventListener('resize', onChange);
+    window.addEventListener('scroll', onChange, true);
+    return () => {
+      window.removeEventListener('resize', onChange);
+      window.removeEventListener('scroll', onChange, true);
+    };
+  }, [measure]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') finish(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [finish]);
+
+  // Position once the card has rendered so we can use its real height.
+  useLayoutEffect(() => {
+    const h = tipRef.current?.offsetHeight || 180;
+    setTip(computeHubTipPosition(rect, HUB_TIP_WIDTH, h, step?.placement));
+  }, [rect, step]);
+
+  if (!step) return null;
+
+  const arrow = tip ? hubArrowStyles(tip.placement, tip.arrow) : null;
+
+  return (
+    <>
+      {/* Click blocker — the tour only closes via Skip, Got it, or Escape. */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
+
+      {rect ? (
+        <div
+          style={{
+            position: 'fixed',
+            boxSizing: 'border-box',
+            top: rect.top - HUB_SPOT_PAD,
+            left: rect.left - HUB_SPOT_PAD,
+            width: rect.width + HUB_SPOT_PAD * 2,
+            height: rect.height + HUB_SPOT_PAD * 2,
+            borderRadius: 12,
+            border: '2px solid rgba(102, 126, 234, 0.4)',
+            boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1), 0 0 30px rgba(102, 126, 234, 0.15), 0 0 0 9999px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            transition: 'top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease'
+          }}
+        />
+      ) : (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', pointerEvents: 'none', zIndex: 9999 }} />
+      )}
+
+      <div
+        ref={tipRef}
+        role="dialog"
+        aria-label={step.title}
+        style={{
+          position: 'fixed',
+          top: tip ? tip.top : -9999,
+          left: tip ? tip.left : -9999,
+          width: HUB_TIP_WIDTH,
+          zIndex: 10000,
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: 12,
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.08)',
+          opacity: tip ? 1 : 0,
+          transition: 'top 0.3s ease, left 0.3s ease, opacity 0.2s ease'
+        }}
+      >
+        {/* Brand gradient edge */}
+        <div
+          style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
+            background: 'linear-gradient(to bottom, #667eea, #764ba2)',
+            borderTopLeftRadius: 12, borderBottomLeftRadius: 12
+          }}
+        />
+
+        {arrow && (
+          <>
+            <div style={{ position: 'absolute', width: 0, height: 0, ...arrow.outer }} />
+            <div style={{ position: 'absolute', width: 0, height: 0, ...arrow.inner }} />
+          </>
+        )}
+
+        <div style={{ padding: '16px 18px 14px 20px' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#667eea', marginBottom: 6 }}>
+            Step {index + 1} of {steps.length}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>
+            {step.title}
+          </div>
+          <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
+            {step.body}
+          </div>
+        </div>
+
+        <div
+          style={{
+            borderTop: '1px solid #f3f4f6',
+            padding: '10px 18px 12px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {steps.map((s, i) => (
+              <span
+                key={s.id}
+                style={{
+                  width: 7, height: 7, borderRadius: '50%', display: 'block',
+                  background: i === index
+                    ? 'linear-gradient(to bottom right, #667eea, #764ba2)'
+                    : i < index ? '#667eea' : '#e5e7eb'
+                }}
+              />
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={finish}
+              style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              Skip tour
+            </button>
+            <button
+              onClick={() => { if (isLast) finish(); else setIndex(index + 1); }}
+              style={{
+                fontSize: 13, fontWeight: 600, color: '#ffffff',
+                background: 'linear-gradient(to right, #667eea, #764ba2)',
+                border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', whiteSpace: 'nowrap'
+              }}
+            >
+              {isLast ? 'Got it ✓' : 'Next →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function MyResumesPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -172,6 +529,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const [tourScreen, setTourScreen] = useState(1);
   const [hasSeenTour, setHasSeenTour] = useState(false);
   const [creatingChat, setCreatingChat] = useState(false);
+
+  // Hub spotlight tour state
+  const [showHubTour, setShowHubTour] = useState(false);
+  const [hubTourStepId, setHubTourStepId] = useState(null);
+  const closeHubTour = useCallback(() => {
+    setShowHubTour(false);
+    setHubTourStepId(null);
+  }, []);
 
  useEffect(() => {
     loadData();
@@ -265,6 +630,12 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (!resData.coreResume) {
         setTimeout(() => {
           setShowTourModal(true);
+        }, 300); // 300ms delay
+      } else if (window.innerWidth >= 768 && !hubTourAlreadySeen()) {
+        // Core resume in hand: walk them through the hub once. Desktop only —
+        // the spotlight targets are laid out for the two-column desktop view.
+        setTimeout(() => {
+          setShowHubTour(true);
         }, 300); // 300ms delay
       }
 
@@ -1198,7 +1569,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               )}
                               
                               {/* Hover Overlay */}
-                              <div className="absolute inset-0 bg-gray-900 bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <div
+                                data-tour="core-actions"
+                                className="absolute inset-0 bg-gray-900 bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
+                                style={hubTourStepId === 'core-actions' ? { opacity: 1 } : undefined}
+                              >
                                 {/* Gear/Settings - Opens resume */}
                                 <button 
                                   onClick={(e) => {
@@ -1272,7 +1647,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       
                       {/* Right: Score Section (65%) */}
-                      <div className="col-span-12 md:col-span-8 flex flex-col justify-between py-3">
+                      <div data-tour="score" className="col-span-12 md:col-span-8 flex flex-col justify-between py-3">
                         {/* Giant Score */}
                         <div className="text-center">
                           <div className="mb-3">
@@ -1413,7 +1788,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                     </div>
                     {/* Progress Bar */}
-                    <div className="mb-4">
+                    <div data-tour="progress" className="mb-4">
                       <div className="text-sm md:text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">Progress</div>
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200">
@@ -1455,7 +1830,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                     
                     {/* What This Means */}
-                    <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                    <div data-tour="progress-meaning" className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                       <div className="flex-1">
                        <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
                         <p className="text-sm md:text-xs text-gray-700 leading-snug">
@@ -1490,7 +1865,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
                   {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px', marginBottom: '16px' }}>
+                  <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px', marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -1686,7 +2061,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
+                  <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
@@ -2643,6 +3018,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             </div>
           </div>
         </div>
+      )}
+
+      {showHubTour && (
+        <HubTour onStepChange={setHubTourStepId} onClose={closeHubTour} />
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
