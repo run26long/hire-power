@@ -1617,8 +1617,11 @@ function normalizeEducation(education) {
 }
 
 function normalizeSectionOrder(sectionOrder) {
-  const VALID_SECTIONS = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages']
+  const VALID_SECTIONS = ['experience', 'education', 'skills', 'projects', 'certifications', 'volunteer', 'languages', 'additionalInfo', 'references']
   const DEFAULT_ORDER = ['experience', 'education', 'skills']
+  // Entries are lowercased before matching, so map back to the casing the
+  // renderer expects — 'additionalinfo' would otherwise never match
+  const CANONICAL = new Map(VALID_SECTIONS.map(s => [s.toLowerCase(), s]))
 
   // If it's not an array at all, return default
   if (!Array.isArray(sectionOrder)) return DEFAULT_ORDER
@@ -1627,9 +1630,9 @@ function normalizeSectionOrder(sectionOrder) {
   const cleaned = sectionOrder
     .map(entry => {
       if (typeof entry !== 'string') return null
-      return entry.replace(/[\[\]"'`]/g, '').trim().toLowerCase()
+      return CANONICAL.get(entry.replace(/[\[\]"'`]/g, '').trim().toLowerCase()) || null
     })
-    .filter(entry => entry && VALID_SECTIONS.includes(entry))
+    .filter(Boolean)
 
   // Deduplicate while preserving order
   const seen = new Set()
@@ -1643,6 +1646,24 @@ function normalizeSectionOrder(sectionOrder) {
   if (deduped.length === 0) return DEFAULT_ORDER
 
   return deduped
+}
+
+// The model rebuilds the resume from OUTPUT_STRUCTURE, so the sectionOrder it
+// returns does not always match the sections it actually populated — and a
+// section only renders if its key is in the order. Reconcile the two so a
+// populated optional section always shows and an empty one never does.
+function syncOptionalSections(resume) {
+  const OPTIONAL_SECTIONS = ['projects', 'certifications', 'volunteer', 'languages']
+  const order = Array.isArray(resume.sectionOrder) ? [...resume.sectionOrder] : []
+
+  for (const key of OPTIONAL_SECTIONS) {
+    const hasEntries = Array.isArray(resume[key]) && resume[key].length > 0
+    const index = order.indexOf(key)
+    if (hasEntries && index === -1) order.push(key)
+    if (!hasEntries && index !== -1) order.splice(index, 1)
+  }
+
+  return order
 }
 
 function roleKey(job, index) {
@@ -2978,6 +2999,7 @@ export async function POST(request) {
         convResume.education = normalizeEducation(convResume.education)
       }
       convResume.sectionOrder = normalizeSectionOrder(convResume.sectionOrder)
+      convResume.sectionOrder = syncOptionalSections(convResume)
 
       const convSummaryPrompt = buildSummaryPrompt({
         rewrittenResume: convResume,
@@ -3117,6 +3139,7 @@ Return this exact structure:
         rewrittenResume.education = normalizeEducation(rewrittenResume.education)
       }
       rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
+      rewrittenResume.sectionOrder = syncOptionalSections(rewrittenResume)
 
       // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
       // resumeData sets the per-role floor: a job-specific pass reorders, it never prunes
@@ -3234,6 +3257,7 @@ Return this exact structure:
       rewrittenResume.education = normalizeEducation(rewrittenResume.education)
     }
     rewrittenResume.sectionOrder = normalizeSectionOrder(rewrittenResume.sectionOrder)
+    rewrittenResume.sectionOrder = syncOptionalSections(rewrittenResume)
 
     // ── SUMMARY + CHANGES: trim bullets first, then run concurrently ──
     rewrittenResume = trimBulletsToLimit(rewrittenResume, level)
