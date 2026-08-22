@@ -501,10 +501,19 @@ const handleReassess = async (overrideData = null) => {
       // Wrap to match how ai_analysis is read on load (analysisResults.analysis = raw job-analyze result)
       setAnalysisResults({ analysis: result })
 
+      // ── SCORE FLOOR ──
+      // The score a resume has already earned is never lowered by a later pass. The
+      // scorer carries run-to-run variance, and a re-assess that lands a point or two
+      // under the stored number reflects that variance, not worse content. The fresh
+      // analysis is still saved in full — only the number is clamped.
+      const flooredScore = (resume?.current_score && result.matchScore < resume.current_score)
+        ? resume.current_score
+        : result.matchScore
+
       const { error } = await supabase
         .from('resumes')
         .update({
-          current_score: result.matchScore,
+          current_score: flooredScore,
           last_assessed_at: new Date().toISOString(),
           ai_analysis: result
         })
@@ -516,8 +525,8 @@ const handleReassess = async (overrideData = null) => {
         return
       }
 
-      setResume(prev => ({ ...prev, current_score: result.matchScore }))
-      setScoreAfterCoaching(result.matchScore)
+      setResume(prev => ({ ...prev, current_score: flooredScore }))
+      setScoreAfterCoaching(flooredScore)
 
       const prevScore = resume?.current_score
       if (prevScore && result.matchScore > prevScore) {
@@ -544,7 +553,7 @@ const handleReassess = async (overrideData = null) => {
         } else if (existingCard) {
           const { error: cardUpdateError } = await supabase
             .from('applications')
-            .update({ match_score: result.matchScore })
+            .update({ match_score: flooredScore })
             .eq('id', existingCard.id)
 
           if (cardUpdateError) {
@@ -575,8 +584,15 @@ const handleReassess = async (overrideData = null) => {
       setAnalysisResults(result)
       setDetectedLevel(result.detectedLevel || 'entry')
 
+      // ── SCORE FLOOR ──
+      // Same rule as the job-specific path above: a re-assess can raise the stored
+      // score but never lower it.
+      const flooredScore = (resume?.current_score && result.score < resume.current_score)
+        ? resume.current_score
+        : result.score
+
       const updateData = {
-        current_score: result.score,
+        current_score: flooredScore,
         last_assessed_at: new Date().toISOString(),
         ai_analysis: result.analysis,
         score_breakdown: result.analysis?.breakdown
@@ -600,11 +616,11 @@ const handleReassess = async (overrideData = null) => {
 
       setResume(prev => ({
         ...prev,
-        current_score: result.score,
+        current_score: flooredScore,
         journey_step: prev.journey_step === 'review' ? 'assess' : prev.journey_step
       }))
 
-      setScoreAfterCoaching(result.score)
+      setScoreAfterCoaching(flooredScore)
 
       const prevScore = resume?.current_score
       if (prevScore && result.score > prevScore) {
@@ -3487,7 +3503,16 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         body: JSON.stringify({ resumeData: data.rewrittenResume })
       })
       const scoreData = await scoreResponse.json()
-      const newScore = scoreData?.score ?? null
+      const rawScore = scoreData?.score ?? null
+
+      // ── SCORE FLOOR ──
+      // Two protections on one line. A score check that failed returns null, and null
+      // must never overwrite a score the resume already earned. A build that scores
+      // under the stored number keeps the stored number, same rule as the re-assess
+      // and post-coaching paths. Only a resume with no score yet can still land null.
+      const newScore = (rawScore === null || (resume?.current_score && rawScore < resume.current_score))
+        ? (resume?.current_score ?? rawScore)
+        : rawScore
 
       setRewrittenResume(data.rewrittenResume)
 
