@@ -1,6 +1,6 @@
 import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
-import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
+import { formatDate, formatDateRange, getCertDetails, getSkillsDisplay } from '../templateUtils'
 import { groupExperience } from '../../utils/groupExperience'
 import { groupEducation } from '../../utils/groupEducation'
 
@@ -278,12 +278,12 @@ export default function ResumePDFSharp({ resumeData, font = 'Open Sans', fontSiz
                   <View wrap={false}>
                     <SH title={resumeData.sectionTitles?.certifications || 'Certifications'} />
                     <View style={{ marginBottom: restCerts.length > 0 ? Math.round(6*sp) : 0 }}>
-                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{firstCert.name || ''}</Text>{firstCert.details ? ' | ' + firstCert.details : ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{firstCert.name || ''}</Text>{getCertDetails(firstCert)}</Text>
                     </View>
                   </View>
                   {restCerts.map((c, i) => (
                     <View key={i+1} wrap={false} style={{ marginBottom: i < restCerts.length - 1 ? Math.round(6*sp) : 0 }}>
-                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{c.details ? ' | ' + c.details : ''}</Text>
+                      <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{getCertDetails(c)}</Text>
                     </View>
                   ))}
                 </View>

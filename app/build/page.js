@@ -1713,11 +1713,12 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
   const [editingIndex, setEditingIndex] = useState(null);
   const [currentCert, setCurrentCert] = useState({
     name: "",
-    details: ""
+    organization: "",
+    date: ""
   });
 
   const addCertification = () => {
-    if (currentCert.name && currentCert.details) {
+    if (currentCert.name) {
       let updated;
       if (editingIndex !== null) {
         updated = [...resumeData.certifications];
@@ -1727,12 +1728,19 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
         updated = [...resumeData.certifications, currentCert];
       }
       setResumeData(syncSectionOrder({ ...resumeData, certifications: updated }, 'certifications', updated.length > 0));
-      setCurrentCert({ name: "", details: "" });
+      setCurrentCert({ name: "", organization: "", date: "" });
     }
   };
 
   const editCertification = (index) => {
-    setCurrentCert(resumeData.certifications[index]);
+    const cert = resumeData.certifications[index] || {};
+    setCurrentCert({
+      name: cert.name || "",
+      // Older entries stored org and date together in `details` — carry that
+      // string into Organization so editing never drops it.
+      organization: cert.organization || cert.details || "",
+      date: cert.date || ""
+    });
     setEditingIndex(index);
     setShowFields(true);
   };
@@ -1794,20 +1802,33 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
 
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Details (Issuing org, date) *
+            Issuing Organization
           </label>
           <input
             type="text"
-            value={currentCert.details}
-            onChange={(e) => setCurrentCert({ ...currentCert, details: e.target.value })}
-            placeholder="Project Management Institute | 2023"
+            value={currentCert.organization}
+            onChange={(e) => setCurrentCert({ ...currentCert, organization: e.target.value })}
+            placeholder="Project Management Institute"
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Date Earned
+          </label>
+          <input
+            type="text"
+            value={currentCert.date}
+            onChange={(e) => setCurrentCert({ ...currentCert, date: e.target.value })}
+            placeholder="2024, March 2024, or 2022-2024"
             className="w-full border border-gray-300 rounded p-2 text-sm"
           />
         </div>
 
         <button
           onClick={addCertification}
-          disabled={!currentCert.name || !currentCert.details}
+          disabled={!currentCert.name}
           className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
           {editingIndex !== null ? 'Save Changes' : 'Add This Certification'}
@@ -1816,7 +1837,7 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
           <button
             onClick={() => {
               setEditingIndex(null);
-              setCurrentCert({ name: "", details: "" });
+              setCurrentCert({ name: "", organization: "", date: "" });
             }}
             className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
           >

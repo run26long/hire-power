@@ -234,7 +234,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
   function addCertification() {
     const newData = JSON.parse(JSON.stringify(resumeData))
     if (!newData.certifications) newData.certifications = []
-    newData.certifications.push({ name: '', details: '' })
+    newData.certifications.push({ name: '', organization: '', date: '' })
     onUpdate(newData)
   }
 
@@ -1220,10 +1220,33 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-1">
-                  <h3 className={`font-semibold flex-1 ${!readOnly && 'cursor-text'}`} style={{ ...(ts.jobTitle || {}), ...(cert.name ? {} : { color: '#9ca3af', fontStyle: 'italic' }), minWidth: '80px' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!cert.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Certification Name'; updateNestedField(`certifications[${certIndex}].name`, val) }}>{cert.name || 'Certification Name'}</h3>
+                  {(() => {
+                    // Older entries kept org and date together in `details`. Render that
+                    // string as-is in the organization slot and hide the date slot.
+                    const isLegacy = !cert.organization && !cert.date && !!cert.details
+                    const orgField = isLegacy ? 'details' : 'organization'
+                    const orgText = isLegacy ? cert.details : (cert.organization || '')
+                    const dateText = isLegacy ? '' : (cert.date || '')
+                    return (
+                      <p className="text-sm flex-1" style={ts.jobTitle || {}}>
+                        <span className={`font-semibold ${!readOnly && 'cursor-text'}`} style={{ color: cert.name ? 'inherit' : '#9ca3af', fontStyle: cert.name ? 'normal' : 'italic', minWidth: '80px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!cert.name) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Certification Name'; updateNestedField(`certifications[${certIndex}].name`, val) }}>{cert.name || 'Certification Name'}</span>
+                        {(orgText || !readOnly) && (
+                          <>
+                            <span className="font-normal">{orgText ? ' | ' : ' '}</span>
+                            <span className={`font-normal ${!readOnly && 'cursor-text'}`} style={{ color: orgText ? 'inherit' : '#9ca3af', fontStyle: orgText ? 'normal' : 'italic', minWidth: '80px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!orgText) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Issuing Organization'; updateNestedField(`certifications[${certIndex}].${orgField}`, val) }}>{orgText || 'Issuing Organization'}</span>
+                          </>
+                        )}
+                        {(dateText || (!readOnly && !isLegacy)) && (
+                          <>
+                            <span className="font-normal">{dateText ? ' | ' : ' '}</span>
+                            <span className={`font-normal ${!readOnly && 'cursor-text'}`} style={{ color: dateText ? 'inherit' : '#9ca3af', fontStyle: dateText ? 'normal' : 'italic', minWidth: '60px', display: 'inline-block' }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!dateText) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Date Earned'; updateNestedField(`certifications[${certIndex}].date`, val) }}>{dateText || 'Date Earned'}</span>
+                          </>
+                        )}
+                      </p>
+                    )
+                  })()}
                   {entryArrows('certifications', certIndex, resumeData.certifications.length)}
                 </div>
-                <p className={`text-sm ${!readOnly && 'cursor-text'}`} style={{ ...(ts.body || {}), ...(cert.details ? {} : { color: '#9ca3af', fontStyle: 'italic' }) }} contentEditable={!readOnly} suppressContentEditableWarning onFocus={(e) => { if (!cert.details) e.currentTarget.textContent = '' }} onBlur={(e) => { const val = e.currentTarget.textContent.trim(); if (!val) e.currentTarget.textContent = 'Issuing organization | Date'; updateNestedField(`certifications[${certIndex}].details`, val) }}>{cert.details || 'Issuing organization | Date'}</p>
               </div>
               {!readOnly && (confirmingDelete === `certifications-${certIndex}` ? (
                 <div className="flex items-center gap-1 text-xs">
@@ -1667,7 +1690,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   smallSections.forEach(s => {
                     s.items.forEach(item => {
                       if (s.key === 'certifications') {
-                        newData.additionalInfo.push({ label: item.name, detail: item.details || '' })
+                        newData.additionalInfo.push({ label: item.name, detail: [item.organization, item.date].filter(Boolean).join(' | ') || item.details || '' })
                       } else if (s.key === 'languages') {
                         newData.additionalInfo.push({ label: item.language, detail: item.proficiency || '' })
                       } else if (s.key === 'volunteer') {
@@ -1725,7 +1748,7 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
                   onClick={() => {
                     const newData = JSON.parse(JSON.stringify(resumeData))
                     if (s.key === 'projects') newData.projects = [{ name: '', description: '', link: '' }]
-                    if (s.key === 'certifications') newData.certifications = [{ name: '', details: '' }]
+                    if (s.key === 'certifications') newData.certifications = [{ name: '', organization: '', date: '' }]
                     if (s.key === 'volunteer') newData.volunteer = [{ organization: '', description: '' }]
                     if (s.key === 'languages') newData.languages = [{ language: '', proficiency: 'Professional' }]
                     if (s.key === 'additionalInfo') newData.additionalInfo = [{ label: '', detail: '' }]

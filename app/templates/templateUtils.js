@@ -35,6 +35,17 @@ export function formatDateRange(startDate, endDate, current, format = 'short') {
   return `${start} – ${end}`;
 }
 
+// Certification line tail rendered after the name: " | Organization | Date".
+// A pipe is only emitted when the field following it has a value.
+// Legacy entries kept organization and date combined in `details` — used as-is.
+export function getCertDetails(cert) {
+  if (!cert) return '';
+  const parts = (cert.organization || cert.date)
+    ? [cert.organization, cert.date]
+    : [cert.details];
+  return parts.filter(Boolean).map(p => ' | ' + p).join('');
+}
+
 // Renders skills from either skillsCategories (new) or skills (legacy array)
 export function getSkillsDisplay(resumeData) {
   if (resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0) {
