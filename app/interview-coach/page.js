@@ -784,27 +784,24 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
     <div className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all">
       {/* Single row: title + match info + step buttons + delete */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="text-sm md:text-xs font-semibold text-gray-900 truncate">{card.title}</p>
-            {interviewIsUpcoming && (
-              <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0">
-                Upcoming
-              </span>
-            )}
-          </div>
-          <p className="text-xs md:text-[10px] text-gray-500 truncate">
-            {interviewIsPast ? (
-              <>Past · {new Date(card.interviewDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
-            ) : (
-              <>{card.company}</>
-            )}
-            {card.matchScore && <span className="text-gray-400"> · Match {card.matchScore}</span>}
-          </p>
-        </div>
+        <p className="text-sm md:text-xs truncate min-w-0">
+          <span className="font-semibold text-gray-900">{card.title}</span>
+          {interviewIsUpcoming && (
+            <span className="ml-2 text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+              Upcoming
+            </span>
+          )}
+          <span className="text-gray-500">
+            {' · '}
+            {interviewIsPast
+              ? <>Past · {new Date(card.interviewDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
+              : card.company}
+          </span>
+          {card.matchScore && <span className="text-gray-400"> · Match {card.matchScore}</span>}
+        </p>
 
         {/* Step buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex-1 flex items-center gap-2">
           {stepButtons.map(({ key, label, anchor }) => {
             const isPrimary = key === primaryStep;
             return (
@@ -812,7 +809,7 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
                 key={key}
                 onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
                 disabled={!!navigatingTo}
-                className={`rounded-md py-1 px-2 text-xs md:text-[10px] font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                className={`flex-1 rounded-md py-1.5 px-3 text-sm md:text-xs font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
                   isPrimary
                     ? 'text-white transition-opacity hover:opacity-90'
                     : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
