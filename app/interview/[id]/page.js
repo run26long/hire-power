@@ -1098,7 +1098,7 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader, analyze
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Your Power Analysis identifies three categories that matter in this interview:
+        Your Power Analysis identifies three categories to help you prepare for this interview:
       </p>
       <ul className="space-y-2">
         <li className="flex items-start gap-2">
