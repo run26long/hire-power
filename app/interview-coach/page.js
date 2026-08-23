@@ -365,10 +365,10 @@ export default function MyInterviewsPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
 
               {/* LEFT: Practice History (8 cols) */}
-              <div className="col-span-1 md:col-span-8 space-y-2">
+              <div className="col-span-1 md:col-span-8 space-y-2 flex flex-col">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden flex-1" style={{ minHeight: '262px' }}>
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -381,7 +381,7 @@ export default function MyInterviewsPage() {
                   <div className="space-y-1.5">
                     {(() => {
                       const cards = practiceCards || []
-                      const slots = [0, 1, 2, 3]
+                      const slots = [0, 1, 2, 3, 4]
                       return slots.map((slotIndex) => {
                         const card = cards[slotIndex]
                         const isFirstEmpty = slotIndex === cards.length
@@ -398,7 +398,7 @@ export default function MyInterviewsPage() {
                           )
                         }
 
-                      if (isFirstEmpty && cards.length < 4) {
+                      if (isFirstEmpty && cards.length < 5) {
                           return (
                             <button
                               key={`upload-${slotIndex}`}
@@ -428,7 +428,7 @@ export default function MyInterviewsPage() {
                       })
                     })()}
 
-                    {practiceCards.length > 4 && (
+                    {practiceCards.length > 5 && (
                      <button
                           onClick={() => setShowOlderModal(true)}
                           className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
@@ -456,7 +456,7 @@ export default function MyInterviewsPage() {
               </div>
 
               {/* RIGHT: Stats + Readiness (4 cols) */}
-              <div className="col-span-1 md:col-span-4 space-y-2">
+              <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col">
 
                 {/* Practice Stats */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
@@ -470,23 +470,19 @@ export default function MyInterviewsPage() {
                         { label: 'Level', sub: 'Per job', val: '0' },
                         { label: 'Total Jobs', sub: 'Unique targets', val: String(practiceCards.length) },
                       ].map((stat) => (
-                        <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="text-sm md:text-xs font-medium text-gray-700 whitespace-nowrap">{stat.label}</p>
-                            <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
-                          </div>
+                        <div key={stat.label} className="flex flex-col items-center justify-center text-center p-2 bg-gray-50 rounded-lg">
                           <span className="text-xl font-bold text-gray-300">{stat.val}</span>
+                          <p className="text-sm md:text-xs font-medium text-gray-700 whitespace-nowrap">{stat.label}</p>
+                          <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="text-sm md:text-xs font-medium text-gray-700">Total Sessions</p>
-                          <p className="text-xs md:text-[10px] text-gray-400">Across all jobs</p>
-                        </div>
+                      <div className="flex flex-col items-center justify-center text-center p-2 bg-gray-50 rounded-lg">
                         <span className="text-2xl font-bold text-gray-300">0</span>
+                        <p className="text-sm md:text-xs font-medium text-gray-700">Total Sessions</p>
+                        <p className="text-xs md:text-[10px] text-gray-400">Across all jobs</p>
                       </div>
                       <div className="flex items-center justify-between p-2.5 bg-purple-50 border border-purple-200 rounded-lg gap-3">
                         <p className="text-sm md:text-xs text-purple-800 leading-snug">Unlock Power Analysis, coaching, and job-specific practice sessions.</p>
@@ -512,7 +508,7 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
