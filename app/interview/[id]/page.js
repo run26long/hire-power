@@ -656,10 +656,10 @@ export default function InterviewDetailPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
-        <div className="flex-1 flex gap-3 md:gap-6 px-3 md:px-6 pb-3 md:pb-6 max-w-7xl mx-auto w-full overflow-hidden">
+        <div className="flex-1 flex gap-3 md:gap-0 px-3 md:px-6 pb-3 md:pb-6 max-w-7xl mx-auto w-full overflow-hidden">
 
           {/* LEFT COLUMN — Power Analysis */}
-          <div className={`flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col ${mobilePanel === 'analysis' ? 'flex' : 'hidden'} md:flex`}>
+          <div className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col ${mobilePanel === 'analysis' ? 'flex' : 'hidden'} md:flex`}>
             <div className="p-4 md:p-6 flex flex-col gap-4 overflow-y-auto">
 
               {/* INTERVIEW HEADER STRIP — title + instructions + date + coaching progress */}
@@ -794,7 +794,7 @@ export default function InterviewDetailPage() {
           </div>
 
           {/* RIGHT COLUMN — Interview Preparation */}
-          <div className={`flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex-col ${mobilePanel === 'coaching' ? 'flex' : 'hidden'} md:flex`}>
+          <div className={`flex-1 bg-white md:border-l md:border-gray-200 md:shadow-sm overflow-hidden flex-col ${mobilePanel === 'coaching' ? 'flex' : 'hidden'} md:flex`}>
             <div className="sticky top-0 bg-white px-4 z-10 flex-shrink-0 pt-3 md:pt-4 pb-2 md:pb-3 border-b border-gray-100">
               <div className="mb-3 text-center">
                 <h3 className="font-bold text-base md:text-sm text-gray-900 leading-tight">{jobCard.title}</h3>
