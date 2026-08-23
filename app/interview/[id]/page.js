@@ -656,7 +656,7 @@ export default function InterviewDetailPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
-        <div className="flex-1 flex gap-3 md:gap-6 p-3 md:p-6 max-w-7xl mx-auto w-full overflow-hidden">
+        <div className="flex-1 flex gap-3 md:gap-6 px-3 md:px-6 pb-3 md:pb-6 max-w-7xl mx-auto w-full overflow-hidden">
 
           {/* LEFT COLUMN — Power Analysis */}
           <div className={`flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col ${mobilePanel === 'analysis' ? 'flex' : 'hidden'} md:flex`}>
