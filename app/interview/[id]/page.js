@@ -627,7 +627,7 @@ export default function InterviewDetailPage() {
   return (
     <div className="bg-gray-50 flex flex-col overflow-hidden" style={{ height: '100vh', height: '100dvh' }}>
       <MainNav currentPage="my-interviews" userProfile={userProfile} />
-      <div className="hidden md:block">
+      <div className="hidden md:block flex-shrink-0">
         <Breadcrumb items={breadcrumbItems} />
       </div>
 
@@ -793,7 +793,7 @@ export default function InterviewDetailPage() {
           </div>
 
           {/* RIGHT COLUMN — Interview Preparation */}
-          <div className={`flex-1 bg-white md:border-l md:border-gray-200 md:shadow-sm overflow-hidden flex flex-col md:px-6 ${mobilePanel === 'coaching' ? 'flex' : 'hidden'} md:flex`}>
+          <div className={`flex-1 bg-white md:border-l md:border-gray-200 md:shadow-sm overflow-hidden flex flex-col md:px-6 md:pt-2 ${mobilePanel === 'coaching' ? 'flex' : 'hidden'} md:flex`}>
             <div className="sticky top-0 bg-white px-4 z-10 flex-shrink-0 pt-3 md:pt-4 pb-2 md:pb-3 border-b border-gray-100">
               <div className="mb-3 text-center">
                 <h3 className="font-bold text-base md:text-sm text-gray-900 leading-tight">{jobCard.title}</h3>
