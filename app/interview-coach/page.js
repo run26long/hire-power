@@ -783,7 +783,7 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
     >
       {/* Single row: title + score + step buttons + delete */}
       <div className="flex items-center gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 md:w-36 md:flex-shrink-0">
           <div className="text-base md:text-sm font-semibold text-gray-900 truncate">
             {card.title}
             {interviewIsUpcoming && (
