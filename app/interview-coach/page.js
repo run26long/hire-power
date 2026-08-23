@@ -365,10 +365,10 @@ export default function MyInterviewsPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
 
               {/* LEFT: Practice History (8 cols) */}
-              <div className="col-span-1 md:col-span-8 space-y-2 flex flex-col">
+              <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden flex-1" style={{ minHeight: '262px' }}>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -508,7 +508,7 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
