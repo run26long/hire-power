@@ -844,6 +844,8 @@ export default function InterviewDetailPage() {
               {currentStep === 'analyze' && (
                 <AnalyzeStepContent
                   stepHeader="📊 Your Power Analysis"
+                  analyzeComplete={analyzeComplete}
+                  coachComplete={coachComplete}
                   onGoToCoach={handleOpenCoachStep}
                   onSkipToPractice={() => setCurrentStep('practice')}
                 />
@@ -853,6 +855,7 @@ export default function InterviewDetailPage() {
                 <CoachIdlePanel
                   batchChecks={batchChecks}
                   coachStarting={coachStarting}
+                  coachComplete={coachComplete}
                   onStart={handleStartBatch}
                   onSkipToPractice={() => setCurrentStep('practice')}
                 />
@@ -1090,7 +1093,7 @@ function BucketColumn({
 // ANALYZE STEP CONTENT
 // ============================================================================
 
-function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
+function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader, analyzeComplete, coachComplete }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
@@ -1123,6 +1126,14 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
         Click below to build your STAR stories.
       </p>
+      {analyzeComplete && coachComplete && (
+        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
+            <span>✅</span>
+            <span>Analysis Complete</span>
+          </div>
+        </div>
+      )}
       <button
         onClick={onGoToCoach}
         className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
@@ -1144,7 +1155,7 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
 // BATCH CHECKLIST
 // ============================================================================
 
-function CoachIdlePanel({ batchChecks, coachStarting, onStart, onSkipToPractice }) {
+function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, onStart, onSkipToPractice }) {
   const selectedCount = Object.values(batchChecks).filter(Boolean).length;
 
   return (
@@ -1175,6 +1186,14 @@ function CoachIdlePanel({ batchChecks, coachStarting, onStart, onSkipToPractice 
         Pick individual items to coach, or select all to coach everything one at a time.
       </p>
       <div className="mt-auto space-y-2">
+        {coachComplete && (
+          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
+              <span>✅</span>
+              <span>Coaching Complete</span>
+            </div>
+          </div>
+        )}
         <button onClick={onStart} disabled={selectedCount === 0 || coachStarting}
           className="w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
