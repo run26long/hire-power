@@ -112,7 +112,7 @@ export default function JobCardModal({
             <div className="flex items-center gap-3">
               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
               <div>
-                <h2 className="text-xl font-bold text-white leading-tight mb-1">{card.title}</h2>
+                <h2 className="text-xl font-bold text-white leading-tight mb-1 line-clamp-2">{card.title}</h2>
                 <div className="flex items-center gap-2">
                   <p className="text-purple-100 text-sm md:text-xs">{card.company}</p>
                   <StatusBadge status={card.application_status} />
@@ -245,11 +245,11 @@ export default function JobCardModal({
                     <div
                       className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
                       onClick={() => {
+                        // Pass the card id, not the job description. A JD runs to
+                        // thousands of characters and does not survive a query string.
                         const params = new URLSearchParams({
                           action: 'new-job-specific',
-                          ...(card.title && { jobTitle: card.title }),
-                          ...(card.company && { jobCompany: card.company }),
-                          ...(card.description && { jobDescription: card.description }),
+                          ...(card.id && { applicationId: card.id }),
                         })
                         router.push(`/resume-coach?${params.toString()}`)
                       }}

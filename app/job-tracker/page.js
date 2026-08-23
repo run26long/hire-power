@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -155,6 +155,17 @@ const COLUMNS = [
   { id: 'hired',              label: 'Hired',        color: '#15803d', bg: 'rgba(21,128,61,0.06)',   border: 'rgba(21,128,61,0.2)'   },
 ];
 
+// Where a dragged card would land inside a column, based on pointer position
+// against each card's vertical midpoint. Returns 0..cards.length.
+function computeInsertIndex(containerEl, clientY) {
+  const cardEls = Array.from(containerEl.querySelectorAll('[data-card-id]'));
+  for (let i = 0; i < cardEls.length; i++) {
+    const rect = cardEls[i].getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) return i;
+  }
+  return cardEls.length;
+}
+
 function StatusBadge({ status }) {
   const config = {
     resume_in_progress: { label: 'Prepping', bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
@@ -193,6 +204,7 @@ export default function JobTrackerPage() {
   const [selectedCard, setSelectedCard] = useState(null);
  const [showHiredModal, setShowHiredModal] = useState(false);
   const [hiredCard, setHiredCard] = useState(null);
+  const [vaultBillingInterval, setVaultBillingInterval] = useState('monthly');
   const [rejectedPromptCard, setRejectedPromptCard] = useState(null);
 
   const [mobileColumn, setMobileColumn] = useState('resume_in_progress');
@@ -202,9 +214,12 @@ export default function JobTrackerPage() {
   const [errorToast, setErrorToast] = useState(null);
   const [dragCard, setDragCard] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const [newTitle, setNewTitle] = useState('');
+  const [newTitleError, setNewTitleError] = useState(null);
   const [newCompany, setNewCompany] = useState('');
+  const [newCompanyError, setNewCompanyError] = useState(null);
   const [newDescription, setNewDescription] = useState('');
   const [newResumeId, setNewResumeId] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -262,7 +277,8 @@ export default function JobTrackerPage() {
           .select('*, resumes!applications_resume_id_fkey(display_name, current_score)')
           .eq('user_id', user.id)
           .not('application_status', 'eq', 'archived')
-          .order('sort_order', { ascending: true });
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true });
         if (appsError) throw appsError;
         setApplications(apps || []);
 
@@ -296,7 +312,19 @@ export default function JobTrackerPage() {
   }, []);
 
   const getColumnCards = (columnId) =>
-    applications.filter(a => a.application_status === columnId);
+    applications
+      .filter(a => a.application_status === columnId)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  // Rewrites sort_order as 0..n-1 for every card in a column. Columns hold a
+  // handful of cards, so writing all of them keeps the DB self-healing if an
+  // earlier write only partially landed.
+  const persistColumnOrder = async (orderedCards) => {
+    const results = await Promise.all(orderedCards.map((card, index) =>
+      supabase.from('applications').update({ sort_order: index }).eq('id', card.id)
+    ));
+    return results.find(r => r.error)?.error || null;
+  };
 
   const handleDragStart = (e, card) => {
     setDragCard(card);
@@ -307,38 +335,116 @@ export default function JobTrackerPage() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverColumn(columnId);
+    setDragOverIndex(computeInsertIndex(e.currentTarget, e.clientY));
+  };
+
+  const handleReorderWithinColumn = async (card, columnId, insertIndex) => {
+    const columnCards = getColumnCards(columnId);
+    const from = columnCards.findIndex(c => c.id === card.id);
+    if (from === -1) return;
+
+    // insertIndex counts gaps in the pre-move list, so dropping below the
+    // card's own slot shifts down by one once it's lifted out.
+    let to = insertIndex == null ? columnCards.length : insertIndex;
+    if (to > from) to -= 1;
+    to = Math.max(0, Math.min(to, columnCards.length - 1));
+    if (to === from) return;
+
+    const reordered = [...columnCards];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+
+    const previousOrders = new Map(columnCards.map(c => [c.id, c.sort_order ?? 0]));
+    const nextOrders = new Map(reordered.map((c, i) => [c.id, i]));
+
+    setApplications(prev => prev.map(a =>
+      nextOrders.has(a.id) ? { ...a, sort_order: nextOrders.get(a.id) } : a
+    ));
+
+    const error = await persistColumnOrder(reordered);
+    if (error) {
+      console.error('Reorder cards failed:', error);
+      setApplications(prev => prev.map(a =>
+        previousOrders.has(a.id) ? { ...a, sort_order: previousOrders.get(a.id) } : a
+      ));
+      setToast({ type: 'error', message: 'Reorder failed. Please try again.', card: null });
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
+
+    syncTrackerActivity(supabase);
   };
 
   const handleDrop = async (e, columnId) => {
     e.preventDefault();
-    if (!dragCard || dragCard.application_status === columnId) {
+    const insertIndex = dragOverIndex;
+    if (!dragCard) {
+      setDragOverColumn(null);
+      setDragOverIndex(null);
+      return;
+    }
+    if (dragCard.application_status === columnId) {
+      const reorderedCard = dragCard;
       setDragCard(null);
       setDragOverColumn(null);
+      setDragOverIndex(null);
+      await handleReorderWithinColumn(reorderedCard, columnId, insertIndex);
       return;
     }
     const droppedCard = dragCard;
     const previousStatus = dragCard.application_status;
 
+    // Slot the card into the destination column at the drop position.
+    const destCards = getColumnCards(columnId);
+    const targetIndex = Math.max(0, Math.min(insertIndex ?? destCards.length, destCards.length));
+    const destOrdered = [...destCards];
+    destOrdered.splice(targetIndex, 0, droppedCard);
+    const nextOrders = new Map(destOrdered.map((c, i) => [c.id, i]));
+    const previousOrders = new Map(destOrdered.map(c => [c.id, c.sort_order ?? 0]));
+
     // Optimistic update
-    setApplications(prev => prev.map(a =>
-      a.id === dragCard.id ? { ...a, application_status: columnId } : a
-    ));
+    setApplications(prev => prev.map(a => {
+      if (a.id === droppedCard.id) {
+        return { ...a, application_status: columnId, sort_order: nextOrders.get(a.id) };
+      }
+      return nextOrders.has(a.id) ? { ...a, sort_order: nextOrders.get(a.id) } : a;
+    }));
 
     const { error } = await supabase
       .from('applications')
-      .update({ application_status: columnId, updated_at: new Date().toISOString() })
+      .update({
+        application_status: columnId,
+        sort_order: nextOrders.get(droppedCard.id),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', dragCard.id);
 
     if (error) {
       // Revert optimistic update
-      setApplications(prev => prev.map(a =>
-        a.id === droppedCard.id ? { ...a, application_status: previousStatus } : a
-      ));
+      setApplications(prev => prev.map(a => {
+        if (a.id === droppedCard.id) {
+          return { ...a, application_status: previousStatus, sort_order: previousOrders.get(a.id) };
+        }
+        return previousOrders.has(a.id) ? { ...a, sort_order: previousOrders.get(a.id) } : a;
+      }));
       setToast({ type: 'error', message: 'Move failed. Please try again.', card: null });
       setTimeout(() => setToast(null), 4000);
       setDragCard(null);
       setDragOverColumn(null);
+      setDragOverIndex(null);
       return;
+    }
+
+    // Renumber the cards the moved card was inserted above. Best-effort: the
+    // status move already succeeded, so a failure here only costs the position.
+    const siblings = destOrdered.filter(c => c.id !== droppedCard.id);
+    if (siblings.length) {
+      Promise.all(siblings.map(c =>
+        supabase.from('applications').update({ sort_order: nextOrders.get(c.id) }).eq('id', c.id)
+      )).then(results => {
+        const orderError = results.find(r => r.error)?.error;
+        if (orderError) console.error('Persist destination column order failed:', orderError);
+      });
     }
 
     // Sync tracker activity + applied count
@@ -385,6 +491,7 @@ export default function JobTrackerPage() {
         setErrorToast("We couldn't update your hired status. Please refresh and try again.");
         setDragCard(null);
         setDragOverColumn(null);
+        setDragOverIndex(null);
         return;
       }
 
@@ -398,6 +505,7 @@ export default function JobTrackerPage() {
           setErrorToast("We couldn't update your hired status. Please refresh and try again.");
           setDragCard(null);
           setDragOverColumn(null);
+          setDragOverIndex(null);
           return;
         }
         setApplications(prev => prev.filter(a => a.id !== existingHired.id));
@@ -414,6 +522,7 @@ export default function JobTrackerPage() {
         setErrorToast("We couldn't update your hired status. Please refresh and try again.");
         setDragCard(null);
         setDragOverColumn(null);
+        setDragOverIndex(null);
         return;
       }
 
@@ -426,6 +535,7 @@ export default function JobTrackerPage() {
         setErrorToast("We couldn't update your hired status. Please refresh and try again.");
         setDragCard(null);
         setDragOverColumn(null);
+        setDragOverIndex(null);
         return;
       }
 
@@ -436,11 +546,13 @@ export default function JobTrackerPage() {
 
     setDragCard(null);
     setDragOverColumn(null);
+    setDragOverIndex(null);
   };
 
   const handleDragEnd = () => {
     setDragCard(null);
     setDragOverColumn(null);
+    setDragOverIndex(null);
   };
 
   const handleAddCard = async () => {
@@ -807,7 +919,7 @@ export default function JobTrackerPage() {
           <div className="hidden md:flex px-6 pt-4 pb-2 items-center justify-between flex-shrink-0">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Your Job Search</h2>
-              <p className="text-xs text-gray-500">Drag cards between boards as your search progresses.</p>
+              <p className="text-xs text-gray-500">Drag cards up or down on a board to reorder, and move them between boards as your search progresses.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -881,7 +993,7 @@ export default function JobTrackerPage() {
                     className={`flex-col flex-1 min-w-[170px] ${mobileColumn === col.id ? 'flex' : 'hidden'} md:flex`}
                     onDragOver={(e) => handleDragOver(e, col.id)}
                     onDrop={(e) => handleDrop(e, col.id)}
-                    onDragLeave={() => setDragOverColumn(null)}
+                    onDragLeave={() => { setDragOverColumn(null); setDragOverIndex(null); }}
                   >
                     {/* Column header */}
                     <div
@@ -916,9 +1028,13 @@ export default function JobTrackerPage() {
                         </div>
                       )}
 
-                      {cards.map(card => (
+                      {cards.map((card, index) => (
+                        <Fragment key={card.id}>
+                        {dragCard && isOver && dragOverIndex === index && (
+                          <div style={{ height: 2, marginTop: -5, marginBottom: -5, borderRadius: 2, background: col.color }} />
+                        )}
                         <div
-                          key={card.id}
+                          data-card-id={card.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, card)}
                           onDragEnd={handleDragEnd}
@@ -990,7 +1106,12 @@ export default function JobTrackerPage() {
                             )}
                           </div>
                         </div>
+                        </Fragment>
                       ))}
+
+                      {dragCard && isOver && dragOverIndex === cards.length && cards.length > 0 && (
+                        <div style={{ height: 2, marginTop: -5, marginBottom: -5, borderRadius: 2, background: col.color }} />
+                      )}
                     </div>
                   </div>
                 );
@@ -1020,22 +1141,32 @@ export default function JobTrackerPage() {
                 <input
                   type="text"
                   value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  onBlur={e => setNewTitle(toTitleCaseOnBlur(e.target.value))}
+                  onChange={e => { setNewTitle(e.target.value); if (e.target.value.length <= 100) setNewTitleError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setNewTitle(v);
+                    setNewTitleError(v.length > 100 ? 'Please enter just the job title (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Marketing Coordinator"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
+                {newTitleError && <p className="text-xs text-red-600 mt-1">{newTitleError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={newCompany}
-                  onChange={e => setNewCompany(e.target.value)}
-                  onBlur={e => setNewCompany(toTitleCaseOnBlur(e.target.value))}
+                  onChange={e => { setNewCompany(e.target.value); if (e.target.value.length <= 100) setNewCompanyError(null); }}
+                  onBlur={e => {
+                    const v = toTitleCaseOnBlur(e.target.value);
+                    setNewCompany(v);
+                    setNewCompanyError(v.length > 100 ? 'Please enter just the company name (max 100 characters).' : null);
+                  }}
                   placeholder="e.g. Acme Corp"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
+                {newCompanyError && <p className="text-xs text-red-600 mt-1">{newCompanyError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Job Description *</label>
@@ -1060,7 +1191,7 @@ export default function JobTrackerPage() {
               <div className="flex justify-center pt-1">
                 <button
                   onClick={handleAddCard}
-                  disabled={!newTitle || addLoading}
+                  disabled={!newTitle || addLoading || !!newTitleError || !!newCompanyError}
                   className="px-8 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
                   style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                 >
@@ -1303,6 +1434,37 @@ export default function JobTrackerPage() {
                       Upgrade to Vault and we'll track your achievements as they happen — so your next resume writes itself.
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      {/* Billing interval selector */}
+                      <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '340px' }}>
+                        {[
+                          { id: 'monthly', label: 'Monthly', price: '$4.99/month', note: null },
+                          { id: 'annual', label: 'Annual', price: '$49.99/year', note: 'Save 2 months' },
+                        ].map(opt => {
+                          const active = vaultBillingInterval === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              onClick={() => setVaultBillingInterval(opt.id)}
+                              style={{
+                                flex: 1,
+                                fontFamily: "'DM Sans', sans-serif",
+                                padding: '10px 8px',
+                                borderRadius: '8px',
+                                border: active ? '2px solid #9333ea' : '1.5px solid rgba(255,255,255,0.15)',
+                                background: active ? 'rgba(147,51,234,0.15)' : 'rgba(255,255,255,0.04)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <p style={{ fontSize: '13px', fontWeight: 700, color: active ? '#c4b5fd' : 'rgba(255,255,255,0.7)', marginBottom: '2px' }}>{opt.label}</p>
+                              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{opt.price}</p>
+                              {opt.note && (
+                                <p style={{ fontSize: '10px', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>{opt.note}</p>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                       <button
                         onClick={async () => {
                           try {
@@ -1321,7 +1483,9 @@ export default function JobTrackerPage() {
                                 'Authorization': `Bearer ${session.access_token}`,
                               },
                               body: JSON.stringify({
-                                priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+                                priceId: vaultBillingInterval === 'annual'
+                                  ? process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
+                                  : process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
                                 userId: user.id,
                                 email: profile?.email || user.email,
                               })
@@ -1352,7 +1516,9 @@ export default function JobTrackerPage() {
                         onMouseOver={e => e.target.style.opacity = '0.9'}
                         onMouseOut={e => e.target.style.opacity = '1'}
                       >
-                        Upgrade to Vault — $4.99/mo →
+                        {vaultBillingInterval === 'annual'
+                          ? 'Upgrade to Vault — $49.99/yr →'
+                          : 'Upgrade to Vault — $4.99/mo →'}
                       </button>
                       <button
                         onClick={() => setShowHiredModal(false)}

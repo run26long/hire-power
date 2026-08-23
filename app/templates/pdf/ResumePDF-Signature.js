@@ -1,6 +1,6 @@
 import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
-import { formatDate, formatDateRange, getSkillsDisplay, hexToRgba } from '../templateUtils'
+import { formatDate, formatDateRange, getCertDetails, getSkillsDisplay, hexToRgba } from '../templateUtils'
 import { groupExperience } from '../../utils/groupExperience'
 import { groupEducation } from '../../utils/groupEducation'
 
@@ -266,7 +266,7 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
             <SH title="Certifications" />
             {resumeData.certifications.map((c, i) => (
               <View key={i} style={{ marginBottom: i < resumeData.certifications.length - 1 ? Math.round(6*sp) : 0 }}>
-                <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{c.details ? ' | ' + c.details : ''}</Text>
+                <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{getCertDetails(c)}</Text>
               </View>
             ))}
           </View>

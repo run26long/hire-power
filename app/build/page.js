@@ -380,15 +380,33 @@ useEffect(() => {
 // Contact Step Component
 function ContactStep({ resumeData, setResumeData, onNext }) {
   const [warnings, setWarnings] = useState({});
+  const [errors, setErrors] = useState({});
 
   const handleChange = (field, value) => {
     setResumeData({ ...resumeData, [field]: value });
     if (warnings[field]) setWarnings(prev => ({ ...prev, [field]: null }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
   };
 
+  const hasFirstAndLast = (value) => (value || '').trim().split(/\s+/).filter(Boolean).length >= 2;
+  const hasEnoughDigits = (value) => (value || '').replace(/\D/g, '').length >= 10;
+  const isEmailFormat = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
+
   const validateOnBlur = (field, value) => {
+    if (field === 'fullName') {
+      setErrors(prev => ({ ...prev, fullName: hasFirstAndLast(value) ? null : 'Please enter your first and last name' }));
+      return;
+    }
+    if (field === 'phone') {
+      setErrors(prev => ({ ...prev, phone: hasEnoughDigits(value) ? null : 'Please enter a valid phone number' }));
+      return;
+    }
+    if (field === 'location') {
+      setErrors(prev => ({ ...prev, location: value.trim() ? null : 'Location is required' }));
+      return;
+    }
     if (!value.trim()) { setWarnings(prev => ({ ...prev, [field]: null })); return; }
-    if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    if (field === 'email' && !isEmailFormat(value)) {
       setWarnings(prev => ({ ...prev, email: "This doesn't look like a valid email address." }));
     }
     if (field === 'linkedin' && value.trim() && !value.includes('linkedin.com')) {
@@ -399,7 +417,11 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
     }
   };
 
-  const isValid = resumeData.fullName && resumeData.email && resumeData.phone;
+  const isValid =
+    hasFirstAndLast(resumeData.fullName) &&
+    isEmailFormat(resumeData.email) &&
+    hasEnoughDigits(resumeData.phone) &&
+    (resumeData.location || '').trim().length > 0;
 
   return (
     <>
@@ -412,9 +434,11 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="text"
             value={resumeData.fullName}
             onChange={(e) => handleChange('fullName', e.target.value)}
+            onBlur={(e) => validateOnBlur('fullName', e.target.value)}
             placeholder="Jane Doe"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
         </div>
 
         <div>
@@ -440,22 +464,26 @@ function ContactStep({ resumeData, setResumeData, onNext }) {
             type="tel"
             value={resumeData.phone}
             onChange={(e) => handleChange('phone', e.target.value)}
+            onBlur={(e) => validateOnBlur('phone', e.target.value)}
             placeholder="(555) 123-4567"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Location
+            Location *
           </label>
           <input
             type="text"
             value={resumeData.location}
             onChange={(e) => handleChange('location', e.target.value)}
+            onBlur={(e) => validateOnBlur('location', e.target.value)}
             placeholder="City, State"
             className="w-full border border-gray-300 rounded-lg p-2 text-sm"
           />
+          {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
         </div>
 
         <div>
@@ -574,44 +602,98 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
   const [endMonth, setEndMonth] = useState('');
   const [endYear, setEndYear] = useState('');
   const [showForm, setShowForm] = useState(resumeData.experience.length === 0);
+  const [editingIndex, setEditingIndex] = useState(null);
+
+  const hasTitle = currentJob.title.trim().length >= 2;
+  const hasCompany = currentJob.company.trim().length >= 2;
+  const hasStartDate = Boolean(startMonth && startYear);
+  const hasEndDate = currentJob.current || Boolean(endMonth && endYear);
+  const hasBullet = currentJob.bullets.some(b => b.trim());
+  const canSaveJob = hasTitle && hasCompany && hasStartDate && hasEndDate && hasBullet;
+
+  // Only surface a blocker once the user has started filling the job in
+  const jobStarted = Boolean(currentJob.title.trim() || currentJob.company.trim() || startMonth || startYear);
+
+  const resetForm = () => {
+    setCurrentJob({
+      title: "",
+      company: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      current: false,
+      summary: "",
+      summaryDismissed: false,
+      bullets: [""]
+    });
+    setStartMonth('');
+    setStartYear('');
+    setEndMonth('');
+    setEndYear('');
+    setEditingIndex(null);
+  };
 
   const addJob = (andContinue = false) => {
-    if (currentJob.title && currentJob.company && startMonth && startYear) {
+    if (canSaveJob) {
       const jobToAdd = {
         ...currentJob,
         startDate: `${startYear}-${startMonth}`,
         endDate: currentJob.current ? "" : (endMonth && endYear ? `${endYear}-${endMonth}` : ""),
         bullets: currentJob.bullets.filter(b => b.trim())
       };
-      
-      setResumeData({
-        ...resumeData,
-        experience: [...resumeData.experience, jobToAdd]
-      });
-      
-      // Reset form
-      setCurrentJob({
-        title: "",
-        company: "",
-        location: "",
-        startDate: "",
-        endDate: "",
-        current: false,
-        summary: "",
-        summaryDismissed: false,
-        bullets: [""]
-      });
-      setStartMonth('');
-      setStartYear('');
-      setEndMonth('');
-      setEndYear('');
-      
+
+      if (editingIndex !== null) {
+        const updated = [...resumeData.experience];
+        updated[editingIndex] = jobToAdd;
+        setResumeData({ ...resumeData, experience: updated });
+      } else {
+        setResumeData({
+          ...resumeData,
+          experience: [...resumeData.experience, jobToAdd]
+        });
+      }
+
+      resetForm();
+
       if (andContinue) {
         onNext();
       } else {
         setShowForm(false);
       }
     }
+  };
+
+  const editJob = (index) => {
+    const job = resumeData.experience[index];
+    const [startY, startM] = (job.startDate || '').split('-');
+    const [endY, endM] = (job.endDate || '').split('-');
+
+    setCurrentJob({
+      title: job.title || "",
+      company: job.company || "",
+      location: job.location || "",
+      startDate: job.startDate || "",
+      endDate: job.endDate || "",
+      current: Boolean(job.current),
+      summary: job.summary || "",
+      summaryDismissed: Boolean(job.summaryDismissed),
+      bullets: job.bullets?.length > 0 ? [...job.bullets] : [""]
+    });
+    setStartMonth(startM || '');
+    setStartYear(startY || '');
+    setEndMonth(endM || '');
+    setEndYear(endY || '');
+    setEditingIndex(index);
+    setShowForm(true);
+  };
+
+  const deleteJob = (index) => {
+    setResumeData({
+      ...resumeData,
+      experience: resumeData.experience.filter((_, i) => i !== index)
+    });
+    // Indexes shift on delete, so drop any in-progress edit
+    if (editingIndex !== null) resetForm();
   };
 
   const updateBullet = (index, value) => {
@@ -639,8 +721,21 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
           </p>
           <div className="space-y-1">
             {resumeData.experience.map((job, index) => (
-              <div key={index} className="text-xs text-gray-600 bg-green-50 p-2 rounded">
-                ✓ {job.title} at {job.company}
+              <div key={index} className="text-xs text-gray-700 bg-green-50 p-2 rounded flex items-start gap-2">
+                <span className="flex-shrink-0">✓</span>
+                <span className="flex-1 min-w-0 break-words">{job.title} at {job.company}</span>
+                <button
+                  onClick={() => editJob(index)}
+                  className="flex-shrink-0 text-purple-600 hover:text-purple-700 text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteJob(index)}
+                  className="flex-shrink-0 text-red-600 hover:text-red-700 text-xs font-semibold"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
@@ -687,6 +782,9 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                 placeholder="Event Coordinator"
                 className="w-full border border-gray-300 rounded p-2 text-sm"
               />
+              {currentJob.title.trim() && !hasTitle && (
+                <p className="text-red-500 text-xs mt-1">Job title must be at least 2 characters</p>
+              )}
             </div>
 
             <div>
@@ -700,6 +798,9 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                 placeholder="Antigravity Orlando"
                 className="w-full border border-gray-300 rounded p-2 text-sm"
               />
+              {currentJob.company.trim() && !hasCompany && (
+                <p className="text-red-500 text-xs mt-1">Company must be at least 2 characters</p>
+              )}
             </div>
 
             <div>
@@ -746,7 +847,7 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
 
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  End Date
+                  End Date *
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <select
@@ -785,6 +886,9 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
                     ))}
                   </select>
                 </div>
+                {jobStarted && !hasEndDate && (
+                  <p className="text-red-500 text-xs mt-1">End date is required unless this is your current job</p>
+                )}
               </div>
             </div>
 
@@ -819,7 +923,7 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Achievements (bullets)
+                Achievements (bullets) *
               </label>
               {currentJob.bullets.map((bullet, index) => (
                 <div key={index} className="flex gap-2 mb-2">
@@ -846,30 +950,53 @@ function ExperienceStep({ resumeData, setResumeData, onNext, onBack }) {
               >
                 + Add Another Achievement
               </button>
+              {jobStarted && !hasBullet && (
+                <p className="text-red-500 text-xs mt-1">Add at least one bullet describing what you did in this role</p>
+              )}
             </div>
 
             {/* Two-button layout - stacked */}
             <div className="space-y-2 pt-2">
-              <button
-                onClick={() => addJob(false)}
-                disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
-                className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
-              >
-                Save Job & Add Another
-              </button>
-              <button
-                onClick={() => addJob(true)}
-                disabled={!currentJob.title || !currentJob.company || !startMonth || !startYear}
-                className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
-              >
-                Save Job & Continue to Education
-              </button>
+              {editingIndex !== null ? (
+                <>
+                  <button
+                    onClick={() => addJob(false)}
+                    disabled={!canSaveJob}
+                    className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => { resetForm(); setShowForm(false); }}
+                    className="w-full text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel Edit
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => addJob(false)}
+                    disabled={!canSaveJob}
+                    className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
+                  >
+                    Save Job & Add Another
+                  </button>
+                  <button
+                    onClick={() => addJob(true)}
+                    disabled={!canSaveJob}
+                    className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
+                  >
+                    Save Job & Continue to Education
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
           {resumeData.experience.length > 0 && (
             <button
-              onClick={() => setShowForm(false)}
+              onClick={() => { if (editingIndex !== null) resetForm(); setShowForm(false); }}
               className="text-xs text-gray-500 hover:text-gray-700"
             >
               Cancel
@@ -913,6 +1040,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
   const [gradYear, setGradYear] = useState('');
   const [currentLine, setCurrentLine] = useState('');
   const [showForm, setShowForm] = useState(resumeData.education.length === 0);
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const addLine = () => {
     if (currentLine.trim()) {
@@ -931,37 +1059,83 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
     });
   };
 
+  const hasSchool = currentEdu.school.trim().length > 0;
+  const hasDegree = currentEdu.degree.trim().length > 0;
+  const hasGradDate = Boolean(gradMonth && gradYear);
+  const canSaveEdu = hasSchool && hasDegree && hasGradDate;
+
+  // Only surface a blocker once the user has started filling the entry in
+  const eduStarted = Boolean(hasSchool || hasDegree || gradMonth || gradYear);
+
+  const resetForm = () => {
+    setCurrentEdu({
+      school: "",
+      degree: "",
+      field: "",
+      graduationDate: "",
+      location: "",
+      lines: []
+    });
+    setGradMonth('');
+    setGradYear('');
+    setCurrentLine('');
+    setEditingIndex(null);
+  };
+
   const addEducation = (andContinue = false) => {
-    if (currentEdu.school) {
+    if (canSaveEdu) {
       const eduToAdd = {
         ...currentEdu,
         graduationDate: gradMonth && gradYear ? `${gradYear}-${gradMonth}` : ""
       };
-      
-      setResumeData({
-        ...resumeData,
-        education: [...resumeData.education, eduToAdd]
-      });
-      
-      // Reset form
-      setCurrentEdu({
-        school: "",
-        degree: "",
-        field: "",
-        graduationDate: "",
-        location: "",
-        lines: []
-      });
-      setGradMonth('');
-      setGradYear('');
-      setCurrentLine('');
-      
+
+      if (editingIndex !== null) {
+        const updated = [...resumeData.education];
+        updated[editingIndex] = eduToAdd;
+        setResumeData({ ...resumeData, education: updated });
+      } else {
+        setResumeData({
+          ...resumeData,
+          education: [...resumeData.education, eduToAdd]
+        });
+      }
+
+      resetForm();
+
       if (andContinue) {
         onNext();
       } else {
         setShowForm(false);
       }
     }
+  };
+
+  const editEducation = (index) => {
+    const edu = resumeData.education[index];
+    const [gradY, gradM] = (edu.graduationDate || '').split('-');
+
+    setCurrentEdu({
+      school: edu.school || "",
+      degree: edu.degree || "",
+      field: edu.field || "",
+      graduationDate: edu.graduationDate || "",
+      location: edu.location || "",
+      lines: edu.lines ? [...edu.lines] : []
+    });
+    setGradMonth(gradM || '');
+    setGradYear(gradY || '');
+    setCurrentLine('');
+    setEditingIndex(index);
+    setShowForm(true);
+  };
+
+  const deleteEducation = (index) => {
+    setResumeData({
+      ...resumeData,
+      education: resumeData.education.filter((_, i) => i !== index)
+    });
+    // Indexes shift on delete, so drop any in-progress edit
+    if (editingIndex !== null) resetForm();
   };
 
   return (
@@ -974,8 +1148,21 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
           </p>
           <div className="space-y-1">
             {resumeData.education.map((edu, index) => (
-              <div key={index} className="text-xs text-gray-600 bg-green-50 p-2 rounded">
-                ✓ {edu.school}
+              <div key={index} className="text-xs text-gray-700 bg-green-50 p-2 rounded flex items-start gap-2">
+                <span className="flex-shrink-0">✓</span>
+                <span className="flex-1 min-w-0 break-words">{edu.school}</span>
+                <button
+                  onClick={() => editEducation(index)}
+                  className="flex-shrink-0 text-purple-600 hover:text-purple-700 text-xs font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => deleteEducation(index)}
+                  className="flex-shrink-0 text-red-600 hover:text-red-700 text-xs font-semibold"
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
@@ -1026,7 +1213,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Degree
+                Degree *
               </label>
               <input
                 type="text"
@@ -1035,6 +1222,9 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
                 placeholder="Bachelor of Science"
                 className="w-full border border-gray-300 rounded p-2 text-sm"
               />
+              {eduStarted && !hasDegree && (
+                <p className="text-red-500 text-xs mt-1">Degree is required</p>
+              )}
             </div>
 
             <div>
@@ -1052,7 +1242,7 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
-                Graduation Date
+                Graduation Date *
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <select
@@ -1076,6 +1266,9 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
                   ))}
                 </select>
               </div>
+              {eduStarted && !hasGradDate && (
+                <p className="text-red-500 text-xs mt-1">Graduation date is required</p>
+              )}
             </div>
 
             <div>
@@ -1134,26 +1327,46 @@ function EducationStep({ resumeData, setResumeData, onNext, onBack }) {
 
             {/* Two-button layout - stacked */}
             <div className="space-y-2 pt-2">
-              <button
-                onClick={() => addEducation(false)}
-                disabled={!currentEdu.school}
-                className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
-              >
-                Save Education & Add Another
-              </button>
-              <button
-                onClick={() => addEducation(true)}
-                disabled={!currentEdu.school}
-                className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
-              >
-                Save Education & Continue to Skills
-              </button>
+              {editingIndex !== null ? (
+                <>
+                  <button
+                    onClick={() => addEducation(false)}
+                    disabled={!canSaveEdu}
+                    className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => { resetForm(); setShowForm(false); }}
+                    className="w-full text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel Edit
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => addEducation(false)}
+                    disabled={!canSaveEdu}
+                    className="w-full bg-white border-2 border-purple-600 text-purple-600 px-4 py-1.5 rounded-lg hover:bg-purple-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors text-xs font-semibold"
+                  >
+                    Save Education & Add Another
+                  </button>
+                  <button
+                    onClick={() => addEducation(true)}
+                    disabled={!canSaveEdu}
+                    className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs font-semibold shadow-sm"
+                  >
+                    Save Education & Continue to Skills
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
           {resumeData.education.length > 0 && (
             <button
-              onClick={() => setShowForm(false)}
+              onClick={() => { if (editingIndex !== null) resetForm(); setShowForm(false); }}
               className="text-xs text-gray-500 hover:text-gray-700"
             >
               Cancel
@@ -1212,7 +1425,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
   };
 
   const totalSkills = Object.values(resumeData.skillsCategories).reduce((sum, skills) => sum + skills.length, 0);
-  const isValid = totalSkills > 0;
+  const isValid = totalSkills >= 3;
 
   return (
     <>
@@ -1274,6 +1487,10 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
             ))}
           </div>
         )}
+
+        {!isValid && (
+          <p className="text-red-500 text-xs mt-1">Add at least 3 skills ({totalSkills} of 3 added)</p>
+        )}
       </div>
 
       <div className="flex gap-2 mt-6">
@@ -1295,6 +1512,16 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
   );
 }
 
+// Optional sections only render if their key is in sectionOrder, so keep it in
+// sync as entries are added and removed.
+function syncSectionOrder(data, key, hasEntries) {
+  const order = Array.isArray(data.sectionOrder) ? data.sectionOrder : [];
+  if (hasEntries) {
+    return order.includes(key) ? data : { ...data, sectionOrder: [...order, key] };
+  }
+  return order.includes(key) ? { ...data, sectionOrder: order.filter(k => k !== key) } : data;
+}
+
 // Projects Step Component
 function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   const [showFields, setShowFields] = useState(false);
@@ -1308,17 +1535,15 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   const addProject = () => {
     if (currentProject.name && currentProject.description) {
+      let updated;
       if (editingIndex !== null) {
-        const updated = [...resumeData.projects];
+        updated = [...resumeData.projects];
         updated[editingIndex] = currentProject;
-        setResumeData({ ...resumeData, projects: updated });
         setEditingIndex(null);
       } else {
-        setResumeData({
-          ...resumeData,
-          projects: [...resumeData.projects, currentProject]
-        });
+        updated = [...resumeData.projects, currentProject];
       }
+      setResumeData(syncSectionOrder({ ...resumeData, projects: updated }, 'projects', updated.length > 0));
       setCurrentProject({ name: "", description: "", link: "" });
     }
   };
@@ -1330,10 +1555,8 @@ function ProjectsStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   };
 
   const deleteProject = (index) => {
-    setResumeData({
-      ...resumeData,
-      projects: resumeData.projects.filter((_, i) => i !== index)
-    });
+    const updated = resumeData.projects.filter((_, i) => i !== index);
+    setResumeData(syncSectionOrder({ ...resumeData, projects: updated }, 'projects', updated.length > 0));
   };
 
   if (!showFields) {
@@ -1490,37 +1713,41 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
   const [editingIndex, setEditingIndex] = useState(null);
   const [currentCert, setCurrentCert] = useState({
     name: "",
-    details: ""
+    organization: "",
+    date: ""
   });
 
   const addCertification = () => {
-    if (currentCert.name && currentCert.details) {
+    if (currentCert.name) {
+      let updated;
       if (editingIndex !== null) {
-        const updated = [...resumeData.certifications];
+        updated = [...resumeData.certifications];
         updated[editingIndex] = currentCert;
-        setResumeData({ ...resumeData, certifications: updated });
         setEditingIndex(null);
       } else {
-        setResumeData({
-          ...resumeData,
-          certifications: [...resumeData.certifications, currentCert]
-        });
+        updated = [...resumeData.certifications, currentCert];
       }
-      setCurrentCert({ name: "", details: "" });
+      setResumeData(syncSectionOrder({ ...resumeData, certifications: updated }, 'certifications', updated.length > 0));
+      setCurrentCert({ name: "", organization: "", date: "" });
     }
   };
 
   const editCertification = (index) => {
-    setCurrentCert(resumeData.certifications[index]);
+    const cert = resumeData.certifications[index] || {};
+    setCurrentCert({
+      name: cert.name || "",
+      // Older entries stored org and date together in `details` — carry that
+      // string into Organization so editing never drops it.
+      organization: cert.organization || cert.details || "",
+      date: cert.date || ""
+    });
     setEditingIndex(index);
     setShowFields(true);
   };
 
   const deleteCertification = (index) => {
-    setResumeData({
-      ...resumeData,
-      certifications: resumeData.certifications.filter((_, i) => i !== index)
-    });
+    const updated = resumeData.certifications.filter((_, i) => i !== index);
+    setResumeData(syncSectionOrder({ ...resumeData, certifications: updated }, 'certifications', updated.length > 0));
   };
 
   if (!showFields) {
@@ -1575,20 +1802,33 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
 
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Details (Issuing org, date) *
+            Issuing Organization
           </label>
           <input
             type="text"
-            value={currentCert.details}
-            onChange={(e) => setCurrentCert({ ...currentCert, details: e.target.value })}
-            placeholder="Project Management Institute | 2023"
+            value={currentCert.organization}
+            onChange={(e) => setCurrentCert({ ...currentCert, organization: e.target.value })}
+            placeholder="Project Management Institute"
+            className="w-full border border-gray-300 rounded p-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Date Earned
+          </label>
+          <input
+            type="text"
+            value={currentCert.date}
+            onChange={(e) => setCurrentCert({ ...currentCert, date: e.target.value })}
+            placeholder="2024, March 2024, or 2022-2024"
             className="w-full border border-gray-300 rounded p-2 text-sm"
           />
         </div>
 
         <button
           onClick={addCertification}
-          disabled={!currentCert.name || !currentCert.details}
+          disabled={!currentCert.name}
           className="w-full bg-purple-600 text-white px-4 py-1.5 rounded-lg hover:bg-purple-700 disabled:bg-gray-300 transition-colors text-xs font-semibold shadow-sm"
         >
           {editingIndex !== null ? 'Save Changes' : 'Add This Certification'}
@@ -1597,7 +1837,7 @@ function CertificationsStep({ resumeData, setResumeData, onNext, onBack, onSkip 
           <button
             onClick={() => {
               setEditingIndex(null);
-              setCurrentCert({ name: "", details: "" });
+              setCurrentCert({ name: "", organization: "", date: "" });
             }}
             className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
           >
@@ -1663,17 +1903,15 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   const addVolunteer = () => {
     if (currentVol.organization && currentVol.description) {
+      let updated;
       if (editingIndex !== null) {
-        const updated = [...resumeData.volunteer];
+        updated = [...resumeData.volunteer];
         updated[editingIndex] = currentVol;
-        setResumeData({ ...resumeData, volunteer: updated });
         setEditingIndex(null);
       } else {
-        setResumeData({
-          ...resumeData,
-          volunteer: [...resumeData.volunteer, currentVol]
-        });
+        updated = [...resumeData.volunteer, currentVol];
       }
+      setResumeData(syncSectionOrder({ ...resumeData, volunteer: updated }, 'volunteer', updated.length > 0));
       setCurrentVol({ organization: "", description: "" });
     }
   };
@@ -1685,10 +1923,8 @@ function VolunteerStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   };
 
   const deleteVolunteer = (index) => {
-    setResumeData({
-      ...resumeData,
-      volunteer: resumeData.volunteer.filter((_, i) => i !== index)
-    });
+    const updated = resumeData.volunteer.filter((_, i) => i !== index);
+    setResumeData(syncSectionOrder({ ...resumeData, volunteer: updated }, 'volunteer', updated.length > 0));
   };
 
   if (!showFields) {
@@ -1831,17 +2067,15 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
 
   const addLanguage = () => {
     if (currentLang.language) {
+      let updated;
       if (editingIndex !== null) {
-        const updated = [...resumeData.languages];
+        updated = [...resumeData.languages];
         updated[editingIndex] = currentLang;
-        setResumeData({ ...resumeData, languages: updated });
         setEditingIndex(null);
       } else {
-        setResumeData({
-          ...resumeData,
-          languages: [...resumeData.languages, currentLang]
-        });
+        updated = [...resumeData.languages, currentLang];
       }
+      setResumeData(syncSectionOrder({ ...resumeData, languages: updated }, 'languages', updated.length > 0));
       setCurrentLang({ language: "", proficiency: "Professional" });
     }
   };
@@ -1853,10 +2087,8 @@ function LanguagesStep({ resumeData, setResumeData, onNext, onBack, onSkip }) {
   };
 
   const deleteLanguage = (index) => {
-    setResumeData({
-      ...resumeData,
-      languages: resumeData.languages.filter((_, i) => i !== index)
-    });
+    const updated = resumeData.languages.filter((_, i) => i !== index);
+    setResumeData(syncSectionOrder({ ...resumeData, languages: updated }, 'languages', updated.length > 0));
   };
 
   if (!showFields) {

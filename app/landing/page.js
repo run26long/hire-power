@@ -40,6 +40,13 @@ const supabase = createClient();
     return { score: 1, label: 'Weak', color: '#f59e0b', width: '40%' };
   };
 
+  // Supabase returns a raw character-class list when a password fails its rules.
+  // Point people at the requirements already shown under the field instead.
+  const friendlyAuthError = (message) =>
+    /password/i.test(message || '')
+      ? "Your password doesn't meet the requirements listed below."
+      : message;
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupLoading(true);
@@ -68,7 +75,7 @@ const supabase = createClient();
         setSignupAccountExists(true);
         setTimeout(() => router.push('/dashboard'), 2000);
       } else {
-        setSignupError(signUpError.message);
+        setSignupError(friendlyAuthError(signUpError.message));
       }
       return;
     }
@@ -294,7 +301,14 @@ const supabase = createClient();
           .never-start-section { padding: 48px 24px !important; max-width: 100vw !important; overflow: hidden !important; }
           .finish-line-section { max-width: 100vw !important; overflow: hidden !important; }
           .final-cta { max-width: 100vw !important; overflow: hidden !important; }
-          .hero-visual { display: none !important; }
+          /* Hero visual: desktop's composition uniformly scaled, with a deeper overlap
+             buying back the width the larger scale costs. Cards keep their desktop inline
+             widths (360 / 210); zoom scales each card whole so proportions match desktop.
+             zoom also scales the margin, so: (360 + 210 - 120) * 0.72 = 324px, which fits
+             the ~327px available at a 375px viewport. */
+          .hero-visual { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: center !important; gap: 0 !important; width: 100% !important; margin-top: 32px !important; }
+          .hero-chat-card { zoom: 0.72 !important; }
+          .hero-score-card { zoom: 0.72 !important; margin-left: -120px !important; }
           .hero h1 { font-size: 38px !important; letter-spacing: -1px !important; }
           .hero-inner-pad { margin-left: 0 !important; }
           .hero-actions { flex-direction: column !important; align-items: flex-start !important; }
@@ -494,7 +508,7 @@ const supabase = createClient();
                           if (data.error === 'ACCOUNT_EXISTS') {
                             setSignupAccountExists(true)
                           } else {
-                            setSignupError(data.error || 'Something went wrong. Please try again.')
+                            setSignupError(friendlyAuthError(data.error) || 'Something went wrong. Please try again.')
                           }
                           return
                         }
@@ -691,7 +705,7 @@ const supabase = createClient();
 
         <div className="hero-visual" style={{display:'flex',alignItems:'center',position:'relative'}}>
           {/* Chat card */}
-          <div style={{background:'white',borderRadius:'20px',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.11), 0 4px 16px rgba(0,0,0,0.06)',border:'1px solid rgba(0,0,0,0.07)',width:'360px',flexShrink:0,position:'relative',zIndex:1}}>
+          <div className="hero-chat-card" style={{background:'white',borderRadius:'20px',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.11), 0 4px 16px rgba(0,0,0,0.06)',border:'1px solid rgba(0,0,0,0.07)',width:'360px',flexShrink:0,position:'relative',zIndex:1}}>
             <div style={{background:'linear-gradient(to right,#667eea,#764ba2)',padding:'11px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
                 <div style={{width:'24px',height:'24px',background:'rgba(255,255,255,0.2)',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -778,7 +792,7 @@ const supabase = createClient();
           </div>
 
           {/* Improvement Complete card */}
-          <div style={{width:'210px',flexShrink:0,marginLeft:'-16px',background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 20px 60px rgba(147,51,234,0.22), 0 4px 20px rgba(0,0,0,0.1)',border:'1px solid rgba(147,51,234,0.1)',position:'relative',zIndex:2}}>
+          <div className="hero-score-card" style={{width:'210px',flexShrink:0,marginLeft:'-16px',background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 20px 60px rgba(147,51,234,0.22), 0 4px 20px rgba(0,0,0,0.1)',border:'1px solid rgba(147,51,234,0.1)',position:'relative',zIndex:2}}>
             <div style={{background:'linear-gradient(to bottom right, #667eea, #764ba2)',padding:'18px 16px 14px',textAlign:'center'}}>
               <div style={{width:'36px',height:'36px',background:'rgba(255,255,255,0.2)',borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px'}}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10.5 2L4 10h5.5L7.5 16l7-8h-5.5L10.5 2z" fill="white"/></svg>

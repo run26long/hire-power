@@ -4,7 +4,7 @@
 
 import React from 'react'
 import { Document, Page, View, Text } from '@react-pdf/renderer'
-import { formatDate, formatDateRange, getSkillsDisplay } from '../templateUtils'
+import { formatDate, formatDateRange, getCertDetails, getSkillsDisplay } from '../templateUtils'
 import { groupExperience } from '../../utils/groupExperience'
 import { groupEducation } from '../../utils/groupEducation'
 
@@ -403,12 +403,12 @@ export default function ResumePDF({
                   <View wrap={false}>
                     <SectionHeader title={resumeData.sectionTitles?.certifications || 'CERTIFICATIONS'} font={resolvedFont} base={base} sp={sp} />
                     <View style={{ marginBottom: restCerts.length > 0 ? Math.round(10 * sp) : 0 }}>
-                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{firstCert.name || ''}</Text>{firstCert.details ? <Text>{' | ' + firstCert.details}</Text> : null}</Text>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{firstCert.name || ''}</Text>{getCertDetails(firstCert)}</Text>
                     </View>
                   </View>
                   {restCerts.map((c, i) => (
                     <View key={i+1} wrap={false} style={{ marginBottom: i < restCerts.length - 1 ? Math.round(10 * sp) : 0 }}>
-                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{c.details ? <Text>{' | ' + c.details}</Text> : null}</Text>
+                      <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{c.name || ''}</Text>{getCertDetails(c)}</Text>
                     </View>
                   ))}
                 </View>

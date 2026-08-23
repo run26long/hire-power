@@ -12,6 +12,15 @@ import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
 import CoachReviseModal from '@/app/components/CoachReviseModal'
 
+// Mirrors the display_name convention job-specific resumes are created with,
+// so a job reads the same whichever document you are looking at.
+function coverLetterLabel(cl) {
+  const title = cl?.job_title?.trim()
+  const company = cl?.job_company?.trim()
+  if (title && company) return `${title} at ${company}`
+  return title || company || 'Draft'
+}
+
 export default function CoverLetterPage() {
   const params = useParams()
   const router = useRouter()
@@ -20,6 +29,7 @@ export default function CoverLetterPage() {
   const [coverLetter, setCoverLetter] = useState(null)
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
+  const [siblingCoverLetters, setSiblingCoverLetters] = useState([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [unsavedNavTarget, setUnsavedNavTarget] = useState(null)
@@ -189,6 +199,7 @@ export default function CoverLetterPage() {
             .select('id')
             .eq('resume_id', coverLetter.linked_resume_id)
             .eq('user_id', user.id)
+            .neq('application_status', 'archived')
             .limit(1)
           if (resumeCardsError) throw resumeCardsError
 
@@ -205,24 +216,35 @@ export default function CoverLetterPage() {
         }
       }
 
-      // Check if a card already exists for this job title + company before creating
-      const { data: matchingCards, error: matchError } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('title', coverLetter.job_title || '')
-        .eq('company', coverLetter.job_company || '')
-        .limit(1)
-      if (matchError) throw matchError
+      // Check if a card already exists for this job title + company before creating.
+      // PostgREST filters travel in the query string, so an oversized title or
+      // company overflows the request URL and the gateway answers with a body that
+      // isn't JSON — surfacing as an empty error object rather than a Postgres
+      // error. Skip the lookup instead: the insert below is a POST, so it still
+      // succeeds.
+      const titleOk = typeof coverLetter.job_title === 'string' && coverLetter.job_title.trim().length > 0 && coverLetter.job_title.length <= 200
+      const companyOk = typeof coverLetter.job_company === 'string' && coverLetter.job_company.trim().length > 0 && coverLetter.job_company.length <= 200
 
-      if (matchingCards?.[0]) {
-        // Card exists for this job — link CL to it
-        const { error: updateError } = await supabase
+      if (titleOk && companyOk) {
+        const { data: matchingCards, error: matchError } = await supabase
           .from('applications')
-          .update({ cover_letter_id: coverLetter.id })
-          .eq('id', matchingCards[0].id)
-        if (updateError) throw updateError
-        return
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', coverLetter.job_title)
+          .eq('company', coverLetter.job_company)
+          .neq('application_status', 'archived')
+          .limit(1)
+        if (matchError) throw matchError
+
+        if (matchingCards?.[0]) {
+          // Card exists for this job — link CL to it
+          const { error: updateError } = await supabase
+            .from('applications')
+            .update({ cover_letter_id: coverLetter.id })
+            .eq('id', matchingCards[0].id)
+          if (updateError) throw updateError
+          return
+        }
       }
 
       // No existing card — create one (never link a core resume to a job card)
@@ -271,6 +293,7 @@ export default function CoverLetterPage() {
       }
 
       setCoverLetter(data)
+      loadBreadcrumbLinks(user.id)
       const loadedTemplate = data.template_id || 'current'
       setSelectedTemplate(loadedTemplate)
       setSelectedFont(data.font_family || templateFonts[loadedTemplate] || 'Lato')
@@ -281,6 +304,24 @@ export default function CoverLetterPage() {
       setErrorToast("We couldn't load your cover letter. Please refresh the page.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Breadcrumb dropdown targets. The linked resume already rides along on the
+  // cover letter row, so the only thing missing is the user's other letters.
+  async function loadBreadcrumbLinks(userId) {
+    try {
+      const { data } = await supabase
+        .from('cover_letters')
+        .select('id, job_title, job_company')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      setSiblingCoverLetters(data || [])
+    } catch (err) {
+      // Navigation shortcut only. Log it and leave the crumb without its menu.
+      console.warn('Breadcrumb links failed to load:', err)
     }
   }
 
@@ -513,8 +554,8 @@ export default function CoverLetterPage() {
       const a = document.createElement('a')
       a.href = blobUrl
       const name = coverLetter.cover_letter_data?.candidateName || 'Cover_Letter'
-      const company = coverLetter.job_company || 'Application'
-      a.download = `${name.replace(/\s+/g, '_')}_Cover_Letter_${company.replace(/\s+/g, '_')}.pdf`
+      const jobTitle = coverLetter.job_title || 'Application'
+      a.download = `${name.replace(/\s+/g, '_')}_Cover_Letter_${jobTitle.replace(/\s+/g, '_')}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -606,7 +647,18 @@ export default function CoverLetterPage() {
       />
       <Breadcrumb items={[
         { label: 'Resume Coach', path: '/resume-coach' },
-        { label: `Cover Letter — ${coverLetter.job_title || 'Draft'}` }
+        {
+          label: coverLetterLabel(coverLetter),
+          options: siblingCoverLetters
+            .filter(cl => cl.id !== coverLetter.id)
+            .map(cl => ({ label: coverLetterLabel(cl), path: `/cover-letter/${cl.id}` }))
+        },
+        {
+          label: 'Cover Letter',
+          options: coverLetter.linked_resume_id
+            ? [{ label: 'Resume', path: `/resume/${coverLetter.linked_resume_id}` }]
+            : []
+        }
       ]} />
 
       {/* Mobile Toolbar */}

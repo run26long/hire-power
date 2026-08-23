@@ -217,7 +217,9 @@ export default function CareerVaultPage() {
   // Set current job manually
   const [showSetJobModal, setShowSetJobModal] = useState(false);
   const [setJobTitle, setSetJobTitle] = useState('');
+  const [setJobTitleError, setSetJobTitleError] = useState(null);
   const [setJobCompany, setSetJobCompany] = useState('');
+  const [setJobCompanyError, setSetJobCompanyError] = useState(null);
   const [setJobDescription, setSetJobDescription] = useState('');
   const [setJobResumeId, setSetJobResumeId] = useState('');
   const [setJobHiredDate, setSetJobHiredDate] = useState('');
@@ -1345,20 +1347,28 @@ export default function CareerVaultPage() {
                 <input
                   type="text"
                   value={setJobTitle}
-                  onChange={e => setSetJobTitle(e.target.value)}
+                  onChange={e => { setSetJobTitle(e.target.value); setSetJobTitleError(null); }}
+                  onBlur={e => setSetJobTitleError(
+                    e.target.value.length > 100 ? 'Please enter just the job title (max 100 characters).' : null
+                  )}
                   placeholder="e.g. Operations Coordinator"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {setJobTitleError && <p className="text-xs text-red-600 mt-1">{setJobTitleError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Company *</label>
                 <input
                   type="text"
                   value={setJobCompany}
-                  onChange={e => setSetJobCompany(e.target.value)}
+                  onChange={e => { setSetJobCompany(e.target.value); setSetJobCompanyError(null); }}
+                  onBlur={e => setSetJobCompanyError(
+                    e.target.value.length > 100 ? 'Please enter just the company name (max 100 characters).' : null
+                  )}
                   placeholder="e.g. Freeman"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {setJobCompanyError && <p className="text-xs text-red-600 mt-1">{setJobCompanyError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Start Date <span className="font-normal text-gray-400">(optional)</span></label>
@@ -1382,7 +1392,7 @@ export default function CareerVaultPage() {
               {setJobError && <p className="text-xs text-red-600">{setJobError}</p>}
               <button
                 onClick={handleSetCurrentJobManually}
-                disabled={setJobSaving || !setJobTitle.trim() || !setJobCompany.trim()}
+                disabled={setJobSaving || !setJobTitle.trim() || !setJobCompany.trim() || !!setJobTitleError || !!setJobCompanyError}
                 className="w-full rounded-lg py-2.5 font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 hover:opacity-90"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
               >

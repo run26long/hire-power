@@ -26,6 +26,26 @@ const styles = `
   }
 `
 
+// Cuts a knowledge statement back to its first meaningful clause so the modal
+// reads as a scannable list. Display only — the stored row and the coaching
+// context block both keep the full statement.
+const KNOWLEDGE_CLAUSE_BREAKS = [', including', ', where', ', with', ', using', ', by', ', so']
+
+function trimKnowledgeContent(content) {
+  const text = String(content || '').trim()
+  const haystack = text.toLowerCase()
+
+  let cut = -1
+  for (const marker of KNOWLEDGE_CLAUSE_BREAKS) {
+    const index = haystack.indexOf(marker)
+    if (index !== -1 && (cut === -1 || index < cut)) cut = index
+  }
+  if (cut !== -1) return text.slice(0, cut)
+
+  const comma = text.indexOf(',')
+  return comma !== -1 ? text.slice(0, comma) : text
+}
+
 async function fireJT1MarkerIfFirst(supabase) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -112,9 +132,15 @@ export default function ResumePage() {
   const [resume, setResume] = useState(null)
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
+  const [siblingResumes, setSiblingResumes] = useState([])
+  const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  // Tracks content the user changed by hand since the last score was written. Separate
+  // from hasUnsavedChanges, which clears on Save and also flips for font and date
+  // formatting — neither of which the scorer ever sees.
+  const [hasManualEditsSinceScore, setHasManualEditsSinceScore] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [unsavedNavTarget, setUnsavedNavTarget] = useState(null)
   const [pendingNavigation, setPendingNavigation] = useState(null)
@@ -189,6 +215,16 @@ const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [recoachAttempts, setRecoachAttempts] = useState(0)
   const [reviseModalState, setReviseModalState] = useState(null)
   const [bulletSelectMode, setBulletSelectMode] = useState(null)
+
+  // Career knowledge carried over from previous coaching sessions
+  const [knowledgeMatches, setKnowledgeMatches] = useState([])
+  // Same analysis with knowledge-covered gaps removed. Coach-only — every
+  // user-facing score and gap list keeps reading analysisResults.
+  const [filteredAnalysisResults, setFilteredAnalysisResults] = useState(null)
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false)
+  const [isKnowledgeRescoring, setIsKnowledgeRescoring] = useState(false)
+  const [knowledgeRescore, setKnowledgeRescore] = useState(null)
+  const knowledgeMatchRanRef = useRef(false)
 
   // Capture system state — counter + toast queue
   const [captureCounts, setCaptureCounts] = useState({ jobs: 0, education: 0, skills: 0, wins: 0 })
@@ -436,11 +472,19 @@ document.body.removeChild(a)
   }
 }
 
-const handleReassess = async (overrideData = null) => {
+const handleReassess = async (overrideData = null, { systemTriggered = false } = {}) => {
   setIsAnalyzing(true)
   setErrorToast(null)
   try {
     const isJobSpecific = resume.resume_type === 'job_specific'
+
+    // ── WHEN THE FLOOR APPLIES ──
+    // A system-triggered re-score (accept changes, finish review, targeted recoach)
+    // is rescoring content the user did not write, so a dip there is scorer variance
+    // and gets clamped. A user who edited their own resume and then asked for a fresh
+    // read gets the real number, up or down: they changed the content, so the score
+    // should reflect it.
+    const applyFloor = systemTriggered || !hasManualEditsSinceScore
 
     if (isJobSpecific) {
       // job specific resume: job match analysis
@@ -469,10 +513,19 @@ const handleReassess = async (overrideData = null) => {
       // Wrap to match how ai_analysis is read on load (analysisResults.analysis = raw job-analyze result)
       setAnalysisResults({ analysis: result })
 
+      // ── SCORE FLOOR ──
+      // The score a resume has already earned is never lowered by a later pass. The
+      // scorer carries run-to-run variance, and a re-assess that lands a point or two
+      // under the stored number reflects that variance, not worse content. The fresh
+      // analysis is still saved in full — only the number is clamped.
+      const flooredScore = (applyFloor && resume?.current_score && result.matchScore < resume.current_score)
+        ? resume.current_score
+        : result.matchScore
+
       const { error } = await supabase
         .from('resumes')
         .update({
-          current_score: result.matchScore,
+          current_score: flooredScore,
           last_assessed_at: new Date().toISOString(),
           ai_analysis: result
         })
@@ -484,8 +537,11 @@ const handleReassess = async (overrideData = null) => {
         return
       }
 
-      setResume(prev => ({ ...prev, current_score: result.matchScore }))
-      setScoreAfterCoaching(result.matchScore)
+      setResume(prev => ({ ...prev, current_score: flooredScore }))
+      setScoreAfterCoaching(flooredScore)
+      // The stored score now reflects the edited content, so the next re-assess
+      // starts from a clean slate and floors again.
+      setHasManualEditsSinceScore(false)
 
       const prevScore = resume?.current_score
       if (prevScore && result.matchScore > prevScore) {
@@ -512,7 +568,7 @@ const handleReassess = async (overrideData = null) => {
         } else if (existingCard) {
           const { error: cardUpdateError } = await supabase
             .from('applications')
-            .update({ match_score: result.matchScore })
+            .update({ match_score: flooredScore })
             .eq('id', existingCard.id)
 
           if (cardUpdateError) {
@@ -543,8 +599,15 @@ const handleReassess = async (overrideData = null) => {
       setAnalysisResults(result)
       setDetectedLevel(result.detectedLevel || 'entry')
 
+      // ── SCORE FLOOR ──
+      // Same rule as the job-specific path above: a re-assess can raise the stored
+      // score but never lower it, unless the user edited the content by hand.
+      const flooredScore = (applyFloor && resume?.current_score && result.score < resume.current_score)
+        ? resume.current_score
+        : result.score
+
       const updateData = {
-        current_score: result.score,
+        current_score: flooredScore,
         last_assessed_at: new Date().toISOString(),
         ai_analysis: result.analysis,
         score_breakdown: result.analysis?.breakdown
@@ -568,11 +631,13 @@ const handleReassess = async (overrideData = null) => {
 
       setResume(prev => ({
         ...prev,
-        current_score: result.score,
+        current_score: flooredScore,
         journey_step: prev.journey_step === 'review' ? 'assess' : prev.journey_step
       }))
 
-      setScoreAfterCoaching(result.score)
+      setScoreAfterCoaching(flooredScore)
+      // Same reset as the job-specific path: the score now matches the content.
+      setHasManualEditsSinceScore(false)
 
       const prevScore = resume?.current_score
       if (prevScore && result.score > prevScore) {
@@ -594,6 +659,154 @@ const handleReassess = async (overrideData = null) => {
     setIsAnalyzing(false)
   }
 }
+// ── CAREER KNOWLEDGE CARRY-OVER ──
+// Once a job match analysis exists, check whether anything already confirmed in a
+// previous coaching session closes one of the gaps it found. Purely additive: any
+// failure here is swallowed so coaching is never blocked over a knowledge lookup.
+const knowledgeStorageKey = params?.id ? `hp_ck_modal_${params.id}` : null
+
+async function loadKnowledgeMatches(missingKeywords) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    const response = await fetch('/api/career-knowledge', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        action: 'match',
+        missingKeywords,
+        jobTitle: resume?.job_title || null,
+        jobCompany: resume?.job_company || null
+      })
+    })
+
+    if (!response.ok) {
+      console.error('Career knowledge match failed (non-blocking):', response.status)
+      return
+    }
+
+    const data = await response.json()
+    const matches = Array.isArray(data?.matches) ? data.matches : []
+    if (matches.length === 0) return
+
+    // The matches feed the coaching context regardless of whether the modal opens,
+    // so a user who already dismissed it still gets the benefit.
+    setKnowledgeMatches(matches)
+
+    // A gap a confirmed fact already covers is not a gap for the coach. The match
+    // endpoint judges coverage semantically and returns the keywords it cleared.
+    // Runs here so both the rescore path and the straight-to-coaching path get the
+    // same filtered list.
+    const currentMissing = analysisResults?.analysis?.missingKeywords
+    if (Array.isArray(currentMissing) && currentMissing.length > 0) {
+      const coveredKeywords = (data.coveredKeywords || [])
+        .map(k => k.toLowerCase())
+
+      const filteredMissingKeywords = currentMissing.filter(keyword =>
+        !coveredKeywords.includes(keyword.toLowerCase())
+      )
+
+      setFilteredAnalysisResults({
+        ...analysisResults,
+        analysis: {
+          ...analysisResults.analysis,
+          missingKeywords: filteredMissingKeywords
+        }
+      })
+    }
+
+    const alreadyShown = knowledgeStorageKey ? localStorage.getItem(knowledgeStorageKey) : null
+    if (!alreadyShown) {
+      if (knowledgeStorageKey) localStorage.setItem(knowledgeStorageKey, '1')
+      setShowKnowledgeModal(true)
+    }
+  } catch (err) {
+    console.error('Career knowledge match failed (non-blocking):', err)
+  }
+}
+
+useEffect(() => {
+  if (knowledgeMatchRanRef.current) return
+  if (!resume || !userProfile) return
+  if (resume.resume_type !== 'job_specific') return
+  if ((userProfile.subscription_tier || 'free') === 'free') return
+  if (resume.coaching_complete) return
+  if ((resume.journey_step || '') !== 'assess') return
+
+  const missing = analysisResults?.analysis?.missingKeywords
+  if (!Array.isArray(missing) || missing.length === 0) return
+
+  knowledgeMatchRanRef.current = true
+  loadKnowledgeMatches(missing)
+}, [resume?.id, resume?.journey_step, analysisResults, userProfile])
+
+// What-if score only. The addendum is never written back to the resume.
+async function handleKnowledgeRescore() {
+  setIsKnowledgeRescoring(true)
+  try {
+    const { data: { user: rescoreUser } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    const addendum = `ADDITIONAL VERIFIED EXPERIENCE:\n${knowledgeMatches.map(m => m.content).join('\n')}`
+
+    const response = await fetch('/api/job-analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        resumeData: resume.resume_data,
+        resumeTextAddendum: addendum,
+        jobDescription: resume.job_description,
+        jobTitle: resume.job_title,
+        jobCompany: resume.job_company,
+        userId: rescoreUser?.id
+      })
+    })
+
+    if (!response.ok) throw new Error('Re-score failed')
+
+    const result = await response.json()
+    setKnowledgeRescore(result.matchScore)
+  } catch (err) {
+    console.error('Career knowledge re-score failed:', err)
+    setErrorToast("We couldn't update your score just now. You can still start coaching.")
+  } finally {
+    setIsKnowledgeRescoring(false)
+  }
+}
+
+async function startCoachingFromKnowledgeModal() {
+  setShowKnowledgeModal(false)
+  if ((resume?.journey_step || '') !== 'assess') return
+  try {
+    const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+    // Stamp the pre-coaching baseline once. An already-persisted value
+    // is the real original, so it is never overwritten.
+    if (resume?.score_before_coaching == null) {
+      journeyUpdate.score_before_coaching = score
+    }
+    const { error } = await supabase
+      .from('resumes')
+      .update(journeyUpdate)
+      .eq('id', params.id)
+    if (error) {
+      console.error('Error advancing to coach step:', error)
+      setErrorToast("We couldn't start your coaching session. Please try again.")
+      return
+    }
+    setResume(prev => ({ ...prev, ...journeyUpdate }))
+  } catch (err) {
+    console.error('Unexpected error advancing to coach step:', err)
+    setErrorToast("Something went wrong starting your coaching session. Please try again.")
+  }
+}
+
 function formatDate(dateString, format = dateFormat) {
     if (!dateString) return ''
     
@@ -646,6 +859,7 @@ function formatDate(dateString, format = dateFormat) {
           .select('id')
           .eq('resume_id', resume.id)
           .eq('user_id', user.id)
+          .neq('application_status', 'archived')
           .limit(1)
 
         if (resumeCardsError) {
@@ -656,14 +870,23 @@ function formatDate(dateString, format = dateFormat) {
 
         const cardByResume = resumeCards?.[0] || null
 
+        // PostgREST filters travel in the query string, so an oversized title or
+        // company overflows the request URL and the gateway answers with a body
+        // that isn't JSON — surfacing as an empty error object rather than a
+        // Postgres error. Skip the dedupe lookup instead: the insert below is a
+        // POST, so it still succeeds.
+        const titleOk = typeof resume.job_title === 'string' && resume.job_title.trim().length > 0 && resume.job_title.length <= 200
+        const companyOk = typeof resume.job_company === 'string' && resume.job_company.trim().length > 0 && resume.job_company.length <= 200
+
         let jobCardsData = null
-        if (!cardByResume && resume.job_title && resume.job_company) {
+        if (!cardByResume && titleOk && companyOk) {
           const { data: jobCards, error: jobCardsError } = await supabase
             .from('applications')
             .select('id')
             .eq('user_id', user.id)
             .eq('title', resume.job_title)
             .eq('company', resume.job_company)
+            .neq('application_status', 'archived')
             .limit(1)
 
           if (jobCardsError) {
@@ -816,6 +1039,14 @@ function formatDate(dateString, format = dateFormat) {
       }
 
       setResume(data)
+      loadBreadcrumbLinks(data, user.id)
+
+    // Restore the persisted pre-coaching baseline so the before/after reveal
+    // survives a reload. Without this the only baseline is in-memory and a
+    // refresh after coaching would report the post-coaching score as "before".
+    if (data.score_before_coaching != null && scoreBeforeCoaching === null) {
+      setScoreBeforeCoaching(data.score_before_coaching)
+    }
 
 if (data.ai_analysis) {
   setAnalysisResults({ analysis: data.ai_analysis })
@@ -866,6 +1097,38 @@ if (data.ai_analysis) {
       console.error('Unexpected error in loadResume:', err)
       setErrorToast("Something went wrong loading your resume. Please refresh the page.")
       setLoading(false)
+    }
+  }
+
+  // Breadcrumb dropdown targets: the user's other job-specific resumes, and
+  // this job's cover letter if one was written. Core resumes have neither, so
+  // they skip the queries entirely and keep their two static crumbs.
+  async function loadBreadcrumbLinks(resumeRow, userId) {
+    if (resumeRow?.resume_type !== 'job_specific') return
+
+    try {
+      const [{ data: versions }, { data: coverLetters }] = await Promise.all([
+        supabase
+          .from('resumes')
+          .select('id, display_name, resume_type')
+          .eq('user_id', userId)
+          .eq('resume_type', 'job_specific')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('cover_letters')
+          .select('id, job_title')
+          .eq('linked_resume_id', resumeRow.id)
+          .eq('is_active', true)
+          .limit(1)
+      ])
+
+      setSiblingResumes(versions || [])
+      setLinkedCoverLetter(coverLetters?.[0] || null)
+    } catch (err) {
+      // These only feed breadcrumb navigation. Losing them costs a shortcut,
+      // not the ability to edit, so log it rather than interrupting the user.
+      console.warn('Breadcrumb links failed to load:', err)
     }
   }
 
@@ -926,8 +1189,9 @@ if (data.ai_analysis) {
     }
 
     resumeDataRef.current = clonedData
-    
+
     setHasUnsavedChanges(true)
+    setHasManualEditsSinceScore(true)
   }
 
   function undo() {
@@ -936,11 +1200,12 @@ if (data.ai_analysis) {
       
       const newIndex = historyIndex - 1
       setHistoryIndex(newIndex)
-      setResume(prev => ({ 
-        ...prev, 
-        resume_data: JSON.parse(JSON.stringify(history[newIndex])) 
+      setResume(prev => ({
+        ...prev,
+        resume_data: JSON.parse(JSON.stringify(history[newIndex]))
       }))
       setHasUnsavedChanges(true)
+      setHasManualEditsSinceScore(true)
       
       // Clear flag after render
       requestAnimationFrame(() => {
@@ -1031,6 +1296,18 @@ if (data.ai_analysis) {
   const journeyStep = resume?.journey_step || 'start'
   const score = resume?.current_score || null
 
+  // The modal shows at most five items, in the order the model ranked them.
+  // Grouping happens after the cap, so group order follows first appearance.
+  const knowledgeDisplayItems = knowledgeMatches.slice(0, 5)
+  const knowledgeOverflowCount = knowledgeMatches.length - knowledgeDisplayItems.length
+
+  const groupedKnowledge = knowledgeDisplayItems.reduce((acc, item) => {
+    const type = item.knowledge_type || 'other'
+    if (!acc[type]) acc[type] = []
+    acc[type].push(item)
+    return acc
+  }, {})
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
@@ -1042,10 +1319,41 @@ if (data.ai_analysis) {
         onBeforeNavigate={(path) => { if (hasUnsavedChanges) { setUnsavedNavTarget(path); return true } return false }}
       />
 
-      <Breadcrumb items={[
-        { label: 'Resume Coach', path: '/resume-coach' },
-        { label: resume.display_name || 'Core Resume' }
-      ]} />
+{/* Breadcrumb — full viewport width, matching MainNav above it. Its inner row
+    is capped so the crumbs still line up with the capped body below. */}
+      <div className="flex-shrink-0">
+        <Breadcrumb items={
+          resume.resume_type === 'job_specific'
+            ? [
+                { label: 'Resume Coach', path: '/resume-coach' },
+                {
+                  label: resume.display_name || resume.job_title || 'Job Specific Resume',
+                  options: siblingResumes
+                    .filter(r => r.id !== resume.id)
+                    .map(r => ({
+                      label: r.display_name || 'Untitled Resume',
+                      path: `/resume/${r.id}`
+                    }))
+                },
+                {
+                  label: 'Resume',
+                  options: linkedCoverLetter
+                    ? [{ label: 'Cover Letter', path: `/cover-letter/${linkedCoverLetter.id}` }]
+                    : []
+                }
+              ]
+            : [
+                { label: 'Resume Coach', path: '/resume-coach' },
+                { label: resume.display_name || 'Core Resume' }
+              ]
+        } />
+      </div>
+
+{/* Body: left column (toolbar + resume) and right panel sidebar */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 md:max-w-7xl md:mx-auto md:w-full">
+
+{/* LEFT COLUMN */}
+        <div className={`flex flex-col overflow-hidden min-h-0 md:flex-[3] ${mobilePanel === 'resume' ? 'flex-1' : 'flex-none'}`}>
 
 {/* Mobile toggle */}
       <div className="md:hidden flex flex-col bg-white border-b border-gray-200 flex-shrink-0">
@@ -1259,13 +1567,6 @@ if (data.ai_analysis) {
                   >
                     {isAutoFitting ? '...' : '⚡ Auto-fit'}
                   </button>
-                  <button
-                    onClick={undo}
-                    disabled={historyIndex <= 0}
-                    className="flex-1 py-1 rounded text-sm md:text-xs font-medium border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40"
-                  >
-                    ↶ Undo
-                  </button>
                 </div>
               </div>
             </div>
@@ -1356,25 +1657,17 @@ if (data.ai_analysis) {
         </div>
       )}
 
-{/* Toolbar - STICKY */}
-      <div className={`bg-white border-b border-gray-200 sticky top-[80px] z-30 overflow-visible ${mobilePanel === 'coach' ? 'hidden md:block' : 'hidden md:block'}`}>
-        <div className={`px-6 ${showEditorTip ? 'pt-0' : 'pt-4'} pb-2 max-w-7xl mx-auto w-full overflow-visible`}>
-          {showEditorTip && (
-            <div className="bg-purple-50 rounded px-3 py-1 mt-5 mb-0.5 flex items-center justify-between">
-              <p className="text-xs text-purple-700">
-                ✏️ Click any section to edit directly
-                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
-                  <><span className="mx-5 text-purple-300">·</span>⚡Click to reword or fix any sentence</>
-                )}
-                <span className="mx-5 text-purple-300">·</span><span className="text-gray-400">▲▼</span> Arrows reorder content<span className="mx-5 text-purple-300">·</span>🗑️ Trash deletes content<span className="mx-5 text-purple-300">·</span>🎨 Toolbar below contains templates, fonts, and colors
-              </p>
-              <button onClick={dismissEditorTip} className="text-purple-400 hover:text-purple-600 ml-4 flex-shrink-0 text-sm">✕</button>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-xs flex-nowrap overflow-x-auto md:overflow-visible">
+{/* Toolbar — desktop only, spans the left column */}
+      <div className="hidden md:block flex-shrink-0 bg-gray-50 border-b border-gray-200 overflow-visible">
+        <div className="px-6 pt-3 pb-2 w-full overflow-visible">
+          {/* Toolbar grid — column N of row 1 aligns with column N of row 2 */}
+          <div className="grid grid-cols-[max-content_repeat(6,auto)] gap-x-2 gap-y-2 text-xs overflow-visible">
+
+            {/* Row 1 — Format */}
+            <span className="col-start-1 row-start-1 flex items-center justify-end border-r-3 border-purple-500 pr-2 text-xs font-semibold text-purple-700 whitespace-nowrap">📄 Formatting Tools</span>
 
             {/* Template */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-2 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <div className="relative group/templatetip">
                 <span className="text-purple-400 hover:text-purple-600 cursor-help text-[10px]">ⓘ</span>
                 <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-purple-200 rounded-lg shadow-lg p-3 hidden group-hover/templatetip:block z-50">
@@ -1419,7 +1712,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Font */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-3 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <span className="font-bold">A</span>
               <select
                 value={userChangedFont ? selectedFont : ''}
@@ -1435,7 +1728,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Size */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-4 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <span>⚙️</span>
               <select
                 value={selectedSize}
@@ -1449,7 +1742,7 @@ if (data.ai_analysis) {
             </div>
 
             {/* Date */}
-            <div className="flex items-center gap-1 border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+            <div className="col-start-5 row-start-1 flex items-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
               <span>📅</span>
               <select
                 value={dateFormat}
@@ -1463,8 +1756,8 @@ if (data.ai_analysis) {
             </div>
 
             {/* Zoom dropdown */}
-            <div className="relative group/zoom">
-              <button className="px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50 flex items-center gap-1">
+            <div className="col-start-6 row-start-1 relative group/zoom flex">
+              <button className="w-full px-2 py-1 border border-gray-300 bg-white rounded text-xs hover:bg-gray-100 flex items-center gap-1">
                 🔍 <span>{zoom}%</span>
               </button>
               <div className="absolute left-0 top-full pt-1 z-50 hidden group-hover/zoom:block min-w-[80px]">
@@ -1484,11 +1777,14 @@ if (data.ai_analysis) {
 
          {/* Color picker */}
             {(
-              <div className="relative group/colorpick">
-                <button
-                  style={{ background: accentColor, width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
-                  title="Change accent color"
-                />
+              <div className="col-start-7 row-start-1 relative group/colorpick flex">
+                <div className="w-full flex items-center justify-center gap-1 border border-gray-300 bg-white px-2 py-1 rounded hover:bg-gray-100">
+                  <span>Color</span>
+                  <button
+                    style={{ background: accentColor, width: '18px', height: '18px', borderRadius: '4px', border: '1px solid #d1d5db', cursor: 'pointer', flexShrink: 0, display: 'block' }}
+                    title="Change accent color"
+                  />
+                </div>
                 <div className="absolute left-0 top-full z-50 hidden group-hover/colorpick:block pt-1" style={{ minWidth: '120px' }}>
                 <div className="bg-white border border-gray-200 rounded shadow-lg p-2">
                     <div className="flex gap-1 items-center mb-2 flex-wrap">
@@ -1517,15 +1813,32 @@ if (data.ai_analysis) {
               </div>
             )}
 
+            {/* Row 2 — Actions */}
+            <span className="col-start-1 row-start-2 flex items-center justify-end border-r-3 border-purple-500 pr-2 text-xs font-semibold text-purple-700 whitespace-nowrap">⚙️ Action Tools</span>
+
+            {/* Undo + Auto-fit share column 2 */}
+            <div className="col-start-2 row-start-2 flex items-center gap-2">
+
+            {/* Undo */}
+            <button
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              className={`flex-1 px-3 py-1 border border-gray-300 bg-white rounded text-xs font-medium transition-all whitespace-nowrap ${
+                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-100'
+              }`}
+            >
+              ↶ Undo
+            </button>
+
             {/* Auto-fit */}
-            <div className="relative group/autofit">
+            <div className="relative group/autofit flex-1 flex">
               <button
                 onClick={handleAutoFit}
                 disabled={isAutoFitting}
-                className={`px-3 py-1 border rounded text-xs flex items-center gap-1 transition-colors whitespace-nowrap ${
-                  isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300'
+                className={`w-full px-3 py-1 border rounded text-xs flex items-center justify-center gap-1 transition-colors whitespace-nowrap ${
+                  isAutoFitting ? 'opacity-50 cursor-not-allowed border-gray-300 bg-white'
                   : resumeExceedsPage ? 'border-[#ffc870] bg-[#fff8ee] text-[#a06000] animate-pulse hover:bg-[#ffefd0]'
-                  : 'border-gray-300 hover:bg-gray-50'
+                  : 'border-gray-300 bg-white hover:bg-gray-100'
                 }`}
               >
                 {isAutoFitting && (
@@ -1533,72 +1846,16 @@ if (data.ai_analysis) {
                 )}
                 {isAutoFitting ? 'Fitting...' : '⚡ Auto-fit'}
               </button>
-              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/autofit:block w-56 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
+              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/autofit:block w-56 bg-white border border-gray-200 rounded-md shadow-lg text-xs text-gray-700 px-2 py-1.5 pointer-events-none">
                 {'Automatically adjusts font size and spacing to best fill one page.' + (resumeExceedsPage ? ' Your resume currently exceeds one page.' : '')}
               </div>
             </div>
-
-            {/* Preview */}
-            <div className="relative group/preview">
-              <button
-                onClick={async () => {
-                  setIsLoadingPreview(true)
-                  try {
-                    const { data: { user } } = await supabase.auth.getUser()
-                    const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
-                    const { data: { session: previewSession } } = await supabase.auth.getSession()
-                    const response = await fetch('/api/generate-pdf', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
-                      body: JSON.stringify({
-                        resumeData: resume.resume_data,
-                        templateName: templateForApi,
-                        fontSize: selectedSize,
-                        font: selectedFont,
-                        accentColor: accentColor,
-                        dateFormat,
-                        spacing: selectedSpacing,
-                        action: 'preview-url',
-                        userId: user.id
-                      })
-                    })
-                    if (response.ok) {
-                      const data = await response.json()
-                      setPreviewUrl(data.previewUrl)
-                      setShowPreview(true)
-                    }
-                  } catch (e) {
-                    console.error('Preview error:', e)
-                  } finally {
-                    setIsLoadingPreview(false)
-                  }
-                }}
-                disabled={isLoadingPreview}
-                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-              >
-                {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-                {isLoadingPreview ? 'Loading...' : 'Preview'}
-              </button>
-              <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-gray-800 text-white text-xs rounded px-2 py-1.5 shadow-lg pointer-events-none">
-                See your resume at actual page size before downloading.
-              </div>
             </div>
-
-            {/* Undo */}
-            <button
-              onClick={undo}
-              disabled={historyIndex <= 0}
-              className={`px-3 py-1 border border-gray-300 rounded text-xs font-medium transition-all whitespace-nowrap ${
-                historyIndex <= 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'
-              }`}
-            >
-              ↶ Undo
-            </button>
 
             {/* Save */}
             <button
               onClick={save}
-              className={`px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
+              className={`col-start-3 row-start-2 px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
                 saveSuccess
                   ? 'bg-green-600 text-white'
                   : hasUnsavedChanges
@@ -1606,12 +1863,12 @@ if (data.ai_analysis) {
                   : 'bg-gray-300 text-gray-600'
               }`}
             >
-              {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No Changes'}
+              {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : '✓ No Changes'}
             </button>
 
               {/* Score */}
               {score && (
-                <div className={`px-3 py-1 rounded font-semibold text-xs whitespace-nowrap ${
+                <div className={`col-start-4 row-start-2 flex items-center justify-center px-3 py-1 rounded font-semibold text-xs whitespace-nowrap ${
                   score >= 85 ? 'bg-purple-100 text-purple-700' :
                   score >= 75 ? 'bg-green-100 text-green-700' :
                   score >= 60 ? 'bg-yellow-100 text-yellow-700' :
@@ -1625,22 +1882,68 @@ if (data.ai_analysis) {
               <button
                 onClick={() => handleReassess()}
                 disabled={isAnalyzing || journeyStep === 'review'}
-                className={`px-3 py-1 border border-gray-300 rounded text-xs flex items-center justify-center gap-1 w-20 whitespace-nowrap ${
-                  isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                className={`col-start-5 row-start-2 px-3 py-1 border border-gray-300 bg-white rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${
+                  isAnalyzing || journeyStep === 'review' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
                 }`}
                 title={journeyStep === 'review' ? 'Run initial assessment first' : ''}
               >
                 {isAnalyzing && journeyStep !== 'review' && (
                   <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
                 )}
-                {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : 'Re-assess'}
+                {isAnalyzing && journeyStep !== 'review' ? 'Analyzing...' : '🔄 Re-assess'}
               </button>
+
+              {/* Preview */}
+              <div className="col-start-6 row-start-2 relative group/preview flex">
+                <button
+                  onClick={async () => {
+                    setIsLoadingPreview(true)
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      const templateForApi = selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)
+                      const { data: { session: previewSession } } = await supabase.auth.getSession()
+                      const response = await fetch('/api/generate-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${previewSession.access_token}` },
+                        body: JSON.stringify({
+                          resumeData: resume.resume_data,
+                          templateName: templateForApi,
+                          fontSize: selectedSize,
+                          font: selectedFont,
+                          accentColor: accentColor,
+                          dateFormat,
+                          spacing: selectedSpacing,
+                          action: 'preview-url',
+                          userId: user.id
+                        })
+                      })
+                      if (response.ok) {
+                        const data = await response.json()
+                        setPreviewUrl(data.previewUrl)
+                        setShowPreview(true)
+                      }
+                    } catch (e) {
+                      console.error('Preview error:', e)
+                    } finally {
+                      setIsLoadingPreview(false)
+                    }
+                  }}
+                  disabled={isLoadingPreview}
+                  className={`w-full px-3 py-1 border border-gray-300 bg-white rounded text-xs flex items-center justify-center gap-1 whitespace-nowrap ${isLoadingPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                >
+                  {isLoadingPreview && <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                  {isLoadingPreview ? 'Loading...' : '👁 Preview'}
+                </button>
+                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/preview:block w-48 bg-white border border-gray-200 rounded-md shadow-lg text-xs text-gray-700 px-2 py-1.5 pointer-events-none">
+                  See your resume at actual page size before downloading.
+                </div>
+              </div>
 
               {/* Download */}
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className={`px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 w-20 whitespace-nowrap text-white transition-opacity ${
+                className={`col-start-7 row-start-2 px-3 py-1 rounded text-xs font-medium flex items-center justify-center gap-1 whitespace-nowrap text-white transition-opacity ${
                   isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
                 }`}
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -1648,7 +1951,7 @@ if (data.ai_analysis) {
                 {isDownloading && (
                   <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
                 )}
-                {isDownloading ? 'Generating...' : 'Download'}
+                {isDownloading ? 'Generating...' : '⬇️ Download'}
               </button>
 
             </div>
@@ -1656,14 +1959,51 @@ if (data.ai_analysis) {
         </div>
       
 
-    {/* Main Content: Resume + Right Panel */}
-         <div className="flex-1 flex overflow-hidden" style={{ height: 'calc(100dvh - 160px)' }}>
-        <div className="flex-1 flex gap-6 p-0 md:p-6 max-w-7xl mx-auto w-full">
-          <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
+    {/* Resume */}
+          <div ref={resumePanelRef} className={`flex-[3] bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 md:m-6 overflow-y-auto relative ${mobilePanel === 'resume' ? 'block' : 'hidden'} md:block`}>
 
            {/* Capture counter — sticky strip above the resume */}
             <div className="sticky top-0 z-20">
               <CaptureCounter counts={captureCounts} bumpKey={captureBumpKey} journeyStep={journeyStep} />
+            </div>
+
+            {/* Editing affordances — sticky top-right. Zero height so the row
+                floats over the resume instead of pushing it down. */}
+            <div className="hidden md:flex sticky top-0 z-20 h-0 justify-end pointer-events-none">
+              <div className="absolute right-0 top-0 flex items-center gap-1 bg-white px-1.5 py-0.5 rounded shadow-md border border-purple-200 mt-2 mr-3 pointer-events-auto">
+
+                <div className="relative group/tipedit">
+                  <span className="block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default">✏️</span>
+                  <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipedit:block z-30">
+                    Click any section to edit directly
+                  </div>
+                </div>
+
+                {/* Hidden outright for free users; grayed until the improve step makes it usable */}
+                {(userProfile?.subscription_tier || 'free') !== 'free' && (
+                  <div className="relative group/tipreword">
+                    <span className={`block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default ${['improve','format','save'].includes(resume?.journey_step) ? '' : 'grayscale'}`}>⚡</span>
+                    <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipreword:block z-30">
+                      Reword or fix any sentence
+                    </div>
+                  </div>
+                )}
+
+                <div className="relative group/tiporder">
+                  <span className="block text-sm text-gray-400 opacity-50 hover:opacity-100 transition-opacity cursor-default">▲▼</span>
+                  <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tiporder:block z-30">
+                    Reorder content
+                  </div>
+                </div>
+
+                <div className="relative group/tipdelete">
+                  <span className="block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default">🗑️</span>
+                  <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipdelete:block z-30">
+                    Delete content
+                  </div>
+                </div>
+
+              </div>
             </div>
 
             {/* Capture toast — top-right of resume panel, below counter */}
@@ -1707,11 +2047,15 @@ if (data.ai_analysis) {
             </div>
           </div>
 
- <div className={`flex-1 bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 overflow-hidden flex flex-col md:px-6 ${mobilePanel === 'coach' ? 'flex' : 'hidden'} md:flex`}>
-       <RightPanel 
+        </div>
+
+{/* RIGHT COLUMN — full-height sidebar */}
+        <div className={`flex-1 bg-white md:border-l md:border-gray-200 md:shadow-sm overflow-hidden flex flex-col md:px-6 ${mobilePanel === 'coach' ? 'flex' : 'hidden'} md:flex`}>
+       <RightPanel
               journeyStep={journeyStep}
               score={score}
               analysisResults={analysisResults}
+              filteredAnalysisResults={filteredAnalysisResults}
               userTier={userProfile?.subscription_tier || 'free'}
               coachingSamplesUsed={coachingSamplesUsed}
               resumeName={resume.display_name || 'Core Resume'}
@@ -1754,10 +2098,10 @@ if (data.ai_analysis) {
           setReviseModalState={setReviseModalState}
           bulletSelectMode={bulletSelectMode}
           setBulletSelectMode={setBulletSelectMode}
+          knowledgeMatches={knowledgeMatches}
             />
           </div>
         </div>
-      </div>
       </div>
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       <SuccessToast message={saveToast} onClose={() => setSaveToast(null)} />
@@ -1768,6 +2112,126 @@ if (data.ai_analysis) {
         onClose={() => setShowUpgradeModal(false)}
         resumeId={params.id}
       />
+
+      {/* Career Knowledge Carry-Over Modal */}
+      {showKnowledgeModal && knowledgeMatches.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+          >
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">🎯</span>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">We already know some of this</h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowKnowledgeModal(false)}
+                  className="text-white hover:opacity-70 text-2xl leading-none font-light"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-700 leading-snug">
+                Based on your previous coaching sessions, we have experience on file that's relevant to this role. It's been added to your coaching context so the coach won't ask about it again.
+              </p>
+
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Object.entries(groupedKnowledge).map(([type, items]) => (
+                  <div key={type}>
+                    <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </div>
+                    <ul className="space-y-1">
+                      {items.map(item => (
+                        <li key={item.id} className="flex items-start gap-2 text-sm text-gray-700 leading-snug">
+                          <span className="text-purple-600 mt-0.5 flex-shrink-0">✓</span>
+                          <span>{trimKnowledgeContent(item.content)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              {knowledgeOverflowCount > 0 && (
+                <p className="text-xs font-semibold leading-snug" style={{ color: '#7c3aed' }}>
+                  ...and {knowledgeOverflowCount} more {knowledgeOverflowCount === 1 ? 'piece' : 'pieces'} of verified experience added to your coaching context.
+                </p>
+              )}
+
+              <p className="text-xs text-gray-400 leading-snug">
+                All of your career history is saved automatically and grows smarter with every session.
+              </p>
+
+              {knowledgeRescore !== null && (
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex items-center justify-between">
+                  <div className="text-center">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Score with Core Resume</div>
+                    <div
+                      className="text-2xl font-bold text-gray-800"
+                      style={score ? { color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' } : undefined}
+                    >
+                      {score || '--'}
+                    </div>
+                  </div>
+                  <span className="font-bold" style={{ fontSize: '1.25rem', color: '#9ca3af', lineHeight: 1 }}>➜</span>
+                  <div className="text-center">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Score with Career History Added</div>
+                    <div
+                      className="text-2xl font-bold"
+                      style={{ color: knowledgeRescore >= 85 ? '#9333ea' : knowledgeRescore >= 75 ? '#81c784' : knowledgeRescore >= 60 ? '#ffc870' : '#e57373' }}
+                    >
+                      {knowledgeRescore}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {knowledgeRescore !== null ? (
+                <button
+                  onClick={startCoachingFromKnowledgeModal}
+                  className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white' }}
+                >
+                  Start Coaching →
+                </button>
+              ) : (
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={handleKnowledgeRescore}
+                    disabled={isKnowledgeRescoring}
+                    className="rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: isKnowledgeRescoring ? 0.85 : 1 }}
+                  >
+                    <span key={isKnowledgeRescoring ? 'loading' : 'idle'} className="flex items-center gap-2">
+                      {isKnowledgeRescoring && <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
+                      {isKnowledgeRescoring ? 'Updating Score...' : 'Update My Score'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={startCoachingFromKnowledgeModal}
+                    disabled={isKnowledgeRescoring}
+                    className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-sm font-semibold hover:bg-purple-50 transition-colors disabled:opacity-50"
+                  >
+                    Start Coaching
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTooLongModal && (
         <div
@@ -1875,7 +2339,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode }) {
+function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2189,11 +2653,17 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
               onClick={async () => {
                 setIsUpdatingJourney(true)
                 try {
+                  const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+                  // Stamp the pre-coaching baseline once. An already-persisted value
+                  // is the real original, so it is never overwritten.
+                  if (resume?.score_before_coaching == null) {
+                    journeyUpdate.score_before_coaching = score
+                  }
                   const { error } = await supabase
                     .from('resumes')
-                    .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+                    .update(journeyUpdate)
                     .eq('id', params.id)
-                  if (!error) setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                  if (!error) setResume(prev => ({ ...prev, ...journeyUpdate }))
                 } finally {
                   setIsUpdatingJourney(false)
                 }
@@ -2491,19 +2961,22 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                       onClick={async () => {
                         setIsUpdatingJourney(true)
                         try {
+                          const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+                          // Stamp the pre-coaching baseline once. An already-persisted
+                          // value is the real original, so it is never overwritten.
+                          if (resume?.score_before_coaching == null) {
+                            journeyUpdate.score_before_coaching = score
+                          }
                           const { error } = await supabase
                             .from('resumes')
-                            .update({
-                              journey_step: 'coach',
-                              updated_at: new Date().toISOString()
-                            })
+                            .update(journeyUpdate)
                             .eq('id', params.id)
                           if (error) {
                             console.error('Error starting free trial coaching:', error)
                             setErrorToast("We couldn't start your coaching session. Please try again.")
                             return
                           }
-                          setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                          setResume(prev => ({ ...prev, ...journeyUpdate }))
                        } catch (err) {
                         console.error('Unexpected error starting free trial coaching:', err)
                         setErrorToast("Something went wrong starting your coaching session. Please try again.")
@@ -2528,15 +3001,21 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                   onClick={async () => {
                     setIsUpdatingJourney(true)
                     try {
+                      const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
+                      // Stamp the pre-coaching baseline once. An already-persisted
+                      // value is the real original, so it is never overwritten.
+                      if (resume?.score_before_coaching == null) {
+                        journeyUpdate.score_before_coaching = score
+                      }
                       const { error } = await supabase
                         .from('resumes')
-                        .update({ journey_step: 'coach', updated_at: new Date().toISOString() })
+                        .update(journeyUpdate)
                         .eq('id', params.id)
                       if (error) {
                         setErrorToast('Something went wrong. Please try again.')
                       } else {
                         track('assessment_completed', { score: score || 0 })
-                        setResume(prev => ({ ...prev, journey_step: 'coach' }))
+                        setResume(prev => ({ ...prev, ...journeyUpdate }))
                       }
                     } catch (err) {
                       setErrorToast('Something went wrong. Please try again.')
@@ -2587,6 +3066,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           jobTitle={resume?.job_title || null}
           jobCompany={resume?.job_company || null}
           analysisResults={analysisResults}
+          filteredAnalysisResults={filteredAnalysisResults}
           showUpgradeModal={showUpgradeModal}
           setShowUpgradeModal={setShowUpgradeModal}
           scoreBeforeCoaching={scoreBeforeCoaching}
@@ -2602,6 +3082,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
           setCaptureCounts={setCaptureCounts}
           setCaptureBumpKey={setCaptureBumpKey}
           setCaptureToast={setCaptureToast}
+          knowledgeMatches={knowledgeMatches}
         />
       )}
 
@@ -2728,6 +3209,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                         },
                         body: JSON.stringify({
                           resumeData,
+                          resumeId: params.id,
                           conversation: [],
                           detectedLevel,
                           careerContext,
@@ -2737,7 +3219,8 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
                           jobCompany: resume?.job_company || null,
                           matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
                           missingKeywords: analysisResults?.analysis?.missingKeywords || [],
-                          skipCoaching: true
+                          skipCoaching: true,
+                          knowledgeMatches: knowledgeMatches || []
                         })
                       })
                       const data = await response.json()
@@ -2798,7 +3281,7 @@ function RightPanel({ journeyStep, score, analysisResults, userTier, resumeName,
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast }) {
+function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, filteredAnalysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, knowledgeMatches }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -3022,6 +3505,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({
           resumeData: {},
+          resumeId: params.id,
           conversation: coachingMessages,
           detectedLevel,
           careerContext,
@@ -3038,7 +3522,16 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         body: JSON.stringify({ resumeData: data.rewrittenResume })
       })
       const scoreData = await scoreResponse.json()
-      const newScore = scoreData?.score ?? null
+      const rawScore = scoreData?.score ?? null
+
+      // ── SCORE FLOOR ──
+      // Two protections on one line. A score check that failed returns null, and null
+      // must never overwrite a score the resume already earned. A build that scores
+      // under the stored number keeps the stored number, same rule as the re-assess
+      // and post-coaching paths. Only a resume with no score yet can still land null.
+      const newScore = (rawScore === null || (resume?.current_score && rawScore < resume.current_score))
+        ? (resume?.current_score ?? rawScore)
+        : rawScore
 
       setRewrittenResume(data.rewrittenResume)
 
@@ -3122,6 +3615,17 @@ const getMessageText = (msg) => {
     }
   }, [isConversational])
 
+  // Baseline for the before/after reveal. Captured the moment the coach step
+  // opens, which is the last point at which current_score is still the original
+  // score — coach-finish and the accept-changes re-score both move it after this.
+  // Guarded so it is written once and never re-captured on a revisit.
+  useEffect(() => {
+    if (coachingComplete) return
+    if (score && !scoreBeforeCoaching) {
+      setScoreBeforeCoaching(score)
+    }
+  }, [score])
+
  // Standard coaching init — runs once at mount, skips empty resume data
   useEffect(() => {
     const hasContent = resumeData?.fullName || (resumeData?.experience?.length > 0)
@@ -3188,7 +3692,7 @@ const getMessageText = (msg) => {
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
-            _analysisResults: analysisResults?.analysis || null,
+            _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null,
             _trialTranscript: trialTranscript || ((tier !== 'free' && coachingMessages?.length > 0) ? coachingMessages : null)
           },
           careerContext,
@@ -3199,7 +3703,13 @@ const getMessageText = (msg) => {
           jobDescription,
           jobTitle,
           jobCompany,
-          conversation: [{ role: 'user', content: "Hi! I'm ready to work on my resume." }]
+          // Confirmed facts from earlier sessions, sent as prompt context on every
+          // turn so the coach never re-asks something already established.
+          knowledgeBase: (knowledgeMatches || []).map(m => m.content),
+          conversation: [{
+            role: 'user',
+            content: "Hi! I'm ready to work on my resume."
+          }]
         })
       })
       const data = await response.json()
@@ -3248,7 +3758,7 @@ const getMessageText = (msg) => {
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
-            _analysisResults: analysisResults?.analysis || null
+            _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null
           },
           careerContext,
           detectedLevel,
@@ -3258,6 +3768,7 @@ const getMessageText = (msg) => {
           jobDescription,
           jobTitle,
           jobCompany,
+          knowledgeBase: (knowledgeMatches || []).map(m => m.content),
           conversation: updatedMessages
         })
       })
@@ -3296,6 +3807,7 @@ const getMessageText = (msg) => {
 
       const coachFinishPayload = {
         resumeData: resumeDataWithAnalysis,
+        resumeId: params.id,
         conversation: coachingMessages,
         detectedLevel,
         careerContext,
@@ -3304,7 +3816,8 @@ const getMessageText = (msg) => {
         jobTitle: jobTitle || null,
         jobCompany: jobCompany || null,
         matchedKeywords: analysisResults?.analysis?.matchedKeywords || [],
-        missingKeywords: analysisResults?.analysis?.missingKeywords || []
+        missingKeywords: analysisResults?.analysis?.missingKeywords || [],
+        knowledgeMatches: knowledgeMatches || []
       }
 
       const { data: { session: finishSession } } = await supabase.auth.getSession()
@@ -3327,7 +3840,7 @@ const getMessageText = (msg) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${coachSession.access_token}`
         },
-        body: JSON.stringify({ resumeData: data.rewrittenResume })
+        body: JSON.stringify({ resumeData: data.rewrittenResume, skipDetection: true })
       })
       const scoreCheckData = await scoreCheckResponse.json()
       const attemptOneScore = scoreCheckData?.score ?? null
@@ -3365,49 +3878,19 @@ const getMessageText = (msg) => {
       let finalResume = data.rewrittenResume
       let finalChanges = data.changes || []
 
-      // ── RETRY: If score didn't improve, try once more with explicit instruction ──
-      if (
-        attemptOneScore !== null &&
-        scoreBeforeCoaching !== null &&
-        attemptOneScore <= scoreBeforeCoaching
-      ) {
-        console.warn(`Score did not improve (before: ${scoreBeforeCoaching}, after: ${attemptOneScore}). Retrying with stronger instruction.`)
-
-        const retryResponse = await fetch('/api/coach-finish', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${finishSession.access_token}`
-          },
-          body: JSON.stringify({
-            ...coachFinishPayload,
-            retryInstruction: `Your first attempt produced a resume that scored ${attemptOneScore}, which did not improve on the original score of ${scoreBeforeCoaching}. This means your rewrite was too conservative or did not fully use the coaching conversation. Try again. Go deeper into the coaching material. Find every specific detail, every scope indicator, every trust signal, every skill mentioned — and make sure it appears in the resume. The standard is: every bullet should pass the Brain Test, and the overall resume must score higher than ${scoreBeforeCoaching}.`
-          })
-        })
-        const retryData = await retryResponse.json()
-
-        if (retryData.rewrittenResume) {
-          // Score the retry and use whichever attempt scored higher
-          const retryScoreResponse = await fetch('/api/analyze-resume', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${coachSession.access_token}`
-            },
-            body: JSON.stringify({ resumeData: retryData.rewrittenResume })
-          })
-          const retryScoreData = await retryScoreResponse.json()
-          const retryScore = retryScoreData?.score ?? null
-
-          if (retryScore !== null && retryScore > attemptOneScore) {
-            console.log(`Retry improved score: ${attemptOneScore} → ${retryScore}. Using retry result.`)
-            finalResume = retryData.rewrittenResume
-            finalChanges = retryData.changes || []
-          } else {
-            console.log(`Retry did not further improve score (${retryScore}). Using attempt 1 result.`)
-          }
-        }
-      }
+      // ── SCORE FLOOR ──
+      // The rewrite is kept either way: the content is the product of the coaching
+      // conversation, and a lower score reflects the scorer's variance, not worse
+      // writing. Only the number is clamped, so the reveal never reports coaching
+      // as having cost the candidate points.
+      // Falls back to the pre-coaching number when scoring itself failed, so a
+      // failed score check never writes null over a score the resume already had.
+      const displayScore =
+        attemptOneScore === null
+          ? scoreBeforeCoaching
+          : scoreBeforeCoaching !== null && attemptOneScore < scoreBeforeCoaching
+            ? scoreBeforeCoaching
+            : attemptOneScore
 
       // ── SAVE AND APPLY ──
       setRewrittenResume(finalResume)
@@ -3422,6 +3905,7 @@ const getMessageText = (msg) => {
           resume_changes: finalChanges,
           coaching_complete: true,
           remaining_gaps: gaps,
+          ...(displayScore !== null ? { current_score: displayScore } : {}),
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
@@ -3433,7 +3917,7 @@ const getMessageText = (msg) => {
         return
       }
 
-      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true }))
+      setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true, ...(displayScore !== null ? { current_score: displayScore } : {}) }))
       if (isJobSpecific) fireT4IfFirst(supabase)
       fireO4MarkerIfFirst(supabase)
 
@@ -4060,8 +4544,12 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   const [targetedMessages, setTargetedMessages] = useState([])
   const [isTargetedFinishing, setIsTargetedFinishing] = useState(false)
 
-  // Capture score before coaching when improve step loads
+  // Fallback for sessions that land on improve without passing through the coach
+  // step. Skipped once changes are accepted: at that point the re-score has already
+  // replaced current_score, so capturing here would report the post-coaching number
+  // as the baseline and show an identical before and after.
   useEffect(() => {
+    if (changesAccepted) return
     if (score && !scoreBeforeCoaching) {
       setScoreBeforeCoaching(score)
     }
@@ -4650,7 +5138,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       }
 
       setResume(prev => ({ ...prev, resume_data: rewrittenResume, changes_accepted: true }))
-      await handleReassess(rewrittenResume)
+      await handleReassess(rewrittenResume, { systemTriggered: true })
       setShowRevealModal(true)
     } catch (err) {
       console.error('Error accepting changes:', err)
@@ -4688,7 +5176,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
       }
 
       setResume(prev => ({ ...prev, resume_data: finalData, changes_accepted: true }))
-      await handleReassess(finalData)
+      await handleReassess(finalData, { systemTriggered: true })
       setReviewMode(false)
       setShowRevealModal(true)
     } catch (err) {
@@ -5563,7 +6051,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
       }
 
       setResume(prev => ({ ...prev, resume_data: data.rewrittenResume }))
-      await handleReassess(data.rewrittenResume)
+      await handleReassess(data.rewrittenResume, { systemTriggered: true })
       setShowRevealModal(true)
       onClose()
     } catch (err) {

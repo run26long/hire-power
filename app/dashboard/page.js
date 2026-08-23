@@ -297,6 +297,13 @@ function DashboardContent() {
     }
   };
 
+  // Supabase returns a raw character-class list when a password fails its rules.
+  // Point people at the requirements already shown under the field instead.
+  const friendlyAuthError = (message) =>
+    /password/i.test(message || '')
+      ? "Your password doesn't meet the requirements listed below."
+      : message;
+
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setResetLoading(true); setResetError('');
@@ -313,7 +320,7 @@ function DashboardContent() {
     setResetLoading(true); setResetError('');
     const { error } = await supabase.auth.updateUser({ password: resetPassword });
     setResetLoading(false);
-    if (error) { setResetError(error.message); }
+    if (error) { setResetError(friendlyAuthError(error.message)); }
     else { setResetSuccess(true); setTimeout(() => { setShowLoginModal(false); window.location.href = '/dashboard'; }, 2000); }
   };
 

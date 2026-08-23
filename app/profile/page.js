@@ -23,6 +23,7 @@ export default function Profile() {
   const supabase = createClient()
 
   const [showDowngradeModal, setShowDowngradeModal] = useState(false)
+  const [showAnnualModal, setShowAnnualModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -115,41 +116,47 @@ export default function Profile() {
     if (typeof window === 'undefined' || !user) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('plan') !== 'vault') return
-    // Strip the param so a refresh doesn't re-trigger
+    const interval = params.get('interval') === 'annual' ? 'annual' : 'monthly'
+    // Strip the params so a refresh doesn't re-trigger
     params.delete('plan')
+    params.delete('interval')
     const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
     window.history.replaceState({}, '', newUrl)
     // Fire Vault checkout
-    async function startVaultCheckout() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', user.id)
-          .maybeSingle()
-        const data = await fetchJSON('/api/stripe/checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
-            userId: user.id,
-            email: prof?.email || user.email,
-          })
-        })
-        if (!data.url) {
-          throw new Error("We couldn't start checkout. Please try again in a moment.")
-        }
-        window.location.href = data.url
-      } catch (err) {
-        setToastError(err.message)
-      }
-    }
-    startVaultCheckout()
+    startVaultCheckout(interval)
   }, [user])
+
+  // Send the user to Stripe checkout for Vault at the requested billing interval.
+  async function startVaultCheckout(interval = 'monthly') {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', user.id)
+        .maybeSingle()
+      const data = await fetchJSON('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          priceId: interval === 'annual'
+            ? process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
+            : process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID,
+          userId: user.id,
+          email: prof?.email || user.email,
+        })
+      })
+      if (!data.url) {
+        throw new Error("We couldn't start checkout. Please try again in a moment.")
+      }
+      window.location.href = data.url
+    } catch (err) {
+      setToastError(err.message)
+    }
+  }
 
   async function loadProfile() {
     try {
@@ -267,6 +274,27 @@ export default function Profile() {
         ? new Date(data.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : 'the end of your billing period'
       setToastSuccess(`Switch to Vault (${vaultBillingInterval}) confirmed. Pro access continues through ${dateStr}.`)
+    } catch (e) {
+      setToastError(e.message)
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Swap the existing Vault subscription onto the annual price. Deliberately not
+  // a new checkout session — that would leave the user paying for two.
+  async function handleSwitchToAnnual() {
+    try {
+      setProcessing(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetchJSON('/api/stripe/update-billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ userId: user.id, priceId: process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID })
+      })
+      setShowAnnualModal(false)
+      await loadProfile()
+      setToastSuccess("You're on annual Vault — $49.99/year. We've prorated the change.")
     } catch (e) {
       setToastError(e.message)
     } finally {
@@ -401,6 +429,10 @@ export default function Profile() {
 
   const tier = profile?.subscription_tier || TIERS.FREE
   const initials = displayName.charAt(0).toUpperCase()
+
+  // Only offer the annual switch to someone we can confirm is on the monthly Vault price.
+  const isMonthlyVault = tier === TIERS.VAULT &&
+    subscriptionDetails?.price_id === process.env.NEXT_PUBLIC_STRIPE_VAULT_PRICE_ID
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -693,6 +725,15 @@ export default function Profile() {
                     )}
                     {tier === TIERS.VAULT && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {isMonthlyVault && (
+                          <button
+                            onClick={() => setShowAnnualModal(true)}
+                            disabled={processing}
+                            style={{ ...btnPurple, width: '100%', background: 'linear-gradient(135deg,#667eea,#764ba2)', opacity: processing ? 0.6 : 1 }}
+                          >
+                            {processing ? 'Switching...' : 'Switch to Annual — $49.99/yr'}
+                          </button>
+                        )}
                         <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 4 }}>Ready for your next search? Unlock full coaching.</p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button onClick={() => setShowUpgradeModal(true)} style={{ ...btnPurple, flex: 1 }}>Upgrade to Pro</button>
@@ -795,6 +836,33 @@ export default function Profile() {
           .hp-mobile-bottom { display: none !important; }
         }
       `}</style>
+
+      {/* ── SWITCH TO ANNUAL MODAL ── */}
+      {showAnnualModal && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <div style={modalHead()}>
+              <p style={modalTitle}>Switch to annual billing?</p>
+              <p style={modalSub}>$49.99/year · Save 2 months</p>
+            </div>
+            <div style={modalBody}>
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, marginBottom: 18 }}>
+                Switch to annual billing at $49.99/yr? Your current plan will be prorated.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowAnnualModal(false)} disabled={processing} style={{ ...btnGhost, flex: 1 }}>Cancel</button>
+                <button
+                  onClick={handleSwitchToAnnual}
+                  disabled={processing}
+                  style={{ ...btnPurple, flex: 1, background: 'linear-gradient(135deg,#667eea,#764ba2)', opacity: processing ? 0.6 : 1 }}
+                >
+                  {processing ? 'Switching...' : 'Yes, switch'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── DOWNGRADE MODAL ── */}
       {showDowngradeModal && (
