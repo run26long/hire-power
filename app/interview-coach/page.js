@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -469,7 +469,7 @@ export default function MyInterviewsPage() {
                       {[
                         { label: 'Sessions', sub: 'Across all jobs', val: '0' },
                         { label: 'Level', sub: 'Per job', val: '0' },
-                        { label: 'Jobs Prepped', sub: 'Unique targets', val: String(practiceCards.length) },
+                        { label: 'Total Jobs', sub: 'Unique targets', val: String(practiceCards.length) },
                       ].map((stat) => (
                         <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                           <div>
@@ -747,12 +747,12 @@ export default function MyInterviewsPage() {
 
 // ============================================================================
 // Practice Card Component
-// Smart CTA + Jump to menu, status pills below.
-// State-driven: card knows what's next, user can override.
+// Three always-visible step buttons, status pills below. The recommended next
+// step is styled as primary; the user can jump to any step at any time.
 // ============================================================================
 function PracticeCard({ card, onClick, onDeleteRequest }) {
   const router = useRouter();
-  const [hubNavigating, setHubNavigating] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState(null);
 
   const storiesCoached = card.storiesCoached || 0;
   const totalStoryItems = card.totalStoryItems || 0;
@@ -764,19 +764,15 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
   const interviewIsUpcoming = card.interviewDate && new Date(card.interviewDate).getTime() > Date.now();
   const interviewIsPast = card.interviewDate && new Date(card.interviewDate).getTime() < Date.now();
 
-  // Determine smart CTA label based on state
-  let primaryCtaLabel;
-  if (interviewIsPast) {
-    primaryCtaLabel = 'Review →';
-  } else if (!hasCoached) {
-    primaryCtaLabel = 'Start Story Coaching →';
-  } else if (!allCoached) {
-    primaryCtaLabel = 'Continue Coaching →';
-  } else if (!hasPracticed) {
-    primaryCtaLabel = 'Start Interview Practice →';
-  } else {
-    primaryCtaLabel = 'Practice Again →';
-  }
+  // Recommended next step. Power Analysis is never primary — it already exists
+  // if this card is here.
+  const primaryStep = allCoached ? 'practice' : 'coaching';
+
+  const stepButtons = [
+    { key: 'analysis', label: 'Power Analysis', anchor: 'power-analysis' },
+    { key: 'coaching', label: 'Story Coaching', anchor: 'coaching' },
+    { key: 'practice', label: 'Interview Practice', anchor: 'practice' },
+  ];
 
   const goToDetail = (e, anchor) => {
     if (e) e.stopPropagation();
@@ -807,24 +803,8 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
           </p>
         </div>
 
-        {/* CTA group */}
+        {/* Delete */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {!interviewIsPast && (
-            <JumpToMenu
-              jobCardId={card.jobCardId}
-              hasCoachedAny={hasCoached}
-              onNavigate={goToDetail}
-            />
-          )}
-          <button
-            onClick={(e) => { setHubNavigating(true); goToDetail(e, null); }}
-            disabled={hubNavigating}
-            className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold transition-opacity hover:opacity-90 whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50"
-            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-          >
-            {hubNavigating && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
-            {primaryCtaLabel}
-          </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
             className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
@@ -835,6 +815,31 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
             </svg>
           </button>
         </div>
+      </div>
+
+      {/* Step navigation */}
+      <div className="flex items-center gap-1.5 mt-2">
+        {stepButtons.map(({ key, label, anchor }) => {
+          const isPrimary = key === primaryStep;
+          return (
+            <button
+              key={key}
+              onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
+              disabled={!!navigatingTo}
+              className={`flex-1 rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                isPrimary
+                  ? 'text-white transition-opacity hover:opacity-90'
+                  : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
+              }`}
+              style={isPrimary ? { background: 'linear-gradient(to right, #667eea, #764ba2)' } : undefined}
+            >
+              {navigatingTo === key && (
+                <div className={`h-3.5 w-3.5 animate-spin rounded-full border-2 border-r-transparent ${isPrimary ? 'border-white' : 'border-purple-600'}`}></div>
+              )}
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Bottom row: status pills */}
@@ -891,93 +896,5 @@ function ChecklistItem({ label }) {
         {label}
       </span>
     </button>
-  );
-}
-
-// ============================================================================
-// Jump To Menu Component
-// Phase navigation dropdown. All three phases always enabled
-// (user gets full control per spec).
-// ============================================================================
-function JumpToMenu({ jobCardId, hasCoachedAny, onNavigate }) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-  const buttonRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e) {
-      if (
-        menuRef.current && !menuRef.current.contains(e.target) &&
-        buttonRef.current && !buttonRef.current.contains(e.target)
-      ) {
-        setOpen(false);
-      }
-    }
-    function handleEscape(e) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [open]);
-
-  const handleSelect = (anchor) => {
-    setOpen(false);
-    onNavigate(null, anchor);
-  };
-
-  return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        className="border border-gray-200 rounded-md py-1.5 px-2.5 text-xs md:text-[11px] font-semibold text-gray-600 hover:border-purple-300 hover:text-purple-700 transition-colors whitespace-nowrap flex items-center gap-1"
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        Jump to
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          ref={menuRef}
-          className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-30"
-          style={{ minWidth: '180px' }}
-          role="menu"
-        >
-          <button
-            onClick={() => handleSelect('power-analysis')}
-            className="w-full text-left px-3 py-2 text-xs md:text-[11px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2"
-            role="menuitem"
-          >
-            <span className="text-sm">🎯</span>
-            Power Analysis
-          </button>
-          <button
-            onClick={() => handleSelect('coaching')}
-            className="w-full text-left px-3 py-2 text-xs md:text-[11px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2 border-t border-gray-100"
-            role="menuitem"
-          >
-            <span className="text-sm">🎤</span>
-            Story Coaching
-          </button>
-          <button
-            onClick={() => handleSelect('practice')}
-            className="w-full text-left px-3 py-2 text-xs md:text-[11px] font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors flex items-center gap-2 border-t border-gray-100"
-            role="menuitem"
-          >
-            <span className="text-sm">🎙️</span>
-            Interview Practice
-          </button>
-        </div>
-      )}
-    </div>
   );
 }
