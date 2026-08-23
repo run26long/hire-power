@@ -467,16 +467,16 @@ export default function MyInterviewsPage() {
                   {isPro ? (
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
-                        { label: 'Total Sessions', sub: 'Across all jobs', val: '0' },
-                        { label: 'Best Level', sub: 'Per job', val: '0' },
+                        { label: 'Sessions', sub: 'Across all jobs', val: '0' },
+                        { label: 'Level', sub: 'Per job', val: '0' },
                         { label: 'Jobs Prepped', sub: 'Unique targets', val: String(practiceCards.length) },
                       ].map((stat) => (
                         <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                           <div>
-                            <p className="text-sm md:text-xs font-medium text-gray-700">{stat.label}</p>
+                            <p className="text-sm md:text-xs font-medium text-gray-700 whitespace-nowrap">{stat.label}</p>
                             <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
                           </div>
-                          <span className="text-2xl font-bold text-gray-300">{stat.val}</span>
+                          <span className="text-xl font-bold text-gray-300">{stat.val}</span>
                         </div>
                       ))}
                     </div>
