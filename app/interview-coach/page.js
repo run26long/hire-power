@@ -404,7 +404,7 @@ export default function MyInterviewsPage() {
                               key={`upload-${slotIndex}`}
                               onClick={handleOpenPracticeModal}
                               className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
-                              style={{ height: '56px' }}
+                              style={{ height: '66px' }}
                             >
                               <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
                                 <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -420,7 +420,7 @@ export default function MyInterviewsPage() {
                           <div
                             key={`empty-${slotIndex}`}
                             className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
-                            style={{ height: '56px' }}
+                            style={{ height: '66px' }}
                           >
                             <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Interview Practice {slotIndex + 1}</div>
                           </div>
@@ -778,25 +778,22 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
   return (
     <div
       className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden"
-      style={{ height: '56px' }}
+      style={{ height: '66px' }}
       onClick={onClick}
     >
       {/* Single row: title + score + step buttons + delete */}
       <div className="flex items-center gap-3">
-        <p className="text-sm md:text-xs truncate min-w-0">
-          <span className="font-semibold text-gray-900">{card.title}</span>
-          {interviewIsUpcoming && (
-            <span className="ml-2 text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
-              Upcoming
-            </span>
-          )}
-          <span className="text-gray-500">
-            {' · '}
-            {interviewIsPast
-              ? <>Past · {new Date(card.interviewDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
-              : card.company}
-          </span>
-        </p>
+        <div className="min-w-0">
+          <div className="text-base md:text-sm font-semibold text-gray-900 truncate">
+            {card.title}
+            {interviewIsUpcoming && (
+              <span className="ml-2 text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                Upcoming
+              </span>
+            )}
+          </div>
+          <div className="text-sm md:text-xs text-gray-500 truncate">{card.company}</div>
+        </div>
 
         {card.matchScore && (
           <div className="relative w-8 h-8 flex-shrink-0">
