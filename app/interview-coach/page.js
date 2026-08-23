@@ -769,9 +769,9 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
   const primaryStep = allCoached ? 'practice' : 'coaching';
 
   const stepButtons = [
-    { key: 'analysis', label: 'Power Analysis', anchor: 'power-analysis' },
-    { key: 'coaching', label: 'Story Coaching', anchor: 'coaching' },
-    { key: 'practice', label: 'Interview Practice', anchor: 'practice' },
+    { key: 'analysis', label: '✓ Analysis', anchor: 'power-analysis' },
+    { key: 'coaching', label: hasCoached ? `✓ Coached ${storiesCoached}` : '○ Coaching', anchor: 'coaching' },
+    { key: 'practice', label: hasPracticed ? '✓ Practice' : '○ Practice', anchor: 'practice' },
   ];
 
   const goToDetail = (e, anchor) => {
@@ -782,8 +782,8 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
 
   return (
     <div className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all">
-      {/* Top row: title + match info + CTA group */}
-      <div className="flex items-start gap-3">
+      {/* Single row: title + match info + step buttons + delete */}
+      <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <p className="text-sm md:text-xs font-semibold text-gray-900 truncate">{card.title}</p>
@@ -803,6 +803,31 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
           </p>
         </div>
 
+        {/* Step buttons */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {stepButtons.map(({ key, label, anchor }) => {
+            const isPrimary = key === primaryStep;
+            return (
+              <button
+                key={key}
+                onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
+                disabled={!!navigatingTo}
+                className={`rounded-md py-1 px-2 text-xs md:text-[10px] font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                  isPrimary
+                    ? 'text-white transition-opacity hover:opacity-90'
+                    : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
+                }`}
+                style={isPrimary ? { background: 'linear-gradient(to right, #667eea, #764ba2)' } : undefined}
+              >
+                {navigatingTo === key && (
+                  <div className={`h-3.5 w-3.5 animate-spin rounded-full border-2 border-r-transparent ${isPrimary ? 'border-white' : 'border-purple-600'}`}></div>
+                )}
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Delete */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
@@ -817,61 +842,6 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
         </div>
       </div>
 
-      {/* Step navigation */}
-      <div className="flex items-center gap-1.5 mt-2">
-        {stepButtons.map(({ key, label, anchor }) => {
-          const isPrimary = key === primaryStep;
-          return (
-            <button
-              key={key}
-              onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
-              disabled={!!navigatingTo}
-              className={`flex-1 rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
-                isPrimary
-                  ? 'text-white transition-opacity hover:opacity-90'
-                  : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
-              }`}
-              style={isPrimary ? { background: 'linear-gradient(to right, #667eea, #764ba2)' } : undefined}
-            >
-              {navigatingTo === key && (
-                <div className={`h-3.5 w-3.5 animate-spin rounded-full border-2 border-r-transparent ${isPrimary ? 'border-white' : 'border-purple-600'}`}></div>
-              )}
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Bottom row: status pills */}
-      <div className="flex items-center gap-1.5 mt-2">
-        <StepPill label="Analyzed" complete={hasAnalyzed} />
-        <StepPill
-          label={hasCoached ? `Coached ${storiesCoached}` : 'Coached'}
-          complete={hasCoached}
-        />
-        <StepPill
-          label={hasPracticed && card.level > 0 ? `Practiced L${card.level}` : 'Practiced'}
-          complete={hasPracticed}
-        />
-      </div>
-    </div>
-  );
-}
-
-function StepPill({ label, complete, partial }) {
-  let className;
-  if (complete) {
-    className = 'bg-green-100 text-green-700';
-  } else if (partial) {
-    className = 'bg-purple-50 text-purple-700';
-  } else {
-    className = 'bg-gray-100 text-gray-400';
-  }
-  const icon = complete ? '✓' : partial ? '◐' : '○';
-  return (
-    <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${className}`}>
-      <span className="text-xs md:text-[10px] font-bold">{icon}</span>
-      <span className="text-xs md:text-[10px] font-semibold">{label}</span>
     </div>
   );
 }
