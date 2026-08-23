@@ -465,12 +465,11 @@ export default function MyInterviewsPage() {
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
                   {isPro ? (
-                    <div className="grid grid-cols-2 gap-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {[
                         { label: 'Total Sessions', sub: 'Across all jobs', val: '0' },
-                        { label: 'Best Level', sub: 'Max L5 per job', val: '--' },
-                        { label: 'Practice Streak', sub: 'Consecutive days', val: '0' },
-                        { label: 'Jobs Practiced', sub: 'Unique targets', val: String(practiceCards.length) },
+                        { label: 'Best Level', sub: 'Per job', val: '0' },
+                        { label: 'Jobs Prepped', sub: 'Unique targets', val: String(practiceCards.length) },
                       ].map((stat) => (
                         <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                           <div>
@@ -483,22 +482,15 @@ export default function MyInterviewsPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5">
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {[
-                          { label: 'Total Sessions', sub: 'Across all jobs', val: '0' },
-                          { label: 'Practice Streak', sub: 'Consecutive days', val: '0' },
-                        ].map((stat) => (
-                          <div key={stat.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <div>
-                              <p className="text-sm md:text-xs font-medium text-gray-700">{stat.label}</p>
-                              <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
-                            </div>
-                            <span className="text-2xl font-bold text-gray-300">{stat.val}</span>
-                          </div>
-                        ))}
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="text-sm md:text-xs font-medium text-gray-700">Total Sessions</p>
+                          <p className="text-xs md:text-[10px] text-gray-400">Across all jobs</p>
+                        </div>
+                        <span className="text-2xl font-bold text-gray-300">0</span>
                       </div>
                       <div className="flex items-center justify-between p-2.5 bg-purple-50 border border-purple-200 rounded-lg gap-3">
-                        <p className="text-sm md:text-xs text-purple-800 leading-snug">Unlock Power Analysis, job-specific sessions, and gamified progression.</p>
+                        <p className="text-sm md:text-xs text-purple-800 leading-snug">Unlock Power Analysis, coaching, and job-specific practice sessions.</p>
                         <button
                           onClick={() => router.push('/pricing')}
                           className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold flex-shrink-0 transition-opacity hover:opacity-90"
@@ -578,7 +570,7 @@ export default function MyInterviewsPage() {
             <div className="p-6 space-y-4">
               {jobSources.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Use details from existing job</label>
+                  <label className="block text-xs md:text-[10px] font-semibold text-gray-700 mb-1">Use details from existing job</label>
                   <p className="text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
                   <select
                     value={selectedJobSourceId}
@@ -646,7 +638,7 @@ export default function MyInterviewsPage() {
               <button
                 onClick={handleStartPractice}
                 disabled={creatingPractice}
-                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
+                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm md:text-xs flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: creatingPractice ? 0.85 : 1 }}
               >
                 <span key={creatingPractice ? 'loading' : 'idle'} className="flex items-center gap-2">
@@ -718,18 +710,18 @@ export default function MyInterviewsPage() {
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this interview practice?</h3>
-            <p className="text-sm text-gray-600 mb-5">This removes the Power Analysis and coached stories. The job card stays in your Job Tracker and you can restart practice anytime.</p>
+            <p className="text-sm md:text-xs text-gray-600 mb-5">This removes the Power Analysis and coached stories. The job card stays in your Job Tracker and you can restart practice anytime.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeletePracticeId(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeletePractice(confirmDeletePracticeId)}
                 disabled={deletingPracticeId === confirmDeletePracticeId}
-                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:opacity-90 transition-opacity text-sm md:text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {deletingPracticeId === confirmDeletePracticeId ? (
                   <>
@@ -760,6 +752,7 @@ export default function MyInterviewsPage() {
 // ============================================================================
 function PracticeCard({ card, onClick, onDeleteRequest }) {
   const router = useRouter();
+  const [hubNavigating, setHubNavigating] = useState(false);
 
   const storiesCoached = card.storiesCoached || 0;
   const totalStoryItems = card.totalStoryItems || 0;
@@ -824,10 +817,12 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
             />
           )}
           <button
-            onClick={(e) => goToDetail(e, null)}
-            className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+            onClick={(e) => { setHubNavigating(true); goToDetail(e, null); }}
+            disabled={hubNavigating}
+            className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold transition-opacity hover:opacity-90 whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50"
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
+            {hubNavigating && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
             {primaryCtaLabel}
           </button>
           <button
