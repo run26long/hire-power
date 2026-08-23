@@ -596,7 +596,7 @@ export default function InterviewDetailPage() {
             <p className="text-sm text-gray-600 mb-6">{loadError}</p>
             <button
               onClick={() => { setLoadError(null); setRetryCount(0); setLoading(true); loadData(); }}
-              className="text-white px-6 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium"
+              className="text-white px-6 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm md:text-xs"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Try Again
@@ -850,9 +850,10 @@ export default function InterviewDetailPage() {
                 />
               )}
 
-              {currentStep === 'coach' && !activeStory && hasPA && (
+              {currentStep === 'coach' && !activeStory && !coachStarting && hasPA && (
                 <CoachIdlePanel
                   batchChecks={batchChecks}
+                  coachStarting={coachStarting}
                   onStart={handleStartBatch}
                   onSkipToPractice={() => setCurrentStep('practice')}
                 />
@@ -862,7 +863,7 @@ export default function InterviewDetailPage() {
                 <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToCoach={handleOpenCoachStep} onSkipToPractice={() => setCurrentStep('practice')} />
               )}
 
-              {currentStep === 'coach' && activeStory && (
+              {currentStep === 'coach' && (activeStory || coachStarting) && (
                 <CoachingView
                   activeStory={activeStory}
                   coachingMessages={coachingMessages}
@@ -1126,14 +1127,14 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
       </p>
       <button
         onClick={onGoToCoach}
-        className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90"
+        className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
         style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
       >
         Coach My Stories →
       </button>
       <button
         onClick={onSkipToPractice}
-        className="w-full text-xs text-gray-400 hover:text-gray-600 hover:underline text-center transition-colors"
+        className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700 text-center transition-colors"
       >
         Skip to Interview Practice →
       </button>
@@ -1145,7 +1146,7 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader }) {
 // BATCH CHECKLIST
 // ============================================================================
 
-function CoachIdlePanel({ batchChecks, onStart, onSkipToPractice }) {
+function CoachIdlePanel({ batchChecks, coachStarting, onStart, onSkipToPractice }) {
   const selectedCount = Object.values(batchChecks).filter(Boolean).length;
 
   return (
@@ -1176,13 +1177,13 @@ function CoachIdlePanel({ batchChecks, onStart, onSkipToPractice }) {
         Pick individual items to coach, or select all to coach everything one at a time.
       </p>
       <div className="mt-auto space-y-2">
-        <button onClick={onStart} disabled={selectedCount === 0}
-          className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+        <button onClick={onStart} disabled={selectedCount === 0 || coachStarting}
+          className="w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
           Start Coaching ({selectedCount})
         </button>
         <button onClick={onSkipToPractice}
-          className="w-full text-xs text-gray-400 hover:text-gray-600 hover:underline text-center transition-colors">
+          className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700 text-center transition-colors">
           Skip to Interview Practice →
         </button>
       </div>
@@ -1374,10 +1375,10 @@ function CoachingView({
               <>
                 <button
                   onClick={onAdvanceBatch}
-                  className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm transition-opacity hover:opacity-90"
+                  className="w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
                   style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                 >
-                  Next: {itemLabel(batchQueue[batchPosition + 1].itemType, batchQueue[batchPosition + 1].itemIndex, batchQueue[batchPosition + 1].itemSkill)} →
+                  Coach Next: {itemLabel(batchQueue[batchPosition + 1].itemType, batchQueue[batchPosition + 1].itemIndex, batchQueue[batchPosition + 1].itemSkill)} →
                 </button>
                 <button onClick={onEnd} className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700">
                   Done for now
