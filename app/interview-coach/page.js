@@ -17,8 +17,6 @@ const QUESTIONS_OF_THE_DAY = [
   "Describe a situation where you had to learn something new quickly. How did you manage it?",
 ];
 
-const VISIBLE_CARD_LIMIT = 2;
-
 // Match score ring color, matching Resume Coach's getCircleColor.
 function getCircleColor(score) {
   if (score >= 85) return '#9333ea';
@@ -259,9 +257,6 @@ export default function MyInterviewsPage() {
     );
   }
 
-  const visibleCards = practiceCards.slice(0, VISIBLE_CARD_LIMIT);
-  const olderCards = practiceCards.slice(VISIBLE_CARD_LIMIT);
-  const hasOlder = olderCards.length > 0;
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -383,59 +378,63 @@ export default function MyInterviewsPage() {
                   </p>
 
                   {/* Practice list */}
-                  <div className="space-y-2">
-                    <button
-                      onClick={handleOpenPracticeModal}
-                      className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                    >
-                      <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </div>
-                      <div className="text-sm md:text-xs font-semibold text-gray-900">New Interview Practice</div>
-                    </button>
+                  <div className="space-y-1.5">
+                    {(() => {
+                      const cards = practiceCards || []
+                      const slots = [0, 1, 2, 3]
+                      return slots.map((slotIndex) => {
+                        const card = cards[slotIndex]
+                        const isFirstEmpty = slotIndex === cards.length
+                        const isUsed = !!card
 
-                    {visibleCards.length > 0 ? (
-                      <>
-                        {visibleCards.map((card) => (
-                          <PracticeCard
-                            key={card.jobCardId}
-                            card={card}
-                            onClick={() => router.push(`/interview/${card.jobCardId}`)}
-                            onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
-                          />
-                        ))}
-                        {hasOlder && (
-                          <button
-                            onClick={() => setShowOlderModal(true)}
-                            className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                        if (isUsed) {
+                          return (
+                            <PracticeCard
+                              key={card.jobCardId}
+                              card={card}
+                              onClick={() => router.push(`/interview/${card.jobCardId}`)}
+                              onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
+                            />
+                          )
+                        }
+
+                      if (isFirstEmpty && cards.length < 4) {
+                          return (
+                            <button
+                              key={`upload-${slotIndex}`}
+                              onClick={handleOpenPracticeModal}
+                              className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                              style={{ height: '56px' }}
+                            >
+                              <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                              </div>
+                              <div className="text-sm md:text-xs font-semibold text-gray-700">New Interview Practice</div>
+                            </button>
+                          )
+                        }
+
+                        return (
+                          <div
+                            key={`empty-${slotIndex}`}
+                            className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
+                            style={{ height: '56px' }}
                           >
-                            View all interview practices →
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-center border border-dashed border-gray-200 rounded-lg bg-gray-50 px-4 py-6">
-                        <p className="text-base md:text-sm font-semibold text-gray-700 mb-1">Your interviews will live here</p>
-                        <p className="text-sm md:text-xs text-gray-500 max-w-sm mx-auto leading-relaxed mb-4">
-                          Each job gets three prep tools. Use any or all to walk into your interview ready.
-                        </p>
-                        <div className="flex items-center justify-center gap-6">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="text-2xl">🎯</div>
-                            <span className="text-[11px] md:text-[10px] font-semibold text-gray-600">Power Analysis</span>
+                            <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Interview Practice {slotIndex + 1}</div>
                           </div>
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="text-2xl">🎤</div>
-                            <span className="text-[11px] md:text-[10px] font-semibold text-gray-600">Story Coaching</span>
-                          </div>
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="text-2xl">🎙️</div>
-                            <span className="text-[11px] md:text-[10px] font-semibold text-gray-600">Interview Practice</span>
-                          </div>
-                        </div>
-                      </div>
+                        )
+                      })
+                    })()}
+
+                    {practiceCards.length > 4 && (
+                     <button
+                          onClick={() => setShowOlderModal(true)}
+                          className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                        >
+                          View all interview practices →
+                        </button>
                     )}
                   </div>
                 </div>
@@ -667,7 +666,7 @@ export default function MyInterviewsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-white">Older Practices</h2>
-                  <p className="text-purple-100 text-sm md:text-xs">{olderCards.length} practice{olderCards.length === 1 ? '' : 's'}</p>
+                  <p className="text-purple-100 text-sm md:text-xs">{practiceCards.length} practice{practiceCards.length === 1 ? '' : 's'}</p>
                 </div>
                 <button
                   onClick={() => setShowOlderModal(false)}
@@ -679,7 +678,7 @@ export default function MyInterviewsPage() {
             </div>
 
             <div className="p-4 md:p-6 flex-1 overflow-y-auto space-y-1.5">
-              {olderCards.map((card) => (
+              {practiceCards.map((card) => (
                 <PracticeCard
                   key={card.jobCardId}
                   card={card}
@@ -782,17 +781,51 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
 
   return (
     <div
-      className="group bg-white border border-gray-300 rounded-lg p-2 hover:border-purple-400 hover:shadow-sm transition-all cursor-pointer"
+      className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden"
+      style={{ height: '56px' }}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{card.title}</div>
-          <div className="text-xs md:text-[10px] text-gray-500 truncate">{card.company}</div>
-        </div>
+      {/* Single row: title + score + step buttons + delete */}
+      <div className="flex items-center gap-3">
+        <p className="text-sm md:text-xs truncate min-w-0">
+          <span className="font-semibold text-gray-900">{card.title}</span>
+          {interviewIsUpcoming && (
+            <span className="ml-2 text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+              Upcoming
+            </span>
+          )}
+          <span className="text-gray-500">
+            {' · '}
+            {interviewIsPast
+              ? <>Past · {new Date(card.interviewDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>
+              : card.company}
+          </span>
+          {card.matchScore && <span className="text-gray-400"> · Match {card.matchScore}</span>}
+        </p>
+
+        {card.matchScore && (
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <svg className="w-8 h-8 transform -rotate-90">
+              <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+              <circle
+                cx="16" cy="16" r="12"
+                stroke={getCircleColor(card.matchScore)}
+                strokeWidth="2.5" fill="none"
+                strokeDasharray={`${2 * Math.PI * 12}`}
+                strokeDashoffset={`${2 * Math.PI * 12 * (1 - card.matchScore / 100)}`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-[9px] font-bold" style={{ color: getCircleColor(card.matchScore) }}>
+                {card.matchScore}%
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Step buttons */}
-        <div className="flex items-center gap-1.5 ml-2">
+        <div className="flex-1 flex items-center gap-2">
           {stepButtons.map(({ key, label, anchor }) => {
             const isPrimary = key === primaryStep;
             return (
@@ -800,7 +833,7 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
                 key={key}
                 onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
                 disabled={!!navigatingTo}
-                className={`rounded-md py-1 px-2 text-xs md:text-[10px] font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                className={`flex-1 rounded-md py-1.5 px-3 text-sm md:text-xs font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
                   isPrimary
                     ? 'text-white transition-opacity hover:opacity-90'
                     : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
@@ -816,39 +849,20 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
           })}
         </div>
 
-        {/* Delete + match score */}
-        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+        {/* Delete */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
-            className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
             title="Delete practice"
           >
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
-          {card.matchScore && (
-            <div className="relative w-9 h-9">
-              <svg className="w-9 h-9 transform -rotate-90">
-                <circle cx="18" cy="18" r="14" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
-                <circle
-                  cx="18" cy="18" r="14"
-                  stroke={getCircleColor(card.matchScore)}
-                  strokeWidth="2.5" fill="none"
-                  strokeDasharray={`${2 * Math.PI * 14}`}
-                  strokeDashoffset={`${2 * Math.PI * 14 * (1 - card.matchScore / 100)}`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-[10px] font-bold" style={{ color: getCircleColor(card.matchScore) }}>
-                  {card.matchScore}%
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
     </div>
   );
 }
