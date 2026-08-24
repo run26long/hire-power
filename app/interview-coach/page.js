@@ -441,7 +441,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[230px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[230px]">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
