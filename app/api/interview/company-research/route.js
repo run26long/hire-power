@@ -120,6 +120,27 @@ const RESEARCH_FIELDS = [
   'interview_style'
 ];
 
+// ============================================================================
+// RECRUITER CHECK
+// A staffing firm's own profile tells the candidate nothing about the job they
+// are interviewing for — the posting belongs to an undisclosed client. Say that
+// outright rather than presenting the agency's brief as company research.
+// ============================================================================
+
+const RECRUITER_TERMS = [
+  'staffing',
+  'recruiting',
+  'talent acquisition',
+  'placement firm',
+  'staffing agency',
+  'temp agency'
+];
+
+function isRecruitingFirm(parsed) {
+  const text = typeof parsed?.what_they_do === 'string' ? parsed.what_they_do.toLowerCase() : '';
+  return RECRUITER_TERMS.some(term => text.includes(term));
+}
+
 function hasNoUsableContent(parsed) {
   return RESEARCH_FIELDS.every(field => isBlank(parsed?.[field]));
 }
@@ -259,11 +280,23 @@ export async function POST(request) {
 
     const isFresh = existing?.expires_at && new Date(existing.expires_at).getTime() > Date.now();
     if (existing && isFresh) {
+      // Agency rows cached before the recruiter check existed would otherwise
+      // be served straight past it, so the same test runs on the way out.
+      if (isRecruitingFirm(existing)) {
+        return Response.json({ research: null, isRecruiter: true });
+      }
       return Response.json({ research: existing, cached: true });
     }
 
     // ---- GENERATE ----
     const { parsed, usage, noJson } = await generateResearch({ companyName, jobTitle, jobDescription });
+
+    // The named employer is an agency, so this brief describes the recruiter
+    // rather than the company the candidate would work for. Don't cache it.
+    if (isRecruitingFirm(parsed)) {
+      console.warn('Company research skipped, recruiting firm:', companyName);
+      return Response.json({ research: null, isRecruiter: true });
+    }
 
     // Nothing usable came back — either no JSON at all, or a brief where every
     // field is null. Report a clean not-found rather than an error, since there

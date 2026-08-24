@@ -1421,6 +1421,7 @@ function ResearchStepContent({ jobCard }) {
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchError, setResearchError] = useState(null);
   const [researchNotFound, setResearchNotFound] = useState(false);
+  const [isRecruiter, setIsRecruiter] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -1430,6 +1431,7 @@ function ResearchStepContent({ jobCard }) {
       setResearchLoading(true);
       setResearchError(null);
       setResearchNotFound(false);
+      setIsRecruiter(false);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('No session');
@@ -1451,9 +1453,10 @@ function ResearchStepContent({ jobCard }) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Research failed');
         if (cancelled) return;
-        // Nothing reliable exists for this company. Not an error — there is
-        // nothing to retry, so say so plainly instead of offering a button.
-        if (data.notFound) setResearchNotFound(true);
+        // Neither of these is an error — there is nothing to retry, so say so
+        // plainly instead of offering a button.
+        if (data.isRecruiter) setIsRecruiter(true);
+        else if (data.notFound) setResearchNotFound(true);
         else setResearch(data.research);
       } catch (err) {
         console.error('Company research load failed:', err);
@@ -1494,7 +1497,15 @@ function ResearchStepContent({ jobCard }) {
         </div>
       )}
 
-      {!researchLoading && researchNotFound && (
+      {!researchLoading && isRecruiter && (
+        <p className="text-sm md:text-xs text-gray-500 leading-snug">
+          {jobCard?.company || 'This company'} appears to be a recruiting firm hiring on behalf
+          of an undisclosed client. We don&apos;t have company details to share, but your Power
+          Analysis and coaching are based on the job description, so you&apos;re still well prepared.
+        </p>
+      )}
+
+      {!researchLoading && !isRecruiter && researchNotFound && (
         <p className="text-sm md:text-xs text-gray-500 leading-snug">
           We couldn&apos;t find reliable public information about{' '}
           {jobCard?.company || 'this company'}. You can still practice without it.
@@ -1513,7 +1524,7 @@ function ResearchStepContent({ jobCard }) {
         </div>
       )}
 
-      {!researchLoading && !researchError && !researchNotFound && research && (
+      {!researchLoading && !researchError && !researchNotFound && !isRecruiter && research && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
           {/* ROW 1 — COMPANY OVERVIEW (full width) */}
