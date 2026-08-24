@@ -691,7 +691,14 @@ export default function InterviewDetailPage() {
 
           {/* LEFT COLUMN — Power Analysis */}
           <div className={`flex flex-col overflow-hidden min-h-0 md:flex-[3] ${mobilePanel === 'analysis' ? 'flex' : 'hidden'} md:flex`}>
-            <div className="bg-gray-100 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200 md:m-6 p-4 md:p-6 flex flex-col gap-4 overflow-y-auto">
+            {/* On the research step this drops its own white-card treatment.
+                The research cards are the cards, and white-on-white would hide
+                the shadow that separates them. */}
+            <div className={`md:m-6 p-4 md:p-6 flex flex-col gap-4 overflow-y-auto bg-gray-100 ${
+              currentStep === 'research'
+                ? 'md:bg-gray-50'
+                : 'md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200'
+            }`}>
 
               {/* INTERVIEW HEADER STRIP — title + instructions + date + coaching progress */}
               {hasPA && (
@@ -1342,6 +1349,7 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
 // Platform status colors, same triad the Job Tracker score rings use.
 const DOT_GREEN = '#81c784';
 const DOT_AMBER = '#ffc870';
+const DOT_PURPLE = '#9333ea';
 
 function Tag({ children }) {
   return (
@@ -1351,13 +1359,24 @@ function Tag({ children }) {
   );
 }
 
+// Section heading in the Resume Coach panel idiom: uppercase micro-caps carrying
+// a semantic color, so the eye sorts sections by meaning before reading a word.
+function CardHeading({ children, color }) {
+  return (
+    <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color }}>
+      {children}
+    </h4>
+  );
+}
+
 // Every card renders whether or not it has data, so the grid keeps its shape.
 // An empty card says so rather than collapsing and reflowing its neighbours.
-function ResearchCard({ title, isEmpty, emptyText = 'Nothing surfaced.', children }) {
+// No border — the shadow against the gray page is what makes it a card.
+function ResearchCard({ title, color, isEmpty, emptyText = 'Nothing surfaced.', children }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <h4 className="text-base font-bold text-gray-900 mb-2">{title}</h4>
-      {isEmpty ? <p className="text-xs text-gray-400">{emptyText}</p> : children}
+    <div className="bg-white shadow-sm rounded-lg p-4">
+      <CardHeading color={color}>{title}</CardHeading>
+      {isEmpty ? <p className="text-sm md:text-xs text-gray-400">{emptyText}</p> : children}
     </div>
   );
 }
@@ -1382,8 +1401,8 @@ function Stat({ label, value }) {
   if (!value) return null;
   return (
     <div>
-      <p className="text-[11px] text-gray-500 mb-0.5">{label}</p>
-      <p className="text-sm md:text-xs text-gray-800 font-medium leading-snug">{value}</p>
+      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">{label}</p>
+      <p className="text-sm md:text-xs text-gray-700 leading-snug">{value}</p>
     </div>
   );
 }
@@ -1483,16 +1502,16 @@ function ResearchStepContent({ jobCard }) {
       {!researchLoading && !researchError && research && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-          {/* ROW 1 — WHAT THEY DO (full width) */}
-          <div className="md:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">What they do</h3>
+          {/* ROW 1 — WHAT THEY DO (full width, no section heading — the copy
+              is the card) */}
+          <div className="md:col-span-2 bg-white shadow-sm rounded-lg p-4">
             {research.what_they_do ? (
-              <p className="text-sm text-gray-600 leading-relaxed">{research.what_they_do}</p>
+              <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
             ) : (
-              <p className="text-xs text-gray-400">Nothing surfaced.</p>
+              <p className="text-sm md:text-xs text-gray-400">Nothing surfaced.</p>
             )}
             {(research.size_and_location || research.hiring_context) && (
-              <div className="mt-4 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Stat label="Size and location" value={research.size_and_location} />
                 <Stat label="What they're hiring for" value={research.hiring_context} />
               </div>
@@ -1500,12 +1519,12 @@ function ResearchStepContent({ jobCard }) {
           </div>
 
           {/* ROW 2 — RECENT NEWS | CULTURE AND VALUES */}
-          <ResearchCard title="Recent news" isEmpty={news.length === 0}>
-            <ul className="space-y-3">
+          <ResearchCard title="📰 Recent News" color={DOT_PURPLE} isEmpty={news.length === 0}>
+            <ul>
               {news.map((item, i) => (
-                <li key={i}>
-                  <p className="text-sm md:text-xs font-semibold text-gray-800 leading-snug">{item.headline}</p>
-                  {item.date && <p className="text-[11px] text-gray-400 mt-0.5">{item.date}</p>}
+                <li key={i} className={i > 0 ? 'border-t border-gray-100 pt-2 mt-2' : ''}>
+                  <p className="text-sm font-semibold text-gray-900 leading-snug">{item.headline}</p>
+                  {item.date && <p className="text-[10px] text-gray-400 mt-0.5">{item.date}</p>}
                   {item.summary && (
                     <p className="text-sm md:text-xs text-gray-600 leading-snug mt-1">{item.summary}</p>
                   )}
@@ -1515,7 +1534,8 @@ function ResearchStepContent({ jobCard }) {
           </ResearchCard>
 
           <ResearchCard
-            title="Culture and values"
+            title="🧭 Culture & Values"
+            color={DOT_PURPLE}
             isEmpty={!culture?.mission && !culture?.values?.length}
           >
             {culture?.mission && (
@@ -1529,16 +1549,24 @@ function ResearchStepContent({ jobCard }) {
           </ResearchCard>
 
           {/* ROW 3 — WHAT PEOPLE LIKE | COMMON COMPLAINTS */}
-          <ResearchCard title="What people like" isEmpty={!culture?.themes_positive?.length}>
+          <ResearchCard
+            title="✅ What People Like"
+            color={DOT_GREEN}
+            isEmpty={!culture?.themes_positive?.length}
+          >
             <DotList items={culture?.themes_positive || []} color={DOT_GREEN} />
           </ResearchCard>
 
-          <ResearchCard title="Common complaints" isEmpty={!culture?.themes_negative?.length}>
+          <ResearchCard
+            title="⚠️ Common Complaints"
+            color={DOT_AMBER}
+            isEmpty={!culture?.themes_negative?.length}
+          >
             <DotList items={culture?.themes_negative || []} color={DOT_AMBER} />
           </ResearchCard>
 
           {/* ROW 4 — INTERVIEW FORMAT | QUESTION TYPES */}
-          <ResearchCard title="Interview format" isEmpty={!style?.likely_format}>
+          <ResearchCard title="🎯 Interview Format" color={DOT_AMBER} isEmpty={!style?.likely_format}>
             <div className="mb-2">
               <span className={`inline-block text-[11px] font-semibold rounded px-2 py-0.5 capitalize ${
                 DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.unknown
@@ -1549,16 +1577,23 @@ function ResearchStepContent({ jobCard }) {
             <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{style?.likely_format}</p>
           </ResearchCard>
 
-          <ResearchCard title="Question types to expect" isEmpty={!style?.known_question_types?.length}>
+          <ResearchCard
+            title="💬 Question Types"
+            color={DOT_PURPLE}
+            isEmpty={!style?.known_question_types?.length}
+          >
             <div className="flex flex-wrap gap-1">
               {(style?.known_question_types || []).map((q, i) => <Tag key={i}>{q}</Tag>)}
             </div>
           </ResearchCard>
 
-          {/* ROW 5 — QUESTIONS TO ASK (full width placeholder) */}
-          <div className="md:col-span-2 bg-white border border-gray-200 rounded-lg p-4">
-            <h4 className="text-base font-bold text-gray-900 mb-2">Questions to ask your interviewer</h4>
-            <p className="text-xs text-gray-400">Interviewer questions coming soon.</p>
+          {/* ROW 5 — QUESTIONS TO ASK (full width). Tinted callout, same
+              treatment Resume Coach uses for its upgrade panel. */}
+          <div className="md:col-span-2 bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <p className="text-sm font-semibold text-purple-800 mb-2">
+              Questions to ask your interviewer
+            </p>
+            <p className="text-sm md:text-xs text-gray-600">Interviewer questions coming soon.</p>
           </div>
         </div>
       )}
@@ -1576,27 +1611,27 @@ function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
 
-      {/* What the research gave them — mirrors Resume Coach's assess panel:
-          uppercase colored section heading over a colored-dot bullet list. */}
+      {/* What the research gave them. Eyebrow + purple dots: this is a
+          navigation panel, so the color reads as brand, not as a score. */}
       <div>
-        <h3 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: DOT_GREEN }}>
-          🔍 What You Have
-        </h3>
+        <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-2">
+          Research Complete
+        </p>
         <ul className="space-y-1">
           <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
             <span>What the company does, how big it is, and where it sits.</span>
           </li>
           <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
             <span>Recent news you can reference to show you did the reading.</span>
           </li>
           <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
             <span>What their culture rewards, and what people complain about.</span>
           </li>
           <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
             <span>The interview format and the question types to expect.</span>
           </li>
         </ul>
