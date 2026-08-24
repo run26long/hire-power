@@ -257,6 +257,10 @@ export default function MyInterviewsPage() {
     );
   }
 
+  // Practice Stats totals. Sessions accumulate across every job; level is the
+  // furthest the user has reached on any single one, not a sum.
+  const totalSessions = practiceCards.reduce((sum, c) => sum + (c.sessionsCount || 0), 0);
+  const maxLevel = practiceCards.reduce((max, c) => Math.max(max, c.level || 0), 0);
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -441,23 +445,34 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px]">
+                <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] ${isPro ? 'flex flex-col' : ''}`}>
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
                   {isPro ? (
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { label: 'Sessions', sub: 'Across all jobs', val: '0' },
-                        { label: 'Level', sub: 'Per job', val: '0' },
-                        { label: 'Total Jobs', sub: 'Unique targets', val: String(practiceCards.length) },
-                      ].map((stat) => (
-                        <div key={stat.label} className="flex flex-col items-center justify-center text-center p-2 bg-gray-50 rounded-lg">
-                          <span className="text-xl font-bold text-gray-300">{stat.val}</span>
-                          <p className="text-sm md:text-xs font-medium text-gray-700 whitespace-nowrap">{stat.label}</p>
-                          <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
-                        </div>
-                      ))}
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="grid grid-cols-3 gap-2 w-full">
+                        {[
+                          { label: 'Sessions', sub: 'Across all jobs', val: String(totalSessions), tone: 'purple' },
+                          { label: 'Level', sub: 'Per job', val: String(maxLevel), tone: 'purple' },
+                          { label: 'Total Jobs', sub: 'Unique targets', val: String(practiceCards.length), tone: 'gray' },
+                        ].map((stat) => {
+                          // Zero stays muted; a real value takes the tone for its stat.
+                          const isZero = (Number(stat.val) || 0) === 0;
+                          const valueClass = isZero
+                            ? 'text-gray-300'
+                            : stat.tone === 'purple'
+                              ? 'text-purple-600'
+                              : 'text-gray-700';
+                          return (
+                            <div key={stat.label} className="flex flex-col items-center justify-center text-center p-3 bg-gray-50 rounded-lg">
+                              <span className={`text-2xl font-bold ${valueClass}`}>{stat.val}</span>
+                              <p className="text-sm md:text-xs font-medium text-gray-700 whitespace-nowrap">{stat.label}</p>
+                              <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5">
@@ -479,7 +494,7 @@ export default function MyInterviewsPage() {
                     </div>
                   )}
 
-                  <p className="text-xs md:text-[10px] text-gray-400 text-center mt-2">Start practicing to see your stats here</p>
+                  <p className={`text-xs md:text-[10px] text-gray-400 text-center ${isPro ? 'mt-auto pt-2' : 'mt-2'}`}>Start practicing to see your stats here</p>
                 </div>
 
                 {/* Practice out loud callout */}
@@ -497,8 +512,8 @@ export default function MyInterviewsPage() {
                   <div className="space-y-1.5">
                     {[
                       { label: 'Tailored & reviewed resume', key: 'resume' },
-                      { label: 'Completed company research', key: 'research' },
-                      { label: 'Prepared 3 STAR stories', key: 'stories' },
+                       { label: 'Prepared 3 STAR stories', key: 'stories' },
+                        { label: 'Completed company research', key: 'research' },
                       { label: 'Thought of questions for interviewer', key: 'question' },
                       { label: 'Practiced out loud at least once', key: 'practiced' },
                     ].map((item) => (
