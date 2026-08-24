@@ -709,6 +709,7 @@ export default function InterviewDetailPage() {
                   countdown={countdown}
                   interviewDateIsPast={interviewDateIsPast}
                   currentStep={currentStep}
+                  titleOnly={currentStep === 'research'}
                 />
               )}
 
@@ -1401,7 +1402,7 @@ function Stat({ label, value }) {
   if (!value) return null;
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">{label}</p>
+      <CardHeading color={DOT_PURPLE}>{label}</CardHeading>
       <p className="text-sm md:text-xs text-gray-700 leading-snug">{value}</p>
     </div>
   );
@@ -1502,9 +1503,9 @@ function ResearchStepContent({ jobCard }) {
       {!researchLoading && !researchError && research && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-          {/* ROW 1 — WHAT THEY DO (full width, no section heading — the copy
-              is the card) */}
+          {/* ROW 1 — COMPANY OVERVIEW (full width) */}
           <div className="md:col-span-2 bg-white shadow-sm rounded-lg p-4">
+            <CardHeading color={DOT_PURPLE}>🏢 Company Overview</CardHeading>
             {research.what_they_do ? (
               <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
             ) : (
@@ -1610,31 +1611,24 @@ function ResearchStepContent({ jobCard }) {
 function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
+      <div className="space-y-2">
+        <h3 className="font-semibold text-lg -mt-3">🔍 Research This Company</h3>
 
-      {/* What the research gave them. Eyebrow + purple dots: this is a
-          navigation panel, so the color reads as brand, not as a score. */}
-      <div>
-        <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-2">
-          Research Complete
+        <p className="text-sm md:text-xs text-gray-700">
+          Your brief is on the left. Skim it before you practice, so their words come back in your answers.
         </p>
-        <ul className="space-y-1">
-          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
-            <span>What the company does, how big it is, and where it sits.</span>
-          </li>
-          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
-            <span>Recent news you can reference to show you did the reading.</span>
-          </li>
-          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
-            <span>What their culture rewards, and what people complain about.</span>
-          </li>
-          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
-            <span className="flex-shrink-0" style={{ color: DOT_PURPLE }}>•</span>
-            <span>The interview format and the question types to expect.</span>
-          </li>
-        </ul>
+
+        <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
+          <div className="text-sm md:text-xs text-purple-900 space-y-2">
+            <div><strong>🏢 Company overview</strong> — What they actually do, who buys from them, how big they are, and what this role says about where they are investing right now.</div>
+            <div><strong>📰 Recent news</strong> — The last twelve months. Referencing one specific thing is the fastest way to show you did the reading and not just the job description.</div>
+            <div><strong>🧭 Culture and values</strong> — Their stated mission and values. Echo this language back when you explain why you want to work there.</div>
+            <div><strong>✅ What people like</strong> — What employees consistently praise. Use these to shape the questions you ask about the team.</div>
+            <div><strong>⚠️ Common complaints</strong> — What employees consistently flag. Know these before you accept an offer, not after.</div>
+            <div><strong>🎯 Interview format</strong> — The process to expect and how hard people find it, so nothing about the format surprises you.</div>
+            <div><strong>💬 Question types</strong> — The kinds of questions this company tends to ask. Practice these first.</div>
+          </div>
+        </div>
       </div>
 
       {/* CTA */}
@@ -1954,7 +1948,7 @@ function StoryModal({ story, onClose }) {
 
 function InterviewHeaderStrip({
   storiesCoached, totalStoryItems,
-  interviewDate, countdown, interviewDateIsPast, currentStep
+  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly
 }) {
   const hasDate = !!interviewDate;
   const dateObj = hasDate ? new Date(interviewDate) : null;
@@ -1964,25 +1958,33 @@ function InterviewHeaderStrip({
   const shortDate = dateObj ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
   const progressPct = totalStoryItems > 0 ? Math.round((storiesCoached / totalStoryItems) * 100) : 0;
 
+  const title = (
+    <div className="flex-1 min-w-0">
+      <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
+        {currentStep === 'analyze' && 'Power Analysis'}
+        {currentStep === 'coach'   && 'STAR Story Coaching'}
+        {currentStep === 'research' && 'Company Research'}
+        {currentStep === 'practice' && 'Interview Practice'}
+      </h2>
+      <p className="text-xs text-gray-400 leading-snug">
+        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
+        {currentStep === 'coach'   && 'Interview Coach: Step 2 of 4'}
+        {currentStep === 'research' && 'Interview Coach: Step 3 of 4'}
+        {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
+      </p>
+    </div>
+  );
+
+  // Research keeps the step title but drops the card, the date widget, and the
+  // coaching badges — none of them say anything about company research.
+  if (titleOnly) return title;
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
       <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
 
         {/* TITLE + INSTRUCTIONS */}
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
-            {currentStep === 'analyze' && 'Power Analysis'}
-            {currentStep === 'coach'   && 'STAR Story Coaching'}
-            {currentStep === 'research' && 'Company Research'}
-            {currentStep === 'practice' && 'Interview Practice'}
-          </h2>
-          <p className="text-xs text-gray-400 leading-snug">
-            {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
-            {currentStep === 'coach'   && 'Interview Coach: Step 2 of 4'}
-            {currentStep === 'research' && 'Interview Coach: Step 3 of 4'}
-            {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
-          </p>
-        </div>
+        {title}
 
         {/* DATE */}
         <div className="flex items-center gap-3 md:border-l md:border-gray-200 md:pl-6">
