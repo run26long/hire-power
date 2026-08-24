@@ -368,7 +368,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[458px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -643,35 +643,12 @@ export default function MyInterviewsPage() {
             <div className="px-6 py-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
               <div className="space-y-2">
                 {practiceCards?.map((card) => (
-                  <div
+                  <PracticeCard
                     key={card.jobCardId}
-                    className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-white cursor-pointer transition-all"
+                    card={card}
                     onClick={() => { setShowOlderModal(false); router.push(`/interview/${card.jobCardId}`); }}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">{card.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{card.company}</p>
-                    </div>
-                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDeletePracticeId(card.jobCardId); setShowOlderModal(false); }}
-                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                      <div className="relative w-10 h-10 flex-shrink-0">
-                        <svg className="w-10 h-10 transform -rotate-90">
-                          <circle cx="20" cy="20" r="16" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
-                          <circle cx="20" cy="20" r="16" stroke={getCircleColor(card.matchScore)} strokeWidth="2.5" fill="none" strokeDasharray={`${2 * Math.PI * 16}`} strokeDashoffset={`${2 * Math.PI * 16 * (1 - card.matchScore / 100)}`} strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-[11px] font-bold" style={{ color: getCircleColor(card.matchScore) }}>{card.matchScore}%</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
+                  />
                 ))}
               </div>
             </div>
