@@ -1636,10 +1636,10 @@ function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
-        <h3 className="font-semibold text-lg -mt-3">🔍 Research This Company</h3>
+        <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
 
         <p className="text-sm md:text-xs text-gray-700">
-          Your brief is on the left. Skim it before you practice, so their words come back in your answers.
+          Get to know the company before your interview so you can tailor your answers and ask thoughtful questions.
         </p>
 
         <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
