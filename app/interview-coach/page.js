@@ -126,6 +126,7 @@ export default function MyInterviewsPage() {
           )
         `)
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .order('last_refreshed_at', { ascending: false, nullsFirst: false });
 
       // Load completed story counts per job card
@@ -224,26 +225,21 @@ export default function MyInterviewsPage() {
     try {
       setDeletingPracticeId(jobCardId);
 
-      const { error: storiesError } = await supabase
-        .from('interview_stories')
-        .delete()
-        .eq('job_card_id', jobCardId)
-        .eq('user_id', user.id);
-      if (storiesError) throw storiesError;
-
+      // Archive the Power Analysis. Coached stories stay put — they're the
+      // user's own words and survive a removed practice.
       const { error: paError } = await supabase
         .from('power_analysis')
-        .delete()
+        .update({ is_active: false })
         .eq('job_card_id', jobCardId)
         .eq('user_id', user.id);
       if (paError) throw paError;
 
       setConfirmDeletePracticeId(null);
       setPracticeCards(prev => prev.filter(c => c.jobCardId !== jobCardId));
-      setErrorToast("Interview practice deleted. Restart it anytime from your Job Tracker.");
+      setErrorToast("Interview practice removed. Restart it anytime from your Job Tracker.");
     } catch (error) {
-      console.error('Delete practice error:', error);
-      setErrorToast('Could not delete interview practice. Please try again.');
+      console.error('Archive practice error:', error);
+      setErrorToast('Could not remove interview practice. Please try again.');
     } finally {
       setDeletingPracticeId(null);
     }
