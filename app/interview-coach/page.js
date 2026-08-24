@@ -483,14 +483,14 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Practice out loud callout */}
-                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:min-h-[57px]">
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[57px] overflow-hidden">
                   <p className="text-sm md:text-xs text-gray-700 leading-snug">
                     Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews.
                   </p>
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[250px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[250px] overflow-hidden">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
