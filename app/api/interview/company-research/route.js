@@ -50,21 +50,47 @@ RULES:
 - recent_news: 2-3 items maximum. Only include news from the last 12 months.
 - Keep every field brief. This is a quick brief, not a research report.
 - No em dashes anywhere in your output.
+- Write every field as plain prose. Do NOT include citation markup of any kind: no <cite> tags, no index attributes, no bracketed source numbers. The candidate reads these fields directly, so anything that is not plain text shows up as broken output.
 - Job title and description are provided for context only — use them to write hiring_context.
 ═══════════════════════════════════════════════`;
 
 // ============================================================================
 // RESPONSE PARSING
-// With web search enabled the response is a mix of server_tool_use,
-// web_search_tool_result, and text blocks. The JSON is in the LAST text block —
-// content[0] is usually the model narrating its search, not the answer.
+// With web search on, the response interleaves server_tool_use,
+// web_search_tool_result, and text blocks, and how the answer splits across
+// text blocks varies run to run. So concatenate every text block and slice out
+// the JSON by braces rather than trusting block position or a fence: the model
+// reliably writes a sentence of preamble before the object.
 // ============================================================================
 
 function extractJsonText(content) {
-  const textBlocks = (content || []).filter(b => b.type === 'text' && b.text?.trim());
-  if (!textBlocks.length) return null;
-  const raw = textBlocks[textBlocks.length - 1].text.trim();
-  return raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+  const joined = (content || [])
+    .filter(b => b.type === 'text' && b.text?.trim())
+    .map(b => b.text)
+    .join('');
+  if (!joined.trim()) return null;
+
+  const start = joined.indexOf('{');
+  const end = joined.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  return joined.slice(start, end + 1);
+}
+
+// Web search makes the model wrap quoted facts in <cite index="..."> tags, which
+// would otherwise render as literal markup in the brief. The system prompt asks
+// for clean text; this strips whatever slips through.
+function stripCitations(value) {
+  if (typeof value === 'string') {
+    return value
+      .replace(/<\/?cite\b[^>]*>/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+  if (Array.isArray(value)) return value.map(stripCitations);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, stripCitations(v)]));
+  }
+  return value;
 }
 
 // ============================================================================
@@ -109,20 +135,28 @@ Job Description: ${(jobDescription || '').slice(0, 1500)}`;
     messages.push({ role: 'assistant', content: response.content });
   }
 
+  const rawText = (response.content || [])
+    .filter(b => b.type === 'text' && b.text?.trim())
+    .map(b => b.text)
+    .join('');
   const cleanText = extractJsonText(response.content);
+
   if (!cleanText) {
-    throw new Error('Company research returned no text content');
+    console.error('Company research: no JSON object found. Raw text:', rawText.slice(0, 2000));
+    throw new Error('Company research returned no parseable JSON object');
   }
 
   let parsed;
   try {
     parsed = JSON.parse(cleanText);
   } catch (parseErr) {
-    console.error('Company research JSON parse error:', parseErr, 'Raw:', cleanText.slice(0, 500));
+    console.error('Company research JSON parse error:', parseErr.message);
+    console.error('Company research raw text:', rawText.slice(0, 2000));
+    console.error('Company research sliced JSON:', cleanText.slice(0, 2000));
     throw new Error('Company research returned unparseable JSON');
   }
 
-  return { parsed, usage };
+  return { parsed: stripCitations(parsed), usage };
 }
 
 // ============================================================================
