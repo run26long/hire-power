@@ -647,6 +647,7 @@ export default function MyInterviewsPage() {
                   <PracticeCard
                     key={card.jobCardId}
                     card={card}
+                    compact
                     onClick={() => { setShowOlderModal(false); router.push(`/interview/${card.jobCardId}`); }}
                     onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
                   />
@@ -709,7 +710,9 @@ export default function MyInterviewsPage() {
 // Three always-visible step buttons, status pills below. The recommended next
 // step is styled as primary; the user can jump to any step at any time.
 // ============================================================================
-function PracticeCard({ card, onClick, onDeleteRequest }) {
+// `compact` tightens the row so the card fits the narrower max-w-lg modal.
+// The hub renders without it and is unaffected.
+function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const router = useRouter();
   const [navigatingTo, setNavigatingTo] = useState(null);
 
@@ -746,8 +749,8 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
       onClick={onClick}
     >
       {/* Single row: title + score + step buttons + delete */}
-      <div className="flex items-center gap-3 w-full">
-        <div className="min-w-0 md:w-36 md:flex-shrink-0">
+      <div className={`flex items-center w-full ${compact ? 'gap-2' : 'gap-3'}`}>
+        <div className={`min-w-0 md:flex-shrink-0 ${compact ? 'md:w-24' : 'md:w-36'}`}>
           <div className="text-base md:text-sm font-semibold text-gray-900 truncate">
             {card.title}
             {interviewIsUpcoming && (
@@ -780,8 +783,9 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
           </div>
         )}
 
-        {/* Step buttons */}
-        <div className="flex-1 flex items-center gap-2">
+        {/* Step buttons. min-w-0 lets flex-1 actually shrink them — without it
+            the nowrap labels set a min-content floor and the row overflows. */}
+        <div className={`flex-1 min-w-0 flex items-center ${compact ? 'gap-1' : 'gap-2'}`}>
           {stepButtons.map(({ key, label, anchor }) => {
             const isPrimary = key === primaryStep;
             return (
@@ -789,7 +793,9 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
                 key={key}
                 onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
                 disabled={!!navigatingTo}
-                className={`flex-1 rounded-md py-1.5 px-3 text-sm md:text-xs font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                className={`flex-1 min-w-0 rounded-md py-1.5 font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                  compact ? 'px-2 text-xs md:text-[11px]' : 'px-3 text-sm md:text-xs'
+                } ${
                   isPrimary
                     ? 'text-white transition-opacity hover:opacity-90'
                     : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
@@ -799,7 +805,7 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
                 {navigatingTo === key && (
                   <div className={`h-3.5 w-3.5 animate-spin rounded-full border-2 border-r-transparent ${isPrimary ? 'border-white' : 'border-purple-600'}`}></div>
                 )}
-                {label}
+                <span className={compact ? 'truncate' : undefined}>{label}</span>
               </button>
             );
           })}
