@@ -496,10 +496,10 @@ export default function MyInterviewsPage() {
 
                   <div className="space-y-1.5">
                     {[
-                      { label: 'Resume reviewed and current', key: 'resume' },
-                      { label: 'Researched the company', key: 'research' },
-                      { label: 'Know your 3 strongest stories', key: 'stories' },
-                      { label: 'Prepared a question to ask them', key: 'question' },
+                      { label: 'Tailored & reviewed resume', key: 'resume' },
+                      { label: 'Completed company research', key: 'research' },
+                      { label: 'Prepared 3 STAR stories', key: 'stories' },
+                      { label: 'Thought of questions for interviewer', key: 'question' },
                       { label: 'Practiced out loud at least once', key: 'practiced' },
                     ].map((item) => (
                       <ChecklistItem key={item.key} label={item.label} />
