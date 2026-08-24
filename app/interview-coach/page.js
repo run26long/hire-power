@@ -368,7 +368,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[448px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[333px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -382,6 +382,7 @@ export default function MyInterviewsPage() {
                           <button
                             onClick={handleOpenPracticeModal}
                             className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                            style={{ height: '66px' }}
                           >
                             <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
                               <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,7 +394,7 @@ export default function MyInterviewsPage() {
 
                           {practiceCards && practiceCards.length > 0 ? (
                             <>
-                              {practiceCards.slice(0, 5).map((card) => (
+                              {practiceCards.slice(0, 2).map((card) => (
                                 <PracticeCard
                                   key={card.jobCardId}
                                   card={card}
@@ -401,7 +402,7 @@ export default function MyInterviewsPage() {
                                   onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
                                 />
                               ))}
-                              {practiceCards.length > 5 && (
+                              {practiceCards.length > 2 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
                                     className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
@@ -437,10 +438,10 @@ export default function MyInterviewsPage() {
               </div>
 
               {/* RIGHT: Stats + Readiness (4 cols) */}
-              <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col">
+              <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[179px]">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
@@ -482,14 +483,14 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Practice out loud callout */}
-                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:min-h-[57px]">
                   <p className="text-sm md:text-xs text-gray-700 leading-snug">
                     Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews.
                   </p>
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[250px]">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
@@ -740,12 +741,12 @@ function PracticeCard({ card, onClick, onDeleteRequest }) {
 
   return (
     <div
-      className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden"
+      className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden flex items-center"
       style={{ height: '66px' }}
       onClick={onClick}
     >
       {/* Single row: title + score + step buttons + delete */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 w-full">
         <div className="min-w-0 md:w-36 md:flex-shrink-0">
           <div className="text-base md:text-sm font-semibold text-gray-900 truncate">
             {card.title}
