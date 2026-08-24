@@ -51,11 +51,16 @@ export async function GET(request) {
     }
 
     // ---- LOAD POWER ANALYSIS ----
+    // Oldest row wins. limit(1) keeps this working if duplicates ever exist —
+    // maybeSingle() alone errors on multiple rows, which used to 500 the page
+    // and, worse, made the caller think no analysis existed.
     const { data: powerAnalysis, error: paError } = await supabase
       .from('power_analysis')
       .select('*')
       .eq('job_card_id', jobCardId)
       .eq('user_id', userId)
+      .order('generated_at', { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (paError) {

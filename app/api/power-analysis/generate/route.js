@@ -563,10 +563,15 @@ ${jobCard.description}`;
     // ---- WRITE POWER ANALYSIS TO DB ----
     // Use upsert pattern: one Power Analysis per job card.
     // If exists, refresh it (increment counter).
+    // Scoped to the caller so we never refresh another user's row, and ordered
+    // + limited so an existing row is still found if duplicates exist.
     const { data: existing } = await supabase
       .from('power_analysis')
       .select('id, refresh_count')
       .eq('job_card_id', jobCardId)
+      .eq('user_id', userId)
+      .order('generated_at', { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     let powerAnalysisRow;
