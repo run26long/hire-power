@@ -132,14 +132,18 @@ const HUB_TOUR_STEPS = [
     targets: ['job-specific'],
     placement: 'left',
     title: 'Tailor for every application',
-    body: "Employers expect a resume that matches their posting. Paste any job description and we'll customize your resume to fit. Each version lives here with its own match score."
+    body: "Employers expect a resume that matches their posting. Paste any job description and we'll customize your resume to fit. Each version lives here with its own match score.",
+    // Free tier sees the Job Match Scores card in this slot, not job-specific resumes.
+    freeTitle: 'See how you match up',
+    freeBody: "Paste any job description and we'll score how well your resume matches. You get 3 free job match scores to help you target your strongest opportunities."
   },
   {
     id: 'cover-letters',
     targets: ['cover-letters'],
     placement: 'left',
     title: 'Cover letters that connect the dots',
-    body: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. Works with or without a tailored resume for that job."
+    body: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. Works with or without a tailored resume for that job.",
+    freeBody: "Paste a job posting and we'll write a cover letter that ties your experience to what they're looking for. You get 3 free cover letters."
   },
   {
     id: 'job-tracker',
@@ -249,11 +253,14 @@ function hubArrowStyles(placement, offset) {
   return null;
 }
 
-function HubTour({ onStepChange, onClose }) {
+function HubTour({ isPro, onStepChange, onClose }) {
   // Lock the stop list at mount so the dots match what's actually on screen —
-  // a Vault-tier user has no Job Tracker link, for instance.
+  // a Vault-tier user has no Job Tracker link, for instance. Copy is resolved
+  // here too: the tour only mounts once data has loaded, so the tier is settled.
   const [steps] = useState(() =>
-    HUB_TOUR_STEPS.filter(s => document.querySelector(`[data-tour="${s.targets[0]}"]`))
+    HUB_TOUR_STEPS
+      .filter(s => document.querySelector(`[data-tour="${s.targets[0]}"]`))
+      .map(s => (isPro ? s : { ...s, title: s.freeTitle || s.title, body: s.freeBody || s.body }))
   );
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState(null);
@@ -3023,7 +3030,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       )}
 
       {showHubTour && (
-        <HubTour onStepChange={setHubTourStepId} onClose={closeHubTour} />
+        <HubTour isPro={isPro} onStepChange={setHubTourStepId} onClose={closeHubTour} />
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />

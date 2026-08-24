@@ -65,6 +65,8 @@ export default function Profile() {
   const [editingEmail, setEditingEmail] = useState(false)
   const [newEmail, setNewEmail] = useState('')
   const [vaultBillingInterval, setVaultBillingInterval] = useState('monthly')
+  // Holds 'monthly' | 'annual' while we confirm a ?plan=vault deep link.
+  const [vaultCheckoutPrompt, setVaultCheckoutPrompt] = useState(null)
 
   useEffect(() => { loadProfile() }, [])
 
@@ -111,9 +113,14 @@ export default function Profile() {
     }
   }, [])
 
-  // Auto-trigger Vault checkout when arriving from email link (?plan=vault)
+  // Offer Vault checkout when arriving from an email link (?plan=vault).
+  // Waits for the profile to load so we can check the tier first: an existing
+  // Vault subscriber doesn't need a second one, and a Pro user would end up
+  // paying for two subscriptions since checkout opens a new one rather than
+  // converting the existing plan. Everyone else gets a confirmation prompt —
+  // a link click should never put someone straight into Stripe.
   useEffect(() => {
-    if (typeof window === 'undefined' || !user) return
+    if (typeof window === 'undefined' || loading || !user) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('plan') !== 'vault') return
     const interval = params.get('interval') === 'annual' ? 'annual' : 'monthly'
@@ -122,13 +129,23 @@ export default function Profile() {
     params.delete('interval')
     const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
     window.history.replaceState({}, '', newUrl)
-    // Fire Vault checkout
-    startVaultCheckout(interval)
-  }, [user])
+
+    const currentTier = profile?.subscription_tier || TIERS.FREE
+    if (currentTier === TIERS.VAULT) {
+      setToastSuccess("You're already subscribed to Career Vault.")
+      return
+    }
+    if (currentTier === TIERS.PRO) {
+      setToastSuccess('Your Pro plan already includes Career Vault.')
+      return
+    }
+    setVaultCheckoutPrompt(interval)
+  }, [loading, user, profile])
 
   // Send the user to Stripe checkout for Vault at the requested billing interval.
   async function startVaultCheckout(interval = 'monthly') {
     try {
+      setProcessing(true)
       const { data: { session } } = await supabase.auth.getSession()
       const { data: prof } = await supabase
         .from('profiles')
@@ -153,7 +170,11 @@ export default function Profile() {
         throw new Error("We couldn't start checkout. Please try again in a moment.")
       }
       window.location.href = data.url
+      // Deliberately leaves `processing` set — the redirect is in flight and the
+      // confirm button should stay disabled until the browser navigates away.
     } catch (err) {
+      setVaultCheckoutPrompt(null)
+      setProcessing(false)
       setToastError(err.message)
     }
   }
@@ -836,6 +857,39 @@ export default function Profile() {
           .hp-mobile-bottom { display: none !important; }
         }
       `}</style>
+
+      {/* ── VAULT CHECKOUT CONFIRMATION (?plan=vault deep link) ── */}
+      {vaultCheckoutPrompt && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <div style={modalHead()}>
+              <p style={modalTitle}>Subscribe to Career Vault?</p>
+              <p style={modalSub}>{vaultCheckoutPrompt === 'annual' ? '$49.99/year · Save 2 months' : '$4.99/month between job searches'}</p>
+            </div>
+            <div style={modalBody}>
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, marginBottom: 18 }}>
+                You&apos;re about to subscribe to Career Vault at {vaultCheckoutPrompt === 'annual' ? '$49.99/year' : '$4.99/month'}. Continue?
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setVaultCheckoutPrompt(null)}
+                  disabled={processing}
+                  style={{ ...btnGhost, flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => startVaultCheckout(vaultCheckoutPrompt)}
+                  disabled={processing}
+                  style={{ ...btnPurple, flex: 1, background: 'linear-gradient(135deg,#667eea,#764ba2)', opacity: processing ? 0.6 : 1 }}
+                >
+                  {processing ? 'Starting checkout...' : 'Yes, subscribe'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── SWITCH TO ANNUAL MODAL ── */}
       {showAnnualModal && (
