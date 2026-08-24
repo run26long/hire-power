@@ -368,7 +368,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[406px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[384px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -382,7 +382,7 @@ export default function MyInterviewsPage() {
                           <button
                             onClick={handleOpenPracticeModal}
                             className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                            style={{ height: '66px' }}
+                            style={{ height: '44px' }}
                           >
                             <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
                               <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,7 +441,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[252px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[230px]">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
