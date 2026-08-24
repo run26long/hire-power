@@ -1445,11 +1445,11 @@ function ResearchStepContent({ jobCard, onGoToCoach, onGoToPractice }) {
       )}
 
       {!researchLoading && researchError && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r space-y-2">
-          <p className="text-xs text-red-800 leading-snug">{researchError}</p>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 space-y-2">
+          <p className="text-xs text-gray-700 leading-snug">{researchError}</p>
           <button
             onClick={() => setAttempt(a => a + 1)}
-            className="text-xs font-semibold text-red-700 underline hover:text-red-900"
+            className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
           >
             Try Again
           </button>
