@@ -94,6 +94,37 @@ function stripCitations(value) {
 }
 
 // ============================================================================
+// EMPTINESS CHECK
+// A brief where every field came back null means there was nothing reliable to
+// find — common for staffing agencies and small private firms, where the
+// posting describes a client rather than the employer. That is a legitimate
+// outcome, not a failure, so it is reported as notFound and never written:
+// caching it would serve an empty brief for the full 90 days.
+// ============================================================================
+
+function isBlank(value) {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.length === 0 || value.every(isBlank);
+  if (typeof value === 'object') return Object.values(value).every(isBlank);
+  return false;
+}
+
+// 'culture' is the model's key for what we store as culture_signals.
+const RESEARCH_FIELDS = [
+  'what_they_do',
+  'size_and_location',
+  'hiring_context',
+  'recent_news',
+  'culture',
+  'interview_style'
+];
+
+function hasNoUsableContent(parsed) {
+  return RESEARCH_FIELDS.every(field => isBlank(parsed?.[field]));
+}
+
+// ============================================================================
 // GENERATION
 // Haiku + web search. Bounded continuation: the server-side search loop can
 // stop with pause_turn before finishing, which is a resumable state, not an
@@ -141,9 +172,12 @@ Job Description: ${(jobDescription || '').slice(0, 1500)}`;
     .join('');
   const cleanText = extractJsonText(response.content);
 
+  // No JSON object at all. In practice this is the model writing prose to say
+  // it found nothing, so it is a not-found rather than a malfunction. A broken
+  // object that fails JSON.parse below is a genuine error and still throws.
   if (!cleanText) {
-    console.error('Company research: no JSON object found. Raw text:', rawText.slice(0, 2000));
-    throw new Error('Company research returned no parseable JSON object');
+    console.warn('Company research: no JSON object returned. Raw text:', rawText.slice(0, 1000));
+    return { parsed: null, usage, noJson: true };
   }
 
   let parsed;
@@ -229,7 +263,15 @@ export async function POST(request) {
     }
 
     // ---- GENERATE ----
-    const { parsed, usage } = await generateResearch({ companyName, jobTitle, jobDescription });
+    const { parsed, usage, noJson } = await generateResearch({ companyName, jobTitle, jobDescription });
+
+    // Nothing usable came back — either no JSON at all, or a brief where every
+    // field is null. Report a clean not-found rather than an error, since there
+    // is nothing for the user to retry, and skip the write.
+    if (noJson || hasNoUsableContent(parsed)) {
+      console.warn('Company research found no usable content for:', companyName);
+      return Response.json({ research: null, notFound: true });
+    }
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + CACHE_DAYS * 24 * 60 * 60 * 1000);

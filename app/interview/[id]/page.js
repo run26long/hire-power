@@ -1420,6 +1420,7 @@ function ResearchStepContent({ jobCard }) {
   const [research, setResearch] = useState(null);
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchError, setResearchError] = useState(null);
+  const [researchNotFound, setResearchNotFound] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -1428,6 +1429,7 @@ function ResearchStepContent({ jobCard }) {
     async function loadResearch() {
       setResearchLoading(true);
       setResearchError(null);
+      setResearchNotFound(false);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('No session');
@@ -1448,7 +1450,11 @@ function ResearchStepContent({ jobCard }) {
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Research failed');
-        if (!cancelled) setResearch(data.research);
+        if (cancelled) return;
+        // Nothing reliable exists for this company. Not an error — there is
+        // nothing to retry, so say so plainly instead of offering a button.
+        if (data.notFound) setResearchNotFound(true);
+        else setResearch(data.research);
       } catch (err) {
         console.error('Company research load failed:', err);
         if (!cancelled) {
@@ -1459,10 +1465,10 @@ function ResearchStepContent({ jobCard }) {
       }
     }
 
-    // No company name means nothing to research. Say so rather than firing a
-    // request the route would reject.
+    // No company name means nothing to research, and no amount of retrying
+    // changes that — same soft treatment as a company we can't find.
     if (!jobCard?.company) {
-      setResearchError("Couldn't pull company info right now. You can still practice without it.");
+      setResearchNotFound(true);
       return;
     }
 
@@ -1488,6 +1494,13 @@ function ResearchStepContent({ jobCard }) {
         </div>
       )}
 
+      {!researchLoading && researchNotFound && (
+        <p className="text-sm md:text-xs text-gray-500 leading-snug">
+          We couldn&apos;t find reliable public information about{' '}
+          {jobCard?.company || 'this company'}. You can still practice without it.
+        </p>
+      )}
+
       {!researchLoading && researchError && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 space-y-2">
           <p className="text-xs text-gray-700 leading-snug">{researchError}</p>
@@ -1500,7 +1513,7 @@ function ResearchStepContent({ jobCard }) {
         </div>
       )}
 
-      {!researchLoading && !researchError && research && (
+      {!researchLoading && !researchError && !researchNotFound && research && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
           {/* ROW 1 — COMPANY OVERVIEW (full width) */}
