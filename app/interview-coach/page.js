@@ -776,6 +776,11 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
                 Upcoming
               </span>
             )}
+            {interviewIsPast && (
+              <span className="ml-2 text-xs md:text-[9px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                Past
+              </span>
+            )}
           </div>
           <div className="text-sm md:text-xs text-gray-500 truncate">{card.company}</div>
         </div>
