@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
@@ -56,6 +56,358 @@ function toTitleCaseOnBlur(value) {
   }).join('');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hub spotlight tour
+// Desktop only. Runs once, the first time a user lands on the hub with at least
+// one practice card in hand. Each stop dims the page, cuts a hole around a real
+// element, and parks a tooltip beside it.
+// ─────────────────────────────────────────────────────────────────────────────
+const HUB_TOUR_KEY = 'hp_ic_hub_tour_complete';
+const HUB_TIP_WIDTH = 320;
+const HUB_SPOT_PAD = 8;
+const HUB_TIP_GAP = 16;
+const HUB_VIEWPORT_MARGIN = 16;
+
+const HUB_TOUR_STEPS = [
+  {
+    id: 'interview-prep',
+    targets: ['interview-prep'],
+    placement: 'right',
+    title: 'Your interview prep hub',
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows three ways to prepare for your interview: Analysis, Coaching, and Practice. Do them in order or skip to what you need.'
+  },
+  {
+    id: 'practice-stats',
+    targets: ['practice-stats'],
+    placement: 'left',
+    title: 'Track your progress',
+    body: 'Your training at a glance. Sessions, level, and total jobs update as you practice.'
+  },
+  {
+    id: 'question-of-the-day',
+    targets: ['question-of-the-day'],
+    placement: 'right',
+    title: 'Question of the Day',
+    body: 'A new question every day. Think through your STAR answer. No scoring, no pressure.'
+  },
+  {
+    id: 'interview-readiness',
+    targets: ['interview-readiness'],
+    placement: 'left',
+    title: 'Interview Readiness',
+    body: 'A quick checklist before any real interview. Run through it to make sure you are fully prepared.'
+  },
+  {
+    id: 'job-tracker',
+    targets: ['job-tracker'],
+    placement: 'bottom',
+    title: 'Linked to your Job Tracker',
+    body: "Each job's practice session is linked to its job card in your Job Tracker. Start interview prep from here or from the job card itself."
+  }
+];
+
+function hubTourAlreadySeen() {
+  try {
+    return !!window.localStorage.getItem(HUB_TOUR_KEY);
+  } catch (e) {
+    // Storage blocked (private mode) — treat it as unseen rather than crashing.
+    return false;
+  }
+}
+
+function markHubTourComplete() {
+  try {
+    window.localStorage.setItem(HUB_TOUR_KEY, 'true');
+  } catch (e) {
+    console.error('Could not persist hub tour completion (non-blocking):', e);
+  }
+}
+
+// Park the tooltip beside the spotlight, preferring the side the step asks for
+// and falling back through the others until one fits without overflowing.
+function computeHubTipPosition(rect, tipW, tipH, preferred) {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const M = HUB_VIEWPORT_MARGIN;
+  const GAP = HUB_TIP_GAP;
+  const clamp = (v, min, max) => Math.max(min, Math.min(v, Math.max(min, max)));
+
+  if (!rect) {
+    // No measurable target — centre the card and skip the spotlight/arrow.
+    return { top: clamp(vh / 2 - tipH / 2, M, vh - tipH - M), left: clamp(vw / 2 - tipW / 2, M, vw - tipW - M), placement: 'none', arrow: 0 };
+  }
+
+  const top = rect.top - HUB_SPOT_PAD;
+  const left = rect.left - HUB_SPOT_PAD;
+  const bottom = rect.top + rect.height + HUB_SPOT_PAD;
+  const right = rect.left + rect.width + HUB_SPOT_PAD;
+  const cx = (left + right) / 2;
+  const cy = (top + bottom) / 2;
+
+  const isVertical = preferred === 'top' || preferred === 'bottom';
+  const order = isVertical
+    ? [preferred, preferred === 'bottom' ? 'top' : 'bottom', 'right', 'left']
+    : [preferred, preferred === 'left' ? 'right' : 'left', 'bottom', 'top'];
+
+  for (const p of order) {
+    if (p === 'bottom' && bottom + GAP + tipH <= vh - M) {
+      const l = clamp(cx - tipW / 2, M, vw - tipW - M);
+      return { top: bottom + GAP, left: l, placement: 'bottom', arrow: clamp(cx - l, 18, tipW - 18) };
+    }
+    if (p === 'top' && top - GAP - tipH >= M) {
+      const l = clamp(cx - tipW / 2, M, vw - tipW - M);
+      return { top: top - GAP - tipH, left: l, placement: 'top', arrow: clamp(cx - l, 18, tipW - 18) };
+    }
+    if (p === 'right' && right + GAP + tipW <= vw - M) {
+      const t = clamp(cy - tipH / 2, M, vh - tipH - M);
+      return { top: t, left: right + GAP, placement: 'right', arrow: clamp(cy - t, 18, tipH - 18) };
+    }
+    if (p === 'left' && left - GAP - tipW >= M) {
+      const t = clamp(cy - tipH / 2, M, vh - tipH - M);
+      return { top: t, left: left - GAP - tipW, placement: 'left', arrow: clamp(cy - t, 18, tipH - 18) };
+    }
+  }
+
+  // Nothing fits cleanly — sit below the target and clamp into the viewport.
+  const l = clamp(cx - tipW / 2, M, vw - tipW - M);
+  const t = clamp(bottom + GAP, M, vh - tipH - M);
+  return { top: t, left: l, placement: 'bottom', arrow: clamp(cx - l, 18, tipW - 18) };
+}
+
+// CSS-triangle arrow, drawn twice so it picks up the card's 1px grey edge.
+function hubArrowStyles(placement, offset) {
+  const S = 8;
+  const O = S + 1;
+  if (placement === 'bottom') {
+    return {
+      outer: { top: -O, left: offset - O, borderLeft: `${O}px solid transparent`, borderRight: `${O}px solid transparent`, borderBottom: `${O}px solid #e5e7eb` },
+      inner: { top: -S, left: offset - S, borderLeft: `${S}px solid transparent`, borderRight: `${S}px solid transparent`, borderBottom: `${S}px solid #ffffff` }
+    };
+  }
+  if (placement === 'top') {
+    return {
+      outer: { bottom: -O, left: offset - O, borderLeft: `${O}px solid transparent`, borderRight: `${O}px solid transparent`, borderTop: `${O}px solid #e5e7eb` },
+      inner: { bottom: -S, left: offset - S, borderLeft: `${S}px solid transparent`, borderRight: `${S}px solid transparent`, borderTop: `${S}px solid #ffffff` }
+    };
+  }
+  if (placement === 'right') {
+    return {
+      outer: { left: -O, top: offset - O, borderTop: `${O}px solid transparent`, borderBottom: `${O}px solid transparent`, borderRight: `${O}px solid #e5e7eb` },
+      inner: { left: -S, top: offset - S, borderTop: `${S}px solid transparent`, borderBottom: `${S}px solid transparent`, borderRight: `${S}px solid #ffffff` }
+    };
+  }
+  if (placement === 'left') {
+    return {
+      outer: { right: -O, top: offset - O, borderTop: `${O}px solid transparent`, borderBottom: `${O}px solid transparent`, borderLeft: `${O}px solid #e5e7eb` },
+      inner: { right: -S, top: offset - S, borderTop: `${S}px solid transparent`, borderBottom: `${S}px solid transparent`, borderLeft: `${S}px solid #ffffff` }
+    };
+  }
+  return null;
+}
+
+function HubTour({ isPro, onStepChange, onClose }) {
+  // Lock the stop list at mount so the dots match what's actually on screen —
+  // a Vault-tier user has no Job Tracker link, for instance. Copy is resolved
+  // here too: the tour only mounts once data has loaded, so the tier is settled.
+  const [steps] = useState(() =>
+    HUB_TOUR_STEPS
+      .filter(s => document.querySelector(`[data-tour="${s.targets[0]}"]`))
+      .map(s => (isPro ? s : { ...s, title: s.freeTitle || s.title, body: s.freeBody || s.body }))
+  );
+  const [index, setIndex] = useState(0);
+  const [rect, setRect] = useState(null);
+  const [tip, setTip] = useState(null);
+  const tipRef = useRef(null);
+
+  const step = steps[index] || null;
+  const isLast = index === steps.length - 1;
+
+  const finish = useCallback(() => {
+    markHubTourComplete();
+    onClose();
+  }, [onClose]);
+
+  const measure = useCallback(() => {
+    if (!step) return;
+    const rects = step.targets
+      .map(t => document.querySelector(`[data-tour="${t}"]`))
+      .filter(Boolean)
+      .map(el => el.getBoundingClientRect())
+      .filter(r => r.width > 0 && r.height > 0);
+    if (!rects.length) {
+      setRect(null);
+      return;
+    }
+    const top = Math.min(...rects.map(r => r.top));
+    const left = Math.min(...rects.map(r => r.left));
+    const height = Math.max(...rects.map(r => r.bottom)) - top;
+    const width = Math.max(...rects.map(r => r.right)) - left;
+    setRect(prev => {
+      if (prev && Math.abs(prev.top - top) < 0.5 && Math.abs(prev.left - left) < 0.5
+        && Math.abs(prev.width - width) < 0.5 && Math.abs(prev.height - height) < 0.5) return prev;
+      return { top, left, width, height };
+    });
+  }, [step]);
+
+  // Nothing to point at — don't strand the user behind a backdrop.
+  useEffect(() => {
+    if (!steps.length) finish();
+  }, [steps.length, finish]);
+
+  useLayoutEffect(() => {
+    if (!step) return;
+    const el = document.querySelector(`[data-tour="${step.targets[0]}"]`);
+    if (el) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    measure();
+  }, [step, measure]);
+
+  useEffect(() => {
+    onStepChange?.(step ? step.id : null);
+  }, [step, onStepChange]);
+
+  useEffect(() => {
+    const onChange = () => measure();
+    window.addEventListener('resize', onChange);
+    window.addEventListener('scroll', onChange, true);
+    return () => {
+      window.removeEventListener('resize', onChange);
+      window.removeEventListener('scroll', onChange, true);
+    };
+  }, [measure]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') finish(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [finish]);
+
+  // Position once the card has rendered so we can use its real height.
+  useLayoutEffect(() => {
+    const h = tipRef.current?.offsetHeight || 180;
+    setTip(computeHubTipPosition(rect, HUB_TIP_WIDTH, h, step?.placement));
+  }, [rect, step]);
+
+  if (!step) return null;
+
+  const arrow = tip ? hubArrowStyles(tip.placement, tip.arrow) : null;
+
+  return (
+    <>
+      {/* Click blocker — the tour only closes via Skip, Got it, or Escape. */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
+
+      {rect ? (
+        <div
+          style={{
+            position: 'fixed',
+            boxSizing: 'border-box',
+            top: rect.top - HUB_SPOT_PAD,
+            left: rect.left - HUB_SPOT_PAD,
+            width: rect.width + HUB_SPOT_PAD * 2,
+            height: rect.height + HUB_SPOT_PAD * 2,
+            borderRadius: 12,
+            border: '2px solid rgba(102, 126, 234, 0.4)',
+            boxShadow: '0 0 0 4px rgba(102, 126, 234, 0.1), 0 0 30px rgba(102, 126, 234, 0.15), 0 0 0 9999px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            transition: 'top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease'
+          }}
+        />
+      ) : (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', pointerEvents: 'none', zIndex: 9999 }} />
+      )}
+
+      <div
+        ref={tipRef}
+        role="dialog"
+        aria-label={step.title}
+        style={{
+          position: 'fixed',
+          top: tip ? tip.top : -9999,
+          left: tip ? tip.left : -9999,
+          width: HUB_TIP_WIDTH,
+          zIndex: 10000,
+          background: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: 12,
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.08)',
+          opacity: tip ? 1 : 0,
+          transition: 'top 0.3s ease, left 0.3s ease, opacity 0.2s ease'
+        }}
+      >
+        {/* Brand gradient edge */}
+        <div
+          style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
+            background: 'linear-gradient(to bottom, #667eea, #764ba2)',
+            borderTopLeftRadius: 12, borderBottomLeftRadius: 12
+          }}
+        />
+
+        {arrow && (
+          <>
+            <div style={{ position: 'absolute', width: 0, height: 0, ...arrow.outer }} />
+            <div style={{ position: 'absolute', width: 0, height: 0, ...arrow.inner }} />
+          </>
+        )}
+
+        <div style={{ padding: '16px 18px 14px 20px' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#667eea', marginBottom: 6 }}>
+            Step {index + 1} of {steps.length}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>
+            {step.title}
+          </div>
+          <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
+            {step.body}
+          </div>
+        </div>
+
+        <div
+          style={{
+            borderTop: '1px solid #f3f4f6',
+            padding: '10px 18px 12px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {steps.map((s, i) => (
+              <span
+                key={s.id}
+                style={{
+                  width: 7, height: 7, borderRadius: '50%', display: 'block',
+                  background: i === index
+                    ? 'linear-gradient(to bottom right, #667eea, #764ba2)'
+                    : i < index ? '#667eea' : '#e5e7eb'
+                }}
+              />
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={finish}
+              style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              Skip tour
+            </button>
+            <button
+              onClick={() => { if (isLast) finish(); else setIndex(index + 1); }}
+              style={{
+                fontSize: 13, fontWeight: 600, color: '#ffffff',
+                background: 'linear-gradient(to right, #667eea, #764ba2)',
+                border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', whiteSpace: 'nowrap'
+              }}
+            >
+              {isLast ? 'Got it ✓' : 'Next →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function MyInterviewsPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -85,6 +437,14 @@ export default function MyInterviewsPage() {
   // Delete confirmation
   const [confirmDeletePracticeId, setConfirmDeletePracticeId] = useState(null);
   const [deletingPracticeId, setDeletingPracticeId] = useState(null);
+
+  // Hub spotlight tour state
+  const [showHubTour, setShowHubTour] = useState(false);
+  const [hubTourStepId, setHubTourStepId] = useState(null);
+  const closeHubTour = useCallback(() => {
+    setShowHubTour(false);
+    setHubTourStepId(null);
+  }, []);
 
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   const questionOfTheDay = QUESTIONS_OF_THE_DAY[dayOfYear % QUESTIONS_OF_THE_DAY.length];
@@ -165,6 +525,14 @@ export default function MyInterviewsPage() {
 
       setPracticeCards(cards);
       setLoading(false);
+
+      // A practice card in hand: walk them through the hub once. Desktop only —
+      // the spotlight targets are laid out for the two-column desktop view.
+      if (cards.length > 0 && window.innerWidth >= 768 && !hubTourAlreadySeen()) {
+        setTimeout(() => {
+          setShowHubTour(true);
+        }, 300); // 300ms delay
+      }
     }
     loadData();
   }, [supabase, router]);
@@ -368,7 +736,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[384px]">
+                <div data-tour="interview-prep" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[384px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -422,7 +790,7 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Question of the Day */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div data-tour="question-of-the-day" className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-base font-semibold text-gray-900">Question of the Day</h2>
                     <span className="text-xs md:text-[10px] text-gray-400">Think it through, no pressure</span>
@@ -441,7 +809,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] ${isPro ? 'flex flex-col' : ''}`}>
+                <div data-tour="practice-stats" className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] ${isPro ? 'flex flex-col' : ''}`}>
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
@@ -504,7 +872,7 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[250px] overflow-hidden">
+                <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[250px] overflow-hidden">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
 
@@ -712,6 +1080,10 @@ export default function MyInterviewsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showHubTour && (
+        <HubTour isPro={isPro} onStepChange={setHubTourStepId} onClose={closeHubTour} />
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
