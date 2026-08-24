@@ -377,66 +377,47 @@ export default function MyInterviewsPage() {
                     Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all three, or jump to what you need.
                   </p>
 
-                  {/* Practice list */}
-                  <div className="space-y-1.5">
-                    {(() => {
-                      const cards = practiceCards || []
-                      const slots = [0, 1, 2, 3, 4]
-                      return slots.map((slotIndex) => {
-                        const card = cards[slotIndex]
-                        const isFirstEmpty = slotIndex === cards.length
-                        const isUsed = !!card
-
-                        if (isUsed) {
-                          return (
-                            <PracticeCard
-                              key={card.jobCardId}
-                              card={card}
-                              onClick={() => router.push(`/interview/${card.jobCardId}`)}
-                              onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
-                            />
-                          )
-                        }
-
-                      if (isFirstEmpty && cards.length < 5) {
-                          return (
-                            <button
-                              key={`upload-${slotIndex}`}
-                              onClick={handleOpenPracticeModal}
-                              className="w-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 hover:border-purple-400 hover:bg-purple-50 transition-all"
-                              style={{ height: '66px' }}
-                            >
-                              <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                              </div>
-                              <div className="text-sm md:text-xs font-semibold text-gray-700">New Interview Practice</div>
-                            </button>
-                          )
-                        }
-
-                        return (
-                          <div
-                            key={`empty-${slotIndex}`}
-                            className="w-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50"
-                            style={{ height: '66px' }}
+                      <div>
+                        <div className="space-y-2">
+                          <button
+                            onClick={handleOpenPracticeModal}
+                            className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
                           >
-                            <div className="text-xs md:text-[10px] text-gray-400 font-semibold tracking-wide uppercase">Interview Practice {slotIndex + 1}</div>
-                          </div>
-                        )
-                      })
-                    })()}
+                            <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
+                              <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                            </div>
+                            <div className="text-sm md:text-xs font-semibold text-gray-900">New Interview Practice</div>
+                          </button>
 
-                    {practiceCards.length > 5 && (
-                     <button
-                          onClick={() => setShowOlderModal(true)}
-                          className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
-                        >
-                          View all interview practices →
-                        </button>
-                    )}
-                  </div>
+                          {practiceCards && practiceCards.length > 0 ? (
+                            <>
+                              {practiceCards.slice(0, 5).map((card) => (
+                                <PracticeCard
+                                  key={card.jobCardId}
+                                  card={card}
+                                  onClick={() => router.push(`/interview/${card.jobCardId}`)}
+                                  onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
+                                />
+                              ))}
+                              {practiceCards.length > 5 && (
+                               <button
+                                    onClick={() => setShowOlderModal(true)}
+                                    className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                  >
+                                    View all interview practices →
+                                  </button>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-center py-4 text-gray-500">
+                              <div className="text-2xl mb-1">🎯</div>
+                              <p className="text-sm md:text-xs">No interview practices yet.<br />Click "New Interview Practice" when you're ready.</p>
+                            </div>
+                          )}
+                        </div>
+                        </div>
                 </div>
 
                 {/* Question of the Day */}
@@ -646,50 +627,55 @@ export default function MyInterviewsPage() {
         </div>
       )}
 
-      {/* Older Practices Modal */}
+      {/* All Interview Practices Modal */}
       {showOlderModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowOlderModal(false)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
-            style={{ height: '80vh' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-white">Older Practices</h2>
-                  <p className="text-purple-100 text-sm md:text-xs">{practiceCards.length} practice{practiceCards.length === 1 ? '' : 's'}</p>
+                  <h2 className="text-lg font-bold text-white">Interview Practices</h2>
+                  <p className="text-purple-100 text-xs">{practiceCards?.length} practices</p>
                 </div>
-                <button
-                  onClick={() => setShowOlderModal(false)}
-                  className="text-white hover:opacity-70 text-2xl leading-none font-light"
-                >
-                  ×
-                </button>
+                <button onClick={() => setShowOlderModal(false)} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
               </div>
             </div>
-
-            <div className="p-4 md:p-6 flex-1 overflow-y-auto space-y-1.5">
-              {practiceCards.map((card) => (
-                <PracticeCard
-                  key={card.jobCardId}
-                  card={card}
-                  onClick={() => {
-                    setShowOlderModal(false);
-                    router.push(`/interview/${card.jobCardId}`);
-                  }}
-                  onDeleteRequest={() => {
-                    setShowOlderModal(false);
-                    setConfirmDeletePracticeId(card.jobCardId);
-                  }}
-                />
-              ))}
+            <div className="px-6 py-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+              <div className="space-y-2">
+                {practiceCards?.map((card) => (
+                  <div
+                    key={card.jobCardId}
+                    className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-400 hover:bg-white cursor-pointer transition-all"
+                    onClick={() => { setShowOlderModal(false); router.push(`/interview/${card.jobCardId}`); }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">{card.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{card.company}</p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeletePracticeId(card.jobCardId); setShowOlderModal(false); }}
+                        className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                      <div className="relative w-10 h-10 flex-shrink-0">
+                        <svg className="w-10 h-10 transform -rotate-90">
+                          <circle cx="20" cy="20" r="16" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+                          <circle cx="20" cy="20" r="16" stroke={getCircleColor(card.matchScore)} strokeWidth="2.5" fill="none" strokeDasharray={`${2 * Math.PI * 16}`} strokeDashoffset={`${2 * Math.PI * 16 * (1 - card.matchScore / 100)}`} strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-[11px] font-bold" style={{ color: getCircleColor(card.matchScore) }}>{card.matchScore}%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+            </div>
         </div>
       )}
 
