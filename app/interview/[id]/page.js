@@ -1329,24 +1329,227 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
 
 // ============================================================================
 // RESEARCH STEP CONTENT
-// Placeholder while the research tooling is built. Mirrors PracticeStepContent
-// so the step strip never lands the user on an empty pane.
+// Pulls a company brief from /api/interview/company-research. Research is
+// generated once per company and cached server-side, so there's no refresh
+// control here — the step just reads whatever the brief says.
 // ============================================================================
 
+function Tag({ children }) {
+  return (
+    <span className="inline-block text-[11px] md:text-[10px] bg-purple-50 text-purple-700 rounded px-2 py-0.5">
+      {children}
+    </span>
+  );
+}
+
+function ThemeList({ label, items, tone }) {
+  if (!Array.isArray(items) || !items.length) return null;
+  return (
+    <div>
+      <p className={`text-[11px] md:text-[10px] font-semibold uppercase tracking-wide mb-1 ${
+        tone === 'positive' ? 'text-green-700' : 'text-amber-700'
+      }`}>
+        {label}
+      </p>
+      <ul className="space-y-0.5">
+        {items.map((theme, i) => (
+          <li key={i} className="text-xs text-gray-700 leading-snug flex items-start gap-1.5">
+            <span className="flex-shrink-0 leading-none mt-0.5">{tone === 'positive' ? '✅' : '⚠️'}</span>
+            <span>{theme}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const DIFFICULTY_STYLES = {
+  easy: 'bg-green-50 text-green-700',
+  medium: 'bg-amber-50 text-amber-700',
+  hard: 'bg-red-50 text-red-700',
+  unknown: 'bg-gray-100 text-gray-500'
+};
+
 function ResearchStepContent({ jobCard, onGoToCoach, onGoToPractice }) {
+  const supabase = createClient();
+  const [research, setResearch] = useState(null);
+  const [researchLoading, setResearchLoading] = useState(false);
+  const [researchError, setResearchError] = useState(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadResearch() {
+      setResearchLoading(true);
+      setResearchError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No session');
+
+        const res = await fetch('/api/interview/company-research', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            jobCardId: jobCard.id,
+            companyName: jobCard.company,
+            jobTitle: jobCard.title,
+            jobDescription: jobCard.description
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Research failed');
+        if (!cancelled) setResearch(data.research);
+      } catch (err) {
+        console.error('Company research load failed:', err);
+        if (!cancelled) {
+          setResearchError("Couldn't pull company info right now. You can still practice without it.");
+        }
+      } finally {
+        if (!cancelled) setResearchLoading(false);
+      }
+    }
+
+    // No company name means nothing to research. Say so rather than firing a
+    // request the route would reject.
+    if (!jobCard?.company) {
+      setResearchError("Couldn't pull company info right now. You can still practice without it.");
+      return;
+    }
+
+    loadResearch();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobCard?.id, jobCard?.company, attempt]);
+
+  const culture = research?.culture_signals;
+  const style = research?.interview_style;
+  const news = Array.isArray(research?.recent_news) ? research.recent_news : [];
+  const difficulty = style?.difficulty || 'unknown';
+
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">🔍 Research the Company</h3>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Company research is coming soon. You&apos;ll be able to pull together what you need to know
-        about {jobCard?.company || 'this company'} before you walk in.
-      </p>
-      <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-        <p className="text-xs text-gray-700 leading-snug">
-          In the meantime, keep coaching your stories — they carry most of the interview.
-        </p>
-      </div>
-      <div className="flex gap-2">
+
+      {researchLoading && (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
+          <p className="text-sm md:text-xs text-gray-600">
+            Researching {jobCard?.company || 'this company'}...
+          </p>
+        </div>
+      )}
+
+      {!researchLoading && researchError && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r space-y-2">
+          <p className="text-xs text-red-800 leading-snug">{researchError}</p>
+          <button
+            onClick={() => setAttempt(a => a + 1)}
+            className="text-xs font-semibold text-red-700 underline hover:text-red-900"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {!researchLoading && !researchError && research && (
+        <div className="space-y-4">
+
+          {/* 1. WHAT THEY DO */}
+          {research.what_they_do && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-900 mb-1">What they do</h4>
+              <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
+            </div>
+          )}
+
+          {/* 2. SIZE AND LOCATION */}
+          {research.size_and_location && (
+            <p className="text-xs text-gray-500">{research.size_and_location}</p>
+          )}
+
+          {/* 3. WHAT THEY'RE HIRING FOR */}
+          {research.hiring_context && (
+            <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
+              <p className="text-[11px] md:text-[10px] font-semibold uppercase tracking-wide text-purple-700 mb-1">
+                What they&apos;re hiring for
+              </p>
+              <p className="text-xs text-gray-700 leading-snug">{research.hiring_context}</p>
+            </div>
+          )}
+
+          {/* 4. RECENT NEWS */}
+          {news.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-900 mb-2">Recent news</h4>
+              <ul className="space-y-2">
+                {news.map((item, i) => (
+                  <li key={i}>
+                    <p className="text-xs font-semibold text-gray-800 leading-snug">{item.headline}</p>
+                    {item.date && <p className="text-[11px] md:text-[10px] text-gray-400">{item.date}</p>}
+                    {item.summary && (
+                      <p className="text-xs text-gray-600 leading-snug mt-0.5">{item.summary}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 5. CULTURE AND VALUES */}
+          {culture && (culture.mission || culture.values?.length || culture.themes_positive?.length || culture.themes_negative?.length) && (
+            <div>
+              <h4 className="text-xs font-semibold text-gray-900 mb-2">Culture and values</h4>
+              {culture.mission && (
+                <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">{culture.mission}</p>
+              )}
+              {Array.isArray(culture.values) && culture.values.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {culture.values.map((v, i) => <Tag key={i}>{v}</Tag>)}
+                </div>
+              )}
+              <div className="space-y-2">
+                <ThemeList label="What people like" items={culture.themes_positive} tone="positive" />
+                <ThemeList label="Common complaints" items={culture.themes_negative} tone="negative" />
+              </div>
+            </div>
+          )}
+
+          {/* 6. INTERVIEW FORMAT */}
+          {style && (style.likely_format || style.known_question_types?.length || style.difficulty) && (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="text-xs font-semibold text-gray-900">Interview format</h4>
+                <span className={`text-[11px] md:text-[10px] font-semibold rounded px-2 py-0.5 capitalize ${
+                  DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.unknown
+                }`}>
+                  {difficulty}
+                </span>
+              </div>
+              {style.likely_format && (
+                <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">{style.likely_format}</p>
+              )}
+              {Array.isArray(style.known_question_types) && style.known_question_types.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {style.known_question_types.map((q, i) => <Tag key={i}>{q}</Tag>)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* QUESTIONS TO ASK — placeholder, built next */}
+          <div className="border-t border-gray-100 pt-3">
+            <h4 className="text-xs font-semibold text-gray-900 mb-1">Questions to ask your interviewer</h4>
+            <p className="text-xs text-gray-500">Interviewer questions coming soon.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
         <button
           onClick={onGoToCoach}
           className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
