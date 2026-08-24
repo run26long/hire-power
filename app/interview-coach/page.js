@@ -368,7 +368,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[371px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[406px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -441,7 +441,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[217px]">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:min-h-[252px]">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
