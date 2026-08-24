@@ -494,7 +494,10 @@ export default function MyInterviewsPage() {
                     </div>
                   )}
 
-                  <p className={`text-xs md:text-[10px] text-gray-400 text-center ${isPro ? 'mt-auto pt-2' : 'mt-2'}`}>Start practicing to see your stats here</p>
+                  {/* Only useful before there's anything to show. */}
+                  {totalSessions === 0 && (
+                    <p className={`text-xs md:text-[10px] text-gray-400 text-center ${isPro ? 'mt-auto pt-2' : 'mt-2'}`}>Start practicing to see your stats here</p>
+                  )}
                 </div>
 
                 {/* Practice out loud callout */}
