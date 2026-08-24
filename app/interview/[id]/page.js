@@ -22,6 +22,7 @@ export default function InterviewDetailPage() {
   const [isPro, setIsPro] = useState(false);
 
   const [jobCard, setJobCard] = useState(null);
+  const [siblingJobs, setSiblingJobs] = useState([]);
   const [resume, setResume] = useState(null);
   const [powerAnalysis, setPowerAnalysis] = useState(null);
   const [stories, setStories] = useState([]);
@@ -113,6 +114,30 @@ export default function InterviewDetailPage() {
       setJobCard(data.jobCard);
       setResume(data.resume);
       setPowerAnalysis(data.powerAnalysis);
+
+      // Sibling practices for the breadcrumb job switcher. Mirrors the hub's
+      // card query: a job is practiceable when it has an active Power Analysis
+      // and its application isn't archived.
+      try {
+        const { data: siblingRows, error: siblingError } = await supabase
+          .from('power_analysis')
+          .select('job_card_id, applications:job_card_id ( id, title, company, application_status )')
+          .eq('user_id', authUser.id)
+          .eq('is_active', true)
+          .neq('job_card_id', params.id)
+          .order('last_refreshed_at', { ascending: false, nullsFirst: false });
+        if (siblingError) throw siblingError;
+
+        setSiblingJobs(
+          (siblingRows || [])
+            .map(row => row.applications)
+            .filter(app => app && app.application_status !== 'archived')
+        );
+      } catch (err) {
+        // This only feeds breadcrumb navigation. Losing it costs a shortcut,
+        // not the ability to practice, so log it rather than failing the load.
+        console.warn('Breadcrumb job list failed to load:', err);
+      }
 
       // Load interview events from application_events (source of truth)
       const { data: eventsData, error: eventsError } = await supabase
@@ -609,9 +634,16 @@ export default function InterviewDetailPage() {
 
   if (!jobCard) return null;
 
+  const jobLabel = (job) => (job.company ? `${job.title} at ${job.company}` : job.title);
+
   const breadcrumbItems = [
     { label: 'Interview Coach', path: '/interview-coach' },
-    { label: jobCard.company ? `${jobCard.title} at ${jobCard.company}` : jobCard.title }
+    {
+      label: jobLabel(jobCard),
+      options: siblingJobs
+        .filter(j => j.id !== jobCard.id)
+        .map(j => ({ label: jobLabel(j), path: `/interview/${j.id}` }))
+    }
   ];
 
   const hasPA = !!powerAnalysis;
