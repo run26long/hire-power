@@ -762,10 +762,16 @@ export default function InterviewDetailPage() {
                 </div>
               )}
 
+              {/* RESEARCH — takes over the working surface on its own step.
+                  The buckets are Power Analysis material and have nothing to do
+                  with company research, so they step aside rather than stack. */}
+              {currentStep === 'research' && <ResearchStepContent jobCard={jobCard} />}
+
               {/* BUCKETS */}
-              {hasPA && (() => {
-                // 'research' falls through to 'normal' alongside 'practice' —
-                // the buckets stay browsable, they just aren't driving the step.
+              {hasPA && currentStep !== 'research' && (() => {
+                // 'practice' falls through to 'normal' — the buckets stay
+                // browsable there, they just aren't driving the step. 'research'
+                // never reaches this, since it renders instead of the buckets.
                 const leftColMode = currentStep === 'analyze' ? 'readonly'
                   : (currentStep === 'coach' && !activeStory) ? 'coach'
                   : 'normal';
@@ -923,10 +929,9 @@ export default function InterviewDetailPage() {
               )}
 
               {currentStep === 'research' && (
-                <ResearchStepContent
-                  jobCard={jobCard}
-                  onGoToCoach={handleOpenCoachStep}
+                <ResearchIdlePanel
                   onGoToPractice={() => setCurrentStep('practice')}
+                  onGoToCoach={() => setCurrentStep('coach')}
                 />
               )}
 
@@ -1334,6 +1339,10 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
 // control here — the step just reads whatever the brief says.
 // ============================================================================
 
+// Platform status colors, same triad the Job Tracker score rings use.
+const DOT_GREEN = '#81c784';
+const DOT_AMBER = '#ffc870';
+
 function Tag({ children }) {
   return (
     <span className="inline-block text-[11px] md:text-[10px] bg-purple-50 text-purple-700 rounded px-2 py-0.5">
@@ -1342,23 +1351,39 @@ function Tag({ children }) {
   );
 }
 
-function ThemeList({ label, items, tone }) {
-  if (!Array.isArray(items) || !items.length) return null;
+// Every card renders whether or not it has data, so the grid keeps its shape.
+// An empty card says so rather than collapsing and reflowing its neighbours.
+function ResearchCard({ title, isEmpty, emptyText = 'Nothing surfaced.', children }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <h4 className="text-base font-bold text-gray-900 mb-2">{title}</h4>
+      {isEmpty ? <p className="text-xs text-gray-400">{emptyText}</p> : children}
+    </div>
+  );
+}
+
+function DotList({ items, color }) {
+  return (
+    <ul className="space-y-1.5">
+      {items.map((item, i) => (
+        <li key={i} className="text-sm md:text-xs text-gray-700 leading-snug flex items-start gap-2">
+          <span
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
+            style={{ backgroundColor: color }}
+          />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Stat({ label, value }) {
+  if (!value) return null;
   return (
     <div>
-      <p className={`text-[11px] md:text-[10px] font-semibold uppercase tracking-wide mb-1 ${
-        tone === 'positive' ? 'text-green-700' : 'text-amber-700'
-      }`}>
-        {label}
-      </p>
-      <ul className="space-y-0.5">
-        {items.map((theme, i) => (
-          <li key={i} className="text-xs text-gray-700 leading-snug flex items-start gap-1.5">
-            <span className="flex-shrink-0 leading-none mt-0.5">{tone === 'positive' ? '✅' : '⚠️'}</span>
-            <span>{theme}</span>
-          </li>
-        ))}
-      </ul>
+      <p className="text-[11px] text-gray-500 mb-0.5">{label}</p>
+      <p className="text-sm md:text-xs text-gray-800 font-medium leading-snug">{value}</p>
     </div>
   );
 }
@@ -1370,7 +1395,7 @@ const DIFFICULTY_STYLES = {
   unknown: 'bg-gray-100 text-gray-500'
 };
 
-function ResearchStepContent({ jobCard, onGoToCoach, onGoToPractice }) {
+function ResearchStepContent({ jobCard }) {
   const supabase = createClient();
   const [research, setResearch] = useState(null);
   const [researchLoading, setResearchLoading] = useState(false);
@@ -1431,10 +1456,9 @@ function ResearchStepContent({ jobCard, onGoToCoach, onGoToPractice }) {
   const news = Array.isArray(research?.recent_news) ? research.recent_news : [];
   const difficulty = style?.difficulty || 'unknown';
 
+  // No padding of its own — the left column already pads and gaps its children.
   return (
-    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
-      <h3 className="font-semibold text-lg -mt-3">🔍 Research the Company</h3>
-
+    <div className="space-y-3">
       {researchLoading && (
         <div className="flex flex-col items-center justify-center py-12 gap-4">
           <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
@@ -1457,111 +1481,153 @@ function ResearchStepContent({ jobCard, onGoToCoach, onGoToPractice }) {
       )}
 
       {!researchLoading && !researchError && research && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-          {/* 1. WHAT THEY DO */}
-          {research.what_they_do && (
-            <div>
-              <h4 className="text-xs font-semibold text-gray-900 mb-1">What they do</h4>
-              <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
-            </div>
-          )}
-
-          {/* 2. SIZE AND LOCATION */}
-          {research.size_and_location && (
-            <p className="text-xs text-gray-500">{research.size_and_location}</p>
-          )}
-
-          {/* 3. WHAT THEY'RE HIRING FOR */}
-          {research.hiring_context && (
-            <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-              <p className="text-[11px] md:text-[10px] font-semibold uppercase tracking-wide text-purple-700 mb-1">
-                What they&apos;re hiring for
-              </p>
-              <p className="text-xs text-gray-700 leading-snug">{research.hiring_context}</p>
-            </div>
-          )}
-
-          {/* 4. RECENT NEWS */}
-          {news.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-gray-900 mb-2">Recent news</h4>
-              <ul className="space-y-2">
-                {news.map((item, i) => (
-                  <li key={i}>
-                    <p className="text-xs font-semibold text-gray-800 leading-snug">{item.headline}</p>
-                    {item.date && <p className="text-[11px] md:text-[10px] text-gray-400">{item.date}</p>}
-                    {item.summary && (
-                      <p className="text-xs text-gray-600 leading-snug mt-0.5">{item.summary}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* 5. CULTURE AND VALUES */}
-          {culture && (culture.mission || culture.values?.length || culture.themes_positive?.length || culture.themes_negative?.length) && (
-            <div>
-              <h4 className="text-xs font-semibold text-gray-900 mb-2">Culture and values</h4>
-              {culture.mission && (
-                <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">{culture.mission}</p>
-              )}
-              {Array.isArray(culture.values) && culture.values.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {culture.values.map((v, i) => <Tag key={i}>{v}</Tag>)}
-                </div>
-              )}
-              <div className="space-y-2">
-                <ThemeList label="What people like" items={culture.themes_positive} tone="positive" />
-                <ThemeList label="Common complaints" items={culture.themes_negative} tone="negative" />
+          {/* ROW 1 — WHAT THEY DO (full width) */}
+          <div className="md:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">What they do</h3>
+            {research.what_they_do ? (
+              <p className="text-sm text-gray-600 leading-relaxed">{research.what_they_do}</p>
+            ) : (
+              <p className="text-xs text-gray-400">Nothing surfaced.</p>
+            )}
+            {(research.size_and_location || research.hiring_context) && (
+              <div className="mt-4 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Stat label="Size and location" value={research.size_and_location} />
+                <Stat label="What they're hiring for" value={research.hiring_context} />
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* 6. INTERVIEW FORMAT */}
-          {style && (style.likely_format || style.known_question_types?.length || style.difficulty) && (
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="text-xs font-semibold text-gray-900">Interview format</h4>
-                <span className={`text-[11px] md:text-[10px] font-semibold rounded px-2 py-0.5 capitalize ${
-                  DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.unknown
-                }`}>
-                  {difficulty}
-                </span>
+          {/* ROW 2 — RECENT NEWS | CULTURE AND VALUES */}
+          <ResearchCard title="Recent news" isEmpty={news.length === 0}>
+            <ul className="space-y-3">
+              {news.map((item, i) => (
+                <li key={i}>
+                  <p className="text-sm md:text-xs font-semibold text-gray-800 leading-snug">{item.headline}</p>
+                  {item.date && <p className="text-[11px] text-gray-400 mt-0.5">{item.date}</p>}
+                  {item.summary && (
+                    <p className="text-sm md:text-xs text-gray-600 leading-snug mt-1">{item.summary}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </ResearchCard>
+
+          <ResearchCard
+            title="Culture and values"
+            isEmpty={!culture?.mission && !culture?.values?.length}
+          >
+            {culture?.mission && (
+              <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-3">{culture.mission}</p>
+            )}
+            {Array.isArray(culture?.values) && culture.values.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {culture.values.map((v, i) => <Tag key={i}>{v}</Tag>)}
               </div>
-              {style.likely_format && (
-                <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">{style.likely_format}</p>
-              )}
-              {Array.isArray(style.known_question_types) && style.known_question_types.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {style.known_question_types.map((q, i) => <Tag key={i}>{q}</Tag>)}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </ResearchCard>
 
-          {/* QUESTIONS TO ASK — placeholder, built next */}
-          <div className="border-t border-gray-100 pt-3">
-            <h4 className="text-xs font-semibold text-gray-900 mb-1">Questions to ask your interviewer</h4>
-            <p className="text-xs text-gray-500">Interviewer questions coming soon.</p>
+          {/* ROW 3 — WHAT PEOPLE LIKE | COMMON COMPLAINTS */}
+          <ResearchCard title="What people like" isEmpty={!culture?.themes_positive?.length}>
+            <DotList items={culture?.themes_positive || []} color={DOT_GREEN} />
+          </ResearchCard>
+
+          <ResearchCard title="Common complaints" isEmpty={!culture?.themes_negative?.length}>
+            <DotList items={culture?.themes_negative || []} color={DOT_AMBER} />
+          </ResearchCard>
+
+          {/* ROW 4 — INTERVIEW FORMAT | QUESTION TYPES */}
+          <ResearchCard title="Interview format" isEmpty={!style?.likely_format}>
+            <div className="mb-2">
+              <span className={`inline-block text-[11px] font-semibold rounded px-2 py-0.5 capitalize ${
+                DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.unknown
+              }`}>
+                {difficulty}
+              </span>
+            </div>
+            <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{style?.likely_format}</p>
+          </ResearchCard>
+
+          <ResearchCard title="Question types to expect" isEmpty={!style?.known_question_types?.length}>
+            <div className="flex flex-wrap gap-1">
+              {(style?.known_question_types || []).map((q, i) => <Tag key={i}>{q}</Tag>)}
+            </div>
+          </ResearchCard>
+
+          {/* ROW 5 — QUESTIONS TO ASK (full width placeholder) */}
+          <div className="md:col-span-2 bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="text-base font-bold text-gray-900 mb-2">Questions to ask your interviewer</h4>
+            <p className="text-xs text-gray-400">Interviewer questions coming soon.</p>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="flex gap-2 pt-1">
-        <button
-          onClick={onGoToCoach}
-          className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
-        >
-          ← Back to Coach
-        </button>
+// ============================================================================
+// RESEARCH IDLE PANEL
+// Right-column step driver for the research step. The reading happens on the
+// left; this side just moves the user forward.
+// ============================================================================
+
+function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
+  return (
+    <div className="px-5 py-4 flex-1 flex flex-col">
+
+      {/* What the research gave them — mirrors Resume Coach's assess panel:
+          uppercase colored section heading over a colored-dot bullet list. */}
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: DOT_GREEN }}>
+          🔍 What You Have
+        </h3>
+        <ul className="space-y-1">
+          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span>What the company does, how big it is, and where it sits.</span>
+          </li>
+          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span>Recent news you can reference to show you did the reading.</span>
+          </li>
+          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span>What their culture rewards, and what people complain about.</span>
+          </li>
+          <li className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+            <span className="flex-shrink-0" style={{ color: DOT_GREEN }}>•</span>
+            <span>The interview format and the question types to expect.</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* CTA */}
+      <div className="mt-auto pt-3 border-t border-gray-300 space-y-3">
+        <div className="text-center">
+          <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">
+            You&apos;re ready to practice.
+          </h4>
+          <p className="text-sm md:text-xs text-gray-600 leading-snug">
+            You have your research. Now put it to work. Practice answers based on what you just
+            learned about this company.
+          </p>
+        </div>
         <button
           onClick={onGoToPractice}
-          className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
+          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
-          Skip to Practice →
+          Go to Practice →
         </button>
+        <div className="text-center">
+          <button
+            onClick={onGoToCoach}
+            className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
+          >
+            ← Back to Coach
+          </button>
+        </div>
       </div>
     </div>
   );
