@@ -170,7 +170,7 @@ export default function InterviewDetailPage() {
       // Restore saved position. Runs before setLoading(false) so the persist
       // effects don't fire with defaults and clobber what was saved.
       const savedStep = data.jobCard?.interview_step;
-      if (savedStep === 'analyze' || savedStep === 'coach' || savedStep === 'practice') {
+      if (savedStep === 'analyze' || savedStep === 'coach' || savedStep === 'research' || savedStep === 'practice') {
         setCurrentStep(savedStep);
       }
 
@@ -764,6 +764,8 @@ export default function InterviewDetailPage() {
 
               {/* BUCKETS */}
               {hasPA && (() => {
+                // 'research' falls through to 'normal' alongside 'practice' —
+                // the buckets stay browsable, they just aren't driving the step.
                 const leftColMode = currentStep === 'analyze' ? 'readonly'
                   : (currentStep === 'coach' && !activeStory) ? 'coach'
                   : 'normal';
@@ -836,7 +838,7 @@ export default function InterviewDetailPage() {
               <div className="relative">
                 <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
                   <div className="h-full transition-all duration-300" style={{
-                    width: `${(((analyzeComplete ? 1 : 0) + (coachComplete ? 1 : 0)) / 2) * 100}%`,
+                    width: `${(((analyzeComplete ? 1 : 0) + (coachComplete ? 1 : 0)) / 3) * 100}%`,
                     background: 'linear-gradient(to right, #667eea, #764ba2)'
                   }}></div>
                 </div>
@@ -844,9 +846,10 @@ export default function InterviewDetailPage() {
                   {[
                     { label: 'Analyze', key: 'analyze' },
                     { label: 'Coach', key: 'coach' },
+                    { label: 'Research', key: 'research' },
                     { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
-                    const completeByKey = { analyze: analyzeComplete, coach: coachComplete, practice: false };
+                    const completeByKey = { analyze: analyzeComplete, coach: coachComplete, research: false, practice: false };
                     const complete = completeByKey[key];
                     const current = key === currentStep;
                     return (
@@ -916,6 +919,14 @@ export default function InterviewDetailPage() {
                   onAdvanceBatch={handleAdvanceBatch}
                   messagesEndRef={messagesEndRef}
                   coachInputRef={coachInputRef}
+                />
+              )}
+
+              {currentStep === 'research' && (
+                <ResearchStepContent
+                  jobCard={jobCard}
+                  onGoToCoach={handleOpenCoachStep}
+                  onGoToPractice={() => setCurrentStep('practice')}
                 />
               )}
 
@@ -1317,6 +1328,43 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
 }
 
 // ============================================================================
+// RESEARCH STEP CONTENT
+// Placeholder while the research tooling is built. Mirrors PracticeStepContent
+// so the step strip never lands the user on an empty pane.
+// ============================================================================
+
+function ResearchStepContent({ jobCard, onGoToCoach, onGoToPractice }) {
+  return (
+    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <h3 className="font-semibold text-lg -mt-3">🔍 Research the Company</h3>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        Company research is coming soon. You&apos;ll be able to pull together what you need to know
+        about {jobCard?.company || 'this company'} before you walk in.
+      </p>
+      <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
+        <p className="text-xs text-gray-700 leading-snug">
+          In the meantime, keep coaching your stories — they carry most of the interview.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={onGoToCoach}
+          className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
+        >
+          ← Back to Coach
+        </button>
+        <button
+          onClick={onGoToPractice}
+          className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
+        >
+          Skip to Practice →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // COACHING VIEW
 // ============================================================================
 
@@ -1621,12 +1669,14 @@ function InterviewHeaderStrip({
           <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
             {currentStep === 'analyze' && 'Power Analysis'}
             {currentStep === 'coach'   && 'STAR Story Coaching'}
+            {currentStep === 'research' && 'Interview Research'}
             {currentStep === 'practice' && 'Interview Practice'}
           </h2>
           <p className="text-xs text-gray-400 leading-snug">
-            {currentStep === 'analyze' && 'Interview Coach: Step 1 of 3'}
-            {currentStep === 'coach'   && 'Interview Coach: Step 2 of 3'}
-            {currentStep === 'practice' && 'Interview Coach: Step 3 of 3'}
+            {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
+            {currentStep === 'coach'   && 'Interview Coach: Step 2 of 4'}
+            {currentStep === 'research' && 'Interview Coach: Step 3 of 4'}
+            {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
           </p>
         </div>
 
