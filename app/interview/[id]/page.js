@@ -1352,11 +1352,23 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
 const DOT_GREEN = '#81c784';
 const DOT_AMBER = '#ffc870';
 const DOT_PURPLE = '#9333ea';
+// Headings on the tinted overview card — purple on purple loses contrast.
+const HEADING_DARK = '#111827';
 
-function Tag({ children, size }) {
-  const sizeClass = size === 'base' ? 'text-base' : 'text-[11px] md:text-[10px]';
+// Culture values and question types read as the same kind of thing, so they
+// share one definition rather than two that can drift apart.
+const TAG_GREY = 'text-sm md:text-xs bg-gray-100 text-gray-600';
+
+const TAG_VARIANTS = {
+  culture: TAG_GREY,
+  question: TAG_GREY,
+  default: 'text-[11px] md:text-[10px] bg-purple-50 text-purple-700'
+};
+
+function Tag({ children, variant }) {
+  const variantClass = TAG_VARIANTS[variant] || TAG_VARIANTS.default;
   return (
-    <span className={`inline-block ${sizeClass} bg-purple-50 text-purple-700 rounded px-2 py-0.5`}>
+    <span className={`inline-block ${variantClass} rounded px-2 py-0.5`}>
       {children}
     </span>
   );
@@ -1410,16 +1422,17 @@ function DotList({ items, color }) {
 // `bullets` splits a comma-joined value ("~232 employees, Chicago IL") into
 // separate points. Only safe for values that are lists; prose with commas in it
 // must stay a single paragraph.
-function Stat({ label, value, bullets }) {
+function Stat({ label, value, bullets, color = DOT_PURPLE }) {
   if (!value) return null;
 
   const parts = bullets
     ? String(value).split(',').map(p => p.trim()).filter(Boolean)
     : null;
 
+  // Left rule matches the callout treatment in the right-hand panel.
   return (
-    <div>
-      <CardHeading color={DOT_PURPLE}>{label}</CardHeading>
+    <div className="border-l-4 border-purple-500 pl-3">
+      <CardHeading color={color}>{label}</CardHeading>
       {parts ? (
         <DotList items={parts} color={DOT_PURPLE} />
       ) : (
@@ -1548,32 +1561,40 @@ function ResearchStepContent({ jobCard }) {
       {!researchLoading && !researchError && !researchNotFound && !isRecruiter && research && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-          {/* ROW 1 — COMPANY OVERVIEW (full width) */}
-          <div className="md:col-span-2 bg-white shadow-sm rounded-lg p-4">
-            <CardHeading color={DOT_PURPLE}>🏢 Company Overview</CardHeading>
+          {/* ROW 1 — COMPANY OVERVIEW (full width). Tinted rather than white so
+              it reads as the anchor of the grid, with dark headings for contrast
+              against the purple. */}
+          <div className="md:col-span-2 bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <CardHeading color={HEADING_DARK}>🏢 Company Overview</CardHeading>
             {research.what_they_do ? (
               <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
             ) : (
               <p className="text-sm md:text-xs text-gray-400">Nothing surfaced.</p>
             )}
             {(research.size_and_location || research.hiring_context) && (
-              <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Stat label="Size and location" value={research.size_and_location} bullets />
-                <Stat label="What they're hiring for" value={research.hiring_context} />
+              <div className="mt-3 pt-3 border-t border-purple-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Stat label="Size and location" value={research.size_and_location} bullets color={HEADING_DARK} />
+                <Stat label="What they're hiring for" value={research.hiring_context} color={HEADING_DARK} />
               </div>
             )}
           </div>
 
           {/* ROW 2 — RECENT NEWS | CULTURE AND VALUES */}
+          {/* Bold headline then one sentence, in the same label-dash-body shape
+              the right-hand panel uses. The date is dropped: headlines almost
+              always carry the timeframe already. */}
           <ResearchCard title="📰 Recent News" color={DOT_PURPLE} isEmpty={news.length === 0}>
-            <ul>
+            <ul className="space-y-2">
               {news.map((item, i) => (
-                <li key={i} className={i > 0 ? 'border-t border-gray-100 pt-2 mt-2' : ''}>
-                  <p className="text-sm font-semibold text-gray-900 leading-snug">{item.headline}</p>
-                  {item.date && <p className="text-[10px] text-gray-400 mt-0.5">{item.date}</p>}
-                  {item.summary && (
-                    <p className="text-sm md:text-xs text-gray-600 leading-snug mt-1">{item.summary}</p>
-                  )}
+                <li key={i} className="text-sm md:text-xs text-gray-700 leading-snug flex items-start gap-2">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
+                    style={{ backgroundColor: DOT_PURPLE }}
+                  />
+                  <span>
+                    <strong className="text-gray-900">{item.headline}</strong>
+                    {item.summary && <> — {item.summary}</>}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -1589,7 +1610,7 @@ function ResearchStepContent({ jobCard }) {
             )}
             {Array.isArray(culture?.values) && culture.values.length > 0 && (
               <div className="flex flex-col items-start gap-1">
-                {culture.values.map((v, i) => <Tag key={i} size="base">{v}</Tag>)}
+                {culture.values.map((v, i) => <Tag key={i} variant="culture">{v}</Tag>)}
               </div>
             )}
           </ResearchCard>
@@ -1633,7 +1654,7 @@ function ResearchStepContent({ jobCard }) {
             isEmpty={!style?.known_question_types?.length}
           >
             <div className="flex flex-wrap gap-1">
-              {(style?.known_question_types || []).map((q, i) => <Tag key={i}>{q}</Tag>)}
+              {(style?.known_question_types || []).map((q, i) => <Tag key={i} variant="question">{q}</Tag>)}
             </div>
           </ResearchCard>
 
@@ -1664,36 +1685,37 @@ function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
         <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
 
         <p className="text-sm md:text-xs text-gray-700">
-          Get to know the company before your interview so you can tailor your answers and ask thoughtful questions.
+          Get to know the company before your interview so that you can ask thoughtful questions.
         </p>
 
         <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
           <div className="text-sm md:text-xs text-purple-900 space-y-2">
-            <div><strong>🏢 Company overview</strong> — What they do and who buys from them.</div>
-            <div><strong>📰 Recent news</strong> — Something specific to reference.</div>
-            <div><strong>🧭 Culture and values</strong> — Language to echo back.</div>
-            <div><strong>✅ What people like</strong> — What employees praise.</div>
-            <div><strong>⚠️ Common complaints</strong> — What to know before an offer.</div>
-            <div><strong>🎯 Interview format</strong> — The process to expect.</div>
-            <div><strong>💬 Question types</strong> — What to practice first.</div>
+            <div><strong>🏢 Company overview</strong></div>
+            <div><strong>📰 Recent news</strong></div>
+            <div><strong>🧭 Culture and values</strong></div>
+            <div><strong>✅ What people like</strong></div>
+            <div><strong>⚠️ Common complaints</strong></div>
+            <div><strong>🎯 Interview format</strong></div>
+            <div><strong>💬 Question types</strong></div>
           </div>
         </div>
       </div>
 
       {/* CTA */}
-      <div className="mt-auto pt-3 border-t border-gray-300 space-y-3">
-        <div className="text-center">
+      {/* Explicit margins rather than space-y, so the gap under the button can
+          be tightened without also tightening the one above it. */}
+      <div className="mt-auto pt-3 border-t border-gray-300">
+        <div className="text-center mb-3">
           <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">
-            You&apos;re ready to practice.
+            You’re ready.
           </h4>
           <p className="text-sm md:text-xs text-gray-600 leading-snug">
-            You have your research. Now put it to work. Practice answers based on what you just
-            learned about this company.
+            Keep what you learned in mind as you practice.
           </p>
         </div>
         <button
           onClick={onGoToPractice}
-          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+          className="block mx-auto mb-1.5 text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
         >
           Go to Practice →
