@@ -1387,7 +1387,7 @@ function CardHeading({ children, color }) {
 // Every card renders whether or not it has data, so the grid keeps its shape.
 // An empty card says so rather than collapsing and reflowing its neighbours.
 // No border — the shadow against the gray page is what makes it a card.
-function ResearchCard({ title, color, isEmpty, emptyText = 'Nothing surfaced.', headerRight, children }) {
+function ResearchCard({ title, color, isEmpty, emptyText = 'No information available.', headerRight, children }) {
   return (
     <div className="bg-white shadow-sm rounded-lg p-4">
       {headerRight ? (
@@ -1569,7 +1569,7 @@ function ResearchStepContent({ jobCard }) {
             {research.what_they_do ? (
               <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
             ) : (
-              <p className="text-sm md:text-xs text-gray-400">Nothing surfaced.</p>
+              <p className="text-sm md:text-xs text-gray-400">No information available.</p>
             )}
             {(research.size_and_location || research.hiring_context) && (
               <div className="mt-3 pt-3 border-t border-purple-200 grid grid-cols-1 sm:grid-cols-2 gap-4">

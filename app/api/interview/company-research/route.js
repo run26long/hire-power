@@ -95,30 +95,15 @@ function stripCitations(value) {
 
 // ============================================================================
 // EMPTINESS CHECK
-// A brief where every field came back null means there was nothing reliable to
-// find — common for staffing agencies and small private firms, where the
-// posting describes a client rather than the employer. That is a legitimate
-// outcome, not a failure, so it is reported as notFound and never written:
-// caching it would serve an empty brief for the full 90 days.
+// what_they_do is the brief. Without it there is nothing worth showing or
+// caching, whatever else came back. Also covers the no-JSON case, where parsed
+// is null. Reported as notFound rather than an error: there is nothing to retry.
 // ============================================================================
 
-function isBlank(value) {
-  if (value === null || value === undefined) return true;
-  if (typeof value === 'string') return value.trim() === '';
-  if (Array.isArray(value)) return value.length === 0 || value.every(isBlank);
-  if (typeof value === 'object') return Object.values(value).every(isBlank);
-  return false;
+function hasNoOverview(parsed) {
+  const text = parsed?.what_they_do;
+  return typeof text !== 'string' || text.trim() === '';
 }
-
-// 'culture' is the model's key for what we store as culture_signals.
-const RESEARCH_FIELDS = [
-  'what_they_do',
-  'size_and_location',
-  'hiring_context',
-  'recent_news',
-  'culture',
-  'interview_style'
-];
 
 // ============================================================================
 // RECRUITER CHECK
@@ -136,13 +121,18 @@ const RECRUITER_TERMS = [
   'temp agency'
 ];
 
-function isRecruitingFirm(parsed) {
-  const text = typeof parsed?.what_they_do === 'string' ? parsed.what_they_do.toLowerCase() : '';
-  return RECRUITER_TERMS.some(term => text.includes(term));
-}
+// Scanned together: an agency often gets described in the hiring context or the
+// size line even when what_they_do comes back null. These three field names are
+// identical on the parsed model output and on a cached DB row, so the same
+// function serves both paths.
+const RECRUITER_SCAN_FIELDS = ['what_they_do', 'hiring_context', 'size_and_location'];
 
-function hasNoUsableContent(parsed) {
-  return RESEARCH_FIELDS.every(field => isBlank(parsed?.[field]));
+function isRecruitingFirm(parsed) {
+  const text = RECRUITER_SCAN_FIELDS
+    .map(field => (typeof parsed?.[field] === 'string' ? parsed[field] : ''))
+    .join(' ')
+    .toLowerCase();
+  return RECRUITER_TERMS.some(term => text.includes(term));
 }
 
 // ============================================================================
@@ -289,7 +279,8 @@ export async function POST(request) {
     }
 
     // ---- GENERATE ----
-    const { parsed, usage, noJson } = await generateResearch({ companyName, jobTitle, jobDescription });
+    // A no-JSON response arrives as parsed: null, which hasNoOverview catches.
+    const { parsed, usage } = await generateResearch({ companyName, jobTitle, jobDescription });
 
     // The named employer is an agency, so this brief describes the recruiter
     // rather than the company the candidate would work for. Don't cache it.
@@ -298,10 +289,8 @@ export async function POST(request) {
       return Response.json({ research: null, isRecruiter: true });
     }
 
-    // Nothing usable came back — either no JSON at all, or a brief where every
-    // field is null. Report a clean not-found rather than an error, since there
-    // is nothing for the user to retry, and skip the write.
-    if (noJson || hasNoUsableContent(parsed)) {
+    // No overview means no brief worth caching or showing.
+    if (hasNoOverview(parsed)) {
       console.warn('Company research found no usable content for:', companyName);
       return Response.json({ research: null, notFound: true });
     }
