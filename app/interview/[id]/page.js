@@ -694,10 +694,10 @@ export default function InterviewDetailPage() {
             {/* On the research step this drops its own white-card treatment.
                 The research cards are the cards, and white-on-white would hide
                 the shadow that separates them. */}
-            <div className={`md:m-6 p-4 md:p-6 flex flex-col gap-4 overflow-y-auto bg-gray-100 ${
+            <div className={`md:m-6 flex flex-col gap-4 overflow-y-auto bg-gray-100 ${
               currentStep === 'research'
-                ? 'md:bg-gray-50'
-                : 'md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200'
+                ? 'px-4 pb-4 md:px-6 md:pb-6 md:bg-gray-50'
+                : 'p-4 md:p-6 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200'
             }`}>
 
               {/* INTERVIEW HEADER STRIP — title + instructions + date + coaching progress */}
@@ -710,6 +710,7 @@ export default function InterviewDetailPage() {
                   interviewDateIsPast={interviewDateIsPast}
                   currentStep={currentStep}
                   titleOnly={currentStep === 'research'}
+                  company={jobCard.company}
                 />
               )}
 
@@ -1352,9 +1353,10 @@ const DOT_GREEN = '#81c784';
 const DOT_AMBER = '#ffc870';
 const DOT_PURPLE = '#9333ea';
 
-function Tag({ children }) {
+function Tag({ children, size }) {
+  const sizeClass = size === 'base' ? 'text-base' : 'text-[11px] md:text-[10px]';
   return (
-    <span className="inline-block text-[11px] md:text-[10px] bg-purple-50 text-purple-700 rounded px-2 py-0.5">
+    <span className={`inline-block ${sizeClass} bg-purple-50 text-purple-700 rounded px-2 py-0.5`}>
       {children}
     </span>
   );
@@ -1373,10 +1375,17 @@ function CardHeading({ children, color }) {
 // Every card renders whether or not it has data, so the grid keeps its shape.
 // An empty card says so rather than collapsing and reflowing its neighbours.
 // No border — the shadow against the gray page is what makes it a card.
-function ResearchCard({ title, color, isEmpty, emptyText = 'Nothing surfaced.', children }) {
+function ResearchCard({ title, color, isEmpty, emptyText = 'Nothing surfaced.', headerRight, children }) {
   return (
     <div className="bg-white shadow-sm rounded-lg p-4">
-      <CardHeading color={color}>{title}</CardHeading>
+      {headerRight ? (
+        <div className="flex items-start justify-between gap-2">
+          <CardHeading color={color}>{title}</CardHeading>
+          {headerRight}
+        </div>
+      ) : (
+        <CardHeading color={color}>{title}</CardHeading>
+      )}
       {isEmpty ? <p className="text-sm md:text-xs text-gray-400">{emptyText}</p> : children}
     </div>
   );
@@ -1398,12 +1407,24 @@ function DotList({ items, color }) {
   );
 }
 
-function Stat({ label, value }) {
+// `bullets` splits a comma-joined value ("~232 employees, Chicago IL") into
+// separate points. Only safe for values that are lists; prose with commas in it
+// must stay a single paragraph.
+function Stat({ label, value, bullets }) {
   if (!value) return null;
+
+  const parts = bullets
+    ? String(value).split(',').map(p => p.trim()).filter(Boolean)
+    : null;
+
   return (
     <div>
       <CardHeading color={DOT_PURPLE}>{label}</CardHeading>
-      <p className="text-sm md:text-xs text-gray-700 leading-snug">{value}</p>
+      {parts ? (
+        <DotList items={parts} color={DOT_PURPLE} />
+      ) : (
+        <p className="text-sm md:text-xs text-gray-700 leading-snug">{value}</p>
+      )}
     </div>
   );
 }
@@ -1537,7 +1558,7 @@ function ResearchStepContent({ jobCard }) {
             )}
             {(research.size_and_location || research.hiring_context) && (
               <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Stat label="Size and location" value={research.size_and_location} />
+                <Stat label="Size and location" value={research.size_and_location} bullets />
                 <Stat label="What they're hiring for" value={research.hiring_context} />
               </div>
             )}
@@ -1567,8 +1588,8 @@ function ResearchStepContent({ jobCard }) {
               <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-3">{culture.mission}</p>
             )}
             {Array.isArray(culture?.values) && culture.values.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {culture.values.map((v, i) => <Tag key={i}>{v}</Tag>)}
+              <div className="flex flex-col items-start gap-1">
+                {culture.values.map((v, i) => <Tag key={i} size="base">{v}</Tag>)}
               </div>
             )}
           </ResearchCard>
@@ -1576,7 +1597,7 @@ function ResearchStepContent({ jobCard }) {
           {/* ROW 3 — WHAT PEOPLE LIKE | COMMON COMPLAINTS */}
           <ResearchCard
             title="✅ What People Like"
-            color={DOT_GREEN}
+            color={DOT_PURPLE}
             isEmpty={!culture?.themes_positive?.length}
           >
             <DotList items={culture?.themes_positive || []} color={DOT_GREEN} />
@@ -1584,21 +1605,25 @@ function ResearchStepContent({ jobCard }) {
 
           <ResearchCard
             title="⚠️ Common Complaints"
-            color={DOT_AMBER}
+            color={DOT_PURPLE}
             isEmpty={!culture?.themes_negative?.length}
           >
             <DotList items={culture?.themes_negative || []} color={DOT_AMBER} />
           </ResearchCard>
 
           {/* ROW 4 — INTERVIEW FORMAT | QUESTION TYPES */}
-          <ResearchCard title="🎯 Interview Format" color={DOT_AMBER} isEmpty={!style?.likely_format}>
-            <div className="mb-2">
-              <span className={`inline-block text-[11px] font-semibold rounded px-2 py-0.5 capitalize ${
+          <ResearchCard
+            title="🎯 Interview Format"
+            color={DOT_PURPLE}
+            isEmpty={!style?.likely_format}
+            headerRight={
+              <span className={`flex-shrink-0 inline-block text-[11px] font-semibold rounded px-2 py-0.5 capitalize ${
                 DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES.unknown
               }`}>
                 {difficulty}
               </span>
-            </div>
+            }
+          >
             <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{style?.likely_format}</p>
           </ResearchCard>
 
@@ -1644,13 +1669,13 @@ function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
 
         <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
           <div className="text-sm md:text-xs text-purple-900 space-y-2">
-            <div><strong>🏢 Company overview</strong> — What they actually do, who buys from them, how big they are, and what this role says about where they are investing right now.</div>
-            <div><strong>📰 Recent news</strong> — The last twelve months. Referencing one specific thing is the fastest way to show you did the reading and not just the job description.</div>
-            <div><strong>🧭 Culture and values</strong> — Their stated mission and values. Echo this language back when you explain why you want to work there.</div>
-            <div><strong>✅ What people like</strong> — What employees consistently praise. Use these to shape the questions you ask about the team.</div>
-            <div><strong>⚠️ Common complaints</strong> — What employees consistently flag. Know these before you accept an offer, not after.</div>
-            <div><strong>🎯 Interview format</strong> — The process to expect and how hard people find it, so nothing about the format surprises you.</div>
-            <div><strong>💬 Question types</strong> — The kinds of questions this company tends to ask. Practice these first.</div>
+            <div><strong>🏢 Company overview</strong> — What they do and who buys from them.</div>
+            <div><strong>📰 Recent news</strong> — Something specific to reference.</div>
+            <div><strong>🧭 Culture and values</strong> — Language to echo back.</div>
+            <div><strong>✅ What people like</strong> — What employees praise.</div>
+            <div><strong>⚠️ Common complaints</strong> — What to know before an offer.</div>
+            <div><strong>🎯 Interview format</strong> — The process to expect.</div>
+            <div><strong>💬 Question types</strong> — What to practice first.</div>
           </div>
         </div>
       </div>
@@ -1972,7 +1997,7 @@ function StoryModal({ story, onClose }) {
 
 function InterviewHeaderStrip({
   storiesCoached, totalStoryItems,
-  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly
+  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company
 }) {
   const hasDate = !!interviewDate;
   const dateObj = hasDate ? new Date(interviewDate) : null;
@@ -1987,7 +2012,7 @@ function InterviewHeaderStrip({
       <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
         {currentStep === 'analyze' && 'Power Analysis'}
         {currentStep === 'coach'   && 'STAR Story Coaching'}
-        {currentStep === 'research' && 'Company Research'}
+        {currentStep === 'research' && (company ? `Company Research: ${company}` : 'Company Research')}
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
