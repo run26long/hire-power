@@ -502,7 +502,9 @@ Build the structured STAR and polished story from this conversation.`;
     const cachedInputTokens = response.usage?.cache_read_input_tokens ?? 0;
     const outputTokens = response.usage?.output_tokens ?? 0;
     const estimatedCost =
-      ((inputTokens - cachedInputTokens) * 3.0 / 1_000_000) +
+      // inputTokens is already the uncached remainder — cache reads are
+      // reported separately, so subtracting them double-counts.
+      (inputTokens * 3.0 / 1_000_000) +
       (cachedInputTokens * 0.30 / 1_000_000) +
       (outputTokens * 15.0 / 1_000_000);
 
@@ -621,7 +623,9 @@ export async function POST(request) {
       const cachedInputTokens = response.usage?.cache_read_input_tokens ?? 0;
       const outputTokens = response.usage?.output_tokens ?? 0;
       const estimatedCost =
-        ((inputTokens - cachedInputTokens) * 3.0 / 1_000_000) +
+        // inputTokens is already the uncached remainder — cache reads are
+        // reported separately, so subtracting them double-counts.
+        (inputTokens * 3.0 / 1_000_000) +
         (cachedInputTokens * 0.30 / 1_000_000) +
         (outputTokens * 15.0 / 1_000_000);
 

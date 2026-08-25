@@ -360,8 +360,11 @@ export async function POST(request) {
 
     // ---- LOG API CALL ----
     try {
+      // input_tokens is already the uncached remainder — cache reads are
+      // reported separately, so subtracting them double-counts and goes
+      // negative whenever the cache hits.
       const estimatedCost =
-        ((usage.input - usage.cached) * 1.0 / 1_000_000) +
+        (usage.input * 1.0 / 1_000_000) +
         (usage.cached * 0.10 / 1_000_000) +
         (usage.output * 5.0 / 1_000_000);
 

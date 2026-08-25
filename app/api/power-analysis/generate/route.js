@@ -659,8 +659,11 @@ ${jobCard.description}`;
       const cachedInputTokens = response.usage?.cache_read_input_tokens ?? 0;
       const outputTokens = response.usage?.output_tokens ?? 0;
       // Rough cost estimate: Sonnet 4.6 = $3/M input, $0.30/M cached input, $15/M output
+      // inputTokens is already the uncached remainder — cache reads are
+      // reported separately, so subtracting them double-counts and goes
+      // negative whenever the cache hits.
       const estimatedCost =
-        ((inputTokens - cachedInputTokens) * 3.0 / 1_000_000) +
+        (inputTokens * 3.0 / 1_000_000) +
         (cachedInputTokens * 0.30 / 1_000_000) +
         (outputTokens * 15.0 / 1_000_000);
 

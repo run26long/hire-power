@@ -529,8 +529,11 @@ Let's start the coaching session.`;
       const inputTokens = response.usage?.input_tokens ?? 0;
       const cachedInputTokens = response.usage?.cache_read_input_tokens ?? 0;
       const outputTokens = response.usage?.output_tokens ?? 0;
+      // inputTokens is already the uncached remainder — cache reads are
+      // reported separately, so subtracting them double-counts and goes
+      // negative whenever the cache hits.
       const estimatedCost =
-        ((inputTokens - cachedInputTokens) * 3.0 / 1_000_000) +
+        (inputTokens * 3.0 / 1_000_000) +
         (cachedInputTokens * 0.30 / 1_000_000) +
         (outputTokens * 15.0 / 1_000_000);
 
