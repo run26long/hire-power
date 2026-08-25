@@ -2034,7 +2034,11 @@ function InterviewHeaderStrip({
       <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
         {currentStep === 'analyze' && 'Power Analysis'}
         {currentStep === 'coach'   && 'STAR Story Coaching'}
-        {currentStep === 'research' && (company ? `Company Research: ${company}` : 'Company Research')}
+        {currentStep === 'research' && (
+          company
+            ? <>Company Research: <span style={{ color: DOT_PURPLE }}>{company}</span></>
+            : 'Company Research'
+        )}
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
