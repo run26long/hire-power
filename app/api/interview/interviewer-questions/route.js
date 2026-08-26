@@ -273,10 +273,11 @@ export async function POST(request) {
     }
 
     // ---- QUESTION BANK ----
+    // Every row is live. The bank has no enabled/disabled flag: retiring a
+    // question means deleting it.
     const { data: bank, error: bankError } = await supabase
       .from('interviewer_questions_bank')
-      .select('id, question_text, category, context_hint')
-      .eq('is_active', true);
+      .select('id, question_text, category, context_hint');
 
     if (bankError) {
       console.error('Interviewer questions bank error:', bankError);
@@ -314,10 +315,11 @@ export async function POST(request) {
     const { data: saved, error: insertError } = await supabase
       .from('interviewer_questions_selected')
       .insert(
+        // No job_card_id: a Power Analysis belongs to exactly one job card, so
+        // power_analysis_id already says which job these belong to.
         questions.map((q, i) => ({
           user_id: userId,
           power_analysis_id: powerAnalysisId,
-          job_card_id: jobCardId,
           bank_question_id: q.bank_question_id,
           tailored_text: q.tailored_text,
           rationale: q.rationale,
