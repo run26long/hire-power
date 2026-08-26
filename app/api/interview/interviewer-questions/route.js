@@ -332,6 +332,12 @@ export async function POST(request) {
       return failure('model returned 0 usable questions');
     }
 
+    // original_text is NOT NULL, so it needs a value even when the model gave
+    // back an id that isn't in the bank and selectQuestions nulled it. Falling
+    // back to the tailored text keeps the row honest: it says the question was
+    // never anchored to a bank entry rather than attributing it to the wrong one.
+    const bankById = new Map(bank.map(q => [q.id, q]));
+
     const { data: saved, error: insertError } = await supabase
       .from('interviewer_questions_selected')
       .insert(
@@ -341,8 +347,11 @@ export async function POST(request) {
           user_id: userId,
           power_analysis_id: powerAnalysisId,
           bank_question_id: q.bank_question_id,
+          original_text: bankById.get(q.bank_question_id)?.question_text ?? q.tailored_text,
           tailored_text: q.tailored_text,
-          rationale: q.rationale,
+          // Also NOT NULL. The model skips it occasionally, and an empty string
+          // is falsy, so the UI hides the line the same way it would for null.
+          rationale: q.rationale ?? '',
           order_index: i
         }))
       )
