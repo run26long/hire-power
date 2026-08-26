@@ -774,7 +774,9 @@ export default function InterviewDetailPage() {
               {/* RESEARCH — takes over the working surface on its own step.
                   The buckets are Power Analysis material and have nothing to do
                   with company research, so they step aside rather than stack. */}
-              {currentStep === 'research' && <ResearchStepContent jobCard={jobCard} />}
+              {currentStep === 'research' && (
+                <ResearchStepContent jobCard={jobCard} powerAnalysisId={powerAnalysis?.id} />
+              )}
 
               {/* BUCKETS */}
               {hasPA && currentStep !== 'research' && (() => {
@@ -1462,7 +1464,112 @@ const DIFFICULTY_STYLES = {
   unknown: 'bg-gray-100 text-gray-500'
 };
 
-function ResearchStepContent({ jobCard }) {
+// ============================================================================
+// INTERVIEWER QUESTIONS
+// Chosen once per Power Analysis and stored, so these are the candidate's
+// questions for this interview rather than a fresh set on every visit. The
+// route does that caching; this just asks for them.
+//
+// Runs whether or not research came back. A company we know nothing about is
+// exactly when a candidate needs good questions to ask, and the route treats a
+// null brief as a supported input.
+// ============================================================================
+
+function InterviewerQuestions({ powerAnalysisId, jobCard, research, ready }) {
+  const supabase = createClient();
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuestions() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No session');
+
+        const res = await fetch('/api/interview/interviewer-questions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            powerAnalysisId,
+            jobCardId: jobCard.id,
+            companyName: jobCard.company,
+            jobTitle: jobCard.title,
+            jobDescription: jobCard.description,
+            companyResearch: research || null
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Questions failed');
+        if (cancelled) return;
+        setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      } catch (err) {
+        console.error('Interviewer questions load failed:', err);
+        if (!cancelled) {
+          setError("Couldn't load your interviewer questions right now.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    // `ready` gates on the research fetch having settled, so the brief can be
+    // passed along in the same request rather than arriving a beat later.
+    if (!ready || !powerAnalysisId || !jobCard?.id) return;
+
+    loadQuestions();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, powerAnalysisId, jobCard?.id]);
+
+  if (!ready) return null;
+
+  return (
+    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+      <CardHeading color={HEADING_DARK}>💡 Questions To Ask Your Interviewer</CardHeading>
+
+      {loading && (
+        <div className="flex items-center gap-2 text-sm md:text-xs text-gray-500">
+          <div className="animate-spin h-3.5 w-3.5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+          <span>Picking your questions...</span>
+        </div>
+      )}
+
+      {/* No retry: the questions are a nice-to-have on a step the candidate can
+          finish without them. */}
+      {!loading && error && (
+        <p className="text-sm md:text-xs text-gray-600">{error}</p>
+      )}
+
+      {!loading && !error && questions.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {questions.map((q, i) => (
+            <div key={q.id || i} className="bg-white border border-purple-200 rounded-lg p-3">
+              <p className="text-sm font-semibold text-gray-900 leading-snug">{q.tailored_text}</p>
+              {q.rationale && (
+                <p className="text-xs text-gray-500 italic leading-snug mt-1">{q.rationale}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && !error && questions.length === 0 && (
+        <p className="text-sm md:text-xs text-gray-400">No questions available.</p>
+      )}
+    </div>
+  );
+}
+
+function ResearchStepContent({ jobCard, powerAnalysisId }) {
   const supabase = createClient();
   const [research, setResearch] = useState(null);
   const [researchLoading, setResearchLoading] = useState(false);
@@ -1670,17 +1777,19 @@ function ResearchStepContent({ jobCard }) {
               {(style?.known_question_types || []).map((q, i) => <Tag key={i} variant="question">{q}</Tag>)}
             </div>
           </ResearchCard>
-
-          {/* ROW 5 — QUESTIONS TO ASK (full width). Tinted callout, same
-              treatment Resume Coach uses for its upgrade panel. */}
-          <div className="md:col-span-2 bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-purple-800 mb-2">
-              Questions to ask your interviewer
-            </p>
-            <p className="text-sm md:text-xs text-gray-600">Interviewer questions coming soon.</p>
-          </div>
         </div>
       )}
+
+      {/* ROW 5 — QUESTIONS TO ASK (full width). Tinted callout, same treatment
+          Resume Coach uses for its upgrade panel. Sits outside the grid rather
+          than spanning it, so it still renders on the recruiter and not-found
+          paths where there is no grid. The space-y-3 gap matches the grid's. */}
+      <InterviewerQuestions
+        powerAnalysisId={powerAnalysisId}
+        jobCard={jobCard}
+        research={research}
+        ready={!researchLoading && !researchError && (!!research || researchNotFound || isRecruiter)}
+      />
     </div>
   );
 }
