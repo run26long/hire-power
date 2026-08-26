@@ -1280,9 +1280,9 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
           </button>
 
           {/* Value stays '' so the disabled placeholder keeps showing as the
-              label — this is a jump menu, not a stored selection. Hidden when
-              there's nowhere to jump, rather than offering an empty menu. */}
-          {otherSteps.length > 0 && (
+              label — this is a jump menu, not a stored selection. Always
+              rendered, so every card keeps the same shape; with nowhere to
+              jump yet it explains itself rather than opening empty. */}
           <select
             value=""
             onClick={(e) => e.stopPropagation()}
@@ -1298,11 +1298,16 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
             }`}
           >
             <option value="" disabled>Other Steps</option>
-            {otherSteps.map(({ key, label }) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
+            {otherSteps.length > 0 ? (
+              otherSteps.map(({ key, label }) => (
+                <option key={key} value={key}>{label}</option>
+              ))
+            ) : (
+              <option value="" disabled>
+                Complete {STEP_DISPLAY_NAMES[primaryStep] || 'Analysis'} first
+              </option>
+            )}
           </select>
-          )}
         </div>
 
         {/* Delete */}
