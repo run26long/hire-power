@@ -95,9 +95,9 @@ function stripCitations(value) {
 
 // ============================================================================
 // EMPTINESS CHECK
-// what_they_do is the brief. Without it there is nothing worth showing or
-// caching, whatever else came back. Also covers the no-JSON case, where parsed
-// is null. Reported as notFound rather than an error: there is nothing to retry.
+// what_they_do is the brief. Without it there is nothing worth showing,
+// whatever else came back. Also covers the no-JSON case, where parsed is null.
+// Reported as notFound rather than an error: there is nothing to retry.
 // ============================================================================
 
 function hasNoOverview(parsed) {
@@ -205,6 +205,64 @@ Job Description: ${(jobDescription || '').slice(0, 1500)}`;
 }
 
 // ============================================================================
+// PERSIST
+// Insert, or refresh an expired row in place so it keeps its refresh history.
+// Used for both a real brief and a cached miss.
+// ============================================================================
+
+async function saveResearch(supabase, existing, row) {
+  if (existing) {
+    return supabase
+      .from('company_research')
+      .update({ ...row, refresh_count: (existing.refresh_count ?? 0) + 1 })
+      .eq('id', existing.id)
+      .select()
+      .single();
+  }
+  return supabase
+    .from('company_research')
+    .insert(row)
+    .select()
+    .single();
+}
+
+// ============================================================================
+// COST LOGGING
+// Non-blocking: a logging failure must never cost the caller their research.
+// Runs on the not-found path too — an empty search still burns web search and
+// tokens, and that spend is only visible if it's recorded.
+// ============================================================================
+
+async function logApiCall(supabase, { userId, sessionId, usage }) {
+  try {
+    // input_tokens is already the uncached remainder — cache reads are
+    // reported separately, so subtracting them double-counts and goes
+    // negative whenever the cache hits.
+    const estimatedCost =
+      (usage.input * 1.0 / 1_000_000) +
+      (usage.cached * 0.10 / 1_000_000) +
+      (usage.output * 5.0 / 1_000_000);
+
+    const { error } = await supabase.from('api_call_log').insert({
+      user_id: userId,
+      session_id: sessionId,
+      feature: 'company_research',
+      provider: 'anthropic',
+      model: 'claude-haiku-4-5-20251001',
+      call_type: 'completion',
+      input_tokens: usage.input,
+      cached_input_tokens: usage.cached,
+      output_tokens: usage.output,
+      estimated_cost_usd: estimatedCost,
+      status: 'success'
+    });
+    if (error) console.error('api_call_log insert failed (non-blocking):', error);
+  } catch (logErr) {
+    console.error('api_call_log insert failed (non-blocking):', logErr);
+  }
+}
+
+// ============================================================================
 // POST /api/interview/company-research
 // Returns a cached brief when one exists and is unexpired; otherwise generates
 // a fresh one and writes it. Research is keyed by normalized company name, so
@@ -270,6 +328,11 @@ export async function POST(request) {
 
     const isFresh = existing?.expires_at && new Date(existing.expires_at).getTime() > Date.now();
     if (existing && isFresh) {
+      // A cached miss. The search came back empty last time and the row hasn't
+      // expired, so don't pay for the same empty search again.
+      if (existing.no_results_found) {
+        return Response.json({ research: null, notFound: true });
+      }
       // Agency rows cached before the recruiter check existed would otherwise
       // be served straight past it, so the same test runs on the way out.
       if (isRecruitingFirm(existing)) {
@@ -289,14 +352,38 @@ export async function POST(request) {
       return Response.json({ research: null, isRecruiter: true });
     }
 
-    // No overview means no brief worth caching or showing.
-    if (hasNoOverview(parsed)) {
-      console.warn('Company research found no usable content for:', companyName);
-      return Response.json({ research: null, notFound: true });
-    }
-
     const now = new Date();
     const expiresAt = new Date(now.getTime() + CACHE_DAYS * 24 * 60 * 60 * 1000);
+
+    // No overview means no brief worth showing. Cache the miss anyway, on the
+    // same expiry as a real brief, so the next candidate at this company
+    // doesn't pay for the same empty search — and so it retries once the row
+    // ages out, in case more turns up by then.
+    if (hasNoOverview(parsed)) {
+      console.warn('Company research found no usable content for:', companyName);
+      const { data: missRow, error: missError } = await saveResearch(supabase, existing, {
+        company_name_normalized: normalized,
+        company_name_display: companyName.trim(),
+        what_they_do: null,
+        size_and_location: null,
+        hiring_context: null,
+        recent_news: [],
+        culture_signals: null,
+        interview_style: null,
+        source_urls: [],
+        no_results_found: true,
+        generated_at: now.toISOString(),
+        expires_at: expiresAt.toISOString()
+      });
+      // Non-blocking: the caller gets its answer either way, it just costs
+      // another search next time.
+      if (missError) {
+        console.error('Company research not-found cache write failed:', missError);
+      }
+
+      await logApiCall(supabase, { userId, sessionId: missRow?.id ?? null, usage });
+      return Response.json({ research: null, notFound: true });
+    }
 
     const row = {
       company_name_normalized: normalized,
@@ -310,69 +397,23 @@ export async function POST(request) {
       // Web search doesn't hand back URLs we can reliably attribute per claim,
       // so we store an empty list rather than invent citations.
       source_urls: [],
+      // Explicit, not left to the column default: this may be overwriting an
+      // expired not-found row that has since turned up something.
+      no_results_found: false,
       generated_at: now.toISOString(),
       expires_at: expiresAt.toISOString()
     };
 
-    let saved;
-    if (existing) {
-      // Expired — refresh in place so the row keeps its refresh history.
-      const { data: updated, error: updateError } = await supabase
-        .from('company_research')
-        .update({ ...row, refresh_count: (existing.refresh_count ?? 0) + 1 })
-        .eq('id', existing.id)
-        .select()
-        .single();
-      if (updateError) {
-        console.error('Company research update error:', updateError);
-        return Response.json(
-          { error: "Couldn't pull company info right now. You can still practice without it." },
-          { status: 500 }
-        );
-      }
-      saved = updated;
-    } else {
-      const { data: inserted, error: insertError } = await supabase
-        .from('company_research')
-        .insert(row)
-        .select()
-        .single();
-      if (insertError) {
-        console.error('Company research insert error:', insertError);
-        return Response.json(
-          { error: "Couldn't pull company info right now. You can still practice without it." },
-          { status: 500 }
-        );
-      }
-      saved = inserted;
+    const { data: saved, error: saveError } = await saveResearch(supabase, existing, row);
+    if (saveError) {
+      console.error('Company research save error:', saveError);
+      return Response.json(
+        { error: "Couldn't pull company info right now. You can still practice without it." },
+        { status: 500 }
+      );
     }
 
-    // ---- LOG API CALL ----
-    try {
-      // input_tokens is already the uncached remainder — cache reads are
-      // reported separately, so subtracting them double-counts and goes
-      // negative whenever the cache hits.
-      const estimatedCost =
-        (usage.input * 1.0 / 1_000_000) +
-        (usage.cached * 0.10 / 1_000_000) +
-        (usage.output * 5.0 / 1_000_000);
-
-      await supabase.from('api_call_log').insert({
-        user_id: userId,
-        session_id: saved.id,
-        feature: 'company_research',
-        provider: 'anthropic',
-        model: 'claude-haiku-4-5-20251001',
-        call_type: 'completion',
-        input_tokens: usage.input,
-        cached_input_tokens: usage.cached,
-        output_tokens: usage.output,
-        estimated_cost_usd: estimatedCost,
-        status: 'success'
-      });
-    } catch (logErr) {
-      console.error('api_call_log insert failed (non-blocking):', logErr);
-    }
+    await logApiCall(supabase, { userId, sessionId: saved.id, usage });
 
     return Response.json({ research: saved, cached: false });
 
