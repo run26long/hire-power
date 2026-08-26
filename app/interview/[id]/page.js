@@ -9,6 +9,8 @@ import ErrorToast from '../../components/ErrorToast';
 import SuccessToast from '../../components/SuccessToast';
 import UpgradeModal from '../../components/UpgradeModal';
 
+const VALID_STEPS = ['analyze', 'coach', 'research', 'prepare', 'practice'];
+
 export default function InterviewDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -66,7 +68,13 @@ export default function InterviewDetailPage() {
 
   // Step completion derived from real data, not cursor position
   const analyzeComplete = !!powerAnalysis;
-  const coachComplete = stories.some(s => s.coachingComplete);
+  // Coaching is done once they leave it, whether they coached or skipped.
+  // Falls back to "any story coached" for rows written before the column
+  // existed, so history doesn't suddenly read as unfinished.
+  const coachComplete =
+    powerAnalysis?.coaching_status === 'completed' ||
+    powerAnalysis?.coaching_status === 'skipped' ||
+    stories.some(s => s.coachingComplete);
 
   // ============================================================================
   // DATA LOAD
@@ -169,8 +177,10 @@ export default function InterviewDetailPage() {
 
       // Restore saved position. Runs before setLoading(false) so the persist
       // effects don't fire with defaults and clobber what was saved.
-      const savedStep = data.jobCard?.interview_step;
-      if (savedStep === 'analyze' || savedStep === 'coach' || savedStep === 'research' || savedStep === 'prepare' || savedStep === 'practice') {
+      // current_step on the Power Analysis wins: it's the column the hub reads,
+      // so the two stay in agreement. interview_step is the older fallback.
+      const savedStep = data.powerAnalysis?.current_step || data.jobCard?.interview_step;
+      if (VALID_STEPS.includes(savedStep)) {
         setCurrentStep(savedStep);
       }
 
@@ -554,7 +564,41 @@ export default function InterviewDetailPage() {
 
   const handleGoToPractice = () => {
     handleEndCoaching();
-    setCurrentStep('practice');
+    goToStep('practice');
+  };
+
+  // ============================================================================
+  // STEP NAVIGATION
+  // current_step on the Power Analysis row is what the hub reads to say where
+  // someone is, so every forward move writes it. The write is optimistic and
+  // non-blocking: navigation is the user's, and a failed update should cost
+  // them a hub position, not the click.
+  // ============================================================================
+
+  const persistPowerAnalysis = async (patch) => {
+    if (!powerAnalysis?.id) return;
+    setPowerAnalysis(prev => (prev ? { ...prev, ...patch } : prev));
+    const { error } = await supabase
+      .from('power_analysis')
+      .update(patch)
+      .eq('id', powerAnalysis.id);
+    if (error) console.error('Power Analysis step update failed:', error);
+  };
+
+  const goToStep = (step) => {
+    setCurrentStep(step);
+    persistPowerAnalysis({ current_step: step });
+  };
+
+  // Leaving coaching is what decides whether it counts as done. Nothing coached
+  // means they chose to move on, which is 'skipped' rather than a failure.
+  const goToResearchFromCoach = () => {
+    const coachedCount = stories.filter(s => s.coachingComplete).length;
+    setCurrentStep('research');
+    persistPowerAnalysis({
+      coaching_status: coachedCount > 0 ? 'completed' : 'skipped',
+      current_step: 'research'
+    });
   };
 
   // ============================================================================
@@ -657,6 +701,18 @@ export default function InterviewDetailPage() {
   // working surface. Practice keeps the full header card, since it's the step
   // where the interview date and coaching progress still drive the decision.
   const flatStep = currentStep !== 'practice';
+
+  // Research and Prepare have nothing to finish, so "done" means the saved step
+  // is past them. Reading currentStep instead would tick them the moment
+  // someone clicked ahead and came back.
+  const savedStep = powerAnalysis?.current_step;
+  const completeByKey = {
+    analyze: analyzeComplete,
+    coach: coachComplete,
+    research: savedStep === 'prepare' || savedStep === 'practice',
+    prepare: savedStep === 'practice',
+    practice: sessionsCount > 0
+  };
 
   // ============================================================================
   // MAIN RENDER
@@ -875,7 +931,7 @@ export default function InterviewDetailPage() {
               <div className="relative">
                 <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
                   <div className="h-full transition-all duration-300" style={{
-                    width: `${(((analyzeComplete ? 1 : 0) + (coachComplete ? 1 : 0)) / 4) * 100}%`,
+                    width: `${(Object.values(completeByKey).filter(Boolean).length / 4) * 100}%`,
                     background: 'linear-gradient(to right, #667eea, #764ba2)'
                   }}></div>
                 </div>
@@ -887,7 +943,6 @@ export default function InterviewDetailPage() {
                     { label: 'Prepare', key: 'prepare' },
                     { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
-                    const completeByKey = { analyze: analyzeComplete, coach: coachComplete, research: false, prepare: false, practice: false };
                     const complete = completeByKey[key];
                     const current = key === currentStep;
                     return (
@@ -920,7 +975,6 @@ export default function InterviewDetailPage() {
                   analyzeComplete={analyzeComplete}
                   coachComplete={coachComplete}
                   onGoToCoach={handleOpenCoachStep}
-                  onSkipToPractice={() => setCurrentStep('practice')}
                 />
               )}
 
@@ -929,13 +983,15 @@ export default function InterviewDetailPage() {
                   batchChecks={batchChecks}
                   coachStarting={coachStarting}
                   coachComplete={coachComplete}
+                  storiesCoached={stories.filter(s => s.coachingComplete).length}
                   onStart={handleStartBatch}
-                  onSkipToPractice={() => setCurrentStep('practice')}
+                  onGoToResearch={goToResearchFromCoach}
+                  onBack={() => goToStep('analyze')}
                 />
               )}
 
               {currentStep === 'coach' && !activeStory && !hasPA && (
-                <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToCoach={handleOpenCoachStep} onSkipToPractice={() => setCurrentStep('practice')} />
+                <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToCoach={handleOpenCoachStep} />
               )}
 
               {currentStep === 'coach' && (activeStory || coachStarting) && (
@@ -962,22 +1018,22 @@ export default function InterviewDetailPage() {
 
               {currentStep === 'research' && (
                 <ResearchIdlePanel
-                  onGoToPrepare={() => setCurrentStep('prepare')}
-                  onGoToCoach={() => setCurrentStep('coach')}
+                  onGoToPrepare={() => goToStep('prepare')}
+                  onBack={() => goToStep('coach')}
                 />
               )}
 
               {currentStep === 'prepare' && (
                 <PrepareIdlePanel
-                  onGoToPractice={() => setCurrentStep('practice')}
-                  onGoToResearch={() => setCurrentStep('research')}
+                  onGoToPractice={() => goToStep('practice')}
+                  onBack={() => goToStep('research')}
                 />
               )}
 
               {currentStep === 'practice' && (
                 <PracticeStepContent
                   storiesCoached={stories.filter(s => s.coachingComplete).length}
-                  onGoToCoach={handleOpenCoachStep}
+                  onBack={() => goToStep('prepare')}
                 />
               )}
 
@@ -1180,7 +1236,30 @@ function BucketColumn({
 // ANALYZE STEP CONTENT
 // ============================================================================
 
-function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader, analyzeComplete, coachComplete }) {
+// ============================================================================
+// STEP BUTTONS
+// One forward button and one back link on every step, so the pair reads the
+// same wherever you are. Secondary matches the outline button CoachingView
+// already uses.
+// ============================================================================
+
+const STEP_PRIMARY_CLASS =
+  'w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed';
+const STEP_PRIMARY_STYLE = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
+const STEP_SECONDARY_CLASS =
+  'w-full flex items-center justify-center gap-2 bg-white border border-purple-300 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm md:text-xs hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+
+function BackLink({ onClick }) {
+  return (
+    <div className="text-center">
+      <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
+        ← Back
+      </button>
+    </div>
+  );
+}
+
+function AnalyzeStepContent({ onGoToCoach, stepHeader, analyzeComplete, coachComplete }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
@@ -1221,18 +1300,13 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader, analyze
           </div>
         </div>
       )}
+      {/* First step, so no back link. */}
       <button
         onClick={onGoToCoach}
-        className="w-full text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-        style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+        className={STEP_PRIMARY_CLASS}
+        style={STEP_PRIMARY_STYLE}
       >
-        Coach My Stories →
-      </button>
-      <button
-        onClick={onSkipToPractice}
-        className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700 text-center transition-colors"
-      >
-        Skip to Interview Practice →
+        Go to Coaching
       </button>
     </div>
   );
@@ -1242,8 +1316,9 @@ function AnalyzeStepContent({ onGoToCoach, onSkipToPractice, stepHeader, analyze
 // BATCH CHECKLIST
 // ============================================================================
 
-function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, onStart, onSkipToPractice }) {
+function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, storiesCoached, onStart, onGoToResearch, onBack }) {
   const selectedCount = Object.values(batchChecks).filter(Boolean).length;
+  const hasCoachedStories = storiesCoached > 0;
 
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
@@ -1272,6 +1347,9 @@ function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, onStart, on
       <p className="text-sm md:text-xs text-gray-600">
         Pick individual items to coach, or select all to coach everything one at a time.
       </p>
+      {/* Whichever action is the sensible next one is the primary. With nothing
+          coached that's coaching; once a story exists, moving on is. Both stay
+          visible either way — the choice is the candidate's. */}
       <div className="mt-auto space-y-2">
         {coachComplete && (
           <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
@@ -1281,15 +1359,25 @@ function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, onStart, on
             </div>
           </div>
         )}
-        <button onClick={onStart} disabled={selectedCount === 0 || coachStarting}
-          className="w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>
-          Start Coaching ({selectedCount})
+
+        <button
+          onClick={hasCoachedStories ? onGoToResearch : onStart}
+          disabled={!hasCoachedStories && (selectedCount === 0 || coachStarting)}
+          className={STEP_PRIMARY_CLASS}
+          style={STEP_PRIMARY_STYLE}
+        >
+          {hasCoachedStories ? 'Go to Research' : 'Coach Stories'}
         </button>
-        <button onClick={onSkipToPractice}
-          className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700 text-center transition-colors">
-          Skip to Interview Practice →
+
+        <button
+          onClick={hasCoachedStories ? onStart : onGoToResearch}
+          disabled={hasCoachedStories && (selectedCount === 0 || coachStarting)}
+          className={STEP_SECONDARY_CLASS}
+        >
+          {hasCoachedStories ? 'Coach Stories' : 'Go to Research'}
         </button>
+
+        <BackLink onClick={onBack} />
       </div>
     </div>
   );
@@ -1343,7 +1431,7 @@ function ChecklistGroup({ title, itemType, items, getNameField, batchChecks, isI
 // PRACTICE STEP CONTENT
 // ============================================================================
 
-function PracticeStepContent({ storiesCoached, onGoToCoach }) {
+function PracticeStepContent({ storiesCoached, onBack }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
@@ -1361,12 +1449,10 @@ function PracticeStepContent({ storiesCoached, onGoToCoach }) {
           <p className="text-xs text-gray-700 leading-snug">Coach at least one story to prepare your answers before practice.</p>
         </div>
       )}
-      <button
-        onClick={onGoToCoach}
-        className="border border-purple-200 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm hover:bg-purple-50 transition-colors"
-      >
-        ← Back to Coach
-      </button>
+      {/* Last step, so no forward button. */}
+      <div className="mt-auto">
+        <BackLink onClick={onBack} />
+      </div>
     </div>
   );
 }
@@ -1741,7 +1827,7 @@ function ResearchStepContent({ jobCard }) {
 // left; this side just moves the user forward.
 // ============================================================================
 
-function ResearchIdlePanel({ onGoToPrepare, onGoToCoach }) {
+function ResearchIdlePanel({ onGoToPrepare, onBack }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
@@ -1776,20 +1862,11 @@ function ResearchIdlePanel({ onGoToPrepare, onGoToCoach }) {
             Keep what you learned in mind as you practice.
           </p>
         </div>
-        <button
-          onClick={onGoToPrepare}
-          className="block mx-auto mb-1.5 text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-        >
-          Continue to Prepare →
+        <button onClick={onGoToPrepare} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+          Go to Prepare
         </button>
-        <div className="text-center">
-          <button
-            onClick={onGoToCoach}
-            className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
-          >
-            ← Back to Coach
-          </button>
+        <div className="mt-1.5">
+          <BackLink onClick={onBack} />
         </div>
       </div>
     </div>
@@ -2074,7 +2151,7 @@ function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }
 // Right-column step driver for the prepare step.
 // ============================================================================
 
-function PrepareIdlePanel({ onGoToPractice, onGoToResearch }) {
+function PrepareIdlePanel({ onGoToPractice, onBack }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
@@ -2096,20 +2173,11 @@ function PrepareIdlePanel({ onGoToPractice, onGoToResearch }) {
 
       {/* CTA */}
       <div className="mt-auto pt-3 border-t border-gray-300">
-        <button
-          onClick={onGoToPractice}
-          className="block mx-auto mb-1.5 text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-        >
-          Go to Practice →
+        <button onClick={onGoToPractice} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+          Go to Practice
         </button>
-        <div className="text-center">
-          <button
-            onClick={onGoToResearch}
-            className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
-          >
-            ← Back to Research
-          </button>
+        <div className="mt-1.5">
+          <BackLink onClick={onBack} />
         </div>
       </div>
     </div>

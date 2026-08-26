@@ -474,6 +474,8 @@ export default function MyInterviewsPage() {
           core_power,
           hidden_power,
           power_gaps,
+          coaching_status,
+          current_step,
           applications:job_card_id (
             id,
             title,
@@ -519,7 +521,9 @@ export default function MyInterviewsPage() {
             sessionsCount: row.applications.interview_sessions_count || 0,
             matchScore: row.applications.match_score,
             storiesCoached: storyCountByJobCard[row.job_card_id] || 0,
-            totalStoryItems: totalItems
+            totalStoryItems: totalItems,
+            coachingStatus: row.coaching_status,
+            currentStep: row.current_step
           };
         });
 
@@ -1112,6 +1116,25 @@ const STEP_ANCHORS = {
   feedback: 'feedback',
 };
 
+// The detail page names its steps differently from the card's dropdown keys,
+// so current_step is translated on the way in rather than renaming either side.
+const STEP_FROM_DETAIL = {
+  analyze: 'analysis',
+  coach: 'coaching',
+  research: 'research',
+  prepare: 'prepare',
+  practice: 'practice',
+};
+
+const STEP_DISPLAY_NAMES = {
+  analysis: 'Analysis',
+  coaching: 'Coaching',
+  research: 'Research',
+  prepare: 'Prepare',
+  practice: 'Practice',
+  feedback: 'Feedback',
+};
+
 function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const router = useRouter();
   const [navigatingTo, setNavigatingTo] = useState(null);
@@ -1126,25 +1149,32 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   // No research completion detection yet — always false until it's wired up.
   const hasResearch = card.hasResearch || false;
   const hasFeedback = card.hasFeedback || false;
+  const coachingDone = card.coachingStatus === 'completed' || card.coachingStatus === 'skipped';
 
   const interviewIsUpcoming = card.interviewDate && new Date(card.interviewDate).getTime() > Date.now();
   const interviewIsPast = card.interviewDate && new Date(card.interviewDate).getTime() < Date.now();
 
-  // Recommended next step. Power Analysis is never primary — it already exists
-  // if this card is here.
-  let primaryStep;
-  if (!hasCoached) primaryStep = 'coaching';
-  else if (!hasResearch) primaryStep = 'research';
-  else if (!hasPracticed) primaryStep = 'practice';
-  else if (FEEDBACK_STEP_BUILT && !hasFeedback) primaryStep = 'feedback';
-  else primaryStep = 'practice';
+  // Where they actually are beats anything we could infer, so a saved step is
+  // taken at face value. The inference below only runs for cards last touched
+  // before the detail page started recording it.
+  const savedStep = STEP_FROM_DETAIL[card.currentStep];
 
-  const primaryLabel = {
-    coaching: 'Coaching',
-    research: 'Research',
-    practice: 'Practice',
-    feedback: 'Feedback',
-  }[primaryStep];
+  let primaryStep;
+  if (savedStep) {
+    primaryStep = savedStep;
+  } else if (!coachingDone) {
+    primaryStep = 'coaching';
+  } else if (!hasResearch) {
+    primaryStep = 'research';
+  } else if (!hasPracticed) {
+    primaryStep = 'practice';
+  } else if (FEEDBACK_STEP_BUILT && !hasFeedback) {
+    primaryStep = 'feedback';
+  } else {
+    primaryStep = 'practice';
+  }
+
+  const primaryLabel = `Go to ${STEP_DISPLAY_NAMES[primaryStep] || 'Analysis'}`;
 
   // Everything except the primary, with completion indicators. Feedback only
   // shows once there's a practice session to give feedback on.

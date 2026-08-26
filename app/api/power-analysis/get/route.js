@@ -124,6 +124,10 @@ export async function GET(request) {
         refresh_count: powerAnalysis.refresh_count ?? 0,
         last_refreshed_at: powerAnalysis.last_refreshed_at,
         status: powerAnalysis.status,
+        // Where the candidate is in the flow, and whether they finished or
+        // skipped coaching. The hub reads the same two columns.
+        coaching_status: powerAnalysis.coaching_status,
+        current_step: powerAnalysis.current_step,
         isStale
       } : null
     });
