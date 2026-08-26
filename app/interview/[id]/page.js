@@ -1419,6 +1419,19 @@ function DotList({ items, color }) {
   );
 }
 
+// Card-wrapped empty state. The hub versions sit inside an existing white card
+// and need no wrapper; this one stands on the research step's grey backdrop, so
+// it brings its own.
+function ResearchEmptyState({ emoji, heading, children }) {
+  return (
+    <div className="bg-white shadow-sm rounded-lg p-8 text-center">
+      <div className="text-3xl mb-2">{emoji}</div>
+      <p className="text-base font-semibold text-gray-900 mb-1">{heading}</p>
+      <p className="text-sm md:text-xs text-gray-500">{children}</p>
+    </div>
+  );
+}
+
 // `bullets` splits a comma-joined value ("~232 employees, Chicago IL") into
 // separate points. Only safe for values that are lists; prose with commas in it
 // must stay a single paragraph.
@@ -1532,18 +1545,18 @@ function ResearchStepContent({ jobCard }) {
       )}
 
       {!researchLoading && isRecruiter && (
-        <p className="text-sm md:text-xs text-gray-500 leading-snug">
+        <ResearchEmptyState emoji="🏢" heading="Recruiting firm detected">
           {jobCard?.company || 'This company'} appears to be a recruiting firm hiring on behalf
-          of an undisclosed client. We don&apos;t have company details to share, but your Power
-          Analysis and coaching are based on the job description, so you&apos;re still well prepared.
-        </p>
+          of an undisclosed client. Your Power Analysis and coaching are based on the job
+          description, so you&apos;re still well prepared.
+        </ResearchEmptyState>
       )}
 
       {!researchLoading && !isRecruiter && researchNotFound && (
-        <p className="text-sm md:text-xs text-gray-500 leading-snug">
+        <ResearchEmptyState emoji="🔍" heading="No public information found">
           We couldn&apos;t find reliable public information about{' '}
           {jobCard?.company || 'this company'}. You can still practice without it.
-        </p>
+        </ResearchEmptyState>
       )}
 
       {!researchLoading && researchError && (
