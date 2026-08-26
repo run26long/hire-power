@@ -28,33 +28,3 @@ footer {
   }
 }
 
-/* Printing the interview kit. visibility rather than display, so the print
-   block's own ancestors can stay hidden while it shows through them: display
-   none on a parent would take the child with it. */
-@media print {
-  /* The app shell is a fixed 100vh flexbox with overflow hidden on the column
-     wrappers. Left alone it clips the kit at one page, so a long job
-     description would simply stop. */
-  html,
-  body {
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  #interview-kit-print,
-  #interview-kit-print * {
-    visibility: visible;
-  }
-
-  /* static, not absolute: the kit has to flow across page breaks, and an
-     absolutely positioned block prints only its first page. */
-  #interview-kit-print {
-    position: static;
-    width: 100%;
-    padding: 0;
-  }
-}

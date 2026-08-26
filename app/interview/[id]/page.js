@@ -1841,88 +1841,6 @@ function KitCheckbox({ checked, onChange, label, labelClass }) {
   );
 }
 
-// ============================================================================
-// PRINTABLE KIT
-// Sits in the DOM at all times, hidden on screen. The @media print block in
-// globals.css flips this visible and everything else invisible, so it carries
-// its own print-sized styling rather than app chrome.
-// ============================================================================
-
-function PrintSection({ title, children }) {
-  return (
-    <section style={{ marginBottom: '24px' }}>
-      <h2 style={{ fontSize: '14pt', fontWeight: 700, marginBottom: '8px' }}>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function PrintableKit({ selected, jobCard, candidateName, questions, coachedStories, highlights }) {
-  const heading = [jobCard?.title, jobCard?.company].filter(Boolean).join(' — ');
-
-  return (
-    <div id="interview-kit-print" className="hidden print:block" style={{ color: '#000', padding: '24px' }}>
-      <h1 style={{ fontSize: '18pt', fontWeight: 700, marginBottom: '2px' }}>Interview Kit</h1>
-      <p style={{ fontSize: '11pt', marginBottom: '20px' }}>{heading}</p>
-
-      {selected.resume && (
-        <PrintSection title="Resume">
-          {candidateName && <p style={{ fontSize: '11pt' }}>{candidateName}</p>}
-          {jobCard?.title && <p style={{ fontSize: '11pt' }}>{jobCard.title}</p>}
-          {/* The resume is a rendered PDF that lives in Resume Coach. Nothing
-              here can reproduce it, so the kit points at it instead. */}
-          <p style={{ fontSize: '11pt', fontStyle: 'italic' }}>
-            See your full resume in Resume Coach.
-          </p>
-        </PrintSection>
-      )}
-
-      {selected.jobDescription && jobCard?.description && (
-        <PrintSection title={`Job Description — ${heading}`}>
-          <p style={{ fontSize: '10pt', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-            {jobCard.description}
-          </p>
-        </PrintSection>
-      )}
-
-      {selected.questions && questions.length > 0 && (
-        <PrintSection title="Questions For Your Interviewer">
-          {questions.map((q, i) => (
-            <div key={q.id || i} style={{ marginBottom: '10px' }}>
-              <p style={{ fontSize: '11pt', fontWeight: 600 }}>{q.tailored_text}</p>
-              {q.rationale && <p style={{ fontSize: '10pt', fontStyle: 'italic' }}>{q.rationale}</p>}
-            </div>
-          ))}
-        </PrintSection>
-      )}
-
-      {selected.stories && coachedStories.length > 0 && (
-        <PrintSection title="Your STAR Stories">
-          {coachedStories.map(story => (
-            <div key={story.id} style={{ marginBottom: '12px' }}>
-              <p style={{ fontSize: '11pt', fontWeight: 600 }}>{storyTitle(story)}</p>
-              {story.itemSkill && <p style={{ fontSize: '10pt' }}>{story.itemSkill}</p>}
-              {story.polishedStory && (
-                <p style={{ fontSize: '10pt', lineHeight: 1.5 }}>{story.polishedStory}</p>
-              )}
-            </div>
-          ))}
-        </PrintSection>
-      )}
-
-      {selected.highlights && highlights.length > 0 && (
-        <PrintSection title="Company Highlights">
-          <ul style={{ fontSize: '10pt', paddingLeft: '18px', listStyleType: 'disc' }}>
-            {highlights.map((item, i) => (
-              <li key={i} style={{ marginBottom: '4px' }}>{item}</li>
-            ))}
-          </ul>
-        </PrintSection>
-      )}
-    </div>
-  );
-}
-
 function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }) {
   const supabase = createClient();
   const { research, researchSettled } = useCompanyResearch(jobCard);
@@ -1930,6 +1848,8 @@ function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsError, setQuestionsError] = useState(null);
   const [selected, setSelected] = useState({});
+  const [buildingPdf, setBuildingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -2001,6 +1921,50 @@ function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }
 
   const toggleItem = (key) => {
     setSelected(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // @react-pdf/renderer and the template are imported on click, not at module
+  // load: the renderer is well over a megabyte and nobody who never prints
+  // should pay for it in the page bundle.
+  const downloadKit = async () => {
+    setBuildingPdf(true);
+    try {
+      const [{ pdf }, { default: InterviewKitPDF }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('../../templates/pdf/InterviewKitPDF')
+      ]);
+
+      const blob = await pdf(
+        <InterviewKitPDF
+          selected={selected}
+          jobCard={jobCard}
+          candidateName={candidateName}
+          storyTitleFor={storyTitle}
+          coachedStories={coachedStories}
+          highlights={highlights}
+          questions={questions}
+          generatedOn={new Date().toLocaleDateString(undefined, {
+            month: 'long', day: 'numeric', year: 'numeric'
+          })}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Interview Kit - ${jobCard?.title || 'Role'} at ${jobCard?.company || 'Company'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // Revoking immediately can cancel the download in Safari, so give the
+      // click a beat to start.
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (err) {
+      console.error('Interview kit PDF failed:', err);
+      setPdfError("Couldn't build your interview kit PDF. Please try again.");
+    } finally {
+      setBuildingPdf(false);
+    }
   };
 
   // No padding of its own — the left column already pads and gaps its children.
@@ -2083,26 +2047,25 @@ function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }
               when the checkboxes wrap. */}
           <button
             type="button"
-            onClick={() => window.print()}
-            disabled={checkedCount === 0}
-            className={`ml-auto text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold ${
-              checkedCount === 0 ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
+            onClick={downloadKit}
+            disabled={checkedCount === 0 || buildingPdf}
+            className={`ml-auto text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold flex items-center gap-2 ${
+              checkedCount === 0 || buildingPdf ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
             }`}
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
-            Print
+            {buildingPdf && (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
+            )}
+            {buildingPdf ? 'Building...' : 'Print'}
           </button>
         </div>
+
+        {pdfError && (
+          <p className="text-sm md:text-xs text-gray-600 mt-2">{pdfError}</p>
+        )}
       </div>
 
-      <PrintableKit
-        selected={selected}
-        jobCard={jobCard}
-        candidateName={candidateName}
-        questions={questions}
-        coachedStories={coachedStories}
-        highlights={highlights}
-      />
     </div>
   );
 }
