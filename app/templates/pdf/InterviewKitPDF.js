@@ -43,6 +43,13 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     marginBottom: 2,
   },
+  // Same line style as the subtitle, in the body colour: the candidate's own
+  // name should read a step stronger than the role it sits above.
+  candidateName: {
+    fontSize: 11,
+    color: '#1a1a1a',
+    marginBottom: 2,
+  },
   subtitle: {
     fontSize: 11,
     color: '#444',
@@ -155,6 +162,7 @@ function Bullet({ children }) {
 export default function InterviewKitPDF({
   selected = {},
   jobCard,
+  candidateName,
   storyTitleFor,
   coachedStories = [],
   highlights = [],
@@ -168,6 +176,7 @@ export default function InterviewKitPDF({
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.wordmark}>Hire Power</Text>
         <Text style={styles.title}>Interview Kit</Text>
+        {candidateName ? <Text style={styles.candidateName}>{candidateName}</Text> : null}
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         {generatedOn ? <Text style={styles.date}>Prepared {generatedOn}</Text> : null}
 

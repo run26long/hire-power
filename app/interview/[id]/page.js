@@ -792,6 +792,7 @@ export default function InterviewDetailPage() {
                 <PrepareStepContent
                   jobCard={jobCard}
                   powerAnalysisId={powerAnalysis?.id}
+                  candidateName={userProfile?.display_name}
                   stories={stories}
                 />
               )}
@@ -1839,7 +1840,7 @@ function KitCheckbox({ checked, onChange, label, labelClass }) {
   );
 }
 
-function PrepareStepContent({ jobCard, powerAnalysisId, stories }) {
+function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }) {
   const supabase = createClient();
   const { research, researchSettled } = useCompanyResearch(jobCard);
   const [questions, setQuestions] = useState([]);
@@ -1936,6 +1937,7 @@ function PrepareStepContent({ jobCard, powerAnalysisId, stories }) {
         <InterviewKitPDF
           selected={selected}
           jobCard={jobCard}
+          candidateName={candidateName}
           storyTitleFor={storyTitle}
           coachedStories={coachedStories}
           highlights={highlights}
