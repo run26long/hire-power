@@ -1093,11 +1093,24 @@ export default function MyInterviewsPage() {
 
 // ============================================================================
 // Practice Card Component
-// Three always-visible step buttons, status pills below. The recommended next
-// step is styled as primary; the user can jump to any step at any time.
+// One primary button for the recommended next step, plus an "Other Steps"
+// dropdown for jumping anywhere else in the flow.
 // ============================================================================
 // `compact` tightens the row so the card fits the narrower max-w-lg modal.
 // The hub renders without it and is unaffected.
+
+// Feedback isn't built yet. Flip this on once the step exists so it can become
+// the recommended next step after practice.
+const FEEDBACK_STEP_BUILT = false;
+
+const STEP_ANCHORS = {
+  analysis: 'power-analysis',
+  coaching: 'coaching',
+  research: 'research',
+  practice: 'practice',
+  feedback: 'feedback',
+};
+
 function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const router = useRouter();
   const [navigatingTo, setNavigatingTo] = useState(null);
@@ -1108,19 +1121,38 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const hasCoached = storiesCoached > 0;
   const allCoached = totalStoryItems > 0 && storiesCoached === totalStoryItems;
   const hasPracticed = (card.sessionsCount || 0) > 0;
+  // No research completion detection yet — always false until it's wired up.
+  const hasResearch = card.hasResearch || false;
+  const hasFeedback = card.hasFeedback || false;
 
   const interviewIsUpcoming = card.interviewDate && new Date(card.interviewDate).getTime() > Date.now();
   const interviewIsPast = card.interviewDate && new Date(card.interviewDate).getTime() < Date.now();
 
   // Recommended next step. Power Analysis is never primary — it already exists
   // if this card is here.
-  const primaryStep = allCoached ? 'practice' : 'coaching';
+  let primaryStep;
+  if (!allCoached) primaryStep = 'coaching';
+  else if (!hasResearch) primaryStep = 'research';
+  else if (!hasPracticed) primaryStep = 'practice';
+  else if (FEEDBACK_STEP_BUILT && !hasFeedback) primaryStep = 'feedback';
+  else primaryStep = 'practice';
 
-  const stepButtons = [
-    { key: 'analysis', label: '✓ Analysis', anchor: 'power-analysis' },
-    { key: 'coaching', label: hasCoached ? `✓ Coached ${storiesCoached}` : '○ Coaching', anchor: 'coaching' },
-    { key: 'practice', label: hasPracticed ? '✓ Practice' : '○ Practice', anchor: 'practice' },
-  ];
+  const primaryLabel = {
+    coaching: 'Coaching',
+    research: 'Research',
+    practice: 'Practice',
+    feedback: 'Feedback',
+  }[primaryStep];
+
+  // Everything except the primary, with completion indicators. Feedback only
+  // shows once there's a practice session to give feedback on.
+  const otherSteps = [
+    { key: 'analysis', label: '✓ Analysis' },
+    { key: 'coaching', label: hasCoached ? `✓ Coaching (${storiesCoached})` : '○ Coaching' },
+    { key: 'research', label: hasResearch ? '✓ Research' : '○ Research' },
+    { key: 'practice', label: hasPracticed ? '✓ Practice' : '○ Practice' },
+    ...(hasPracticed ? [{ key: 'feedback', label: hasFeedback ? '✓ Feedback' : '○ Feedback' }] : []),
+  ].filter(step => step.key !== primaryStep);
 
   const goToDetail = (e, anchor) => {
     if (e) e.stopPropagation();
@@ -1174,32 +1206,49 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
           </div>
         )}
 
-        {/* Step buttons. min-w-0 lets flex-1 actually shrink them — without it
-            the nowrap labels set a min-content floor and the row overflows. */}
-        <div className={`flex-1 min-w-0 flex items-center ${compact ? 'gap-1' : 'gap-2'}`}>
-          {stepButtons.map(({ key, label, anchor }) => {
-            const isPrimary = key === primaryStep;
-            return (
-              <button
-                key={key}
-                onClick={(e) => { setNavigatingTo(key); goToDetail(e, anchor); }}
-                disabled={!!navigatingTo}
-                className={`flex-1 min-w-0 rounded-md py-1.5 font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50 ${
-                  compact ? 'px-2 text-xs md:text-[11px]' : 'px-3 text-sm md:text-xs'
-                } ${
-                  isPrimary
-                    ? 'text-white transition-opacity hover:opacity-90'
-                    : 'bg-white border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors'
-                }`}
-                style={isPrimary ? { background: 'linear-gradient(to right, #667eea, #764ba2)' } : undefined}
-              >
-                {navigatingTo === key && (
-                  <div className={`h-3.5 w-3.5 animate-spin rounded-full border-2 border-r-transparent ${isPrimary ? 'border-white' : 'border-purple-600'}`}></div>
-                )}
-                <span className={compact ? 'truncate' : undefined}>{label}</span>
-              </button>
-            );
-          })}
+        {/* Label + primary step + jump menu, one row. ml-auto floats the group
+            right, up against the delete button; title and score stay left. */}
+        <div className={`ml-auto min-w-0 flex items-center ${compact ? 'gap-1.5' : 'gap-2'}`}>
+          <span className={`flex-shrink-0 self-center flex flex-col items-center justify-center text-center text-gray-400 uppercase tracking-wide leading-tight ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
+            <span>Current</span>
+            <span>Step</span>
+          </span>
+
+          <button
+            onClick={(e) => { setNavigatingTo(primaryStep); goToDetail(e, STEP_ANCHORS[primaryStep]); }}
+            disabled={!!navigatingTo}
+            className={`flex-shrink-0 rounded-md py-1.5 font-semibold text-white whitespace-nowrap flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 ${
+              compact ? 'px-4 text-xs md:text-[11px]' : 'px-6 text-sm md:text-xs'
+            }`}
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+          >
+            {navigatingTo === primaryStep && (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-r-transparent border-white"></div>
+            )}
+            <span>{primaryLabel}</span>
+          </button>
+
+          {/* Value stays '' so the disabled placeholder keeps showing as the
+              label — this is a jump menu, not a stored selection. */}
+          <select
+            value=""
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const key = e.target.value;
+              if (!key) return;
+              setNavigatingTo(key);
+              goToDetail(e, STEP_ANCHORS[key]);
+            }}
+            disabled={!!navigatingTo}
+            className={`flex-shrink-0 border border-gray-300 bg-white rounded-md py-1.5 text-gray-600 cursor-pointer hover:bg-gray-100 focus:outline-none disabled:opacity-50 ${
+              compact ? 'w-[110px] px-1.5 text-xs md:text-[11px]' : 'w-[130px] px-2 text-sm md:text-xs'
+            }`}
+          >
+            <option value="" disabled>Other Steps</option>
+            {otherSteps.map(({ key, label }) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Delete */}
