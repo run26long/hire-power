@@ -476,6 +476,7 @@ export default function MyInterviewsPage() {
           power_gaps,
           coaching_status,
           current_step,
+          highest_step_reached,
           applications:job_card_id (
             id,
             title,
@@ -523,7 +524,8 @@ export default function MyInterviewsPage() {
             storiesCoached: storyCountByJobCard[row.job_card_id] || 0,
             totalStoryItems: totalItems,
             coachingStatus: row.coaching_status,
-            currentStep: row.current_step
+            currentStep: row.current_step,
+            highestStepReached: row.highest_step_reached
           };
         });
 
@@ -1126,6 +1128,17 @@ const STEP_FROM_DETAIL = {
   practice: 'practice',
 };
 
+// The detail page's order, and the dropdown key each position maps to. Used to
+// decide how far down the flow a card has been.
+const DETAIL_STEP_ORDER = ['analyze', 'coach', 'research', 'prepare', 'practice'];
+const STEP_TO_DETAIL = {
+  analysis: 'analyze',
+  coaching: 'coach',
+  research: 'research',
+  prepare: 'prepare',
+  practice: 'practice',
+};
+
 const STEP_DISPLAY_NAMES = {
   analysis: 'Analysis',
   coaching: 'Coaching',
@@ -1176,8 +1189,11 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
 
   const primaryLabel = `Go to ${STEP_DISPLAY_NAMES[primaryStep] || 'Analysis'}`;
 
-  // Everything except the primary, with completion indicators. Feedback only
-  // shows once there's a practice session to give feedback on.
+  // The dropdown is for going back, not skipping ahead, so it stops at the
+  // furthest step they've actually reached. A null mark means they've never
+  // navigated, which leaves Analysis on its own.
+  const reachedIndex = DETAIL_STEP_ORDER.indexOf(card.highestStepReached || 'analyze');
+
   const otherSteps = [
     { key: 'analysis', label: '✓ Analysis' },
     { key: 'coaching', label: hasCoached ? `✓ Coaching (${storiesCoached})` : '○ Coaching' },
@@ -1187,7 +1203,13 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
     { key: 'prepare', label: '○ Prepare' },
     { key: 'practice', label: hasPracticed ? '✓ Practice' : '○ Practice' },
     ...(hasPracticed ? [{ key: 'feedback', label: hasFeedback ? '✓ Feedback' : '○ Feedback' }] : []),
-  ].filter(step => step.key !== primaryStep);
+  ]
+    .filter(step => {
+      const index = DETAIL_STEP_ORDER.indexOf(STEP_TO_DETAIL[step.key]);
+      // Feedback isn't in the flow yet, so it has no position to compare.
+      return index !== -1 && index <= reachedIndex;
+    })
+    .filter(step => step.key !== primaryStep);
 
   const goToDetail = (e, anchor) => {
     if (e) e.stopPropagation();
@@ -1264,7 +1286,9 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
           </button>
 
           {/* Value stays '' so the disabled placeholder keeps showing as the
-              label — this is a jump menu, not a stored selection. */}
+              label — this is a jump menu, not a stored selection. Hidden when
+              there's nowhere to jump, rather than offering an empty menu. */}
+          {otherSteps.length > 0 && (
           <select
             value=""
             onClick={(e) => e.stopPropagation()}
@@ -1284,6 +1308,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
+          )}
         </div>
 
         {/* Delete */}

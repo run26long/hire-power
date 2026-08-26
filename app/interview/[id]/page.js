@@ -505,28 +505,34 @@ export default function InterviewDetailPage() {
 
   const handleStartBatch = () => {
     if (!powerAnalysis) return;
+
+    // Nothing ticked reads as "just coach my stories", so the whole uncoached
+    // set is queued rather than the click doing nothing. Ticking items is a way
+    // to narrow the run, not a precondition for starting one.
+    const nothingChecked = !Object.values(batchChecks).some(Boolean);
+    const wanted = (key) => nothingChecked || !!batchChecks[key];
+
     const queue = [];
 
     powerAnalysis.core_power.forEach((item, i) => {
-      const key = `core_power:${i}`;
-      if (batchChecks[key] && !isItemCoached('core_power', i)) {
+      if (wanted(`core_power:${i}`) && !isItemCoached('core_power', i)) {
         queue.push({ itemType: 'core_power', itemIndex: i, itemSkill: item.skill });
       }
     });
     powerAnalysis.hidden_power.forEach((item, i) => {
-      const key = `hidden_power:${i}`;
-      if (batchChecks[key] && !isItemCoached('hidden_power', i)) {
+      if (wanted(`hidden_power:${i}`) && !isItemCoached('hidden_power', i)) {
         queue.push({ itemType: 'hidden_power', itemIndex: i, itemSkill: item.skill });
       }
     });
     powerAnalysis.power_gaps.forEach((item, i) => {
-      const key = `power_gap:${i}`;
-      if (batchChecks[key] && !isItemCoached('power_gap', i)) {
+      if (wanted(`power_gap:${i}`) && !isItemCoached('power_gap', i)) {
         queue.push({ itemType: 'power_gap', itemIndex: i, itemSkill: item.gap });
       }
     });
 
+    // Only reachable when every item already has a story.
     if (queue.length === 0) {
+      setSuccessToast('Every item already has a coached story.');
       return;
     }
 
@@ -998,8 +1004,6 @@ export default function InterviewDetailPage() {
 
               {currentStep === 'coach' && !activeStory && !coachStarting && hasPA && (
                 <CoachIdlePanel
-                  batchChecks={batchChecks}
-                  coachStarting={coachStarting}
                   storiesCoached={stories.filter(s => s.coachingComplete).length}
                   onStart={handleStartBatch}
                   onGoToResearch={goToResearchFromCoach}
@@ -1329,8 +1333,7 @@ function AnalyzeStepContent({ onGoToCoach, stepHeader }) {
 // BATCH CHECKLIST
 // ============================================================================
 
-function CoachIdlePanel({ batchChecks, coachStarting, storiesCoached, onStart, onGoToResearch, onBack }) {
-  const selectedCount = Object.values(batchChecks).filter(Boolean).length;
+function CoachIdlePanel({ storiesCoached, onStart, onGoToResearch, onBack }) {
   const hasCoachedStories = storiesCoached > 0;
 
   return (
@@ -1372,7 +1375,6 @@ function CoachIdlePanel({ batchChecks, coachStarting, storiesCoached, onStart, o
         <div className="flex gap-2 justify-center">
           <button
             onClick={onStart}
-            disabled={selectedCount === 0 || coachStarting}
             className={hasCoachedStories ? STEP_SECONDARY_CLASS : STEP_PRIMARY_CLASS}
             style={hasCoachedStories ? undefined : STEP_PRIMARY_STYLE}
           >

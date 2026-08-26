@@ -197,29 +197,11 @@ async function logApiCall({ userId, sessionId, usage }) {
   }
 }
 
-// ============================================================================
-// TEMPORARY — DIAGNOSTIC RESPONSE BODIES
-// Every 500 below carries the real failure in a `debug` field so it can be read
-// from the browser network tab while the server logs are unreadable. Remove
-// this and restore the plain { error } bodies once the bug is found: it leaks
-// database internals to the client, which is exactly what apiError exists to
-// prevent.
-// ============================================================================
-
+// The one message the client ever sees. Details stay in the server logs.
 const FAILED = "Couldn't load your interviewer questions right now.";
 
-function debugDetail(err) {
-  if (!err) return 'no error object';
-  if (typeof err === 'string') return err;
-  if (err instanceof Error) return err.message;
-  // Supabase errors are plain objects — stringify keeps code, details and hint,
-  // which are the fields that actually identify the failure.
-  const asJson = JSON.stringify(err);
-  return asJson && asJson !== '{}' ? asJson : String(err);
-}
-
-function failure(err) {
-  return Response.json({ error: FAILED, debug: debugDetail(err) }, { status: 500 });
+function failure() {
+  return Response.json({ error: FAILED }, { status: 500 });
 }
 
 // ============================================================================
@@ -294,7 +276,7 @@ export async function POST(request) {
 
     if (existingError) {
       console.error('Interviewer questions lookup error:', existingError);
-      return failure(existingError);
+      return failure();
     }
 
     if (existing?.length) {
@@ -310,12 +292,12 @@ export async function POST(request) {
 
     if (bankError) {
       console.error('Interviewer questions bank error:', bankError);
-      return failure(bankError);
+      return failure();
     }
 
     if (!bank?.length) {
       console.error('Interviewer questions bank is empty');
-      return failure('bank query succeeded but returned 0 rows (RLS policy or empty table)');
+      return failure();
     }
 
     // ---- SELECT ----
@@ -329,7 +311,7 @@ export async function POST(request) {
 
     if (!questions.length) {
       console.error('Interviewer questions: model returned no usable questions for', companyName);
-      return failure('model returned 0 usable questions');
+      return failure();
     }
 
     // original_text is NOT NULL, so it needs a value even when the model gave
@@ -360,7 +342,7 @@ export async function POST(request) {
 
     if (insertError) {
       console.error('Interviewer questions insert error:', insertError);
-      return failure(insertError);
+      return failure();
     }
 
     await logApiCall({ userId, sessionId: powerAnalysisId, usage });
@@ -368,9 +350,6 @@ export async function POST(request) {
     return Response.json({ questions: saved, cached: false });
 
   } catch (error) {
-    // Bypasses apiError while the diagnostic is in place — apiError deliberately
-    // won't put error.message in the body, which is the thing we need to see.
-    console.error('Interviewer questions unhandled error:', error);
-    return failure(error);
+    return apiError(error, FAILED);
   }
 }
