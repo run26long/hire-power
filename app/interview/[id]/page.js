@@ -170,7 +170,7 @@ export default function InterviewDetailPage() {
       // Restore saved position. Runs before setLoading(false) so the persist
       // effects don't fire with defaults and clobber what was saved.
       const savedStep = data.jobCard?.interview_step;
-      if (savedStep === 'analyze' || savedStep === 'coach' || savedStep === 'research' || savedStep === 'practice') {
+      if (savedStep === 'analyze' || savedStep === 'coach' || savedStep === 'research' || savedStep === 'prepare' || savedStep === 'practice') {
         setCurrentStep(savedStep);
       }
 
@@ -652,6 +652,12 @@ export default function InterviewDetailPage() {
   const countdown = formatCountdown(nextInterviewDate);
   const interviewDateIsPast = nextInterviewDate && new Date(nextInterviewDate).getTime() < now;
 
+  // Analyze, coach, research and prepare share one chrome: title and step
+  // counter only, content flush to the breadcrumb, no white card wrapping the
+  // working surface. Practice keeps the full header card, since it's the step
+  // where the interview date and coaching progress still drive the decision.
+  const flatStep = currentStep !== 'practice';
+
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
@@ -691,13 +697,18 @@ export default function InterviewDetailPage() {
 
           {/* LEFT COLUMN — Power Analysis */}
           <div className={`flex flex-col overflow-hidden min-h-0 md:flex-[3] ${mobilePanel === 'analysis' ? 'flex' : 'hidden'} md:flex`}>
-            {/* On the research step this drops its own white-card treatment.
-                The research cards are the cards, and white-on-white would hide
-                the shadow that separates them. */}
-            <div className={`md:m-6 flex flex-col gap-4 overflow-y-auto bg-gray-100 ${
-              currentStep === 'research'
-                ? 'px-4 pb-4 md:px-6 md:pb-6 md:bg-gray-50'
-                : 'p-4 md:p-6 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200'
+            {/* The flat steps drop this wrapper's own white-card treatment.
+                Their buckets and cards are the cards, and white-on-white would
+                hide the shadow that separates them.
+
+                They also drop the horizontal margin and rely on px-6 alone, so
+                headings and cards line up with the breadcrumb above (max-w-7xl
+                px-6). Margin plus padding would inset them a second 24px and
+                narrow the column for no reason. */}
+            <div className={`flex flex-col overflow-y-auto bg-gray-100 ${
+              flatStep
+                ? 'gap-3 md:my-6 px-4 pb-4 md:px-6 md:pb-6 md:bg-gray-50'
+                : 'gap-4 md:m-6 p-4 md:p-6 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200'
             }`}>
 
               {/* INTERVIEW HEADER STRIP — title + instructions + date + coaching progress */}
@@ -709,7 +720,7 @@ export default function InterviewDetailPage() {
                   countdown={countdown}
                   interviewDateIsPast={interviewDateIsPast}
                   currentStep={currentStep}
-                  titleOnly={currentStep === 'research'}
+                  titleOnly={flatStep}
                   company={jobCard.company}
                 />
               )}
@@ -774,15 +785,24 @@ export default function InterviewDetailPage() {
               {/* RESEARCH — takes over the working surface on its own step.
                   The buckets are Power Analysis material and have nothing to do
                   with company research, so they step aside rather than stack. */}
-              {currentStep === 'research' && (
-                <ResearchStepContent jobCard={jobCard} powerAnalysisId={powerAnalysis?.id} />
+              {currentStep === 'research' && <ResearchStepContent jobCard={jobCard} />}
+
+              {/* PREPARE — like research, takes over the working surface. */}
+              {currentStep === 'prepare' && (
+                <PrepareStepContent
+                  jobCard={jobCard}
+                  powerAnalysisId={powerAnalysis?.id}
+                  candidateName={userProfile?.display_name}
+                  stories={stories}
+                />
               )}
 
               {/* BUCKETS */}
-              {hasPA && currentStep !== 'research' && (() => {
+              {hasPA && currentStep !== 'research' && currentStep !== 'prepare' && (() => {
                 // 'practice' falls through to 'normal' — the buckets stay
                 // browsable there, they just aren't driving the step. 'research'
-                // never reaches this, since it renders instead of the buckets.
+                // and 'prepare' never reach this, since they render instead of
+                // the buckets.
                 const leftColMode = currentStep === 'analyze' ? 'readonly'
                   : (currentStep === 'coach' && !activeStory) ? 'coach'
                   : 'normal';
@@ -855,7 +875,7 @@ export default function InterviewDetailPage() {
               <div className="relative">
                 <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
                   <div className="h-full transition-all duration-300" style={{
-                    width: `${(((analyzeComplete ? 1 : 0) + (coachComplete ? 1 : 0)) / 3) * 100}%`,
+                    width: `${(((analyzeComplete ? 1 : 0) + (coachComplete ? 1 : 0)) / 4) * 100}%`,
                     background: 'linear-gradient(to right, #667eea, #764ba2)'
                   }}></div>
                 </div>
@@ -864,9 +884,10 @@ export default function InterviewDetailPage() {
                     { label: 'Analyze', key: 'analyze' },
                     { label: 'Coach', key: 'coach' },
                     { label: 'Research', key: 'research' },
+                    { label: 'Prepare', key: 'prepare' },
                     { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
-                    const completeByKey = { analyze: analyzeComplete, coach: coachComplete, research: false, practice: false };
+                    const completeByKey = { analyze: analyzeComplete, coach: coachComplete, research: false, prepare: false, practice: false };
                     const complete = completeByKey[key];
                     const current = key === currentStep;
                     return (
@@ -941,8 +962,15 @@ export default function InterviewDetailPage() {
 
               {currentStep === 'research' && (
                 <ResearchIdlePanel
-                  onGoToPractice={() => setCurrentStep('practice')}
+                  onGoToPrepare={() => setCurrentStep('prepare')}
                   onGoToCoach={() => setCurrentStep('coach')}
+                />
+              )}
+
+              {currentStep === 'prepare' && (
+                <PrepareIdlePanel
+                  onGoToPractice={() => setCurrentStep('practice')}
+                  onGoToResearch={() => setCurrentStep('research')}
                 />
               )}
 
@@ -1465,111 +1493,14 @@ const DIFFICULTY_STYLES = {
 };
 
 // ============================================================================
-// INTERVIEWER QUESTIONS
-// Chosen once per Power Analysis and stored, so these are the candidate's
-// questions for this interview rather than a fresh set on every visit. The
-// route does that caching; this just asks for them.
-//
-// Runs whether or not research came back. A company we know nothing about is
-// exactly when a candidate needs good questions to ask, and the route treats a
-// null brief as a supported input.
+// COMPANY RESEARCH HOOK
+// The research step and the prepare step both need the brief, and the research
+// step unmounts on the way to prepare, taking its state with it. Rather than
+// lift the state to the page, both call this: the route serves the second call
+// from its cache, so there is no second search and no second bill.
 // ============================================================================
 
-function InterviewerQuestions({ powerAnalysisId, jobCard, research, ready }) {
-  const supabase = createClient();
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadQuestions() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('No session');
-
-        const res = await fetch('/api/interview/interviewer-questions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            powerAnalysisId,
-            jobCardId: jobCard.id,
-            companyName: jobCard.company,
-            jobTitle: jobCard.title,
-            jobDescription: jobCard.description,
-            companyResearch: research || null
-          })
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Questions failed');
-        if (cancelled) return;
-        setQuestions(Array.isArray(data.questions) ? data.questions : []);
-      } catch (err) {
-        console.error('Interviewer questions load failed:', err);
-        if (!cancelled) {
-          setError("Couldn't load your interviewer questions right now.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    // `ready` gates on the research fetch having settled, so the brief can be
-    // passed along in the same request rather than arriving a beat later.
-    if (!ready || !powerAnalysisId || !jobCard?.id) return;
-
-    loadQuestions();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, powerAnalysisId, jobCard?.id]);
-
-  if (!ready) return null;
-
-  return (
-    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-      <CardHeading color={HEADING_DARK}>💡 Questions To Ask Your Interviewer</CardHeading>
-
-      {loading && (
-        <div className="flex items-center gap-2 text-sm md:text-xs text-gray-500">
-          <div className="animate-spin h-3.5 w-3.5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-          <span>Picking your questions...</span>
-        </div>
-      )}
-
-      {/* No retry: the questions are a nice-to-have on a step the candidate can
-          finish without them. */}
-      {!loading && error && (
-        <p className="text-sm md:text-xs text-gray-600">{error}</p>
-      )}
-
-      {!loading && !error && questions.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {questions.map((q, i) => (
-            <div key={q.id || i} className="bg-white border border-purple-200 rounded-lg p-3">
-              <p className="text-sm font-semibold text-gray-900 leading-snug">{q.tailored_text}</p>
-              {q.rationale && (
-                <p className="text-xs text-gray-500 italic leading-snug mt-1">{q.rationale}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!loading && !error && questions.length === 0 && (
-        <p className="text-sm md:text-xs text-gray-400">No questions available.</p>
-      )}
-    </div>
-  );
-}
-
-function ResearchStepContent({ jobCard, powerAnalysisId }) {
+function useCompanyResearch(jobCard) {
   const supabase = createClient();
   const [research, setResearch] = useState(null);
   const [researchLoading, setResearchLoading] = useState(false);
@@ -1634,6 +1565,27 @@ function ResearchStepContent({ jobCard, powerAnalysisId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobCard?.id, jobCard?.company, attempt]);
 
+  // Settled means the fetch is done and said something definite, whether that
+  // was a brief, a recruiter, or nothing findable.
+  const researchSettled =
+    !researchLoading && !researchError && (!!research || researchNotFound || isRecruiter);
+
+  return {
+    research,
+    researchLoading,
+    researchError,
+    researchNotFound,
+    isRecruiter,
+    researchSettled,
+    retryResearch: () => setAttempt(a => a + 1)
+  };
+}
+
+function ResearchStepContent({ jobCard }) {
+  const {
+    research, researchLoading, researchError, researchNotFound, isRecruiter, retryResearch
+  } = useCompanyResearch(jobCard);
+
   const culture = research?.culture_signals;
   const style = research?.interview_style;
   const news = Array.isArray(research?.recent_news) ? research.recent_news : [];
@@ -1670,7 +1622,7 @@ function ResearchStepContent({ jobCard, powerAnalysisId }) {
         <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 space-y-2">
           <p className="text-xs text-gray-700 leading-snug">{researchError}</p>
           <button
-            onClick={() => setAttempt(a => a + 1)}
+            onClick={retryResearch}
             className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
           >
             Try Again
@@ -1779,17 +1731,6 @@ function ResearchStepContent({ jobCard, powerAnalysisId }) {
           </ResearchCard>
         </div>
       )}
-
-      {/* ROW 5 — QUESTIONS TO ASK (full width). Tinted callout, same treatment
-          Resume Coach uses for its upgrade panel. Sits outside the grid rather
-          than spanning it, so it still renders on the recruiter and not-found
-          paths where there is no grid. The space-y-3 gap matches the grid's. */}
-      <InterviewerQuestions
-        powerAnalysisId={powerAnalysisId}
-        jobCard={jobCard}
-        research={research}
-        ready={!researchLoading && !researchError && (!!research || researchNotFound || isRecruiter)}
-      />
     </div>
   );
 }
@@ -1800,7 +1741,7 @@ function ResearchStepContent({ jobCard, powerAnalysisId }) {
 // left; this side just moves the user forward.
 // ============================================================================
 
-function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
+function ResearchIdlePanel({ onGoToPrepare, onGoToCoach }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
@@ -1836,6 +1777,364 @@ function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
           </p>
         </div>
         <button
+          onClick={onGoToPrepare}
+          className="block mx-auto mb-1.5 text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+        >
+          Continue to Prepare →
+        </button>
+        <div className="text-center">
+          <button
+            onClick={onGoToCoach}
+            className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
+          >
+            ← Back to Coach
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PREPARE STEP CONTENT
+// The last stop before practice: everything the candidate carries into the
+// room. Kit on top, questions in the middle, a glance-able review underneath.
+// ============================================================================
+
+// Long prose fields are written as paragraphs. The highlights list wants one
+// line each, so take the opening sentence and leave the rest.
+function firstSentence(text) {
+  if (typeof text !== 'string') return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^.*?[.!?](\s|$)/);
+  return (match ? match[0] : trimmed).trim();
+}
+
+// A story has no title of its own, so the opening line of the polished story
+// stands in for one. Falls back through the raw STAR fields, then to the skill.
+function storyTitle(story) {
+  return (
+    firstSentence(story.polishedStory) ||
+    firstSentence(story.starSituation) ||
+    story.itemSkill ||
+    'Untitled story'
+  );
+}
+
+// The kit checklist. Order is the order they print in.
+const KIT_ITEMS = [
+  { key: 'resume', label: 'Resume' },
+  { key: 'jobDescription', label: 'Job Description' },
+  { key: 'questions', label: 'Questions for Interviewer' },
+  { key: 'stories', label: 'STAR Stories' },
+  { key: 'highlights', label: 'Company Highlights' }
+];
+
+function KitCheckbox({ checked, onChange, label, labelClass }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" checked={checked} onChange={onChange} className="accent-purple-600" />
+      <span className={labelClass}>{label}</span>
+    </label>
+  );
+}
+
+// ============================================================================
+// PRINTABLE KIT
+// Sits in the DOM at all times, hidden on screen. The @media print block in
+// globals.css flips this visible and everything else invisible, so it carries
+// its own print-sized styling rather than app chrome.
+// ============================================================================
+
+function PrintSection({ title, children }) {
+  return (
+    <section style={{ marginBottom: '24px' }}>
+      <h2 style={{ fontSize: '14pt', fontWeight: 700, marginBottom: '8px' }}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function PrintableKit({ selected, jobCard, candidateName, questions, coachedStories, highlights }) {
+  const heading = [jobCard?.title, jobCard?.company].filter(Boolean).join(' — ');
+
+  return (
+    <div id="interview-kit-print" className="hidden print:block" style={{ color: '#000', padding: '24px' }}>
+      <h1 style={{ fontSize: '18pt', fontWeight: 700, marginBottom: '2px' }}>Interview Kit</h1>
+      <p style={{ fontSize: '11pt', marginBottom: '20px' }}>{heading}</p>
+
+      {selected.resume && (
+        <PrintSection title="Resume">
+          {candidateName && <p style={{ fontSize: '11pt' }}>{candidateName}</p>}
+          {jobCard?.title && <p style={{ fontSize: '11pt' }}>{jobCard.title}</p>}
+          {/* The resume is a rendered PDF that lives in Resume Coach. Nothing
+              here can reproduce it, so the kit points at it instead. */}
+          <p style={{ fontSize: '11pt', fontStyle: 'italic' }}>
+            See your full resume in Resume Coach.
+          </p>
+        </PrintSection>
+      )}
+
+      {selected.jobDescription && jobCard?.description && (
+        <PrintSection title={`Job Description — ${heading}`}>
+          <p style={{ fontSize: '10pt', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+            {jobCard.description}
+          </p>
+        </PrintSection>
+      )}
+
+      {selected.questions && questions.length > 0 && (
+        <PrintSection title="Questions For Your Interviewer">
+          {questions.map((q, i) => (
+            <div key={q.id || i} style={{ marginBottom: '10px' }}>
+              <p style={{ fontSize: '11pt', fontWeight: 600 }}>{q.tailored_text}</p>
+              {q.rationale && <p style={{ fontSize: '10pt', fontStyle: 'italic' }}>{q.rationale}</p>}
+            </div>
+          ))}
+        </PrintSection>
+      )}
+
+      {selected.stories && coachedStories.length > 0 && (
+        <PrintSection title="Your STAR Stories">
+          {coachedStories.map(story => (
+            <div key={story.id} style={{ marginBottom: '12px' }}>
+              <p style={{ fontSize: '11pt', fontWeight: 600 }}>{storyTitle(story)}</p>
+              {story.itemSkill && <p style={{ fontSize: '10pt' }}>{story.itemSkill}</p>}
+              {story.polishedStory && (
+                <p style={{ fontSize: '10pt', lineHeight: 1.5 }}>{story.polishedStory}</p>
+              )}
+            </div>
+          ))}
+        </PrintSection>
+      )}
+
+      {selected.highlights && highlights.length > 0 && (
+        <PrintSection title="Company Highlights">
+          <ul style={{ fontSize: '10pt', paddingLeft: '18px', listStyleType: 'disc' }}>
+            {highlights.map((item, i) => (
+              <li key={i} style={{ marginBottom: '4px' }}>{item}</li>
+            ))}
+          </ul>
+        </PrintSection>
+      )}
+    </div>
+  );
+}
+
+function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }) {
+  const supabase = createClient();
+  const { research, researchSettled } = useCompanyResearch(jobCard);
+  const [questions, setQuestions] = useState([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionsError, setQuestionsError] = useState(null);
+  const [selected, setSelected] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuestions() {
+      setQuestionsLoading(true);
+      setQuestionsError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No session');
+
+        const res = await fetch('/api/interview/interviewer-questions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            powerAnalysisId,
+            jobCardId: jobCard.id,
+            companyName: jobCard.company,
+            jobTitle: jobCard.title,
+            jobDescription: jobCard.description,
+            companyResearch: research || null
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Questions failed');
+        if (cancelled) return;
+        setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      } catch (err) {
+        console.error('Interviewer questions load failed:', err);
+        if (!cancelled) {
+          setQuestionsError("Couldn't load your interviewer questions right now.");
+        }
+      } finally {
+        if (!cancelled) setQuestionsLoading(false);
+      }
+    }
+
+    // Waits on research so the brief rides along in the same request. Settling
+    // covers not-found and recruiter too, so a company we know nothing about
+    // still gets questions.
+    if (!researchSettled || !powerAnalysisId || !jobCard?.id) return;
+
+    loadQuestions();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [researchSettled, powerAnalysisId, jobCard?.id]);
+
+  const coachedStories = stories.filter(s => s.coachingComplete);
+
+  const highlights = [
+    firstSentence(research?.what_they_do),
+    research?.size_and_location,
+    firstSentence(research?.hiring_context),
+    research?.culture_signals?.values?.[0]
+  ].filter(Boolean).slice(0, 4);
+
+  const checkedCount = KIT_ITEMS.filter(item => selected[item.key]).length;
+  const allChecked = checkedCount === KIT_ITEMS.length;
+
+  const toggleAll = () => {
+    // Partial selections resolve to all-on, so the box is never a dead click.
+    const next = !allChecked;
+    setSelected(Object.fromEntries(KIT_ITEMS.map(item => [item.key, next])));
+  };
+
+  const toggleItem = (key) => {
+    setSelected(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // No padding of its own — the left column already pads and gaps its children.
+  return (
+    <div className="space-y-3">
+
+      {/* SECTION 1 — QUESTIONS TO ASK */}
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+        <CardHeading color={DOT_PURPLE}>💡 Questions To Ask Your Interviewer</CardHeading>
+
+        <p className="text-sm md:text-xs text-gray-600 leading-snug mb-2">
+          Most candidates don&apos;t ask anything memorable. These are tailored to this role and
+          this company to help you stand out.
+        </p>
+
+        {(questionsLoading || !researchSettled) && (
+          <div className="flex items-center gap-2 text-sm md:text-xs text-gray-500">
+            <div className="animate-spin h-3.5 w-3.5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+            <span>Picking your questions...</span>
+          </div>
+        )}
+
+        {/* No retry: the questions are a nice-to-have on a step the candidate
+            can finish without them. */}
+        {!questionsLoading && researchSettled && questionsError && (
+          <p className="text-sm md:text-xs text-gray-600">{questionsError}</p>
+        )}
+
+        {!questionsLoading && researchSettled && !questionsError && questions.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {questions.map((q, i) => (
+              <div key={q.id || i} className="bg-white border border-purple-100 rounded-lg p-2.5">
+                <p className="text-xs font-semibold text-gray-900 leading-snug">{q.tailored_text}</p>
+                {q.rationale && (
+                  <p className="text-xs text-gray-500 italic leading-snug mt-1">{q.rationale}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!questionsLoading && researchSettled && !questionsError && questions.length === 0 && (
+          <p className="text-sm md:text-xs text-gray-400">No questions available.</p>
+        )}
+      </div>
+
+      {/* SECTION 2 — INTERVIEW TOOLKIT */}
+      <div className="bg-white shadow-sm rounded-lg p-3">
+        <CardHeading color={DOT_PURPLE}>📋 Interview Toolkit</CardHeading>
+
+        <p className="text-sm md:text-xs text-gray-600 leading-snug mb-2">
+          Everything you&apos;ve worked on, ready to go. Check any or all to print as a reference
+          for your practice.
+        </p>
+
+        {/* One row, wrapping on narrow screens. Select All is rules off from
+            the items rather than stacked above them. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="border-r border-gray-200 pr-3 mr-1">
+            <KitCheckbox
+              checked={allChecked}
+              onChange={toggleAll}
+              label="Select All"
+              labelClass="text-sm md:text-xs font-semibold text-gray-900"
+            />
+          </div>
+
+          {KIT_ITEMS.map(item => (
+            <KitCheckbox
+              key={item.key}
+              checked={!!selected[item.key]}
+              onChange={() => toggleItem(item.key)}
+              label={item.label}
+              labelClass="text-sm md:text-xs text-gray-700 whitespace-nowrap"
+            />
+          ))}
+
+          {/* Last item in the same row rather than a line of its own. ml-auto
+              pushes it right when the row has slack and lets it sit inline
+              when the checkboxes wrap. */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            disabled={checkedCount === 0}
+            className={`ml-auto text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold ${
+              checkedCount === 0 ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
+            }`}
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+          >
+            Print
+          </button>
+        </div>
+      </div>
+
+      <PrintableKit
+        selected={selected}
+        jobCard={jobCard}
+        candidateName={candidateName}
+        questions={questions}
+        coachedStories={coachedStories}
+        highlights={highlights}
+      />
+    </div>
+  );
+}
+
+// ============================================================================
+// PREPARE IDLE PANEL
+// Right-column step driver for the prepare step.
+// ============================================================================
+
+function PrepareIdlePanel({ onGoToPractice, onGoToResearch }) {
+  return (
+    <div className="px-5 py-4 flex-1 flex flex-col">
+      <div className="space-y-2">
+        <h3 className="font-semibold text-lg -mt-3">🎤 You&apos;re Almost Ready</h3>
+
+        <p className="text-sm md:text-xs text-gray-700">
+          Everything you need for your interview is here. Review your questions, grab your
+          documents, and walk in prepared.
+        </p>
+
+        <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
+          <div className="text-sm md:text-xs text-purple-900 space-y-2">
+            <div><strong>📋 Interview Kit</strong>: Your resume, job description, and questions in one place.</div>
+            <div><strong>🎤 Your Questions</strong>: Pick 2 or 3 that feel natural. Practice saying them out loud.</div>
+            <div><strong>⭐ Quick Review</strong>: Your coached stories and company highlights at a glance.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="mt-auto pt-3 border-t border-gray-300">
+        <button
           onClick={onGoToPractice}
           className="block mx-auto mb-1.5 text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
           style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
@@ -1844,10 +2143,10 @@ function ResearchIdlePanel({ onGoToPractice, onGoToCoach }) {
         </button>
         <div className="text-center">
           <button
-            onClick={onGoToCoach}
+            onClick={onGoToResearch}
             className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
           >
-            ← Back to Coach
+            ← Back to Research
           </button>
         </div>
       </div>
@@ -2161,20 +2460,34 @@ function InterviewHeaderStrip({
             ? <>Company Research: <span style={{ color: DOT_PURPLE }}>{company}</span></>
             : 'Company Research'
         )}
+        {currentStep === 'prepare' && 'Prepare for Your Interview'}
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
-        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
-        {currentStep === 'coach'   && 'Interview Coach: Step 2 of 4'}
-        {currentStep === 'research' && 'Interview Coach: Step 3 of 4'}
-        {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
+        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 5'}
+        {currentStep === 'coach'   && 'Interview Coach: Step 2 of 5'}
+        {currentStep === 'research' && 'Interview Coach: Step 3 of 5'}
+        {currentStep === 'prepare' && 'Interview Coach: Step 4 of 5'}
+        {currentStep === 'practice' && 'Interview Coach: Step 5 of 5'}
       </p>
     </div>
   );
 
-  // Research keeps the step title but drops the card, the date widget, and the
-  // coaching badges — none of them say anything about company research.
-  if (titleOnly) return title;
+  // The flat steps keep the step title but drop the card, the date widget and
+  // the progress bar. Coaching progress is the one number worth carrying
+  // across all of them, so it rides along as a pill on the right.
+  if (titleOnly) {
+    return (
+      <div className="flex items-start justify-between gap-3">
+        {title}
+        {totalStoryItems > 0 && (
+          <span className="flex-shrink-0 mt-1 text-xs md:text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 whitespace-nowrap">
+            {storiesCoached} of {totalStoryItems} stories coached
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-4">
