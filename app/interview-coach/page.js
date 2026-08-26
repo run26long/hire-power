@@ -1152,12 +1152,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const router = useRouter();
   const [navigatingTo, setNavigatingTo] = useState(null);
 
-  const storiesCoached = card.storiesCoached || 0;
   const hasAnalyzed = true; // card only appears if PA exists
-  // One coached story counts as done, matching what the detail page treats as
-  // complete. Requiring every Power Analysis item left the hub saying Coaching
-  // while the detail page was already showing Coaching Complete.
-  const hasCoached = storiesCoached > 0;
   const hasPracticed = (card.sessionsCount || 0) > 0;
   // No research completion detection yet — always false until it's wired up.
   const hasResearch = card.hasResearch || false;
@@ -1194,15 +1189,14 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   // navigated, which leaves Analysis on its own.
   const reachedIndex = DETAIL_STEP_ORDER.indexOf(card.highestStepReached || 'analyze');
 
+  // Bare names: everything listed has been reached, so a tick against each one
+  // said nothing the filter hadn't already said.
   const otherSteps = [
-    { key: 'analysis', label: '✓ Analysis' },
-    { key: 'coaching', label: hasCoached ? `✓ Coaching (${storiesCoached})` : '○ Coaching' },
-    { key: 'research', label: hasResearch ? '✓ Research' : '○ Research' },
-    // No completion signal for prepare: it's a reading step with nothing to
-    // finish, so it stays open until practice is done.
-    { key: 'prepare', label: '○ Prepare' },
-    { key: 'practice', label: hasPracticed ? '✓ Practice' : '○ Practice' },
-    ...(hasPracticed ? [{ key: 'feedback', label: hasFeedback ? '✓ Feedback' : '○ Feedback' }] : []),
+    { key: 'analysis', label: 'Analysis' },
+    { key: 'coaching', label: 'Coaching' },
+    { key: 'research', label: 'Research' },
+    { key: 'prepare', label: 'Prepare' },
+    { key: 'practice', label: 'Practice' },
   ]
     .filter(step => {
       const index = DETAIL_STEP_ORDER.indexOf(STEP_TO_DETAIL[step.key]);
