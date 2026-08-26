@@ -214,13 +214,17 @@ async function logApiCall({ userId, sessionId, usage }) {
 // ============================================================================
 
 export async function POST(request) {
+  console.log('Interviewer questions route hit');
   try {
     // ---- AUTH ----
     // Anon key carrying the caller's token, so every query below runs as that
     // user and RLS does the scoping. The bank is readable by any authenticated
     // user; a selection set is readable only by the user who owns it.
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authHeader) {
+      console.error('Interviewer questions: no authorization header');
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const token = authHeader.replace('Bearer ', '');
 
     const supabase = createClient(
@@ -233,7 +237,10 @@ export async function POST(request) {
     );
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !user) {
+      console.error('Interviewer questions: auth check failed', authError);
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const userId = user.id;
 
     // ---- INPUT ----
