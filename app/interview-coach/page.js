@@ -1107,6 +1107,7 @@ const STEP_ANCHORS = {
   analysis: 'power-analysis',
   coaching: 'coaching',
   research: 'research',
+  prepare: 'prepare',
   practice: 'practice',
   feedback: 'feedback',
 };
@@ -1116,10 +1117,11 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const [navigatingTo, setNavigatingTo] = useState(null);
 
   const storiesCoached = card.storiesCoached || 0;
-  const totalStoryItems = card.totalStoryItems || 0;
   const hasAnalyzed = true; // card only appears if PA exists
+  // One coached story counts as done, matching what the detail page treats as
+  // complete. Requiring every Power Analysis item left the hub saying Coaching
+  // while the detail page was already showing Coaching Complete.
   const hasCoached = storiesCoached > 0;
-  const allCoached = totalStoryItems > 0 && storiesCoached === totalStoryItems;
   const hasPracticed = (card.sessionsCount || 0) > 0;
   // No research completion detection yet — always false until it's wired up.
   const hasResearch = card.hasResearch || false;
@@ -1131,7 +1133,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   // Recommended next step. Power Analysis is never primary — it already exists
   // if this card is here.
   let primaryStep;
-  if (!allCoached) primaryStep = 'coaching';
+  if (!hasCoached) primaryStep = 'coaching';
   else if (!hasResearch) primaryStep = 'research';
   else if (!hasPracticed) primaryStep = 'practice';
   else if (FEEDBACK_STEP_BUILT && !hasFeedback) primaryStep = 'feedback';
@@ -1150,6 +1152,9 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
     { key: 'analysis', label: '✓ Analysis' },
     { key: 'coaching', label: hasCoached ? `✓ Coaching (${storiesCoached})` : '○ Coaching' },
     { key: 'research', label: hasResearch ? '✓ Research' : '○ Research' },
+    // No completion signal for prepare: it's a reading step with nothing to
+    // finish, so it stays open until practice is done.
+    { key: 'prepare', label: '○ Prepare' },
     { key: 'practice', label: hasPracticed ? '✓ Practice' : '○ Practice' },
     ...(hasPracticed ? [{ key: 'feedback', label: hasFeedback ? '✓ Feedback' : '○ Feedback' }] : []),
   ].filter(step => step.key !== primaryStep);
