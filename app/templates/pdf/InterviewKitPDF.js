@@ -155,7 +155,6 @@ function Bullet({ children }) {
 export default function InterviewKitPDF({
   selected = {},
   jobCard,
-  candidateName,
   storyTitleFor,
   coachedStories = [],
   highlights = [],
@@ -173,16 +172,6 @@ export default function InterviewKitPDF({
         {generatedOn ? <Text style={styles.date}>Prepared {generatedOn}</Text> : null}
 
         <View style={styles.divider} />
-
-        {selected.resume && (
-          <Section title="Resume">
-            {candidateName ? <Text style={styles.body}>{candidateName}</Text> : null}
-            {jobCard?.title ? (
-              <Text style={styles.muted}>Targeting: {subtitle}</Text>
-            ) : null}
-            <Text style={styles.italicMuted}>Full resume available in Resume Coach.</Text>
-          </Section>
-        )}
 
         {selected.jobDescription && jobCard?.description && (
           <Section title="Job Description">

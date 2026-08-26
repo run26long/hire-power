@@ -792,7 +792,6 @@ export default function InterviewDetailPage() {
                 <PrepareStepContent
                   jobCard={jobCard}
                   powerAnalysisId={powerAnalysis?.id}
-                  candidateName={userProfile?.display_name}
                   stories={stories}
                 />
               )}
@@ -1825,7 +1824,6 @@ function storyTitle(story) {
 
 // The kit checklist. Order is the order they print in.
 const KIT_ITEMS = [
-  { key: 'resume', label: 'Resume' },
   { key: 'jobDescription', label: 'Job Description' },
   { key: 'questions', label: 'Questions for Interviewer' },
   { key: 'stories', label: 'STAR Stories' },
@@ -1841,7 +1839,7 @@ function KitCheckbox({ checked, onChange, label, labelClass }) {
   );
 }
 
-function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }) {
+function PrepareStepContent({ jobCard, powerAnalysisId, stories }) {
   const supabase = createClient();
   const { research, researchSettled } = useCompanyResearch(jobCard);
   const [questions, setQuestions] = useState([]);
@@ -1938,7 +1936,6 @@ function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }
         <InterviewKitPDF
           selected={selected}
           jobCard={jobCard}
-          candidateName={candidateName}
           storyTitleFor={storyTitle}
           coachedStories={coachedStories}
           highlights={highlights}
@@ -2042,14 +2039,14 @@ function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }
             />
           ))}
 
-          {/* Last item in the same row rather than a line of its own. ml-auto
-              pushes it right when the row has slack and lets it sit inline
-              when the checkboxes wrap. */}
+          {/* Last item in the same row rather than a line of its own, sitting
+              directly after the final checkbox instead of being pushed to the
+              far edge. */}
           <button
             type="button"
             onClick={downloadKit}
             disabled={checkedCount === 0 || buildingPdf}
-            className={`ml-auto text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold flex items-center gap-2 ${
+            className={`text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold flex items-center gap-2 ${
               checkedCount === 0 || buildingPdf ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
             }`}
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
