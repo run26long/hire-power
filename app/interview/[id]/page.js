@@ -585,9 +585,21 @@ export default function InterviewDetailPage() {
     if (error) console.error('Power Analysis step update failed:', error);
   };
 
+  // highest_step_reached is a high-water mark, not a position: it only ever
+  // moves forward. current_step alone can't carry completion, because stepping
+  // back to analyze would then un-tick every step past it.
+  const buildStepPatch = (step, extra = {}) => {
+    const patch = { current_step: step, ...extra };
+    const reached = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
+    if (VALID_STEPS.indexOf(step) > reached) {
+      patch.highest_step_reached = step;
+    }
+    return patch;
+  };
+
   const goToStep = (step) => {
     setCurrentStep(step);
-    persistPowerAnalysis({ current_step: step });
+    persistPowerAnalysis(buildStepPatch(step));
   };
 
   // Leaving coaching is what decides whether it counts as done. Nothing coached
@@ -595,10 +607,9 @@ export default function InterviewDetailPage() {
   const goToResearchFromCoach = () => {
     const coachedCount = stories.filter(s => s.coachingComplete).length;
     setCurrentStep('research');
-    persistPowerAnalysis({
-      coaching_status: coachedCount > 0 ? 'completed' : 'skipped',
-      current_step: 'research'
-    });
+    persistPowerAnalysis(buildStepPatch('research', {
+      coaching_status: coachedCount > 0 ? 'completed' : 'skipped'
+    }));
   };
 
   // ============================================================================
@@ -702,15 +713,15 @@ export default function InterviewDetailPage() {
   // where the interview date and coaching progress still drive the decision.
   const flatStep = currentStep !== 'practice';
 
-  // Research and Prepare have nothing to finish, so "done" means the saved step
-  // is past them. Reading currentStep instead would tick them the moment
-  // someone clicked ahead and came back.
-  const savedStep = powerAnalysis?.current_step;
+  // Research and Prepare have nothing to finish, so reaching them is what
+  // counts. Measured against the high-water mark rather than the current step,
+  // so walking back through the strip doesn't strip their checks.
+  const reachedIndex = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
   const completeByKey = {
     analyze: analyzeComplete,
     coach: coachComplete,
-    research: savedStep === 'prepare' || savedStep === 'practice',
-    prepare: savedStep === 'practice',
+    research: reachedIndex >= VALID_STEPS.indexOf('research'),
+    prepare: reachedIndex >= VALID_STEPS.indexOf('prepare'),
     practice: sessionsCount > 0
   };
 
@@ -945,11 +956,20 @@ export default function InterviewDetailPage() {
                   ].map(({ label, key }, i) => {
                     const complete = completeByKey[key];
                     const current = key === currentStep;
+                    // Only finished steps are clickable, and only to go back to
+                    // them. A grey dot is a step they haven't reached, so it
+                    // does nothing: the first pass runs on the panel buttons.
+                    const clickable = complete && !current;
+                    const onStepClick = () => {
+                      if (!clickable) return;
+                      if (key === 'coach') handleOpenCoachStep();
+                      goToStep(key);
+                    };
                     return (
                       <div
                         key={key}
-                        className="flex flex-col items-center cursor-pointer"
-                        onClick={() => key === 'coach' ? handleOpenCoachStep() : setCurrentStep(key)}
+                        className={`flex flex-col items-center ${clickable ? 'cursor-pointer' : 'cursor-default'}`}
+                        onClick={onStepClick}
                       >
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10 ${
                           complete || current ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
@@ -972,8 +992,6 @@ export default function InterviewDetailPage() {
               {currentStep === 'analyze' && (
                 <AnalyzeStepContent
                   stepHeader="📊 Your Power Analysis"
-                  analyzeComplete={analyzeComplete}
-                  coachComplete={coachComplete}
                   onGoToCoach={handleOpenCoachStep}
                 />
               )}
@@ -982,7 +1000,6 @@ export default function InterviewDetailPage() {
                 <CoachIdlePanel
                   batchChecks={batchChecks}
                   coachStarting={coachStarting}
-                  coachComplete={coachComplete}
                   storiesCoached={stories.filter(s => s.coachingComplete).length}
                   onStart={handleStartBatch}
                   onGoToResearch={goToResearchFromCoach}
@@ -1243,11 +1260,13 @@ function BucketColumn({
 // already uses.
 // ============================================================================
 
-const STEP_PRIMARY_CLASS =
-  'w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed';
+// Auto width, sized by their label, the way buttons read everywhere else in
+// the app. Standalone ones add mx-auto; the coach pair sits in a centered row.
+const STEP_BUTTON_BASE =
+  'flex items-center justify-center gap-2 rounded-lg py-2 px-6 font-semibold text-sm md:text-xs whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
+const STEP_PRIMARY_CLASS = `${STEP_BUTTON_BASE} text-white transition-opacity hover:opacity-90`;
 const STEP_PRIMARY_STYLE = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
-const STEP_SECONDARY_CLASS =
-  'w-full flex items-center justify-center gap-2 bg-white border border-purple-300 text-purple-600 rounded-lg py-2 px-4 font-semibold text-sm md:text-xs hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+const STEP_SECONDARY_CLASS = `${STEP_BUTTON_BASE} bg-white border border-purple-300 text-purple-600 transition-colors hover:bg-purple-50`;
 
 function BackLink({ onClick }) {
   return (
@@ -1259,7 +1278,7 @@ function BackLink({ onClick }) {
   );
 }
 
-function AnalyzeStepContent({ onGoToCoach, stepHeader, analyzeComplete, coachComplete }) {
+function AnalyzeStepContent({ onGoToCoach, stepHeader }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
@@ -1292,18 +1311,12 @@ function AnalyzeStepContent({ onGoToCoach, stepHeader, analyzeComplete, coachCom
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
         Click below to build your STAR stories.
       </p>
-      {analyzeComplete && coachComplete && (
-        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
-            <span>✅</span>
-            <span>Analysis Complete</span>
-          </div>
-        </div>
-      )}
-      {/* First step, so no back link. */}
+      {/* First step, so no back link. Completion lives in the strip's purple
+          check; a second green badge saying the same thing only competed with
+          it. */}
       <button
         onClick={onGoToCoach}
-        className={STEP_PRIMARY_CLASS}
+        className={`mx-auto ${STEP_PRIMARY_CLASS}`}
         style={STEP_PRIMARY_STYLE}
       >
         Go to Coaching
@@ -1316,7 +1329,7 @@ function AnalyzeStepContent({ onGoToCoach, stepHeader, analyzeComplete, coachCom
 // BATCH CHECKLIST
 // ============================================================================
 
-function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, storiesCoached, onStart, onGoToResearch, onBack }) {
+function CoachIdlePanel({ batchChecks, coachStarting, storiesCoached, onStart, onGoToResearch, onBack }) {
   const selectedCount = Object.values(batchChecks).filter(Boolean).length;
   const hasCoachedStories = storiesCoached > 0;
 
@@ -1350,32 +1363,30 @@ function CoachIdlePanel({ batchChecks, coachStarting, coachComplete, storiesCoac
       {/* Whichever action is the sensible next one is the primary. With nothing
           coached that's coaching; once a story exists, moving on is. Both stay
           visible either way — the choice is the candidate's. */}
-      <div className="mt-auto space-y-2">
-        {coachComplete && (
-          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-medium text-green-700">
-              <span>✅</span>
-              <span>Coaching Complete</span>
-            </div>
-          </div>
-        )}
+      {/* Follows the copy on the parent's space-y-3, the way Analyze does,
+          rather than mt-auto pushing it to the bottom of a short panel. */}
+      {/* Coach Stories stays on the left and Go to Research on the right, so
+          the pair doesn't reorder under the cursor. Only the styling swaps:
+          whichever is the sensible next move wears the gradient. */}
+      <div className="space-y-2">
+        <div className="flex gap-2 justify-center">
+          <button
+            onClick={onStart}
+            disabled={selectedCount === 0 || coachStarting}
+            className={hasCoachedStories ? STEP_SECONDARY_CLASS : STEP_PRIMARY_CLASS}
+            style={hasCoachedStories ? undefined : STEP_PRIMARY_STYLE}
+          >
+            Coach Stories
+          </button>
 
-        <button
-          onClick={hasCoachedStories ? onGoToResearch : onStart}
-          disabled={!hasCoachedStories && (selectedCount === 0 || coachStarting)}
-          className={STEP_PRIMARY_CLASS}
-          style={STEP_PRIMARY_STYLE}
-        >
-          {hasCoachedStories ? 'Go to Research' : 'Coach Stories'}
-        </button>
-
-        <button
-          onClick={hasCoachedStories ? onStart : onGoToResearch}
-          disabled={hasCoachedStories && (selectedCount === 0 || coachStarting)}
-          className={STEP_SECONDARY_CLASS}
-        >
-          {hasCoachedStories ? 'Coach Stories' : 'Go to Research'}
-        </button>
+          <button
+            onClick={onGoToResearch}
+            className={hasCoachedStories ? STEP_PRIMARY_CLASS : STEP_SECONDARY_CLASS}
+            style={hasCoachedStories ? STEP_PRIMARY_STYLE : undefined}
+          >
+            Go to Research
+          </button>
+        </div>
 
         <BackLink onClick={onBack} />
       </div>
@@ -1449,10 +1460,18 @@ function PracticeStepContent({ storiesCoached, onBack }) {
           <p className="text-xs text-gray-700 leading-snug">Coach at least one story to prepare your answers before practice.</p>
         </div>
       )}
-      {/* Last step, so no forward button. */}
-      <div className="mt-auto">
-        <BackLink onClick={onBack} />
-      </div>
+      {/* Feedback is step 6 and isn't built. The button holds its place in the
+          layout, disabled, rather than navigating to a step with no panel
+          behind it and stranding the user on a blank column. */}
+      <button
+        disabled
+        title="Feedback is coming soon."
+        className={`mx-auto ${STEP_PRIMARY_CLASS}`}
+        style={STEP_PRIMARY_STYLE}
+      >
+        Go to Feedback
+      </button>
+      <BackLink onClick={onBack} />
     </div>
   );
 }
@@ -1862,7 +1881,7 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
             Keep what you learned in mind as you practice.
           </p>
         </div>
-        <button onClick={onGoToPrepare} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+        <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
           Go to Prepare
         </button>
         <div className="mt-1.5">
@@ -2171,9 +2190,10 @@ function PrepareIdlePanel({ onGoToPractice, onBack }) {
         </div>
       </div>
 
-      {/* CTA */}
-      <div className="mt-auto pt-3 border-t border-gray-300">
-        <button onClick={onGoToPractice} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+      {/* CTA. Sits under the copy rather than at the bottom of the column:
+          this panel is short, and mt-auto left a lane of empty space. */}
+      <div className="mt-3 pt-3 border-t border-gray-300">
+        <button onClick={onGoToPractice} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
           Go to Practice
         </button>
         <div className="mt-1.5">

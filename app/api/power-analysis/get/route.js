@@ -128,6 +128,9 @@ export async function GET(request) {
         // skipped coaching. The hub reads the same two columns.
         coaching_status: powerAnalysis.coaching_status,
         current_step: powerAnalysis.current_step,
+        // High-water mark. current_step moves both ways; this only moves
+        // forward, so it's what decides which steps show complete.
+        highest_step_reached: powerAnalysis.highest_step_reached,
         isStale
       } : null
     });
