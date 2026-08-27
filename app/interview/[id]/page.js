@@ -11,6 +11,16 @@ import UpgradeModal from '../../components/UpgradeModal';
 
 const VALID_STEPS = ['analyze', 'coach', 'research', 'prepare', 'practice'];
 
+// The hub links by anchor, and its names differ from the step keys. Every
+// anchor it can produce has to appear here or the jump is silently ignored.
+const STEP_FROM_ANCHOR = {
+  'power-analysis': 'analyze',
+  coaching: 'coach',
+  research: 'research',
+  prepare: 'prepare',
+  practice: 'practice',
+};
+
 export default function InterviewDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -225,11 +235,13 @@ export default function InterviewDetailPage() {
     if (loading || !hasPA) return;
     const hash = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : '';
     if (!hash) return;
-    if (hash === 'coaching') {
-      setCurrentStep('coach');
+    // Persisted, so the cursor follows the jump and a refresh stays put.
+    // Completion reads off highest_step_reached, which only ever rises, so
+    // jumping back to a finished step can't un-tick anything.
+    const jumpTo = STEP_FROM_ANCHOR[hash];
+    if (jumpTo) {
+      goToStep(jumpTo);
     }
-    // 'power-analysis' is the default view, no action needed
-    // 'practice' is Phase 4 territory, no-op for now
     // Clear the hash so it doesn't re-trigger on re-renders
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', window.location.pathname);
