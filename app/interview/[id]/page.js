@@ -75,7 +75,6 @@ export default function InterviewDetailPage() {
   const [reviewSessionId, setReviewSessionId] = useState(null);
   const [interviewerQuestions, setInterviewerQuestions] = useState([]);
   const [experienceLevel, setExperienceLevel] = useState('mid');
-  const [sessionToken, setSessionToken] = useState(null);
 
  const [errorToast, setErrorToast] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
@@ -126,8 +125,6 @@ export default function InterviewDetailPage() {
         router.push('/dashboard');
         return;
       }
-      // Held for the practice routes, which post rather than read through RLS.
-      setSessionToken(session.access_token);
 
       const res = await fetch(`/api/power-analysis/get?jobCardId=${params.id}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -1148,7 +1145,6 @@ export default function InterviewDetailPage() {
                   jobCardId={params.id}
                   powerAnalysisId={powerAnalysis?.id}
                   userId={user?.id}
-                  sessionToken={sessionToken}
                   isPro={isPro}
                   experienceLevel={experienceLevel}
                   interviewerQuestions={interviewerQuestions}

@@ -159,7 +159,6 @@ export default function PracticeView({
   jobCardId,
   powerAnalysisId,
   userId,
-  sessionToken,
   isPro,
   experienceLevel,
   interviewerQuestions = [],
@@ -169,6 +168,14 @@ export default function PracticeView({
   onError = () => {}
 }) {
   const supabase = createClient();
+
+  // Read fresh on every call rather than captured once at page load. A Supabase
+  // JWT lasts an hour and an interview can easily outrun that; getSession also
+  // refreshes the token when it is close to expiring.
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
 
   const [sessionState, setSessionState] = useState('idle');
   const [session, setSession] = useState(null);
@@ -332,13 +339,18 @@ export default function PracticeView({
 
   // ── START ──
   const startSession = async () => {
+    // Checked before any loading state is set, so a dead session leaves the
+    // panel exactly as it was rather than flashing a spinner at nothing.
+    const token = await getToken();
+    if (!token) { onError('Your session expired. Refresh the page and sign in again.'); return; }
+
     setStarting(true);
     try {
       const res = await fetch('/api/interview/mock-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           job_card_id: jobCardId,
@@ -400,6 +412,11 @@ export default function PracticeView({
       return;
     }
 
+    // Ahead of the optimistic update, so a dead session leaves the answer in the
+    // box to retry after refreshing rather than clearing it into nowhere.
+    const token = await getToken();
+    if (!token) { onError('Your session expired. Refresh the page and sign in again.'); return; }
+
     setSending(true);
     const previousQuestions = questions;
     setQuestions(questions.map((q, i) => (i === currentIndex ? { ...q, user_answer_text: text } : q)));
@@ -411,7 +428,7 @@ export default function PracticeView({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           session_id: session.id,
@@ -466,13 +483,16 @@ export default function PracticeView({
 
   // ── COMPLETE ──
   const completeSession = async () => {
+    const token = await getToken();
+    if (!token) { onError('Your session expired. Refresh the page and sign in again.'); return; }
+
     setCompleting(true);
     try {
       const res = await fetch('/api/interview/complete-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           session_id: session.id,
