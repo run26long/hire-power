@@ -130,13 +130,6 @@ export default function PracticeLeftPanel({
     const currentIndex = sessionData?.currentIndex ?? 0;
     const total = questions.length;
 
-    const scored = questions.filter(q => q.evaluation_status === 'scored' && q.question_source !== 'closer');
-    const avg = (key) => {
-      const values = scored.map(q => q[key]).filter(v => Number.isFinite(v));
-      if (!values.length) return 0;
-      return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
-    };
-
     const progressPct = total > 0 ? Math.round((currentIndex / total) * 100) : 0;
 
     return (
@@ -150,18 +143,11 @@ export default function PracticeLeftPanel({
           <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
             Question {Math.min(currentIndex + 1, total)} of {total}
           </p>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-3">
+          {/* Progress only. Scores stay out of sight until the interview is
+              over, the same way they do in the right column. */}
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div className="h-full transition-all duration-300" style={{ width: `${progressPct}%`, ...GRADIENT }} />
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <StatTile label="Structure" value={avg('score_structure')} />
-            <StatTile label="Content" value={avg('score_content')} />
-          </div>
-
-          <p className="text-xs md:text-[10px] text-gray-400 text-center mt-2">
-            Running average across scored answers
-          </p>
         </div>
       </div>
     );

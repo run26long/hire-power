@@ -73,31 +73,6 @@ function FeedbackBlock({ label, body }) {
   );
 }
 
-function FeedbackCard({ evaluation, failed }) {
-  if (failed) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg p-3 w-full">
-        <p className="text-sm md:text-xs text-gray-500 leading-snug">
-          Evaluation unavailable for this answer. Your answer was saved.
-        </p>
-      </div>
-    );
-  }
-  if (!evaluation) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-3 w-full">
-      <div className="flex flex-wrap gap-2 mb-2">
-        <ScorePill label="Structure" value={evaluation.score_structure} />
-        <ScorePill label="Content" value={evaluation.score_content} />
-      </div>
-      <div className="space-y-2">
-        <FeedbackBlock label="Structure" body={evaluation.feedback_structure} />
-        <FeedbackBlock label="Content" body={evaluation.feedback_content} />
-      </div>
-    </div>
-  );
-}
-
 function InterviewerBubble({ text }) {
   return (
     <div>
@@ -469,6 +444,10 @@ export default function PracticeView({
         ...prev,
         questions_answered: data.session_progress?.questions_answered ?? prev.questions_answered
       } : prev));
+
+      // Straight on to the next question. A real interviewer does not stop to
+      // grade you between answers, so the scores stay hidden until the summary.
+      advance();
     } catch (err) {
       console.error('Evaluate answer failed:', err);
       onError("We couldn't score that answer right now. Your answer was saved.");
@@ -751,7 +730,6 @@ export default function PracticeView({
   const currentEvaluated = current?.evaluation_status === 'scored'
     || current?.evaluation_status === 'failed'
     || current?.evaluation_status === 'needs_retry';
-  const nextQuestion = questions[currentIndex + 1] || null;
   const isLastQuestion = currentIndex >= total - 1;
 
   return (
@@ -770,25 +748,13 @@ export default function PracticeView({
       {/* Transcript */}
       <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="space-y-3">
+          {/* Answers show so the candidate can see what they said. Scores and
+              feedback do not: this is meant to feel like the real room, and
+              they are all waiting in the summary once the interview ends. */}
           {questions.slice(0, currentIndex + 1).map((q) => (
             <div key={q.id} className="space-y-2">
               <InterviewerBubble text={q.question_text} />
               {q.user_answer_text && <AnswerBubble text={q.user_answer_text} />}
-              {q.question_source !== 'closer' && q.user_answer_text && (
-                <FeedbackCard
-                  failed={q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry'}
-                  evaluation={
-                    q.evaluation_status === 'scored'
-                      ? {
-                          score_structure: q.score_structure,
-                          score_content: q.score_content,
-                          feedback_structure: q.feedback_structure,
-                          feedback_content: q.feedback_content
-                        }
-                      : null
-                  }
-                />
-              )}
             </div>
           ))}
 
@@ -846,19 +812,8 @@ export default function PracticeView({
       {/* Dock */}
       <div className="flex-shrink-0 border-t border-gray-100 p-3">
 
-        {/* Advance / complete */}
-        {!isCloser && currentEvaluated && !isLastQuestion && (
-          <div className="flex justify-end mb-2">
-            <button
-              onClick={advance}
-              className="text-white rounded-lg py-2 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-              style={GRADIENT}
-            >
-              {nextQuestion?.question_source === 'closer' ? 'Continue to Closer' : 'Next Question'}
-            </button>
-          </div>
-        )}
-
+        {/* Advancing is automatic once an answer is scored, so the only button
+            here is the one that ends the interview. */}
         {(isCloser || (currentEvaluated && isLastQuestion)) && (
           <button
             onClick={completeSession}
