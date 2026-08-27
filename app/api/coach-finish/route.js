@@ -2473,6 +2473,64 @@ async function fetchKnowledgeVoice(userId) {
 }
 
 // ─────────────────────────────────────────────
+// EXPERIENCE LEVEL PERSISTENCE
+// The conversational path extracts and writes a full career_context row. The
+// core and job-specific paths only ever learn one field — the level — so they
+// write just that field. Never writes a null: a level we could not determine
+// leaves the stored value alone rather than clearing a good one. completed_at
+// is deliberately not set here; that column is the "finished Career Coach"
+// flag read by /api/resume-coach/data. Any failure is non-fatal.
+// ─────────────────────────────────────────────
+const VALID_LEVELS = ['entry', 'mid', 'senior']
+
+async function resolveExperienceLevel({ detectedLevel, conversation, resumeData }) {
+  // Note: the caller's `level` is `detectedLevel || 'mid'`, so it is never a
+  // safe source here — 'mid' may be a default rather than a detection.
+  if (VALID_LEVELS.includes(detectedLevel)) return detectedLevel
+
+  const convText = (conversation || [])
+    .map(m => typeof m.content === 'string' ? m.content : '')
+    .join(' ')
+  const resumeText = (resumeData?.experience || [])
+    .map(job => [job.title, job.company, job.dates, ...(job.bullets || [])].filter(Boolean).join(' '))
+    .join('\n')
+  const sourceText = `${convText}\n${resumeText}`.trim()
+  if (!sourceText) return null
+
+  try {
+    // One-word classification, not a writing or reasoning task — Haiku is enough.
+    const levelDetectMsg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 10,
+      temperature: 0,
+      messages: [{ role: 'user', content: `Based on this career information, what career level is this person? Respond with ONLY one word: entry, mid, or senior\n\n${sourceText.slice(0, 2000)}` }]
+    })
+    const text = levelDetectMsg.content[0].text.trim().toLowerCase()
+    return VALID_LEVELS.includes(text) ? text : null
+  } catch (e) {
+    console.error('Experience level detection failed (non-fatal):', e)
+    return null
+  }
+}
+
+async function saveExperienceLevel(userId, experienceLevel) {
+  if (!userId || !VALID_LEVELS.includes(experienceLevel)) return
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    await supabaseWrite
+      .from('career_context')
+      .upsert({
+        user_id: userId,
+        experience_level: experienceLevel,
+        last_updated: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+  } catch (e) {
+    console.error('Experience level write failed (non-fatal):', e)
+  }
+}
+
+// ─────────────────────────────────────────────
 // CORE RESUME BUILD PROMPT (used by both core and conversational paths)
 // ─────────────────────────────────────────────
 function buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational = false, knowledgeVoice }) {
@@ -3207,6 +3265,17 @@ Return this exact structure:
         )
       }
 
+      // ── BACKGROUND: write experience level to career_context (job-specific path) ──
+      // Non-critical, so it never blocks the response. Skipped when invoked via
+      // INTERNAL_API_SECRET — no authenticated user to attribute the level to.
+      if (authenticatedUserId) {
+        waitUntil(
+          resolveExperienceLevel({ detectedLevel, conversation, resumeData })
+            .then(jsLevel => saveExperienceLevel(authenticatedUserId, jsLevel))
+            .catch(e => console.error('Experience level write failed (non-fatal):', e))
+        )
+      }
+
       return NextResponse.json({ rewrittenResume, changes, detectedLevel: level })
     }
 
@@ -3322,6 +3391,17 @@ Return this exact structure:
             jobCompany: null
           })
         }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+      )
+    }
+
+    // ── BACKGROUND: write experience level to career_context (core resume path) ──
+    // Non-critical, so it never blocks the response. Skipped when invoked via
+    // INTERNAL_API_SECRET — no authenticated user to attribute the level to.
+    if (authenticatedUserId) {
+      waitUntil(
+        resolveExperienceLevel({ detectedLevel, conversation, resumeData })
+          .then(coreLevel => saveExperienceLevel(authenticatedUserId, coreLevel))
+          .catch(e => console.error('Experience level write failed (non-fatal):', e))
       )
     }
 
