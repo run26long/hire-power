@@ -837,7 +837,10 @@ export default function PracticeView({
                 onInput={e => {
                   if (isMobile) return;
                   e.target.style.height = 'auto';
-                  const maxHeight = window.innerHeight - 310;
+                  // Same fixed cap the resume coach input uses. Sizing off the
+                  // viewport let the box grow to most of the panel before it
+                  // ever started scrolling, which pushed the dock off screen.
+                  const maxHeight = 120;
                   const target = Math.min(e.target.scrollHeight, maxHeight);
                   e.target.style.height = target + 'px';
                   e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
@@ -856,7 +859,7 @@ export default function PracticeView({
                 style={
                   isMobile
                     ? { height: '4.5rem', overflowY: 'auto' }
-                    : { overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }
+                    : { overflowY: 'hidden', maxHeight: '120px' }
                 }
               />
               <button

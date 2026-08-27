@@ -130,8 +130,6 @@ export default function PracticeLeftPanel({
     const currentIndex = sessionData?.currentIndex ?? 0;
     const total = questions.length;
 
-    const progressPct = total > 0 ? Math.round((currentIndex / total) * 100) : 0;
-
     return (
       <div className="space-y-3">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
@@ -143,10 +141,22 @@ export default function PracticeLeftPanel({
           <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
             Question {Math.min(currentIndex + 1, total)} of {total}
           </p>
-          {/* Progress only. Scores stay out of sight until the interview is
-              over, the same way they do in the right column. */}
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full transition-all duration-300" style={{ width: `${progressPct}%`, ...GRADIENT }} />
+          {/* One block per question. Progress only: scores stay out of sight
+              until the interview is over, the same way they do on the right. */}
+          <div className="flex gap-1">
+            {questions.map((q, i) => {
+              const answered = !!q.user_answer_text;
+              const isCurrent = i === currentIndex;
+              return (
+                <div
+                  key={q.id || i}
+                  className={`h-1.5 flex-1 rounded-sm transition-colors ${
+                    answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
+                  }`}
+                  style={answered ? GRADIENT : undefined}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
