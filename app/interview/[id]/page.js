@@ -8,6 +8,8 @@ import Breadcrumb from '../../components/Breadcrumb';
 import ErrorToast from '../../components/ErrorToast';
 import SuccessToast from '../../components/SuccessToast';
 import UpgradeModal from '../../components/UpgradeModal';
+import PracticeView from '../../components/interview/PracticeView';
+import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 
 const VALID_STEPS = ['analyze', 'coach', 'research', 'prepare', 'practice'];
 
@@ -64,6 +66,17 @@ export default function InterviewDetailPage() {
   // Live countdown tick
   const [now, setNow] = useState(Date.now());
 
+  // Practice step. The session itself lives inside PracticeView; this mirrors
+  // its shape so the left panel can render alongside without a second copy.
+  const [practiceShape, setPracticeShape] = useState({
+    state: 'idle', session: null, questions: [], currentIndex: 0, completion: null
+  });
+  const [pastPracticeSessions, setPastPracticeSessions] = useState([]);
+  const [reviewSessionId, setReviewSessionId] = useState(null);
+  const [interviewerQuestions, setInterviewerQuestions] = useState([]);
+  const [experienceLevel, setExperienceLevel] = useState('mid');
+  const [sessionToken, setSessionToken] = useState(null);
+
  const [errorToast, setErrorToast] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -113,6 +126,8 @@ export default function InterviewDetailPage() {
         router.push('/dashboard');
         return;
       }
+      // Held for the practice routes, which post rather than read through RLS.
+      setSessionToken(session.access_token);
 
       const res = await fetch(`/api/power-analysis/get?jobCardId=${params.id}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -225,6 +240,57 @@ export default function InterviewDetailPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ============================================================================
+  // PRACTICE STEP DATA
+  // Loaded when the step is first opened rather than on every page load: none
+  // of it is needed until the candidate is actually practicing.
+  // ============================================================================
+  useEffect(() => {
+    if (currentStep !== 'practice' || !user?.id) return;
+    let cancelled = false;
+
+    async function loadPracticeData() {
+      // Completed sessions for the history list.
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('interview_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('job_card_id', params.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+      if (!cancelled) {
+        if (sessionsError) console.error('Past practice sessions load failed:', sessionsError);
+        else setPastPracticeSessions(sessions || []);
+      }
+
+      // The candidate's own questions, for the closer.
+      if (powerAnalysis?.id) {
+        const { data: questions, error: questionsError } = await supabase
+          .from('interviewer_questions_selected')
+          .select('*')
+          .eq('power_analysis_id', powerAnalysis.id)
+          .eq('user_id', user.id)
+          .order('order_index', { ascending: true });
+        if (!cancelled) {
+          if (questionsError) console.error('Interviewer questions load failed:', questionsError);
+          else setInterviewerQuestions(questions || []);
+        }
+      }
+
+      // Display only. The route re-derives the level server side.
+      const { data: context } = await supabase
+        .from('career_context')
+        .select('experience_level')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!cancelled && context?.experience_level) setExperienceLevel(context.experience_level);
+    }
+
+    loadPracticeData();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, user?.id, powerAnalysis?.id, params.id]);
 
   // Auto-generate Power Analysis on first landing if none exists
   useEffect(() => {
@@ -881,8 +947,23 @@ export default function InterviewDetailPage() {
                 />
               )}
 
+              {/* PRACTICE — session history and live progress. */}
+              {currentStep === 'practice' && (
+                <PracticeLeftPanel
+                  sessionState={practiceShape.state}
+                  sessionData={practiceShape}
+                  completionData={practiceShape.completion}
+                  pastSessions={pastPracticeSessions}
+                  onSelectSession={(s) => setReviewSessionId(s.id)}
+                  onStartNew={() => {
+                    setReviewSessionId(null);
+                    setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
+                  }}
+                />
+              )}
+
               {/* BUCKETS */}
-              {hasPA && currentStep !== 'research' && currentStep !== 'prepare' && (() => {
+              {hasPA && currentStep !== 'research' && currentStep !== 'prepare' && currentStep !== 'practice' && (() => {
                 // 'practice' falls through to 'normal' — the buckets stay
                 // browsable there, they just aren't driving the step. 'research'
                 // and 'prepare' never reach this, since they render instead of
@@ -1063,9 +1144,18 @@ export default function InterviewDetailPage() {
               )}
 
               {currentStep === 'practice' && (
-                <PracticeStepContent
-                  storiesCoached={stories.filter(s => s.coachingComplete).length}
+                <PracticeView
+                  jobCardId={params.id}
+                  powerAnalysisId={powerAnalysis?.id}
+                  userId={user?.id}
+                  sessionToken={sessionToken}
+                  isPro={isPro}
+                  experienceLevel={experienceLevel}
+                  interviewerQuestions={interviewerQuestions}
+                  reviewSessionId={reviewSessionId}
                   onBack={() => goToStep('prepare')}
+                  onSessionChange={setPracticeShape}
+                  onError={setErrorToast}
                 />
               )}
 
@@ -1447,44 +1537,6 @@ function ChecklistGroup({ title, itemType, items, getNameField, batchChecks, isI
           );
         })}
       </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// PRACTICE STEP CONTENT
-// ============================================================================
-
-function PracticeStepContent({ storiesCoached, onBack }) {
-  return (
-    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
-      <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Interview practice is coming soon. You'll be able to run a mock interview using your coached stories.
-      </p>
-      {storiesCoached > 0 ? (
-        <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded-r">
-          <p className="text-xs text-green-800 font-medium leading-snug">
-            {storiesCoached} {storiesCoached === 1 ? 'story' : 'stories'} ready for practice.
-          </p>
-        </div>
-      ) : (
-        <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-          <p className="text-xs text-gray-700 leading-snug">Coach at least one story to prepare your answers before practice.</p>
-        </div>
-      )}
-      {/* Feedback is step 6 and isn't built. The button holds its place in the
-          layout, disabled, rather than navigating to a step with no panel
-          behind it and stranding the user on a blank column. */}
-      <button
-        disabled
-        title="Feedback is coming soon."
-        className={`mx-auto ${STEP_PRIMARY_CLASS}`}
-        style={STEP_PRIMARY_STYLE}
-      >
-        Go to Feedback
-      </button>
-      <BackLink onClick={onBack} />
     </div>
   );
 }
