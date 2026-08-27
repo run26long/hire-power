@@ -2526,13 +2526,14 @@ function InterviewHeaderStrip({
   );
 
   // The flat steps keep the step title but drop the card, the date widget and
-  // the progress bar. Coaching progress is the one number worth carrying
-  // across all of them, so it rides along as a pill on the right.
+  // the progress bar. The coached count rides along only on the coach step,
+  // where it's the number being worked on; elsewhere it's just noise beside a
+  // heading about something else.
   if (titleOnly) {
     return (
       <div className="flex items-start justify-between gap-3">
         {title}
-        {totalStoryItems > 0 && (
+        {currentStep === 'coach' && totalStoryItems > 0 && (
           <span className="flex-shrink-0 mt-1 text-xs md:text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 whitespace-nowrap">
             {storiesCoached} of {totalStoryItems} stories coached
           </span>
