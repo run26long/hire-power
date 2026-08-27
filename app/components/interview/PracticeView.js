@@ -119,6 +119,18 @@ function AnswerBubble({ text }) {
   );
 }
 
+// Copied verbatim from the page's module-scope BackLink, which is not exported.
+// Every step ends with the same "← Back" link, so this one has to read the same.
+function BackLink({ onClick }) {
+  return (
+    <div className="text-center">
+      <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
+        ← Back
+      </button>
+    </div>
+  );
+}
+
 function ScoreBar({ label, value, max = 100 }) {
   return (
     <div>
@@ -531,14 +543,10 @@ export default function PracticeView({
 
   if (sessionState === 'idle') {
     return (
-      <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <div className="px-5 py-4 space-y-2 flex-1 flex flex-col">
         <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
-        <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-          A mock interview built from your resume, this job description, and the stories you coached.
-          Answer as you would in the room, and you will get feedback on every answer.
-        </p>
 
-        <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#111827' }}>
+        <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#111827' }}>
           Choose Your Interview Mode
         </h4>
 
@@ -551,7 +559,7 @@ export default function PracticeView({
                 type="button"
                 onClick={() => mode.available && setSelectedMode(mode.key)}
                 disabled={!mode.available}
-                className={`text-left bg-white shadow-sm rounded-lg p-4 border transition-all ${
+                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all ${
                   active && mode.available
                     ? 'border-purple-500 bg-purple-50'
                     : 'border-gray-200'
@@ -592,11 +600,7 @@ export default function PracticeView({
 
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
 
-        <div className="text-center">
-          <button onClick={onBack} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
-            ← Back to Prepare
-          </button>
-        </div>
+        <BackLink onClick={onBack} />
       </div>
     );
   }
@@ -712,11 +716,7 @@ export default function PracticeView({
           Practice Again
         </button>
 
-        <div className="text-center">
-          <button onClick={onBack} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
-            ← Back to Prepare
-          </button>
-        </div>
+        <BackLink onClick={onBack} />
       </div>
     );
   }

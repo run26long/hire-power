@@ -790,11 +790,11 @@ export default function InterviewDetailPage() {
   const countdown = formatCountdown(nextInterviewDate);
   const interviewDateIsPast = nextInterviewDate && new Date(nextInterviewDate).getTime() < now;
 
-  // Analyze, coach, research and prepare share one chrome: title and step
-  // counter only, content flush to the breadcrumb, no white card wrapping the
-  // working surface. Practice keeps the full header card, since it's the step
-  // where the interview date and coaching progress still drive the decision.
-  const flatStep = currentStep !== 'practice';
+  // Every step shares one chrome: title and step counter only, content flush to
+  // the breadcrumb, no white card wrapping the working surface. Practice used to
+  // keep the full header card for the interview date and coaching progress, but
+  // now that the step carries its own session panel the card only competed with it.
+  const flatStep = true;
 
   // Research and Prepare have nothing to finish, so reaching them is what
   // counts. Measured against the high-water mark rather than the current step,

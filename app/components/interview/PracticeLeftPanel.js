@@ -142,9 +142,9 @@ export default function PracticeLeftPanel({
     return (
       <div className="space-y-3">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
-            <h3 className="text-lg font-semibold text-gray-900">In Progress</h3>
+            <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
           </div>
 
           <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
@@ -176,7 +176,7 @@ export default function PracticeLeftPanel({
     return (
       <div className="space-y-3">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Session Results</h3>
+          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Session Results</h4>
 
           <div className="grid grid-cols-2 gap-2 mb-3">
             <StatTile label="Structure" value={summary.avg_score_structure ?? 0} />
@@ -198,7 +198,7 @@ export default function PracticeLeftPanel({
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Practice Sessions</h3>
+          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
           <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function PracticeLeftPanel({
   return (
     <div className="space-y-3">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Practice Sessions</h3>
+        <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
         <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
       </div>
     </div>
