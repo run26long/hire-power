@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../../components/MainNav';
 import Breadcrumb from '../../components/Breadcrumb';
@@ -11,20 +11,16 @@ import UpgradeModal from '../../components/UpgradeModal';
 
 const VALID_STEPS = ['analyze', 'coach', 'research', 'prepare', 'practice'];
 
-// The hub links by anchor, and its names differ from the step keys. Every
-// anchor it can produce has to appear here or the jump is silently ignored.
-const STEP_FROM_ANCHOR = {
-  'power-analysis': 'analyze',
-  coaching: 'coach',
-  research: 'research',
-  prepare: 'prepare',
-  practice: 'practice',
-};
-
 export default function InterviewDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // ?step= from the hub. Available on the first render, so nothing has to race
+  // the load to read it. Ignored unless it names a real step.
+  const requestedStep = searchParams.get('step');
+  const jumpStep = VALID_STEPS.includes(requestedStep) ? requestedStep : null;
 
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -75,8 +71,9 @@ export default function InterviewDetailPage() {
 
   const messagesEndRef = useRef(null);
   const coachInputRef = useRef(null);
-  // Step the hub asked for via the URL hash, held until the load finishes.
-  const pendingJumpRef = useRef(null);
+  // The jump is a one-shot. Without this, any later change to powerAnalysis
+  // would re-run the effect and yank the view back to the requested step.
+  const jumpAppliedRef = useRef(false);
 
   // Step completion derived from real data, not cursor position
   const analyzeComplete = !!powerAnalysis;
@@ -193,11 +190,11 @@ export default function InterviewDetailPage() {
       // so the two stay in agreement. interview_step is the older fallback.
       //
       // Skipped entirely when the hub asked for a specific step: restoring here
-      // and letting the hash effect correct it afterwards left the outcome to
-      // whichever render won, which is the race that made jumps land on the
-      // saved step instead of the chosen one.
+      // and correcting it afterwards left the outcome to whichever render won,
+      // which is the race that made jumps land on the saved step instead of the
+      // chosen one.
       const savedStep = data.powerAnalysis?.current_step || data.jobCard?.interview_step;
-      if (!pendingJumpRef.current && VALID_STEPS.includes(savedStep)) {
+      if (!jumpStep && VALID_STEPS.includes(savedStep)) {
         setCurrentStep(savedStep);
       }
 
@@ -222,21 +219,11 @@ export default function InterviewDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [params.id, retryCount, router, supabase]);
+  }, [params.id, retryCount, router, supabase, jumpStep]);
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Capture the hub's jump target on mount, before loadData's first await
-  // resolves. Reading the hash later means racing the load, and the load wins
-  // often enough that the jump looked like it was being ignored.
-  useEffect(() => {
-    const hash = window.location.hash.replace('#', '');
-    pendingJumpRef.current = STEP_FROM_ANCHOR[hash] || null;
-    // Clear it straight away so a refresh doesn't re-jump.
-    if (hash) window.history.replaceState(null, '', window.location.pathname);
   }, []);
 
   // Auto-generate Power Analysis on first landing if none exists
@@ -251,13 +238,15 @@ export default function InterviewDetailPage() {
   // backward jump to revisit a finished step, so it must not write current_step
   // or highest_step_reached. The saved position stays whatever it was.
   useEffect(() => {
-    if (loading || !hasPA) return;
-    const jumpTo = pendingJumpRef.current;
-    if (!jumpTo) return;
-    pendingJumpRef.current = null;
-    setCurrentStep(jumpTo);
+    if (loading || !hasPA || !jumpStep || jumpAppliedRef.current) return;
+    jumpAppliedRef.current = true;
+    setCurrentStep(jumpStep);
+    // Drop the param so a refresh lands on the saved step instead of jumping
+    // again. replaceState rather than router.replace: this is tidying the URL,
+    // not a navigation, and it shouldn't re-render the tree.
+    window.history.replaceState(null, '', window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, powerAnalysis]);
+  }, [loading, powerAnalysis, jumpStep]);
 
   // Find next upcoming interview event, or fall back to most recent past event
   const nextInterviewEvent = (() => {

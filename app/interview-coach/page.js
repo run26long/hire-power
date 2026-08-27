@@ -1109,15 +1109,6 @@ export default function MyInterviewsPage() {
 // the recommended next step after practice.
 const FEEDBACK_STEP_BUILT = false;
 
-const STEP_ANCHORS = {
-  analysis: 'power-analysis',
-  coaching: 'coaching',
-  research: 'research',
-  prepare: 'prepare',
-  practice: 'practice',
-  feedback: 'feedback',
-};
-
 // The detail page names its steps differently from the card's dropdown keys,
 // so current_step is translated on the way in rather than renaming either side.
 const STEP_FROM_DETAIL = {
@@ -1205,9 +1196,15 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
     })
     .filter(step => step.key !== primaryStep);
 
-  const goToDetail = (e, anchor) => {
+  // A query param rather than a fragment: the App Router keeps search params
+  // across a push and exposes them synchronously, where a hash had to be read
+  // from window after mount and raced the detail page's own load.
+  const goToDetail = (e, stepKey) => {
     if (e) e.stopPropagation();
-    const url = anchor ? `/interview/${card.jobCardId}#${anchor}` : `/interview/${card.jobCardId}`;
+    const step = STEP_TO_DETAIL[stepKey];
+    const url = step
+      ? `/interview/${card.jobCardId}?step=${step}`
+      : `/interview/${card.jobCardId}`;
     router.push(url);
   };
 
@@ -1266,7 +1263,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
           </span>
 
           <button
-            onClick={(e) => { setNavigatingTo(primaryStep); goToDetail(e, STEP_ANCHORS[primaryStep]); }}
+            onClick={(e) => { setNavigatingTo(primaryStep); goToDetail(e, primaryStep); }}
             disabled={!!navigatingTo}
             className={`flex-shrink-0 rounded-md py-1.5 font-semibold text-white whitespace-nowrap flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 ${
               compact ? 'px-4 text-xs md:text-[11px]' : 'px-6 text-sm md:text-xs'
@@ -1290,7 +1287,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
               const key = e.target.value;
               if (!key) return;
               setNavigatingTo(key);
-              goToDetail(e, STEP_ANCHORS[key]);
+              goToDetail(e, key);
             }}
             disabled={!!navigatingTo}
             className={`flex-shrink-0 border border-gray-300 bg-white rounded-md py-1.5 text-gray-600 cursor-pointer hover:bg-gray-100 focus:outline-none disabled:opacity-50 ${
