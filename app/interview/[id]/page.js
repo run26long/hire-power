@@ -2348,10 +2348,18 @@ function HeaderToolkit({ jobCardId, powerAnalysisId }) {
 
   const disabled = checkedCount === 0 || buildingPdf || !jobCardId;
 
-  // self-center rather than the parent's items-start: the title beside it runs
-  // two lines, and top-aligning a single row against it reads as a mistake.
+  // self-center rather than the parent's items-start: this block and the title
+  // beside it are different heights, and aligning them by their tops leaves
+  // whichever is shorter hanging.
   return (
     <div className="flex-shrink-0 self-center">
+      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>
+        📋 Interview Toolkit
+      </p>
+      <p className="text-[10px] text-gray-500 mb-1">
+        Check sections to include in your printout.
+      </p>
+
       <div className="flex items-center gap-3">
         <button
           type="button"
