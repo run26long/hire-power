@@ -882,7 +882,7 @@ export default function PracticeView({
         {answeredCount > 0 && (
           <div className="text-center">
             <button onClick={endEarly} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-              End Interview Early
+              End Interview
             </button>
           </div>
         )}

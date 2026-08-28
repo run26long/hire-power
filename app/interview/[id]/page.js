@@ -889,6 +889,7 @@ export default function InterviewDetailPage() {
                   company={jobCard.company}
                   jobCardId={params.id}
                   powerAnalysisId={powerAnalysis?.id}
+                  candidateName={userProfile?.display_name}
                 />
               )}
 
@@ -1131,8 +1132,6 @@ export default function InterviewDetailPage() {
                   onEnd={handleEndCoaching}
                   onGoToPractice={handleGoToPractice}
                   onAdvanceBatch={handleAdvanceBatch}
-                  onGoToResearch={() => { handleEndCoaching(); goToResearchFromCoach(); }}
-                  onBack={() => goToStep('analyze')}
                   messagesEndRef={messagesEndRef}
                   coachInputRef={coachInputRef}
                 />
@@ -1958,7 +1957,7 @@ function CoachingView({
   activeStory, coachingMessages, completedStoryCount, coachInput, setCoachInput,
   coachSending, coachStarting, coachError,
   batchQueue, batchPosition, batchJustCompleted,
-  onSend, onEnd, onGoToPractice, onAdvanceBatch, onGoToResearch, onBack,
+  onSend, onEnd, onGoToPractice, onAdvanceBatch,
   messagesEndRef, coachInputRef
 }) {
   const isBatch = batchQueue.length > 0;
@@ -2140,21 +2139,22 @@ function CoachingView({
         <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
 
         {/* Ways out of a conversation the candidate does not want to finish.
-            Both clear the active story, so a later refresh does not reopen it.
-            Hidden once the story is done, where the completion buttons above
-            already carry the navigation. */}
+            Both clear the active story, so a later refresh does not reopen it,
+            and both land back on the idle coach step — the difference is what
+            the candidate means to do next, not where they end up. Neither
+            leaves the step: stepping away is the idle panel's job, and offering
+            it mid-conversation invited an accidental exit. Hidden once the
+            story is done, where the completion buttons above already carry the
+            navigation. */}
         {activeStory && !batchJustCompleted && (
-          <div className="space-y-2 pt-1">
-            <div className="text-center">
-              <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-                Coach Another Story
-              </button>
-              <span className="text-xs text-gray-300 mx-2">·</span>
-              <button onClick={onGoToResearch} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-                Go to Research →
-              </button>
-            </div>
-            <BackLink onClick={onBack} />
+          <div className="text-center pt-1">
+            <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+              Coach Another Story
+            </button>
+            <span className="text-xs text-gray-300 mx-2">·</span>
+            <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+              End Coaching
+            </button>
           </div>
         )}
       </div>
@@ -2285,7 +2285,7 @@ function KitCheckbox({ checked, onChange, label }) {
 // Rides in the header rather than owning a card: on the practice step the
 // title leaves the whole right side empty, and the kit is a thing you reach
 // for once mid-interview, not a surface to work on.
-function HeaderToolkit({ jobCardId, powerAnalysisId }) {
+function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
   const supabase = createClient();
   const [selected, setSelected] = useState({});
   const [buildingPdf, setBuildingPdf] = useState(false);
@@ -2336,7 +2336,15 @@ function HeaderToolkit({ jobCardId, powerAnalysisId }) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'Interview Kit.pdf';
+      // Underscored the way the resume and cover letter downloads name theirs,
+      // so a candidate's downloads folder sorts them together. Either part can
+      // be missing, so the name is built from whatever is actually there
+      // rather than leaving an empty segment behind.
+      link.download = `${[
+        'Interview_Kit',
+        candidateName?.trim().replace(/\s+/g, '_'),
+        company?.trim().replace(/\s+/g, '_')
+      ].filter(Boolean).join('_')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -2411,7 +2419,7 @@ function HeaderToolkit({ jobCardId, powerAnalysisId }) {
 function InterviewHeaderStrip({
   storiesCoached, totalStoryItems,
   interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company,
-  jobCardId, powerAnalysisId
+  jobCardId, powerAnalysisId, candidateName
 }) {
   const hasDate = !!interviewDate;
   const dateObj = hasDate ? new Date(interviewDate) : null;
@@ -2456,7 +2464,12 @@ function InterviewHeaderStrip({
           </span>
         )}
         {currentStep === 'practice' && (
-          <HeaderToolkit jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
+          <HeaderToolkit
+            jobCardId={jobCardId}
+            powerAnalysisId={powerAnalysisId}
+            candidateName={candidateName}
+            company={company}
+          />
         )}
       </div>
     );
