@@ -619,7 +619,7 @@ export default function PracticeView({
               onClick={() => router.push('/interview-coach')}
               className="text-sm md:text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap"
             >
-              Return to Interview Coach →
+              Return to Interview Coach
             </button>
           </div>
         </div>
