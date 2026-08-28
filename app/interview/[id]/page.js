@@ -2249,12 +2249,14 @@ function StoryModal({ story, onClose }) {
 // Responsive: stacks vertically on mobile with date+progress side-by-side below title.
 // ============================================================================
 
-// The kit checklist. Keys are what the PDF template gates each section on.
+// The kit checklist. Keys are what the PDF template gates each section on, and
+// the order here is the order the sections print in, so ticking down the list
+// reads the same way the printout does.
 const KIT_ITEMS = [
-  { key: 'jobDescription', label: 'Job Description' },
-  { key: 'questions', label: 'Questions for Interviewer' },
   { key: 'stories', label: 'STAR Stories' },
-  { key: 'highlights', label: 'Company Highlights' }
+  { key: 'highlights', label: 'Company Highlights' },
+  { key: 'questions', label: 'Questions for Interviewer' },
+  { key: 'jobDescription', label: 'Job Description' }
 ];
 
 function KitCheckbox({ checked, onChange, label }) {

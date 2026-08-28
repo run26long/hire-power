@@ -17,6 +17,10 @@ import { apiError } from '@/lib/apiError';
 // a button most candidates press once.
 // ============================================================================
 
+// How many stories the kit prints, and the order the buckets print in.
+const MAX_KIT_STORIES = 3;
+const BUCKET_ORDER = { core_power: 0, hidden_power: 1, power_gap: 2 };
+
 // Long prose fields are written as paragraphs. The highlights list wants one
 // line each, so take the opening sentence and leave the rest.
 function firstSentence(text) {
@@ -102,7 +106,18 @@ export async function POST(request) {
         .eq('user_id', user.id)
         .eq('coaching_complete', true)
         .order('item_index', { ascending: true });
-      storyRows = data || [];
+
+      // Capped at three. This is a page the candidate skims in a corridor five
+      // minutes before the interview, and a dozen stories is a document nobody
+      // reads. Core Power first, since those are the items the analysis says to
+      // lead with; gaps last, since they only come up if asked.
+      storyRows = (data || [])
+        .slice()
+        .sort((a, b) =>
+          (BUCKET_ORDER[a.item_type] ?? 99) - (BUCKET_ORDER[b.item_type] ?? 99)
+          || (a.item_index ?? 0) - (b.item_index ?? 0)
+        )
+        .slice(0, MAX_KIT_STORIES);
     }
 
     const coachedStories = (storyRows || []).map(row => ({

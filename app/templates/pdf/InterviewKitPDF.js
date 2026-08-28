@@ -98,6 +98,16 @@ const styles = StyleSheet.create({
     fontWeight: 700,
     marginBottom: 2,
   },
+  // Sits above the story title in the accent, the same micro-caps treatment
+  // the section headers use, a step down in size.
+  bucketTag: {
+    fontSize: 8,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: ACCENT,
+    marginBottom: 1,
+  },
   block: {
     marginBottom: 10,
   },
@@ -132,6 +142,19 @@ function toParagraphs(text) {
     .split(/\n\s*\n/)
     .map(p => p.replace(/\s*\n\s*/g, ' ').trim())
     .filter(Boolean)
+}
+
+// Which bucket of the Power Analysis a story came from. Printed on the story
+// so the candidate knows what they're holding: something to lead with, to
+// reframe, or to have an answer ready for.
+const BUCKET_LABELS = {
+  core_power: 'Core Power',
+  hidden_power: 'Hidden Power',
+  power_gap: 'Power Gap',
+}
+
+function bucketLabel(itemType) {
+  return BUCKET_LABELS[itemType] || null
 }
 
 // polishedStory is what coaching writes when a story completes. The raw STAR
@@ -188,6 +211,9 @@ export default function InterviewKitPDF({
           <Section title="STAR Stories">
             {coachedStories.map(story => (
               <View key={story.id} style={styles.block}>
+                {bucketLabel(story.itemType) ? (
+                  <Text style={styles.bucketTag}>{bucketLabel(story.itemType)}</Text>
+                ) : null}
                 <Text style={styles.bold}>
                   {storyTitleFor ? storyTitleFor(story) : (story.itemSkill || 'Untitled story')}
                 </Text>
