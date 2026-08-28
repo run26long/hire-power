@@ -163,7 +163,6 @@ export default function PracticeView({
   userId,
   isPro,
   experienceLevel,
-  interviewerQuestions = [],
   reviewSessionId = null,
   onBack,
   onSessionChange = () => {},
@@ -192,7 +191,6 @@ export default function PracticeView({
   const [resuming, setResuming] = useState(true);
 
   const [input, setInput] = useState('');
-  const [closerMessages, setCloserMessages] = useState([]);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -224,7 +222,7 @@ export default function PracticeView({
 
   useEffect(() => {
     if (sessionState === 'active') messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [questions, currentIndex, closerMessages, sessionState]);
+  }, [questions, currentIndex, sessionState]);
 
   useEffect(() => {
     if (sessionState === 'active' && !sending) inputRef.current?.focus({ preventScroll: true });
@@ -272,10 +270,13 @@ export default function PracticeView({
 
         // Pick up at the first unanswered question. Everything before it renders
         // above with whatever feedback it already earned.
+        // Nothing pending means they answered everything and left before
+        // submitting, so they come back to the wrap-up rather than to the last
+        // question they already answered.
         const pendingAt = rows.findIndex(q => q.evaluation_status !== 'scored' && !q.user_answer_text);
         setSession(data);
         setQuestions(rows);
-        setCurrentIndex(pendingAt === -1 ? Math.max(0, rows.length - 1) : pendingAt);
+        setCurrentIndex(pendingAt === -1 ? rows.length : pendingAt);
         setSessionState('active');
       } catch (err) {
         console.error('Practice session resume failed:', err);
@@ -312,7 +313,7 @@ export default function PracticeView({
         setCompletion({
           session_summary: {
             status: data.status,
-            questions_scored: rows.filter(q => q.evaluation_status === 'scored' && q.question_source !== 'closer').length,
+            questions_scored: rows.filter(q => q.evaluation_status === 'scored').length,
             questions_failed: rows.filter(q => q.evaluation_status === 'failed').length,
             avg_score_structure: data.avg_score_structure ?? 0,
             avg_score_content: data.avg_score_content ?? 0,
@@ -389,7 +390,6 @@ export default function PracticeView({
       });
       setQuestions(rows);
       setCurrentIndex(0);
-      setCloserMessages([]);
       setCompletion(null);
       setSessionState('active');
     } catch (err) {
@@ -402,22 +402,15 @@ export default function PracticeView({
 
   // ── ANSWER ──
   const current = questions[currentIndex] || null;
-  const isCloser = current?.question_source === 'closer';
-  const answeredCount = questions.filter(q => q.user_answer_text && q.question_source !== 'closer').length;
-  const scoredCount = questions.filter(q => q.evaluation_status === 'scored' && q.question_source !== 'closer').length;
+  // Past the last question: every answer is in and the interview is over but
+  // not yet submitted.
+  const interviewDone = questions.length > 0 && currentIndex >= questions.length;
+  const answeredCount = questions.filter(q => q.user_answer_text).length;
+  const scoredCount = questions.filter(q => q.evaluation_status === 'scored').length;
 
   const submitAnswer = async () => {
     const text = input.trim();
     if (!text || !current || sending) return;
-
-    // The closer is a conversation, not a graded answer. It never goes to the
-    // evaluator, which is also why complete-session leaves it out of the average.
-    if (isCloser) {
-      setCloserMessages(prev => [...prev, text]);
-      setInput('');
-      if (inputRef.current) inputRef.current.style.height = 'auto';
-      return;
-    }
 
     // Ahead of the optimistic update, so a dead session leaves the answer in the
     // box to retry after refreshing rather than clearing it into nowhere.
@@ -488,8 +481,10 @@ export default function PracticeView({
     }
   };
 
+  // Runs one past the last question on purpose: that index is the wrap-up,
+  // where the interview is over and the only thing left is to submit it.
   const advance = () => {
-    setCurrentIndex(i => Math.min(i + 1, questions.length - 1));
+    setCurrentIndex(i => Math.min(i + 1, questions.length));
   };
 
   // ── COMPLETE ──
@@ -507,7 +502,8 @@ export default function PracticeView({
         },
         body: JSON.stringify({
           session_id: session.id,
-          closer_participated: closerMessages.length > 0
+          // No closer any more, so no bonus to earn.
+          closer_participated: false
         })
       });
 
@@ -533,7 +529,6 @@ export default function PracticeView({
     setQuestions([]);
     setCurrentIndex(0);
     setCompletion(null);
-    setCloserMessages([]);
     setInput('');
     setSessionState('idle');
   };
@@ -640,7 +635,7 @@ export default function PracticeView({
   // ==========================================================================
 
   if (sessionState === 'completed' && completion) {
-    const scored = questions.filter(q => q.question_source !== 'closer');
+    const scored = questions;
     const isFailed = (q) => q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry';
 
     // A failed evaluation is our problem, not the candidate's, so it is held
@@ -707,12 +702,7 @@ export default function PracticeView({
   // STATE 2 — MID-SESSION
   // ==========================================================================
 
-  const total = questions.length;
   const currentAnswered = !!current?.user_answer_text;
-  const currentEvaluated = current?.evaluation_status === 'scored'
-    || current?.evaluation_status === 'failed'
-    || current?.evaluation_status === 'needs_retry';
-  const isLastQuestion = currentIndex >= total - 1;
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -731,38 +721,11 @@ export default function PracticeView({
             </div>
           ))}
 
-          {/* Closer: prepared questions + the user's own asks */}
-          {isCloser && (
-            <div className="space-y-2">
-              {closerMessages.map((msg, i) => <AnswerBubble key={i} text={msg} />)}
-
-              <p className="text-xs md:text-[10px] font-semibold text-gray-500 uppercase tracking-wide mt-3">
-                Your Prepared Questions
-              </p>
-              {interviewerQuestions.length > 0 ? (
-                <div className="space-y-2">
-                  {interviewerQuestions.map((q, i) => (
-                    <button
-                      key={q.id || i}
-                      type="button"
-                      onClick={() => {
-                        setInput(q.tailored_text || q.original_text || '');
-                        inputRef.current?.focus();
-                      }}
-                      className="w-full text-left bg-purple-50 border border-purple-200 rounded-lg p-3 cursor-pointer hover:border-purple-400 transition-all"
-                    >
-                      <p className="text-sm md:text-xs text-gray-800 leading-snug">
-                        {q.tailored_text || q.original_text}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm md:text-xs text-gray-400">
-                  No prepared questions yet. Type anything you would want to ask.
-                </p>
-              )}
-            </div>
+          {/* WRAP-UP — the interviewer signs off in the transcript rather than
+              asking an eleventh question. Their own questions live on the left,
+              where they can be read without being scored on them. */}
+          {interviewDone && (
+            <InterviewerBubble text="That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready." />
           )}
 
           {sending && (
@@ -787,11 +750,11 @@ export default function PracticeView({
 
         {/* Advancing is automatic once an answer is scored, so the only button
             here is the one that ends the interview. */}
-        {(isCloser || (currentEvaluated && isLastQuestion)) && (
+        {interviewDone && (
           <button
             onClick={completeSession}
-            disabled={completing || (isCloser && closerMessages.length === 0 && scoredCount === 0)}
-            className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 mb-2"
+            disabled={completing || scoredCount === 0}
+            className="mx-auto block text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 mb-2"
             style={GRADIENT}
           >
             {completing && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
@@ -799,8 +762,10 @@ export default function PracticeView({
           </button>
         )}
 
-        {/* Input */}
-        {(!currentAnswered || isCloser) && (
+        {/* Input. Gone once the last answer is in: there is nothing left to
+            type, and an empty box beside the wrap-up invites an answer that
+            has nowhere to go. */}
+        {!interviewDone && !currentAnswered && (
           <>
             <div className="flex gap-2 items-end">
               <textarea
@@ -825,7 +790,7 @@ export default function PracticeView({
                     submitAnswer();
                   }
                 }}
-                placeholder={isCloser ? 'Ask your question...' : 'Type your answer...'}
+                placeholder="Type your answer..."
                 disabled={sending}
                 rows={2}
                 className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"

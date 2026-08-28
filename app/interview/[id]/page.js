@@ -1152,7 +1152,6 @@ export default function InterviewDetailPage() {
                   userId={user?.id}
                   isPro={isPro}
                   experienceLevel={experienceLevel}
-                  interviewerQuestions={interviewerQuestions}
                   reviewSessionId={reviewSessionId}
                   onBack={() => goToStep('research')}
                   onSessionChange={setPracticeShape}

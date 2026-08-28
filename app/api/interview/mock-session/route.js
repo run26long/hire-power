@@ -16,7 +16,7 @@ const BANK_COUNTS = { free_trial: 1, pro_practice: 2 };
 const VALID_SESSION_TYPES = ['free_trial', 'pro_practice'];
 const VALID_VOICE_MODES = ['mode_1', 'mode_2', 'mode_3'];
 const VALID_LEVELS = ['entry', 'mid', 'senior'];
-const VALID_SOURCES = ['warmup', 'resume', 'jd', 'behavioral_bank', 'closer'];
+const VALID_SOURCES = ['warmup', 'resume', 'jd', 'behavioral_bank'];
 
 // ============================================================================
 // QUESTION GENERATION — SYSTEM PROMPT
@@ -51,9 +51,9 @@ BEHAVIORAL BANK QUESTIONS (2 for a 10-question session, 1 for a 5-question sessi
 - You may tailor the wording slightly to fit the role and company context, but keep the core question intact
 - Return the bank question's ID in bank_question_id
 
-CLOSER (always the last question):
-- The final question must always be a natural variant of "Do you have any questions for me about the role or the company?"
-- Make it conversational, not robotic
+Every question you generate is answered and scored. Do not end with "do you have
+any questions for me" or any other question that invites the candidate to
+interview you. The candidate practises their own questions elsewhere.
 
 SENIORITY CALIBRATION:
 You will be told the candidate's level (entry, mid, or senior). Calibrate accordingly:
@@ -69,7 +69,7 @@ You will be given a list of skills the candidate has already drilled in coaching
 
 QUESTION QUALITY RULES:
 - Each question must test a different skill or competency. No duplicates.
-- Escalate difficulty: warmup first, standard questions in the middle, more challenging questions before the closer.
+- Escalate difficulty: warmup first, standard questions in the middle, the most challenging questions last.
 - Never reference "Power Analysis," "Core Power," "Hidden Power," "Power Gaps," or any Hire Power internal concepts.
 - Never reference coaching, practice, or the fact that this is a simulation.
 - Write as a real interviewer who spent 5 minutes reviewing this resume and JD.
@@ -83,7 +83,7 @@ Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
   "questions": [
     {
       "question_text": "the interview question",
-      "question_source": "warmup" | "resume" | "jd" | "behavioral_bank" | "closer",
+      "question_source": "warmup" | "resume" | "jd" | "behavioral_bank",
       "targets_skills": ["skill1", "skill2"],
       "difficulty": 1 | 2 | 3,
       "bank_question_id": "uuid or null",
@@ -167,8 +167,8 @@ Generate exactly ${questionCount} interview questions.`;
 // NORMALIZATION
 // The model picks bank ids out of the list it was handed, so an id that isn't
 // in the bank is a hallucination and would write a dangling foreign key. Drop
-// those to null. Warmup leads and closer trails regardless of what order the
-// model returned them in, because order_index drives the interview flow.
+// those to null. Warmup leads regardless of what order the model returned them
+// in, because order_index drives the interview flow.
 // ============================================================================
 
 function normalizeQuestions(parsed, { bankIds, questionCount }) {
@@ -193,10 +193,9 @@ function normalizeQuestions(parsed, { bankIds, questionCount }) {
     .slice(0, questionCount);
 
   const warmups = clean.filter(q => q.question_source === 'warmup');
-  const closers = clean.filter(q => q.question_source === 'closer');
-  const middle = clean.filter(q => q.question_source !== 'warmup' && q.question_source !== 'closer');
+  const rest = clean.filter(q => q.question_source !== 'warmup');
 
-  return [...warmups, ...middle, ...closers];
+  return [...warmups, ...rest];
 }
 
 // ============================================================================
