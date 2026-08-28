@@ -643,7 +643,7 @@ export default function PracticeView({
         )}
 
         <div className="bg-white rounded-lg space-y-3">
-          <ScoreBar label="Structure" value={summary.avg_score_structure ?? 0} />
+          <ScoreBar label="Clarity" value={summary.avg_score_structure ?? 0} />
           <ScoreBar label="Content" value={summary.avg_score_content ?? 0} />
         </div>
 
@@ -686,7 +686,7 @@ export default function PracticeView({
                     <p className="text-xs text-gray-400">Evaluation unavailable</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      <ScorePill label="Structure" value={q.score_structure ?? 0} />
+                      <ScorePill label="Clarity" value={q.score_structure ?? 0} />
                       <ScorePill label="Content" value={q.score_content ?? 0} />
                     </div>
                   )}
@@ -701,7 +701,7 @@ export default function PracticeView({
                       )}
                       {!failed && (
                         <>
-                          <FeedbackBlock label="Structure" body={q.feedback_structure} />
+                          <FeedbackBlock label="Clarity" body={q.feedback_structure} />
                           <FeedbackBlock label="Content" body={q.feedback_content} />
                         </>
                       )}

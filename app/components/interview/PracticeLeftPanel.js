@@ -228,7 +228,7 @@ export default function PracticeLeftPanel({
           <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Session Results</h4>
 
           <div className="grid grid-cols-2 gap-2 mb-3">
-            <StatTile label="Structure" value={summary.avg_score_structure ?? 0} />
+            <StatTile label="Clarity" value={summary.avg_score_structure ?? 0} />
             <StatTile label="Content" value={summary.avg_score_content ?? 0} />
           </div>
 

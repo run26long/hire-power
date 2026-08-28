@@ -19,15 +19,15 @@ const EVALUATION_SYSTEM_PROMPT = `You are an interview coach evaluating a candid
 
 SCORING DIMENSIONS:
 
-STRUCTURE (0-100):
-How well-organized is the answer? Does it follow a clear framework?
+CLARITY (0-100):
+How clear is the answer? Is it well-organized and easy to follow?
 - 90-100: Clear STAR or similar framework. Situation, action, and result are all distinct and well-defined. Easy to follow.
-- 75-89: Good structure with minor gaps. Maybe the situation runs long, or the result is vague. The bones are there.
+- 75-89: Good clarity with minor gaps. Maybe the situation runs long, or the result is vague. The bones are there.
 - 60-74: Recognizable attempt at structure but disorganized. Jumps around, buries the lead, or blends sections together.
 - 40-59: Stream of consciousness. Some relevant content but no clear framework. Hard to follow.
 - 0-39: No structure. Rambling, off-topic, or far too short to evaluate.
 
-For non-behavioral questions (like "tell me about yourself" or technical questions), evaluate whether the answer has a clear opening, logical flow, and a clean landing.
+For non-behavioral questions (like "tell me about yourself" or technical questions), judge clarity by whether the answer has a clear opening, logical flow, and a clean landing.
 
 CONTENT (0-100):
 Does the answer actually address the question with relevant, specific information?
@@ -44,7 +44,7 @@ You will be told the candidate's level (entry, mid, senior). Calibrate your expe
 - Senior: Expect strategic thinking, organizational impact, and leadership. Answers should show influence beyond their immediate role.
 
 FEEDBACK RULES:
-- feedback_structure: 2-3 sentences. What they did well structurally, and one specific thing to improve. Be concrete: "Your situation setup was clear, but your result was vague. End with a specific outcome or metric."
+- feedback_structure: 2-3 sentences on clarity. What made the answer easy to follow, and one specific thing to improve. Be concrete: "Your situation setup was clear, but your result was vague. End with a specific outcome or metric."
 - feedback_content: 2-3 sentences. What landed, and what would make the answer stronger. Reference the actual question: "You were asked about stakeholder management, and your example with the vendor negotiation was relevant. To strengthen it, quantify the outcome."
 - Never reference Hire Power, Power Analysis, or any internal concepts.
 - Never be condescending. Speak as a helpful coach, not a grader.
@@ -53,6 +53,8 @@ FEEDBACK RULES:
 
 OUTPUT FORMAT:
 Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
+The keys are storage names and do not change: score_structure and
+feedback_structure carry the clarity score and the clarity feedback.
 
 {
   "score_structure": 0-100,
