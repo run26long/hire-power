@@ -573,7 +573,7 @@ export default function PracticeView({
             {
               heading: '💪 Solid Ground',
               color: '#81c784',
-              body: 'Answers scoring 60 to 79. Good foundation with room to sharpen your examples or tighten your delivery.'
+              body: 'Answers scoring 60 to 79. Good foundation with room to sharpen examples or tighten delivery.'
             },
             {
               heading: '🌱 Room to Grow',
