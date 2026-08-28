@@ -5,23 +5,12 @@ import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
 // SHARED VISUALS
-// The score ramp is the platform's, same thresholds the resume score bars use.
-// Gradients stay inline: Tailwind classes carry tints only.
+// Gradients stay inline: Tailwind classes carry tints only. Scoring visuals
+// live in PracticeLeftPanel now — this column runs the interview, the other
+// one reports on it.
 // ============================================================================
 
 const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
-
-function scoreColor(score) {
-  if (score >= 85) return '#9333ea';
-  if (score >= 75) return '#81c784';
-  if (score >= 60) return '#ffc870';
-  return '#e57373';
-}
-
-// Amber is the only fill light enough to need dark text on it.
-function scoreTextClass(score) {
-  return score >= 60 && score < 75 ? 'text-gray-900' : 'text-white';
-}
 
 const MODES = [
   { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers', available: true },
@@ -43,79 +32,6 @@ function formatResetDate(iso) {
 // ============================================================================
 // SMALL PIECES
 // ============================================================================
-
-function ScorePill({ label, value }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs md:text-[10px] font-semibold ${scoreTextClass(value)}`}
-      style={{ backgroundColor: scoreColor(value) }}
-    >
-      {label}: {value}
-    </span>
-  );
-}
-
-function FeedbackBlock({ label, body }) {
-  if (!body) return null;
-  return (
-    <div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className="text-sm md:text-xs text-gray-600 leading-snug">{body}</p>
-    </div>
-  );
-}
-
-// What the result categories sort on. Content carries more weight than
-// clarity: a well-organized answer to the wrong question is still the wrong
-// answer.
-const WEIGHT_CLARITY = 0.40;
-const WEIGHT_CONTENT = 0.60;
-
-function weightedScore(q) {
-  return (q.score_structure ?? 0) * WEIGHT_CLARITY + (q.score_content ?? 0) * WEIGHT_CONTENT;
-}
-
-// Ordered best first. Each claims everything at or above its floor that a
-// category above it has not already taken.
-const RESULT_CATEGORIES = [
-  { key: 'nailed', label: 'Nailed It',    icon: '🎯', color: '#9333ea', card: 'bg-purple-50 border-purple-200', min: 80 },
-  { key: 'solid',  label: 'Solid Ground', icon: '💪', color: '#81c784', card: 'bg-green-50 border-green-200',   min: 60 },
-  { key: 'grow',   label: 'Room to Grow', icon: '🌱', color: '#ffc870', card: 'bg-amber-50 border-amber-200',   min: 0  },
-];
-
-// The answer sits above the scores so the feedback has something to refer to.
-// Reading "your result was vague" is no use without the words that were vague.
-function QuestionResult({ q, failed }) {
-  return (
-    <div>
-      <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
-        {q.question_text}
-      </p>
-
-      {q.user_answer_text && (
-        <div className="mt-1.5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Your answer</p>
-          <p className="text-sm md:text-xs text-gray-700 leading-snug whitespace-pre-line">{q.user_answer_text}</p>
-        </div>
-      )}
-
-      {failed ? (
-        <p className="text-xs text-gray-400 mt-1.5">Evaluation unavailable</p>
-      ) : (
-        <>
-          <div className="flex flex-wrap gap-2 mt-2">
-            <ScorePill label="Clarity" value={q.score_structure ?? 0} />
-            <ScorePill label="Content" value={q.score_content ?? 0} />
-          </div>
-          <div className="space-y-2 mt-2">
-            <FeedbackBlock label="Clarity" body={q.feedback_structure} />
-            <FeedbackBlock label="Content" body={q.feedback_content} />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 function InterviewerBubble({ text }) {
   return (
@@ -635,55 +551,16 @@ export default function PracticeView({
   // ==========================================================================
 
   if (sessionState === 'completed' && completion) {
-    const scored = questions;
-    const isFailed = (q) => q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry';
-
-    // A failed evaluation is our problem, not the candidate's, so it is held
-    // out of Room to Grow rather than filed beside answers they fumbled.
-    const failedQuestions = scored.filter(isFailed);
-    const ranked = scored.filter(q => !isFailed(q)).sort((a, b) => weightedScore(b) - weightedScore(a));
-
-    const grouped = RESULT_CATEGORIES.map(cat => ({
-      ...cat,
-      questions: ranked.filter(q => {
-        const s = weightedScore(q);
-        const above = RESULT_CATEGORIES.filter(c => c.min > cat.min);
-        return s >= cat.min && !above.some(c => s >= c.min);
-      })
-    })).filter(cat => cat.questions.length > 0);
-
     return (
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
         <h3 className="text-lg font-semibold text-gray-900 -mt-3">Interview Complete</h3>
 
-        {grouped.map(cat => (
-          <div key={cat.key} className={`${cat.card} border rounded-lg p-3`}>
-            <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: cat.color }}>
-              {cat.icon} {cat.label}
-            </h4>
-            <div className="space-y-2">
-              {cat.questions.map((q, i) => (
-                <div key={q.id} className={i === 0 ? '' : 'border-t border-gray-200 pt-2'}>
-                  <QuestionResult q={q} failed={false} />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Unlabelled on purpose: there is no verdict to give these, and any
-            heading would imply one. */}
-        {failedQuestions.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg p-3">
-            <div className="space-y-2">
-              {failedQuestions.map((q, i) => (
-                <div key={q.id} className={i === 0 ? '' : 'border-t border-gray-200 pt-2'}>
-                  <QuestionResult q={q} failed />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* The results themselves are the left panel's: sorting ten questions
+            into categories needs the width, and this column is the transcript. */}
+        <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          Your interview results are ready. Review your performance by category on the left,
+          and use the feedback to sharpen your answers for next time.
+        </p>
 
         <button
           onClick={resetToIdle}

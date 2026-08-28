@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 // ============================================================================
 // PRACTICE LEFT PANEL
 // The working surface for the practice step. Mirrors the session the right
@@ -43,6 +45,46 @@ function BackLink({ onClick }) {
   );
 }
 
+// What the categories sort on. Content carries more weight than clarity: a
+// well-organized answer to the wrong question is still the wrong answer.
+const WEIGHT_CLARITY = 0.40;
+const WEIGHT_CONTENT = 0.60;
+
+function weightedScore(q) {
+  return (q.score_structure ?? 0) * WEIGHT_CLARITY + (q.score_content ?? 0) * WEIGHT_CONTENT;
+}
+
+function isFailed(q) {
+  return q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry';
+}
+
+// Amber is the only fill light enough to need dark text on it.
+function scoreTextClass(score) {
+  return score >= 60 && score < 75 ? 'text-gray-900' : 'text-white';
+}
+
+function ScorePill({ label, value }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs md:text-[10px] font-semibold ${scoreTextClass(value)}`}
+      style={{ backgroundColor: scoreColor(value) }}
+    >
+      {label}: {value}
+    </span>
+  );
+}
+
+// The three columns, best first. Structure is the Coach step's BucketColumn;
+// only the palette and the floors differ.
+const RESULT_COLUMNS = [
+  { key: 'nailed', title: 'Nailed It',    icon: '🎯', color: 'purple', min: 80,
+    emptyText: 'Nothing scored 80 or above this time.' },
+  { key: 'solid',  title: 'Solid Ground', icon: '💪', color: 'green',  min: 60,
+    emptyText: 'Nothing landed in this range.' },
+  { key: 'grow',   title: 'Room to Grow', icon: '🌱', color: 'amber',  min: 0,
+    emptyText: 'Nothing fell below 60. Strong session.' },
+];
+
 function formatDate(iso) {
   if (!iso) return '';
   try {
@@ -50,21 +92,6 @@ function formatDate(iso) {
   } catch {
     return '';
   }
-}
-
-function StatTile({ label, value }) {
-  const numeric = Number(value) || 0;
-  return (
-    <div className="flex flex-col items-center justify-center text-center p-3 bg-gray-50 rounded-lg">
-      <span
-        className="text-2xl font-bold"
-        style={{ color: numeric === 0 ? '#d1d5db' : scoreColor(numeric) }}
-      >
-        {numeric === 0 ? '—' : numeric}
-      </span>
-      <p className="text-sm md:text-xs font-medium text-gray-700">{label}</p>
-    </div>
-  );
 }
 
 function SessionRow({ session, onClick }) {
@@ -130,6 +157,275 @@ function SessionList({ sessions, onSelectSession }) {
       {sessions.map(s => (
         <SessionRow key={s.id} session={s} onClick={() => onSelectSession?.(s)} />
       ))}
+    </div>
+  );
+}
+
+// Lifted from the Coach step's BucketColumn: same container, same header row,
+// same item button. Purple joins the palette because the Coach step has no
+// bucket that colour and these categories have always used it. The coach-mode
+// select-all and the coached-story badge are dropped — neither means anything
+// to a finished interview.
+function ResultColumn({ title, icon, colorClass, questions, emptyText, onQuestionClick }) {
+  const colors = {
+    purple: { border: 'border-purple-200', bg: 'bg-purple-50', titleText: 'text-purple-800', countText: 'text-purple-700', emptyText: 'text-purple-700' },
+    green:  { border: 'border-green-200',  bg: 'bg-green-50',  titleText: 'text-green-800',  countText: 'text-green-700',  emptyText: 'text-green-700' },
+    amber:  { border: 'border-amber-200',  bg: 'bg-amber-50',  titleText: 'text-amber-800',  countText: 'text-amber-700',  emptyText: 'text-amber-800' }
+  };
+  const c = colors[colorClass];
+
+  return (
+    <div className={`border ${c.border} rounded-lg p-3 ${c.bg}`}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-base">{icon}</span>
+        <h4 className={`text-sm md:text-xs font-bold ${c.titleText}`}>{title}</h4>
+        <div className="ml-auto flex items-center gap-2">
+          <span className={`text-xs md:text-[10px] ${c.countText} font-semibold`}>{questions.length}</span>
+        </div>
+      </div>
+      {questions.length === 0 ? (
+        <p className={`text-sm md:text-xs ${c.emptyText} italic`}>{emptyText}</p>
+      ) : (
+        <ul className="space-y-2">
+          {questions.map(({ q, number }) => (
+            <li key={q.id}>
+              <button
+                onClick={() => onQuestionClick({ q, number, icon })}
+                className="w-full text-left bg-white rounded p-2 border hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer block"
+                style={{ borderColor: '#ffffff' }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  {/* Clamped because a question runs far longer than the skill
+                      names this card was built for. The full text is a click away. */}
+                  <p className="text-sm md:text-xs font-bold text-gray-900 flex-1 line-clamp-2">
+                    #{number}: {q.question_text}
+                  </p>
+                </div>
+                {isFailed(q) ? (
+                  <p className="text-xs text-gray-400">Evaluation unavailable</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    <ScorePill label="Clarity" value={q.score_structure ?? 0} />
+                    <ScorePill label="Content" value={q.score_content ?? 0} />
+                  </div>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// StoryModal's shell exactly: same backdrop, same max-w-lg 80vh card, same
+// gradient header and close button, same scrollable body.
+function FeedbackModal({ entry, onClose }) {
+  useEffect(() => {
+    if (!entry) return;
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [entry, onClose]);
+
+  if (!entry) return null;
+
+  const { q, number, icon } = entry;
+  const failed = isFailed(q);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+        style={{ maxHeight: '80vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-lg">{icon}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-bold text-white truncate">Question {number}</h2>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-white hover:opacity-70 text-2xl leading-none font-light flex-shrink-0"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <p className="text-sm md:text-xs font-bold text-gray-900 leading-snug">{q.question_text}</p>
+
+          {q.user_answer_text && (
+            <div>
+              <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Your Answer</p>
+              <p className="text-sm md:text-xs text-gray-800 leading-snug whitespace-pre-line">{q.user_answer_text}</p>
+            </div>
+          )}
+
+          {failed ? (
+            <p className="text-sm md:text-xs text-gray-400">Evaluation unavailable</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <ScorePill label="Clarity" value={q.score_structure ?? 0} />
+                <ScorePill label="Content" value={q.score_content ?? 0} />
+              </div>
+              {q.feedback_structure && (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Clarity Feedback</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{q.feedback_structure}</p>
+                </div>
+              )}
+              {q.feedback_content && (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Content Feedback</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{q.feedback_content}</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Its own component so the modal's hooks mount and unmount with the completed
+// state. PracticeLeftPanel returns early per state, so a hook on the parent
+// would either run during every state or break the rules of hooks.
+function CompletedPanel({ completionData, questions, pastSessions, onSelectSession, onStartNew, onBack }) {
+  const [openEntry, setOpenEntry] = useState(null);
+
+  const summary = completionData.session_summary || {};
+  const progression = completionData.level_progression || {};
+  const level = progression.level_after ?? 0;
+  const readiness = summary.readiness_score ?? 0;
+  const clarity = summary.avg_score_structure ?? 0;
+  const content = summary.avg_score_content ?? 0;
+
+  // Numbered by their place in the interview, not their place in a column, so
+  // the modal's "Question 3" is the third question they were asked.
+  const numbered = questions.map((q, i) => ({ q, number: i + 1 }));
+
+  const columns = RESULT_COLUMNS.map(col => ({
+    ...col,
+    questions: numbered
+      .filter(({ q }) => {
+        const s = weightedScore(q);
+        const above = RESULT_COLUMNS.filter(c => c.min > col.min);
+        return s >= col.min && !above.some(c => s >= c.min);
+      })
+      .sort((a, b) => weightedScore(b.q) - weightedScore(a.q))
+  }));
+
+  return (
+    <div className="space-y-3">
+
+      {/* SCORE CARD */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>Interview Readiness</h4>
+          <div className="flex items-baseline gap-1 flex-shrink-0">
+            <span className="text-4xl font-bold text-gray-900">{readiness}</span>
+            <span className="text-lg text-gray-600">/100</span>
+          </div>
+        </div>
+
+        <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner mb-2">
+          <div
+            className="h-full transition-all duration-500"
+            style={{ width: `${readiness}%`, background: scoreColor(readiness) }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between md:justify-center md:gap-3 text-xs md:text-[9px] text-gray-600 mb-3">
+          {SCORE_LEGEND.map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* BREAKDOWN — the resume assess bar pattern: label and score on a
+            baseline row, a line saying what it measures, then the bar. */}
+        <h3 className="text-sm font-bold text-gray-900 mb-2">Breakdown</h3>
+        <div className="space-y-3 mb-3">
+          {[
+            { label: 'Clarity', value: clarity, sub: 'Organization, framework, and flow' },
+            { label: 'Content', value: content, sub: 'Relevance, specificity, and impact' }
+          ].map(({ label, value, sub }) => (
+            <div key={label}>
+              <div className="flex justify-between items-baseline mb-0.5">
+                <span className="font-semibold text-gray-900 text-sm">{label}</span>
+                <span className="text-gray-700 font-medium text-sm">{value}/100</span>
+              </div>
+              <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">{sub}</div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full" style={{ width: `${value}%`, background: scoreColor(value) }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-center mb-3">
+          <div className="text-xl font-bold" style={{ color: '#9333ea' }}>Level {level}</div>
+          <p className="text-xs text-gray-500">{LEVEL_NAMES[level] || ''}</p>
+        </div>
+
+        {progression.level_changed && (
+          <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r mb-3">
+            <p className="text-sm font-semibold text-purple-800">You reached Level {progression.level_after}!</p>
+            <p className="text-xs text-gray-600 leading-snug mt-0.5">
+              Level {progression.level_before} → Level {progression.level_after}
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={onStartNew}
+          className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+          style={GRADIENT}
+        >
+          Practice Again
+        </button>
+      </div>
+
+      {/* THREE COLUMNS — the Coach step's grid, same gaps. */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+        {columns.map(col => (
+          <ResultColumn
+            key={col.key}
+            title={col.title}
+            icon={col.icon}
+            colorClass={col.color}
+            questions={col.questions}
+            emptyText={col.emptyText}
+            onQuestionClick={setOpenEntry}
+          />
+        ))}
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
+        <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
+      </div>
+
+      <BackLink onClick={onBack} />
+
+      <FeedbackModal entry={openEntry} onClose={() => setOpenEntry(null)} />
     </div>
   );
 }
@@ -238,90 +534,15 @@ export default function PracticeLeftPanel({
 
   // ── COMPLETED ──
   if (sessionState === 'completed' && completionData) {
-    const summary = completionData.session_summary || {};
-    const progression = completionData.level_progression || {};
-    const level = progression.level_after ?? 0;
-    const readiness = summary.readiness_score ?? 0;
-
     return (
-      <div className="space-y-3">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Session Results</h4>
-
-          {/* READINESS — the resume assess score display: heading pair, big
-              number over /100, a bar filled from the ramp rather than the
-              brand gradient, and the bands named beneath it. A gradient would
-              look the same at 40 as at 90 and say nothing. */}
-          <div className="flex items-center justify-center gap-6 mb-2">
-            <div className="text-center">
-              <div className="text-sm text-gray-600 leading-tight">Session Complete</div>
-              <div className="text-sm text-gray-900 font-semibold">Interview Readiness</div>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-gray-900">{readiness}</span>
-              <span className="text-lg text-gray-600">/100</span>
-            </div>
-          </div>
-
-          <div className="h-4 bg-gray-200 rounded-full overflow-hidden mb-2 shadow-inner">
-            <div
-              className="h-full transition-all duration-500"
-              style={{ width: `${readiness}%`, background: scoreColor(readiness) }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between md:justify-center md:gap-3 text-xs md:text-[9px] text-gray-600">
-            {SCORE_LEGEND.map(({ color, label }) => (
-              <div key={label} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
-                <span>{label}</span>
-              </div>
-            ))}
-          </div>
-
-          {summary.closer_bonus && (
-            <p className="text-xs text-gray-500 text-center mt-2">+2 bonus for asking questions</p>
-          )}
-
-          <div className="grid grid-cols-2 gap-2 mt-3 mb-3">
-            <StatTile label="Clarity" value={summary.avg_score_structure ?? 0} />
-            <StatTile label="Content" value={summary.avg_score_content ?? 0} />
-          </div>
-
-          {/* The badge always says where they stand; the callout only appears
-              on a session that actually moved them. */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center mb-3">
-            <div className="text-2xl font-bold" style={{ color: '#9333ea' }}>Level {level}</div>
-            <p className="text-xs text-gray-500">{LEVEL_NAMES[level] || ''}</p>
-          </div>
-
-          {progression.level_changed && (
-            <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r mb-3">
-              <p className="text-sm font-semibold text-purple-800">
-                You reached Level {progression.level_after}!
-              </p>
-              <p className="text-xs text-gray-600 leading-snug mt-0.5">
-                Level {progression.level_before} → Level {progression.level_after}
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={onStartNew}
-            className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-            style={GRADIENT}
-          >
-            Practice Again
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
-          <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
-        </div>
-
-        <BackLink onClick={onBack} />
-      </div>
+      <CompletedPanel
+        completionData={completionData}
+        questions={sessionData?.questions || []}
+        pastSessions={pastSessions}
+        onSelectSession={onSelectSession}
+        onStartNew={onStartNew}
+        onBack={onBack}
+      />
     );
   }
 
