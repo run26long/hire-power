@@ -349,7 +349,7 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
         <div className="flex items-center gap-4">
 
           {/* READINESS */}
-          <div className="flex flex-col items-center flex-shrink-0" style={{ width: '30%' }}>
+          <div className="flex flex-col items-center flex-shrink-0" style={{ width: '35%' }}>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-bold text-gray-900">{readiness}</span>
               <span className="text-lg text-gray-600">/100</span>
@@ -374,7 +374,7 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
           </div>
 
           {/* BREAKDOWN */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-shrink-0 min-w-0" style={{ width: '40%' }}>
             {[
               { label: 'Clarity', value: clarity },
               { label: 'Content', value: content },
@@ -389,8 +389,8 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
                   className={`rounded-lg p-2 flex-1 text-center bg-gray-50 ${pending ? 'opacity-50' : ''}`}
                 >
                   <div className="flex items-baseline justify-center gap-0.5">
-                    <span className="text-2xl font-bold text-gray-900">{pending ? '—' : value}</span>
-                    {!pending && <span className="text-sm text-gray-500">/100</span>}
+                    <span className="text-xl font-bold text-gray-900">{pending ? '—' : value}</span>
+                    {!pending && <span className="text-xs text-gray-500">/100</span>}
                   </div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-700">{label}</p>
                   {pending ? (
@@ -406,30 +406,27 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
             })}
           </div>
 
-          {/* LEVEL */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center flex-shrink-0" style={{ width: '25%' }}>
-            <div className="text-xl font-bold" style={{ color: '#9333ea' }}>Level {level}</div>
-            <p className="text-xs text-gray-500">{LEVEL_NAMES[level] || ''}</p>
+          {/* LEVEL — sized by its own content rather than a share of the row,
+              so it takes only what "Level 3" and its name actually need. */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-center flex-shrink-0">
+            <div className="text-lg font-bold leading-tight" style={{ color: '#9333ea' }}>Level {level}</div>
+            <p className="text-xs text-gray-500 whitespace-nowrap">{LEVEL_NAMES[level] || ''}</p>
             {progression.level_changed && (
-              <p className="text-[9px] text-gray-500 mt-0.5">
+              <p className="text-[9px] text-gray-500 mt-0.5 whitespace-nowrap">
                 Level {progression.level_before} → Level {progression.level_after}
               </p>
             )}
           </div>
+
+          <button
+            onClick={onStartNew}
+            className="self-center flex-shrink-0 text-white rounded-lg py-1.5 px-4 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-90"
+            style={GRADIENT}
+          >
+            Practice Again
+          </button>
         </div>
       </div>
-
-      <button
-        onClick={onStartNew}
-        className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-        style={GRADIENT}
-      >
-        Practice Again
-      </button>
-
-      <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
-        Interview Feedback
-      </h4>
 
       {/* THREE COLUMNS — the Coach step's grid, same gaps. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
