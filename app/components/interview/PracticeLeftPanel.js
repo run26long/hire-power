@@ -10,12 +10,6 @@ import { useState, useEffect } from 'react';
 
 const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 
-const MODE_LABELS = {
-  mode_3: '💬 Text',
-  mode_2: '🎤 Voice',
-  mode_1: '🎙️ Voice + Playback'
-};
-
 function scoreColor(score) {
   if (score >= 85) return '#9333ea';
   if (score >= 75) return '#81c784';
@@ -67,11 +61,9 @@ function ElapsedTimer({ startedAt }) {
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
 
+  // Inline, so it sits on the header row rather than owning a block of its own.
   return (
-    <div className="text-center">
-      <p className="text-xs text-gray-400 uppercase tracking-wide">Elapsed</p>
-      <p className="text-lg font-mono font-semibold text-gray-400">{mm}:{ss}</p>
-    </div>
+    <span className="text-base font-mono font-semibold text-gray-500 flex-shrink-0">{mm}:{ss}</span>
   );
 }
 
@@ -162,8 +154,6 @@ export default function PracticeLeftPanel({
   sessionData = null,
   completionData = null,
   pastSessions = [],
-  jobTitle = null,
-  jobCompany = null,
   onSelectSession,
   onStartNew
 }) {
@@ -172,46 +162,38 @@ export default function PracticeLeftPanel({
   if (sessionState === 'active') {
     const questions = sessionData?.questions || [];
     const currentIndex = sessionData?.currentIndex ?? 0;
-    const total = questions.length;
-    const modeLabel = MODE_LABELS[sessionData?.session?.voice_mode] || MODE_LABELS.mode_3;
+    // Every slot is rendered from the target the session was created with, so
+    // the list keeps its full shape before the questions have loaded.
+    const slotCount = Math.max(sessionData?.session?.question_count_target ?? 0, questions.length);
 
-    // A flex column rather than the usual block: the question list claims the
-    // height left between the cards above it and the timer below.
+    // A flex column rather than the usual block: the question list claims all
+    // the height left under the progress card.
     return (
       <div className="flex flex-col gap-3 flex-1 min-h-0">
 
-        {/* CONTEXT */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-900 truncate">{jobTitle || 'This role'}</p>
-              {jobCompany && <p className="text-xs text-gray-500 truncate">{jobCompany}</p>}
-            </div>
-            <span className="flex-shrink-0 text-xs md:text-[9px] bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded">
-              {modeLabel}
-            </span>
-          </div>
-        </div>
-
         {/* PROGRESS */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
-            <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
+              <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
+            </div>
+            <ElapsedTimer startedAt={sessionData?.startedAt} />
           </div>
 
           <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
-            Question {Math.min(currentIndex + 1, total)} of {total}
+            Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
           </p>
-          {/* One block per question. Progress only: scores stay out of sight
+          {/* One block per question. Counted off the same slots as the list, so
+              the two never disagree. Progress only: scores stay out of sight
               until the interview is over, the same way they do on the right. */}
           <div className="flex gap-1">
-            {questions.map((q, i) => {
-              const answered = !!q.user_answer_text;
+            {Array.from({ length: slotCount }).map((_, i) => {
+              const answered = !!questions[i]?.user_answer_text;
               const isCurrent = i === currentIndex;
               return (
                 <div
-                  key={q.id || i}
+                  key={questions[i]?.id || i}
                   className={`h-1.5 flex-1 rounded-sm transition-colors ${
                     answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
                   }`}
@@ -222,16 +204,19 @@ export default function PracticeLeftPanel({
           </div>
         </div>
 
-        {/* QUESTION LIST — every row rendered, never scrolls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 overflow-hidden">
-          {questions.map((q, i) => {
-            const answered = !!q.user_answer_text;
+        {/* QUESTION LIST — every slot rendered, rows share the height, never scrolls */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 min-h-0 overflow-hidden flex flex-col">
+          {Array.from({ length: slotCount }).map((_, i) => {
+            // Null until the questions load, which is what the placeholder rows
+            // render from.
+            const q = questions[i] || null;
+            const answered = !!q?.user_answer_text;
             const isCurrent = i === currentIndex;
-            const isLast = i === questions.length - 1;
+            const isLast = i === slotCount - 1;
             return (
               <div
-                key={q.id || i}
-                className={`h-[36px] flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
+                key={q?.id || i}
+                className={`flex-1 min-h-0 flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
               >
                 {answered ? (
                   <>
@@ -253,11 +238,6 @@ export default function PracticeLeftPanel({
               </div>
             );
           })}
-        </div>
-
-        {/* TIMER */}
-        <div className="flex-shrink-0">
-          <ElapsedTimer startedAt={sessionData?.startedAt} />
         </div>
       </div>
     );
