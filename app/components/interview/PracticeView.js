@@ -190,7 +190,8 @@ export default function PracticeView({
       session,
       questions,
       currentIndex,
-      completion
+      completion,
+      startedAt: session?.started_at ?? null
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionState, session, questions, currentIndex, completion]);
@@ -353,7 +354,12 @@ export default function PracticeView({
         id: data.session_id,
         question_count_target: data.question_count,
         questions_answered: 0,
-        current_question_index: 0
+        current_question_index: 0,
+        voice_mode: selectedMode,
+        // The route returns no row, so this is stamped here rather than read
+        // back. The session began a moment ago either way, and it keeps the
+        // timer working whether or not the column exists.
+        started_at: new Date().toISOString()
       });
       setQuestions(rows);
       setCurrentIndex(0);

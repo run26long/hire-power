@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 // ============================================================================
 // PRACTICE LEFT PANEL
 // The working surface for the practice step. Mirrors the session the right
@@ -7,6 +9,12 @@
 // ============================================================================
 
 const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
+
+const MODE_LABELS = {
+  mode_3: '💬 Text',
+  mode_2: '🎤 Voice',
+  mode_1: '🎙️ Voice + Playback'
+};
 
 function scoreColor(score) {
   if (score >= 85) return '#9333ea';
@@ -31,6 +39,40 @@ function formatDate(iso) {
   } catch {
     return '';
   }
+}
+
+// Its own component so its hooks mount and unmount with the active state.
+// PracticeLeftPanel returns early per state, so a hook on the parent would
+// either run during every state or break the rules of hooks.
+function ElapsedTimer({ startedAt }) {
+  // The whole clock lives in the interval callback. Reading Date.now() during
+  // render is impure, and writing state straight from an effect body cascades
+  // renders, so the subscription is the only thing that ever sets it. First
+  // paint reads 00:00 and the first tick corrects it a second later.
+  const [elapsed, setElapsed] = useState(0);
+
+  // Re-syncs if startedAt arrives after mount, which is what happens when a
+  // resumed session finishes loading its row.
+  useEffect(() => {
+    const parsed = startedAt ? new Date(startedAt).getTime() : NaN;
+    // A session created moments ago has no row to read a start time from, so
+    // the clock starts here instead. Accurate to the second either way.
+    const startMs = Number.isFinite(parsed) ? parsed : Date.now();
+    const id = setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+
+  return (
+    <div className="text-center">
+      <p className="text-xs text-gray-400 uppercase tracking-wide">Elapsed</p>
+      <p className="text-lg font-mono font-semibold text-gray-400">{mm}:{ss}</p>
+    </div>
+  );
 }
 
 function StatTile({ label, value }) {
@@ -120,6 +162,8 @@ export default function PracticeLeftPanel({
   sessionData = null,
   completionData = null,
   pastSessions = [],
+  jobTitle = null,
+  jobCompany = null,
   onSelectSession,
   onStartNew
 }) {
@@ -129,10 +173,28 @@ export default function PracticeLeftPanel({
     const questions = sessionData?.questions || [];
     const currentIndex = sessionData?.currentIndex ?? 0;
     const total = questions.length;
+    const modeLabel = MODE_LABELS[sessionData?.session?.voice_mode] || MODE_LABELS.mode_3;
 
+    // A flex column rather than the usual block: the question list claims the
+    // height left between the cards above it and the timer below.
     return (
-      <div className="space-y-3">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+      <div className="flex flex-col gap-3 flex-1 min-h-0">
+
+        {/* CONTEXT */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 truncate">{jobTitle || 'This role'}</p>
+              {jobCompany && <p className="text-xs text-gray-500 truncate">{jobCompany}</p>}
+            </div>
+            <span className="flex-shrink-0 text-xs md:text-[9px] bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded">
+              {modeLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* PROGRESS */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
             <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
@@ -158,6 +220,44 @@ export default function PracticeLeftPanel({
               );
             })}
           </div>
+        </div>
+
+        {/* QUESTION LIST — every row rendered, never scrolls */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 overflow-hidden">
+          {questions.map((q, i) => {
+            const answered = !!q.user_answer_text;
+            const isCurrent = i === currentIndex;
+            const isLast = i === questions.length - 1;
+            return (
+              <div
+                key={q.id || i}
+                className={`h-[36px] flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
+              >
+                {answered ? (
+                  <>
+                    <svg className="w-4 h-4 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-xs text-gray-700 truncate flex-1">{q.question_text}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={`w-4 flex-shrink-0 text-center text-xs ${isCurrent ? 'font-bold text-purple-700' : 'text-gray-400'}`}>
+                      {i + 1}
+                    </span>
+                    <span className={`text-xs truncate flex-1 ${isCurrent ? 'font-semibold text-purple-700' : 'text-gray-400'}`}>
+                      Question {i + 1}
+                    </span>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* TIMER */}
+        <div className="flex-shrink-0">
+          <ElapsedTimer startedAt={sessionData?.startedAt} />
         </div>
       </div>
     );

@@ -951,6 +951,8 @@ export default function InterviewDetailPage() {
                   sessionData={practiceShape}
                   completionData={practiceShape.completion}
                   pastSessions={pastPracticeSessions}
+                  jobTitle={jobCard.title}
+                  jobCompany={jobCard.company}
                   onSelectSession={(s) => setReviewSessionId(s.id)}
                   onStartNew={() => {
                     setReviewSessionId(null);
