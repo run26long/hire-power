@@ -860,14 +860,17 @@ export default function PracticeView({
             Leaving needs no confirmation — the session row survives and the
             resume lookup drops them back into it. Ending does, because it
             closes the session for good. */}
-        <div className="text-center">
-          <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+        {/* Centred as a pair rather than as text: the two labels together are
+            wider than this column at some widths, and text-center would centre
+            each wrapped line on its own and read as ragged. */}
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer whitespace-nowrap">
             Pause &amp; Continue Later
           </button>
           {answeredCount > 0 && (
             <>
-              <span className="text-xs text-gray-300 mx-2">·</span>
-              <button onClick={endEarly} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+              <span className="text-xs text-gray-300">·</span>
+              <button onClick={endEarly} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer whitespace-nowrap">
                 End &amp; Get Feedback
               </button>
             </>
