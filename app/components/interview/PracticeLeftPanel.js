@@ -197,7 +197,7 @@ export default function PracticeLeftPanel({
                         {q.tailored_text || q.original_text}
                       </p>
                       {q.rationale && (
-                        <p className="text-xs md:text-[10px] text-gray-600 leading-snug mt-0.5">
+                        <p className="text-sm md:text-xs text-gray-600 leading-snug mt-0.5">
                           {q.rationale}
                         </p>
                       )}
