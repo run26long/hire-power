@@ -1,15 +1,17 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import path from 'path'
 
-// Fonts load over HTTP from /public rather than the filesystem: this template
-// renders in the browser, where path.join(process.cwd(), ...) has no meaning.
-// The server-rendered PDFs register the same faces from disk.
+// Fonts load from disk: the kit is rendered server-side by
+// /api/interview/interview-kit-pdf, the same way the review prep PDF is.
+const fontsDir = path.join(process.cwd(), 'public', 'fonts')
+
 Font.register({
   family: 'Lato',
   fonts: [
-    { src: '/fonts/Lato-Regular.ttf', fontWeight: 400, fontStyle: 'normal' },
-    { src: '/fonts/Lato-Bold.ttf', fontWeight: 700, fontStyle: 'normal' },
-    { src: '/fonts/Lato-Italic.ttf', fontWeight: 400, fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'Lato-Regular.ttf'), fontWeight: 400, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'Lato-Bold.ttf'), fontWeight: 700, fontStyle: 'normal' },
+    { src: path.join(fontsDir, 'Lato-Italic.ttf'), fontWeight: 400, fontStyle: 'italic' },
   ]
 })
 

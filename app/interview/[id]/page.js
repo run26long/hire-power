@@ -953,6 +953,9 @@ export default function InterviewDetailPage() {
                   sessionData={practiceShape}
                   completionData={practiceShape.completion}
                   pastSessions={pastPracticeSessions}
+                  interviewerQuestions={interviewerQuestions}
+                  jobCardId={params.id}
+                  powerAnalysisId={powerAnalysis?.id}
                   onSelectSession={(s) => setReviewSessionId(s.id)}
                   onStartNew={() => {
                     setReviewSessionId(null);
@@ -2135,11 +2138,12 @@ function CoachingView({
             already carry the navigation. */}
         {activeStory && !batchJustCompleted && (
           <div className="space-y-2 pt-1">
-            <div className="flex gap-2 justify-center">
-              <button onClick={onEnd} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+            <div className="text-center">
+              <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
                 Coach Another Story
               </button>
-              <button onClick={onGoToResearch} className={STEP_SECONDARY_CLASS}>
+              <span className="text-xs text-gray-300 mx-2">·</span>
+              <button onClick={onGoToResearch} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
                 Go to Research →
               </button>
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
 // PRACTICE LEFT PANEL
@@ -64,6 +65,89 @@ function ElapsedTimer({ startedAt }) {
   // Inline, so it sits on the header row rather than owning a block of its own.
   return (
     <span className="text-base font-mono font-semibold text-gray-500 flex-shrink-0">{mm}:{ss}</span>
+  );
+}
+
+// Its own component for the same reason ElapsedTimer is: the download state
+// belongs to the active step and should unmount with it.
+function InterviewKitCard({ jobCardId, powerAnalysisId }) {
+  const supabase = createClient();
+  const [building, setBuilding] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Read fresh rather than captured at mount. An interview can outrun a
+  // Supabase JWT, and getSession refreshes one that's close to expiring.
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
+
+  const downloadKit = async () => {
+    setBuilding(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('No session');
+
+      const res = await fetch('/api/interview/interview-kit-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ jobCardId, powerAnalysisId })
+      });
+
+      if (!res.ok) throw new Error('Kit PDF request failed');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Interview Kit.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // Revoking immediately can cancel the download in Safari, so give the
+      // click a beat to start.
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (err) {
+      console.error('Interview kit PDF failed:', err);
+      setError("Couldn't build your kit. Please try again.");
+    } finally {
+      setBuilding(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
+      <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+        Interview Kit
+      </h4>
+
+      <button
+        type="button"
+        onClick={downloadKit}
+        disabled={building || !jobCardId}
+        className={`text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-2 ${
+          building || !jobCardId ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
+        }`}
+        style={GRADIENT}
+      >
+        {building ? (
+          <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent flex-shrink-0"></div>
+        ) : (
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+        )}
+        {building ? 'Building...' : 'Print Interview Kit'}
+      </button>
+
+      <p className="text-xs text-gray-400 mt-1.5">
+        {error || 'Print your prep notes for the interview'}
+      </p>
+    </div>
   );
 }
 
@@ -154,6 +238,9 @@ export default function PracticeLeftPanel({
   sessionData = null,
   completionData = null,
   pastSessions = [],
+  interviewerQuestions = [],
+  jobCardId = null,
+  powerAnalysisId = null,
   onSelectSession,
   onStartNew
 }) {
@@ -166,8 +253,8 @@ export default function PracticeLeftPanel({
     // the list keeps its full shape before the questions have loaded.
     const slotCount = Math.max(sessionData?.session?.question_count_target ?? 0, questions.length);
 
-    // A flex column rather than the usual block: the question list claims all
-    // the height left under the progress card.
+    // A flex column rather than the usual block: the interviewer questions
+    // claim all the height left under the progress and kit cards.
     return (
       <div className="flex flex-col gap-3 flex-1 min-h-0">
 
@@ -204,43 +291,39 @@ export default function PracticeLeftPanel({
           </div>
         </div>
 
-        {/* QUESTION LIST — every slot rendered, never scrolls. Fixed height on
-            desktop, the way the hub sizes its cards. md:flex-none is what makes
-            it stick: flex-1 sets flex-basis 0, which overrides height on the
-            main axis, so the fixed height would otherwise be ignored here. */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-3 py-2 flex-1 md:flex-none md:h-[340px] overflow-hidden">
-          {Array.from({ length: slotCount }).map((_, i) => {
-            // Null until the questions load, which is what the placeholder rows
-            // render from.
-            const q = questions[i] || null;
-            const answered = !!q?.user_answer_text;
-            const isCurrent = i === currentIndex;
-            const isLast = i === slotCount - 1;
-            return (
-              <div
-                key={q?.id || i}
-                className={`h-[32px] flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
-              >
-                {answered ? (
-                  <>
-                    <svg className="w-4 h-4 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-xs text-gray-700 truncate flex-1">{q.question_text}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className={`w-4 flex-shrink-0 text-center text-xs ${isCurrent ? 'font-bold text-purple-700' : 'text-gray-400'}`}>
-                      {i + 1}
-                    </span>
-                    <span className={`text-xs truncate flex-1 ${isCurrent ? 'font-semibold text-purple-700' : 'text-gray-400'}`}>
-                      Question {i + 1}
-                    </span>
-                  </>
-                )}
-              </div>
-            );
-          })}
+        {/* INTERVIEW KIT */}
+        <InterviewKitCard jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
+
+        {/* QUESTIONS FOR YOUR INTERVIEWER — claims the height left under the
+            two cards above it, and scrolls if the list outgrows it. */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 min-h-0 overflow-y-auto">
+          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+            Questions For Your Interviewer
+          </h4>
+
+          {/* An empty array is ambiguous on its own — it's the same value while
+              the fetch is in flight and after it comes back with nothing. The
+              spinner shows until there's a power analysis to have loaded from. */}
+          {!powerAnalysisId ? (
+            <div className="flex justify-center py-3">
+              <div className="h-4 w-4 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
+            </div>
+          ) : interviewerQuestions.length > 0 ? (
+            <div className="space-y-2">
+              {interviewerQuestions.map((q, i) => (
+                <div key={q.id || i} className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
+                  <p className="text-sm md:text-xs text-gray-700 leading-snug">
+                    {q.tailored_text || q.original_text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">
+              Complete Research to generate interviewer questions.
+            </p>
+          )}
         </div>
       </div>
     );
