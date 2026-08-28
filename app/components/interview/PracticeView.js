@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
@@ -85,6 +86,7 @@ export default function PracticeView({
   onError = () => {}
 }) {
   const supabase = createClient();
+  const router = useRouter();
 
   // Read fresh on every call rather than captured once at page load. A Supabase
   // JWT lasts an hour and an interview can easily outrun that; getSession also
@@ -594,15 +596,33 @@ export default function PracticeView({
           </p>
         </div>
 
-        <button
-          onClick={resetToIdle}
-          className="mx-auto block text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-          style={GRADIENT}
-        >
-          Practice Again
-        </button>
+        {/* Grouped so the links sit under the button rather than a third of
+            the way down the column: the parent's space-y-3 is right between
+            sections and too much between an action and its escape hatches. */}
+        <div className="space-y-1.5">
+          <button
+            onClick={resetToIdle}
+            className="mx-auto block text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+            style={GRADIENT}
+          >
+            Practice Again
+          </button>
 
-        <BackLink onClick={onBack} />
+          {/* Two ways out of a finished session: back a step, or out of the
+              interview entirely. Not BackLink, which every other state shares
+              and centres on its own. */}
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={onBack} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
+              ← Back
+            </button>
+            <button
+              onClick={() => router.push('/interview-coach')}
+              className="text-sm md:text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap"
+            >
+              Return to Interview Coach →
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
