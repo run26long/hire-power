@@ -559,11 +559,11 @@ export default function PracticeView({
             into categories needs the width. This column explains what the
             categories mean, so the colours over there are not a code the
             candidate has to break. */}
-        <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-3">
+        <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">
           Here&apos;s how your answers were evaluated.
         </p>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {[
             {
               heading: '🎯 Nailed It',
@@ -588,7 +588,7 @@ export default function PracticeView({
           ))}
         </div>
 
-        <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
+        <div className="bg-purple-50 border-l-4 border-purple-600 p-2 rounded-r">
           <p className="text-sm md:text-xs text-gray-700">
             Click any question on the left to review your full answer and detailed feedback.
           </p>
