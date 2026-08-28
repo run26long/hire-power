@@ -208,7 +208,7 @@ export default function PracticeLeftPanel({
             desktop, the way the hub sizes its cards. md:flex-none is what makes
             it stick: flex-1 sets flex-basis 0, which overrides height on the
             main axis, so the fixed height would otherwise be ignored here. */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 md:flex-none md:h-[480px] overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 md:flex-none md:h-[400px] overflow-hidden">
           {Array.from({ length: slotCount }).map((_, i) => {
             // Null until the questions load, which is what the placeholder rows
             // render from.
@@ -219,7 +219,7 @@ export default function PracticeLeftPanel({
             return (
               <div
                 key={q?.id || i}
-                className={`h-[36px] flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
+                className={`h-[32px] flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
               >
                 {answered ? (
                   <>
