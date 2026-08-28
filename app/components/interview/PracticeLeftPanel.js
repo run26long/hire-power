@@ -406,25 +406,28 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
             })}
           </div>
 
-          {/* LEVEL — sized by its own content rather than a share of the row,
-              so it takes only what "Level 3" and its name actually need. */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-center flex-shrink-0">
-            <div className="text-lg font-bold leading-tight" style={{ color: '#9333ea' }}>Level {level}</div>
-            <p className="text-xs text-gray-500 whitespace-nowrap">{LEVEL_NAMES[level] || ''}</p>
+          {/* LEVEL — a line of text rather than a badge. Carded, it read as a
+              third stat competing with the breakdown beside it; the level is a
+              label on the session, not another score. */}
+          <div className="flex flex-col items-center gap-1 flex-shrink-0">
+            <p className="text-sm font-bold whitespace-nowrap" style={{ color: '#9333ea' }}>
+              Level {level} · {LEVEL_NAMES[level] || ''}
+            </p>
+
+            <button
+              onClick={onStartNew}
+              className="text-white rounded-lg py-1.5 px-4 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-90"
+              style={GRADIENT}
+            >
+              Practice Again
+            </button>
+
             {progression.level_changed && (
-              <p className="text-[9px] text-gray-500 mt-0.5 whitespace-nowrap">
+              <p className="text-[9px] text-gray-500 whitespace-nowrap">
                 Level {progression.level_before} → Level {progression.level_after}
               </p>
             )}
           </div>
-
-          <button
-            onClick={onStartNew}
-            className="self-center flex-shrink-0 text-white rounded-lg py-1.5 px-4 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-90"
-            style={GRADIENT}
-          >
-            Practice Again
-          </button>
         </div>
       </div>
 
