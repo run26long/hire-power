@@ -106,6 +106,7 @@ export default function PracticeView({
   const [starting, setStarting] = useState(false);
   const [sending, setSending] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [coachingLoading, setCoachingLoading] = useState(false);
   const [resuming, setResuming] = useState(true);
 
   const [input, setInput] = useState('');
@@ -133,10 +134,11 @@ export default function PracticeView({
       questions,
       currentIndex,
       completion,
+      coachingLoading,
       startedAt: session?.started_at ?? null
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionState, session, questions, currentIndex, completion]);
+  }, [sessionState, session, questions, currentIndex, completion, coachingLoading]);
 
   useEffect(() => {
     if (sessionState === 'active') messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -434,11 +436,57 @@ export default function PracticeView({
 
       setCompletion(data);
       setSessionState('completed');
+
+      // Not awaited: coaching is a second model call over the whole session,
+      // and the candidate should be reading their scores while it runs rather
+      // than watching a spinner for both.
+      loadCoaching(session.id);
     } catch (err) {
       console.error('Complete practice session failed:', err);
       onError("We couldn't wrap up your practice session right now. Try again in a moment.");
     } finally {
       setCompleting(false);
+    }
+  };
+
+  // ── COACHING ──
+  // Power-Analysis-informed notes, one per question, generated after the fact.
+  // A failure here is silent: the results are complete without it, and an
+  // error toast over a finished interview would read as though the scores
+  // themselves had gone wrong.
+  const loadCoaching = async (sessionId) => {
+    setCoachingLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const res = await fetch('/api/interview/session-coaching', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('Session coaching failed:', data.error);
+        return;
+      }
+
+      const byId = new Map(
+        (data.coaching || []).map(c => [c.question_id, c.coaching_feedback])
+      );
+      if (byId.size === 0) return;
+
+      setQuestions(prev => prev.map(q => (
+        byId.has(q.id) ? { ...q, coaching_feedback: byId.get(q.id) } : q
+      )));
+    } catch (err) {
+      console.error('Session coaching request failed:', err);
+    } finally {
+      setCoachingLoading(false);
     }
   };
 

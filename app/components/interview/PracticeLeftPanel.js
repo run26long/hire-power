@@ -229,7 +229,7 @@ function ResultColumn({ title, icon, colorClass, questions, emptyText, onQuestio
 
 // StoryModal's shell exactly: same backdrop, same max-w-lg 80vh card, same
 // gradient header and close button, same scrollable body.
-function FeedbackModal({ entry, onClose }) {
+function FeedbackModal({ entry, coachingLoading, onClose }) {
   useEffect(() => {
     if (!entry) return;
     const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
@@ -303,6 +303,24 @@ function FeedbackModal({ entry, onClose }) {
                   <p className="text-sm md:text-xs text-gray-800 leading-snug">{q.feedback_content}</p>
                 </div>
               )}
+
+              {/* Coaching arrives after the scores do. Absent and not loading
+                  means the model skipped this one, and the modal simply ends
+                  at the feedback above rather than explaining itself. */}
+              {q.coaching_feedback ? (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Coaching</p>
+                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{q.coaching_feedback}</p>
+                </div>
+              ) : coachingLoading ? (
+                <div>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Coaching</p>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 animate-spin border-2 border-purple-600 border-t-transparent rounded-full flex-shrink-0"></div>
+                    <span className="text-xs text-gray-400">Generating personalized feedback...</span>
+                  </div>
+                </div>
+              ) : null}
             </>
           )}
         </div>
@@ -314,7 +332,7 @@ function FeedbackModal({ entry, onClose }) {
 // Its own component so the modal's hooks mount and unmount with the completed
 // state. PracticeLeftPanel returns early per state, so a hook on the parent
 // would either run during every state or break the rules of hooks.
-function CompletedPanel({ completionData, questions, pastSessions, onSelectSession, onStartNew, onBack }) {
+function CompletedPanel({ completionData, questions, coachingLoading, pastSessions, onSelectSession, onStartNew, onBack }) {
   const [openEntry, setOpenEntry] = useState(null);
 
   const summary = completionData.session_summary || {};
@@ -453,7 +471,17 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
 
       <BackLink onClick={onBack} />
 
-      <FeedbackModal entry={openEntry} onClose={() => setOpenEntry(null)} />
+      {/* Re-resolved against the live rows rather than passed as opened:
+          coaching lands after the modal may already be open, and a snapshot
+          taken on click would leave the spinner turning forever. */}
+      <FeedbackModal
+        entry={openEntry && {
+          ...openEntry,
+          q: questions.find(x => x.id === openEntry.q.id) || openEntry.q
+        }}
+        coachingLoading={coachingLoading}
+        onClose={() => setOpenEntry(null)}
+      />
     </div>
   );
 }
@@ -566,6 +594,7 @@ export default function PracticeLeftPanel({
       <CompletedPanel
         completionData={completionData}
         questions={sessionData?.questions || []}
+        coachingLoading={!!sessionData?.coachingLoading}
         pastSessions={pastSessions}
         onSelectSession={onSelectSession}
         onStartNew={onStartNew}
