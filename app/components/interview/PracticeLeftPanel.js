@@ -35,6 +35,15 @@ const SCORE_LEGEND = [
   { color: '#9333ea', label: 'Excellent' },
 ];
 
+// Names the band a score falls in. Thresholds are scoreColor's, so a dot and
+// the word beside it can never disagree.
+function scoreBand(score) {
+  if (score >= 85) return 'Excellent';
+  if (score >= 75) return 'Strong';
+  if (score >= 60) return 'Developing';
+  return 'Needs Work';
+}
+
 function BackLink({ onClick }) {
   return (
     <div className="text-center">
@@ -333,75 +342,94 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
   return (
     <div className="space-y-3">
 
-      {/* SCORE CARD */}
+      {/* SCORE CARD — one row: the headline score, what it is made of, and the
+          level it earned. Stacked, these three took most of the column before
+          the candidate reached a single question. */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-        <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>Interview Readiness</h4>
-          <div className="flex items-baseline gap-1 flex-shrink-0">
-            <span className="text-4xl font-bold text-gray-900">{readiness}</span>
-            <span className="text-lg text-gray-600">/100</span>
-          </div>
-        </div>
+        <div className="flex items-center gap-4">
 
-        <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner mb-2">
-          <div
-            className="h-full transition-all duration-500"
-            style={{ width: `${readiness}%`, background: scoreColor(readiness) }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between md:justify-center md:gap-3 text-xs md:text-[9px] text-gray-600 mb-3">
-          {SCORE_LEGEND.map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
-              <span>{label}</span>
+          {/* READINESS */}
+          <div className="flex flex-col items-center flex-shrink-0" style={{ width: '30%' }}>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-bold text-gray-900">{readiness}</span>
+              <span className="text-lg text-gray-600">/100</span>
             </div>
-          ))}
-        </div>
-
-        {/* BREAKDOWN — the resume assess bar pattern: label and score on a
-            baseline row, a line saying what it measures, then the bar. */}
-        <h3 className="text-sm font-bold text-gray-900 mb-2">Breakdown</h3>
-        <div className="space-y-3 mb-3">
-          {[
-            { label: 'Clarity', value: clarity, sub: 'Organization, framework, and flow' },
-            { label: 'Content', value: content, sub: 'Relevance, specificity, and impact' }
-          ].map(({ label, value, sub }) => (
-            <div key={label}>
-              <div className="flex justify-between items-baseline mb-0.5">
-                <span className="font-semibold text-gray-900 text-sm">{label}</span>
-                <span className="text-gray-700 font-medium text-sm">{value}/100</span>
-              </div>
-              <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">{sub}</div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full" style={{ width: `${value}%`, background: scoreColor(value) }} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 text-center mb-3">
-          <div className="text-xl font-bold" style={{ color: '#9333ea' }}>Level {level}</div>
-          <p className="text-xs text-gray-500">{LEVEL_NAMES[level] || ''}</p>
-        </div>
-
-        {progression.level_changed && (
-          <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r mb-3">
-            <p className="text-sm font-semibold text-purple-800">You reached Level {progression.level_after}!</p>
-            <p className="text-xs text-gray-600 leading-snug mt-0.5">
-              Level {progression.level_before} → Level {progression.level_after}
+            <p className="text-xs font-bold uppercase tracking-wide mt-0.5" style={{ color: '#9333ea' }}>
+              Interview Readiness
             </p>
+            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner mt-1.5">
+              <div
+                className="h-full transition-all duration-500"
+                style={{ width: `${readiness}%`, background: scoreColor(readiness) }}
+              />
+            </div>
+            <div className="flex items-center justify-between w-full text-[9px] text-gray-600 mt-1">
+              {SCORE_LEGEND.map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
 
-        <button
-          onClick={onStartNew}
-          className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-          style={GRADIENT}
-        >
-          Practice Again
-        </button>
+          {/* BREAKDOWN */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {[
+              { label: 'Clarity', value: clarity },
+              { label: 'Content', value: content },
+              // Delivery has nothing behind it until voice mode ships. It holds
+              // its place rather than appearing later and moving the other two.
+              { label: 'Delivery', value: null }
+            ].map(({ label, value }) => {
+              const pending = value === null;
+              return (
+                <div
+                  key={label}
+                  className={`rounded-lg p-2 flex-1 text-center bg-gray-50 ${pending ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-baseline justify-center gap-0.5">
+                    <span className="text-2xl font-bold text-gray-900">{pending ? '—' : value}</span>
+                    {!pending && <span className="text-sm text-gray-500">/100</span>}
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-700">{label}</p>
+                  {pending ? (
+                    <p className="text-[9px] text-gray-400">Voice Mode</p>
+                  ) : (
+                    <p className="text-[9px] text-gray-500 flex items-center justify-center gap-1">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: scoreColor(value) }}></span>
+                      {scoreBand(value)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* LEVEL */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center flex-shrink-0" style={{ width: '25%' }}>
+            <div className="text-xl font-bold" style={{ color: '#9333ea' }}>Level {level}</div>
+            <p className="text-xs text-gray-500">{LEVEL_NAMES[level] || ''}</p>
+            {progression.level_changed && (
+              <p className="text-[9px] text-gray-500 mt-0.5">
+                Level {progression.level_before} → Level {progression.level_after}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
+
+      <button
+        onClick={onStartNew}
+        className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+        style={GRADIENT}
+      >
+        Practice Again
+      </button>
+
+      <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+        Interview Feedback
+      </h4>
 
       {/* THREE COLUMNS — the Coach step's grid, same gaps. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
