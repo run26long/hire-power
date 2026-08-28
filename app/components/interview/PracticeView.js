@@ -856,13 +856,23 @@ export default function PracticeView({
 
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
 
-        {answeredCount > 0 && (
-          <div className="text-center">
-            <button onClick={endEarly} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-              End Interview
-            </button>
-          </div>
-        )}
+        {/* Two ways to stop, and the difference is whether they want scoring.
+            Leaving needs no confirmation — the session row survives and the
+            resume lookup drops them back into it. Ending does, because it
+            closes the session for good. */}
+        <div className="text-center">
+          <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+            Continue Later
+          </button>
+          {answeredCount > 0 && (
+            <>
+              <span className="text-xs text-gray-300 mx-2">·</span>
+              <button onClick={endEarly} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+                End &amp; Get Feedback
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
