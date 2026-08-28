@@ -2248,13 +2248,12 @@ function StoryModal({ story, onClose }) {
 // Responsive: stacks vertically on mobile with date+progress side-by-side below title.
 // ============================================================================
 
-// The kit checklist. Keys are what the PDF template gates each section on;
-// labels are short because the header gives this one line and no more.
+// The kit checklist. Keys are what the PDF template gates each section on.
 const KIT_ITEMS = [
-  { key: 'jobDescription', label: 'JD' },
-  { key: 'stories', label: 'Stories' },
-  { key: 'highlights', label: 'Research' },
-  { key: 'questions', label: 'Questions' }
+  { key: 'jobDescription', label: 'Job Description' },
+  { key: 'questions', label: 'Questions for Interviewer' },
+  { key: 'stories', label: 'STAR Stories' },
+  { key: 'highlights', label: 'Company Highlights' }
 ];
 
 function KitCheckbox({ checked, onChange, label }) {

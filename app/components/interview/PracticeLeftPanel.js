@@ -146,16 +146,12 @@ export default function PracticeLeftPanel({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-              <span className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</span>
+              <span className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>Interview Progress</span>
             </div>
             <span className="text-xs font-semibold text-gray-500">
               Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
             </span>
           </div>
-
-          <p className="text-sm md:text-xs text-gray-600 leading-snug mt-1">
-            Track your progress through each question.
-          </p>
 
           {/* One block per question. Progress only: scores stay out of sight
               until the interview is over, the same way they do on the right. */}
