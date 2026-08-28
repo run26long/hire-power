@@ -2255,7 +2255,7 @@ function StoryModal({ story, onClose }) {
 const KIT_ITEMS = [
   { key: 'stories', label: 'STAR Stories' },
   { key: 'highlights', label: 'Company Highlights' },
-  { key: 'questions', label: 'Questions for Interviewer' },
+  { key: 'questions', label: 'Interviewer Questions' },
   { key: 'jobDescription', label: 'Job Description' }
 ];
 
