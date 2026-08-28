@@ -852,7 +852,15 @@ export default function InterviewDetailPage() {
                 headings and cards line up with the breadcrumb above (max-w-7xl
                 px-6). Margin plus padding would inset them a second 24px and
                 narrow the column for no reason. */}
+            {/* Practice alone stretches this to the full column height. Its panel
+                sizes the question list off the space left over, and a flex item
+                defaults to flex-grow 0, so without this the container is only as
+                tall as its content and there is no leftover to claim. Scoped to
+                the one step rather than applied to all, since the others size to
+                their content on purpose. */}
             <div className={`flex flex-col overflow-y-auto bg-gray-100 ${
+              currentStep === 'practice' ? 'flex-1 min-h-0' : ''
+            } ${
               flatStep
                 ? 'gap-3 md:my-6 px-4 pb-4 md:px-6 md:pb-6 md:bg-gray-50'
                 : 'gap-4 md:m-6 p-4 md:p-6 md:bg-white md:rounded-lg md:shadow-sm md:border md:border-gray-200'
