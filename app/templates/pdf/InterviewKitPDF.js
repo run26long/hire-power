@@ -182,14 +182,6 @@ export default function InterviewKitPDF({
 
         <View style={styles.divider} />
 
-        {selected.jobDescription && jobCard?.description && (
-          <Section title="Job Description">
-            {toParagraphs(jobCard.description).map((para, i) => (
-              <Text key={i} style={styles.body}>{para}</Text>
-            ))}
-          </Section>
-        )}
-
         {selected.stories && coachedStories.length > 0 && (
           <Section title="STAR Stories">
             {coachedStories.map(story => (
@@ -217,6 +209,14 @@ export default function InterviewKitPDF({
                 <Text style={styles.bold}>{q.tailored_text}</Text>
                 {q.rationale ? <Text style={styles.italicMuted}>{q.rationale}</Text> : null}
               </View>
+            ))}
+          </Section>
+        )}
+
+        {selected.jobDescription && jobCard?.description && (
+          <Section title="Job Description">
+            {toParagraphs(jobCard.description).map((para, i) => (
+              <Text key={i} style={styles.body}>{para}</Text>
             ))}
           </Section>
         )}
