@@ -38,10 +38,10 @@ function formatDate(iso) {
 
 // The kit checklist. Order is the order they print in.
 const KIT_ITEMS = [
-  { key: 'stories', label: 'Stories' },
-  { key: 'highlights', label: 'Company Highlights' },
-  { key: 'questions', label: 'Questions' },
-  { key: 'jobDescription', label: 'JD' }
+  { key: 'jobDescription', label: 'Job Description' },
+  { key: 'questions', label: 'Questions for Interviewer' },
+  { key: 'stories', label: 'STAR Stories' },
+  { key: 'highlights', label: 'Company Highlights' }
 ];
 
 function KitCheckbox({ checked, onChange, label, labelClass }) {
@@ -139,11 +139,6 @@ function InterviewToolkitCard({ jobCardId, powerAnalysisId }) {
       <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
         📋 Interview Toolkit
       </h4>
-
-      <p className="text-sm md:text-xs text-gray-600 leading-snug mb-2">
-        Everything you&apos;ve worked on, ready to go. Check any or all to print as a reference
-        for your practice.
-      </p>
 
       {/* One row, wrapping as the half-width card requires. Select All is ruled
           off from the items rather than stacked above them. */}
@@ -308,6 +303,10 @@ export default function PracticeLeftPanel({
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
               <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
             </div>
+
+            <p className="text-sm md:text-xs text-gray-600 leading-snug mb-1.5">
+              Your mock interview is underway.
+            </p>
 
             <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
               Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}

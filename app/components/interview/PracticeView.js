@@ -731,7 +731,6 @@ export default function PracticeView({
   // ==========================================================================
 
   const total = questions.length;
-  const progressPct = total > 0 ? Math.round((currentIndex / total) * 100) : 0;
   const currentAnswered = !!current?.user_answer_text;
   const currentEvaluated = current?.evaluation_status === 'scored'
     || current?.evaluation_status === 'failed'
@@ -741,17 +740,8 @@ export default function PracticeView({
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
 
-      {/* Top bar */}
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
-        <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-          Question {Math.min(currentIndex + 1, total)} of {total}
-        </p>
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mt-1.5">
-          <div className="h-full transition-all duration-300" style={{ width: `${progressPct}%`, ...GRADIENT }} />
-        </div>
-      </div>
-
-      {/* Transcript */}
+      {/* Transcript. No progress bar of its own: the left panel owns every
+          progress display now, and two of them disagreed as often as not. */}
       <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="space-y-3">
           {/* Answers show so the candidate can see what they said. Scores and
