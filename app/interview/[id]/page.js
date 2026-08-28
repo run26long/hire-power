@@ -2361,11 +2361,8 @@ function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
   // whichever is shorter hanging.
   return (
     <div className="flex-shrink-0 self-center">
-      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>
-        📋 Interview Toolkit
-      </p>
-      <p className="text-[10px] text-gray-500 mb-1">
-        Check sections to include in your printout.
+      <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: '#9333ea' }}>
+        📋 Printable Interview Toolkit
       </p>
 
       <div className="flex items-center gap-3">
