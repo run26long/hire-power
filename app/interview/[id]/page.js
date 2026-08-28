@@ -210,8 +210,11 @@ export default function InterviewDetailPage() {
         setCurrentStep(savedStep);
       }
 
+      // Gated on the restored step. openCoachingForItem forces currentStep to
+      // 'coach', so without this an abandoned story dragged every refresh back
+      // to coaching no matter which step the candidate actually left off on.
       const savedStoryId = data.jobCard?.interview_active_story_id;
-      if (savedStoryId) {
+      if (savedStep === 'coach' && savedStoryId) {
         const savedStory = loadedStories.find(s => s.id === savedStoryId && !s.coachingComplete);
         if (savedStory) {
           openCoachingForItem(savedStory.itemType, savedStory.itemIndex, savedStory.itemSkill);
@@ -1129,6 +1132,8 @@ export default function InterviewDetailPage() {
                   onEnd={handleEndCoaching}
                   onGoToPractice={handleGoToPractice}
                   onAdvanceBatch={handleAdvanceBatch}
+                  onGoToResearch={() => { handleEndCoaching(); goToStep('research'); }}
+                  onBack={() => goToStep('analyze')}
                   messagesEndRef={messagesEndRef}
                   coachInputRef={coachInputRef}
                 />
@@ -2281,7 +2286,8 @@ function CoachingView({
   activeStory, coachingMessages, completedStoryCount, coachInput, setCoachInput,
   coachSending, coachStarting, coachError,
   batchQueue, batchPosition, batchJustCompleted,
-  onSend, onEnd, onGoToPractice, onAdvanceBatch, messagesEndRef, coachInputRef
+  onSend, onEnd, onGoToPractice, onAdvanceBatch, onGoToResearch, onBack,
+  messagesEndRef, coachInputRef
 }) {
   const isBatch = batchQueue.length > 0;
   const practiceIsPrimary = completedStoryCount >= 5;
@@ -2460,6 +2466,24 @@ function CoachingView({
           </>
         )}
         <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
+
+        {/* Ways out of a conversation the candidate does not want to finish.
+            Both clear the active story, so a later refresh does not reopen it.
+            Hidden once the story is done, where the completion buttons above
+            already carry the navigation. */}
+        {activeStory && !batchJustCompleted && (
+          <div className="space-y-2 pt-1">
+            <div className="flex gap-2 justify-center">
+              <button onClick={onEnd} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+                Coach Another Story
+              </button>
+              <button onClick={onGoToResearch} className={STEP_SECONDARY_CLASS}>
+                Go to Research →
+              </button>
+            </div>
+            <BackLink onClick={onBack} />
+          </div>
+        )}
       </div>
     </div>
   );
