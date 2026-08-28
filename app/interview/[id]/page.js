@@ -2371,7 +2371,7 @@ function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
         <button
           type="button"
           onClick={toggleAll}
-          className="text-xs text-purple-600 font-semibold cursor-pointer hover:text-purple-800 whitespace-nowrap border-r border-gray-200 pr-3 mr-1"
+          className="text-xs text-gray-900 font-semibold cursor-pointer hover:text-gray-600 whitespace-nowrap border-r border-gray-200 pr-3 mr-1"
         >
           {allChecked ? 'Deselect All' : 'Select All'}
         </button>
