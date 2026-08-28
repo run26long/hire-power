@@ -29,14 +29,6 @@ const MODES = [
   { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review', available: false }
 ];
 
-const SOURCE_LABELS = {
-  warmup: 'Warmup',
-  resume: 'Resume',
-  jd: 'Role',
-  behavioral_bank: 'Behavioral',
-  closer: 'Closer'
-};
-
 const GENERIC_START_ERROR = "We couldn't start your practice session right now. Try again in a moment.";
 
 function formatResetDate(iso) {
@@ -73,6 +65,58 @@ function FeedbackBlock({ label, body }) {
   );
 }
 
+// What the result categories sort on. Content carries more weight than
+// clarity: a well-organized answer to the wrong question is still the wrong
+// answer.
+const WEIGHT_CLARITY = 0.40;
+const WEIGHT_CONTENT = 0.60;
+
+function weightedScore(q) {
+  return (q.score_structure ?? 0) * WEIGHT_CLARITY + (q.score_content ?? 0) * WEIGHT_CONTENT;
+}
+
+// Ordered best first. Each claims everything at or above its floor that a
+// category above it has not already taken.
+const RESULT_CATEGORIES = [
+  { key: 'nailed', label: 'Nailed It',    icon: '🎯', color: '#9333ea', card: 'bg-purple-50 border-purple-200', min: 80 },
+  { key: 'solid',  label: 'Solid Ground', icon: '💪', color: '#81c784', card: 'bg-green-50 border-green-200',   min: 60 },
+  { key: 'grow',   label: 'Room to Grow', icon: '🌱', color: '#ffc870', card: 'bg-amber-50 border-amber-200',   min: 0  },
+];
+
+// The answer sits above the scores so the feedback has something to refer to.
+// Reading "your result was vague" is no use without the words that were vague.
+function QuestionResult({ q, failed }) {
+  return (
+    <div>
+      <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
+        {q.question_text}
+      </p>
+
+      {q.user_answer_text && (
+        <div className="mt-1.5">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Your answer</p>
+          <p className="text-sm md:text-xs text-gray-700 leading-snug whitespace-pre-line">{q.user_answer_text}</p>
+        </div>
+      )}
+
+      {failed ? (
+        <p className="text-xs text-gray-400 mt-1.5">Evaluation unavailable</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <ScorePill label="Clarity" value={q.score_structure ?? 0} />
+            <ScorePill label="Content" value={q.score_content ?? 0} />
+          </div>
+          <div className="space-y-2 mt-2">
+            <FeedbackBlock label="Clarity" body={q.feedback_structure} />
+            <FeedbackBlock label="Content" body={q.feedback_content} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function InterviewerBubble({ text }) {
   return (
     <div>
@@ -102,23 +146,6 @@ function BackLink({ onClick }) {
       <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
         ← Back
       </button>
-    </div>
-  );
-}
-
-function ScoreBar({ label, value, max = 100 }) {
-  return (
-    <div>
-      <div className="flex justify-between items-baseline mb-0.5">
-        <span className="text-sm font-semibold text-gray-900">{label}</span>
-        <span className="text-gray-700 font-medium text-sm">{value}/{max}</span>
-      </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className="h-full"
-          style={{ width: `${(value / max) * 100}%`, background: scoreColor(value) }}
-        />
-      </div>
     </div>
   );
 }
@@ -166,7 +193,6 @@ export default function PracticeView({
 
   const [input, setInput] = useState('');
   const [closerMessages, setCloserMessages] = useState([]);
-  const [expandedIndex, setExpandedIndex] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -509,7 +535,6 @@ export default function PracticeView({
     setCompletion(null);
     setCloserMessages([]);
     setInput('');
-    setExpandedIndex(null);
     setSessionState('idle');
   };
 
@@ -615,107 +640,59 @@ export default function PracticeView({
   // ==========================================================================
 
   if (sessionState === 'completed' && completion) {
-    const summary = completion.session_summary || {};
-    const progression = completion.level_progression || {};
-    const readiness = summary.readiness_score ?? 0;
+    const scored = questions.filter(q => q.question_source !== 'closer');
+    const isFailed = (q) => q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry';
+
+    // A failed evaluation is our problem, not the candidate's, so it is held
+    // out of Room to Grow rather than filed beside answers they fumbled.
+    const failedQuestions = scored.filter(isFailed);
+    const ranked = scored.filter(q => !isFailed(q)).sort((a, b) => weightedScore(b) - weightedScore(a));
+
+    const grouped = RESULT_CATEGORIES.map(cat => ({
+      ...cat,
+      questions: ranked.filter(q => {
+        const s = weightedScore(q);
+        const above = RESULT_CATEGORIES.filter(c => c.min > cat.min);
+        return s >= cat.min && !above.some(c => s >= c.min);
+      })
+    })).filter(cat => cat.questions.length > 0);
 
     return (
-      <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         <h3 className="text-lg font-semibold text-gray-900 -mt-3">Interview Complete</h3>
 
-        <div className="flex items-center justify-center gap-6">
-          <div className="text-center">
-            <div className="text-sm text-gray-600 leading-tight">Session Complete</div>
-            <div className="text-sm text-gray-900 font-semibold">Interview Readiness</div>
+        {grouped.map(cat => (
+          <div key={cat.key} className={`${cat.card} border rounded-lg p-3`}>
+            <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: cat.color }}>
+              {cat.icon} {cat.label}
+            </h4>
+            <div className="space-y-2">
+              {cat.questions.map((q, i) => (
+                <div key={q.id} className={i === 0 ? '' : 'border-t border-gray-200 pt-2'}>
+                  <QuestionResult q={q} failed={false} />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold text-gray-900">{readiness}</span>
-            <span className="text-lg text-gray-600">/100</span>
-          </div>
-        </div>
+        ))}
 
-        <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-          <div className="h-full transition-all duration-500" style={{ width: `${readiness}%`, ...GRADIENT }} />
-        </div>
-
-        {summary.closer_bonus && (
-          <p className="text-xs text-gray-500 text-center">+2 bonus for asking questions</p>
-        )}
-
-        <div className="bg-white rounded-lg space-y-3">
-          <ScoreBar label="Clarity" value={summary.avg_score_structure ?? 0} />
-          <ScoreBar label="Content" value={summary.avg_score_content ?? 0} />
-        </div>
-
-        {progression.level_changed && (
-          <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
-            <p className="text-sm font-semibold text-purple-800">
-              You reached Level {progression.level_after}!
-            </p>
-            <p className="text-xs text-gray-600 leading-snug mt-0.5">
-              Level {progression.level_before} → Level {progression.level_after}
-            </p>
+        {/* Unlabelled on purpose: there is no verdict to give these, and any
+            heading would imply one. */}
+        {failedQuestions.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg p-3">
+            <div className="space-y-2">
+              {failedQuestions.map((q, i) => (
+                <div key={q.id} className={i === 0 ? '' : 'border-t border-gray-200 pt-2'}>
+                  <QuestionResult q={q} failed />
+                </div>
+              ))}
+            </div>
           </div>
         )}
-
-        <div>
-          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
-            Question Breakdown
-          </h4>
-          <div className="space-y-2">
-            {questions.filter(q => q.question_source !== 'closer').map((q, i) => {
-              const expanded = expandedIndex === i;
-              const failed = q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry';
-              return (
-                <button
-                  key={q.id}
-                  type="button"
-                  onClick={() => setExpandedIndex(expanded ? null : i)}
-                  className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:border-purple-300 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className={`text-sm md:text-xs font-semibold text-gray-900 leading-snug flex-1 ${expanded ? '' : 'line-clamp-2'}`}>
-                      {q.question_text}
-                    </p>
-                    <span className="text-xs md:text-[9px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                      {SOURCE_LABELS[q.question_source] || q.question_source}
-                    </span>
-                  </div>
-
-                  {failed ? (
-                    <p className="text-xs text-gray-400">Evaluation unavailable</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      <ScorePill label="Clarity" value={q.score_structure ?? 0} />
-                      <ScorePill label="Content" value={q.score_content ?? 0} />
-                    </div>
-                  )}
-
-                  {expanded && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 space-y-2">
-                      {q.user_answer_text && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Your answer</p>
-                          <p className="text-sm md:text-xs text-gray-700 leading-snug whitespace-pre-line">{q.user_answer_text}</p>
-                        </div>
-                      )}
-                      {!failed && (
-                        <>
-                          <FeedbackBlock label="Clarity" body={q.feedback_structure} />
-                          <FeedbackBlock label="Content" body={q.feedback_content} />
-                        </>
-                      )}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         <button
           onClick={resetToIdle}
-          className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
+          className="mx-auto block text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
           style={GRADIENT}
         >
           Practice Again

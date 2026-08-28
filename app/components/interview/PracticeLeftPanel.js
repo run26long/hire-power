@@ -17,12 +17,31 @@ function scoreColor(score) {
 
 const LEVEL_NAMES = {
   0: 'Not started',
-  1: 'Getting started',
-  2: 'Finding your footing',
-  3: 'Interview ready',
-  4: 'Strong candidate',
-  5: 'Standout'
+  1: 'Beginner',
+  2: 'Foundation',
+  3: 'Strong',
+  4: 'Excellent',
+  5: 'Mastery'
 };
+
+// The four bands the score ramp reads as, same swatches the resume assess
+// display puts under its bar.
+const SCORE_LEGEND = [
+  { color: '#e57373', label: 'Needs Work' },
+  { color: '#ffc870', label: 'Developing' },
+  { color: '#81c784', label: 'Strong' },
+  { color: '#9333ea', label: 'Excellent' },
+];
+
+function BackLink({ onClick }) {
+  return (
+    <div className="text-center">
+      <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
+        ← Back
+      </button>
+    </div>
+  );
+}
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -125,7 +144,8 @@ export default function PracticeLeftPanel({
   // is the same value either way, and the id is the thing they'd load from.
   powerAnalysisId = null,
   onSelectSession,
-  onStartNew
+  onStartNew,
+  onBack
 }) {
 
   // ── ACTIVE ──
@@ -221,21 +241,70 @@ export default function PracticeLeftPanel({
     const summary = completionData.session_summary || {};
     const progression = completionData.level_progression || {};
     const level = progression.level_after ?? 0;
+    const readiness = summary.readiness_score ?? 0;
 
     return (
       <div className="space-y-3">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
           <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Session Results</h4>
 
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          {/* READINESS — the resume assess score display: heading pair, big
+              number over /100, a bar filled from the ramp rather than the
+              brand gradient, and the bands named beneath it. A gradient would
+              look the same at 40 as at 90 and say nothing. */}
+          <div className="flex items-center justify-center gap-6 mb-2">
+            <div className="text-center">
+              <div className="text-sm text-gray-600 leading-tight">Session Complete</div>
+              <div className="text-sm text-gray-900 font-semibold">Interview Readiness</div>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-bold text-gray-900">{readiness}</span>
+              <span className="text-lg text-gray-600">/100</span>
+            </div>
+          </div>
+
+          <div className="h-4 bg-gray-200 rounded-full overflow-hidden mb-2 shadow-inner">
+            <div
+              className="h-full transition-all duration-500"
+              style={{ width: `${readiness}%`, background: scoreColor(readiness) }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between md:justify-center md:gap-3 text-xs md:text-[9px] text-gray-600">
+            {SCORE_LEGEND.map(({ color, label }) => (
+              <div key={label} className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }}></div>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {summary.closer_bonus && (
+            <p className="text-xs text-gray-500 text-center mt-2">+2 bonus for asking questions</p>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 mt-3 mb-3">
             <StatTile label="Clarity" value={summary.avg_score_structure ?? 0} />
             <StatTile label="Content" value={summary.avg_score_content ?? 0} />
           </div>
 
+          {/* The badge always says where they stand; the callout only appears
+              on a session that actually moved them. */}
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center mb-3">
             <div className="text-2xl font-bold" style={{ color: '#9333ea' }}>Level {level}</div>
             <p className="text-xs text-gray-500">{LEVEL_NAMES[level] || ''}</p>
           </div>
+
+          {progression.level_changed && (
+            <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r mb-3">
+              <p className="text-sm font-semibold text-purple-800">
+                You reached Level {progression.level_after}!
+              </p>
+              <p className="text-xs text-gray-600 leading-snug mt-0.5">
+                Level {progression.level_before} → Level {progression.level_after}
+              </p>
+            </div>
+          )}
 
           <button
             onClick={onStartNew}
@@ -250,6 +319,8 @@ export default function PracticeLeftPanel({
           <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
           <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
         </div>
+
+        <BackLink onClick={onBack} />
       </div>
     );
   }
