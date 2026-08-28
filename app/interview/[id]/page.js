@@ -11,7 +11,7 @@ import UpgradeModal from '../../components/UpgradeModal';
 import PracticeView from '../../components/interview/PracticeView';
 import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 
-const VALID_STEPS = ['analyze', 'coach', 'research', 'prepare', 'practice'];
+const VALID_STEPS = ['analyze', 'coach', 'research', 'practice'];
 
 export default function InterviewDetailPage() {
   const router = useRouter();
@@ -40,7 +40,7 @@ export default function InterviewDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [paError, setPaError] = useState(null);
 
-  // Step navigation: 'analyze' | 'coach' | 'practice'
+  // Step navigation: 'analyze' | 'coach' | 'research' | 'practice'
   const [currentStep, setCurrentStep] = useState('analyze');
 
   // Coaching active state
@@ -796,15 +796,14 @@ export default function InterviewDetailPage() {
   // now that the step carries its own session panel the card only competed with it.
   const flatStep = true;
 
-  // Research and Prepare have nothing to finish, so reaching them is what
-  // counts. Measured against the high-water mark rather than the current step,
-  // so walking back through the strip doesn't strip their checks.
+  // Research has nothing to finish, so reaching it is what counts. Measured
+  // against the high-water mark rather than the current step, so walking back
+  // through the strip doesn't strip its check.
   const reachedIndex = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
   const completeByKey = {
     analyze: analyzeComplete,
     coach: coachComplete,
     research: reachedIndex >= VALID_STEPS.indexOf('research'),
-    prepare: reachedIndex >= VALID_STEPS.indexOf('prepare'),
     practice: sessionsCount > 0
   };
 
@@ -947,16 +946,6 @@ export default function InterviewDetailPage() {
                   with company research, so they step aside rather than stack. */}
               {currentStep === 'research' && <ResearchStepContent jobCard={jobCard} />}
 
-              {/* PREPARE — like research, takes over the working surface. */}
-              {currentStep === 'prepare' && (
-                <PrepareStepContent
-                  jobCard={jobCard}
-                  powerAnalysisId={powerAnalysis?.id}
-                  candidateName={userProfile?.display_name}
-                  stories={stories}
-                />
-              )}
-
               {/* PRACTICE — session history and live progress. */}
               {currentStep === 'practice' && (
                 <PracticeLeftPanel
@@ -973,11 +962,10 @@ export default function InterviewDetailPage() {
               )}
 
               {/* BUCKETS */}
-              {hasPA && currentStep !== 'research' && currentStep !== 'prepare' && currentStep !== 'practice' && (() => {
+              {hasPA && currentStep !== 'research' && currentStep !== 'practice' && (() => {
                 // 'practice' falls through to 'normal' — the buckets stay
                 // browsable there, they just aren't driving the step. 'research'
-                // and 'prepare' never reach this, since they render instead of
-                // the buckets.
+                // never reaches this, since it renders instead of the buckets.
                 const leftColMode = currentStep === 'analyze' ? 'readonly'
                   : (currentStep === 'coach' && !activeStory) ? 'coach'
                   : 'normal';
@@ -1059,7 +1047,6 @@ export default function InterviewDetailPage() {
                     { label: 'Analyze', key: 'analyze' },
                     { label: 'Coach', key: 'coach' },
                     { label: 'Research', key: 'research' },
-                    { label: 'Prepare', key: 'prepare' },
                     { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
                     const complete = completeByKey[key];
@@ -1143,15 +1130,8 @@ export default function InterviewDetailPage() {
 
               {currentStep === 'research' && (
                 <ResearchIdlePanel
-                  onGoToPrepare={() => goToStep('prepare')}
-                  onBack={() => goToStep('coach')}
-                />
-              )}
-
-              {currentStep === 'prepare' && (
-                <PrepareIdlePanel
                   onGoToPractice={() => goToStep('practice')}
-                  onBack={() => goToStep('research')}
+                  onBack={() => goToStep('coach')}
                 />
               )}
 
@@ -1164,7 +1144,7 @@ export default function InterviewDetailPage() {
                   experienceLevel={experienceLevel}
                   interviewerQuestions={interviewerQuestions}
                   reviewSessionId={reviewSessionId}
-                  onBack={() => goToStep('prepare')}
+                  onBack={() => goToStep('research')}
                   onSessionChange={setPracticeShape}
                   onError={setErrorToast}
                 />
@@ -1675,10 +1655,8 @@ const DIFFICULTY_STYLES = {
 
 // ============================================================================
 // COMPANY RESEARCH HOOK
-// The research step and the prepare step both need the brief, and the research
-// step unmounts on the way to prepare, taking its state with it. Rather than
-// lift the state to the page, both call this: the route serves the second call
-// from its cache, so there is no second search and no second bill.
+// Fetches the company brief for the research step. The route caches per company,
+// so a remount serves from the cache rather than running a second search.
 // ============================================================================
 
 function useCompanyResearch(jobCard) {
@@ -1746,18 +1724,12 @@ function useCompanyResearch(jobCard) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobCard?.id, jobCard?.company, attempt]);
 
-  // Settled means the fetch is done and said something definite, whether that
-  // was a brief, a recruiter, or nothing findable.
-  const researchSettled =
-    !researchLoading && !researchError && (!!research || researchNotFound || isRecruiter);
-
   return {
     research,
     researchLoading,
     researchError,
     researchNotFound,
     isRecruiter,
-    researchSettled,
     retryResearch: () => setAttempt(a => a + 1)
   };
 }
@@ -1922,7 +1894,7 @@ function ResearchStepContent({ jobCard }) {
 // left; this side just moves the user forward.
 // ============================================================================
 
-function ResearchIdlePanel({ onGoToPrepare, onBack }) {
+function ResearchIdlePanel({ onGoToPractice, onBack }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
@@ -1957,318 +1929,6 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
             Keep what you learned in mind as you practice.
           </p>
         </div>
-        <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
-          Go to Prepare
-        </button>
-        <div className="mt-1.5">
-          <BackLink onClick={onBack} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// PREPARE STEP CONTENT
-// The last stop before practice: everything the candidate carries into the
-// room. Kit on top, questions in the middle, a glance-able review underneath.
-// ============================================================================
-
-// Long prose fields are written as paragraphs. The highlights list wants one
-// line each, so take the opening sentence and leave the rest.
-function firstSentence(text) {
-  if (typeof text !== 'string') return null;
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  const match = trimmed.match(/^.*?[.!?](\s|$)/);
-  return (match ? match[0] : trimmed).trim();
-}
-
-// A story has no title of its own, so the opening line of the polished story
-// stands in for one. Falls back through the raw STAR fields, then to the skill.
-function storyTitle(story) {
-  return (
-    firstSentence(story.polishedStory) ||
-    firstSentence(story.starSituation) ||
-    story.itemSkill ||
-    'Untitled story'
-  );
-}
-
-// The kit checklist. Order is the order they print in.
-const KIT_ITEMS = [
-  { key: 'jobDescription', label: 'Job Description' },
-  { key: 'questions', label: 'Questions for Interviewer' },
-  { key: 'stories', label: 'STAR Stories' },
-  { key: 'highlights', label: 'Company Highlights' }
-];
-
-function KitCheckbox({ checked, onChange, label, labelClass }) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input type="checkbox" checked={checked} onChange={onChange} className="accent-purple-600" />
-      <span className={labelClass}>{label}</span>
-    </label>
-  );
-}
-
-function PrepareStepContent({ jobCard, powerAnalysisId, candidateName, stories }) {
-  const supabase = createClient();
-  const { research, researchSettled } = useCompanyResearch(jobCard);
-  const [questions, setQuestions] = useState([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
-  const [questionsError, setQuestionsError] = useState(null);
-  const [selected, setSelected] = useState({});
-  const [buildingPdf, setBuildingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadQuestions() {
-      setQuestionsLoading(true);
-      setQuestionsError(null);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('No session');
-
-        const res = await fetch('/api/interview/interviewer-questions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            powerAnalysisId,
-            jobCardId: jobCard.id,
-            companyName: jobCard.company,
-            jobTitle: jobCard.title,
-            jobDescription: jobCard.description,
-            companyResearch: research || null
-          })
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Questions failed');
-        if (cancelled) return;
-        setQuestions(Array.isArray(data.questions) ? data.questions : []);
-      } catch (err) {
-        console.error('Interviewer questions load failed:', err);
-        if (!cancelled) {
-          setQuestionsError("Couldn't load your interviewer questions right now.");
-        }
-      } finally {
-        if (!cancelled) setQuestionsLoading(false);
-      }
-    }
-
-    // Waits on research so the brief rides along in the same request. Settling
-    // covers not-found and recruiter too, so a company we know nothing about
-    // still gets questions.
-    if (!researchSettled || !powerAnalysisId || !jobCard?.id) return;
-
-    loadQuestions();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [researchSettled, powerAnalysisId, jobCard?.id]);
-
-  const coachedStories = stories.filter(s => s.coachingComplete);
-
-  const highlights = [
-    firstSentence(research?.what_they_do),
-    research?.size_and_location,
-    firstSentence(research?.hiring_context),
-    research?.culture_signals?.values?.[0]
-  ].filter(Boolean).slice(0, 4);
-
-  const checkedCount = KIT_ITEMS.filter(item => selected[item.key]).length;
-  const allChecked = checkedCount === KIT_ITEMS.length;
-
-  const toggleAll = () => {
-    // Partial selections resolve to all-on, so the box is never a dead click.
-    const next = !allChecked;
-    setSelected(Object.fromEntries(KIT_ITEMS.map(item => [item.key, next])));
-  };
-
-  const toggleItem = (key) => {
-    setSelected(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // @react-pdf/renderer and the template are imported on click, not at module
-  // load: the renderer is well over a megabyte and nobody who never prints
-  // should pay for it in the page bundle.
-  const downloadKit = async () => {
-    setBuildingPdf(true);
-    try {
-      const [{ pdf }, { default: InterviewKitPDF }] = await Promise.all([
-        import('@react-pdf/renderer'),
-        import('../../templates/pdf/InterviewKitPDF')
-      ]);
-
-      const blob = await pdf(
-        <InterviewKitPDF
-          selected={selected}
-          jobCard={jobCard}
-          candidateName={candidateName}
-          storyTitleFor={storyTitle}
-          coachedStories={coachedStories}
-          highlights={highlights}
-          questions={questions}
-          generatedOn={new Date().toLocaleDateString(undefined, {
-            month: 'long', day: 'numeric', year: 'numeric'
-          })}
-        />
-      ).toBlob();
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Interview Kit - ${jobCard?.title || 'Role'} at ${jobCard?.company || 'Company'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      // Revoking immediately can cancel the download in Safari, so give the
-      // click a beat to start.
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-    } catch (err) {
-      console.error('Interview kit PDF failed:', err);
-      setPdfError("Couldn't build your interview kit PDF. Please try again.");
-    } finally {
-      setBuildingPdf(false);
-    }
-  };
-
-  // No padding of its own — the left column already pads and gaps its children.
-  return (
-    <div className="space-y-3">
-
-      {/* SECTION 1 — QUESTIONS TO ASK */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-        <CardHeading color={DOT_PURPLE}>💡 Questions To Ask Your Interviewer</CardHeading>
-
-        <p className="text-sm md:text-xs text-gray-600 leading-snug mb-2">
-          Most candidates don&apos;t ask anything memorable. These are tailored to this role and
-          this company to help you stand out.
-        </p>
-
-        {(questionsLoading || !researchSettled) && (
-          <div className="flex items-center gap-2 text-sm md:text-xs text-gray-500">
-            <div className="animate-spin h-3.5 w-3.5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-            <span>Picking your questions...</span>
-          </div>
-        )}
-
-        {/* No retry: the questions are a nice-to-have on a step the candidate
-            can finish without them. */}
-        {!questionsLoading && researchSettled && questionsError && (
-          <p className="text-sm md:text-xs text-gray-600">{questionsError}</p>
-        )}
-
-        {!questionsLoading && researchSettled && !questionsError && questions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {questions.map((q, i) => (
-              <div key={q.id || i} className="bg-white border border-purple-100 rounded-lg p-2.5">
-                <p className="text-xs font-semibold text-gray-900 leading-snug">{q.tailored_text}</p>
-                {q.rationale && (
-                  <p className="text-xs text-gray-500 italic leading-snug mt-1">{q.rationale}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!questionsLoading && researchSettled && !questionsError && questions.length === 0 && (
-          <p className="text-sm md:text-xs text-gray-400">No questions available.</p>
-        )}
-      </div>
-
-      {/* SECTION 2 — INTERVIEW TOOLKIT */}
-      <div className="bg-white shadow-sm rounded-lg p-3">
-        <CardHeading color={DOT_PURPLE}>📋 Interview Toolkit</CardHeading>
-
-        <p className="text-sm md:text-xs text-gray-600 leading-snug mb-2">
-          Everything you&apos;ve worked on, ready to go. Check any or all to print as a reference
-          for your practice.
-        </p>
-
-        {/* One row, wrapping on narrow screens. Select All is rules off from
-            the items rather than stacked above them. */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="border-r border-gray-200 pr-3 mr-1">
-            <KitCheckbox
-              checked={allChecked}
-              onChange={toggleAll}
-              label="Select All"
-              labelClass="text-sm md:text-xs font-semibold text-gray-900"
-            />
-          </div>
-
-          {KIT_ITEMS.map(item => (
-            <KitCheckbox
-              key={item.key}
-              checked={!!selected[item.key]}
-              onChange={() => toggleItem(item.key)}
-              label={item.label}
-              labelClass="text-sm md:text-xs text-gray-700 whitespace-nowrap"
-            />
-          ))}
-
-          {/* Last item in the same row rather than a line of its own, sitting
-              directly after the final checkbox instead of being pushed to the
-              far edge. */}
-          <button
-            type="button"
-            onClick={downloadKit}
-            disabled={checkedCount === 0 || buildingPdf}
-            className={`text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold flex items-center gap-2 ${
-              checkedCount === 0 || buildingPdf ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
-            }`}
-            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-          >
-            {buildingPdf && (
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
-            )}
-            {buildingPdf ? 'Building...' : 'Print'}
-          </button>
-        </div>
-
-        {pdfError && (
-          <p className="text-sm md:text-xs text-gray-600 mt-2">{pdfError}</p>
-        )}
-      </div>
-
-    </div>
-  );
-}
-
-// ============================================================================
-// PREPARE IDLE PANEL
-// Right-column step driver for the prepare step.
-// ============================================================================
-
-function PrepareIdlePanel({ onGoToPractice, onBack }) {
-  return (
-    <div className="px-5 py-4 flex-1 flex flex-col">
-      <div className="space-y-2">
-        <h3 className="font-semibold text-lg -mt-3">🎤 You&apos;re Almost Ready</h3>
-
-        <p className="text-sm md:text-xs text-gray-700">
-          Everything you need for your interview is here. Review your questions, grab your
-          documents, and walk in prepared.
-        </p>
-
-        <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
-          <div className="text-sm md:text-xs text-purple-900 space-y-2">
-            <div><strong>📋 Interview Kit</strong>: Your resume, job description, and questions in one place.</div>
-            <div><strong>🎤 Your Questions</strong>: Pick 2 or 3 that feel natural. Practice saying them out loud.</div>
-            <div><strong>⭐ Quick Review</strong>: Your coached stories and company highlights at a glance.</div>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA. Sits under the copy rather than at the bottom of the column:
-          this panel is short, and mt-auto left a lane of empty space. */}
-      <div className="mt-3 pt-3 border-t border-gray-300">
         <button onClick={onGoToPractice} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
           Go to Practice
         </button>
@@ -2605,15 +2265,13 @@ function InterviewHeaderStrip({
             ? <>Company Research: <span style={{ color: DOT_PURPLE }}>{company}</span></>
             : 'Company Research'
         )}
-        {currentStep === 'prepare' && 'Prepare for Your Interview'}
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
-        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 5'}
-        {currentStep === 'coach'   && 'Interview Coach: Step 2 of 5'}
-        {currentStep === 'research' && 'Interview Coach: Step 3 of 5'}
-        {currentStep === 'prepare' && 'Interview Coach: Step 4 of 5'}
-        {currentStep === 'practice' && 'Interview Coach: Step 5 of 5'}
+        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
+        {currentStep === 'coach'   && 'Interview Coach: Step 2 of 4'}
+        {currentStep === 'research' && 'Interview Coach: Step 3 of 4'}
+        {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
       </p>
     </div>
   );

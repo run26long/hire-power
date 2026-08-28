@@ -1115,18 +1115,16 @@ const STEP_FROM_DETAIL = {
   analyze: 'analysis',
   coach: 'coaching',
   research: 'research',
-  prepare: 'prepare',
   practice: 'practice',
 };
 
 // The detail page's order, and the dropdown key each position maps to. Used to
 // decide how far down the flow a card has been.
-const DETAIL_STEP_ORDER = ['analyze', 'coach', 'research', 'prepare', 'practice'];
+const DETAIL_STEP_ORDER = ['analyze', 'coach', 'research', 'practice'];
 const STEP_TO_DETAIL = {
   analysis: 'analyze',
   coaching: 'coach',
   research: 'research',
-  prepare: 'prepare',
   practice: 'practice',
 };
 
@@ -1134,7 +1132,6 @@ const STEP_DISPLAY_NAMES = {
   analysis: 'Analysis',
   coaching: 'Coaching',
   research: 'Research',
-  prepare: 'Prepare',
   practice: 'Practice',
   feedback: 'Feedback',
 };
@@ -1186,7 +1183,6 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
     { key: 'analysis', label: 'Analysis' },
     { key: 'coaching', label: 'Coaching' },
     { key: 'research', label: 'Research' },
-    { key: 'prepare', label: 'Prepare' },
     { key: 'practice', label: 'Practice' },
   ]
     .filter(step => {
