@@ -556,11 +556,43 @@ export default function PracticeView({
         <h3 className="text-lg font-semibold text-gray-900 -mt-3">Interview Complete</h3>
 
         {/* The results themselves are the left panel's: sorting ten questions
-            into categories needs the width, and this column is the transcript. */}
-        <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-          Your interview results are ready. Review your performance by category on the left,
-          and use the feedback to sharpen your answers for next time.
+            into categories needs the width. This column explains what the
+            categories mean, so the colours over there are not a code the
+            candidate has to break. */}
+        <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-3">
+          Here&apos;s how your answers were evaluated.
         </p>
+
+        <div className="space-y-3">
+          {[
+            {
+              heading: '🎯 Nailed It',
+              color: '#9333ea',
+              body: 'Answers scoring 80 or above. These landed clearly and demonstrated real competency.'
+            },
+            {
+              heading: '💪 Solid Ground',
+              color: '#81c784',
+              body: 'Answers scoring 60 to 79. Good foundation with room to sharpen your examples or tighten your delivery.'
+            },
+            {
+              heading: '🌱 Room to Grow',
+              color: '#ffc870',
+              body: 'Answers below 60. These need stronger examples or a clearer framework. Use your coached stories to build better responses.'
+            }
+          ].map(({ heading, color, body }) => (
+            <div key={heading}>
+              <p className="text-sm font-bold" style={{ color }}>{heading}</p>
+              <p className="text-sm md:text-xs text-gray-600 leading-snug">{body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r">
+          <p className="text-sm md:text-xs text-gray-700">
+            Click any question on the left to review your full answer and detailed feedback.
+          </p>
+        </div>
 
         <button
           onClick={resetToIdle}
