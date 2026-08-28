@@ -1132,7 +1132,7 @@ export default function InterviewDetailPage() {
                   onEnd={handleEndCoaching}
                   onGoToPractice={handleGoToPractice}
                   onAdvanceBatch={handleAdvanceBatch}
-                  onGoToResearch={() => { handleEndCoaching(); goToStep('research'); }}
+                  onGoToResearch={() => { handleEndCoaching(); goToResearchFromCoach(); }}
                   onBack={() => goToStep('analyze')}
                   messagesEndRef={messagesEndRef}
                   coachInputRef={coachInputRef}
