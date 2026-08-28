@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
-
 // ============================================================================
 // PRACTICE LEFT PANEL
 // The working surface for the practice step. Mirrors the session the right
@@ -34,155 +31,6 @@ function formatDate(iso) {
   } catch {
     return '';
   }
-}
-
-// The kit checklist. Order is the order they print in.
-const KIT_ITEMS = [
-  { key: 'jobDescription', label: 'Job Description' },
-  { key: 'questions', label: 'Questions for Interviewer' },
-  { key: 'stories', label: 'STAR Stories' },
-  { key: 'highlights', label: 'Company Highlights' }
-];
-
-function KitCheckbox({ checked, onChange, label, labelClass }) {
-  return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      {/* The real input carries the semantics and keyboard behaviour; the div
-          beside it is what's actually seen. */}
-      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
-      <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
-        checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
-      }`}>
-        {checked && (
-          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </div>
-      <span className={labelClass}>{label}</span>
-    </label>
-  );
-}
-
-// Its own component so the selection and download state mount and unmount with
-// the active step, the way the panel's other stateful pieces do.
-function InterviewToolkitCard({ jobCardId, powerAnalysisId }) {
-  const supabase = createClient();
-  const [selected, setSelected] = useState({});
-  const [buildingPdf, setBuildingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState(null);
-
-  // Read fresh rather than captured at mount. An interview can outrun a
-  // Supabase JWT, and getSession refreshes one that's close to expiring.
-  const getToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
-  };
-
-  const checkedCount = KIT_ITEMS.filter(item => selected[item.key]).length;
-  const allChecked = checkedCount === KIT_ITEMS.length;
-
-  const toggleAll = () => {
-    // Partial selections resolve to all-on, so the box is never a dead click.
-    const next = !allChecked;
-    setSelected(Object.fromEntries(KIT_ITEMS.map(item => [item.key, next])));
-  };
-
-  const toggleItem = (key) => {
-    setSelected(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Rendered server side rather than in the browser: @react-pdf/renderer is
-  // well over a megabyte, and the practice step shouldn't carry it for a
-  // button most candidates press once.
-  const downloadKit = async () => {
-    setBuildingPdf(true);
-    setPdfError(null);
-    try {
-      const token = await getToken();
-      if (!token) throw new Error('No session');
-
-      const res = await fetch('/api/interview/interview-kit-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ jobCardId, powerAnalysisId, selected })
-      });
-
-      if (!res.ok) throw new Error('Kit PDF request failed');
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'Interview Kit.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      // Revoking immediately can cancel the download in Safari, so give the
-      // click a beat to start.
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-    } catch (err) {
-      console.error('Interview kit PDF failed:', err);
-      setPdfError("Couldn't build your interview kit PDF. Please try again.");
-    } finally {
-      setBuildingPdf(false);
-    }
-  };
-
-  const disabled = checkedCount === 0 || buildingPdf || !jobCardId;
-
-  return (
-    <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-3">
-      <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
-        📋 Interview Toolkit
-      </h4>
-
-      {/* One row, wrapping as the half-width card requires. Select All is ruled
-          off from the items rather than stacked above them. */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="border-r border-gray-200 pr-3 mr-1">
-          <KitCheckbox
-            checked={allChecked}
-            onChange={toggleAll}
-            label="Select All"
-            labelClass="text-sm md:text-xs font-semibold text-gray-900"
-          />
-        </div>
-
-        {KIT_ITEMS.map(item => (
-          <KitCheckbox
-            key={item.key}
-            checked={!!selected[item.key]}
-            onChange={() => toggleItem(item.key)}
-            label={item.label}
-            labelClass="text-sm md:text-xs text-gray-700 whitespace-nowrap"
-          />
-        ))}
-
-        <button
-          type="button"
-          onClick={downloadKit}
-          disabled={disabled}
-          className={`text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold flex items-center gap-2 ${
-            disabled ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
-          }`}
-          style={GRADIENT}
-        >
-          {buildingPdf && (
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
-          )}
-          {buildingPdf ? 'Building...' : 'Print'}
-        </button>
-      </div>
-
-      {pdfError && (
-        <p className="text-sm md:text-xs text-gray-600 mt-2">{pdfError}</p>
-      )}
-    </div>
-  );
 }
 
 function StatTile({ label, value }) {
@@ -273,7 +121,8 @@ export default function PracticeLeftPanel({
   completionData = null,
   pastSessions = [],
   interviewerQuestions = [],
-  jobCardId = null,
+  // Only to tell "questions still loading" from "no questions": an empty array
+  // is the same value either way, and the id is the thing they'd load from.
   powerAnalysisId = null,
   onSelectSession,
   onStartNew
@@ -288,46 +137,38 @@ export default function PracticeLeftPanel({
     const slotCount = Math.max(sessionData?.session?.question_count_target ?? 0, questions.length);
 
     // A flex column rather than the usual block: the interviewer questions
-    // claim all the height left under the top row.
+    // claim all the height left under the progress card.
     return (
       <div className="flex flex-col gap-3 flex-1 min-h-0">
 
-        {/* TOP ROW — toolkit and progress side by side, equal height. */}
-        <div className="grid grid-cols-2 gap-3 flex-shrink-0">
-
-          <InterviewToolkitCard jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
-
-          {/* PROGRESS */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-            <div className="flex items-center gap-2 mb-1.5 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
-              <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
+        {/* PROGRESS */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-700">In Progress</span>
             </div>
-
-            <p className="text-sm md:text-xs text-gray-600 leading-snug mb-1.5">
-              Your mock interview is underway.
-            </p>
-
-            <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
+            <span className="text-xs font-semibold text-gray-500">
               Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
-            </p>
-            {/* One block per question. Progress only: scores stay out of sight
-                until the interview is over, the same way they do on the right. */}
-            <div className="flex gap-1">
-              {Array.from({ length: slotCount }).map((_, i) => {
-                const answered = !!questions[i]?.user_answer_text;
-                const isCurrent = i === currentIndex;
-                return (
-                  <div
-                    key={questions[i]?.id || i}
-                    className={`h-1.5 flex-1 rounded-sm transition-colors ${
-                      answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
-                    }`}
-                    style={answered ? GRADIENT : undefined}
-                  />
-                );
-              })}
-            </div>
+            </span>
+          </div>
+
+          {/* One block per question. Progress only: scores stay out of sight
+              until the interview is over, the same way they do on the right. */}
+          <div className="flex gap-1 mt-2">
+            {Array.from({ length: slotCount }).map((_, i) => {
+              const answered = !!questions[i]?.user_answer_text;
+              const isCurrent = i === currentIndex;
+              return (
+                <div
+                  key={questions[i]?.id || i}
+                  className={`h-2 flex-1 rounded-full transition-colors ${
+                    answered ? '' : isCurrent ? 'bg-purple-300' : 'bg-gray-100'
+                  }`}
+                  style={answered ? GRADIENT : undefined}
+                />
+              );
+            })}
           </div>
         </div>
 

@@ -881,6 +881,8 @@ export default function InterviewDetailPage() {
                   currentStep={currentStep}
                   titleOnly={flatStep}
                   company={jobCard.company}
+                  jobCardId={params.id}
+                  powerAnalysisId={powerAnalysis?.id}
                 />
               )}
 
@@ -954,7 +956,6 @@ export default function InterviewDetailPage() {
                   completionData={practiceShape.completion}
                   pastSessions={pastPracticeSessions}
                   interviewerQuestions={interviewerQuestions}
-                  jobCardId={params.id}
                   powerAnalysisId={powerAnalysis?.id}
                   onSelectSession={(s) => setReviewSessionId(s.id)}
                   onStartNew={() => {
@@ -2247,9 +2248,157 @@ function StoryModal({ story, onClose }) {
 // Responsive: stacks vertically on mobile with date+progress side-by-side below title.
 // ============================================================================
 
+// The kit checklist. Keys are what the PDF template gates each section on;
+// labels are short because the header gives this one line and no more.
+const KIT_ITEMS = [
+  { key: 'jobDescription', label: 'JD' },
+  { key: 'stories', label: 'Stories' },
+  { key: 'highlights', label: 'Research' },
+  { key: 'questions', label: 'Questions' }
+];
+
+function KitCheckbox({ checked, onChange, label }) {
+  return (
+    <label className="flex items-center gap-1.5 cursor-pointer">
+      {/* The real input carries the semantics and keyboard behaviour; the div
+          beside it is what's actually seen. */}
+      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+      <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
+        checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
+      }`}>
+        {checked && (
+          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
+      <span className="text-xs text-gray-700 whitespace-nowrap">{label}</span>
+    </label>
+  );
+}
+
+// Rides in the header rather than owning a card: on the practice step the
+// title leaves the whole right side empty, and the kit is a thing you reach
+// for once mid-interview, not a surface to work on.
+function HeaderToolkit({ jobCardId, powerAnalysisId }) {
+  const supabase = createClient();
+  const [selected, setSelected] = useState({});
+  const [buildingPdf, setBuildingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  // Read fresh rather than captured at mount. An interview can outrun a
+  // Supabase JWT, and getSession refreshes one that's close to expiring.
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
+
+  const checkedCount = KIT_ITEMS.filter(item => selected[item.key]).length;
+  const allChecked = checkedCount === KIT_ITEMS.length;
+
+  const toggleAll = () => {
+    // Partial selections resolve to all-on, so the link is never a dead click.
+    const next = !allChecked;
+    setSelected(Object.fromEntries(KIT_ITEMS.map(item => [item.key, next])));
+  };
+
+  const toggleItem = (key) => {
+    setSelected(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Rendered server side rather than in the browser: @react-pdf/renderer is
+  // well over a megabyte, and the practice step shouldn't carry it for a
+  // button most candidates press once.
+  const downloadKit = async () => {
+    setBuildingPdf(true);
+    setPdfError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('No session');
+
+      const res = await fetch('/api/interview/interview-kit-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ jobCardId, powerAnalysisId, selected })
+      });
+
+      if (!res.ok) throw new Error('Kit PDF request failed');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Interview Kit.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // Revoking immediately can cancel the download in Safari, so give the
+      // click a beat to start.
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (err) {
+      console.error('Interview kit PDF failed:', err);
+      setPdfError("Couldn't build your kit. Please try again.");
+    } finally {
+      setBuildingPdf(false);
+    }
+  };
+
+  const disabled = checkedCount === 0 || buildingPdf || !jobCardId;
+
+  // self-center rather than the parent's items-start: the title beside it runs
+  // two lines, and top-aligning a single row against it reads as a mistake.
+  return (
+    <div className="flex-shrink-0 self-center">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="text-xs text-purple-600 font-semibold cursor-pointer hover:text-purple-800 whitespace-nowrap border-r border-gray-200 pr-3 mr-1"
+        >
+          {allChecked ? 'Deselect All' : 'Select All'}
+        </button>
+
+        {KIT_ITEMS.map(item => (
+          <KitCheckbox
+            key={item.key}
+            checked={!!selected[item.key]}
+            onChange={() => toggleItem(item.key)}
+            label={item.label}
+          />
+        ))}
+
+        <button
+          type="button"
+          onClick={downloadKit}
+          disabled={disabled}
+          className={`text-white rounded py-1 px-3 text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap ${
+            disabled ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
+          }`}
+          style={STEP_PRIMARY_STYLE}
+        >
+          {buildingPdf && (
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
+          )}
+          {buildingPdf ? 'Building...' : 'Print'}
+        </button>
+      </div>
+
+      {/* Only ever a second line, and only on failure — the controls above
+          stay on one row. */}
+      {pdfError && (
+        <p className="text-xs text-gray-500 mt-1 text-right">{pdfError}</p>
+      )}
+    </div>
+  );
+}
+
 function InterviewHeaderStrip({
   storiesCoached, totalStoryItems,
-  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company
+  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company,
+  jobCardId, powerAnalysisId
 }) {
   const hasDate = !!interviewDate;
   const dateObj = hasDate ? new Date(interviewDate) : null;
@@ -2292,6 +2441,9 @@ function InterviewHeaderStrip({
           <span className="flex-shrink-0 mt-1 text-xs md:text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 whitespace-nowrap">
             {storiesCoached} of {totalStoryItems} stories coached
           </span>
+        )}
+        {currentStep === 'practice' && (
+          <HeaderToolkit jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
         )}
       </div>
     );
