@@ -349,7 +349,7 @@ function CompletedPanel({ completionData, questions, pastSessions, onSelectSessi
         <div className="flex items-center gap-4">
 
           {/* READINESS */}
-          <div className="flex flex-col items-center flex-shrink-0" style={{ width: '35%' }}>
+          <div className="flex flex-col items-center flex-shrink-0" style={{ width: '42%' }}>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-bold text-gray-900">{readiness}</span>
               <span className="text-lg text-gray-600">/100</span>
