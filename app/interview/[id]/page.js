@@ -2139,19 +2139,14 @@ function CoachingView({
         <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
 
         {/* Ways out of a conversation the candidate does not want to finish.
-            Both clear the active story, so a later refresh does not reopen it,
-            and both land back on the idle coach step — the difference is what
-            the candidate means to do next, not where they end up. Neither
-            leaves the step: stepping away is the idle panel's job, and offering
-            it mid-conversation invited an accidental exit. Hidden once the
-            story is done, where the completion buttons above already carry the
+            It clears the active story, so a later refresh does not reopen it,
+            and lands on the idle coach step. It does not leave the step:
+            stepping away is the idle panel's job, and offering it
+            mid-conversation invited an accidental exit. Hidden once the story
+            is done, where the completion buttons above already carry the
             navigation. */}
         {activeStory && !batchJustCompleted && (
           <div className="text-center pt-1">
-            <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-              Coach Another Story
-            </button>
-            <span className="text-xs text-gray-300 mx-2">·</span>
             <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
               End Coaching
             </button>
