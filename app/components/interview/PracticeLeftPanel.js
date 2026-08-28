@@ -204,8 +204,8 @@ export default function PracticeLeftPanel({
           </div>
         </div>
 
-        {/* QUESTION LIST — every slot rendered, rows share the height, never scrolls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 min-h-0 overflow-hidden flex flex-col">
+        {/* QUESTION LIST — every slot rendered, never scrolls */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 overflow-hidden">
           {Array.from({ length: slotCount }).map((_, i) => {
             // Null until the questions load, which is what the placeholder rows
             // render from.
@@ -216,7 +216,7 @@ export default function PracticeLeftPanel({
             return (
               <div
                 key={q?.id || i}
-                className={`flex-1 min-h-0 flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
+                className={`h-[36px] flex items-center gap-2 px-1.5 ${isLast ? '' : 'border-b border-gray-100'} ${isCurrent ? 'bg-purple-50 rounded' : ''}`}
               >
                 {answered ? (
                   <>
