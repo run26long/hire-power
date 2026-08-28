@@ -54,10 +54,21 @@ export async function POST(request) {
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     // ---- INPUT ----
-    const { jobCardId, powerAnalysisId } = await request.json();
+    const { jobCardId, powerAnalysisId, selected } = await request.json();
     if (!jobCardId) {
       return Response.json({ error: 'jobCardId required' }, { status: 400 });
     }
+
+    // Which sections the candidate ticked. An older caller that sends nothing
+    // gets the whole kit, which is what the checkboxes default to anyway.
+    const sections = selected && typeof selected === 'object'
+      ? {
+          stories: !!selected.stories,
+          highlights: !!selected.highlights,
+          questions: !!selected.questions,
+          jobDescription: !!selected.jobDescription
+        }
+      : { stories: true, highlights: true, questions: true, jobDescription: true };
 
     // ---- JOB CARD ----
     // Scoped to the caller: the service role key bypasses RLS, so ownership is
@@ -80,13 +91,19 @@ export async function POST(request) {
       .maybeSingle();
 
     // ---- COACHED STORIES ----
-    const { data: storyRows } = await supabase
-      .from('interview_stories')
-      .select('id, item_type, item_index, item_skill, star_situation, star_task, star_action, star_result, polished_story')
-      .eq('job_card_id', jobCardId)
-      .eq('user_id', user.id)
-      .eq('coaching_complete', true)
-      .order('item_index', { ascending: true });
+    // Each section is fetched only when it's being printed: an unticked box
+    // should cost nothing, not fetch rows the template then discards.
+    let storyRows = [];
+    if (sections.stories) {
+      const { data } = await supabase
+        .from('interview_stories')
+        .select('id, item_type, item_index, item_skill, star_situation, star_task, star_action, star_result, polished_story')
+        .eq('job_card_id', jobCardId)
+        .eq('user_id', user.id)
+        .eq('coaching_complete', true)
+        .order('item_index', { ascending: true });
+      storyRows = data || [];
+    }
 
     const coachedStories = (storyRows || []).map(row => ({
       id: row.id,
@@ -104,7 +121,7 @@ export async function POST(request) {
     // powerAnalysisId is optional: without it the kit simply prints without
     // the questions section rather than failing the whole download.
     let questions = [];
-    if (powerAnalysisId) {
+    if (sections.questions && powerAnalysisId) {
       const { data: questionRows } = await supabase
         .from('interviewer_questions_selected')
         .select('*')
@@ -118,7 +135,7 @@ export async function POST(request) {
     // Read from the cache only. This route never triggers a research run: a
     // print button should not cost a web search.
     let research = null;
-    if (jobCard.company) {
+    if (sections.highlights && jobCard.company) {
       const { data: researchRow } = await supabase
         .from('company_research')
         .select('what_they_do, size_and_location, hiring_context, culture_signals')
@@ -137,10 +154,10 @@ export async function POST(request) {
     ].filter(Boolean).slice(0, 4);
 
     // ---- RENDER ----
-    // Everything the candidate has is included. The checkbox UI that used to
-    // pick sections is gone, and a section with no data renders nothing.
+    // A ticked section with no data behind it still renders nothing: the
+    // template gates on both the flag and the content.
     const element = React.createElement(InterviewKitPDF, {
-      selected: { jobDescription: true, stories: true, highlights: true, questions: true },
+      selected: sections,
       jobCard,
       candidateName: profile?.display_name || null,
       storyTitleFor: storyTitle,

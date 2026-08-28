@@ -62,16 +62,30 @@ function ElapsedTimer({ startedAt }) {
   const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
   const ss = String(elapsed % 60).padStart(2, '0');
 
-  // Inline, so it sits on the header row rather than owning a block of its own.
+  // Inline, so it sits on the progress row rather than owning a block of its own.
   return (
-    <span className="text-base font-mono font-semibold text-gray-500 flex-shrink-0">{mm}:{ss}</span>
+    <span className="text-sm font-mono font-semibold text-gray-500 flex-shrink-0">{mm}:{ss}</span>
   );
 }
 
-// Its own component for the same reason ElapsedTimer is: the download state
-// belongs to the active step and should unmount with it.
-function InterviewKitCard({ jobCardId, powerAnalysisId }) {
+// The kit's sections, in the order they print. The keys are what the PDF
+// template gates each section on, so they travel to the route unchanged.
+const KIT_ITEMS = [
+  { key: 'stories', label: 'Stories' },
+  { key: 'highlights', label: 'Company' },
+  { key: 'questions', label: 'Questions' },
+  { key: 'jobDescription', label: 'JD' }
+];
+
+// Its own component for the same reason ElapsedTimer is: the selection and
+// download state belong to the active step and should unmount with it.
+function InterviewKitSection({ jobCardId, powerAnalysisId }) {
   const supabase = createClient();
+  // Everything on by default — the common case is printing the whole kit, and
+  // unticking is a quicker path to a subset than ticking four boxes.
+  const [selected, setSelected] = useState(
+    () => Object.fromEntries(KIT_ITEMS.map(item => [item.key, true]))
+  );
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState(null);
 
@@ -81,6 +95,10 @@ function InterviewKitCard({ jobCardId, powerAnalysisId }) {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token;
   };
+
+  const toggle = (key) => setSelected(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const checkedCount = KIT_ITEMS.filter(item => selected[item.key]).length;
 
   const downloadKit = async () => {
     setBuilding(true);
@@ -95,7 +113,7 @@ function InterviewKitCard({ jobCardId, powerAnalysisId }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ jobCardId, powerAnalysisId })
+        body: JSON.stringify({ jobCardId, powerAnalysisId, selected })
       });
 
       if (!res.ok) throw new Error('Kit PDF request failed');
@@ -119,34 +137,62 @@ function InterviewKitCard({ jobCardId, powerAnalysisId }) {
     }
   };
 
+  const disabled = building || !jobCardId || checkedCount === 0;
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
-      <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+    <div className="basis-[45%] min-w-0">
+      <h4 className="text-xs font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>
         Interview Kit
       </h4>
+
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+        {KIT_ITEMS.map(({ key, label }) => {
+          const checked = !!selected[key];
+          return (
+            <label key={key} className="flex items-center gap-1.5 cursor-pointer">
+              {/* The real input carries the semantics and keyboard behaviour;
+                  the div beside it is what's actually seen. */}
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggle(key)}
+                className="sr-only"
+              />
+              <div className={`w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center flex-shrink-0 ${
+                checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
+              }`}>
+                {checked && (
+                  <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-xs md:text-[10px] text-gray-700">{label}</span>
+            </label>
+          );
+        })}
+      </div>
 
       <button
         type="button"
         onClick={downloadKit}
-        disabled={building || !jobCardId}
-        className={`text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-2 ${
-          building || !jobCardId ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
+        disabled={disabled}
+        className={`mt-1.5 text-xs font-semibold text-white rounded py-1 px-3 flex items-center gap-1.5 ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
         }`}
         style={GRADIENT}
       >
         {building ? (
           <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent flex-shrink-0"></div>
         ) : (
-          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
         )}
-        {building ? 'Building...' : 'Print Interview Kit'}
+        {building ? 'Building...' : 'Print Kit'}
       </button>
 
-      <p className="text-xs text-gray-400 mt-1.5">
-        {error || 'Print your prep notes for the interview'}
-      </p>
+      {error && <p className="text-xs md:text-[10px] text-gray-500 mt-1">{error}</p>}
     </div>
   );
 }
@@ -254,50 +300,60 @@ export default function PracticeLeftPanel({
     const slotCount = Math.max(sessionData?.session?.question_count_target ?? 0, questions.length);
 
     // A flex column rather than the usual block: the interviewer questions
-    // claim all the height left under the progress and kit cards.
+    // claim all the height left under the top bar.
     return (
       <div className="flex flex-col gap-3 flex-1 min-h-0">
 
-        {/* PROGRESS */}
+        {/* TOP BAR — the kit and the session's progress share one card. Both
+            are glanced at rather than read, so they cost one row between them
+            instead of a card each. */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
-              <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
-            </div>
-            <ElapsedTimer startedAt={sessionData?.startedAt} />
-          </div>
+          <div className="flex gap-4">
 
-          <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
-            Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
-          </p>
-          {/* One block per question. Counted off the same slots as the list, so
-              the two never disagree. Progress only: scores stay out of sight
-              until the interview is over, the same way they do on the right. */}
-          <div className="flex gap-1">
-            {Array.from({ length: slotCount }).map((_, i) => {
-              const answered = !!questions[i]?.user_answer_text;
-              const isCurrent = i === currentIndex;
-              return (
-                <div
-                  key={questions[i]?.id || i}
-                  className={`h-1.5 flex-1 rounded-sm transition-colors ${
-                    answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
-                  }`}
-                  style={answered ? GRADIENT : undefined}
-                />
-              );
-            })}
+            <InterviewKitSection jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
+
+            {/* PROGRESS */}
+            <div className="basis-[55%] min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                <h4 className="text-xs font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>
+                  In Progress
+                </h4>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-xs md:text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                  Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
+                </span>
+                <ElapsedTimer startedAt={sessionData?.startedAt} />
+              </div>
+
+              {/* One block per question. Progress only: scores stay out of
+                  sight until the interview is over, the same way they do on
+                  the right. */}
+              <div className="flex gap-1 mt-1.5">
+                {Array.from({ length: slotCount }).map((_, i) => {
+                  const answered = !!questions[i]?.user_answer_text;
+                  const isCurrent = i === currentIndex;
+                  return (
+                    <div
+                      key={questions[i]?.id || i}
+                      className={`h-1.5 flex-1 rounded-sm transition-colors ${
+                        answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
+                      }`}
+                      style={answered ? GRADIENT : undefined}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* INTERVIEW KIT */}
-        <InterviewKitCard jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
-
         {/* QUESTIONS FOR YOUR INTERVIEWER — claims the height left under the
-            two cards above it, and scrolls if the list outgrows it. */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 min-h-0 overflow-y-auto">
-          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+            top bar, and scrolls if the list outgrows it. */}
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex-1 min-h-0 overflow-y-auto">
+          <h4 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: '#9333ea' }}>
             Questions For Your Interviewer
           </h4>
 
@@ -309,18 +365,25 @@ export default function PracticeLeftPanel({
               <div className="h-4 w-4 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
             </div>
           ) : interviewerQuestions.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {interviewerQuestions.map((q, i) => (
-                <div key={q.id || i} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
-                  <p className="text-sm md:text-xs text-gray-700 leading-snug">
+                <div
+                  key={q.id || i}
+                  className={i === 0 ? '' : 'border-t border-purple-200 pt-3'}
+                >
+                  <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
                     {q.tailored_text || q.original_text}
                   </p>
+                  {q.rationale && (
+                    <p className="text-xs md:text-[10px] text-gray-600 leading-snug mt-0.5">
+                      {q.rationale}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Complete Research to generate interviewer questions.
             </p>
           )}
