@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
@@ -36,44 +36,41 @@ function formatDate(iso) {
   }
 }
 
-// Its own component so its hooks mount and unmount with the active state.
-// PracticeLeftPanel returns early per state, so a hook on the parent would
-// either run during every state or break the rules of hooks.
-function ElapsedTimer({ startedAt }) {
-  // The whole clock lives in the interval callback. Reading Date.now() during
-  // render is impure, and writing state straight from an effect body cascades
-  // renders, so the subscription is the only thing that ever sets it. First
-  // paint reads 00:00 and the first tick corrects it a second later.
-  const [elapsed, setElapsed] = useState(0);
+// The kit checklist. Order is the order they print in.
+const KIT_ITEMS = [
+  { key: 'stories', label: 'Stories' },
+  { key: 'highlights', label: 'Company Highlights' },
+  { key: 'questions', label: 'Questions' },
+  { key: 'jobDescription', label: 'JD' }
+];
 
-  // Re-syncs if startedAt arrives after mount, which is what happens when a
-  // resumed session finishes loading its row.
-  useEffect(() => {
-    const parsed = startedAt ? new Date(startedAt).getTime() : NaN;
-    // A session created moments ago has no row to read a start time from, so
-    // the clock starts here instead. Accurate to the second either way.
-    const startMs = Number.isFinite(parsed) ? parsed : Date.now();
-    const id = setInterval(() => {
-      setElapsed(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
-
-  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-  const ss = String(elapsed % 60).padStart(2, '0');
-
-  // Inline, so it sits on the header row rather than owning a block of its own.
+function KitCheckbox({ checked, onChange, label, labelClass }) {
   return (
-    <span className="text-base font-mono font-semibold text-gray-500 flex-shrink-0">{mm}:{ss}</span>
+    <label className="flex items-center gap-2 cursor-pointer">
+      {/* The real input carries the semantics and keyboard behaviour; the div
+          beside it is what's actually seen. */}
+      <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+      <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
+        checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
+      }`}>
+        {checked && (
+          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
+      <span className={labelClass}>{label}</span>
+    </label>
   );
 }
 
-// Its own component for the same reason ElapsedTimer is: the download state
-// belongs to the active step and should unmount with it.
-function InterviewKitCard({ jobCardId, powerAnalysisId }) {
+// Its own component so the selection and download state mount and unmount with
+// the active step, the way the panel's other stateful pieces do.
+function InterviewToolkitCard({ jobCardId, powerAnalysisId }) {
   const supabase = createClient();
-  const [building, setBuilding] = useState(false);
-  const [error, setError] = useState(null);
+  const [selected, setSelected] = useState({});
+  const [buildingPdf, setBuildingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
 
   // Read fresh rather than captured at mount. An interview can outrun a
   // Supabase JWT, and getSession refreshes one that's close to expiring.
@@ -82,9 +79,25 @@ function InterviewKitCard({ jobCardId, powerAnalysisId }) {
     return session?.access_token;
   };
 
+  const checkedCount = KIT_ITEMS.filter(item => selected[item.key]).length;
+  const allChecked = checkedCount === KIT_ITEMS.length;
+
+  const toggleAll = () => {
+    // Partial selections resolve to all-on, so the box is never a dead click.
+    const next = !allChecked;
+    setSelected(Object.fromEntries(KIT_ITEMS.map(item => [item.key, next])));
+  };
+
+  const toggleItem = (key) => {
+    setSelected(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Rendered server side rather than in the browser: @react-pdf/renderer is
+  // well over a megabyte, and the practice step shouldn't carry it for a
+  // button most candidates press once.
   const downloadKit = async () => {
-    setBuilding(true);
-    setError(null);
+    setBuildingPdf(true);
+    setPdfError(null);
     try {
       const token = await getToken();
       if (!token) throw new Error('No session');
@@ -95,7 +108,7 @@ function InterviewKitCard({ jobCardId, powerAnalysisId }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ jobCardId, powerAnalysisId })
+        body: JSON.stringify({ jobCardId, powerAnalysisId, selected })
       });
 
       if (!res.ok) throw new Error('Kit PDF request failed');
@@ -113,40 +126,66 @@ function InterviewKitCard({ jobCardId, powerAnalysisId }) {
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (err) {
       console.error('Interview kit PDF failed:', err);
-      setError("Couldn't build your kit. Please try again.");
+      setPdfError("Couldn't build your interview kit PDF. Please try again.");
     } finally {
-      setBuilding(false);
+      setBuildingPdf(false);
     }
   };
 
+  const disabled = checkedCount === 0 || buildingPdf || !jobCardId;
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
+    <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-3">
       <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
-        Interview Kit
+        📋 Interview Toolkit
       </h4>
 
-      <button
-        type="button"
-        onClick={downloadKit}
-        disabled={building || !jobCardId}
-        className={`text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-2 ${
-          building || !jobCardId ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
-        }`}
-        style={GRADIENT}
-      >
-        {building ? (
-          <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent flex-shrink-0"></div>
-        ) : (
-          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-        )}
-        {building ? 'Building...' : 'Print Interview Kit'}
-      </button>
-
-      <p className="text-xs text-gray-400 mt-1.5">
-        {error || 'Print your prep notes for the interview'}
+      <p className="text-sm md:text-xs text-gray-600 leading-snug mb-2">
+        Everything you&apos;ve worked on, ready to go. Check any or all to print as a reference
+        for your practice.
       </p>
+
+      {/* One row, wrapping as the half-width card requires. Select All is ruled
+          off from the items rather than stacked above them. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="border-r border-gray-200 pr-3 mr-1">
+          <KitCheckbox
+            checked={allChecked}
+            onChange={toggleAll}
+            label="Select All"
+            labelClass="text-sm md:text-xs font-semibold text-gray-900"
+          />
+        </div>
+
+        {KIT_ITEMS.map(item => (
+          <KitCheckbox
+            key={item.key}
+            checked={!!selected[item.key]}
+            onChange={() => toggleItem(item.key)}
+            label={item.label}
+            labelClass="text-sm md:text-xs text-gray-700 whitespace-nowrap"
+          />
+        ))}
+
+        <button
+          type="button"
+          onClick={downloadKit}
+          disabled={disabled}
+          className={`text-white rounded-lg py-1.5 px-5 text-sm md:text-xs font-semibold flex items-center gap-2 ${
+            disabled ? 'opacity-50 cursor-not-allowed' : 'transition-opacity hover:opacity-90'
+          }`}
+          style={GRADIENT}
+        >
+          {buildingPdf && (
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
+          )}
+          {buildingPdf ? 'Building...' : 'Print'}
+        </button>
+      </div>
+
+      {pdfError && (
+        <p className="text-sm md:text-xs text-gray-600 mt-2">{pdfError}</p>
+      )}
     </div>
   );
 }
@@ -254,50 +293,49 @@ export default function PracticeLeftPanel({
     const slotCount = Math.max(sessionData?.session?.question_count_target ?? 0, questions.length);
 
     // A flex column rather than the usual block: the interviewer questions
-    // claim all the height left under the progress and kit cards.
+    // claim all the height left under the top row.
     return (
       <div className="flex flex-col gap-3 flex-1 min-h-0">
 
-        {/* PROGRESS */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-shrink-0">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <div className="flex items-center gap-2 min-w-0">
+        {/* TOP ROW — toolkit and progress side by side, equal height. */}
+        <div className="grid grid-cols-2 gap-3 flex-shrink-0">
+
+          <InterviewToolkitCard jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
+
+          {/* PROGRESS */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="flex items-center gap-2 mb-1.5 min-w-0">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
               <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#9333ea' }}>In Progress</h4>
             </div>
-            <ElapsedTimer startedAt={sessionData?.startedAt} />
-          </div>
 
-          <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
-            Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
-          </p>
-          {/* One block per question. Counted off the same slots as the list, so
-              the two never disagree. Progress only: scores stay out of sight
-              until the interview is over, the same way they do on the right. */}
-          <div className="flex gap-1">
-            {Array.from({ length: slotCount }).map((_, i) => {
-              const answered = !!questions[i]?.user_answer_text;
-              const isCurrent = i === currentIndex;
-              return (
-                <div
-                  key={questions[i]?.id || i}
-                  className={`h-1.5 flex-1 rounded-sm transition-colors ${
-                    answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
-                  }`}
-                  style={answered ? GRADIENT : undefined}
-                />
-              );
-            })}
+            <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1.5">
+              Question {Math.min(currentIndex + 1, slotCount)} of {slotCount}
+            </p>
+            {/* One block per question. Progress only: scores stay out of sight
+                until the interview is over, the same way they do on the right. */}
+            <div className="flex gap-1">
+              {Array.from({ length: slotCount }).map((_, i) => {
+                const answered = !!questions[i]?.user_answer_text;
+                const isCurrent = i === currentIndex;
+                return (
+                  <div
+                    key={questions[i]?.id || i}
+                    className={`h-1.5 flex-1 rounded-sm transition-colors ${
+                      answered ? '' : isCurrent ? 'bg-purple-200' : 'bg-gray-200'
+                    }`}
+                    style={answered ? GRADIENT : undefined}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* INTERVIEW KIT */}
-        <InterviewKitCard jobCardId={jobCardId} powerAnalysisId={powerAnalysisId} />
-
-        {/* QUESTIONS FOR YOUR INTERVIEWER — claims the height left under the
-            two cards above it, and scrolls if the list outgrows it. */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex-1 min-h-0 overflow-y-auto">
-          <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+        {/* QUESTIONS FOR YOUR INTERVIEWER — full width under both cards, and
+            scrolls if the list outgrows the space left. */}
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex-1 min-h-0 overflow-y-auto">
+          <h4 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: '#9333ea' }}>
             Questions For Your Interviewer
           </h4>
 
@@ -311,16 +349,25 @@ export default function PracticeLeftPanel({
           ) : interviewerQuestions.length > 0 ? (
             <div className="space-y-2">
               {interviewerQuestions.map((q, i) => (
-                <div key={q.id || i} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
-                  <p className="text-sm md:text-xs text-gray-700 leading-snug">
-                    {q.tailored_text || q.original_text}
-                  </p>
+                <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-2'}>
+                  <div className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
+                    <div className="min-w-0">
+                      <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
+                        {q.tailored_text || q.original_text}
+                      </p>
+                      {q.rationale && (
+                        <p className="text-xs md:text-[10px] text-gray-600 leading-snug mt-0.5">
+                          {q.rationale}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Complete Research to generate interviewer questions.
             </p>
           )}
