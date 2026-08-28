@@ -862,7 +862,7 @@ export default function PracticeView({
             closes the session for good. */}
         <div className="text-center">
           <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-            Continue Later
+            Pause &amp; Continue Later
           </button>
           {answeredCount > 0 && (
             <>
