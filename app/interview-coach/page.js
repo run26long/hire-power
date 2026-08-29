@@ -74,7 +74,7 @@ const HUB_TOUR_STEPS = [
     targets: ['interview-prep'],
     placement: 'right',
     title: 'Your interview prep hub',
-    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Coaching, and Practice. Do them in order or skip to what you need.'
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Coaching, Research, and Practice. Do them in order or skip to what you need.'
   },
   {
     id: 'practice-stats',
