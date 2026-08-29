@@ -309,12 +309,12 @@ function FeedbackModal({ entry, coachingLoading, onClose }) {
                   at the feedback above rather than explaining itself. */}
               {q.coaching_feedback ? (
                 <div>
-                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Coaching</p>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Coach&apos;s Notes</p>
                   <p className="text-sm md:text-xs text-gray-800 leading-snug">{q.coaching_feedback}</p>
                 </div>
               ) : coachingLoading ? (
                 <div>
-                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Coaching</p>
+                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Coach&apos;s Notes</p>
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 animate-spin border-2 border-purple-600 border-t-transparent rounded-full flex-shrink-0"></div>
                     <span className="text-xs text-gray-400">Generating personalized feedback...</span>
