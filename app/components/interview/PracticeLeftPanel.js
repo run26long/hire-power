@@ -332,7 +332,7 @@ function FeedbackModal({ entry, coachingLoading, onClose }) {
 // Its own component so the modal's hooks mount and unmount with the completed
 // state. PracticeLeftPanel returns early per state, so a hook on the parent
 // would either run during every state or break the rules of hooks.
-function CompletedPanel({ completionData, questions, coachingLoading, pastSessions, onSelectSession, onStartNew, onBack }) {
+function CompletedPanel({ completionData, questions, coachingLoading, onStartNew, onBack }) {
   const [openEntry, setOpenEntry] = useState(null);
 
   const summary = completionData.session_summary || {};
@@ -464,11 +464,6 @@ function CompletedPanel({ completionData, questions, coachingLoading, pastSessio
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-        <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
-        <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
-      </div>
-
       <BackLink onClick={onBack} />
 
       {/* Re-resolved against the live rows rather than passed as opened:
@@ -595,8 +590,6 @@ export default function PracticeLeftPanel({
         completionData={completionData}
         questions={sessionData?.questions || []}
         coachingLoading={!!sessionData?.coachingLoading}
-        pastSessions={pastSessions}
-        onSelectSession={onSelectSession}
         onStartNew={onStartNew}
         onBack={onBack}
       />
