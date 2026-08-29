@@ -969,7 +969,6 @@ export default function InterviewDetailPage() {
                     setReviewSessionId(null);
                     setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
                   }}
-                  onBack={() => goToStep('research')}
                 />
               )}
 

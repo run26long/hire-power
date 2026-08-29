@@ -44,16 +44,6 @@ function scoreBand(score) {
   return 'Needs Work';
 }
 
-function BackLink({ onClick }) {
-  return (
-    <div className="text-center">
-      <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
-        ← Back
-      </button>
-    </div>
-  );
-}
-
 // What the categories sort on. Content carries more weight than clarity: a
 // well-organized answer to the wrong question is still the wrong answer.
 const WEIGHT_CLARITY = 0.40;
@@ -332,7 +322,7 @@ function FeedbackModal({ entry, coachingLoading, onClose }) {
 // Its own component so the modal's hooks mount and unmount with the completed
 // state. PracticeLeftPanel returns early per state, so a hook on the parent
 // would either run during every state or break the rules of hooks.
-function CompletedPanel({ completionData, questions, coachingLoading, onStartNew, onBack }) {
+function CompletedPanel({ completionData, questions, coachingLoading, onStartNew }) {
   const [openEntry, setOpenEntry] = useState(null);
 
   const summary = completionData.session_summary || {};
@@ -464,8 +454,6 @@ function CompletedPanel({ completionData, questions, coachingLoading, onStartNew
         ))}
       </div>
 
-      <BackLink onClick={onBack} />
-
       {/* Re-resolved against the live rows rather than passed as opened:
           coaching lands after the modal may already be open, and a snapshot
           taken on click would leave the spinner turning forever. */}
@@ -491,8 +479,7 @@ export default function PracticeLeftPanel({
   // is the same value either way, and the id is the thing they'd load from.
   powerAnalysisId = null,
   onSelectSession,
-  onStartNew,
-  onBack
+  onStartNew
 }) {
 
   // ── ACTIVE ──
@@ -591,7 +578,6 @@ export default function PracticeLeftPanel({
         questions={sessionData?.questions || []}
         coachingLoading={!!sessionData?.coachingLoading}
         onStartNew={onStartNew}
-        onBack={onBack}
       />
     );
   }
