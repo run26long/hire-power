@@ -74,7 +74,7 @@ const HUB_TOUR_STEPS = [
     targets: ['interview-prep'],
     placement: 'right',
     title: 'Your interview prep hub',
-    body: 'Start a new practice for any job, or pick up where you left off. Each card shows three ways to prepare for your interview: Analysis, Coaching, and Practice. Do them in order or skip to what you need.'
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Coaching, and Practice. Do them in order or skip to what you need.'
   },
   {
     id: 'practice-stats',
@@ -742,7 +742,7 @@ export default function MyInterviewsPage() {
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-2">
-                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all three, or jump to what you need.
+                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all or just what you need.
                   </p>
 
                       <div>
