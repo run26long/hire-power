@@ -678,17 +678,11 @@ export default function MyInterviewsPage() {
                 desc: 'Learn about the company to align your experience with business goals.',
                 tag: 'Pro only'
               },
-              { 
-                num: '4', 
-                title: 'Mock Interview', 
+              {
+                num: '4',
+                title: 'Interview Practice',
                 desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
                 tag: 'Free: 1 session · Pro: Unlimited'
-              },
-              { 
-                num: '5', 
-                title: 'Interview Feedback', 
-                desc: 'Record yourself and get feedback on delivery, not just content.',
-                tag: 'Pro'
               },
             ].map(({ num, title, desc, tag }) => (
               <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
