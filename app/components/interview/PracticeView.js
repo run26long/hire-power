@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import VoiceConsentModal from './VoiceConsentModal';
 
 // ============================================================================
 // SHARED VISUALS
@@ -14,10 +15,15 @@ import { createClient } from '@/utils/supabase/client';
 const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 
 const MODES = [
-  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers', available: true },
-  { key: 'mode_2', icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers, no recording', available: false },
-  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review', available: false }
+  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers' },
+  { key: 'mode_2', icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers, no recording' },
+  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review' }
 ];
+
+// mode_3 is typed and opens nothing. The other two reach for the microphone,
+// so each carries its own recorded consent: agreeing to one is not agreeing
+// to the other, and mode_1 keeps audio that mode_2 never writes down.
+const CONSENT_REQUIRED_MODES = ['mode_1', 'mode_2'];
 
 const GENERIC_START_ERROR = "We couldn't start your practice session right now. Try again in a moment.";
 
@@ -103,6 +109,11 @@ export default function PracticeView({
   const [completion, setCompletion] = useState(null);
 
   const [selectedMode, setSelectedMode] = useState('mode_3');
+  // The mode the candidate clicked and has not yet consented to. Non-null is
+  // what puts the consent modal on screen; selectedMode does not move until
+  // the consent row is actually written.
+  const [pendingVoiceMode, setPendingVoiceMode] = useState(null);
+  const [checkingConsent, setCheckingConsent] = useState(false);
   const [starting, setStarting] = useState(false);
   const [sending, setSending] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -259,6 +270,66 @@ export default function PracticeView({
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewSessionId]);
+
+  // ── MODE SELECTION ──
+  const handleSelectMode = async (modeKey) => {
+    if (!CONSENT_REQUIRED_MODES.includes(modeKey)) {
+      setSelectedMode(modeKey);
+      return;
+    }
+    if (checkingConsent || !userId) return;
+
+    setCheckingConsent(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_voice_consent')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('mode_selected', modeKey)
+        .limit(1)
+        .maybeSingle();
+
+      // Fails closed. A lookup that didn't answer is not a consent on file,
+      // and asking a second time costs a click where assuming costs a promise.
+      if (error) {
+        console.error('Voice consent lookup failed:', error);
+        setPendingVoiceMode(modeKey);
+        return;
+      }
+
+      if (data) setSelectedMode(modeKey);
+      else setPendingVoiceMode(modeKey);
+    } finally {
+      setCheckingConsent(false);
+    }
+  };
+
+  // The mode is not selected until the row lands. A consent we agreed to but
+  // failed to record is not a consent we can show anyone later, so a failed
+  // write drops back to text rather than opening the microphone anyway.
+  const handleConsentGranted = async (record) => {
+    const modeKey = pendingVoiceMode;
+
+    const { error } = await supabase
+      .from('user_voice_consent')
+      .insert({ user_id: userId, ...record });
+
+    setPendingVoiceMode(null);
+
+    if (error) {
+      console.error('Voice consent write failed:', error);
+      setSelectedMode('mode_3');
+      onError("We couldn't record your consent, so we've kept you in text mode. Try again in a moment.");
+      return;
+    }
+
+    setSelectedMode(modeKey);
+  };
+
+  const handleConsentCancelled = () => {
+    setPendingVoiceMode(null);
+    setSelectedMode('mode_3');
+  };
 
   // ── START ──
   const startSession = async () => {
@@ -548,29 +619,16 @@ export default function PracticeView({
               <button
                 key={mode.key}
                 type="button"
-                onClick={() => mode.available && setSelectedMode(mode.key)}
-                disabled={!mode.available}
-                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all ${
-                  active && mode.available
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200'
-                } ${
-                  mode.available
-                    ? 'cursor-pointer hover:border-purple-300 hover:shadow-sm'
-                    : 'cursor-not-allowed opacity-60'
+                onClick={() => handleSelectMode(mode.key)}
+                disabled={checkingConsent}
+                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm disabled:cursor-wait ${
+                  active ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <span className="text-base flex-shrink-0 leading-none mt-0.5">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm md:text-xs font-bold text-gray-900">{mode.title}</p>
-                      {!mode.available && (
-                        <span className="text-xs md:text-[9px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                          Coming Soon
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-sm md:text-xs font-bold text-gray-900">{mode.title}</p>
                     <p className="text-sm md:text-xs text-gray-600 leading-snug">{mode.subtitle}</p>
                   </div>
                 </div>
@@ -592,6 +650,14 @@ export default function PracticeView({
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
 
         <BackLink onClick={onBack} />
+
+        {pendingVoiceMode && (
+          <VoiceConsentModal
+            mode={pendingVoiceMode}
+            onConsent={handleConsentGranted}
+            onCancel={handleConsentCancelled}
+          />
+        )}
       </div>
     );
   }
