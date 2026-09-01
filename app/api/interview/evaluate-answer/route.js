@@ -10,6 +10,11 @@ const MAX_EVALUATION_RETRIES = 3;
 
 const VALID_LEVELS = ['entry', 'mid', 'senior'];
 
+// mode_3 is text. Both voice modes score the third dimension; mode_2 only
+// differs in discarding the recording after transcription, which changes
+// nothing about how the answer is judged.
+const VOICE_MODES = ['mode_1', 'mode_2'];
+
 // ============================================================================
 // ANSWER EVALUATION — SYSTEM PROMPT
 // Cached on every call.
@@ -37,6 +42,18 @@ Does the answer actually address the question with relevant, specific informatio
 - 40-59: Loosely related to the question. Mostly theoretical ("I would..." "I believe...") rather than demonstrating actual experience.
 - 0-39: Does not address the question. Off-topic, irrelevant, or too thin to evaluate.
 
+CONFIDENCE (0-100) — VOICE SESSIONS ONLY:
+Based on transcript analysis, how confident and polished does the candidate sound?
+- 90-100: Fluent delivery. No filler words, no false starts, clear and direct phrasing throughout. Reads like someone who has practiced this answer.
+- 75-89: Mostly fluent with minor hesitations. One or two filler words ("um", "uh", "like", "you know") but doesn't derail. Natural conversational flow.
+- 60-74: Noticeable fillers or false starts. Restarts sentences, uses hedging language ("I think maybe", "sort of"), or trails off before completing thoughts.
+- 40-59: Frequent fillers and hesitation. Multiple false starts, long pauses represented by fragmented sentences, or disorganized stream of consciousness.
+- 0-39: Very difficult to follow. Heavy filler usage, incomplete thoughts, or the transcript suggests significant struggle to articulate.
+
+Note: You are evaluating a TRANSCRIPT of spoken words, not written text. Spoken language is naturally less polished than written language. Calibrate accordingly, a spoken answer that reads slightly rough on paper may have been perfectly clear when spoken. Score the confidence of the delivery, not the grammar.
+
+IMPORTANT: Only score confidence when the SESSION MODE is voice. For text mode, do NOT include confidence in the output.
+
 CALIBRATION BY LEVEL:
 You will be told the candidate's level (entry, mid, senior). Calibrate your expectations:
 - Entry: Accept less polished delivery. Value any concrete example, even from school, internships, or part-time work. A student who gives a specific example from a class project with a clear result deserves high content scores.
@@ -46,6 +63,7 @@ You will be told the candidate's level (entry, mid, senior). Calibrate your expe
 FEEDBACK RULES:
 - feedback_structure: 2-3 sentences on clarity. What made the answer easy to follow, and one specific thing to improve. Be concrete: "Your situation setup was clear, but your result was vague. End with a specific outcome or metric."
 - feedback_content: 2-3 sentences. What landed, and what would make the answer stronger. Reference the actual question: "You were asked about stakeholder management, and your example with the vendor negotiation was relevant. To strengthen it, quantify the outcome."
+- feedback_delivery: 2-3 sentences on confidence, voice sessions only. Name what sounded assured, and one specific delivery habit to work on: "You spoke at a steady pace and landed your main point cleanly. Watch the restarts at the top, take a beat before you begin and start with your first full sentence."
 - Never reference Hire Power, Power Analysis, or any internal concepts.
 - Never be condescending. Speak as a helpful coach, not a grader.
 - No em dashes. Use commas, periods, or restructure.
@@ -54,13 +72,30 @@ FEEDBACK RULES:
 OUTPUT FORMAT:
 Respond with ONLY valid JSON. No markdown, no code blocks, no preamble.
 The keys are storage names and do not change: score_structure and
-feedback_structure carry the clarity score and the clarity feedback.
+feedback_structure carry the clarity score and the clarity feedback, and
+score_delivery and feedback_delivery carry the confidence score and the
+confidence feedback.
+
+You will be told the SESSION MODE at the top of the message. Match it exactly.
+
+SESSION MODE: text — two dimensions, no confidence:
 
 {
   "score_structure": 0-100,
   "score_content": 0-100,
   "feedback_structure": "2-3 sentences",
   "feedback_content": "2-3 sentences"
+}
+
+SESSION MODE: voice — three dimensions:
+
+{
+  "score_structure": 0-100,
+  "score_content": 0-100,
+  "score_delivery": 0-100,
+  "feedback_structure": "2-3 sentences",
+  "feedback_content": "2-3 sentences",
+  "feedback_delivery": "2-3 sentences"
 }`;
 
 // ============================================================================
@@ -104,9 +139,11 @@ async function evaluateAnswer({
   jobCompany,
   questionSource,
   questionText,
-  answerText
+  answerText,
+  isVoiceMode
 }) {
-  const userMessage = `CANDIDATE LEVEL: ${experienceLevel}
+  const userMessage = `SESSION MODE: ${isVoiceMode ? 'voice' : 'text'}
+CANDIDATE LEVEL: ${experienceLevel}
 ROLE: ${jobTitle || 'Not specified'} at ${jobCompany || 'Not specified'}
 
 INTERVIEW QUESTION (${questionSource || 'general'}):
@@ -123,7 +160,10 @@ Evaluate this answer.`;
   try {
     response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+      // A third dimension is a third block of feedback. 500 fits two
+      // comfortably; a truncated third would come back unparseable and burn
+      // a retry on a call that was otherwise fine.
+      max_tokens: isVoiceMode ? 700 : 500,
       // Zero, unlike question generation: the same answer should score the
       // same way twice, and a retry should not shift the grade.
       temperature: 0,
@@ -177,15 +217,32 @@ Evaluate this answer.`;
     return { evaluation: null, usage };
   }
 
-  return {
-    evaluation: {
-      score_structure: scoreStructure,
-      score_content: scoreContent,
-      feedback_structure: feedbackStructure,
-      feedback_content: feedbackContent
-    },
-    usage
+  const evaluation = {
+    score_structure: scoreStructure,
+    score_content: scoreContent,
+    feedback_structure: feedbackStructure,
+    feedback_content: feedbackContent
   };
+
+  // Confidence is part of the shape in voice mode, so a missing one is the
+  // same half-formed result as a missing clarity score: the candidate spoke
+  // their answer and would be shown two thirds of a grade. Retry instead.
+  if (isVoiceMode) {
+    const scoreDelivery = toScore(parsed.score_delivery);
+    const feedbackDelivery = typeof parsed.feedback_delivery === 'string'
+      ? parsed.feedback_delivery.trim()
+      : '';
+
+    if (scoreDelivery === null || !feedbackDelivery) {
+      console.error('Answer evaluation missing confidence in voice mode:', parsed);
+      return { evaluation: null, usage };
+    }
+
+    evaluation.score_delivery = scoreDelivery;
+    evaluation.feedback_delivery = feedbackDelivery;
+  }
+
+  return { evaluation, usage };
 }
 
 // ============================================================================
@@ -286,7 +343,7 @@ export async function POST(request) {
     // ---- SESSION ----
     const { data: session, error: sessionError } = await supabase
       .from('interview_sessions')
-      .select('id, job_card_id, status, questions_answered, current_question_index, question_count_target')
+      .select('id, job_card_id, status, voice_mode, questions_answered, current_question_index, question_count_target')
       .eq('id', session_id)
       .eq('user_id', userId)
       .maybeSingle();
@@ -399,13 +456,19 @@ export async function POST(request) {
       : 'mid';
 
     // ---- EVALUATE ----
+    // An unrecognized or absent mode falls through to text, which is the safe
+    // default: it scores two dimensions rather than asking for confidence on
+    // an answer that may well have been typed.
+    const isVoiceMode = VOICE_MODES.includes(session.voice_mode);
+
     const { evaluation, usage } = await evaluateAnswer({
       experienceLevel,
       jobTitle: jobCard?.title,
       jobCompany: jobCard?.company,
       questionSource: question.question_source,
       questionText: question.question_text,
-      answerText
+      answerText,
+      isVoiceMode
     });
 
     // ---- RECORD THE OUTCOME ON THE QUESTION ----
@@ -413,15 +476,24 @@ export async function POST(request) {
     let evaluationPending = false;
 
     if (evaluation) {
+      const scoreUpdate = {
+        score_structure: evaluation.score_structure,
+        score_content: evaluation.score_content,
+        feedback_structure: evaluation.feedback_structure,
+        feedback_content: evaluation.feedback_content,
+        evaluation_status: 'scored'
+      };
+
+      // Voice only. Text rows leave both columns null, which is exactly what
+      // complete-session keys its two-dimension readiness formula off.
+      if (evaluation.score_delivery !== undefined) {
+        scoreUpdate.score_delivery = evaluation.score_delivery;
+        scoreUpdate.feedback_delivery = evaluation.feedback_delivery;
+      }
+
       const { error: scoreError } = await supabase
         .from('interview_questions')
-        .update({
-          score_structure: evaluation.score_structure,
-          score_content: evaluation.score_content,
-          feedback_structure: evaluation.feedback_structure,
-          feedback_content: evaluation.feedback_content,
-          evaluation_status: 'scored'
-        })
+        .update(scoreUpdate)
         .eq('id', question_id)
         .eq('user_id', userId);
 

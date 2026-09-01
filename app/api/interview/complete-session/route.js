@@ -34,12 +34,10 @@ const CLOSER_BONUS = 2;
 // ============================================================================
 // READINESS SCORE
 //
-// Text mode is the only live path: nothing produces a delivery score yet, so
-// avg_score_delivery is always null and the two-dimension formula applies.
-// The three-dimension weighting is here for when voice modes start scoring
-// delivery, at which point this branches on a non-null delivery average
-// rather than on voice_mode itself. A mode_1 session today still has no
-// delivery data, so keying off the mode would only produce NaN.
+// Voice sessions score a third dimension, text sessions do not. The branch is
+// on a non-null delivery average rather than on voice_mode itself: a voice
+// session whose answers all failed evaluation carries no delivery data to
+// weigh, and keying off the mode would only produce NaN.
 // ============================================================================
 
 function readinessScore({ structure, content, delivery }) {
@@ -123,7 +121,7 @@ export async function POST(request) {
     // ---- QUESTIONS ----
     const { data: questions, error: questionsError } = await supabase
       .from('interview_questions')
-      .select('score_structure, score_content, evaluation_status, question_source')
+      .select('score_structure, score_content, score_delivery, evaluation_status, question_source')
       .eq('session_id', session_id)
       .eq('user_id', userId);
 
@@ -147,6 +145,13 @@ export async function POST(request) {
       .map(q => q.score_content)
       .filter(v => Number.isFinite(v));
 
+    // Voice only. Text rows never carry a delivery score, so this comes back
+    // empty and the average stays null, which is what selects the two-
+    // dimension formula below.
+    const deliveryScores = scorable
+      .map(q => q.score_delivery)
+      .filter(v => Number.isFinite(v));
+
     // Guarded on the set the averages actually use, not on scored questions in
     // general: a session whose only scored row is the closer has nothing to
     // average and would otherwise divide by zero.
@@ -159,7 +164,7 @@ export async function POST(request) {
     // ---- SCORES ----
     const avgScoreStructure = average(structureScores);
     const avgScoreContent = average(contentScores);
-    const avgScoreDelivery = null;
+    const avgScoreDelivery = average(deliveryScores);
 
     const baseReadiness = readinessScore({
       structure: avgScoreStructure,
@@ -260,6 +265,9 @@ export async function POST(request) {
         questions_failed: questionsFailed,
         avg_score_structure: avgScoreStructure,
         avg_score_content: avgScoreContent,
+        // Null on a text session, which is how the caller tells the two
+        // dimensions apart from the three without knowing the mode.
+        avg_score_delivery: avgScoreDelivery,
         overall_score: overallScore,
         readiness_score: finalReadiness,
         closer_bonus: closerParticipated
