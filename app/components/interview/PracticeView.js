@@ -218,7 +218,7 @@ function VoiceInputPanel({
 // browser's chrome instead of ours.
 // ============================================================================
 
-function EndInterviewModal({ onCancel, onConfirm, confirming }) {
+function EndInterviewModal({ onCancel, onConfirm, confirming, hasScored }) {
   useEffect(() => {
     const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
     window.addEventListener('keydown', handleKeyDown);
@@ -251,8 +251,12 @@ function EndInterviewModal({ onCancel, onConfirm, confirming }) {
         </div>
 
         <div className="p-5">
+          {/* Nothing scored means nothing to keep: say that rather than promise
+              results this session cannot produce. */}
           <p className="text-sm md:text-xs text-gray-700 leading-relaxed">
-            Your answered questions will be scored and saved. Unanswered questions won&apos;t be included in your results.
+            {hasScored
+              ? "Your answered questions will be scored and saved. Unanswered questions won't be included in your results."
+              : 'No answers have been scored yet. Ending now will discard this session.'}
           </p>
         </div>
 
@@ -1403,6 +1407,7 @@ export default function PracticeView({
           onCancel={() => setShowEndConfirm(false)}
           onConfirm={confirmEndEarly}
           confirming={completing}
+          hasScored={scoredCount > 0}
         />
       )}
     </div>
