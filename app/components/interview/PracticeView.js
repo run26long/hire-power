@@ -19,9 +19,6 @@ const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 // a target, so it stops rather than warns.
 const MAX_RECORDING_SECONDS = 300;
 
-// Recording red. Matches the "Room to Grow" band in the results, which is the
-// only other place this column uses a warm signal colour.
-const RECORDING_RED = '#e57373';
 
 // mode_1 stays visible and unavailable: its consent promises recordings kept
 // for playback, and there is nowhere to keep them until storage is wired.
@@ -80,6 +77,44 @@ function formatDuration(totalSeconds) {
 }
 
 // ============================================================================
+// EQUALIZER
+// Five bars on staggered delays, CSS only. The keyframes are declared here
+// rather than in globals.css: this is the only thing in the app that animates
+// this way, and a style tag beside it keeps the two from drifting apart.
+//
+// In a voice session this is the only sign a question is being read. There is
+// no text on screen to fall back on, so it has to be unmistakable.
+// ============================================================================
+
+const EQ_BAR_DELAYS = ['0s', '0.15s', '0.3s', '0.45s', '0.6s'];
+
+function EqualizerBars() {
+  return (
+    <>
+      <style>{`
+        @keyframes hp-eq {
+          0%, 100% { transform: scaleY(0.3); }
+          50%      { transform: scaleY(1); }
+        }
+      `}</style>
+      <div className="flex items-center justify-center gap-1 h-8" aria-hidden="true">
+        {EQ_BAR_DELAYS.map(delay => (
+          <span
+            key={delay}
+            className="w-1 h-8 rounded-full bg-white"
+            style={{
+              animation: 'hp-eq 0.9s ease-in-out infinite',
+              animationDelay: delay,
+              transformOrigin: 'center'
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ============================================================================
 // VOICE INPUT PANEL
 // The dock's contents in a voice session, in place of the textarea. Pure
 // presentation: every stage transition is decided by the parent, which owns
@@ -105,21 +140,23 @@ function VoiceInputPanel({
   return (
     <div className="flex flex-col items-center gap-2 py-2">
 
+      {/* LISTEN — red, pulsing, not tappable. The bars carry the fact that
+          something is being said; the colour carries whose turn it is. */}
       {stage === 'speaking' && (
         <>
-          <div
-            className="h-16 w-16 rounded-full flex items-center justify-center animate-pulse"
-            style={GRADIENT}
-          >
-            <span className="text-2xl">🔊</span>
+          <div className="h-16 w-16 rounded-full flex items-center justify-center animate-pulse bg-red-500">
+            <EqualizerBars />
           </div>
-          <p className="text-sm md:text-xs text-gray-500">Speaking...</p>
+          <p className="text-sm md:text-xs text-gray-500">Listening to the question...</p>
           <button onClick={onSkipSpeaking} className="text-xs text-gray-400 hover:text-gray-600">
             Skip
           </button>
         </>
       )}
 
+      {/* Only reachable when something went wrong: playback failed, the mic was
+          refused, or a recording came back empty. The ordinary path never
+          stops here, because recording starts on its own. */}
       {stage === 'ready' && (
         <>
           <button
@@ -135,25 +172,29 @@ function VoiceInputPanel({
         </>
       )}
 
+      {/* SPEAK — green, pulsing, tappable. */}
       {stage === 'recording' && (
         <>
           <button
             type="button"
             onClick={onStopRecording}
-            aria-label="Stop recording"
-            className="h-16 w-16 rounded-full flex items-center justify-center animate-pulse transition-opacity hover:opacity-90"
-            style={{ backgroundColor: RECORDING_RED }}
+            aria-label="Done recording"
+            className="h-16 w-16 rounded-full flex items-center justify-center animate-pulse transition-opacity hover:opacity-90 bg-green-500"
           >
             <span className="text-2xl">🎤</span>
           </button>
-          <p className="text-sm md:text-xs text-red-500">Recording... tap to stop</p>
+          <p className="text-sm md:text-xs text-green-600">Tap when you&apos;re done</p>
           <p className="text-xs font-mono text-gray-400">{formatDuration(recordingSeconds)}</p>
         </>
       )}
 
+      {/* Red again, and still this time: their turn is over and nothing is
+          being captured. */}
       {stage === 'processing' && (
         <>
-          <div className="h-8 w-8 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
+          <div className="h-16 w-16 rounded-full flex items-center justify-center bg-red-500">
+            <div className="h-6 w-6 animate-spin border-2 border-white border-t-transparent rounded-full"></div>
+          </div>
           <p className="text-sm md:text-xs text-gray-500">Transcribing...</p>
         </>
       )}
@@ -194,6 +235,64 @@ function VoiceInputPanel({
           Type instead
         </button>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// MIC PERMISSION MODAL
+// Asked once, before the first question is spoken, so the browser's own
+// dialog never lands in the middle of an answer. Same bones as the voice
+// consent modal: this is the second half of the same conversation.
+//
+// No dismiss and no backdrop close: every way out of this is a decision, and
+// "Use Text Instead" is one of them.
+// ============================================================================
+
+function MicPermissionModal({ onEnable, onUseText, requesting }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+        style={{ maxHeight: '80vh' }}
+      >
+        <div className="px-6 py-4 flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">🎤</span>
+            </div>
+            <h2 className="text-base font-bold text-white">Enable Your Microphone</h2>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <p className="text-sm md:text-xs text-gray-800 leading-snug">
+            Voice mode needs microphone access so we can hear your answers. Your browser will ask for permission next.
+          </p>
+
+          <div className="space-y-1.5">
+            <button
+              onClick={onEnable}
+              disabled={requesting}
+              className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              style={GRADIENT}
+            >
+              {requesting && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
+              {requesting ? 'Waiting for your browser...' : 'Enable Microphone'}
+            </button>
+            <button
+              onClick={onUseText}
+              disabled={requesting}
+              className="w-full text-sm md:text-xs text-gray-400 hover:text-gray-600 py-1 disabled:opacity-50"
+            >
+              Use Text Instead
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -306,6 +405,12 @@ export default function PracticeView({
 
   const [sessionState, setSessionState] = useState('idle');
   const [session, setSession] = useState(null);
+
+  // Declared up here rather than beside the voice machinery below: the effects
+  // in this block read it, and a const declared after them is a forward
+  // reference waiting to catch someone out.
+  const isVoiceSession = session?.voice_mode === 'mode_1' || session?.voice_mode === 'mode_2';
+
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completion, setCompletion] = useState(null);
@@ -334,6 +439,12 @@ export default function PracticeView({
   const [typedFallbackId, setTypedFallbackId] = useState(null);
 
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+
+  // The microphone gate, resolved once per voice session before the first
+  // question is spoken. 'granted' is the only value that lets the interviewer
+  // start talking.
+  const [micGate, setMicGate] = useState('unknown');
+  const [micRequesting, setMicRequesting] = useState(false);
 
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
@@ -377,8 +488,10 @@ export default function PracticeView({
   }, [sessionState, session, questions, currentIndex, completion, coachingLoading]);
 
   useEffect(() => {
-    if (sessionState === 'active') messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [questions, currentIndex, sessionState]);
+    // No transcript to scroll in a voice session: there is nothing on screen
+    // that grows.
+    if (sessionState === 'active' && !isVoiceSession) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [questions, currentIndex, sessionState, isVoiceSession]);
 
   useEffect(() => {
     if (sessionState === 'active' && !sending) inputRef.current?.focus({ preventScroll: true });
@@ -711,7 +824,6 @@ export default function PracticeView({
   // to become a transcript, and it is discarded once it has.
   // ==========================================================================
 
-  const isVoiceSession = session?.voice_mode === 'mode_1' || session?.voice_mode === 'mode_2';
   const typingThisQuestion = !!current && typedFallbackId === current.id;
 
   const stopPlayback = () => {
@@ -751,6 +863,17 @@ export default function PracticeView({
     secondsRef.current = 0;
   };
 
+  // Audio failed for this one question. Say so, then hand them the textarea:
+  // the question text comes back on screen with it, which is the only way they
+  // can answer something they could not hear.
+  const fallBackToText = (generation) => {
+    if (generation !== voiceGenerationRef.current) return;
+    stopPlayback();
+    onError('Audio unavailable. Switching to text mode for this question.');
+    setVoiceStage('idle');
+    setTypedFallbackId(current?.id ?? null);
+  };
+
   const speakQuestion = async (text, generation) => {
     try {
       const token = await getToken();
@@ -766,10 +889,11 @@ export default function PracticeView({
       });
       if (generation !== voiceGenerationRef.current) return;
 
-      // A question that can't be spoken is still a question they can read: it
-      // is on screen above. Drop to the microphone rather than stranding the
-      // interview on an audio failure.
-      if (!res.ok) { setVoiceStage('ready'); return; }
+      // Nothing is written on screen in a voice session, so a question that
+      // cannot be spoken is a question the candidate has no way to receive.
+      // Falling back to the microphone would ask them to answer something they
+      // never heard. This one question becomes a typed one instead.
+      if (!res.ok) { fallBackToText(generation); return; }
 
       const blob = await res.blob();
       if (generation !== voiceGenerationRef.current) return;
@@ -778,17 +902,17 @@ export default function PracticeView({
       audioUrlRef.current = url;
       const audio = new Audio(url);
       audioRef.current = audio;
+      // Their turn starts the moment the question ends. No tap in between:
+      // a real interviewer does not wait to be told you are about to answer.
       audio.onended = () => {
-        if (generation === voiceGenerationRef.current) setVoiceStage('ready');
+        if (generation === voiceGenerationRef.current) startRecording();
       };
-      audio.onerror = () => {
-        if (generation === voiceGenerationRef.current) setVoiceStage('ready');
-      };
+      audio.onerror = () => fallBackToText(generation);
       await audio.play();
     } catch (err) {
       // Autoplay refused, or the request died. Same answer either way.
       console.error('Question playback failed:', err);
-      if (generation === voiceGenerationRef.current) setVoiceStage('ready');
+      fallBackToText(generation);
     }
   };
 
@@ -852,8 +976,19 @@ export default function PracticeView({
       return;
     }
 
+    // Recording now starts on its own, so this can be in flight when the
+    // question changes: a permission prompt left sitting, or a slow grant.
+    // Whatever comes back late belongs to a question that is already gone.
+    const generation = voiceGenerationRef.current;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      if (generation !== voiceGenerationRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
       mediaStreamRef.current = stream;
 
       const recorder = new MediaRecorder(stream);
@@ -898,9 +1033,12 @@ export default function PracticeView({
     }
   };
 
+  // Skipping means "I have heard enough of the question", which is the same
+  // moment onended would have reached. Straight to recording, same as if the
+  // audio had run to the end on its own.
   const skipSpeaking = () => {
     stopPlayback();
-    setVoiceStage('ready');
+    startRecording();
   };
 
   const reRecord = () => {
@@ -919,6 +1057,71 @@ export default function PracticeView({
     setTypedFallbackId(current?.id ?? null);
   };
 
+  // ── MICROPHONE GATE ──
+  // Resolved once per voice session, before anything is spoken. Asking here
+  // rather than at the first recording keeps the browser's own dialog out of
+  // the moment the candidate is trying to answer.
+  useEffect(() => {
+    if (!isVoiceSession || sessionState !== 'active') { setMicGate('unknown'); return; }
+
+    let cancelled = false;
+
+    async function checkPermission() {
+      // Not universally implemented: Safari has no 'microphone' descriptor and
+      // throws on the query. An unanswerable question is treated as a no, so
+      // those browsers see the modal and answer it with a real prompt.
+      try {
+        const status = await navigator.permissions.query({ name: 'microphone' });
+        if (cancelled) return;
+        setMicGate(status.state === 'granted' ? 'granted' : 'prompting');
+      } catch {
+        if (!cancelled) setMicGate('prompting');
+      }
+    }
+
+    checkPermission();
+    return () => { cancelled = true; };
+  }, [isVoiceSession, sessionState, session?.id]);
+
+  // Fires the browser's native dialog off the candidate's click, which is the
+  // only thing browsers accept as a reason to ask.
+  const requestMicPermission = async () => {
+    if (micRequesting) return;
+    setMicRequesting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Released immediately. This was a permission request, not a recording,
+      // and a live stream would leave the browser's recording indicator on
+      // through the whole interview.
+      stream.getTracks().forEach(track => track.stop());
+      setMicGate('granted');
+    } catch (err) {
+      console.error('Microphone permission request failed:', err);
+      onError('Microphone access denied. Switching to text mode.');
+      switchToTextMode();
+    } finally {
+      setMicRequesting(false);
+    }
+  };
+
+  // Persisted, not just local: the row is what a resume reads on the way back
+  // in, and what evaluate-answer reads when it decides whether to score
+  // confidence. Leaving it on a voice mode would grade typed answers for
+  // filler words. A failed write costs the persistence, not the switch.
+  const switchToTextMode = async () => {
+    setMicGate('denied');
+    setSession(prev => (prev ? { ...prev, voice_mode: 'mode_3' } : prev));
+    setVoiceStage('idle');
+
+    if (!session?.id) return;
+    const { error } = await supabase
+      .from('interview_sessions')
+      .update({ voice_mode: 'mode_3' })
+      .eq('id', session.id)
+      .eq('user_id', userId);
+    if (error) console.error('Switch to text mode failed to persist:', error);
+  };
+
   // ── Speak each new question, and tear the last one down ──
   useEffect(() => {
     if (!isVoiceSession) return;
@@ -930,9 +1133,11 @@ export default function PracticeView({
     setTypedFallbackId(null);
     setInput('');
 
-    // Nothing to speak: between questions, on the wrap-up, or on a question
-    // that already has its answer.
-    if (sessionState !== 'active' || !current || current.user_answer_text) {
+    // Nothing to speak: between questions, on the wrap-up, on a question that
+    // already has its answer, or while the microphone gate is still open. The
+    // gate is in the dependencies, so the first question speaks the moment
+    // permission lands.
+    if (sessionState !== 'active' || !current || current.user_answer_text || micGate !== 'granted') {
       setVoiceStage('idle');
       return;
     }
@@ -945,7 +1150,7 @@ export default function PracticeView({
       teardownRecorder();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVoiceSession, sessionState, current?.id]);
+  }, [isVoiceSession, sessionState, current?.id, micGate]);
 
   // ── COMPLETE ──
   const completeSession = async () => {
@@ -1249,8 +1454,50 @@ export default function PracticeView({
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
 
+      {/* VOICE — nothing on screen that would not exist in a real interview.
+          No question text, no answer text, no history. The controls sit in the
+          middle of the column because they are the only thing in it.
+
+          The wrap-up is the exception: it is the app telling them the
+          interview is over, not part of the interview. */}
+      {isVoiceSession && (
+        <div className={`flex-1 overflow-y-auto px-4 py-3 flex flex-col ${
+          typingThisQuestion || interviewDone ? '' : 'items-center justify-center'
+        }`}>
+          {interviewDone ? (
+            <div className="w-full">
+              <InterviewerBubble text={"That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready.\n\nWhen you're ready, complete your interview to see your scores and personalized feedback."} />
+            </div>
+          ) : typingThisQuestion ? (
+            /* The one question they could not hear. The text comes back for
+               this question only, because a question they can neither hear nor
+               read is not a question at all. */
+            <div className="w-full">
+              <InterviewerBubble text={current?.question_text || ''} />
+            </div>
+          ) : (
+            !currentAnswered && (
+              <VoiceInputPanel
+                stage={voiceStage}
+                recordingSeconds={recordingSeconds}
+                transcript={input}
+                sending={sending}
+                onTranscriptChange={setInput}
+                onSkipSpeaking={skipSpeaking}
+                onStartRecording={startRecording}
+                onStopRecording={stopRecording}
+                onSubmit={submitAnswer}
+                onReRecord={reRecord}
+                onTypeInstead={typeInstead}
+              />
+            )
+          )}
+        </div>
+      )}
+
       {/* Transcript. No progress bar of its own: the left panel owns every
           progress display now, and two of them disagreed as often as not. */}
+      {!isVoiceSession && (
       <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="space-y-3">
           {/* Answers show so the candidate can see what they said. Scores and
@@ -1286,6 +1533,7 @@ export default function PracticeView({
           <div ref={messagesEndRef} />
         </div>
       </div>
+      )}
 
       {/* Dock */}
       <div className="flex-shrink-0 border-t border-gray-100 p-3">
@@ -1302,23 +1550,6 @@ export default function PracticeView({
             {completing && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
             {completing ? 'Scoring your interview...' : 'Complete Interview'}
           </button>
-        )}
-
-        {/* Voice dock. Same slot as the textarea, same two lines beneath it. */}
-        {!interviewDone && !currentAnswered && isVoiceSession && !typingThisQuestion && (
-          <VoiceInputPanel
-            stage={voiceStage}
-            recordingSeconds={recordingSeconds}
-            transcript={input}
-            sending={sending}
-            onTranscriptChange={setInput}
-            onSkipSpeaking={skipSpeaking}
-            onStartRecording={startRecording}
-            onStopRecording={stopRecording}
-            onSubmit={submitAnswer}
-            onReRecord={reRecord}
-            onTypeInstead={typeInstead}
-          />
         )}
 
         {/* Input. Gone once the last answer is in: there is nothing left to
@@ -1401,6 +1632,17 @@ export default function PracticeView({
           )}
         </div>
       </div>
+
+      {isVoiceSession && micGate === 'prompting' && (
+        <MicPermissionModal
+          onEnable={requestMicPermission}
+          onUseText={() => {
+            onError('Switched to text mode. You can type your answers.');
+            switchToTextMode();
+          }}
+          requesting={micRequesting}
+        />
+      )}
 
       {showEndConfirm && (
         <EndInterviewModal
