@@ -1226,6 +1226,16 @@ export default function PracticeView({
             Interview Coach
           </button>
         </div>
+
+        {/* Back to the mode selector rather than back a step: the results stay
+            in the history on the left, and the way out of them is to start
+            another interview. */}
+        <button
+          onClick={resetToIdle}
+          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center mt-2"
+        >
+          ← Back to Practice
+        </button>
       </div>
     );
   }
