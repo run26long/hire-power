@@ -72,6 +72,10 @@ export default function InterviewDetailPage() {
     state: 'idle', session: null, questions: [], currentIndex: 0, completion: null
   });
   const [pastPracticeSessions, setPastPracticeSessions] = useState([]);
+  // Whether an interview is still open on this job card. Only the research
+  // step's button reads it, to say Resume rather than Go to. Kept apart from
+  // pastPracticeSessions, which is the completed history the left panel lists.
+  const [hasActiveSession, setHasActiveSession] = useState(false);
   const [reviewSessionId, setReviewSessionId] = useState(null);
   // Bumped to ask PracticeView for a fresh start. A counter rather than a
   // boolean so pressing Practice Again twice in a row still registers twice.
@@ -294,6 +298,39 @@ export default function InterviewDetailPage() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, user?.id, powerAnalysis?.id, params.id]);
+
+  // ============================================================================
+  // OPEN SESSION CHECK
+  // Not part of the practice step load above: the research step needs the
+  // answer before the candidate reaches practice, which is the whole point of
+  // labelling the button Resume. Existence only, so it selects one column.
+  // ============================================================================
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    async function checkForOpenSession() {
+      const { data, error } = await supabase
+        .from('interview_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('job_card_id', params.id)
+        .eq('status', 'in_progress')
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        // A label is not worth failing a page over. Falls back to the wording
+        // that is right for someone with no session open.
+        console.error('Open practice session check failed:', error);
+        return;
+      }
+      setHasActiveSession(!!data);
+    }
+
+    checkForOpenSession();
+    return () => { cancelled = true; };
+  }, [user?.id, params.id, supabase]);
 
   // Auto-generate Power Analysis on first landing if none exists
   useEffect(() => {
@@ -1159,6 +1196,7 @@ export default function InterviewDetailPage() {
 
               {currentStep === 'research' && (
                 <ResearchIdlePanel
+                  hasActiveSession={hasActiveSession}
                   onGoToPractice={() => goToStep('practice')}
                   onBack={() => goToStep('coach')}
                 />
@@ -1926,7 +1964,7 @@ function ResearchStepContent({ jobCard }) {
 // left; this side just moves the user forward.
 // ============================================================================
 
-function ResearchIdlePanel({ onGoToPractice, onBack }) {
+function ResearchIdlePanel({ hasActiveSession = false, onGoToPractice, onBack }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
@@ -1962,7 +2000,7 @@ function ResearchIdlePanel({ onGoToPractice, onBack }) {
           </p>
         </div>
         <button onClick={onGoToPractice} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
-          Go to Practice
+          {hasActiveSession ? 'Resume Practice' : 'Go to Practice'}
         </button>
         <div className="mt-1.5">
           <BackLink onClick={onBack} />
