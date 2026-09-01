@@ -274,7 +274,7 @@ function EndInterviewModal({ onCancel, onConfirm, confirming, hasScored }) {
             className="py-2 px-8 rounded-lg text-sm md:text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
           >
-            {confirming ? 'Ending...' : 'End & Get Feedback'}
+            {confirming ? 'Ending...' : hasScored ? 'End & Get Feedback' : 'End Session'}
           </button>
         </div>
       </div>
