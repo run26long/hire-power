@@ -1153,6 +1153,7 @@ export default function InterviewDetailPage() {
                   experienceLevel={experienceLevel}
                   reviewSessionId={reviewSessionId}
                   onBack={() => goToStep('research')}
+                  onGoToCoach={() => { handleOpenCoachStep(); goToStep('coach'); }}
                   onSessionChange={setPracticeShape}
                   onError={setErrorToast}
                 />

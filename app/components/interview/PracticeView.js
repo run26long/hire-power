@@ -225,6 +225,9 @@ export default function PracticeView({
   experienceLevel,
   reviewSessionId = null,
   onBack,
+  // Back to the coaching step to build more stories. Falls back to onBack so
+  // the button still leads somewhere if the parent doesn't wire it.
+  onGoToCoach = onBack,
   onSessionChange = () => {},
   onError = () => {}
 }) {
@@ -1125,30 +1128,39 @@ export default function PracticeView({
           </p>
         </div>
 
-        {/* Grouped so the links sit under the button rather than a third of
-            the way down the column: the parent's space-y-3 is right between
-            sections and too much between an action and its escape hatches. */}
-        <div className="space-y-1.5">
+        {/* Same shape the Resume Coach save step uses to land someone who has
+            just finished: the repeat action on its own, then the ways onward
+            underneath it. */}
+        <div className="flex justify-center pt-1">
           <button
             onClick={resetToIdle}
-            className="mx-auto block text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+            className="text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
             style={GRADIENT}
           >
             Practice Again
           </button>
+        </div>
 
-          {/* Two ways out of a finished session: back a step, or out of the
-              interview entirely. Not BackLink, which every other state shares
-              and centres on its own. */}
-          <div className="flex items-center justify-between gap-3">
-            <button onClick={onBack} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
-              ← Back
+        <div className="pt-1 border-t border-gray-200">
+          <p className="text-sm text-gray-500 text-center mt-3 mb-2">What&apos;s next?</p>
+          <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
+            <button
+              onClick={onGoToCoach}
+              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+            >
+              🎯 Coach Your Stories →
             </button>
             <button
               onClick={() => router.push('/interview-coach')}
-              className="text-sm md:text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap"
+              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
             >
-              Return to Interview Coach
+              🏠 Return to Interview Coach →
+            </button>
+            <button
+              onClick={onBack}
+              className="text-gray-400 text-sm md:text-xs hover:text-gray-600 mt-1"
+            >
+              ← Back
             </button>
           </div>
         </div>
