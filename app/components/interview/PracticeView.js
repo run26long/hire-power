@@ -1189,16 +1189,19 @@ export default function PracticeView({
         {/* Two ways onward, sized to their labels. Practising again lives on
             the score card in the left column, and the progress strip above
             carries every other move, so neither is repeated here. */}
-        <div className="flex gap-3 justify-center">
+        {/* Grid rather than flex: two equal columns keep the buttons the same
+            width whatever their labels say, and nowrap stops the shorter one
+            breaking across two lines in a narrow column. */}
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={onGoToCoach}
-            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
           >
             Coach Stories
           </button>
           <button
             onClick={() => router.push('/interview-coach')}
-            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
           >
             Interview Coach
           </button>
