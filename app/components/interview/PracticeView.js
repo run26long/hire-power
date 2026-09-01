@@ -139,7 +139,7 @@ const VOICE_MODE_BLURB = {
   mode_1: 'Your answers will be recorded for playback'
 };
 
-function VoiceWelcome({ voiceMode, onBegin }) {
+function VoiceWelcome({ voiceMode, isResume, onBegin }) {
   const blurb = VOICE_MODE_BLURB[voiceMode];
 
   return (
@@ -161,7 +161,7 @@ function VoiceWelcome({ voiceMode, onBegin }) {
         className="mx-auto block text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
         style={GRADIENT}
       >
-        Begin Interview
+        {isResume ? 'Continue Interview' : 'Begin Interview'}
       </button>
     </div>
   );
@@ -580,6 +580,12 @@ export default function PracticeView({
         // submitting, so they come back to the wrap-up rather than to the last
         // question they already answered.
         const pendingAt = rows.findIndex(q => q.evaluation_status !== 'scored' && !q.user_answer_text);
+
+        // Someone returning mid-interview has already been welcomed. The lobby
+        // still stands, because tapping the button is the click browsers
+        // require before audio will play, but the welcome is not said twice.
+        if (pendingAt > 0) welcomeSpokenRef.current = true;
+
         setSession(data);
         setQuestions(rows);
         setCurrentIndex(pendingAt === -1 ? rows.length : pendingAt);
@@ -1585,7 +1591,13 @@ export default function PracticeView({
               <InterviewerBubble text={"That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready.\n\nWhen you're ready, complete your interview to see your scores and personalized feedback."} />
             </div>
           ) : !voiceStarted ? (
-            <VoiceWelcome voiceMode={session?.voice_mode} onBegin={beginVoiceInterview} />
+            /* Past the first question with the lobby still up means they left
+               and came back: a fresh session is only ever here at index 0. */
+            <VoiceWelcome
+              voiceMode={session?.voice_mode}
+              isResume={currentIndex > 0}
+              onBegin={beginVoiceInterview}
+            />
           ) : typingThisQuestion ? (
             /* The one question they could not hear. The text comes back for
                this question only, because a question they can neither hear nor
@@ -1594,7 +1606,12 @@ export default function PracticeView({
               <InterviewerBubble text={current?.question_text || ''} />
             </div>
           ) : (
-            !currentAnswered && (
+            /* currentAnswered goes true the moment submitAnswer optimistically
+               records the answer, which is before the scoring call returns.
+               The panel has to outlast that: the processing circle is what
+               covers the wait, and without this the column goes blank for the
+               length of the round trip. */
+            (!currentAnswered || voiceStage === 'processing') && (
               <VoiceInputPanel
                 stage={voiceStage}
                 recordingSeconds={recordingSeconds}
