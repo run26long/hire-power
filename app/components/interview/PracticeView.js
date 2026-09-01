@@ -115,26 +115,52 @@ function EqualizerBars() {
 }
 
 // ============================================================================
-// VOICE INPUT PANEL
-// The dock's contents in a voice session, in place of the textarea. Pure
-// presentation: every stage transition is decided by the parent, which owns
-// the microphone, the audio element and the timers.
+// VOICE WELCOME
+// The lobby. Written rather than spoken on purpose: the rule about no text on
+// screen is about the interview, and this is the moment before it starts.
 //
-// "Type instead" is on every stage but review, where the transcript is already
-// sitting in an editable box and typing is what the candidate is doing.
+// Beginning is a deliberate click, which is also what the browser wants before
+// it will play audio or hand over a microphone. One button settles both.
+// ============================================================================
+
+function VoiceWelcome({ jobTitle, jobCompany, onBegin }) {
+  const role = jobTitle || 'this';
+  const at = jobCompany ? ` with ${jobCompany}` : '';
+
+  return (
+    <div className="w-full max-w-sm text-center space-y-4">
+      <p className="text-base md:text-sm text-gray-800 leading-relaxed">
+        Welcome. We&apos;re glad to have you interviewing for the {role} role{at} today.
+      </p>
+      <button
+        onClick={onBegin}
+        className="mx-auto block text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+        style={GRADIENT}
+      >
+        Begin Interview
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
+// VOICE INPUT PANEL
+// The whole of a voice session's screen. Pure presentation: every stage
+// transition is decided by the parent, which owns the microphone, the audio
+// element and the timers.
+//
+// There is no review stage. A recording goes to the transcriber and straight
+// on to be scored, and the next question follows. The candidate never reads
+// back what they said, the same way they could not in a real room. The words
+// are still stored, and still waiting in the results afterwards.
 // ============================================================================
 
 function VoiceInputPanel({
   stage,
   recordingSeconds,
-  transcript,
-  sending,
-  onTranscriptChange,
   onSkipSpeaking,
   onStartRecording,
   onStopRecording,
-  onSubmit,
-  onReRecord,
   onTypeInstead
 }) {
   return (
@@ -189,48 +215,20 @@ function VoiceInputPanel({
       )}
 
       {/* Red again, and still this time: their turn is over and nothing is
-          being captured. */}
+          being captured. Holds from the moment they tap Done right through
+          scoring, so the wait reads as one beat rather than three. */}
       {stage === 'processing' && (
         <>
           <div className="h-16 w-16 rounded-full flex items-center justify-center bg-red-500">
             <div className="h-6 w-6 animate-spin border-2 border-white border-t-transparent rounded-full"></div>
           </div>
-          <p className="text-sm md:text-xs text-gray-500">Transcribing...</p>
+          <p className="text-sm md:text-xs text-gray-500">Processing...</p>
         </>
       )}
 
-      {stage === 'review' && (
-        <div className="w-full space-y-2">
-          <textarea
-            value={transcript}
-            onChange={e => onTranscriptChange(e.target.value)}
-            rows={4}
-            disabled={sending}
-            className="w-full border border-gray-200 rounded-lg p-3 text-sm md:text-xs text-gray-800 leading-snug focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-          />
-          <p className="text-xs text-gray-400 text-center">Edit your answer or submit as-is</p>
-          <div className="flex gap-2">
-            <button
-              onClick={onSubmit}
-              disabled={!transcript.trim() || sending}
-              className="flex-1 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-              style={GRADIENT}
-            >
-              {sending && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
-              {sending ? 'Sending...' : 'Submit'}
-            </button>
-            <button
-              onClick={onReRecord}
-              disabled={sending}
-              className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-2 px-4 font-semibold text-sm md:text-xs hover:bg-gray-50 disabled:opacity-50"
-            >
-              Re-record
-            </button>
-          </div>
-        </div>
-      )}
-
-      {stage !== 'review' && (
+      {/* Not offered mid-answer or mid-scoring: there is nothing to type over
+          at those points, and the recording would be thrown away. */}
+      {(stage === 'speaking' || stage === 'ready') && (
         <button onClick={onTypeInstead} className="text-xs text-gray-400 hover:text-gray-600">
           Type instead
         </button>
@@ -382,6 +380,10 @@ export default function PracticeView({
   userId,
   isPro,
   experienceLevel,
+  // Only for the welcome line. The parent has the card loaded already, so
+  // fetching it again here would be a second trip for two strings.
+  jobTitle = '',
+  jobCompany = '',
   reviewSessionId = null,
   // Bumped by the parent when Practice Again is pressed on the score card.
   resetSignal = 0,
@@ -445,6 +447,11 @@ export default function PracticeView({
   // start talking.
   const [micGate, setMicGate] = useState('unknown');
   const [micRequesting, setMicRequesting] = useState(false);
+
+  // False until Begin Interview is pressed. Nothing is spoken and no
+  // microphone is asked for before then, which is also what browsers want:
+  // both need a click behind them.
+  const [voiceStarted, setVoiceStarted] = useState(false);
 
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
@@ -720,6 +727,8 @@ export default function PracticeView({
       setQuestions(rows);
       setCurrentIndex(0);
       setCompletion(null);
+      // Every session opens in the lobby, including the second one in a row.
+      setVoiceStarted(false);
       setSessionState('active');
     } catch (err) {
       console.error('Start practice session failed:', err);
@@ -737,8 +746,11 @@ export default function PracticeView({
   const answeredCount = questions.filter(q => q.user_answer_text).length;
   const scoredCount = questions.filter(q => q.evaluation_status === 'scored').length;
 
-  const submitAnswer = async () => {
-    const text = input.trim();
+  // overrideText is how a voice answer submits itself. The transcript cannot go
+  // through setInput first: that update lands after this function would have
+  // read it, so the answer would arrive empty.
+  const submitAnswer = async (overrideText) => {
+    const text = (typeof overrideText === 'string' ? overrideText : input).trim();
     if (!text || !current || sending) return;
 
     // Ahead of the optimistic update, so a dead session leaves the answer in the
@@ -770,11 +782,15 @@ export default function PracticeView({
 
       if (!res.ok) {
         // The answer is saved server-side before scoring, so a failure here
-        // costs the grade, not the words. Put the text back in the box only
-        // when the answer itself never landed.
+        // costs the grade, not the words. Put the text back only when the
+        // answer itself never landed.
         if (data.error === 'ANSWER_EMPTY' || data.error === 'ANSWER_SAVE_FAILED') {
           setQuestions(previousQuestions);
-          setInput(text);
+          // No box to put it back in during a voice session. Hand them the
+          // microphone again instead: the answer never reached the server, so
+          // saying it a second time is the only way forward.
+          if (isVoiceSession) setVoiceStage('ready');
+          else setInput(text);
         }
         onError("We couldn't score that answer right now. Your answer was saved.");
         return;
@@ -804,6 +820,9 @@ export default function PracticeView({
       advance();
     } catch (err) {
       console.error('Evaluate answer failed:', err);
+      // Without this a voice session would sit on the processing circle for
+      // good: nothing else moves the stage on when the request never returns.
+      if (isVoiceSession) setVoiceStage('ready');
       onError("We couldn't score that answer right now. Your answer was saved.");
     } finally {
       setSending(false);
@@ -950,10 +969,10 @@ export default function PracticeView({
         return;
       }
 
-      // Straight into the same box a typed answer uses, so Submit is the same
-      // path with the same validation.
-      setInput(data.transcript);
-      setVoiceStage('review');
+      // Straight on to scoring. The stage stays on 'processing' throughout, so
+      // the red circle covers transcription and evaluation as one wait, and
+      // the next question's audio is what ends it.
+      submitAnswer(data.transcript);
     } catch (err) {
       console.error('Transcription failed:', err);
       onError("We couldn't transcribe that recording. Try again, or type your answer.");
@@ -1041,13 +1060,6 @@ export default function PracticeView({
     startRecording();
   };
 
-  const reRecord = () => {
-    setInput('');
-    secondsRef.current = 0;
-    setRecordingSeconds(0);
-    setVoiceStage('ready');
-  };
-
   // Scoped to this question only. The session stays a voice session, and the
   // next question opens with the interviewer speaking as usual.
   const typeInstead = () => {
@@ -1082,6 +1094,11 @@ export default function PracticeView({
     checkPermission();
     return () => { cancelled = true; };
   }, [isVoiceSession, sessionState, session?.id]);
+
+  // Leaving the lobby. The speak effect takes it from here if the microphone
+  // is already ours; if it is not, the permission modal renders on the same
+  // flag and the effect waits for it.
+  const beginVoiceInterview = () => setVoiceStarted(true);
 
   // Fires the browser's native dialog off the candidate's click, which is the
   // only thing browsers accept as a reason to ask.
@@ -1137,7 +1154,13 @@ export default function PracticeView({
     // already has its answer, or while the microphone gate is still open. The
     // gate is in the dependencies, so the first question speaks the moment
     // permission lands.
-    if (sessionState !== 'active' || !current || current.user_answer_text || micGate !== 'granted') {
+    if (
+      sessionState !== 'active' ||
+      !current ||
+      current.user_answer_text ||
+      !voiceStarted ||
+      micGate !== 'granted'
+    ) {
       setVoiceStage('idle');
       return;
     }
@@ -1150,7 +1173,7 @@ export default function PracticeView({
       teardownRecorder();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVoiceSession, sessionState, current?.id, micGate]);
+  }, [isVoiceSession, sessionState, current?.id, micGate, voiceStarted]);
 
   // ── COMPLETE ──
   const completeSession = async () => {
@@ -1245,6 +1268,7 @@ export default function PracticeView({
     setVoiceStage('idle');
     setRecordingSeconds(0);
     setTypedFallbackId(null);
+    setVoiceStarted(false);
     setSessionState('idle');
   };
 
@@ -1468,6 +1492,12 @@ export default function PracticeView({
             <div className="w-full">
               <InterviewerBubble text={"That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready.\n\nWhen you're ready, complete your interview to see your scores and personalized feedback."} />
             </div>
+          ) : !voiceStarted ? (
+            <VoiceWelcome
+              jobTitle={jobTitle}
+              jobCompany={jobCompany}
+              onBegin={beginVoiceInterview}
+            />
           ) : typingThisQuestion ? (
             /* The one question they could not hear. The text comes back for
                this question only, because a question they can neither hear nor
@@ -1480,14 +1510,9 @@ export default function PracticeView({
               <VoiceInputPanel
                 stage={voiceStage}
                 recordingSeconds={recordingSeconds}
-                transcript={input}
-                sending={sending}
-                onTranscriptChange={setInput}
                 onSkipSpeaking={skipSpeaking}
                 onStartRecording={startRecording}
                 onStopRecording={stopRecording}
-                onSubmit={submitAnswer}
-                onReRecord={reRecord}
                 onTypeInstead={typeInstead}
               />
             )
@@ -1591,7 +1616,7 @@ export default function PracticeView({
                 }
               />
               <button
-                onClick={submitAnswer}
+                onClick={() => submitAnswer()}
                 disabled={!input.trim() || sending}
                 className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
                 style={{
@@ -1633,7 +1658,7 @@ export default function PracticeView({
         </div>
       </div>
 
-      {isVoiceSession && micGate === 'prompting' && (
+      {isVoiceSession && voiceStarted && micGate === 'prompting' && (
         <MicPermissionModal
           onEnable={requestMicPermission}
           onUseText={() => {

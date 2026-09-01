@@ -1171,6 +1171,8 @@ export default function InterviewDetailPage() {
                   userId={user?.id}
                   isPro={isPro}
                   experienceLevel={experienceLevel}
+                  jobTitle={jobCard.title}
+                  jobCompany={jobCard.company}
                   reviewSessionId={reviewSessionId}
                   resetSignal={practiceResetSignal}
                   onBack={() => goToStep('research')}
