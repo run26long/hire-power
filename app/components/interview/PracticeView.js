@@ -211,6 +211,74 @@ function VoiceInputPanel({
 }
 
 // ============================================================================
+// END INTERVIEW MODAL
+// The job card modal's bones at alert size: same backdrop, same gradient
+// header, same footer buttons, no scrolling body. Replaces the window.confirm
+// that used to ask this, which was the one dialog in the flow wearing the
+// browser's chrome instead of ours.
+// ============================================================================
+
+function EndInterviewModal({ onCancel, onConfirm, confirming }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white shadow-2xl overflow-hidden flex flex-col"
+        style={{ borderRadius: '12px', width: '364px' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+          className="px-6 py-5 relative flex-shrink-0"
+        >
+          <button
+            onClick={onCancel}
+            className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+          >×</button>
+          <div className="flex items-center gap-3">
+            <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
+            <h2 className="text-xl font-bold text-white">End Interview?</h2>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <p className="text-sm md:text-xs text-gray-700 leading-relaxed">
+            Your answered questions will be scored and saved. Unanswered questions won&apos;t be included in your results.
+          </p>
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 justify-center">
+          <button
+            onClick={onCancel}
+            disabled={confirming}
+            className="py-2 px-5 border border-gray-200 rounded-lg text-sm md:text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={confirming}
+            className="py-2 px-8 rounded-lg text-sm md:text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+          >
+            {confirming ? 'Ending...' : 'End & Get Feedback'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // PRACTICE VIEW
 // Right-column driver for the practice step. Owns the interview mechanics and
 // reports its shape upward with onSessionChange so the left panel can mirror it
@@ -270,6 +338,8 @@ export default function PracticeView({
   // The one question the candidate chose to type. Cleared on every question
   // change: opting out of the microphone once is not opting out of the mode.
   const [typedFallbackId, setTypedFallbackId] = useState(null);
+
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
@@ -975,15 +1045,12 @@ export default function PracticeView({
     setSessionState('idle');
   };
 
-  const endEarly = async () => {
-    const ok = window.confirm(
-      scoredCount > 0
-        ? 'End this interview now? Your answered questions will be scored and saved.'
-        : 'End this interview now? Nothing will be saved.'
-    );
-    if (!ok) return;
+  const endEarly = () => setShowEndConfirm(true);
 
+  const confirmEndEarly = async () => {
     if (scoredCount > 0) {
+      // The modal stays up through the call and goes away with the whole
+      // mid-session view when the session flips to completed.
       await completeSession();
       return;
     }
@@ -991,6 +1058,7 @@ export default function PracticeView({
     // Nothing scored, so there is nothing worth keeping. Dropped locally rather
     // than written anywhere: the row stays in_progress until the cleanup runs.
     dismissedSessionIdRef.current = session?.id ?? null;
+    setShowEndConfirm(false);
     resetToIdle();
   };
 
@@ -1329,6 +1397,14 @@ export default function PracticeView({
           )}
         </div>
       </div>
+
+      {showEndConfirm && (
+        <EndInterviewModal
+          onCancel={() => setShowEndConfirm(false)}
+          onConfirm={confirmEndEarly}
+          confirming={completing}
+        />
+      )}
     </div>
   );
 }
