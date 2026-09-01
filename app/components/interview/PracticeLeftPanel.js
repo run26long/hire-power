@@ -333,8 +333,16 @@ function CompletedPanel({ completionData, questions, coachingLoading, onStartNew
   const content = summary.avg_score_content ?? 0;
 
   // Numbered by their place in the interview, not their place in a column, so
-  // the modal's "Question 3" is the third question they were asked.
-  const numbered = questions.map((q, i) => ({ q, number: i + 1 }));
+  // the modal's "Question 3" is the third question they were asked. Numbered
+  // before the filter for the same reason: dropping a question must not
+  // renumber the ones after it.
+  //
+  // A question with no answer was never submitted and carries no scores. Left
+  // in, every one of them would land in Room to Grow on a weighted score of
+  // zero and read as an answer that failed rather than one never given.
+  const numbered = questions
+    .map((q, i) => ({ q, number: i + 1 }))
+    .filter(({ q }) => !!q.user_answer_text?.trim());
 
   const columns = RESULT_COLUMNS.map(col => ({
     ...col,

@@ -73,18 +73,6 @@ function AnswerBubble({ text }) {
   );
 }
 
-// Copied verbatim from the page's module-scope BackLink, which is not exported.
-// Every step ends with the same "← Back" link, so this one has to read the same.
-function BackLink({ onClick }) {
-  return (
-    <div className="text-center">
-      <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
-        ← Back
-      </button>
-    </div>
-  );
-}
-
 function formatDuration(totalSeconds) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -1139,8 +1127,6 @@ export default function PracticeView({
 
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
 
-        <BackLink onClick={onBack} />
-
         {pendingVoiceMode && (
           <VoiceConsentModal
             mode={pendingVoiceMode}
@@ -1200,41 +1186,22 @@ export default function PracticeView({
           </p>
         </div>
 
-        {/* Same shape the Resume Coach save step uses to land someone who has
-            just finished: the repeat action on its own, then the ways onward
-            underneath it. */}
-        <div className="flex justify-center pt-1">
+        {/* Two ways onward, sized to their labels. Practising again lives on
+            the score card in the left column, and the progress strip above
+            carries every other move, so neither is repeated here. */}
+        <div className="flex gap-3 justify-center">
           <button
-            onClick={resetToIdle}
-            className="text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
-            style={GRADIENT}
+            onClick={onGoToCoach}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
           >
-            Practice Again
+            Coach Your Stories →
           </button>
-        </div>
-
-        <div className="pt-1 border-t border-gray-200">
-          <p className="text-sm md:text-xs text-gray-500 mb-3">What&apos;s next?</p>
-          <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
-            <button
-              onClick={onGoToCoach}
-              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
-            >
-              🎯 Coach Your Stories →
-            </button>
-            <button
-              onClick={() => router.push('/interview-coach')}
-              className="w-full bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
-            >
-              🏠 Return to Interview Coach →
-            </button>
-            <button
-              onClick={onBack}
-              className="text-gray-400 text-sm md:text-xs hover:text-gray-600 mt-1"
-            >
-              ← Back
-            </button>
-          </div>
+          <button
+            onClick={() => router.push('/interview-coach')}
+            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
+          >
+            Return to Interview Coach →
+          </button>
         </div>
       </div>
     );
