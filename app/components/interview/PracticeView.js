@@ -123,15 +123,17 @@ function EqualizerBars() {
 // it will play audio or hand over a microphone. One button settles both.
 // ============================================================================
 
-function VoiceWelcome({ jobTitle, jobCompany, onBegin }) {
+// The welcome is spoken, not written: it is the first thing the interviewer
+// says, and reading it first would give the opening away.
+function buildWelcomeText(jobTitle, jobCompany) {
   const role = jobTitle || 'this';
   const at = jobCompany ? ` with ${jobCompany}` : '';
+  return `Welcome. We're glad to have you interviewing for the ${role} role${at} today.`;
+}
 
+function VoiceWelcome({ onBegin }) {
   return (
-    <div className="w-full max-w-sm text-center space-y-4">
-      <p className="text-base md:text-sm text-gray-800 leading-relaxed">
-        Welcome. We&apos;re glad to have you interviewing for the {role} role{at} today.
-      </p>
+    <div className="w-full max-w-sm text-center">
       <button
         onClick={onBegin}
         className="mx-auto block text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
@@ -464,6 +466,12 @@ export default function PracticeView({
   // stale generation is answering about a question the candidate has left, so
   // it drops its result instead of speaking over the current one.
   const voiceGenerationRef = useRef(0);
+  // Settles the utterance currently playing. Held here so stopPlayback can
+  // release whatever is chained behind it.
+  const speechResolveRef = useRef(null);
+  // The welcome is the start of the interview, not the start of a question.
+  // Spoken once, on the first question after Begin.
+  const welcomeSpokenRef = useRef(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -727,8 +735,10 @@ export default function PracticeView({
       setQuestions(rows);
       setCurrentIndex(0);
       setCompletion(null);
-      // Every session opens in the lobby, including the second one in a row.
+      // Every session opens in the lobby, including the second one in a row,
+      // and every session gets its own welcome.
       setVoiceStarted(false);
+      welcomeSpokenRef.current = false;
       setSessionState('active');
     } catch (err) {
       console.error('Start practice session failed:', err);
@@ -846,6 +856,14 @@ export default function PracticeView({
   const typingThisQuestion = !!current && typedFallbackId === current.id;
 
   const stopPlayback = () => {
+    // Settle whatever is waiting on this audio before tearing it down. Skip
+    // goes through here, and so does every question change: without this the
+    // sequence behind the utterance would wait on a promise nothing can keep.
+    if (speechResolveRef.current) {
+      const settle = speechResolveRef.current;
+      speechResolveRef.current = null;
+      settle('stopped');
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.onended = null;
@@ -893,10 +911,10 @@ export default function PracticeView({
     setTypedFallbackId(current?.id ?? null);
   };
 
-  const speakQuestion = async (text, generation) => {
+  const fetchSpeechUrl = async (text, generation) => {
     try {
       const token = await getToken();
-      if (!token || generation !== voiceGenerationRef.current) return;
+      if (!token || generation !== voiceGenerationRef.current) return null;
 
       const res = await fetch('/api/interview/tts', {
         method: 'POST',
@@ -906,33 +924,79 @@ export default function PracticeView({
         },
         body: JSON.stringify({ session_id: session.id, text })
       });
-      if (generation !== voiceGenerationRef.current) return;
-
-      // Nothing is written on screen in a voice session, so a question that
-      // cannot be spoken is a question the candidate has no way to receive.
-      // Falling back to the microphone would ask them to answer something they
-      // never heard. This one question becomes a typed one instead.
-      if (!res.ok) { fallBackToText(generation); return; }
+      if (!res.ok || generation !== voiceGenerationRef.current) return null;
 
       const blob = await res.blob();
-      if (generation !== voiceGenerationRef.current) return;
+      if (generation !== voiceGenerationRef.current) return null;
 
-      const url = URL.createObjectURL(blob);
-      audioUrlRef.current = url;
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      // Their turn starts the moment the question ends. No tap in between:
-      // a real interviewer does not wait to be told you are about to answer.
-      audio.onended = () => {
-        if (generation === voiceGenerationRef.current) startRecording();
-      };
-      audio.onerror = () => fallBackToText(generation);
-      await audio.play();
+      return URL.createObjectURL(blob);
     } catch (err) {
-      // Autoplay refused, or the request died. Same answer either way.
-      console.error('Question playback failed:', err);
-      fallBackToText(generation);
+      console.error('Speech request failed:', err);
+      return null;
     }
+  };
+
+  // Resolves rather than fires-and-forgets, so one utterance can be chained
+  // onto the end of another. 'stopped' covers Skip and every teardown: the
+  // promise has to settle either way or the chain behind it stalls.
+  const playUrl = (url) => new Promise(resolve => {
+    const settle = (outcome) => {
+      if (speechResolveRef.current === settle) speechResolveRef.current = null;
+      resolve(outcome);
+    };
+    speechResolveRef.current = settle;
+
+    // The welcome runs straight into the question with no teardown between
+    // them, so this is the only place the previous utterance's URL gets
+    // released. Revoking one twice is a no-op, so stopPlayback can still do it.
+    if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+    audioUrlRef.current = url;
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.onended = () => settle('ended');
+    audio.onerror = () => settle('failed');
+    audio.play().catch(err => {
+      // Autoplay refused. Begin Interview is a click immediately before this,
+      // so it should not happen, but a refusal is still an answer.
+      console.error('Speech playback failed:', err);
+      settle('failed');
+    });
+  });
+
+  const speak = async (text, generation) => {
+    const url = await fetchSpeechUrl(text, generation);
+    if (!url) return generation === voiceGenerationRef.current ? 'failed' : 'stopped';
+    // Fetched, then the question moved on before it could play. Nothing will
+    // hand this URL to an audio element now, so release it here.
+    if (generation !== voiceGenerationRef.current) {
+      URL.revokeObjectURL(url);
+      return 'stopped';
+    }
+    return playUrl(url);
+  };
+
+  const speakQuestionThenRecord = async (text, generation) => {
+    const outcome = await speak(text, generation);
+    if (generation !== voiceGenerationRef.current) return;
+
+    // Nothing is written on screen in a voice session, so a question that
+    // cannot be spoken is a question the candidate has no way to receive.
+    // Opening the microphone would ask them to answer something they never
+    // heard. This one question becomes a typed one instead.
+    if (outcome === 'failed') { fallBackToText(generation); return; }
+
+    // Their turn starts the moment the question ends. No tap in between:
+    // a real interviewer does not wait to be told you are about to answer.
+    startRecording();
+  };
+
+  // Welcome first, then straight into the question with no pause between them.
+  // A welcome that will not play is not worth abandoning the interview over,
+  // so its outcome is ignored and the question follows regardless.
+  const runOpeningSequence = async (questionText, generation) => {
+    await speak(buildWelcomeText(jobTitle, jobCompany), generation);
+    if (generation !== voiceGenerationRef.current) return;
+    await speakQuestionThenRecord(questionText, generation);
   };
 
   const transcribe = async (blob) => {
@@ -1166,7 +1230,12 @@ export default function PracticeView({
     }
 
     setVoiceStage('speaking');
-    speakQuestion(current.question_text, generation);
+    if (welcomeSpokenRef.current) {
+      speakQuestionThenRecord(current.question_text, generation);
+    } else {
+      welcomeSpokenRef.current = true;
+      runOpeningSequence(current.question_text, generation);
+    }
 
     return () => {
       stopPlayback();
@@ -1269,6 +1338,7 @@ export default function PracticeView({
     setRecordingSeconds(0);
     setTypedFallbackId(null);
     setVoiceStarted(false);
+    welcomeSpokenRef.current = false;
     setSessionState('idle');
   };
 
@@ -1493,11 +1563,7 @@ export default function PracticeView({
               <InterviewerBubble text={"That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready.\n\nWhen you're ready, complete your interview to see your scores and personalized feedback."} />
             </div>
           ) : !voiceStarted ? (
-            <VoiceWelcome
-              jobTitle={jobTitle}
-              jobCompany={jobCompany}
-              onBegin={beginVoiceInterview}
-            />
+            <VoiceWelcome onBegin={beginVoiceInterview} />
           ) : typingThisQuestion ? (
             /* The one question they could not hear. The text comes back for
                this question only, because a question they can neither hear nor
