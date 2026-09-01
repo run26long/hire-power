@@ -153,7 +153,7 @@ function VoiceWelcome({ voiceMode, onBegin }) {
       {blurb && <p className="text-sm md:text-xs text-gray-500">{blurb}</p>}
 
       <p className="text-sm md:text-xs text-gray-500">
-        Click below when you&apos;re ready. Your interviewer will begin.
+        Click below when you&apos;re ready for your interview to begin.
       </p>
 
       <button
