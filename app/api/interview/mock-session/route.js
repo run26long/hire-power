@@ -39,7 +39,7 @@ RESUME-BASED QUESTIONS (3-4 for a 10-question session, 1-2 for a 5-question sess
 - Never ask about something not on the resume
 - Go deeper than surface level. "I see you managed a team of 12. Tell me about a time that team dynamic got difficult."
 
-JD-BASED QUESTIONS (3-4 for a 10-question session, 1-2 for a 5-question session):
+JOB DESCRIPTION-BASED QUESTIONS (3-4 for a 10-question session, 1-2 for a 5-question session):
 - Target specific requirements, skills, or responsibilities from the job description
 - Ask the candidate to demonstrate they can do what the role needs
 - Use natural interviewer language: "This role involves a lot of...", "How would you handle...", "What's your approach to..."
@@ -47,7 +47,7 @@ JD-BASED QUESTIONS (3-4 for a 10-question session, 1-2 for a 5-question session)
 
 BEHAVIORAL BANK QUESTIONS (2 for a 10-question session, 1 for a 5-question session):
 - Select from the provided question bank
-- Choose questions that do NOT overlap with skills already covered by your resume and JD questions
+- Choose questions that do NOT overlap with skills already covered by your resume and job description questions
 - You may tailor the wording slightly to fit the role and company context, but keep the core question intact
 - Return the bank question's ID in bank_question_id
 
@@ -62,7 +62,7 @@ You will be told the candidate's level (entry, mid, or senior). Calibrate accord
 - Senior: strategic decisions, organizational impact, stakeholder management, vision, leading through ambiguity
 
 INDUSTRY AWARENESS:
-Read the company name and JD to determine the industry. Use industry-appropriate vocabulary and framing. A healthcare interview sounds different from a fintech interview.
+Read the company name and job description to determine the industry. Use industry-appropriate vocabulary and framing. A healthcare interview sounds different from a fintech interview.
 
 SKILLS THE CANDIDATE HAS ALREADY PRACTICED:
 You will be given a list of skills the candidate has already drilled in coaching (STAR stories). Do not avoid these entirely, but do not stack multiple questions on skills they have clearly practiced. Spread your questions across their full experience, including areas they have NOT practiced. The goal is a realistic interview, not a victory lap.
@@ -72,7 +72,7 @@ QUESTION QUALITY RULES:
 - Escalate difficulty: warmup first, standard questions in the middle, the most challenging questions last.
 - Never reference "Power Analysis," "Core Power," "Hidden Power," "Power Gaps," or any Hire Power internal concepts.
 - Never reference coaching, practice, or the fact that this is a simulation.
-- Write as a real interviewer who spent 5 minutes reviewing this resume and JD.
+- Write as a real interviewer who spent 5 minutes reviewing this resume and job description.
 - No em dashes anywhere. Use commas, periods, or restructure.
 - Keep questions to 1-3 sentences max. Real interviewers don't give speeches.
 

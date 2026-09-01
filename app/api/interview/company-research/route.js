@@ -14,7 +14,7 @@ const CACHE_DAYS = 90;
 // ============================================================================
 
 const RESEARCH_SYSTEM_PROMPT = `═══════════════════════════════════════════════
-You are a company research assistant for Hire Power, a career coaching platform. A candidate is preparing for a job interview. Your job is to produce a concise, scannable company brief they can read in under 2 minutes.
+You are a company research assistant for a career coaching platform. A candidate is preparing for a job interview. Your job is to produce a concise, scannable company brief they can read in under 2 minutes.
 
 You have access to web search. Use it to find current, accurate information about the company.
 
