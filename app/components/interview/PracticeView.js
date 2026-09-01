@@ -14,10 +14,22 @@ import VoiceConsentModal from './VoiceConsentModal';
 
 const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 
+// Five minutes of one answer is well past the point where an interviewer has
+// stopped listening. The cap is a backstop for a recording left running, not
+// a target, so it stops rather than warns.
+const MAX_RECORDING_SECONDS = 300;
+
+// Recording red. Matches the "Room to Grow" band in the results, which is the
+// only other place this column uses a warm signal colour.
+const RECORDING_RED = '#e57373';
+
+// mode_1 stays visible and unavailable: its consent promises recordings kept
+// for playback, and there is nowhere to keep them until storage is wired.
+// Offering it before then would take consent for something we don't do.
 const MODES = [
-  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers' },
-  { key: 'mode_2', icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers, no recording' },
-  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review' }
+  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers', available: true },
+  { key: 'mode_2', icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers, no recording', available: true },
+  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review', available: false }
 ];
 
 // mode_3 is typed and opens nothing. The other two reach for the microphone,
@@ -73,6 +85,131 @@ function BackLink({ onClick }) {
   );
 }
 
+function formatDuration(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// ============================================================================
+// VOICE INPUT PANEL
+// The dock's contents in a voice session, in place of the textarea. Pure
+// presentation: every stage transition is decided by the parent, which owns
+// the microphone, the audio element and the timers.
+//
+// "Type instead" is on every stage but review, where the transcript is already
+// sitting in an editable box and typing is what the candidate is doing.
+// ============================================================================
+
+function VoiceInputPanel({
+  stage,
+  recordingSeconds,
+  transcript,
+  sending,
+  onTranscriptChange,
+  onSkipSpeaking,
+  onStartRecording,
+  onStopRecording,
+  onSubmit,
+  onReRecord,
+  onTypeInstead
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-2">
+
+      {stage === 'speaking' && (
+        <>
+          <div
+            className="h-16 w-16 rounded-full flex items-center justify-center animate-pulse"
+            style={GRADIENT}
+          >
+            <span className="text-2xl">🔊</span>
+          </div>
+          <p className="text-sm md:text-xs text-gray-500">Speaking...</p>
+          <button onClick={onSkipSpeaking} className="text-xs text-gray-400 hover:text-gray-600">
+            Skip
+          </button>
+        </>
+      )}
+
+      {stage === 'ready' && (
+        <>
+          <button
+            type="button"
+            onClick={onStartRecording}
+            aria-label="Start recording"
+            className="h-16 w-16 rounded-full flex items-center justify-center transition-opacity hover:opacity-90"
+            style={GRADIENT}
+          >
+            <span className="text-2xl">🎤</span>
+          </button>
+          <p className="text-sm md:text-xs text-gray-500">Tap to start recording</p>
+        </>
+      )}
+
+      {stage === 'recording' && (
+        <>
+          <button
+            type="button"
+            onClick={onStopRecording}
+            aria-label="Stop recording"
+            className="h-16 w-16 rounded-full flex items-center justify-center animate-pulse transition-opacity hover:opacity-90"
+            style={{ backgroundColor: RECORDING_RED }}
+          >
+            <span className="text-2xl">🎤</span>
+          </button>
+          <p className="text-sm md:text-xs text-red-500">Recording... tap to stop</p>
+          <p className="text-xs font-mono text-gray-400">{formatDuration(recordingSeconds)}</p>
+        </>
+      )}
+
+      {stage === 'processing' && (
+        <>
+          <div className="h-8 w-8 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
+          <p className="text-sm md:text-xs text-gray-500">Transcribing...</p>
+        </>
+      )}
+
+      {stage === 'review' && (
+        <div className="w-full space-y-2">
+          <textarea
+            value={transcript}
+            onChange={e => onTranscriptChange(e.target.value)}
+            rows={4}
+            disabled={sending}
+            className="w-full border border-gray-200 rounded-lg p-3 text-sm md:text-xs text-gray-800 leading-snug focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+          />
+          <p className="text-xs text-gray-400 text-center">Edit your answer or submit as-is</p>
+          <div className="flex gap-2">
+            <button
+              onClick={onSubmit}
+              disabled={!transcript.trim() || sending}
+              className="flex-1 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              style={GRADIENT}
+            >
+              {sending && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
+              {sending ? 'Sending...' : 'Submit'}
+            </button>
+            <button
+              onClick={onReRecord}
+              disabled={sending}
+              className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-2 px-4 font-semibold text-sm md:text-xs hover:bg-gray-50 disabled:opacity-50"
+            >
+              Re-record
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage !== 'review' && (
+        <button onClick={onTypeInstead} className="text-xs text-gray-400 hover:text-gray-600">
+          Type instead
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ============================================================================
 // PRACTICE VIEW
 // Right-column driver for the practice step. Owns the interview mechanics and
@@ -121,6 +258,27 @@ export default function PracticeView({
   const [resuming, setResuming] = useState(true);
 
   const [input, setInput] = useState('');
+
+  // Voice input. Local UI only: nothing here survives a refresh, and nothing
+  // persists until the transcript goes through submitAnswer like any answer.
+  // 'idle' covers the states with no voice control on screen at all.
+  const [voiceStage, setVoiceStage] = useState('idle');
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  // The one question the candidate chose to type. Cleared on every question
+  // change: opting out of the microphone once is not opting out of the mode.
+  const [typedFallbackId, setTypedFallbackId] = useState(null);
+
+  const audioRef = useRef(null);
+  const audioUrlRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const durationTimerRef = useRef(null);
+  const secondsRef = useRef(0);
+  // Bumped on every question change. Anything async that comes back holding a
+  // stale generation is answering about a question the candidate has left, so
+  // it drops its result instead of speaking over the current one.
+  const voiceGenerationRef = useRef(0);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -478,6 +636,250 @@ export default function PracticeView({
     setCurrentIndex(i => Math.min(i + 1, questions.length));
   };
 
+  // ==========================================================================
+  // VOICE
+  // The interviewer speaks, the candidate records, the recording becomes text,
+  // and the text goes through submitAnswer exactly as a typed answer does.
+  // Nothing below touches the session or the database: the audio's only job is
+  // to become a transcript, and it is discarded once it has.
+  // ==========================================================================
+
+  const isVoiceSession = session?.voice_mode === 'mode_1' || session?.voice_mode === 'mode_2';
+  const typingThisQuestion = !!current && typedFallbackId === current.id;
+
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  };
+
+  // Clears onstop before stopping on purpose: a recording torn down because the
+  // question changed must not transcribe itself into the next question's box.
+  const teardownRecorder = () => {
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+    const recorder = mediaRecorderRef.current;
+    if (recorder) {
+      recorder.onstop = null;
+      recorder.ondataavailable = null;
+      if (recorder.state !== 'inactive') {
+        try { recorder.stop(); } catch (err) { console.error('Recorder stop failed:', err); }
+      }
+      mediaRecorderRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    audioChunksRef.current = [];
+    secondsRef.current = 0;
+  };
+
+  const speakQuestion = async (text, generation) => {
+    try {
+      const token = await getToken();
+      if (!token || generation !== voiceGenerationRef.current) return;
+
+      const res = await fetch('/api/interview/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ session_id: session.id, text })
+      });
+      if (generation !== voiceGenerationRef.current) return;
+
+      // A question that can't be spoken is still a question they can read: it
+      // is on screen above. Drop to the microphone rather than stranding the
+      // interview on an audio failure.
+      if (!res.ok) { setVoiceStage('ready'); return; }
+
+      const blob = await res.blob();
+      if (generation !== voiceGenerationRef.current) return;
+
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        if (generation === voiceGenerationRef.current) setVoiceStage('ready');
+      };
+      audio.onerror = () => {
+        if (generation === voiceGenerationRef.current) setVoiceStage('ready');
+      };
+      await audio.play();
+    } catch (err) {
+      // Autoplay refused, or the request died. Same answer either way.
+      console.error('Question playback failed:', err);
+      if (generation === voiceGenerationRef.current) setVoiceStage('ready');
+    }
+  };
+
+  const transcribe = async (blob) => {
+    setVoiceStage('processing');
+    try {
+      const token = await getToken();
+      if (!token) {
+        onError('Your session expired. Refresh the page and sign in again.');
+        setVoiceStage('ready');
+        return;
+      }
+
+      const form = new FormData();
+      // No Content-Type header: the browser writes it along with the multipart
+      // boundary, and setting it by hand breaks the body the route receives.
+      form.append('audio', blob, 'answer.webm');
+      form.append('session_id', session.id);
+
+      const res = await fetch('/api/interview/stt', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: form
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.transcript) {
+        onError(
+          data.error === 'AUDIO_EMPTY' || (res.ok && !data.transcript)
+            ? "We didn't catch anything in that recording. Try again, or type your answer."
+            : "We couldn't transcribe that recording. Try again, or type your answer."
+        );
+        setVoiceStage('ready');
+        return;
+      }
+
+      // Straight into the same box a typed answer uses, so Submit is the same
+      // path with the same validation.
+      setInput(data.transcript);
+      setVoiceStage('review');
+    } catch (err) {
+      console.error('Transcription failed:', err);
+      onError("We couldn't transcribe that recording. Try again, or type your answer.");
+      setVoiceStage('ready');
+    }
+  };
+
+  const stopRecording = () => {
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') recorder.stop();
+  };
+
+  const startRecording = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      onError('Voice mode needs microphone access. Enable it in your browser settings, or switch to text mode.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = e => {
+        if (e.data && e.data.size) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        // The recorder's own mimeType, not a guess: Safari records mp4 where
+        // Chrome records webm, and the route reads the format off the type.
+        const type = recorder.mimeType || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type });
+        audioChunksRef.current = [];
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop());
+          mediaStreamRef.current = null;
+        }
+        if (!blob.size) {
+          onError("We didn't catch anything in that recording. Try again, or type your answer.");
+          setVoiceStage('ready');
+          return;
+        }
+        transcribe(blob);
+      };
+
+      recorder.start();
+      secondsRef.current = 0;
+      setRecordingSeconds(0);
+      setVoiceStage('recording');
+
+      durationTimerRef.current = setInterval(() => {
+        secondsRef.current += 1;
+        setRecordingSeconds(secondsRef.current);
+        if (secondsRef.current >= MAX_RECORDING_SECONDS) stopRecording();
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access failed:', err);
+      onError('Voice mode needs microphone access. Enable it in your browser settings, or switch to text mode.');
+      setVoiceStage('ready');
+    }
+  };
+
+  const skipSpeaking = () => {
+    stopPlayback();
+    setVoiceStage('ready');
+  };
+
+  const reRecord = () => {
+    setInput('');
+    secondsRef.current = 0;
+    setRecordingSeconds(0);
+    setVoiceStage('ready');
+  };
+
+  // Scoped to this question only. The session stays a voice session, and the
+  // next question opens with the interviewer speaking as usual.
+  const typeInstead = () => {
+    stopPlayback();
+    teardownRecorder();
+    setVoiceStage('idle');
+    setTypedFallbackId(current?.id ?? null);
+  };
+
+  // ── Speak each new question, and tear the last one down ──
+  useEffect(() => {
+    if (!isVoiceSession) return;
+
+    const generation = ++voiceGenerationRef.current;
+    stopPlayback();
+    teardownRecorder();
+    setRecordingSeconds(0);
+    setTypedFallbackId(null);
+    setInput('');
+
+    // Nothing to speak: between questions, on the wrap-up, or on a question
+    // that already has its answer.
+    if (sessionState !== 'active' || !current || current.user_answer_text) {
+      setVoiceStage('idle');
+      return;
+    }
+
+    setVoiceStage('speaking');
+    speakQuestion(current.question_text, generation);
+
+    return () => {
+      stopPlayback();
+      teardownRecorder();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVoiceSession, sessionState, current?.id]);
+
   // ── COMPLETE ──
   const completeSession = async () => {
     const token = await getToken();
@@ -619,16 +1021,29 @@ export default function PracticeView({
               <button
                 key={mode.key}
                 type="button"
-                onClick={() => handleSelectMode(mode.key)}
-                disabled={checkingConsent}
-                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm disabled:cursor-wait ${
-                  active ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
+                onClick={() => mode.available && handleSelectMode(mode.key)}
+                disabled={!mode.available || checkingConsent}
+                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all ${
+                  active && mode.available
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200'
+                } ${
+                  mode.available
+                    ? 'cursor-pointer hover:border-purple-300 hover:shadow-sm'
+                    : 'cursor-not-allowed opacity-60'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <span className="text-base flex-shrink-0 leading-none mt-0.5">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm md:text-xs font-bold text-gray-900">{mode.title}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm md:text-xs font-bold text-gray-900">{mode.title}</p>
+                      {!mode.available && (
+                        <span className="text-xs md:text-[9px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
+                          Coming Soon
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm md:text-xs text-gray-600 leading-snug">{mode.subtitle}</p>
                   </div>
                 </div>
@@ -805,10 +1220,27 @@ export default function PracticeView({
           </button>
         )}
 
+        {/* Voice dock. Same slot as the textarea, same two lines beneath it. */}
+        {!interviewDone && !currentAnswered && isVoiceSession && !typingThisQuestion && (
+          <VoiceInputPanel
+            stage={voiceStage}
+            recordingSeconds={recordingSeconds}
+            transcript={input}
+            sending={sending}
+            onTranscriptChange={setInput}
+            onSkipSpeaking={skipSpeaking}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onSubmit={submitAnswer}
+            onReRecord={reRecord}
+            onTypeInstead={typeInstead}
+          />
+        )}
+
         {/* Input. Gone once the last answer is in: there is nothing left to
             type, and an empty box beside the wrap-up invites an answer that
             has nowhere to go. */}
-        {!interviewDone && !currentAnswered && (
+        {!interviewDone && !currentAnswered && (!isVoiceSession || typingThisQuestion) && (
           <>
             <div className="flex gap-2 items-end">
               <textarea
