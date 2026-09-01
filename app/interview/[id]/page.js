@@ -73,6 +73,9 @@ export default function InterviewDetailPage() {
   });
   const [pastPracticeSessions, setPastPracticeSessions] = useState([]);
   const [reviewSessionId, setReviewSessionId] = useState(null);
+  // Bumped to ask PracticeView for a fresh start. A counter rather than a
+  // boolean so pressing Practice Again twice in a row still registers twice.
+  const [practiceResetSignal, setPracticeResetSignal] = useState(0);
   const [interviewerQuestions, setInterviewerQuestions] = useState([]);
   const [experienceLevel, setExperienceLevel] = useState('mid');
 
@@ -342,6 +345,19 @@ export default function InterviewDetailPage() {
       coachInputRef.current?.focus({ preventScroll: true });
     }
   }, [currentStep, activeStory, coachSending, coachStarting]);
+
+  // A finished session belongs to the visit that finished it. Leaving the step
+  // clears what was on screen, so coming back opens on the mode selector with
+  // the session waiting in the history on the left, rather than dropping the
+  // candidate straight back into results they already read.
+  //
+  // reviewSessionId especially: it survives the unmount, and PracticeView
+  // reloads whatever it names on the way back in.
+  useEffect(() => {
+    if (currentStep === 'practice') return;
+    setReviewSessionId(null);
+    setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
+  }, [currentStep]);
 
   // Auto-switch mobile panel when navigating to coach or practice
   useEffect(() => {
@@ -968,6 +984,10 @@ export default function InterviewDetailPage() {
                   onStartNew={() => {
                     setReviewSessionId(null);
                     setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
+                    // The panel above is only a mirror. Without this the right
+                    // column stays on the results and reports itself completed
+                    // again on its next render, pulling the mirror back with it.
+                    setPracticeResetSignal(n => n + 1);
                   }}
                 />
               )}
@@ -1152,6 +1172,7 @@ export default function InterviewDetailPage() {
                   isPro={isPro}
                   experienceLevel={experienceLevel}
                   reviewSessionId={reviewSessionId}
+                  resetSignal={practiceResetSignal}
                   onBack={() => goToStep('research')}
                   onGoToCoach={() => { handleOpenCoachStep(); goToStep('coach'); }}
                   onSessionChange={setPracticeShape}

@@ -284,6 +284,8 @@ export default function PracticeView({
   isPro,
   experienceLevel,
   reviewSessionId = null,
+  // Bumped by the parent when Practice Again is pressed on the score card.
+  resetSignal = 0,
   onBack,
   // Back to the coaching step to build more stories. Falls back to onBack so
   // the button still leads somewhere if the parent doesn't wire it.
@@ -1034,8 +1036,26 @@ export default function PracticeView({
     setCurrentIndex(0);
     setCompletion(null);
     setInput('');
+    setShowEndConfirm(false);
+    setVoiceStage('idle');
+    setRecordingSeconds(0);
+    setTypedFallbackId(null);
     setSessionState('idle');
   };
+
+  // Practice Again lives on the left column's score card, which belongs to the
+  // parent. Rather than reach in here, it bumps a counter, and this drops the
+  // right column back to the mode selector. Skips the first run: mounting is
+  // not a request to reset, and resetting on mount would throw away a session
+  // the resume lookup had just restored.
+  const resetSignalSeenRef = useRef(false);
+  useEffect(() => {
+    if (!resetSignalSeenRef.current) {
+      resetSignalSeenRef.current = true;
+      return;
+    }
+    resetToIdle();
+  }, [resetSignal]);
 
   const endEarly = () => setShowEndConfirm(true);
 
