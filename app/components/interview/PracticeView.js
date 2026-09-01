@@ -1142,7 +1142,7 @@ export default function PracticeView({
         </div>
 
         <div className="pt-1 border-t border-gray-200">
-          <p className="text-sm text-gray-500 text-center mt-3 mb-2">What&apos;s next?</p>
+          <p className="text-sm md:text-xs text-gray-500 mb-3">What&apos;s next?</p>
           <div className="flex flex-col items-center gap-2" style={{ minWidth: '220px' }}>
             <button
               onClick={onGoToCoach}
