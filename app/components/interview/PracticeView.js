@@ -1194,13 +1194,13 @@ export default function PracticeView({
             onClick={onGoToCoach}
             className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
           >
-            Coach Your Stories →
+            Coach Stories →
           </button>
           <button
             onClick={() => router.push('/interview-coach')}
             className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-6 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors"
           >
-            Return to Interview Coach →
+            Interview Coach →
           </button>
         </div>
       </div>
