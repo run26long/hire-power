@@ -1209,6 +1209,10 @@ export default function PracticeView({
         {/* Advancing is automatic once an answer is scored, so the only button
             here is the one that ends the interview. */}
         {interviewDone && (
+          <>
+          <p className="text-sm md:text-xs text-gray-500 text-center mt-2 mb-1">
+            When you&apos;re ready, complete your interview to see your scores and personalized feedback.
+          </p>
           <button
             onClick={completeSession}
             disabled={completing || scoredCount === 0}
@@ -1218,6 +1222,7 @@ export default function PracticeView({
             {completing && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
             {completing ? 'Scoring your interview...' : 'Complete Interview'}
           </button>
+          </>
         )}
 
         {/* Voice dock. Same slot as the textarea, same two lines beneath it. */}
