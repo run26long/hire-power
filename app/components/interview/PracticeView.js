@@ -1232,7 +1232,7 @@ export default function PracticeView({
             another interview. */}
         <button
           onClick={resetToIdle}
-          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center mt-2"
+          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center -mt-1"
         >
           ← Back to Practice
         </button>
