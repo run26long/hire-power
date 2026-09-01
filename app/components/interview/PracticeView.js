@@ -131,9 +131,31 @@ function buildWelcomeText(jobTitle, jobCompany) {
   return `Welcome. We're glad to have you interviewing for the ${role} role${at} today.`;
 }
 
-function VoiceWelcome({ onBegin }) {
+// What the chosen mode does with their audio, in the last moment before it
+// starts listening. They agreed to this at the selector; this is the reminder,
+// not the ask.
+const VOICE_MODE_BLURB = {
+  mode_2: 'Your audio is not recorded or saved',
+  mode_1: 'Your answers will be recorded for playback'
+};
+
+function VoiceWelcome({ voiceMode, onBegin }) {
+  const blurb = VOICE_MODE_BLURB[voiceMode];
+
   return (
-    <div className="w-full max-w-sm text-center">
+    <div className="w-full max-w-sm text-center space-y-3">
+      <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center mx-auto">
+        <span className="text-lg">🎤</span>
+      </div>
+
+      <p className="text-sm font-semibold text-gray-800">Voice Mode</p>
+
+      {blurb && <p className="text-sm md:text-xs text-gray-500">{blurb}</p>}
+
+      <p className="text-sm md:text-xs text-gray-500">
+        Click below when you&apos;re ready. Your interviewer will begin.
+      </p>
+
       <button
         onClick={onBegin}
         className="mx-auto block text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
@@ -1563,7 +1585,7 @@ export default function PracticeView({
               <InterviewerBubble text={"That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready.\n\nWhen you're ready, complete your interview to see your scores and personalized feedback."} />
             </div>
           ) : !voiceStarted ? (
-            <VoiceWelcome onBegin={beginVoiceInterview} />
+            <VoiceWelcome voiceMode={session?.voice_mode} onBegin={beginVoiceInterview} />
           ) : typingThisQuestion ? (
             /* The one question they could not hear. The text comes back for
                this question only, because a question they can neither hear nor
