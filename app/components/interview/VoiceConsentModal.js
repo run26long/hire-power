@@ -17,12 +17,17 @@ const MODE_COPY = {
   mode_2: {
     title: 'Voice Interview',
     what: 'Your answers will be captured by your microphone and sent to our transcription service for processing. The audio is processed in memory only and is never stored. Only the text transcript is saved.',
-    kept: 'We keep the transcript of each answer and your delivery scores, until you delete them or your account. We never keep the audio.'
+    kept: 'We keep the transcript of each answer and your delivery scores, until you delete them or your account. We never keep the audio.',
+    checkbox: 'I understand and agree'
   },
+  // Deliberately blunter than mode_2. This is the one mode that keeps a
+  // recording of someone's voice, so the screen says so in as many words
+  // rather than leaving it to be inferred from "playback".
   mode_1: {
     title: 'Voice Interview + Playback',
-    what: 'Your answers will be captured by your microphone, transcribed, and recorded for playback. You can review and replay your answers, and delete all voice data anytime in Settings.',
-    kept: 'We keep your recordings, transcripts, and delivery scores until you delete them or your account.'
+    what: 'Your answers will be captured by your microphone, transcribed, and saved as audio recordings on our servers. A recording of your voice is stored for every answer you give, so that you can replay it afterwards.',
+    kept: 'We keep your recordings, transcripts, and delivery scores until you delete them or your account. You can play back or delete any recording at any time in Settings.',
+    checkbox: 'I understand my audio will be recorded and stored'
   }
 };
 
@@ -136,7 +141,7 @@ export default function VoiceConsentModal({ mode, onConsent, onCancel }) {
                 </svg>
               )}
             </div>
-            <span className="text-sm md:text-xs text-gray-800 font-semibold">I understand and agree</span>
+            <span className="text-sm md:text-xs text-gray-800 font-semibold">{copy.checkbox}</span>
           </label>
 
           <div className="space-y-1.5 pt-1">

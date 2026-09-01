@@ -20,13 +20,10 @@ const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 const MAX_RECORDING_SECONDS = 300;
 
 
-// mode_1 stays visible and unavailable: its consent promises recordings kept
-// for playback, and there is nowhere to keep them until storage is wired.
-// Offering it before then would take consent for something we don't do.
 const MODES = [
   { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers', available: true },
   { key: 'mode_2', icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers, no recording', available: true },
-  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review', available: false }
+  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review', available: true }
 ];
 
 // mode_3 is typed and opens nothing. The other two reach for the microphone,
@@ -1027,8 +1024,37 @@ export default function PracticeView({
     await speakQuestionThenRecord(questionText, generation);
   };
 
+  // Mode 1 only. Fire and forget on purpose: the transcript and the scores are
+  // the interview, and the recording is a convenience on top of them. A failed
+  // upload is logged and costs the candidate a playback, never their answer.
+  //
+  // The name is fixed rather than taken from the blob's type, because the
+  // signed-url route has to rebuild this path from the question row alone and
+  // nothing records which container the browser chose. The real type rides in
+  // the object's metadata, which is what playback reads.
+  const uploadRecording = async (blob, questionId) => {
+    if (!questionId || !session?.id || !userId) return;
+    try {
+      const { error } = await supabase.storage
+        .from('interview-audio')
+        .upload(`${userId}/${session.id}/${questionId}-answer.webm`, blob, {
+          contentType: blob.type || 'audio/webm',
+          // A re-answered question overwrites its own recording rather than
+          // colliding with it.
+          upsert: true
+        });
+      if (error) console.error('Answer recording upload failed (non-blocking):', error);
+    } catch (err) {
+      console.error('Answer recording upload failed (non-blocking):', err);
+    }
+  };
+
   const transcribe = async (blob) => {
     setVoiceStage('processing');
+    // Captured before submitting: submitAnswer advances the interview, and
+    // current has moved on by the time the upload needs a question to file
+    // the recording under.
+    const questionId = current?.id;
     try {
       const token = await getToken();
       if (!token) {
@@ -1060,6 +1086,10 @@ export default function PracticeView({
         setVoiceStage('ready');
         return;
       }
+
+      // Keeps the recording, in the one mode that promised to. Not awaited:
+      // the next question should not wait on an upload.
+      if (session?.voice_mode === 'mode_1') uploadRecording(blob, questionId);
 
       // Straight on to scoring. The stage stays on 'processing' throughout, so
       // the red circle covers transcription and evaluation as one wait, and

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
 // PRACTICE LEFT PANEL
@@ -217,9 +218,125 @@ function ResultColumn({ title, icon, colorClass, questions, emptyText, onQuestio
   );
 }
 
+// ============================================================================
+// ANSWER AUDIO PLAYER
+// Mode 1 only. A play button and a bar, not a browser audio element: this sits
+// inside a feedback modal and native chrome would be the loudest thing in it.
+//
+// The signed URL is fetched on the first press and kept for the life of the
+// modal. It outlasts any single playback, and asking for one before the
+// candidate has shown interest would sign a link nobody uses.
+// ============================================================================
+
+function AnswerAudioPlayer({ questionId }) {
+  const supabase = createClient();
+  const audioRef = useRef(null);
+  const urlRef = useRef(null);
+
+  const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+  }, []);
+
+  const loadUrl = async () => {
+    if (urlRef.current) return urlRef.current;
+
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    const token = authSession?.access_token;
+    if (!token) return null;
+
+    const res = await fetch('/api/interview/audio-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ question_id: questionId })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) return null;
+
+    urlRef.current = data.url;
+    return data.url;
+  };
+
+  const toggle = async () => {
+    if (loading) return;
+
+    if (playing && audioRef.current) {
+      audioRef.current.pause();
+      setPlaying(false);
+      return;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => setUnavailable(true));
+      setPlaying(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const url = await loadUrl();
+      if (!url) { setUnavailable(true); return; }
+
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.ontimeupdate = () => {
+        if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
+      };
+      audio.onended = () => { setPlaying(false); setProgress(0); };
+      audio.onerror = () => { setUnavailable(true); setPlaying(false); };
+      await audio.play();
+      setPlaying(true);
+    } catch (err) {
+      console.error('Answer playback failed:', err);
+      setUnavailable(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // An upload that failed during the interview ends here. Said plainly and
+  // quietly: the answer and its scores above are all intact.
+  if (unavailable) {
+    return <p className="text-xs text-gray-400">Recording unavailable</p>;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={toggle}
+        disabled={loading}
+        aria-label={playing ? 'Pause your answer' : 'Play your answer'}
+        className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        style={GRADIENT}
+      >
+        {loading
+          ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+          : <span className="text-xs leading-none">{playing ? '❚❚' : '▶'}</span>}
+      </button>
+      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ ...GRADIENT, width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // StoryModal's shell exactly: same backdrop, same max-w-lg 80vh card, same
 // gradient header and close button, same scrollable body.
-function FeedbackModal({ entry, coachingLoading, onClose }) {
+function FeedbackModal({ entry, voiceMode, coachingLoading, onClose }) {
   useEffect(() => {
     if (!entry) return;
     const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
@@ -270,6 +387,13 @@ function FeedbackModal({ entry, coachingLoading, onClose }) {
             <div>
               <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Your Answer</p>
               <p className="text-sm md:text-xs text-gray-800 leading-snug whitespace-pre-line">{q.user_answer_text}</p>
+              {/* Only mode_1 kept a recording. Hearing it back is the point of
+                  that mode, so it sits with the words rather than apart. */}
+              {voiceMode === 'mode_1' && (
+                <div className="mt-2">
+                  <AnswerAudioPlayer questionId={q.id} />
+                </div>
+              )}
             </div>
           )}
 
@@ -322,7 +446,7 @@ function FeedbackModal({ entry, coachingLoading, onClose }) {
 // Its own component so the modal's hooks mount and unmount with the completed
 // state. PracticeLeftPanel returns early per state, so a hook on the parent
 // would either run during every state or break the rules of hooks.
-function CompletedPanel({ completionData, questions, coachingLoading, onStartNew }) {
+function CompletedPanel({ completionData, questions, voiceMode, coachingLoading, onStartNew }) {
   const [openEntry, setOpenEntry] = useState(null);
 
   const summary = completionData.session_summary || {};
@@ -470,6 +594,7 @@ function CompletedPanel({ completionData, questions, coachingLoading, onStartNew
           ...openEntry,
           q: questions.find(x => x.id === openEntry.q.id) || openEntry.q
         }}
+        voiceMode={voiceMode}
         coachingLoading={coachingLoading}
         onClose={() => setOpenEntry(null)}
       />
@@ -584,6 +709,7 @@ export default function PracticeLeftPanel({
       <CompletedPanel
         completionData={completionData}
         questions={sessionData?.questions || []}
+        voiceMode={sessionData?.session?.voice_mode}
         coachingLoading={!!sessionData?.coachingLoading}
         onStartNew={onStartNew}
       />
