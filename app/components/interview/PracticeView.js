@@ -1183,7 +1183,7 @@ export default function PracticeView({
               asking an eleventh question. Their own questions live on the left,
               where they can be read without being scored on them. */}
           {interviewDone && (
-            <InterviewerBubble text="That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready." />
+            <InterviewerBubble text={"That wraps up our interview. In a real interview, this is where you'd have the chance to ask your own questions. Review the Questions for Your Interviewer on the left to have them ready.\n\nWhen you're ready, complete your interview to see your scores and personalized feedback."} />
           )}
 
           {sending && (
@@ -1209,10 +1209,6 @@ export default function PracticeView({
         {/* Advancing is automatic once an answer is scored, so the only button
             here is the one that ends the interview. */}
         {interviewDone && (
-          <>
-          <p className="text-sm md:text-xs text-gray-500 text-center mt-2 mb-1">
-            When you&apos;re ready, complete your interview to see your scores and personalized feedback.
-          </p>
           <button
             onClick={completeSession}
             disabled={completing || scoredCount === 0}
@@ -1222,7 +1218,6 @@ export default function PracticeView({
             {completing && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
             {completing ? 'Scoring your interview...' : 'Complete Interview'}
           </button>
-          </>
         )}
 
         {/* Voice dock. Same slot as the textarea, same two lines beneath it. */}
