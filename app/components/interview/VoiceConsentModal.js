@@ -90,7 +90,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
     >
       <div
         className="bg-white shadow-2xl overflow-hidden flex flex-col"
-        style={{ borderRadius: '12px', width: '364px', maxHeight: '85vh' }}
+        style={{ borderRadius: '12px', width: '420px', maxHeight: '85vh' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-4 flex-shrink-0" style={GRADIENT}>
@@ -116,7 +116,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
         <div className="p-5 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-1">
             <p className="text-sm md:text-xs text-gray-700 leading-snug">
-              Voice mode uses your microphone so you can speak your answers out loud.
+              Voice mode uses your microphone so you can speak your answers out loud, allowing you to practice like you would in an actual interview.
             </p>
             <p className="text-sm md:text-xs text-gray-900 font-semibold leading-snug">
               Choose how you&apos;d like your audio handled:
@@ -172,7 +172,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
             <button
               onClick={handleContinue}
               disabled={!consentMode || saving}
-              className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               style={GRADIENT}
             >
               {saving && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
@@ -181,7 +181,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
             <button
               onClick={onCancel}
               disabled={saving}
-              className="w-full text-sm md:text-xs text-gray-400 hover:text-gray-600 py-1 disabled:opacity-50"
+              className="mx-auto block text-sm md:text-xs text-gray-400 hover:text-gray-600 py-1 disabled:opacity-50"
             >
               Use Text Instead
             </button>
