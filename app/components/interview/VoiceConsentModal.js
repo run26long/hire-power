@@ -97,7 +97,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">🎤</span>
+                <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-5 w-auto" />
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-base font-bold text-white truncate">Voice Interview Mode</h2>
@@ -132,7 +132,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
             const checked = consentMode === option.key;
             const descriptionId = `voice-consent-${option.key}`;
             return (
-              <div key={option.key} className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+              <div key={option.key} className="bg-gray-50 border border-gray-200 rounded-lg shadow-sm p-3 space-y-1.5">
                 <p className="text-sm font-bold text-gray-900">{option.icon} {option.title}</p>
                 <p id={descriptionId} className="text-sm md:text-xs text-gray-600 leading-snug">
                   {option.description}
