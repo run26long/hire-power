@@ -444,6 +444,21 @@ export default function InterviewDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStory?.id, loading, params.id]);
 
+  // One handler for both places a session can be destroyed: the trash icon on
+  // a history card, and "Delete and start over" on a paused one. A delete
+  // should look the same whichever of the two triggered it.
+  const handleSessionDeleted = (deletedId) => {
+    setPastPracticeSessions(prev => prev.filter(s => s.id !== deletedId));
+    // A session open for review that no longer exists would otherwise keep the
+    // right column on results loaded from a row that is gone.
+    setReviewSessionId(prev => (prev === deletedId ? null : prev));
+    setResumeSessionId(prev => (prev === deletedId ? null : prev));
+    // Re-read rather than trust the local filter alone: the paused-session
+    // block is driven off this list, and it has to stop showing one.
+    setPracticeDataSignal(n => n + 1);
+    setSuccessToast('Practice session deleted.');
+  };
+
   // ============================================================================
   // POWER ANALYSIS GENERATION
   // ============================================================================
@@ -1050,14 +1065,7 @@ export default function InterviewDetailPage() {
                     // again on its next render, pulling the mirror back with it.
                     setPracticeResetSignal(n => n + 1);
                   }}
-                  onSessionDeleted={(deletedId) => {
-                    setPastPracticeSessions(prev => prev.filter(s => s.id !== deletedId));
-                    // A session open for review that no longer exists would
-                    // otherwise keep the right column on results loaded from a
-                    // row that is gone.
-                    setReviewSessionId(prev => (prev === deletedId ? null : prev));
-                    setResumeSessionId(prev => (prev === deletedId ? null : prev));
-                  }}
+                  onSessionDeleted={handleSessionDeleted}
                   onSuccess={setSuccessToast}
                   onError={setErrorToast}
                 />
@@ -1252,6 +1260,7 @@ export default function InterviewDetailPage() {
                   // disagree about whether one exists.
                   pausedSession={pastPracticeSessions.find(s => s.status === 'in_progress') || null}
                   onResumePaused={(id) => { setReviewSessionId(null); setResumeSessionId(id); }}
+                  onSessionDeleted={handleSessionDeleted}
                   resetSignal={practiceResetSignal}
                   onBack={() => goToStep('research')}
                   onSessionPaused={() => {

@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import VoiceConsentModal from './VoiceConsentModal';
+// The same confirmation the trash icon on a session card opens. Shared rather
+// than copied: "delete this session" should not be able to say two things.
+import { DeleteSessionModal } from './PracticeLeftPanel';
 
 // ============================================================================
 // SHARED VISUALS
@@ -412,6 +415,9 @@ export default function PracticeView({
   // replaces the mode selector with a single way back into it.
   pausedSession = null,
   onResumePaused = () => {},
+  // Told when a session is destroyed, so the history and the paused-session
+  // block both stop showing one that no longer exists.
+  onSessionDeleted = () => {},
   // Bumped by the parent when Practice Again is pressed on the score card.
   resetSignal = 0,
   onBack,
@@ -468,6 +474,8 @@ export default function PracticeView({
   const [typedFallbackId, setTypedFallbackId] = useState(null);
 
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showDeletePaused, setShowDeletePaused] = useState(false);
+  const [deletingPaused, setDeletingPaused] = useState(false);
 
   // The microphone gate, resolved once per voice session before the first
   // question is spoken. 'granted' is the only value that lets the interviewer
@@ -1548,6 +1556,37 @@ export default function PracticeView({
     if (pausedId) onSessionPaused(pausedId);
   };
 
+  // The way out of a paused session for someone who does not want to finish
+  // it. The route takes the questions, the row and the recordings with it, so
+  // there is nothing to clean up here beyond telling the parent it is gone.
+  const deletePausedSession = async () => {
+    if (!pausedSession?.id || deletingPaused) return;
+    setDeletingPaused(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('No access token');
+
+      const res = await fetch('/api/interview/delete-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ session_id: pausedSession.id })
+      });
+      if (!res.ok) throw new Error('Delete failed');
+
+      setShowDeletePaused(false);
+      onSessionDeleted(pausedSession.id);
+    } catch (err) {
+      console.error('Delete paused session failed:', err);
+      setShowDeletePaused(false);
+      onError("We couldn't delete this session. Try again.");
+    } finally {
+      setDeletingPaused(false);
+    }
+  };
+
   const endEarly = () => setShowEndConfirm(true);
 
   const confirmEndEarly = async () => {
@@ -1602,7 +1641,22 @@ export default function PracticeView({
           Continue Interview
         </button>
 
+        <button
+          onClick={() => setShowDeletePaused(true)}
+          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center"
+        >
+          Delete and start over
+        </button>
+
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
+
+        {showDeletePaused && (
+          <DeleteSessionModal
+            onCancel={() => setShowDeletePaused(false)}
+            onConfirm={deletePausedSession}
+            deleting={deletingPaused}
+          />
+        )}
       </div>
     );
   }

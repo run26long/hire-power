@@ -101,7 +101,7 @@ function formatDate(iso) {
 // gradient, because this one destroys rather than proceeds.
 // ============================================================================
 
-function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
+export function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
   useEffect(() => {
     const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
     window.addEventListener('keydown', handleKeyDown);
@@ -975,10 +975,10 @@ function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess,
       if (!res.ok) throw new Error('Delete failed');
 
       // Told after the row is actually gone, not before. The parent owns the
-      // list, so it is the one that drops it.
-      onSessionDeleted(pendingDelete.id);
+      // list and the toast that goes with dropping it, so that a delete reads
+      // the same whether it started here or on a paused session.
       setPendingDelete(null);
-      onSuccess('Practice session deleted.');
+      onSessionDeleted(pendingDelete.id);
     } catch (err) {
       console.error('Delete practice session failed:', err);
       setPendingDelete(null);
