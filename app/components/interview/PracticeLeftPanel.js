@@ -169,6 +169,10 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
   // Whether they spoke it or typed it. Anything unrecognised reads as text,
   // which is what a session with no mode recorded on it was.
   const isVoice = session.voice_mode === 'mode_1' || session.voice_mode === 'mode_2';
+  // Still open. It has no readiness score and no level yet, and showing the
+  // zeroes it would default to would read as a session that scored nothing
+  // rather than one that has not finished.
+  const isPaused = session.status === 'in_progress';
   return (
     <div
       onClick={onClick}
@@ -189,7 +193,7 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
           </div>
         </div>
 
-        {score > 0 && (
+        {!isPaused && score > 0 && (
           <div className="relative w-8 h-8 flex-shrink-0">
             <svg className="w-8 h-8 transform -rotate-90">
               <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
@@ -209,9 +213,15 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
         )}
 
         <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
-            Level {session.level_at_end ?? 0}
-          </span>
+          {isPaused ? (
+            <span className="text-xs md:text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+              Paused
+            </span>
+          ) : (
+            <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+              Level {session.level_at_end ?? 0}
+            </span>
+          )}
           {/* The row itself opens the session for review, so this has to stop
               the click before it gets there. */}
           <button
@@ -229,7 +239,43 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
   );
 }
 
-function SessionList({ sessions, onSelectSession, onDeleteRequest }) {
+// The hub shows three cards and a link rather than a list that grows without
+// end. Matched here by count, the same way it does it.
+const VISIBLE_SESSIONS = 3;
+
+// The hub's own modal shell: same backdrop, same max-w-lg card, same gradient
+// header with a count, same 60vh scrolling body.
+function AllSessionsModal({ sessions, onSelectSession, onDeleteRequest, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="px-6 py-4" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white">Practice Sessions</h2>
+              <p className="text-purple-100 text-xs">{sessions.length} sessions</p>
+            </div>
+            <button onClick={onClose} className="text-white text-2xl leading-none font-light hover:opacity-70">×</button>
+          </div>
+        </div>
+        <div className="px-6 py-4 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+          <div className="space-y-2">
+            {sessions.map(s => (
+              <SessionRow
+                key={s.id}
+                session={s}
+                onClick={() => onSelectSession?.(s)}
+                onDeleteRequest={() => onDeleteRequest?.(s)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionList({ sessions, onSelectSession, onDeleteRequest, onViewAll }) {
   if (!sessions?.length) {
     return (
       <div className="text-center py-4">
@@ -242,7 +288,7 @@ function SessionList({ sessions, onSelectSession, onDeleteRequest }) {
   }
   return (
     <div className="space-y-2">
-      {sessions.map(s => (
+      {sessions.slice(0, VISIBLE_SESSIONS).map(s => (
         <SessionRow
           key={s.id}
           session={s}
@@ -250,6 +296,14 @@ function SessionList({ sessions, onSelectSession, onDeleteRequest }) {
           onDeleteRequest={() => onDeleteRequest?.(s)}
         />
       ))}
+      {sessions.length > VISIBLE_SESSIONS && (
+        <button
+          onClick={onViewAll}
+          className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+        >
+          View all practice sessions →
+        </button>
+      )}
     </div>
   );
 }
@@ -900,6 +954,7 @@ function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess,
   const supabase = createClient();
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [showAllSessions, setShowAllSessions] = useState(false);
 
   const confirmDelete = async () => {
     if (!pendingDelete || deleting) return;
@@ -941,8 +996,18 @@ function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess,
           sessions={pastSessions}
           onSelectSession={onSelectSession}
           onDeleteRequest={setPendingDelete}
+          onViewAll={() => setShowAllSessions(true)}
         />
       </div>
+
+      {showAllSessions && (
+        <AllSessionsModal
+          sessions={pastSessions}
+          onSelectSession={(s) => { setShowAllSessions(false); onSelectSession?.(s); }}
+          onDeleteRequest={setPendingDelete}
+          onClose={() => setShowAllSessions(false)}
+        />
+      )}
 
       {pendingDelete && (
         <DeleteSessionModal

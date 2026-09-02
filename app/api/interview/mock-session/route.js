@@ -509,6 +509,31 @@ export async function POST(request) {
       return Response.json({ error: 'QUESTION_GENERATION_FAILED' }, { status: 500 });
     }
 
+    // ---- ONE OPEN SESSION AT A TIME ----
+    // A second in_progress row for the same job card orphans the first: the
+    // resume lookup takes the most recent one, and the paused interview
+    // becomes unreachable. Refused rather than silently continued, because
+    // the open session may be in a mode the candidate did not just pick.
+    const { data: openSession, error: openError } = await supabase
+      .from('interview_sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('job_card_id', job_card_id)
+      .eq('status', 'in_progress')
+      .limit(1)
+      .maybeSingle();
+
+    if (openError) {
+      console.error('Mock session open-session check error:', openError);
+      return Response.json({ error: 'SESSION_CREATION_FAILED' }, { status: 500 });
+    }
+    if (openSession) {
+      return Response.json(
+        { error: 'SESSION_ALREADY_OPEN', session_id: openSession.id },
+        { status: 400 }
+      );
+    }
+
     // ---- CREATE SESSION ----
     // Only now that questions exist. question_count_target reflects what was
     // actually generated, so a short set never reads as a session the candidate

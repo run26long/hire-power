@@ -405,9 +405,14 @@ export default function PracticeView({
   jobTitle = '',
   jobCompany = '',
   reviewSessionId = null,
+  // A paused session the candidate clicked in the history, to be picked up
+  // rather than read back.
+  resumeSessionId = null,
   // Bumped by the parent when Practice Again is pressed on the score card.
   resetSignal = 0,
   onBack,
+  // Told when an interview is paused, so the history list can show it.
+  onSessionPaused = () => {},
   // Back to the coaching step to build more stories. Falls back to onBack so
   // the button still leads somewhere if the parent doesn't wire it.
   onGoToCoach = onBack,
@@ -548,6 +553,32 @@ export default function PracticeView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
+  // Opens a session row into a live interview. Shared by the mount lookup and
+  // by a click on a paused card in the history: both are the same act of
+  // picking an interview back up, and they must land in the same place.
+  const resumeSession = useCallback(async (row) => {
+    const rows = await loadQuestions(row.id);
+
+    // Pick up at the first unanswered question. Everything before it renders
+    // above with whatever feedback it already earned.
+    // Nothing pending means they answered everything and left before
+    // submitting, so they come back to the wrap-up rather than to the last
+    // question they already answered.
+    const pendingAt = rows.findIndex(q => q.evaluation_status !== 'scored' && !q.user_answer_text);
+
+    // Someone returning mid-interview has already been welcomed. The lobby
+    // still stands, because tapping the button is the click browsers
+    // require before audio will play, but the welcome is not said twice.
+    if (pendingAt > 0) welcomeSpokenRef.current = true;
+
+    setSession(row);
+    setQuestions(rows);
+    setCompletion(null);
+    setCurrentIndex(pendingAt === -1 ? rows.length : pendingAt);
+    setSessionState('active');
+    return rows;
+  }, [loadQuestions]);
+
   // ── RESUME AN IN-PROGRESS SESSION ON MOUNT ──
   useEffect(() => {
     let cancelled = false;
@@ -569,25 +600,7 @@ export default function PracticeView({
         if (cancelled || !data) { if (!cancelled) setResuming(false); return; }
         if (dismissedSessionIdRef.current === data.id) { setResuming(false); return; }
 
-        const rows = await loadQuestions(data.id);
-        if (cancelled) return;
-
-        // Pick up at the first unanswered question. Everything before it renders
-        // above with whatever feedback it already earned.
-        // Nothing pending means they answered everything and left before
-        // submitting, so they come back to the wrap-up rather than to the last
-        // question they already answered.
-        const pendingAt = rows.findIndex(q => q.evaluation_status !== 'scored' && !q.user_answer_text);
-
-        // Someone returning mid-interview has already been welcomed. The lobby
-        // still stands, because tapping the button is the click browsers
-        // require before audio will play, but the welcome is not said twice.
-        if (pendingAt > 0) welcomeSpokenRef.current = true;
-
-        setSession(data);
-        setQuestions(rows);
-        setCurrentIndex(pendingAt === -1 ? rows.length : pendingAt);
-        setSessionState('active');
+        await resumeSession(data);
       } catch (err) {
         console.error('Practice session resume failed:', err);
       } finally {
@@ -599,6 +612,38 @@ export default function PracticeView({
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, jobCardId]);
+
+  // ── RESUME A PAUSED SESSION (left panel click) ──
+  // Its own effect rather than a branch of the review one: a paused session is
+  // picked up, not read back, and the two end in different states.
+  useEffect(() => {
+    let cancelled = false;
+    if (!resumeSessionId) return;
+
+    async function loadForResume() {
+      try {
+        const { data, error } = await supabase
+          .from('interview_sessions')
+          .select('*')
+          .eq('id', resumeSessionId)
+          .eq('user_id', userId)
+          .eq('status', 'in_progress')
+          .maybeSingle();
+        if (error || !data || cancelled) return;
+
+        // Picking it back up deliberately undoes an earlier dismissal.
+        if (dismissedSessionIdRef.current === data.id) dismissedSessionIdRef.current = null;
+
+        await resumeSession(data);
+      } catch (err) {
+        console.error('Paused session resume failed:', err);
+      }
+    }
+
+    loadForResume();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeSessionId]);
 
   // ── REVIEW A PAST SESSION (left panel click) ──
   useEffect(() => {
@@ -733,6 +778,8 @@ export default function PracticeView({
           onError("You've used your free practice session for this job. Upgrade to Pro for unlimited practice.");
         } else if (data.error === 'MONTHLY_CAP_REACHED') {
           onError(`You've reached your monthly practice limit. Your limit resets on ${formatResetDate(data.resetDate)}.`);
+        } else if (data.error === 'SESSION_ALREADY_OPEN') {
+          onError('You have a paused interview for this job. Resume it from the list on the left, or end it to start a new one.');
         } else {
           onError(GENERIC_START_ERROR);
         }
@@ -1463,6 +1510,15 @@ export default function PracticeView({
     resetToIdle();
   }, [resetSignal]);
 
+  // Stays on the practice step rather than stepping back to research. The row
+  // is left in_progress on purpose and deliberately not dismissed: the card
+  // that appears in the history is the way back into it.
+  const pauseSession = () => {
+    const pausedId = session?.id ?? null;
+    resetToIdle();
+    if (pausedId) onSessionPaused(pausedId);
+  };
+
   const endEarly = () => setShowEndConfirm(true);
 
   const confirmEndEarly = async () => {
@@ -1823,7 +1879,7 @@ export default function PracticeView({
             wider than this column at some widths, and text-center would centre
             each wrapped line on its own and read as ragged. */}
         <div className="flex items-center justify-center gap-2">
-          <button onClick={onBack} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer whitespace-nowrap">
+          <button onClick={pauseSession} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer whitespace-nowrap">
             Pause &amp; Continue Later
           </button>
           {answeredCount > 0 && (

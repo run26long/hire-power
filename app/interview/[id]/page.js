@@ -77,6 +77,13 @@ export default function InterviewDetailPage() {
   // pastPracticeSessions, which is the completed history the left panel lists.
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [reviewSessionId, setReviewSessionId] = useState(null);
+  // A paused session clicked in the history, to be picked back up rather than
+  // read back. Separate from reviewSessionId because they end in different
+  // states: one resumes the interview, the other opens its results.
+  const [resumeSessionId, setResumeSessionId] = useState(null);
+  // Bumped whenever the history list needs re-reading, which the practice
+  // step's own effect has no other reason to do.
+  const [practiceDataSignal, setPracticeDataSignal] = useState(0);
   // Bumped to ask PracticeView for a fresh start. A counter rather than a
   // boolean so pressing Practice Again twice in a row still registers twice.
   const [practiceResetSignal, setPracticeResetSignal] = useState(0);
@@ -258,14 +265,16 @@ export default function InterviewDetailPage() {
     let cancelled = false;
 
     async function loadPracticeData() {
-      // Completed sessions for the history list.
+      // The history list. Paused sessions belong in it too: the card is how
+      // someone picks one back up. Ordered by created_at rather than
+      // completed_at, which is null on everything still open.
       const { data: sessions, error: sessionsError } = await supabase
         .from('interview_sessions')
         .select('*')
         .eq('user_id', user.id)
         .eq('job_card_id', params.id)
-        .eq('status', 'completed')
-        .order('completed_at', { ascending: false });
+        .in('status', ['completed', 'in_progress'])
+        .order('created_at', { ascending: false });
       if (!cancelled) {
         if (sessionsError) console.error('Past practice sessions load failed:', sessionsError);
         else setPastPracticeSessions(sessions || []);
@@ -297,7 +306,7 @@ export default function InterviewDetailPage() {
     loadPracticeData();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, user?.id, powerAnalysis?.id, params.id]);
+  }, [currentStep, user?.id, powerAnalysis?.id, params.id, practiceDataSignal]);
 
   // ============================================================================
   // OPEN SESSION CHECK
@@ -396,6 +405,7 @@ export default function InterviewDetailPage() {
   useEffect(() => {
     if (currentStep === 'practice') return;
     setReviewSessionId(null);
+    setResumeSessionId(null);
     setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
   }, [currentStep]);
 
@@ -1021,7 +1031,17 @@ export default function InterviewDetailPage() {
                   pastSessions={pastPracticeSessions}
                   interviewerQuestions={interviewerQuestions}
                   powerAnalysisId={powerAnalysis?.id}
-                  onSelectSession={(s) => setReviewSessionId(s.id)}
+                  onSelectSession={(s) => {
+                    // A finished session is read back; an open one is picked
+                    // back up. Same click, two different destinations.
+                    if (s.status === 'in_progress') {
+                      setReviewSessionId(null);
+                      setResumeSessionId(s.id);
+                    } else {
+                      setResumeSessionId(null);
+                      setReviewSessionId(s.id);
+                    }
+                  }}
                   onStartNew={() => {
                     setReviewSessionId(null);
                     setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
@@ -1036,6 +1056,7 @@ export default function InterviewDetailPage() {
                     // otherwise keep the right column on results loaded from a
                     // row that is gone.
                     setReviewSessionId(prev => (prev === deletedId ? null : prev));
+                    setResumeSessionId(prev => (prev === deletedId ? null : prev));
                   }}
                   onSuccess={setSuccessToast}
                   onError={setErrorToast}
@@ -1225,8 +1246,15 @@ export default function InterviewDetailPage() {
                   jobTitle={jobCard.title}
                   jobCompany={jobCard.company}
                   reviewSessionId={reviewSessionId}
+                  resumeSessionId={resumeSessionId}
                   resetSignal={practiceResetSignal}
                   onBack={() => goToStep('research')}
+                  onSessionPaused={() => {
+                    setResumeSessionId(null);
+                    setReviewSessionId(null);
+                    // Re-read the history so the paused card is there waiting.
+                    setPracticeDataSignal(n => n + 1);
+                  }}
                   onGoToCoach={() => { handleOpenCoachStep(); goToStep('coach'); }}
                   onSessionChange={setPracticeShape}
                   onError={setErrorToast}
