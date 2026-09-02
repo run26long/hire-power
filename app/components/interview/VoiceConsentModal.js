@@ -13,29 +13,31 @@ export const CONSENT_VERSION = '1.0';
 
 // mode_3 never reaches this modal: the microphone is never opened, so there is
 // nothing to consent to.
-const MODE_COPY = {
-  mode_2: {
-    title: 'Voice Interview',
-    what: 'Your answers will be captured by your microphone and sent to our transcription service for processing. The audio is processed in memory only and is never stored. Only the text transcript is saved.',
-    kept: 'We keep the transcript of each answer and your delivery scores, until you delete them or your account. We never keep the audio.',
-    checkbox: 'I understand and agree'
+//
+// Each option carries its own wording because the two are not variants of one
+// statement. Consenting to transcription is not consenting to a stored
+// recording, and the checkbox has to say which one is being agreed to.
+const CONSENT_OPTIONS = [
+  {
+    key: 'mode_2',
+    title: 'Voice only',
+    description: 'Your audio is sent for transcription and then discarded. We never store the recording. Only your written transcript is saved.',
+    checkbox: 'I consent to microphone access for voice transcription'
   },
-  // Deliberately blunter than mode_2. This is the one mode that keeps a
-  // recording of someone's voice, so the screen says so in as many words
-  // rather than leaving it to be inferred from "playback".
-  mode_1: {
-    title: 'Voice Interview + Playback',
-    what: 'Your answers will be captured by your microphone, transcribed, and saved as audio recordings on our servers. A recording of your voice is stored for every answer you give, so that you can replay it afterwards.',
-    kept: 'We keep your recordings, transcripts, and delivery scores until you delete them or your account. You can play back or delete any recording at any time in Settings.',
-    checkbox: 'I understand my audio will be recorded and stored'
+  {
+    key: 'mode_1',
+    title: 'Voice with playback',
+    description: 'Your audio is recorded and saved so you can listen back to your answers. You can delete recordings anytime in Settings.',
+    checkbox: 'I consent to my audio being recorded and stored'
   }
-};
+];
 
 // ============================================================================
 // VOICE CONSENT MODAL
-// Shown once per mode, before the microphone is ever opened. Owns no database
-// access of its own: it collects the acknowledgment and hands the record up to
-// the caller, which is the piece that knows who the user is.
+// Shown before the microphone is ever opened, and the place the voice mode is
+// actually chosen. Owns no database access of its own: it collects the choice
+// and hands the record up to the caller, which is the piece that knows who the
+// user is.
 //
 // Declining is not a dead end. Cancel, Escape and a click outside all mean the
 // same thing, and all of them land the candidate back in text mode with the
@@ -43,16 +45,11 @@ const MODE_COPY = {
 // ============================================================================
 
 export default function VoiceConsentModal({ onConsent, onCancel }) {
-  // Off is the recommendation. The mode that keeps nothing is the one someone
-  // lands on without choosing, so opting into a recording is a deliberate act
-  // rather than a default they have to notice and undo.
-  const [wantsRecording, setWantsRecording] = useState(false);
-  const [agreed, setAgreed] = useState(false);
+  // Nothing is chosen until they choose it. Neither option is a default,
+  // because consenting to a microphone is not something to arrive at by not
+  // noticing a box.
+  const [consentMode, setConsentMode] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  // Derived rather than stored alongside the checkbox: two pieces of state
-  // saying the same thing is two pieces of state that can disagree.
-  const selectedMode = wantsRecording ? 'mode_1' : 'mode_2';
 
   useEffect(() => {
     const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
@@ -60,23 +57,19 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancel]);
 
-  const copy = MODE_COPY[selectedMode];
-  if (!copy) return null;
-
-  // Changing the recording choice clears the tick. The two statements are not
-  // the same statement, and agreeing to the milder one is not agreeing to the
-  // other.
-  const toggleRecording = (checked) => {
-    setWantsRecording(checked);
-    setAgreed(false);
+  // Mutually exclusive: the two are different consents, not two halves of one.
+  // Ticking the active box again clears it, so there is a way back to having
+  // agreed to neither.
+  const chooseConsent = (modeKey) => {
+    setConsentMode(prev => (prev === modeKey ? null : modeKey));
   };
 
   const handleContinue = async () => {
-    if (!agreed || saving) return;
+    if (!consentMode || saving) return;
     setSaving(true);
     try {
       await onConsent({
-        mode_selected: selectedMode,
+        mode_selected: consentMode,
         consent_version: CONSENT_VERSION,
         consented_at: new Date().toISOString(),
         ip_address: 'client',
@@ -119,74 +112,57 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
         </div>
 
         <div className="p-5 flex-1 overflow-y-auto space-y-3" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {/* What happens, before anything is asked of them. All three
-              sections move with the recording checkbox below. */}
-          <div>
-            <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-0.5">{copy.title}</p>
-            <p className="text-sm md:text-xs text-gray-800 leading-snug">{copy.what}</p>
-          </div>
+          <p className="text-sm md:text-xs text-gray-800 leading-snug">
+            Voice mode uses your microphone so you can speak your answers out loud. Choose how you&apos;d like your audio handled:
+          </p>
 
-          {/* Retention and the right to decline. Not decoration: the privacy
-              policy commits to both appearing on this screen. */}
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">How long we keep it</p>
-            <p className="text-sm md:text-xs text-gray-800 leading-snug">{copy.kept}</p>
-          </div>
+          {/* Title and description sit outside the label on purpose: only the
+              checkbox is a target. aria-describedby keeps the description tied
+              to the box for anyone who cannot see the two are one block. */}
+          {CONSENT_OPTIONS.map(option => {
+            const checked = consentMode === option.key;
+            const descriptionId = `voice-consent-${option.key}`;
+            return (
+              <div key={option.key}>
+                <p className="text-sm md:text-xs font-bold text-gray-900">{option.title}</p>
+                <p id={descriptionId} className="text-sm md:text-xs text-gray-600 leading-snug mb-1.5">
+                  {option.description}
+                </p>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  {/* The real input carries the semantics and keyboard
+                      behaviour; the div beside it is what's actually seen. */}
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => chooseConsent(option.key)}
+                    aria-describedby={descriptionId}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors mt-0.5 ${
+                    checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
+                  }`}>
+                    {checked && (
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-sm md:text-xs text-gray-800 font-semibold">{option.checkbox}</span>
+                </label>
+              </div>
+            );
+          })}
 
-          <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Your right to decline</p>
-            <p className="text-sm md:text-xs text-gray-800 leading-snug">
-              You are never required to use voice. Every part of interview practice works in text mode,
-              and declining changes nothing else about your account.
-            </p>
-          </div>
-
-          {/* The opt-in comes first because the affirmation beneath it is
-              worded by what this one says. */}
-          <label className="flex items-start gap-2 cursor-pointer pt-0.5">
-            <input
-              type="checkbox"
-              checked={wantsRecording}
-              onChange={e => toggleRecording(e.target.checked)}
-              className="sr-only"
-            />
-            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors mt-0.5 ${
-              wantsRecording ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
-            }`}>
-              {wantsRecording && (
-                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-            <span className="text-sm md:text-xs text-gray-800">Record and save my answers for playback</span>
-          </label>
-
-          <label className="flex items-start gap-2 cursor-pointer">
-            {/* The real input carries the semantics and keyboard behaviour; the
-                div beside it is what's actually seen. */}
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={e => setAgreed(e.target.checked)}
-              className="sr-only"
-            />
-            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors mt-0.5 ${
-              agreed ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
-            }`}>
-              {agreed && (
-                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-            <span className="text-sm md:text-xs text-gray-800 font-semibold">{copy.checkbox}</span>
-          </label>
+          {/* The right to decline, which the privacy policy commits to this
+              screen carrying. */}
+          <p className="text-xs text-gray-400 leading-snug">
+            You are never required to use voice. Text mode has every feature.
+          </p>
 
           <div className="space-y-1.5 pt-1">
             <button
               onClick={handleContinue}
-              disabled={!agreed || saving}
+              disabled={!consentMode || saving}
               className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               style={GRADIENT}
             >
