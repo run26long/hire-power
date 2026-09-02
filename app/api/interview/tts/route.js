@@ -6,7 +6,7 @@ const TTS_MODEL = 'tts-1';
 
 // Neutral and professional. Interchangeable with any of OpenAI's voices later;
 // nothing downstream depends on which one this is.
-const TTS_VOICE = 'alloy';
+const TTS_VOICE = 'nova';
 
 // tts-1 rejects anything longer. Caught here so the candidate gets a real
 // error code instead of an opaque 400 relayed from OpenAI.
