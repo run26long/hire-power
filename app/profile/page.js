@@ -653,7 +653,7 @@ export default function Profile() {
                   <div style={cardHeader()}>
                     <span style={cardTitle}>Personal Information</span>
                   </div>
-                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 29, paddingTop: 14, paddingBottom: 24 }}>
+                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 14, paddingBottom: 16 }}>
                     <div className="hp-photo-fields-row" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                       {/* Photo */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -683,13 +683,17 @@ export default function Profile() {
                             <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>
                           </div>
                         </div>
+                        {/* Save sits in the email row rather than under it. The
+                            row is duplicated for the two breakpoints the same
+                            way the field itself already is, since only one of
+                            the two is ever on screen. */}
                         <div className="hp-email-desktop">
                           <label style={labelSm}>Email</label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {editingEmail ? (
-                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1 }} placeholder="New email address" autoFocus />
+                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1, maxWidth: 220 }} placeholder="New email address" autoFocus />
                             ) : (
-                              <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
+                              <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1, maxWidth: 220 }} />
                             )}
                             <button
                               onClick={editingEmail ? () => { setEditingEmail(false); setNewEmail(''); } : () => { setNewEmail(user?.email || ''); setEditingEmail(true); }}
@@ -697,13 +701,17 @@ export default function Profile() {
                             >
                               {editingEmail ? 'Cancel' : 'Edit'}
                             </button>
+                            {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>Saved!</span>}
+                            <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1, whiteSpace: 'nowrap', marginLeft: 'auto' }}>
+                              {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="hp-email-mobile" style={{ display: 'none' }}>
                       <label style={labelSm}>Email</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         {editingEmail ? (
                           <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1 }} placeholder="New email address" />
                         ) : (
@@ -715,13 +723,11 @@ export default function Profile() {
                         >
                           {editingEmail ? 'Cancel' : 'Edit'}
                         </button>
+                        {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>Saved!</span>}
+                        <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                          {saving ? 'Saving...' : 'Save Changes'}
+                        </button>
                       </div>
-                    </div>
-                    <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-                      {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
-                      <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1 }}>
-                        {saving ? 'Saving...' : 'Save Changes'}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -821,15 +827,17 @@ export default function Profile() {
                       </div>
                     )}
 
-                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 8 }}>
-                      Deleting your recordings does not affect your transcripts, scores, or feedback.
-                    </p>
-                    <button
-                      onClick={() => setShowDeleteVoiceModal(true)}
-                      style={btnRed}
-                    >
-                      Delete All Voice Data
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>
+                        Deleting your recordings does not affect your transcripts, scores, or feedback.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteVoiceModal(true)}
+                        style={{ ...btnRed, flexShrink: 0 }}
+                      >
+                        Delete All Voice Data
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -985,7 +993,6 @@ export default function Profile() {
           .hp-name-email-grid { grid-template-columns: 1fr !important; }
           .hp-mobile-top { display: block !important; }
           .hp-photo-fields-row { align-items: flex-start !important; }
-          .hp-save-row { justify-content: center !important; }
           .hp-email-desktop { display: none !important; }
           .hp-email-mobile { display: block !important; }
 
