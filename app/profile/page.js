@@ -645,7 +645,7 @@ export default function Profile() {
             {/* SINGLE ROW: Left stack | Right stack */}
             <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto', alignItems: 'stretch' }}>
 
-              {/* LEFT STACK: Personal Info + Career Context + Your Career Your Info */}
+              {/* LEFT STACK: Personal Info + Career Context + Your Career Your Info + Voice & Privacy */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 {/* PERSONAL INFO */}
@@ -784,6 +784,55 @@ export default function Profile() {
                   </div>
                 </div>
 
+                {/* VOICE & PRIVACY */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Voice &amp; Privacy</span>
+                  </div>
+                  <div style={cardBody}>
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
+                      <span style={{ fontWeight: 700, color: '#374151' }}>Last interview mode:</span>{' '}
+                      {VOICE_MODE_LABELS[voiceMode] || "You haven't practiced an interview yet."}
+                    </p>
+
+                    {/* One record reads as a sentence, so the label leads it.
+                        Several need the label to stand over them instead. */}
+                    {consentRecords.length === 1 && (
+                      <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
+                        <span style={{ fontWeight: 700, color: '#374151' }}>Consent history:</span>{' '}
+                        {VOICE_MODE_LABELS[consentRecords[0].mode_selected] || consentRecords[0].mode_selected}
+                        {' - '}
+                        {formatConsentDate(consentRecords[0].consented_at)}
+                      </p>
+                    )}
+
+                    {consentRecords.length > 1 && (
+                      <div style={{ marginBottom: 14 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', lineHeight: 1.4 }}>
+                          Consent history:
+                        </p>
+                        {consentRecords.map(record => (
+                          <p key={record.id} style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>
+                            {VOICE_MODE_LABELS[record.mode_selected] || record.mode_selected}
+                            {' - '}
+                            {formatConsentDate(record.consented_at)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 8 }}>
+                      Deleting your recordings does not affect your transcripts, scores, or feedback.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteVoiceModal(true)}
+                      style={btnRed}
+                    >
+                      Delete All Voice Data
+                    </button>
+                  </div>
+                </div>
+
               </div>
               {/* END LEFT STACK */}
 
@@ -896,48 +945,6 @@ export default function Profile() {
                       style={{ ...btnGhost, flex: 1, textAlign: 'center' }}
                     >
                       Sign Out
-                    </button>
-                  </div>
-                </div>
-
-                {/* VOICE & PRIVACY */}
-                <div style={cardBase}>
-                  <div style={cardHeader()}>
-                    <span style={cardTitle}>Voice &amp; Privacy</span>
-                  </div>
-                  <div style={cardBody}>
-                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
-                      <span style={{ fontWeight: 700, color: '#374151' }}>Last interview mode:</span>{' '}
-                      {VOICE_MODE_LABELS[voiceMode] || "You haven't practiced an interview yet."}
-                    </p>
-
-                    {consentRecords.length > 0 && (
-                      <>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
-                          Consent history
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14 }}>
-                          {consentRecords.map(record => (
-                            <div
-                              key={record.id}
-                              style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: '#6b7280' }}
-                            >
-                              <span>{VOICE_MODE_LABELS[record.mode_selected] || record.mode_selected}</span>
-                              <span style={{ flexShrink: 0 }}>{formatConsentDate(record.consented_at)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 8 }}>
-                      Deleting your recordings does not affect your transcripts, scores, or feedback.
-                    </p>
-                    <button
-                      onClick={() => setShowDeleteVoiceModal(true)}
-                      style={btnRed}
-                    >
-                      Delete All Voice Data
                     </button>
                   </div>
                 </div>
