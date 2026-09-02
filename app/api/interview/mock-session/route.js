@@ -15,6 +15,12 @@ const BANK_COUNTS = { free_trial: 1, pro_practice: 2 };
 
 const VALID_SESSION_TYPES = ['free_trial', 'pro_practice'];
 const VALID_VOICE_MODES = ['mode_1', 'mode_2', 'mode_3'];
+// The modes that open a microphone, and so the ones that need a consent row
+// on file before a session in them can be created.
+const VOICE_CONSENT_MODES = ['mode_1', 'mode_2'];
+
+// An interview left open this long is not one anyone is coming back to.
+const ABANDON_AFTER_MS = 24 * 60 * 60 * 1000;
 const VALID_LEVELS = ['entry', 'mid', 'senior'];
 const VALID_SOURCES = ['warmup', 'resume', 'jd', 'behavioral_bank'];
 
@@ -354,6 +360,30 @@ export async function POST(request) {
       return Response.json({ error: 'POWER_ANALYSIS_NOT_FOUND' }, { status: 404 });
     }
 
+    // ---- VOICE CONSENT ----
+    // The modal is the ordinary way in, but it is client side. A voice session
+    // created by calling this route directly would open a microphone nobody
+    // agreed to, so the record is checked here rather than trusted. Checked
+    // before anything is counted or generated: an unauthorised request should
+    // not cost a model call to refuse. mode_3 opens nothing and needs none.
+    if (VOICE_CONSENT_MODES.includes(voice_mode)) {
+      const { data: consent, error: consentError } = await supabase
+        .from('user_voice_consent')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('mode_selected', voice_mode)
+        .limit(1)
+        .maybeSingle();
+
+      if (consentError) {
+        console.error('Mock session consent check error:', consentError);
+        return Response.json({ error: 'SESSION_CREATION_FAILED' }, { status: 500 });
+      }
+      if (!consent) {
+        return Response.json({ error: 'CONSENT_REQUIRED' }, { status: 403 });
+      }
+    }
+
     // ---- GATING ----
     if (session_type === 'free_trial') {
       const { count, error: countError } = await supabase
@@ -507,6 +537,27 @@ export async function POST(request) {
     if (!questions.length) {
       console.error('Mock session: no usable questions after retry', generated.error?.message);
       return Response.json({ error: 'QUESTION_GENERATION_FAILED' }, { status: 500 });
+    }
+
+    // ---- ABANDONED SESSIONS ----
+    // Left in_progress, a forgotten interview blocks every new session on this
+    // job card for good. Cleared before the open-session check below, which is
+    // the thing it would otherwise deadlock against.
+    //
+    // Non-blocking: this is housekeeping, and a failure here should cost the
+    // candidate nothing. If it does fail, the check below still refuses, which
+    // is what would have happened anyway.
+    const abandonBefore = new Date(Date.now() - ABANDON_AFTER_MS).toISOString();
+    const { error: abandonError } = await supabase
+      .from('interview_sessions')
+      .update({ status: 'abandoned' })
+      .eq('user_id', userId)
+      .eq('job_card_id', job_card_id)
+      .eq('status', 'in_progress')
+      .lt('created_at', abandonBefore);
+
+    if (abandonError) {
+      console.error('Abandoned session cleanup failed (non-blocking):', abandonError);
     }
 
     // ---- ONE OPEN SESSION AT A TIME ----
