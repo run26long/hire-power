@@ -1376,7 +1376,7 @@ export default function Profile() {
                 Every recording from every practice interview will be permanently deleted. Your transcripts, scores, and coaching notes stay exactly as they are, so nothing you have practiced is lost.
               </p>
               <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 12, marginBottom: 14 }}>
-                <strong>Note:</strong> You can also delete recordings for individual sessions from the Practice step in Interview Coach.
+                <strong>Note:</strong> If you prefer to delete individual session recordings instead, you can do that from the Practice step in Interview Coach.
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
