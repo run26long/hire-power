@@ -1014,6 +1014,7 @@ export default function InterviewDetailPage() {
               {/* PRACTICE — session history and live progress. */}
               {currentStep === 'practice' && (
                 <PracticeLeftPanel
+                  userId={user?.id}
                   sessionState={practiceShape.state}
                   sessionData={practiceShape}
                   completionData={practiceShape.completion}

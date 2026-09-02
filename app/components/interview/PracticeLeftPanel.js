@@ -532,8 +532,52 @@ function FeedbackModal({ entry, voiceMode, coachingLoading, onClose }) {
 // Its own component so the modal's hooks mount and unmount with the completed
 // state. PracticeLeftPanel returns early per state, so a hook on the parent
 // would either run during every state or break the rules of hooks.
-function CompletedPanel({ completionData, questions, voiceMode, coachingLoading, onStartNew }) {
+function CompletedPanel({
+  completionData,
+  questions,
+  voiceMode,
+  userId,
+  sessionId,
+  coachingLoading,
+  onStartNew,
+  onSuccess = () => {},
+  onError = () => {}
+}) {
+  const supabase = createClient();
   const [openEntry, setOpenEntry] = useState(null);
+  const [audioDeleted, setAudioDeleted] = useState(false);
+  const [deletingAudio, setDeletingAudio] = useState(false);
+
+  // One session's recordings, not the whole account's. The folder is known, so
+  // this is a single listing rather than the two-level walk Settings needs.
+  const deleteSessionAudio = async () => {
+    if (deletingAudio || !userId || !sessionId) return;
+    setDeletingAudio(true);
+    try {
+      const folder = `${userId}/${sessionId}`;
+      const { data: files, error: listError } = await supabase.storage
+        .from('interview-audio')
+        .list(folder);
+      if (listError) throw listError;
+
+      const paths = (files || []).map(file => `${folder}/${file.name}`);
+      if (paths.length > 0) {
+        const { error: removeError } = await supabase.storage
+          .from('interview-audio')
+          .remove(paths);
+        if (removeError) throw removeError;
+      }
+
+      // Nothing stored is the outcome they asked for either way.
+      setAudioDeleted(true);
+      onSuccess('Audio recording deleted.');
+    } catch (err) {
+      console.error('Session audio delete failed:', err);
+      onError("Couldn't delete the recording. Try again.");
+    } finally {
+      setDeletingAudio(false);
+    }
+  };
 
   const summary = completionData.session_summary || {};
   const progression = completionData.level_progression || {};
@@ -657,6 +701,23 @@ function CompletedPanel({ completionData, questions, voiceMode, coachingLoading,
         </div>
       </div>
 
+      {/* Only mode_1 recorded anything to delete. Its own line rather than
+          inside the level column above: that row is three columns at fixed
+          percentages, and a longer label than Practice Again would squeeze
+          the breakdown beside it. Right-aligned so it still reads as sitting
+          under the button. */}
+      {voiceMode === 'mode_1' && !audioDeleted && userId && sessionId && (
+        <div className="flex justify-end -mt-1">
+          <button
+            onClick={deleteSessionAudio}
+            disabled={deletingAudio}
+            className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer disabled:opacity-50"
+          >
+            {deletingAudio ? 'Deleting...' : 'Delete audio recording'}
+          </button>
+        </div>
+      )}
+
       {/* THREE COLUMNS — the Coach step's grid, same gaps. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
         {columns.map(col => (
@@ -689,6 +750,8 @@ function CompletedPanel({ completionData, questions, voiceMode, coachingLoading,
 }
 
 export default function PracticeLeftPanel({
+  // Only for the storage path a recording is filed under.
+  userId = null,
   sessionState = 'idle',
   sessionData = null,
   completionData = null,
@@ -801,8 +864,12 @@ export default function PracticeLeftPanel({
         completionData={completionData}
         questions={sessionData?.questions || []}
         voiceMode={sessionData?.session?.voice_mode}
+        userId={userId}
+        sessionId={sessionData?.session?.id}
         coachingLoading={!!sessionData?.coachingLoading}
         onStartNew={onStartNew}
+        onSuccess={onSuccess}
+        onError={onError}
       />
     );
   }
