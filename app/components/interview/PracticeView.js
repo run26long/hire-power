@@ -488,6 +488,10 @@ export default function PracticeView({
   // The welcome is the start of the interview, not the start of a question.
   // Spoken once, on the first question after Begin.
   const welcomeSpokenRef = useRef(false);
+  // { text, promise } for the question after the current one, fetched while
+  // the answer is still being scored. Keyed by the text it will speak, so a
+  // stale one can never be mistaken for the right one.
+  const prefetchedQuestionRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -979,9 +983,32 @@ export default function PracticeView({
   const speak = (text, generation) =>
     playFetchedSpeech(fetchSpeechUrl(text, generation), generation);
 
+  // Fired while an answer is being scored. Nothing depends on it: it either
+  // beats the evaluation and saves a round trip, or it does not and is
+  // discarded without the candidate ever knowing it was tried.
+  const prefetchNextQuestion = () => {
+    const next = questions[currentIndex + 1];
+    if (!next?.question_text) return;
+    prefetchedQuestionRef.current = {
+      text: next.question_text,
+      promise: fetchSpeechUrl(next.question_text, voiceGenerationRef.current)
+    };
+  };
+
+  // Claims the prefetched audio only if it was fetched for this exact text,
+  // and only once. A prefetch voided by its own generation guard resolves to
+  // null, which falls through to a fresh fetch rather than a failure.
+  const takePrefetchedUrl = async (text) => {
+    const pending = prefetchedQuestionRef.current;
+    if (pending?.text !== text) return null;
+    prefetchedQuestionRef.current = null;
+    return pending.promise;
+  };
+
   const speakQuestionThenRecord = async (text, generation, preparedUrl = null) => {
+    const prefetched = preparedUrl ? null : await takePrefetchedUrl(text);
     const outcome = await playFetchedSpeech(
-      preparedUrl || fetchSpeechUrl(text, generation),
+      preparedUrl || (prefetched ? Promise.resolve(prefetched) : fetchSpeechUrl(text, generation)),
       generation
     );
     if (generation !== voiceGenerationRef.current) return;
@@ -1084,6 +1111,12 @@ export default function PracticeView({
       // Keeps the recording, in the one mode that promised to. Not awaited:
       // the next question should not wait on an upload.
       if (session?.voice_mode === 'mode_1') uploadRecording(blob, questionId);
+
+      // Start the next question's audio now, so it downloads alongside the
+      // scoring rather than after it. Opportunistic by design: if the
+      // interview advances before this lands, fetchSpeechUrl's own guards
+      // void it and the question is fetched again in the ordinary way.
+      prefetchNextQuestion();
 
       // Straight on to scoring. The stage stays on 'processing' throughout, so
       // the red circle covers transcription and evaluation as one wait, and
@@ -1391,6 +1424,12 @@ export default function PracticeView({
     setTypedFallbackId(null);
     setVoiceStarted(false);
     welcomeSpokenRef.current = false;
+    // A question that will never be asked now. Release its audio rather than
+    // leaving the object URL alive for the rest of the page's life.
+    if (prefetchedQuestionRef.current) {
+      prefetchedQuestionRef.current.promise.then(url => { if (url) URL.revokeObjectURL(url); });
+      prefetchedQuestionRef.current = null;
+    }
     setSessionState('idle');
   };
 
