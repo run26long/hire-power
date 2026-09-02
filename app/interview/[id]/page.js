@@ -330,7 +330,10 @@ export default function InterviewDetailPage() {
 
     checkForOpenSession();
     return () => { cancelled = true; };
-  }, [user?.id, params.id, supabase]);
+    // currentStep is in here so the answer is re-asked on every step change.
+    // A session started during practice, then paused, is invisible to a check
+    // that only ran on mount: the row did not exist yet when it ran.
+  }, [user?.id, params.id, supabase, currentStep]);
 
   // Auto-generate Power Analysis on first landing if none exists
   useEffect(() => {

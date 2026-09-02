@@ -4,9 +4,9 @@ import { apiError } from '@/lib/apiError';
 const OPENAI_TTS_URL = 'https://api.openai.com/v1/audio/speech';
 const TTS_MODEL = 'tts-1';
 
-// Clear and conversational. Interchangeable with any of OpenAI's voices later;
+// Bright and upbeat. Interchangeable with any of OpenAI's voices later;
 // nothing downstream depends on which one this is.
-const TTS_VOICE = 'nova';
+const TTS_VOICE = 'shimmer';
 
 // tts-1 rejects anything longer. Caught here so the candidate gets a real
 // error code instead of an opaque 400 relayed from OpenAI.
