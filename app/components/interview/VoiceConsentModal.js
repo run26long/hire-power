@@ -70,11 +70,12 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
     if (!consentMode || saving) return;
     setSaving(true);
     try {
+      // No ip_address: the browser cannot see its own, and the route that
+      // records this reads it off the request instead.
       await onConsent({
         mode_selected: consentMode,
         consent_version: CONSENT_VERSION,
         consented_at: new Date().toISOString(),
-        ip_address: 'client',
         user_agent: typeof navigator === 'undefined' ? null : navigator.userAgent
       });
     } finally {

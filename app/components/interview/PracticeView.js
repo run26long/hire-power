@@ -666,14 +666,30 @@ export default function PracticeView({
     // The mode comes back from the modal, which is where it was picked.
     const modeKey = record.mode_selected;
 
-    const { error } = await supabase
-      .from('user_voice_consent')
-      .insert({ user_id: userId, ...record });
+    // Written through a route rather than from here: the address the consent
+    // was given from is part of the record, and only the server can see it.
+    let failed = false;
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('No access token');
+
+      const res = await fetch('/api/interview/consent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(record)
+      });
+      if (!res.ok) throw new Error('Consent write failed');
+    } catch (err) {
+      console.error('Voice consent write failed:', err);
+      failed = true;
+    }
 
     setShowVoiceConsent(false);
 
-    if (error) {
-      console.error('Voice consent write failed:', error);
+    if (failed) {
       setSelectedMode('mode_3');
       onError("We couldn't record your consent, so we've kept you in text mode. Try again in a moment.");
       return;
