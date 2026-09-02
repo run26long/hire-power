@@ -1372,11 +1372,8 @@ export default function Profile() {
               <p style={modalSub}>This cannot be undone.</p>
             </div>
             <div style={modalBody}>
-              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6 }}>
-                Every recording from every practice interview will be permanently deleted. Your transcripts, scores, and coaching notes stay exactly as they are, so nothing you have practiced is lost.
-              </p>
               <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 14 }}>
-                You can also delete recordings for individual sessions from the Practice step.
+                Every recording from every practice interview will be permanently deleted. Your transcripts, scores, and coaching notes stay exactly as they are, so nothing you have practiced is lost. You can also delete recordings for individual sessions from the Practice step in Interview Coach.
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
