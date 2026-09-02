@@ -13,7 +13,7 @@ import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 
 // Order matters: every position, counter and high-water mark in this file is
 // derived from this array's indexes rather than written out again.
-const VALID_STEPS = ['analyze', 'research', 'practice', 'coach'];
+const VALID_STEPS = ['analyze', 'research', 'practice'];
 
 export default function InterviewDetailPage() {
   const router = useRouter();
@@ -37,30 +37,12 @@ export default function InterviewDetailPage() {
   const [siblingJobs, setSiblingJobs] = useState([]);
   const [resume, setResume] = useState(null);
   const [powerAnalysis, setPowerAnalysis] = useState(null);
-  const [stories, setStories] = useState([]);
 
   const [generating, setGenerating] = useState(false);
   const [paError, setPaError] = useState(null);
 
-  // Step navigation: 'analyze' | 'research' | 'practice' | 'coach'
+  // Step navigation: 'analyze' | 'research' | 'prepare' | 'practice'
   const [currentStep, setCurrentStep] = useState('analyze');
-
-  // Coaching active state
-  const [activeStory, setActiveStory] = useState(null);
-  const [coachingMessages, setCoachingMessages] = useState([]);
-  const [coachInput, setCoachInput] = useState('');
-  const [coachSending, setCoachSending] = useState(false);
-  const [coachStarting, setCoachStarting] = useState(false);
-  const [coachError, setCoachError] = useState(null);
-
-  // Batch mode state
-  const [batchQueue, setBatchQueue] = useState([]);
-  const [batchPosition, setBatchPosition] = useState(0);
-  const [batchChecks, setBatchChecks] = useState({});
-  const [batchJustCompleted, setBatchJustCompleted] = useState(null);
-
-  // Story viewing modal state
-  const [viewingStory, setViewingStory] = useState(null);
 
   // Mobile panel toggle: 'analysis' | 'coaching'
   const [mobilePanel, setMobilePanel] = useState('analysis');
@@ -97,21 +79,12 @@ export default function InterviewDetailPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [interviewEvents, setInterviewEvents] = useState([]);
 
-  const messagesEndRef = useRef(null);
-  const coachInputRef = useRef(null);
   // The jump is a one-shot. Without this, any later change to powerAnalysis
   // would re-run the effect and yank the view back to the requested step.
   const jumpAppliedRef = useRef(false);
 
   // Step completion derived from real data, not cursor position
   const analyzeComplete = !!powerAnalysis;
-  // Coaching is done once they leave it, whether they coached or skipped.
-  // Falls back to "any story coached" for rows written before the column
-  // existed, so history doesn't suddenly read as unfinished.
-  const coachComplete =
-    powerAnalysis?.coaching_status === 'completed' ||
-    powerAnalysis?.coaching_status === 'skipped' ||
-    stories.some(s => s.coachingComplete);
 
   // ============================================================================
   // DATA LOAD
@@ -198,20 +171,6 @@ export default function InterviewDetailPage() {
         setInterviewEvents(eventsData || []);
       }
 
-      let loadedStories = [];
-      if (data.powerAnalysis) {
-        const storiesRes = await fetch(`/api/story-coach/get?jobCardId=${params.id}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
-        if (storiesRes.ok) {
-          const storiesData = await storiesRes.json();
-          loadedStories = storiesData.stories || [];
-          setStories(loadedStories);
-        }
-      } else {
-        setStories([]);
-      }
-
       // Restore saved position. Runs before setLoading(false) so the persist
       // effects don't fire with defaults and clobber what was saved.
       // current_step on the Power Analysis wins: it's the column the hub reads,
@@ -224,17 +183,6 @@ export default function InterviewDetailPage() {
       const savedStep = data.powerAnalysis?.current_step || data.jobCard?.interview_step;
       if (!jumpStep && VALID_STEPS.includes(savedStep)) {
         setCurrentStep(savedStep);
-      }
-
-      // Gated on the restored step. openCoachingForItem forces currentStep to
-      // 'coach', so without this an abandoned story dragged every refresh back
-      // to coaching no matter which step the candidate actually left off on.
-      const savedStoryId = data.jobCard?.interview_active_story_id;
-      if (savedStep === 'coach' && savedStoryId) {
-        const savedStory = loadedStories.find(s => s.id === savedStoryId && !s.coachingComplete);
-        if (savedStory) {
-          openCoachingForItem(savedStory.itemType, savedStory.itemIndex, savedStory.itemSkill);
-        }
       }
 
       setRetryCount(0);
@@ -385,18 +333,6 @@ export default function InterviewDetailPage() {
     return () => clearInterval(interval);
   }, [nextInterviewDate]);
 
-  useEffect(() => {
-    if (currentStep === 'coach' && activeStory && coachingMessages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [coachingMessages, currentStep, activeStory]);
-
-  useEffect(() => {
-    if (currentStep === 'coach' && activeStory && !coachSending && !coachStarting) {
-      coachInputRef.current?.focus({ preventScroll: true });
-    }
-  }, [currentStep, activeStory, coachSending, coachStarting]);
-
   // A finished session belongs to the visit that finished it. Leaving the step
   // clears what was on screen, so coming back opens on the mode selector with
   // the session waiting in the history on the left, rather than dropping the
@@ -411,9 +347,9 @@ export default function InterviewDetailPage() {
     setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
   }, [currentStep]);
 
-  // Auto-switch mobile panel when navigating to coach or practice
+  // Auto-switch mobile panel when navigating to prepare or practice
   useEffect(() => {
-    if (currentStep === 'coach' || currentStep === 'practice') {
+    if (currentStep === 'prepare' || currentStep === 'practice') {
       setMobilePanel('coaching');
     }
   }, [currentStep]);
@@ -431,20 +367,6 @@ export default function InterviewDetailPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, loading, params.id]);
-
-  // Persist the active story to applications.interview_active_story_id.
-  // Writes null when the conversation is closed. Fire-and-forget.
-  useEffect(() => {
-    if (loading) return;
-    supabase
-      .from('applications')
-      .update({ interview_active_story_id: activeStory?.id ?? null })
-      .eq('id', params.id)
-      .then(({ error }) => {
-        if (error) console.error('Persist interview_active_story_id failed:', error);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStory?.id, loading, params.id]);
 
   // One handler for both places a session can be destroyed: the trash icon on
   // a history card, and "Delete and start over" on a paused one. A delete
@@ -514,224 +436,6 @@ export default function InterviewDetailPage() {
     }
   };
 
-  // ============================================================================
-  // COACHING: START / RESUME
-  // ============================================================================
-
-  const openCoachingForItem = async (itemType, itemIndex, itemSkill) => {
-    setCoachStarting(true);
-    setCoachError(null);
-    setActiveStory(null);
-    setCoachingMessages([]);
-    setBatchJustCompleted(null);
-    setCurrentStep('coach');
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const res = await fetch('/api/story-coach/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ jobCardId: params.id, itemType, itemIndex })
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        if (data.error === 'STORY_ALREADY_COMPLETE') {
-          setCoachError("This story is already saved. Tap the card to view it.");
-          return;
-        }
-        throw new Error(data.message || "We couldn't start coaching.");
-      }
-
-      setActiveStory({
-        id: data.storyId,
-        itemType: data.itemType,
-        itemIndex: data.itemIndex,
-        itemSkill: data.itemSkill
-      });
-
-      const messagesForUI = [];
-      const dialogue = data.dialogue || [];
-      dialogue.forEach((msg, i) => {
-        if (i === 0 && msg.role === 'user') return; // skip hidden context message
-        messagesForUI.push(msg);
-      });
-      setCoachingMessages(messagesForUI);
-
-    } catch (err) {
-      console.error('Start coaching error:', err);
-      setCoachError(err.message || "We couldn't start coaching. Try again.");
-    } finally {
-      setCoachStarting(false);
-    }
-  };
-
-  const handleSendCoachMessage = async () => {
-    const text = coachInput.trim();
-    if (!text || !activeStory) return;
-
-    setCoachSending(true);
-    setCoachError(null);
-
-    const optimisticMessages = [...coachingMessages, { role: 'user', content: text }];
-    setCoachingMessages(optimisticMessages);
-    setCoachInput('');
-    if (coachInputRef.current) coachInputRef.current.style.height = 'auto';
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const res = await fetch('/api/story-coach/message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ storyId: activeStory.id, userMessage: text })
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.message || "We couldn't send your message.");
-      }
-
-      setCoachingMessages([...optimisticMessages, { role: 'assistant', content: data.response }]);
-
-      if (data.isComplete && data.story) {
-        setStories(prevStories => {
-          const filtered = prevStories.filter(s => s.id !== data.story.id);
-          return [...filtered, {
-            id: data.story.id,
-            itemType: data.story.itemType,
-            itemIndex: data.story.itemIndex,
-            itemSkill: data.story.itemSkill,
-            coachingComplete: true,
-            starSituation: data.story.star_situation,
-            starTask: data.story.star_task,
-            starAction: data.story.star_action,
-            starResult: data.story.star_result,
-            polishedStory: data.story.polished_story
-          }];
-        });
-
-        setSuccessToast('Story saved to your card.');
-
-        if (batchQueue.length > 0) {
-          setBatchJustCompleted({
-            itemType: data.story.itemType,
-            itemIndex: data.story.itemIndex,
-            itemSkill: data.story.itemSkill,
-            polishedStory: data.story.polished_story
-          });
-        } else {
-          setBatchJustCompleted({
-            itemType: data.story.itemType,
-            itemIndex: data.story.itemIndex,
-            itemSkill: data.story.itemSkill,
-            polishedStory: data.story.polished_story,
-            single: true
-          });
-        }
-      } else if (data.isComplete && data.finalizeFailed) {
-        setCoachError(data.message || "We couldn't save your story. Send one more message and the coach will wrap up again.");
-      }
-
-    } catch (err) {
-      console.error('Send coach message error:', err);
-      setCoachError(err.message || "We couldn't send your message. Try again.");
-      setCoachingMessages(coachingMessages);
-      setCoachInput(text);
-    } finally {
-      setCoachSending(false);
-    }
-  };
-
-  const handleOpenCoachStep = () => {
-    setBatchChecks({});
-    setBatchQueue([]);
-    setBatchPosition(0);
-    setActiveStory(null);
-    setCoachingMessages([]);
-    setCurrentStep('coach');
-  };
-
-  const handleStartBatch = () => {
-    if (!powerAnalysis) return;
-
-    // Nothing ticked reads as "just coach my stories", so the whole uncoached
-    // set is queued rather than the click doing nothing. Ticking items is a way
-    // to narrow the run, not a precondition for starting one.
-    const nothingChecked = !Object.values(batchChecks).some(Boolean);
-    const wanted = (key) => nothingChecked || !!batchChecks[key];
-
-    const queue = [];
-
-    powerAnalysis.core_power.forEach((item, i) => {
-      if (wanted(`core_power:${i}`) && !isItemCoached('core_power', i)) {
-        queue.push({ itemType: 'core_power', itemIndex: i, itemSkill: item.skill });
-      }
-    });
-    powerAnalysis.hidden_power.forEach((item, i) => {
-      if (wanted(`hidden_power:${i}`) && !isItemCoached('hidden_power', i)) {
-        queue.push({ itemType: 'hidden_power', itemIndex: i, itemSkill: item.skill });
-      }
-    });
-    powerAnalysis.power_gaps.forEach((item, i) => {
-      if (wanted(`power_gap:${i}`) && !isItemCoached('power_gap', i)) {
-        queue.push({ itemType: 'power_gap', itemIndex: i, itemSkill: item.gap });
-      }
-    });
-
-    // Only reachable when every item already has a story.
-    if (queue.length === 0) {
-      setSuccessToast('Every item already has a coached story.');
-      return;
-    }
-
-    setBatchQueue(queue);
-    setBatchPosition(0);
-    const first = queue[0];
-    openCoachingForItem(first.itemType, first.itemIndex, first.itemSkill);
-  };
-
-  const handleAdvanceBatch = () => {
-    const nextPos = batchPosition + 1;
-    if (nextPos >= batchQueue.length) {
-      setBatchQueue([]);
-      setBatchPosition(0);
-      setBatchJustCompleted(null);
-      setActiveStory(null);
-      setBatchChecks({});
-      return;
-    }
-    setBatchPosition(nextPos);
-    setBatchJustCompleted(null);
-    const next = batchQueue[nextPos];
-    openCoachingForItem(next.itemType, next.itemIndex, next.itemSkill);
-  };
-
-  const handleEndCoaching = () => {
-    setActiveStory(null);
-    setCoachingMessages([]);
-    setCoachInput('');
-    setBatchQueue([]);
-    setBatchPosition(0);
-    setBatchJustCompleted(null);
-    setBatchChecks({});
-  };
-
-  const handleGoToPractice = () => {
-    handleEndCoaching();
-    goToStep('practice');
-  };
 
   // ============================================================================
   // STEP NAVIGATION
@@ -768,21 +472,6 @@ export default function InterviewDetailPage() {
     persistPowerAnalysis(buildStepPatch(step));
   };
 
-  // Coaching is the last step, so finishing it is finishing the flow. Leaving
-  // is still what decides whether it counts as done: nothing coached means
-  // they chose to move on, which is 'skipped' rather than a failure.
-  //
-  // The step patch stays on 'coach' because that is where they were. Writing
-  // it here is the only place coaching_status is ever set, and without it the
-  // Coach dot could never tick for someone who deliberately skipped.
-  const finishCoaching = () => {
-    const coachedCount = stories.filter(s => s.coachingComplete).length;
-    persistPowerAnalysis(buildStepPatch('coach', {
-      coaching_status: coachedCount > 0 ? 'completed' : 'skipped'
-    }));
-    router.push('/interview-coach');
-  };
-
   // ============================================================================
   // HELPERS
   // ============================================================================
@@ -801,25 +490,6 @@ export default function InterviewDetailPage() {
     if (hours >= 2) return `${hours} hours away`;
     if (hours === 1) return '1 hour away';
     return `${minutes} min away`;
-  }
-
-  function isItemCoached(itemType, itemIndex) {
-    return stories.some(s => s.itemType === itemType && s.itemIndex === itemIndex && s.coachingComplete);
-  }
-
-  function getStoryForItem(itemType, itemIndex) {
-    return stories.find(s => s.itemType === itemType && s.itemIndex === itemIndex && s.coachingComplete);
-  }
-
-  function handleItemClick(itemType, itemIndex, itemSkill) {
-    if (isItemCoached(itemType, itemIndex)) {
-      const story = getStoryForItem(itemType, itemIndex);
-      if (story) {
-        setViewingStory({ ...story, itemSkill: itemSkill || story.itemSkill });
-      }
-    } else {
-      openCoachingForItem(itemType, itemIndex, itemSkill);
-    }
   }
 
   // ============================================================================
@@ -890,7 +560,6 @@ export default function InterviewDetailPage() {
   const reachedIndex = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
   const completeByKey = {
     analyze: analyzeComplete,
-    coach: coachComplete,
     research: reachedIndex >= VALID_STEPS.indexOf('research'),
     practice: sessionsCount > 0
   };
@@ -967,8 +636,6 @@ export default function InterviewDetailPage() {
               {/* INTERVIEW HEADER STRIP — title + instructions + date + coaching progress */}
               {hasPA && (
                 <InterviewHeaderStrip
-                  storiesCoached={stories.filter(s => s.coachingComplete).length}
-                  totalStoryItems={powerAnalysis.core_power.length + powerAnalysis.hidden_power.length + powerAnalysis.power_gaps.length}
                   interviewDate={nextInterviewDate}
                   countdown={countdown}
                   interviewDateIsPast={interviewDateIsPast}
@@ -992,7 +659,7 @@ export default function InterviewDetailPage() {
                   </div>
                   <button
                     onClick={() => {
-                      if (window.confirm("Refreshing creates a new analysis. Your existing coached stories may not match the new items. Continue?")) {
+                      if (window.confirm("Refreshing creates a new analysis. Continue?")) {
                         handleGeneratePA();
                       }
                     }}
@@ -1078,68 +745,43 @@ export default function InterviewDetailPage() {
                 />
               )}
 
-              {/* BUCKETS */}
-              {hasPA && currentStep !== 'research' && currentStep !== 'practice' && (() => {
-                // 'practice' falls through to 'normal' — the buckets stay
-                // browsable there, they just aren't driving the step. 'research'
-                // never reaches this, since it renders instead of the buckets.
-                const leftColMode = currentStep === 'analyze' ? 'readonly'
-                  : (currentStep === 'coach' && !activeStory) ? 'coach'
-                  : 'normal';
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
-                    <BucketColumn
-                      title="Core Power"
-                      icon="✅"
-                      colorClass="green"
-                      items={powerAnalysis.core_power}
-                      itemType="core_power"
-                      emptyText="No core matches surfaced. Consider tailoring your resume."
-                      getTextField={(item) => item.evidence}
-                      getNameField={(item) => item.skill}
-                      isItemCoached={isItemCoached}
-                      onItemClick={handleItemClick}
-                      mode={leftColMode}
-                      batchChecks={batchChecks}
-                      setBatchChecks={setBatchChecks}
-                    />
+              {/* BUCKETS — read-only everywhere now. Nothing is coached from
+                  them any more, so there is nothing to click into. */}
+              {hasPA && currentStep !== 'research' && currentStep !== 'prepare' && currentStep !== 'practice' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+                  <BucketColumn
+                    title="Core Power"
+                    icon="✅"
+                    colorClass="green"
+                    items={powerAnalysis.core_power}
+                    emptyText="No core matches surfaced. Consider tailoring your resume."
+                    getTextField={(item) => item.evidence}
+                    getNameField={(item) => item.skill}
+                  />
 
-                    <BucketColumn
-                      title="Hidden Power"
-                      icon="💡"
-                      colorClass="yellow"
-                      items={powerAnalysis.hidden_power}
-                      itemType="hidden_power"
-                      emptyText="No hidden transferable skills surfaced."
-                      getTextField={(item) => item.evidence_reframe}
-                      getNameField={(item) => item.skill}
-                      getSourceField={(item) => item.source}
-                      isItemCoached={isItemCoached}
-                      onItemClick={handleItemClick}
-                      mode={leftColMode}
-                      batchChecks={batchChecks}
-                      setBatchChecks={setBatchChecks}
-                    />
+                  <BucketColumn
+                    title="Hidden Power"
+                    icon="💡"
+                    colorClass="yellow"
+                    items={powerAnalysis.hidden_power}
+                    emptyText="No hidden transferable skills surfaced."
+                    getTextField={(item) => item.evidence_reframe}
+                    getNameField={(item) => item.skill}
+                    getSourceField={(item) => item.source}
+                  />
 
-                    <BucketColumn
-                      title="Power Gaps"
-                      icon="⚠️"
-                      colorClass="red"
-                      items={powerAnalysis.power_gaps}
-                      itemType="power_gap"
-                      emptyText="No major gaps. You're well positioned for this role."
-                      getTextField={(item) => item.bridge_strategy}
-                      getNameField={(item) => item.gap}
-                      getSeverityField={(item) => item.severity}
-                      isItemCoached={isItemCoached}
-                      onItemClick={handleItemClick}
-                      mode={leftColMode}
-                      batchChecks={batchChecks}
-                      setBatchChecks={setBatchChecks}
-                    />
-                  </div>
-                );
-              })()}
+                  <BucketColumn
+                    title="Power Gaps"
+                    icon="⚠️"
+                    colorClass="red"
+                    items={powerAnalysis.power_gaps}
+                    emptyText="No major gaps. You're well positioned for this role."
+                    getTextField={(item) => item.bridge_strategy}
+                    getNameField={(item) => item.gap}
+                    getSeverityField={(item) => item.severity}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -1155,7 +797,7 @@ export default function InterviewDetailPage() {
               <div className="relative">
                 <div className="absolute top-3 left-0 right-0 h-0.5 bg-gray-300">
                   <div className="h-full transition-all duration-300" style={{
-                    width: `${(Object.values(completeByKey).filter(Boolean).length / 4) * 100}%`,
+                    width: `${(Object.values(completeByKey).filter(Boolean).length / VALID_STEPS.length) * 100}%`,
                     background: 'linear-gradient(to right, #667eea, #764ba2)'
                   }}></div>
                 </div>
@@ -1163,8 +805,7 @@ export default function InterviewDetailPage() {
                   {[
                     { label: 'Analyze', key: 'analyze' },
                     { label: 'Research', key: 'research' },
-                    { label: 'Practice', key: 'practice' },
-                    { label: 'Coach', key: 'coach' }
+                    { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
                     const complete = completeByKey[key];
                     const current = key === currentStep;
@@ -1174,7 +815,6 @@ export default function InterviewDetailPage() {
                     const clickable = complete && !current;
                     const onStepClick = () => {
                       if (!clickable) return;
-                      if (key === 'coach') handleOpenCoachStep();
                       goToStep(key);
                     };
                     return (
@@ -1205,41 +845,6 @@ export default function InterviewDetailPage() {
                 <AnalyzeStepContent
                   stepHeader="📊 Your Power Analysis"
                   onGoToResearch={() => goToStep('research')}
-                />
-              )}
-
-              {currentStep === 'coach' && !activeStory && !coachStarting && hasPA && (
-                <CoachIdlePanel
-                  storiesCoached={stories.filter(s => s.coachingComplete).length}
-                  onStart={handleStartBatch}
-                  onFinish={finishCoaching}
-                  onBack={() => goToStep('practice')}
-                />
-              )}
-
-              {currentStep === 'coach' && !activeStory && !hasPA && (
-                <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToResearch={() => goToStep('research')} />
-              )}
-
-              {currentStep === 'coach' && (activeStory || coachStarting) && (
-                <CoachingView
-                  activeStory={activeStory}
-                  coachingMessages={coachingMessages}
-                  completedStoryCount={stories.filter(s => s.coachingComplete).length}
-                  coachInput={coachInput}
-                  setCoachInput={setCoachInput}
-                  coachSending={coachSending}
-                  coachStarting={coachStarting}
-                  coachError={coachError}
-                  batchQueue={batchQueue}
-                  batchPosition={batchPosition}
-                  batchJustCompleted={batchJustCompleted}
-                  onSend={handleSendCoachMessage}
-                  onEnd={handleEndCoaching}
-                  onGoToPractice={handleGoToPractice}
-                  onAdvanceBatch={handleAdvanceBatch}
-                  messagesEndRef={messagesEndRef}
-                  coachInputRef={coachInputRef}
                 />
               )}
 
@@ -1276,7 +881,6 @@ export default function InterviewDetailPage() {
                     // Re-read the history so the paused card is there waiting.
                     setPracticeDataSignal(n => n + 1);
                   }}
-                  onGoToCoach={() => { handleOpenCoachStep(); goToStep('coach'); }}
                   onSessionChange={setPracticeShape}
                   onError={setErrorToast}
                 />
@@ -1290,23 +894,8 @@ export default function InterviewDetailPage() {
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
-      <StoryModal story={viewingStory} onClose={() => setViewingStory(null)} />
     </div>
   );
-}
-
-// ============================================================================
-// LABEL HELPERS
-// ============================================================================
-
-function bucketLabel(itemType) {
-  if (itemType === 'core_power') return 'Core Power';
-  if (itemType === 'hidden_power') return 'Hidden Power';
-  return 'Power Gap';
-}
-
-function itemLabel(itemType, itemIndex, skillName) {
-  return `${bucketLabel(itemType)} #${itemIndex + 1}: ${skillName}`;
 }
 
 // ============================================================================
@@ -1314,10 +903,8 @@ function itemLabel(itemType, itemIndex, skillName) {
 // ============================================================================
 
 function BucketColumn({
-  title, icon, colorClass, items, itemType, emptyText,
-  getTextField, getNameField, getSourceField, getSeverityField,
-  isItemCoached, onItemClick,
-  mode = 'normal', batchChecks = {}, setBatchChecks = () => {}
+  title, icon, colorClass, items, emptyText,
+  getTextField, getNameField, getSourceField
 }) {
   const colors = {
     green: { border: 'border-green-200', bg: 'bg-green-50', titleText: 'text-green-800', countText: 'text-green-700', emptyText: 'text-green-700' },
@@ -1326,17 +913,6 @@ function BucketColumn({
   };
   const c = colors[colorClass];
 
-  const uncoachedKeys = items
-    .map((_, i) => `${itemType}:${i}`)
-    .filter((_, i) => !isItemCoached(itemType, i));
-  const allUncoachedSelected = uncoachedKeys.length > 0 && uncoachedKeys.every(k => batchChecks[k]);
-
-  function handleBucketToggleAll() {
-    const updates = {};
-    uncoachedKeys.forEach(k => { updates[k] = !allUncoachedSelected; });
-    setBatchChecks(prev => ({ ...prev, ...updates }));
-  }
-
   return (
     <div className={`border ${c.border} rounded-lg p-3 ${c.bg}`}>
       <div className="flex items-center gap-1.5 mb-2">
@@ -1344,133 +920,30 @@ function BucketColumn({
         <h4 className={`text-sm md:text-xs font-bold ${c.titleText}`}>{title}</h4>
         <div className="ml-auto flex items-center gap-2">
           <span className={`text-xs md:text-[10px] ${c.countText} font-semibold`}>{items.length}</span>
-          {mode === 'coach' && uncoachedKeys.length > 0 && (
-            <button
-              onClick={handleBucketToggleAll}
-              className="text-xs md:text-[10px] text-purple-600 hover:text-purple-700 font-semibold"
-            >
-              {allUncoachedSelected ? 'Deselect all' : 'Select all'}
-            </button>
-          )}
         </div>
       </div>
       {items.length === 0 ? (
         <p className={`text-sm md:text-xs ${c.emptyText} italic`}>{emptyText}</p>
       ) : (
         <ul className="space-y-2">
-          {items.map((item, i) => {
-            const coached = isItemCoached(itemType, i);
-            const itemName = getNameField(item);
-            const checkKey = `${itemType}:${i}`;
-            const checked = !!batchChecks[checkKey];
-
-            if (mode === 'readonly') {
-              return (
-                <li key={i}>
-                  <div
-                    className="w-full text-left bg-white rounded p-2 border block"
-                    style={{ borderColor: coached ? '#bbf7d0' : '#e5e7eb', cursor: 'default' }}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
-                      {coached && (
-                        <span className="text-xs md:text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                          ✓ Story
-                        </span>
-                      )}
-                    </div>
-                    {getTextField(item) && (
-                      <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
-                    )}
-                    {getSourceField && getSourceField(item) && (
-                      <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
-                    )}
-                  </div>
-                </li>
-              );
-            }
-
-            if (mode === 'coach') {
-              if (coached) {
-                return (
-                  <li key={i}>
-                    <button
-                      onClick={() => onItemClick(itemType, i, itemName)}
-                      className="w-full text-left bg-white rounded p-2 border hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer block"
-                      style={{ borderColor: '#bbf7d0' }}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
-                        <span className="text-xs md:text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                          ✓ Story
-                        </span>
-                      </div>
-                      {getTextField(item) && (
-                        <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
-                      )}
-                      {getSourceField && getSourceField(item) && (
-                        <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
-                      )}
-                    </button>
-                  </li>
-                );
-              }
-              return (
-                <li key={i}>
-                  <button
-                    onClick={() => setBatchChecks(prev => ({ ...prev, [checkKey]: !prev[checkKey] }))}
-                    className="w-full text-left bg-white rounded p-2 border hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer block"
-                    style={{ borderColor: checked ? '#a78bfa' : '#ffffff' }}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
-                      <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
-                        checked ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
-                      }`}>
-                        {checked && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                    {getTextField(item) && (
-                      <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
-                    )}
-                    {getSourceField && getSourceField(item) && (
-                      <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
-                    )}
-                  </button>
-                </li>
-              );
-            }
-
-            // mode === 'normal'
-            return (
-              <li key={i}>
-                <button
-                  onClick={() => onItemClick(itemType, i, itemName)}
-                  className="w-full text-left bg-white rounded p-2 border hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer block"
-                  style={{ borderColor: coached ? '#bbf7d0' : '#ffffff' }}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {itemName}</p>
-                    {coached && (
-                      <span className="text-xs md:text-[9px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                        ✓ Story
-                      </span>
-                    )}
-                  </div>
-                  {getTextField(item) && (
-                    <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
-                  )}
-                  {getSourceField && getSourceField(item) && (
-                    <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
-                  )}
-                </button>
-              </li>
-            );
-          })}
+          {items.map((item, i) => (
+            <li key={i}>
+              <div
+                className="w-full text-left bg-white rounded p-2 border block"
+                style={{ borderColor: '#e5e7eb', cursor: 'default' }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {getNameField(item)}</p>
+                </div>
+                {getTextField(item) && (
+                  <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
+                )}
+                {getSourceField && getSourceField(item) && (
+                  <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
+                )}
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </div>
@@ -1533,11 +1006,8 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
           </p>
         </li>
       </ul>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        For each item, you can build a polished <span className="font-bold text-gray-800">STAR story</span> (Situation, Task, Action, Result) through a quick coaching conversation so you walk into your interview with a strong answer ready when the question comes up.
-      </p>
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
-        Click below to build your STAR stories.
+        Keep these in mind as you research the company and practice your answers.
       </p>
       {/* First step, so no back link. Completion lives in the strip's purple
           check; a second green badge saying the same thing only competed with
@@ -1552,141 +1022,6 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
     </div>
   );
 }
-
-// ============================================================================
-// BATCH CHECKLIST
-// ============================================================================
-
-function CoachIdlePanel({ storiesCoached, onStart, onFinish, onBack }) {
-  const hasCoachedStories = storiesCoached > 0;
-
-  return (
-    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
-      <h3 className="font-semibold text-lg -mt-3">✨ Prepare Your Answers</h3>
-      <p className="text-sm md:text-xs text-gray-600">
-        Building your STAR stories means walking into your interview with real, specific answers prepared and ready to go.
-      </p>
-      <ul className="space-y-2">
-        <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">💬</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">Coach just 1-2 stories, or develop them all.</p>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">⏱️</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">Coaching runs 4-5 minutes per story.</p>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">📄</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">Download stories as a PDF to help in your practice interviews (and the real one!)</p>
-        </li>
-        <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">⏭️</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">Don't want coaching? Skip to interview practice at any time.</p>
-        </li>
-      </ul>
-      <p className="text-sm md:text-xs text-gray-600">
-        Pick individual items to coach, or select all to coach everything one at a time.
-      </p>
-      {/* Whichever action is the sensible next one is the primary. With nothing
-          coached that's coaching; once a story exists, moving on is. Both stay
-          visible either way — the choice is the candidate's. */}
-      {/* Follows the copy on the parent's space-y-3, the way Analyze does,
-          rather than mt-auto pushing it to the bottom of a short panel. */}
-      {/* Coach Stories stays on the left and Go to Research on the right, so
-          the pair doesn't reorder under the cursor. Only the styling swaps:
-          whichever is the sensible next move wears the gradient. */}
-      <div className="space-y-2">
-        <div className="flex gap-2 justify-center">
-          <button
-            onClick={onStart}
-            className={hasCoachedStories ? STEP_SECONDARY_CLASS : STEP_PRIMARY_CLASS}
-            style={hasCoachedStories ? undefined : STEP_PRIMARY_STYLE}
-          >
-            Coach Stories
-          </button>
-
-          <button
-            onClick={onFinish}
-            className={hasCoachedStories ? STEP_PRIMARY_CLASS : STEP_SECONDARY_CLASS}
-            style={hasCoachedStories ? STEP_PRIMARY_STYLE : undefined}
-          >
-            Return to Interview Coach
-          </button>
-        </div>
-
-        <BackLink onClick={onBack} />
-      </div>
-    </div>
-  );
-}
-
-function ChecklistGroup({ title, itemType, items, getNameField, batchChecks, isItemCoached, onToggle, onSelectAll }) {
-  if (items.length === 0) return null;
-  const allCoached = items.every((_, i) => isItemCoached(itemType, i));
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-xs md:text-[10px] font-bold text-gray-700 uppercase tracking-wide">{title}</p>
-        {!allCoached && (
-          <button onClick={onSelectAll} className="text-xs md:text-[10px] text-purple-600 hover:text-purple-700 font-semibold">
-            Select all
-          </button>
-        )}
-      </div>
-      <div className="space-y-1">
-        {items.map((item, i) => {
-          const coached = isItemCoached(itemType, i);
-          const key = `${itemType}:${i}`;
-          const checked = !!batchChecks[key];
-          return (
-            <button
-              key={i}
-              onClick={() => !coached && onToggle(itemType, i)}
-              disabled={coached}
-              className={`w-full text-left flex items-start gap-2 p-1.5 rounded transition-colors ${
-                coached ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-50 cursor-pointer'
-              }`}
-            >
-              <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border mt-0.5 transition-colors ${
-                coached ? 'bg-green-100 border-green-300' :
-                checked ? 'bg-purple-600 border-purple-600' :
-                'border-gray-300 bg-white'
-              }`}>
-                {coached && <svg className="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                {checked && !coached && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-              </div>
-              <span className="text-sm md:text-xs text-gray-700 leading-tight">{itemLabel(itemType, i, getNameField(item))}{coached && <span className="text-[9px] text-green-600 ml-1">(coached)</span>}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// RESEARCH STEP CONTENT
-// Pulls a company brief from /api/interview/company-research. Research is
-// generated once per company and cached server-side, so there's no refresh
-// control here — the step just reads whatever the brief says.
-// ============================================================================
-
-// Platform status colors, same triad the Job Tracker score rings use.
-const DOT_GREEN = '#81c784';
-const DOT_AMBER = '#ffc870';
-const DOT_PURPLE = '#9333ea';
-// Headings on the tinted overview card — purple on purple loses contrast.
-const HEADING_DARK = '#111827';
-
-// Culture values and question types read as the same kind of thing, so they
-// share one definition rather than two that can drift apart.
-const TAG_GREY = 'text-sm md:text-xs bg-gray-100 text-gray-600';
-
-const TAG_VARIANTS = {
-  culture: TAG_GREY,
-  question: TAG_GREY,
-  default: 'text-[11px] md:text-[10px] bg-purple-50 text-purple-700'
-};
 
 function Tag({ children, variant }) {
   const variantClass = TAG_VARIANTS[variant] || TAG_VARIANTS.default;
@@ -2072,320 +1407,6 @@ function ResearchIdlePanel({ hasActiveSession = false, onGoToPractice, onBack })
   );
 }
 
-// ============================================================================
-// COACHING VIEW
-// ============================================================================
-
-function CoachingView({
-  activeStory, coachingMessages, completedStoryCount, coachInput, setCoachInput,
-  coachSending, coachStarting, coachError,
-  batchQueue, batchPosition, batchJustCompleted,
-  onSend, onEnd, onGoToPractice, onAdvanceBatch,
-  messagesEndRef, coachInputRef
-}) {
-  const isBatch = batchQueue.length > 0;
-  const primaryClass = "flex-1 whitespace-nowrap text-white rounded-lg py-2 px-2 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90";
-  const primaryStyle = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
-  const secondaryClass = "flex-1 whitespace-nowrap bg-white border border-purple-300 text-purple-600 rounded-lg py-2 px-2 font-semibold text-sm md:text-xs hover:bg-purple-50 transition-colors";
-
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 768);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
-
-  return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="px-4 pt-3 pb-2 border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex-1">
-            {isBatch && (
-              <p className="text-xs md:text-[10px] text-purple-600 font-bold uppercase tracking-wide">
-                Coaching {batchPosition + 1} of {batchQueue.length}
-              </p>
-            )}
-            <p className="text-sm md:text-xs font-bold text-gray-900">
-              {activeStory ? itemLabel(activeStory.itemType, activeStory.itemIndex, activeStory.itemSkill) : 'Loading...'}
-            </p>
-          </div>
-          
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        {coachStarting && (
-          <div className="flex justify-center py-6">
-            <div className="animate-spin h-6 w-6 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-          </div>
-        )}
-
-        {!coachStarting && (
-          <div className="space-y-3">
-            {coachingMessages.map((msg, i) => (
-              <div key={i}>
-                {msg.role === 'assistant' ? (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-base">🎤</span>
-                      <p className="text-xs md:text-[10px] font-semibold text-gray-600">Coach</p>
-                    </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                      <p className="text-sm md:text-xs text-gray-800 leading-snug whitespace-pre-line">{msg.content}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-end">
-                    <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 max-w-[85%]">
-                      <p className="text-sm md:text-xs text-gray-800 leading-snug whitespace-pre-line">{msg.content}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {coachSending && (
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">🎤</span>
-                  <p className="text-xs md:text-[10px] font-semibold text-gray-600">Coach</p>
-                </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                  <div className="flex gap-1.5 items-center">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-
-        {coachError && (
-          <div className="bg-red-50 border border-red-200 rounded p-2 mt-3">
-            <p className="text-xs md:text-[10px] text-red-700">{coachError}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-shrink-0 border-t border-gray-100 p-3">
-        {batchJustCompleted ? (
-          <div className="space-y-2">
-            {isBatch && batchPosition + 1 < batchQueue.length ? (
-              <>
-                <button
-                  onClick={onAdvanceBatch}
-                  className="w-full flex items-center justify-center gap-2 text-white rounded-lg py-2 px-4 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                >
-                  Coach Next: {itemLabel(batchQueue[batchPosition + 1].itemType, batchQueue[batchPosition + 1].itemIndex, batchQueue[batchPosition + 1].itemSkill)} →
-                </button>
-                <button onClick={onEnd} className="w-full text-xs md:text-[11px] text-gray-500 hover:text-gray-700">
-                  Done for now
-                </button>
-              </>
-            ) : (
-              <div className="flex gap-2">
-                {/* Always primary now. It used to hand the emphasis over to
-                    Practice once five stories were done, but Practice is
-                    behind them at this point and coaching more is the only
-                    thing left to go on with. */}
-                <button
-                  onClick={onEnd}
-                  className={primaryClass}
-                  style={primaryStyle}
-                >
-                  Coach More
-                </button>
-                {/* Practice comes before coaching now, so this leads back
-                    rather than on. Always secondary: nothing here is the
-                    forward move any more. */}
-                <button
-                  onClick={onGoToPractice}
-                  className={secondaryClass}
-                >
-                  ← Back to Practice
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-          <div className="flex gap-2 items-end">
-            <textarea
-              ref={coachInputRef}
-              value={coachInput}
-              onChange={e => setCoachInput(e.target.value)}
-              onInput={e => {
-                if (isMobile) return;
-                e.target.style.height = 'auto';
-                const maxHeight = window.innerHeight - 310;
-                const target = Math.min(e.target.scrollHeight, maxHeight);
-                e.target.style.height = target + 'px';
-                e.target.style.overflowY = e.target.scrollHeight > target ? 'auto' : 'hidden';
-                e.target.scrollIntoView({ block: 'end', behavior: 'instant' });
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  onSend();
-                }
-              }}
-              placeholder="Type your response..."
-              disabled={coachSending || coachStarting}
-              rows={2}
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-base md:text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-              style={
-                isMobile
-                  ? { height: '4.5rem', overflowY: 'auto' }
-                  : { overflowY: 'hidden', maxHeight: 'calc(100vh - 310px)' }
-              }
-            />
-            <button
-              onClick={onSend}
-              disabled={!coachInput.trim() || coachSending || coachStarting}
-              className="flex-shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
-              style={{
-                width: '32px',
-                background: coachInput.trim() && !coachSending ? 'linear-gradient(to right, #667eea, #764ba2)' : '#d1d5db',
-                alignSelf: 'stretch'
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-4 h-4">
-                <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-[11px] text-gray-400 mt-1 text-center font-bold italic">Enter to send. Shift+Enter for a new line.</p>
-          </>
-        )}
-        <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
-
-        {/* Ways out of a conversation the candidate does not want to finish.
-            It clears the active story, so a later refresh does not reopen it,
-            and lands on the idle coach step. It does not leave the step:
-            stepping away is the idle panel's job, and offering it
-            mid-conversation invited an accidental exit. Hidden once the story
-            is done, where the completion buttons above already carry the
-            navigation. */}
-        {activeStory && !batchJustCompleted && (
-          <div className="text-center pt-1">
-            <button onClick={onEnd} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
-              End Coaching
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// STORY MODAL
-// ============================================================================
-
-function StoryModal({ story, onClose }) {
-  useEffect(() => {
-    if (!story) return;
-    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [story, onClose]);
-
-  if (!story) return null;
-
-  const hasStarBreakdown = story.starSituation || story.starTask || story.starAction || story.starResult;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
-        style={{ maxHeight: '80vh' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">📖</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-base font-bold text-white truncate">{itemLabel(story.itemType, story.itemIndex, story.itemSkill)}</h2>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:opacity-70 text-2xl leading-none font-light flex-shrink-0"
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {story.polishedStory && (
-            <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.polishedStory}</p>
-          )}
-          {hasStarBreakdown && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Full STAR Breakdown</p>
-              {story.starSituation && (
-                <div>
-                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Situation</p>
-                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starSituation}</p>
-                </div>
-              )}
-              {story.starTask && (
-                <div>
-                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Task</p>
-                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starTask}</p>
-                </div>
-              )}
-              {story.starAction && (
-                <div>
-                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Action</p>
-                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starAction}</p>
-                </div>
-              )}
-              {story.starResult && (
-                <div>
-                  <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">Result</p>
-                  <p className="text-sm md:text-xs text-gray-800 leading-snug">{story.starResult}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// INTERVIEW HEADER STRIP
-// Title + instructions + interview date + coaching progress, in one row.
-// Responsive: stacks vertically on mobile with date+progress side-by-side below title.
-// ============================================================================
-
-// The kit checklist. Keys are what the PDF template gates each section on, and
-// the order here is the order the sections print in, so ticking down the list
-// reads the same way the printout does.
-const KIT_ITEMS = [
-  { key: 'stories', label: 'STAR Stories' },
-  { key: 'highlights', label: 'Company Highlights' },
-  { key: 'questions', label: 'Interviewer Questions' },
-  { key: 'jobDescription', label: 'Job Description' }
-];
 
 function KitCheckbox({ checked, onChange, label }) {
   return (
@@ -2539,7 +1560,6 @@ function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
 }
 
 function InterviewHeaderStrip({
-  storiesCoached, totalStoryItems,
   interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company,
   jobCardId, powerAnalysisId, candidateName
 }) {
@@ -2549,13 +1569,11 @@ function InterviewHeaderStrip({
   const day = dateObj ? dateObj.getDate() : '';
   const weekday = dateObj ? dateObj.toLocaleDateString(undefined, { weekday: 'long' }) : '';
   const shortDate = dateObj ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
-  const progressPct = totalStoryItems > 0 ? Math.round((storiesCoached / totalStoryItems) * 100) : 0;
 
   const title = (
     <div className="flex-1 min-w-0">
       <h2 className="text-base md:text-lg font-bold text-gray-900 mb-1">
         {currentStep === 'analyze' && 'Power Analysis'}
-        {currentStep === 'coach'   && 'STAR Story Coaching'}
         {currentStep === 'research' && (
           company
             ? <>Company Research: <span style={{ color: DOT_PURPLE }}>{company}</span></>
@@ -2564,27 +1582,19 @@ function InterviewHeaderStrip({
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
-        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
-        {currentStep === 'research' && 'Interview Coach: Step 2 of 4'}
-        {currentStep === 'practice' && 'Interview Coach: Step 3 of 4'}
-        {currentStep === 'coach'   && 'Interview Coach: Step 4 of 4'}
+        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 3'}
+        {currentStep === 'research' && 'Interview Coach: Step 2 of 3'}
+        {currentStep === 'practice' && 'Interview Coach: Step 3 of 3'}
       </p>
     </div>
   );
 
   // The flat steps keep the step title but drop the card, the date widget and
-  // the progress bar. The coached count rides along only on the coach step,
-  // where it's the number being worked on; elsewhere it's just noise beside a
-  // heading about something else.
+  // the progress bar.
   if (titleOnly) {
     return (
       <div className="flex items-start justify-between gap-3">
         {title}
-        {currentStep === 'coach' && totalStoryItems > 0 && (
-          <span className="flex-shrink-0 mt-1 text-xs md:text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-3 py-1 whitespace-nowrap">
-            {storiesCoached} of {totalStoryItems} stories coached
-          </span>
-        )}
         {currentStep === 'practice' && (
           <HeaderToolkit
             jobCardId={jobCardId}
@@ -2651,14 +1661,6 @@ function InterviewHeaderStrip({
                 <p className="text-xs text-gray-400 leading-tight">Set in Job Tracker</p>
               </>
             )}
-          </div>
-        </div>
-
-        {/* STORIES READY */}
-        <div className="flex flex-col gap-1.5 md:items-end md:border-l md:border-gray-200 md:pl-6">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Stories Ready</p>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-gray-900" style={{ lineHeight: 1 }}>{storiesCoached}</span>
           </div>
         </div>
 

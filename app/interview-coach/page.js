@@ -74,7 +74,7 @@ const HUB_TOUR_STEPS = [
     targets: ['interview-prep'],
     placement: 'right',
     title: 'Your interview prep hub',
-    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Research, Practice, and Coaching. Do them in order or skip to what you need.'
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows three ways to prepare for your interview: Analysis, Research, and Practice. Do them in order or skip to what you need.'
   },
   {
     id: 'practice-stats',
@@ -474,7 +474,6 @@ export default function MyInterviewsPage() {
           core_power,
           hidden_power,
           power_gaps,
-          coaching_status,
           current_step,
           highest_step_reached,
           applications:job_card_id (
@@ -492,25 +491,9 @@ export default function MyInterviewsPage() {
         .eq('is_active', true)
         .order('last_refreshed_at', { ascending: false, nullsFirst: false });
 
-      // Load completed story counts per job card
-      const { data: storyRows } = await supabase
-        .from('interview_stories')
-        .select('job_card_id, coaching_complete')
-        .eq('user_id', user.id)
-        .eq('coaching_complete', true);
-
-      const storyCountByJobCard = {};
-      (storyRows || []).forEach(row => {
-        storyCountByJobCard[row.job_card_id] = (storyCountByJobCard[row.job_card_id] || 0) + 1;
-      });
-
       const cards = (paRows || [])
         .filter(row => row.applications && row.applications.application_status !== 'archived')
         .map(row => {
-          const totalItems =
-            (row.core_power?.length || 0) +
-            (row.hidden_power?.length || 0) +
-            (row.power_gaps?.length || 0);
           return {
             paId: row.id,
             jobCardId: row.job_card_id,
@@ -521,9 +504,6 @@ export default function MyInterviewsPage() {
             level: row.applications.interview_level || 0,
             sessionsCount: row.applications.interview_sessions_count || 0,
             matchScore: row.applications.match_score,
-            storiesCoached: storyCountByJobCard[row.job_card_id] || 0,
-            totalStoryItems: totalItems,
-            coachingStatus: row.coaching_status,
             currentStep: row.current_step,
             highestStepReached: row.highest_step_reached
           };
@@ -678,12 +658,6 @@ export default function MyInterviewsPage() {
                 desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
                 tag: 'Free: 1 session · Pro: Unlimited'
               },
-              {
-                num: '4',
-                title: 'STAR Story Coaching',
-                desc: 'Through conversation, we extract your real Situation, Task, Action, and Result for each item so you know how to confidently tell each story.',
-                tag: 'Pro only'
-              },
             ].map(({ num, title, desc, tag }) => (
               <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                 <div style={{ 
@@ -742,7 +716,7 @@ export default function MyInterviewsPage() {
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-2">
-                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>. Do all or just what you need.
+                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all or just what you need.
                   </p>
 
                       <div>
@@ -1107,24 +1081,21 @@ const FEEDBACK_STEP_BUILT = false;
 // so current_step is translated on the way in rather than renaming either side.
 const STEP_FROM_DETAIL = {
   analyze: 'analysis',
-  coach: 'coaching',
   research: 'research',
   practice: 'practice',
 };
 
 // The detail page's order, and the dropdown key each position maps to. Used to
 // decide how far down the flow a card has been.
-const DETAIL_STEP_ORDER = ['analyze', 'research', 'practice', 'coach'];
+const DETAIL_STEP_ORDER = ['analyze', 'research', 'practice'];
 const STEP_TO_DETAIL = {
   analysis: 'analyze',
-  coaching: 'coach',
   research: 'research',
   practice: 'practice',
 };
 
 const STEP_DISPLAY_NAMES = {
   analysis: 'Analysis',
-  coaching: 'Coaching',
   research: 'Research',
   practice: 'Practice',
   feedback: 'Feedback',
@@ -1139,7 +1110,6 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   // No research completion detection yet — always false until it's wired up.
   const hasResearch = card.hasResearch || false;
   const hasFeedback = card.hasFeedback || false;
-  const coachingDone = card.coachingStatus === 'completed' || card.coachingStatus === 'skipped';
 
   const interviewIsUpcoming = card.interviewDate && new Date(card.interviewDate).getTime() > Date.now();
   const interviewIsPast = card.interviewDate && new Date(card.interviewDate).getTime() < Date.now();
@@ -1156,8 +1126,6 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
     primaryStep = 'research';
   } else if (!hasPracticed) {
     primaryStep = 'practice';
-  } else if (!coachingDone) {
-    primaryStep = 'coaching';
   } else if (FEEDBACK_STEP_BUILT && !hasFeedback) {
     primaryStep = 'feedback';
   } else {
@@ -1177,7 +1145,6 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
     { key: 'analysis', label: 'Analysis' },
     { key: 'research', label: 'Research' },
     { key: 'practice', label: 'Practice' },
-    { key: 'coaching', label: 'Coaching' },
   ]
     .filter(step => {
       const index = DETAIL_STEP_ORDER.indexOf(STEP_TO_DETAIL[step.key]);
