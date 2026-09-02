@@ -792,6 +792,12 @@ export default function PracticeView({
           onError(`You've reached your monthly practice limit. Your limit resets on ${formatResetDate(data.resetDate)}.`);
         } else if (data.error === 'SESSION_ALREADY_OPEN') {
           onError('You have a paused interview for this job. Resume it from the list on the left, or end it to start a new one.');
+        } else if (data.error === 'CONSENT_REQUIRED') {
+          // Back to text so the voice card reads as unchosen. Pressing it
+          // again is what reopens the consent modal, and a card that already
+          // looks selected would only invite the same refusal.
+          setSelectedMode('mode_3');
+          onError('Voice consent is required. Please select your voice mode again.');
         } else {
           onError(GENERIC_START_ERROR);
         }
