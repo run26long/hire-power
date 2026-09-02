@@ -1623,6 +1623,12 @@ export default function PracticeView({
       {!isVoiceSession && (
       <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="space-y-3">
+          {/* The interviewer opens with the same welcome a voice session hears
+              spoken. Not a question and not in the questions array: it is the
+              first thing said, so it sits above the loop rather than inside
+              it, and stays put as the transcript grows. */}
+          <InterviewerBubble text={buildWelcomeText(jobTitle, jobCompany)} />
+
           {/* Answers show so the candidate can see what they said. Scores and
               feedback do not: this is meant to feel like the real room, and
               they are all waiting in the summary once the interview ends. */}
