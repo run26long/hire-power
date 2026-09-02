@@ -614,6 +614,7 @@ export default function Profile() {
                 <li className="flex items-start"><span className="mr-2">•</span><span>Career context snapshot</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Plan and billing</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Account settings</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Voice and privacy</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Data export and privacy</span></li>
               </ul>
             </div>
@@ -932,11 +933,11 @@ export default function Profile() {
                     )}
 
                     <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 8 }}>
-                      Deleting your recordings does not affect your transcripts, scores, or practice history.
+                      Deleting your recordings does not affect your transcripts, scores, or feedback.
                     </p>
                     <button
                       onClick={() => setShowDeleteVoiceModal(true)}
-                      style={{ ...btnRed, width: '100%', textAlign: 'center' }}
+                      style={btnRed}
                     >
                       Delete All Voice Data
                     </button>
