@@ -1247,6 +1247,11 @@ export default function InterviewDetailPage() {
                   jobCompany={jobCard.company}
                   reviewSessionId={reviewSessionId}
                   resumeSessionId={resumeSessionId}
+                  // The open session, if there is one. Read from the same list
+                  // the history renders, so the card and the button can never
+                  // disagree about whether one exists.
+                  pausedSession={pastPracticeSessions.find(s => s.status === 'in_progress') || null}
+                  onResumePaused={(id) => { setReviewSessionId(null); setResumeSessionId(id); }}
                   resetSignal={practiceResetSignal}
                   onBack={() => goToStep('research')}
                   onSessionPaused={() => {

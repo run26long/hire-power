@@ -241,7 +241,7 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
 
 // The hub shows three cards and a link rather than a list that grows without
 // end. Matched here by count, the same way it does it.
-const VISIBLE_SESSIONS = 3;
+const VISIBLE_SESSIONS = 5;
 
 // The hub's own modal shell: same backdrop, same max-w-lg card, same gradient
 // header with a count, same 60vh scrolling body.

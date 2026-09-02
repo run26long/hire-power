@@ -408,6 +408,10 @@ export default function PracticeView({
   // A paused session the candidate clicked in the history, to be picked up
   // rather than read back.
   resumeSessionId = null,
+  // The open session on this job card, if there is one. Its presence is what
+  // replaces the mode selector with a single way back into it.
+  pausedSession = null,
+  onResumePaused = () => {},
   // Bumped by the parent when Practice Again is pressed on the score card.
   resetSignal = 0,
   onBack,
@@ -1258,6 +1262,11 @@ export default function PracticeView({
         if (secondsRef.current >= MAX_RECORDING_SECONDS) stopRecording();
       }, 1000);
     } catch (err) {
+      // The stream is already assigned by the time MediaRecorder is
+      // constructed, and constructing it can throw. Without this the
+      // microphone stays open with nothing attached to it and nothing
+      // scheduled to close it.
+      teardownRecorder();
       console.error('Microphone access failed:', err);
       onError('Voice mode needs microphone access. Enable it in your browser settings, or switch to text mode.');
       setVoiceStage('ready');
@@ -1350,6 +1359,17 @@ export default function PracticeView({
       .eq('user_id', userId);
     if (error) console.error('Switch to text mode failed to persist:', error);
   };
+
+  // ── LAST RESORT TEARDOWN ──
+  // The speak effect's cleanup covers the ordinary cases, but it only exists
+  // when that effect's last run reached the end: both of its early returns
+  // register nothing. Leaving the practice step then unmounts a component
+  // with a live microphone and no way back to it. Empty deps, so this runs
+  // once, on the way out, whatever else did or did not happen.
+  useEffect(() => () => {
+    stopPlayback();
+    teardownRecorder();
+  }, []);
 
   // ── Speak each new question, and tear the last one down ──
   useEffect(() => {
@@ -1476,6 +1496,12 @@ export default function PracticeView({
   };
 
   const resetToIdle = () => {
+    // Directly rather than by implication. Dropping the session flips
+    // isVoiceSession, which re-runs the speak effect and tears the recorder
+    // down through its cleanup, but only when that effect's last run got far
+    // enough to register one. Pausing mid-recording should not depend on that.
+    stopPlayback();
+    teardownRecorder();
     setSession(null);
     setQuestions([]);
     setCurrentIndex(0);
@@ -1508,6 +1534,9 @@ export default function PracticeView({
       return;
     }
     resetToIdle();
+    // resetToIdle is stable in practice and re-running this on its identity
+    // would reset the column on every render. The signal is the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSignal]);
 
   // Stays on the practice step rather than stepping back to research. The row
@@ -1546,6 +1575,34 @@ export default function PracticeView({
         <div className="flex justify-center py-6">
           <div className="animate-spin h-6 w-6 border-2 border-purple-600 border-t-transparent rounded-full"></div>
         </div>
+      </div>
+    );
+  }
+
+  // An interview is already open on this job card. Starting a second one is
+  // refused server side anyway, so rather than offer a choice that cannot be
+  // taken, the only thing on offer is the way back into it. Deleting the card
+  // in the history is what clears the way for a fresh one.
+  if (sessionState === 'idle' && pausedSession) {
+    return (
+      <div className="px-5 py-4 space-y-2 flex-1 flex flex-col">
+        <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
+
+        <p className="text-sm md:text-xs text-gray-600 leading-snug">
+          You have an interview in progress, {pausedSession.questions_answered ?? 0} of {pausedSession.question_count_target ?? 0} questions
+          answered. Pick up where you left off, or delete it from the list on
+          the left to start a new one.
+        </p>
+
+        <button
+          onClick={() => onResumePaused(pausedSession.id)}
+          className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+          style={GRADIENT}
+        >
+          Continue Interview
+        </button>
+
+        <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
       </div>
     );
   }
