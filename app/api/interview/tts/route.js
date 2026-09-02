@@ -4,7 +4,7 @@ import { apiError } from '@/lib/apiError';
 const OPENAI_TTS_URL = 'https://api.openai.com/v1/audio/speech';
 const TTS_MODEL = 'tts-1';
 
-// Neutral and professional. Interchangeable with any of OpenAI's voices later;
+// Clear and conversational. Interchangeable with any of OpenAI's voices later;
 // nothing downstream depends on which one this is.
 const TTS_VOICE = 'nova';
 
