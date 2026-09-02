@@ -47,9 +47,9 @@ export default function Profile() {
   // What each mode did with their audio, said from the outside. mode_3 is
   // here because "last used" can honestly be the mode that records nothing.
   const VOICE_MODE_LABELS = {
-    mode_1: 'Voice with playback — answers recorded and stored',
-    mode_2: 'Voice only — audio never stored',
-    mode_3: 'Text only — microphone never used'
+    mode_1: 'Voice with playback. Answers recorded and stored',
+    mode_2: 'Voice only. Audio never stored',
+    mode_3: 'Text only. Microphone never used'
   }
 
   const formatConsentDate = (iso) => {
