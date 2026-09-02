@@ -31,6 +31,23 @@ const MODE_COPY = {
   }
 };
 
+// The choice itself, in the order it should be offered. Not recording comes
+// first and carries the badge: it is the one that keeps nothing.
+const RECORDING_OPTIONS = [
+  {
+    key: 'mode_2',
+    title: 'Voice, no recording',
+    subtitle: 'We listen to give you feedback, but never save the recording.',
+    recommended: true
+  },
+  {
+    key: 'mode_1',
+    title: 'Voice + Playback',
+    subtitle: 'Your answers are recorded and saved so you can replay them later.',
+    recommended: false
+  }
+];
+
 // ============================================================================
 // VOICE CONSENT MODAL
 // Shown once per mode, before the microphone is ever opened. Owns no database
@@ -42,7 +59,10 @@ const MODE_COPY = {
 // interview still available to them.
 // ============================================================================
 
-export default function VoiceConsentModal({ mode, onConsent, onCancel }) {
+export default function VoiceConsentModal({ onConsent, onCancel }) {
+  // Not recording is the default. The mode that keeps nothing should be the
+  // one someone lands on without choosing.
+  const [selectedMode, setSelectedMode] = useState('mode_2');
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -52,15 +72,23 @@ export default function VoiceConsentModal({ mode, onConsent, onCancel }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCancel]);
 
-  const copy = MODE_COPY[mode];
+  const copy = MODE_COPY[selectedMode];
   if (!copy) return null;
+
+  // Switching options clears the tick. The two statements are not the same
+  // statement, and agreeing to the milder one is not agreeing to the other.
+  const chooseMode = (modeKey) => {
+    if (modeKey === selectedMode) return;
+    setSelectedMode(modeKey);
+    setAgreed(false);
+  };
 
   const handleContinue = async () => {
     if (!agreed || saving) return;
     setSaving(true);
     try {
       await onConsent({
-        mode_selected: mode,
+        mode_selected: selectedMode,
         consent_version: CONSENT_VERSION,
         consented_at: new Date().toISOString(),
         ip_address: 'client',
@@ -103,6 +131,35 @@ export default function VoiceConsentModal({ mode, onConsent, onCancel }) {
         </div>
 
         <div className="p-6 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* The recording decision, made here rather than out on the mode
+              selector: it only means anything next to the disclosure below,
+              which changes with it. */}
+          <div className="flex flex-col gap-2">
+            {RECORDING_OPTIONS.map(option => {
+              const active = selectedMode === option.key;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => chooseMode(option.key)}
+                  className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm ${
+                    active ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm md:text-xs font-bold text-gray-900">{option.title}</p>
+                    {option.recommended && (
+                      <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
+                        Recommended
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm md:text-xs text-gray-600 leading-snug">{option.subtitle}</p>
+                </button>
+              );
+            })}
+          </div>
+
           <div>
             <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">{copy.title}</p>
             <p className="text-sm md:text-xs text-gray-800 leading-snug">{copy.what}</p>

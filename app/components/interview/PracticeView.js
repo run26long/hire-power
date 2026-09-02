@@ -20,16 +20,15 @@ const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 const MAX_RECORDING_SECONDS = 300;
 
 
-const MODES = [
-  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers', available: true },
-  { key: 'mode_2', icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers, no recording', available: true },
-  { key: 'mode_1', icon: '🎙️', title: 'Voice Interview + Playback', subtitle: 'Speak with recording for review', available: true }
-];
+// Two choices here, not three. Whether to keep the recording is a question
+// about voice, so it is asked in the consent modal beside the disclosure that
+// answers it, rather than as a third card competing with typing.
+const VOICE_CARD_KEY = 'voice';
 
-// mode_3 is typed and opens nothing. The other two reach for the microphone,
-// so each carries its own recorded consent: agreeing to one is not agreeing
-// to the other, and mode_1 keeps audio that mode_2 never writes down.
-const CONSENT_REQUIRED_MODES = ['mode_1', 'mode_2'];
+const MODES = [
+  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers. No microphone, no audio.' },
+  { key: VOICE_CARD_KEY, icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers out loud.' }
+];
 
 const GENERIC_START_ERROR = "We couldn't start your practice session right now. Try again in a moment.";
 
@@ -439,11 +438,9 @@ export default function PracticeView({
   const [completion, setCompletion] = useState(null);
 
   const [selectedMode, setSelectedMode] = useState('mode_3');
-  // The mode the candidate clicked and has not yet consented to. Non-null is
-  // what puts the consent modal on screen; selectedMode does not move until
-  // the consent row is actually written.
-  const [pendingVoiceMode, setPendingVoiceMode] = useState(null);
-  const [checkingConsent, setCheckingConsent] = useState(false);
+  // The consent modal, which is also where a voice mode gets picked.
+  // selectedMode does not move until the consent row is actually written.
+  const [showVoiceConsent, setShowVoiceConsent] = useState(false);
   const [starting, setStarting] = useState(false);
   const [sending, setSending] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -650,49 +647,26 @@ export default function PracticeView({
   }, [reviewSessionId]);
 
   // ── MODE SELECTION ──
-  const handleSelectMode = async (modeKey) => {
-    if (!CONSENT_REQUIRED_MODES.includes(modeKey)) {
-      setSelectedMode(modeKey);
-      return;
-    }
-    if (checkingConsent || !userId) return;
-
-    setCheckingConsent(true);
-    try {
-      const { data, error } = await supabase
-        .from('user_voice_consent')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('mode_selected', modeKey)
-        .limit(1)
-        .maybeSingle();
-
-      // Fails closed. A lookup that didn't answer is not a consent on file,
-      // and asking a second time costs a click where assuming costs a promise.
-      if (error) {
-        console.error('Voice consent lookup failed:', error);
-        setPendingVoiceMode(modeKey);
-        return;
-      }
-
-      if (data) setSelectedMode(modeKey);
-      else setPendingVoiceMode(modeKey);
-    } finally {
-      setCheckingConsent(false);
-    }
+  // The modal is where the voice mode is actually chosen now, so it opens
+  // every time rather than being skipped for someone who consented before.
+  // Choosing again is the price of choosing at all.
+  const handleSelectMode = (modeKey) => {
+    if (modeKey === VOICE_CARD_KEY) setShowVoiceConsent(true);
+    else setSelectedMode(modeKey);
   };
 
   // The mode is not selected until the row lands. A consent we agreed to but
   // failed to record is not a consent we can show anyone later, so a failed
   // write drops back to text rather than opening the microphone anyway.
   const handleConsentGranted = async (record) => {
-    const modeKey = pendingVoiceMode;
+    // The mode comes back from the modal, which is where it was picked.
+    const modeKey = record.mode_selected;
 
     const { error } = await supabase
       .from('user_voice_consent')
       .insert({ user_id: userId, ...record });
 
-    setPendingVoiceMode(null);
+    setShowVoiceConsent(false);
 
     if (error) {
       console.error('Voice consent write failed:', error);
@@ -705,7 +679,7 @@ export default function PracticeView({
   };
 
   const handleConsentCancelled = () => {
-    setPendingVoiceMode(null);
+    setShowVoiceConsent(false);
     setSelectedMode('mode_3');
   };
 
@@ -1456,34 +1430,24 @@ export default function PracticeView({
 
         <div className="flex flex-col gap-2">
           {MODES.map(mode => {
-            const active = selectedMode === mode.key;
+            // The voice card stands for either voice mode, so it reads as
+            // chosen whenever the session is not going to be a typed one.
+            const active = mode.key === VOICE_CARD_KEY
+              ? selectedMode !== 'mode_3'
+              : selectedMode === mode.key;
             return (
               <button
                 key={mode.key}
                 type="button"
-                onClick={() => mode.available && handleSelectMode(mode.key)}
-                disabled={!mode.available || checkingConsent}
-                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all ${
-                  active && mode.available
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200'
-                } ${
-                  mode.available
-                    ? 'cursor-pointer hover:border-purple-300 hover:shadow-sm'
-                    : 'cursor-not-allowed opacity-60'
+                onClick={() => handleSelectMode(mode.key)}
+                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm ${
+                  active ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <span className="text-base flex-shrink-0 leading-none mt-0.5">{mode.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm md:text-xs font-bold text-gray-900">{mode.title}</p>
-                      {!mode.available && (
-                        <span className="text-xs md:text-[9px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                          Coming Soon
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-sm md:text-xs font-bold text-gray-900">{mode.title}</p>
                     <p className="text-sm md:text-xs text-gray-600 leading-snug">{mode.subtitle}</p>
                   </div>
                 </div>
@@ -1504,9 +1468,8 @@ export default function PracticeView({
 
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
 
-        {pendingVoiceMode && (
+        {showVoiceConsent && (
           <VoiceConsentModal
-            mode={pendingVoiceMode}
             onConsent={handleConsentGranted}
             onCancel={handleConsentCancelled}
           />
