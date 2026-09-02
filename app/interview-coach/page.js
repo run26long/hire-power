@@ -74,7 +74,7 @@ const HUB_TOUR_STEPS = [
     targets: ['interview-prep'],
     placement: 'right',
     title: 'Your interview prep hub',
-    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Coaching, Research, and Practice. Do them in order or skip to what you need.'
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Research, Practice, and Coaching. Do them in order or skip to what you need.'
   },
   {
     id: 'practice-stats',
@@ -666,23 +666,23 @@ export default function MyInterviewsPage() {
                 desc: 'We analyze your resume against the job description and show you what to highlight in each interview.',
           
               },
-              { 
-                num: '2', 
-                title: 'STAR Story Coaching', 
-                desc: 'Through conversation, we extract your real Situation, Task, Action, and Result for each item so you know how to confidently tell each story.',
-                tag: 'Pro only'
-              },
-              { 
-                num: '3', 
-                title: 'Company Research', 
+              {
+                num: '2',
+                title: 'Company Research',
                 desc: 'Learn about the company to align your experience with business goals.',
                 tag: 'Pro only'
               },
               {
-                num: '4',
+                num: '3',
                 title: 'Interview Practice',
                 desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
                 tag: 'Free: 1 session · Pro: Unlimited'
+              },
+              {
+                num: '4',
+                title: 'STAR Story Coaching',
+                desc: 'Through conversation, we extract your real Situation, Task, Action, and Result for each item so you know how to confidently tell each story.',
+                tag: 'Pro only'
               },
             ].map(({ num, title, desc, tag }) => (
               <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
@@ -742,7 +742,7 @@ export default function MyInterviewsPage() {
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-2">
-                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all or just what you need.
+                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Story Coaching</span>. Do all or just what you need.
                   </p>
 
                       <div>
@@ -1114,7 +1114,7 @@ const STEP_FROM_DETAIL = {
 
 // The detail page's order, and the dropdown key each position maps to. Used to
 // decide how far down the flow a card has been.
-const DETAIL_STEP_ORDER = ['analyze', 'coach', 'research', 'practice'];
+const DETAIL_STEP_ORDER = ['analyze', 'research', 'practice', 'coach'];
 const STEP_TO_DETAIL = {
   analysis: 'analyze',
   coaching: 'coach',
@@ -1152,12 +1152,12 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   let primaryStep;
   if (savedStep) {
     primaryStep = savedStep;
-  } else if (!coachingDone) {
-    primaryStep = 'coaching';
   } else if (!hasResearch) {
     primaryStep = 'research';
   } else if (!hasPracticed) {
     primaryStep = 'practice';
+  } else if (!coachingDone) {
+    primaryStep = 'coaching';
   } else if (FEEDBACK_STEP_BUILT && !hasFeedback) {
     primaryStep = 'feedback';
   } else {
@@ -1175,9 +1175,9 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   // said nothing the filter hadn't already said.
   const otherSteps = [
     { key: 'analysis', label: 'Analysis' },
-    { key: 'coaching', label: 'Coaching' },
     { key: 'research', label: 'Research' },
     { key: 'practice', label: 'Practice' },
+    { key: 'coaching', label: 'Coaching' },
   ]
     .filter(step => {
       const index = DETAIL_STEP_ORDER.indexOf(STEP_TO_DETAIL[step.key]);

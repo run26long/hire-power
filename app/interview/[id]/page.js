@@ -11,7 +11,9 @@ import UpgradeModal from '../../components/UpgradeModal';
 import PracticeView from '../../components/interview/PracticeView';
 import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 
-const VALID_STEPS = ['analyze', 'coach', 'research', 'practice'];
+// Order matters: every position, counter and high-water mark in this file is
+// derived from this array's indexes rather than written out again.
+const VALID_STEPS = ['analyze', 'research', 'practice', 'coach'];
 
 export default function InterviewDetailPage() {
   const router = useRouter();
@@ -40,7 +42,7 @@ export default function InterviewDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [paError, setPaError] = useState(null);
 
-  // Step navigation: 'analyze' | 'coach' | 'research' | 'practice'
+  // Step navigation: 'analyze' | 'research' | 'practice' | 'coach'
   const [currentStep, setCurrentStep] = useState('analyze');
 
   // Coaching active state
@@ -766,14 +768,19 @@ export default function InterviewDetailPage() {
     persistPowerAnalysis(buildStepPatch(step));
   };
 
-  // Leaving coaching is what decides whether it counts as done. Nothing coached
-  // means they chose to move on, which is 'skipped' rather than a failure.
-  const goToResearchFromCoach = () => {
+  // Coaching is the last step, so finishing it is finishing the flow. Leaving
+  // is still what decides whether it counts as done: nothing coached means
+  // they chose to move on, which is 'skipped' rather than a failure.
+  //
+  // The step patch stays on 'coach' because that is where they were. Writing
+  // it here is the only place coaching_status is ever set, and without it the
+  // Coach dot could never tick for someone who deliberately skipped.
+  const finishCoaching = () => {
     const coachedCount = stories.filter(s => s.coachingComplete).length;
-    setCurrentStep('research');
-    persistPowerAnalysis(buildStepPatch('research', {
+    persistPowerAnalysis(buildStepPatch('coach', {
       coaching_status: coachedCount > 0 ? 'completed' : 'skipped'
     }));
+    router.push('/interview-coach');
   };
 
   // ============================================================================
@@ -1155,9 +1162,9 @@ export default function InterviewDetailPage() {
                 <div className="relative flex justify-between">
                   {[
                     { label: 'Analyze', key: 'analyze' },
-                    { label: 'Coach', key: 'coach' },
                     { label: 'Research', key: 'research' },
-                    { label: 'Practice', key: 'practice' }
+                    { label: 'Practice', key: 'practice' },
+                    { label: 'Coach', key: 'coach' }
                   ].map(({ label, key }, i) => {
                     const complete = completeByKey[key];
                     const current = key === currentStep;
@@ -1197,7 +1204,7 @@ export default function InterviewDetailPage() {
               {currentStep === 'analyze' && (
                 <AnalyzeStepContent
                   stepHeader="📊 Your Power Analysis"
-                  onGoToCoach={handleOpenCoachStep}
+                  onGoToResearch={() => goToStep('research')}
                 />
               )}
 
@@ -1205,13 +1212,13 @@ export default function InterviewDetailPage() {
                 <CoachIdlePanel
                   storiesCoached={stories.filter(s => s.coachingComplete).length}
                   onStart={handleStartBatch}
-                  onGoToResearch={goToResearchFromCoach}
-                  onBack={() => goToStep('analyze')}
+                  onFinish={finishCoaching}
+                  onBack={() => goToStep('practice')}
                 />
               )}
 
               {currentStep === 'coach' && !activeStory && !hasPA && (
-                <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToCoach={handleOpenCoachStep} />
+                <AnalyzeStepContent stepHeader="✨ Craft Your Answers" onGoToResearch={() => goToStep('research')} />
               )}
 
               {currentStep === 'coach' && (activeStory || coachStarting) && (
@@ -1240,7 +1247,7 @@ export default function InterviewDetailPage() {
                 <ResearchIdlePanel
                   hasActiveSession={hasActiveSession}
                   onGoToPractice={() => goToStep('practice')}
-                  onBack={() => goToStep('coach')}
+                  onBack={() => goToStep('analyze')}
                 />
               )}
 
@@ -1499,7 +1506,7 @@ function BackLink({ onClick }) {
   );
 }
 
-function AnalyzeStepContent({ onGoToCoach, stepHeader }) {
+function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
@@ -1536,11 +1543,11 @@ function AnalyzeStepContent({ onGoToCoach, stepHeader }) {
           check; a second green badge saying the same thing only competed with
           it. */}
       <button
-        onClick={onGoToCoach}
+        onClick={onGoToResearch}
         className={`mx-auto ${STEP_PRIMARY_CLASS}`}
         style={STEP_PRIMARY_STYLE}
       >
-        Go to Coaching
+        Go to Research
       </button>
     </div>
   );
@@ -1550,7 +1557,7 @@ function AnalyzeStepContent({ onGoToCoach, stepHeader }) {
 // BATCH CHECKLIST
 // ============================================================================
 
-function CoachIdlePanel({ storiesCoached, onStart, onGoToResearch, onBack }) {
+function CoachIdlePanel({ storiesCoached, onStart, onFinish, onBack }) {
   const hasCoachedStories = storiesCoached > 0;
 
   return (
@@ -1599,11 +1606,11 @@ function CoachIdlePanel({ storiesCoached, onStart, onGoToResearch, onBack }) {
           </button>
 
           <button
-            onClick={onGoToResearch}
+            onClick={onFinish}
             className={hasCoachedStories ? STEP_PRIMARY_CLASS : STEP_SECONDARY_CLASS}
             style={hasCoachedStories ? STEP_PRIMARY_STYLE : undefined}
           >
-            Go to Research
+            Return to Interview Coach
           </button>
         </div>
 
@@ -2077,7 +2084,6 @@ function CoachingView({
   messagesEndRef, coachInputRef
 }) {
   const isBatch = batchQueue.length > 0;
-  const practiceIsPrimary = completedStoryCount >= 5;
   const primaryClass = "flex-1 whitespace-nowrap text-white rounded-lg py-2 px-2 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90";
   const primaryStyle = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
   const secondaryClass = "flex-1 whitespace-nowrap bg-white border border-purple-300 text-purple-600 rounded-lg py-2 px-2 font-semibold text-sm md:text-xs hover:bg-purple-50 transition-colors";
@@ -2185,19 +2191,25 @@ function CoachingView({
               </>
             ) : (
               <div className="flex gap-2">
+                {/* Always primary now. It used to hand the emphasis over to
+                    Practice once five stories were done, but Practice is
+                    behind them at this point and coaching more is the only
+                    thing left to go on with. */}
                 <button
                   onClick={onEnd}
-                  className={practiceIsPrimary ? secondaryClass : primaryClass}
-                  style={practiceIsPrimary ? undefined : primaryStyle}
+                  className={primaryClass}
+                  style={primaryStyle}
                 >
                   Coach More
                 </button>
+                {/* Practice comes before coaching now, so this leads back
+                    rather than on. Always secondary: nothing here is the
+                    forward move any more. */}
                 <button
                   onClick={onGoToPractice}
-                  className={practiceIsPrimary ? primaryClass : secondaryClass}
-                  style={practiceIsPrimary ? primaryStyle : undefined}
+                  className={secondaryClass}
                 >
-                  Practice Interview →
+                  ← Back to Practice
                 </button>
               </div>
             )}
@@ -2553,9 +2565,9 @@ function InterviewHeaderStrip({
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
         {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
-        {currentStep === 'coach'   && 'Interview Coach: Step 2 of 4'}
-        {currentStep === 'research' && 'Interview Coach: Step 3 of 4'}
-        {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
+        {currentStep === 'research' && 'Interview Coach: Step 2 of 4'}
+        {currentStep === 'practice' && 'Interview Coach: Step 3 of 4'}
+        {currentStep === 'coach'   && 'Interview Coach: Step 4 of 4'}
       </p>
     </div>
   );
