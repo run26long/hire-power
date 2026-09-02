@@ -962,8 +962,10 @@ export default function PracticeView({
     });
   });
 
-  const speak = async (text, generation) => {
-    const url = await fetchSpeechUrl(text, generation);
+  // The play half, taking a URL that may already be in flight. Kept apart from
+  // the fetch so an utterance can be downloaded well before its turn to speak.
+  const playFetchedSpeech = async (urlPromise, generation) => {
+    const url = await urlPromise;
     if (!url) return generation === voiceGenerationRef.current ? 'failed' : 'stopped';
     // Fetched, then the question moved on before it could play. Nothing will
     // hand this URL to an audio element now, so release it here.
@@ -974,8 +976,14 @@ export default function PracticeView({
     return playUrl(url);
   };
 
-  const speakQuestionThenRecord = async (text, generation) => {
-    const outcome = await speak(text, generation);
+  const speak = (text, generation) =>
+    playFetchedSpeech(fetchSpeechUrl(text, generation), generation);
+
+  const speakQuestionThenRecord = async (text, generation, preparedUrl = null) => {
+    const outcome = await playFetchedSpeech(
+      preparedUrl || fetchSpeechUrl(text, generation),
+      generation
+    );
     if (generation !== voiceGenerationRef.current) return;
 
     // Nothing is written on screen in a voice session, so a question that
@@ -993,9 +1001,21 @@ export default function PracticeView({
   // A welcome that will not play is not worth abandoning the interview over,
   // so its outcome is ignored and the question follows regardless.
   const runOpeningSequence = async (questionText, generation) => {
+    // Started before the welcome rather than after it. Both requests happen
+    // either way; overlapping them means the only wait between the two
+    // utterances is the audio itself, where it used to be a whole round trip
+    // to the speech API with the equalizer pulsing over silence.
+    const questionAudio = fetchSpeechUrl(questionText, generation);
+
     await speak(buildWelcomeText(jobTitle, jobCompany), generation);
-    if (generation !== voiceGenerationRef.current) return;
-    await speakQuestionThenRecord(questionText, generation);
+
+    if (generation !== voiceGenerationRef.current) {
+      // Moved on mid-welcome. Nothing will play this now, so release it.
+      questionAudio.then(url => { if (url) URL.revokeObjectURL(url); });
+      return;
+    }
+
+    await speakQuestionThenRecord(questionText, generation, questionAudio);
   };
 
   // Mode 1 only. Fire and forget on purpose: the transcript and the scores are
