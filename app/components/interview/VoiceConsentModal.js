@@ -31,23 +31,6 @@ const MODE_COPY = {
   }
 };
 
-// The choice itself, in the order it should be offered. Not recording comes
-// first and carries the badge: it is the one that keeps nothing.
-const RECORDING_OPTIONS = [
-  {
-    key: 'mode_2',
-    title: 'Voice, no recording',
-    subtitle: 'We listen to give you feedback, but never save the recording.',
-    recommended: true
-  },
-  {
-    key: 'mode_1',
-    title: 'Voice + Playback',
-    subtitle: 'Your answers are recorded and saved so you can replay them later.',
-    recommended: false
-  }
-];
-
 // ============================================================================
 // VOICE CONSENT MODAL
 // Shown once per mode, before the microphone is ever opened. Owns no database
@@ -60,11 +43,16 @@ const RECORDING_OPTIONS = [
 // ============================================================================
 
 export default function VoiceConsentModal({ onConsent, onCancel }) {
-  // Not recording is the default. The mode that keeps nothing should be the
-  // one someone lands on without choosing.
-  const [selectedMode, setSelectedMode] = useState('mode_2');
+  // Off is the recommendation. The mode that keeps nothing is the one someone
+  // lands on without choosing, so opting into a recording is a deliberate act
+  // rather than a default they have to notice and undo.
+  const [wantsRecording, setWantsRecording] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Derived rather than stored alongside the checkbox: two pieces of state
+  // saying the same thing is two pieces of state that can disagree.
+  const selectedMode = wantsRecording ? 'mode_1' : 'mode_2';
 
   useEffect(() => {
     const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
@@ -75,11 +63,11 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
   const copy = MODE_COPY[selectedMode];
   if (!copy) return null;
 
-  // Switching options clears the tick. The two statements are not the same
-  // statement, and agreeing to the milder one is not agreeing to the other.
-  const chooseMode = (modeKey) => {
-    if (modeKey === selectedMode) return;
-    setSelectedMode(modeKey);
+  // Changing the recording choice clears the tick. The two statements are not
+  // the same statement, and agreeing to the milder one is not agreeing to the
+  // other.
+  const toggleRecording = (checked) => {
+    setWantsRecording(checked);
     setAgreed(false);
   };
 
@@ -130,57 +118,51 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
           </div>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {/* The recording decision, made here rather than out on the mode
-              selector: it only means anything next to the disclosure below,
-              which changes with it. */}
-          <div className="flex flex-col gap-2">
-            {RECORDING_OPTIONS.map(option => {
-              const active = selectedMode === option.key;
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => chooseMode(option.key)}
-                  className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm ${
-                    active ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm md:text-xs font-bold text-gray-900">{option.title}</p>
-                    {option.recommended && (
-                      <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 whitespace-nowrap">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm md:text-xs text-gray-600 leading-snug">{option.subtitle}</p>
-                </button>
-              );
-            })}
-          </div>
-
+        <div className="p-5 flex-1 overflow-y-auto space-y-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* What happens, before anything is asked of them. All three
+              sections move with the recording checkbox below. */}
           <div>
-            <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1">{copy.title}</p>
+            <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-0.5">{copy.title}</p>
             <p className="text-sm md:text-xs text-gray-800 leading-snug">{copy.what}</p>
           </div>
 
           {/* Retention and the right to decline. Not decoration: the privacy
               policy commits to both appearing on this screen. */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">How long we keep it</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">How long we keep it</p>
             <p className="text-sm md:text-xs text-gray-800 leading-snug">{copy.kept}</p>
           </div>
 
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Your right to decline</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Your right to decline</p>
             <p className="text-sm md:text-xs text-gray-800 leading-snug">
               You are never required to use voice. Every part of interview practice works in text mode,
               and declining changes nothing else about your account.
             </p>
           </div>
 
-          <label className="flex items-start gap-2 cursor-pointer pt-1">
+          {/* The opt-in comes first because the affirmation beneath it is
+              worded by what this one says. */}
+          <label className="flex items-start gap-2 cursor-pointer pt-0.5">
+            <input
+              type="checkbox"
+              checked={wantsRecording}
+              onChange={e => toggleRecording(e.target.checked)}
+              className="sr-only"
+            />
+            <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors mt-0.5 ${
+              wantsRecording ? 'bg-purple-600 border-purple-600' : 'border-gray-300 bg-white'
+            }`}>
+              {wantsRecording && (
+                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm md:text-xs text-gray-800">Record and save my answers for playback</span>
+          </label>
+
+          <label className="flex items-start gap-2 cursor-pointer">
             {/* The real input carries the semantics and keyboard behaviour; the
                 div beside it is what's actually seen. */}
             <input
