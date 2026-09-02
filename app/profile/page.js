@@ -1391,7 +1391,7 @@ export default function Profile() {
                   disabled={voiceDeleting}
                   style={{ ...btnRedSolid, flex: 1, textAlign: 'center', opacity: voiceDeleting ? 0.6 : 1 }}
                 >
-                  {voiceDeleting ? 'Deleting...' : 'Delete Voice Data'}
+                  {voiceDeleting ? 'Deleting...' : 'Delete All Voice Data'}
                 </button>
               </div>
             </div>
