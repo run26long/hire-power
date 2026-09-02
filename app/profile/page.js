@@ -906,10 +906,8 @@ export default function Profile() {
                     <span style={cardTitle}>Voice &amp; Privacy</span>
                   </div>
                   <div style={cardBody}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
-                      Last interview mode
-                    </p>
                     <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
+                      <span style={{ fontWeight: 700, color: '#374151' }}>Last interview mode:</span>{' '}
                       {VOICE_MODE_LABELS[voiceMode] || "You haven't practiced an interview yet."}
                     </p>
 
