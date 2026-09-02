@@ -20,13 +20,15 @@ export const CONSENT_VERSION = '1.0';
 const CONSENT_OPTIONS = [
   {
     key: 'mode_2',
-    title: 'Voice only',
+    icon: '🎤',
+    title: 'Voice Practice',
     description: 'Your audio is sent for transcription and then discarded. We never store the recording. Only your written transcript is saved.',
     checkbox: 'I consent to microphone access for voice transcription'
   },
   {
     key: 'mode_1',
-    title: 'Voice with playback',
+    icon: '🎧',
+    title: 'Voice Practice with Playback',
     description: 'Your audio is recorded and saved so you can listen back to your answers. Recordings are kept until you delete them in Settings.',
     checkbox: 'I consent to my audio being recorded and stored'
   }
@@ -87,8 +89,8 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
-        style={{ maxHeight: '80vh' }}
+        className="bg-white shadow-2xl overflow-hidden flex flex-col"
+        style={{ borderRadius: '12px', width: '364px', maxHeight: '85vh' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-4 flex-shrink-0" style={GRADIENT}>
@@ -111,21 +113,28 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
           </div>
         </div>
 
-        <div className="p-5 flex-1 overflow-y-auto space-y-3" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <p className="text-sm md:text-xs text-gray-800 leading-snug">
-            Voice mode uses your microphone so you can speak your answers out loud. Choose how you&apos;d like your audio handled:
-          </p>
+        <div className="p-5 flex-1 overflow-y-auto space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-1">
+            <p className="text-sm md:text-xs text-gray-700 leading-snug">
+              Voice mode uses your microphone so you can speak your answers out loud.
+            </p>
+            <p className="text-sm md:text-xs text-gray-900 font-semibold leading-snug">
+              Choose how you&apos;d like your audio handled:
+            </p>
+          </div>
 
           {/* Title and description sit outside the label on purpose: only the
               checkbox is a target. aria-describedby keeps the description tied
-              to the box for anyone who cannot see the two are one block. */}
+              to the box for anyone who cannot see the two are one block.
+              The tint is what separates the two options; the gap between the
+              blocks does the rest, so no rule between them. */}
           {CONSENT_OPTIONS.map(option => {
             const checked = consentMode === option.key;
             const descriptionId = `voice-consent-${option.key}`;
             return (
-              <div key={option.key}>
-                <p className="text-sm md:text-xs font-bold text-gray-900">{option.title}</p>
-                <p id={descriptionId} className="text-sm md:text-xs text-gray-600 leading-snug mb-1.5">
+              <div key={option.key} className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                <p className="text-sm font-bold text-gray-900">{option.icon} {option.title}</p>
+                <p id={descriptionId} className="text-sm md:text-xs text-gray-600 leading-snug">
                   {option.description}
                 </p>
                 <label className="flex items-start gap-2 cursor-pointer">
@@ -147,7 +156,7 @@ export default function VoiceConsentModal({ onConsent, onCancel }) {
                       </svg>
                     )}
                   </div>
-                  <span className="text-sm md:text-xs text-gray-800 font-semibold">{option.checkbox}</span>
+                  <span className="text-sm md:text-xs text-gray-800 font-semibold italic">{option.checkbox}</span>
                 </label>
               </div>
             );
