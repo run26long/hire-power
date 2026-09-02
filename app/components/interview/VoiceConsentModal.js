@@ -27,7 +27,7 @@ const CONSENT_OPTIONS = [
   {
     key: 'mode_1',
     title: 'Voice with playback',
-    description: 'Your audio is recorded and saved so you can listen back to your answers. You can delete recordings anytime in Settings.',
+    description: 'Your audio is recorded and saved so you can listen back to your answers. Recordings are kept until you delete them in Settings.',
     checkbox: 'I consent to my audio being recorded and stored'
   }
 ];
