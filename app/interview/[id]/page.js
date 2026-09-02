@@ -1026,6 +1026,15 @@ export default function InterviewDetailPage() {
                     // again on its next render, pulling the mirror back with it.
                     setPracticeResetSignal(n => n + 1);
                   }}
+                  onSessionDeleted={(deletedId) => {
+                    setPastPracticeSessions(prev => prev.filter(s => s.id !== deletedId));
+                    // A session open for review that no longer exists would
+                    // otherwise keep the right column on results loaded from a
+                    // row that is gone.
+                    setReviewSessionId(prev => (prev === deletedId ? null : prev));
+                  }}
+                  onSuccess={setSuccessToast}
+                  onError={setErrorToast}
                 />
               )}
 

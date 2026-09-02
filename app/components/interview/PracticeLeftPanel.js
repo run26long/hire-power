@@ -94,7 +94,77 @@ function formatDate(iso) {
   }
 }
 
-function SessionRow({ session, onClick }) {
+// ============================================================================
+// DELETE SESSION MODAL
+// EndInterviewModal's shape: the other place in practice where something is
+// confirmed before it cannot be taken back. Red on the confirm rather than the
+// gradient, because this one destroys rather than proceeds.
+// ============================================================================
+
+function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white shadow-2xl overflow-hidden flex flex-col"
+        style={{ borderRadius: '12px', width: '364px' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}
+          className="px-6 py-5 relative flex-shrink-0"
+        >
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="absolute top-4 right-4 text-white hover:text-gray-200 text-3xl leading-none font-light"
+          >×</button>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">🗑️</span>
+            </div>
+            <h2 className="text-xl font-bold text-white">Delete Practice Session</h2>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <p className="text-sm md:text-xs text-gray-700 leading-relaxed">
+            This will permanently delete this practice session, including all scores, feedback, and audio recordings. This cannot be undone.
+          </p>
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0 justify-center">
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="py-2 px-5 border border-gray-200 rounded-lg text-sm md:text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="py-2 px-8 rounded-lg text-sm md:text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: '#e57373' }}
+          >
+            {deleting ? 'Deleting...' : 'Delete Session'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionRow({ session, onClick, onDeleteRequest }) {
   const score = session.readiness_score_after ?? 0;
   return (
     <div
@@ -135,13 +205,24 @@ function SessionRow({ session, onClick }) {
           <span className="text-xs md:text-[9px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
             Level {session.level_at_end ?? 0}
           </span>
+          {/* The row itself opens the session for review, so this has to stop
+              the click before it gets there. */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
+            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+            title="Delete session"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function SessionList({ sessions, onSelectSession }) {
+function SessionList({ sessions, onSelectSession, onDeleteRequest }) {
   if (!sessions?.length) {
     return (
       <div className="text-center py-4">
@@ -155,7 +236,12 @@ function SessionList({ sessions, onSelectSession }) {
   return (
     <div className="space-y-2">
       {sessions.map(s => (
-        <SessionRow key={s.id} session={s} onClick={() => onSelectSession?.(s)} />
+        <SessionRow
+          key={s.id}
+          session={s}
+          onClick={() => onSelectSession?.(s)}
+          onDeleteRequest={() => onDeleteRequest?.(s)}
+        />
       ))}
     </div>
   );
@@ -612,7 +698,12 @@ export default function PracticeLeftPanel({
   // is the same value either way, and the id is the thing they'd load from.
   powerAnalysisId = null,
   onSelectSession,
-  onStartNew
+  onStartNew,
+  // Deleting a session is the parent's to record: it owns the list this one
+  // renders, and the toasts that report how it went.
+  onSessionDeleted = () => {},
+  onSuccess = () => {},
+  onError = () => {}
 }) {
 
   // ── ACTIVE ──
@@ -718,11 +809,74 @@ export default function PracticeLeftPanel({
 
   // ── IDLE ──
   return (
+    <IdlePanel
+      pastSessions={pastSessions}
+      onSelectSession={onSelectSession}
+      onSessionDeleted={onSessionDeleted}
+      onSuccess={onSuccess}
+      onError={onError}
+    />
+  );
+}
+
+// Its own component for the same reason CompletedPanel is: the confirmation
+// modal needs state, and a hook on PracticeLeftPanel would run in every one of
+// its states rather than only the one that uses it.
+function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess, onError }) {
+  const supabase = createClient();
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      const token = authSession?.access_token;
+      if (!token) throw new Error('No access token');
+
+      const res = await fetch('/api/interview/delete-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ session_id: pendingDelete.id })
+      });
+      if (!res.ok) throw new Error('Delete failed');
+
+      // Told after the row is actually gone, not before. The parent owns the
+      // list, so it is the one that drops it.
+      onSessionDeleted(pendingDelete.id);
+      setPendingDelete(null);
+      onSuccess('Practice session deleted.');
+    } catch (err) {
+      console.error('Delete practice session failed:', err);
+      setPendingDelete(null);
+      onError("We couldn't delete this session. Try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
     <div className="space-y-3">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
         <h4 className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>Practice Sessions</h4>
-        <SessionList sessions={pastSessions} onSelectSession={onSelectSession} />
+        <SessionList
+          sessions={pastSessions}
+          onSelectSession={onSelectSession}
+          onDeleteRequest={setPendingDelete}
+        />
       </div>
+
+      {pendingDelete && (
+        <DeleteSessionModal
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+          deleting={deleting}
+        />
+      )}
     </div>
   );
 }
