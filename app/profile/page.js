@@ -37,6 +37,74 @@ export default function Profile() {
   const [toastError, setToastError] = useState('')
   const [subscriptionDetails, setSubscriptionDetails] = useState(null)
 
+  // Voice and privacy. voiceMode is the mode of their most recent practice
+  // session, which is what "last used" means to someone reading this card.
+  const [voiceMode, setVoiceMode] = useState(null)
+  const [consentRecords, setConsentRecords] = useState([])
+  const [showDeleteVoiceModal, setShowDeleteVoiceModal] = useState(false)
+  const [voiceDeleting, setVoiceDeleting] = useState(false)
+
+  // What each mode did with their audio, said from the outside. mode_3 is
+  // here because "last used" can honestly be the mode that records nothing.
+  const VOICE_MODE_LABELS = {
+    mode_1: 'Voice with playback — answers recorded and stored',
+    mode_2: 'Voice only — audio never stored',
+    mode_3: 'Text only — microphone never used'
+  }
+
+  const formatConsentDate = (iso) => {
+    if (!iso) return ''
+    try {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    } catch {
+      return ''
+    }
+  }
+
+  // Recordings sit two levels down, one folder per session, so the user's
+  // folder holds prefixes rather than files. Listing it once and removing what
+  // comes back would delete nothing and report success.
+  const deleteAllVoiceData = async () => {
+    if (!user?.id || voiceDeleting) return
+    setVoiceDeleting(true)
+    try {
+      const { data: sessionFolders, error: listError } = await supabase.storage
+        .from('interview-audio')
+        .list(user.id)
+      if (listError) throw listError
+
+      const paths = []
+      for (const folder of sessionFolders || []) {
+        const { data: recordings, error: filesError } = await supabase.storage
+          .from('interview-audio')
+          .list(`${user.id}/${folder.name}`)
+        if (filesError) throw filesError
+        ;(recordings || []).forEach(file => {
+          paths.push(`${user.id}/${folder.name}/${file.name}`)
+        })
+      }
+
+      if (paths.length > 0) {
+        const { error: removeError } = await supabase.storage
+          .from('interview-audio')
+          .remove(paths)
+        if (removeError) throw removeError
+      }
+
+      // Nothing stored is the same outcome they asked for, so an empty folder
+      // reports success rather than an error about a request that was already
+      // satisfied.
+      setShowDeleteVoiceModal(false)
+      setToastSuccess('Voice data deleted.')
+    } catch (err) {
+      console.error('Voice data delete failed:', err)
+      setShowDeleteVoiceModal(false)
+      setToastError("We couldn't delete your voice data. Try again, or contact support.")
+    } finally {
+      setVoiceDeleting(false)
+    }
+  }
+
   // Password strength: returns { score: 0-3, label, color, width }
   const getPasswordStrength = (password) => {
     if (!password) return null;
@@ -69,6 +137,41 @@ export default function Profile() {
   const [vaultCheckoutPrompt, setVaultCheckoutPrompt] = useState(null)
 
   useEffect(() => { loadProfile() }, [])
+
+  // Voice and privacy data. Read-only, and a failure costs the card rather
+  // than the page: someone here to change their password should not be
+  // stopped by a consent list that would not load.
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+
+    async function loadVoiceData() {
+      const { data: lastSession, error: sessionError } = await supabase
+        .from('interview_sessions')
+        .select('voice_mode')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!cancelled) {
+        if (sessionError) console.error('Voice mode load failed:', sessionError)
+        else setVoiceMode(lastSession?.voice_mode ?? null)
+      }
+
+      const { data: consents, error: consentError } = await supabase
+        .from('user_voice_consent')
+        .select('id, mode_selected, consented_at')
+        .eq('user_id', user.id)
+        .order('consented_at', { ascending: false })
+      if (!cancelled) {
+        if (consentError) console.error('Voice consent history load failed:', consentError)
+        else setConsentRecords(consents || [])
+      }
+    }
+
+    loadVoiceData()
+    return () => { cancelled = true }
+  }, [user?.id, supabase])
 
   // Detect email change confirmation redirect from Supabase
   useEffect(() => {
@@ -796,6 +899,50 @@ export default function Profile() {
                   </div>
                 </div>
 
+                {/* VOICE & PRIVACY */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Voice &amp; Privacy</span>
+                  </div>
+                  <div style={cardBody}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
+                      Last interview mode
+                    </p>
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
+                      {VOICE_MODE_LABELS[voiceMode] || "You haven't practiced an interview yet."}
+                    </p>
+
+                    {consentRecords.length > 0 && (
+                      <>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
+                          Consent history
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14 }}>
+                          {consentRecords.map(record => (
+                            <div
+                              key={record.id}
+                              style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: '#6b7280' }}
+                            >
+                              <span>{VOICE_MODE_LABELS[record.mode_selected] || record.mode_selected}</span>
+                              <span style={{ flexShrink: 0 }}>{formatConsentDate(record.consented_at)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 8 }}>
+                      Deleting your recordings does not affect your transcripts, scores, or practice history.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteVoiceModal(true)}
+                      style={{ ...btnRed, width: '100%', textAlign: 'center' }}
+                    >
+                      Delete All Voice Data
+                    </button>
+                  </div>
+                </div>
+
                 {/* DANGER ZONE */}
                 <div style={{ ...cardBase, border: '1px solid #fecaca' }}>
                   <div style={cardHeader('linear-gradient(135deg,#fff5f5,#fee2e2)')}>
@@ -1190,6 +1337,47 @@ export default function Profile() {
               >
                 {exportLoading ? 'Exporting...' : 'Download My Data'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE VOICE DATA MODAL ── */}
+      {showDeleteVoiceModal && (
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, maxWidth: 440 }}>
+            <div style={{ ...modalHead('linear-gradient(135deg,#dc2626,#991b1b)'), position: 'relative' }}>
+              <button
+                onClick={() => setShowDeleteVoiceModal(false)}
+                disabled={voiceDeleting}
+                style={{ position: 'absolute', top: 12, right: 14, background: 'transparent', border: 'none', color: 'white', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 0, fontWeight: 300 }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <p style={modalTitle}>Delete All Voice Data</p>
+              <p style={modalSub}>This cannot be undone.</p>
+            </div>
+            <div style={modalBody}>
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 14 }}>
+                Every recording from every practice interview will be permanently deleted. Your transcripts, scores, and coaching notes stay exactly as they are, so nothing you have practiced is lost.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => setShowDeleteVoiceModal(false)}
+                  disabled={voiceDeleting}
+                  style={{ ...btnGhost, flex: 1, textAlign: 'center' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={deleteAllVoiceData}
+                  disabled={voiceDeleting}
+                  style={{ ...btnRedSolid, flex: 1, textAlign: 'center', opacity: voiceDeleting ? 0.6 : 1 }}
+                >
+                  {voiceDeleting ? 'Deleting...' : 'Delete Voice Data'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

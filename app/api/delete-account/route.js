@@ -51,6 +51,32 @@ export async function POST(req) {
       console.error('Profile photo delete failed (non-blocking):', storageErr);
     }
 
+    // Interview recordings live two levels down, one folder per session, so
+    // the user's folder has to be walked rather than listed. Non-blocking like
+    // the photos above: a storage failure must not leave the account itself
+    // half deleted.
+    try {
+      const { data: sessionFolders } = await adminSupabase.storage
+        .from('interview-audio')
+        .list(userId);
+
+      const audioPaths = [];
+      for (const folder of sessionFolders || []) {
+        const { data: recordings } = await adminSupabase.storage
+          .from('interview-audio')
+          .list(`${userId}/${folder.name}`);
+        (recordings || []).forEach(file => {
+          audioPaths.push(`${userId}/${folder.name}/${file.name}`);
+        });
+      }
+
+      if (audioPaths.length > 0) {
+        await adminSupabase.storage.from('interview-audio').remove(audioPaths);
+      }
+    } catch (audioErr) {
+      console.error('Interview audio delete failed (non-blocking):', audioErr);
+    }
+
     const { error: profileDeleteError } = await adminSupabase
       .from('profiles')
       .delete()
