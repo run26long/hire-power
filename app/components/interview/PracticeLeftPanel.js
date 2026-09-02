@@ -166,6 +166,9 @@ function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
 
 function SessionRow({ session, onClick, onDeleteRequest }) {
   const score = session.readiness_score_after ?? 0;
+  // Whether they spoke it or typed it. Anything unrecognised reads as text,
+  // which is what a session with no mode recorded on it was.
+  const isVoice = session.voice_mode === 'mode_1' || session.voice_mode === 'mode_2';
   return (
     <div
       onClick={onClick}
@@ -179,6 +182,10 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
           </div>
           <div className="text-sm md:text-xs text-gray-500 truncate">
             {session.questions_answered ?? 0} of {session.question_count_target ?? 0} answered
+            <span className="text-gray-300"> · </span>
+            <span className={isVoice ? 'text-xs text-purple-500' : 'text-xs text-gray-400'}>
+              {isVoice ? 'Voice' : 'Text'}
+            </span>
           </div>
         </div>
 

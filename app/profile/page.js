@@ -43,6 +43,10 @@ export default function Profile() {
   const [consentRecords, setConsentRecords] = useState([])
   const [showDeleteVoiceModal, setShowDeleteVoiceModal] = useState(false)
   const [voiceDeleting, setVoiceDeleting] = useState(false)
+  // Whether there is anything to delete. Folder-level only: a session folder
+  // standing means recordings were made under it, which is close enough to
+  // decide whether a button should be pressable.
+  const [hasVoiceData, setHasVoiceData] = useState(false)
 
   // What each mode did with their audio, said from the outside. mode_3 is
   // here because "last used" can honestly be the mode that records nothing.
@@ -166,6 +170,14 @@ export default function Profile() {
       if (!cancelled) {
         if (consentError) console.error('Voice consent history load failed:', consentError)
         else setConsentRecords(consents || [])
+      }
+
+      const { data: audioFolders, error: audioError } = await supabase.storage
+        .from('interview-audio')
+        .list(user.id)
+      if (!cancelled) {
+        if (audioError) console.error('Voice recording check failed:', audioError)
+        else setHasVoiceData((audioFolders || []).length > 0)
       }
     }
 
@@ -833,7 +845,14 @@ export default function Profile() {
                       </p>
                       <button
                         onClick={() => setShowDeleteVoiceModal(true)}
-                        style={{ ...btnRed, flexShrink: 0 }}
+                        disabled={!hasVoiceData}
+                        title={hasVoiceData ? undefined : 'No voice recordings to delete.'}
+                        style={{
+                          ...btnRed,
+                          flexShrink: 0,
+                          opacity: hasVoiceData ? 1 : 0.5,
+                          cursor: hasVoiceData ? 'pointer' : 'not-allowed'
+                        }}
                       >
                         Delete All Voice Data
                       </button>
@@ -1372,11 +1391,8 @@ export default function Profile() {
               <p style={modalSub}>This cannot be undone.</p>
             </div>
             <div style={modalBody}>
-              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6 }}>
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 14 }}>
                 Every recording from every practice interview will be permanently deleted. Your transcripts, scores, and coaching notes stay exactly as they are, so nothing you have practiced is lost.
-              </p>
-              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginTop: 12, marginBottom: 14 }}>
-                <strong>Note:</strong> If you prefer to delete individual session recordings instead, you can do that from the Practice step in Interview Coach.
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
