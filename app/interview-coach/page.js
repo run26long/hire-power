@@ -426,6 +426,7 @@ export default function MyInterviewsPage() {
   // practiced for.
   const [highScore, setHighScore] = useState(0);
   const [jobsPracticed, setJobsPracticed] = useState(0);
+  const [totalSessions, setTotalSessions] = useState(0);
   const [showOlderModal, setShowOlderModal] = useState(false);
 
   // New Practice Modal state
@@ -532,6 +533,7 @@ export default function MyInterviewsPage() {
         console.error('Practice stats load failed:', sessionsError);
       } else {
         const finished = sessionRows || [];
+        setTotalSessions(finished.length);
         setHighScore(finished.reduce((max, s) => Math.max(max, s.readiness_score_after || 0), 0));
         setJobsPracticed(new Set(finished.map(s => s.job_card_id).filter(Boolean)).size);
       }
@@ -660,9 +662,6 @@ export default function MyInterviewsPage() {
       </div>
     );
   }
-
-  // Practice Stats totals. Sessions accumulate across every job.
-  const totalSessions = practiceCards.reduce((sum, c) => sum + (c.sessionsCount || 0), 0);
 
   // A job that already has a practice card is left out of the New Interview
   // Practice picker: its card is already on the hub above, and a second one for
