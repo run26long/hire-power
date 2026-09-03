@@ -800,7 +800,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div data-tour="interview-prep" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[434px]">
+                <div data-tour="interview-prep" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[384px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -901,29 +901,25 @@ export default function MyInterviewsPage() {
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
-                  <div className="flex-1 flex items-center gap-3 min-h-0">
+                  <div className="flex-1 flex items-stretch gap-3 min-h-0">
 
                     {/* HIGH SCORE — the ramp the score displays use, so a number
                         means the same thing wherever it is read. The border and
                         the wash behind it are that same colour at 30% and 5%,
                         so the badge is tinted by the score rather than by a
                         palette of its own. */}
-                    <div className="flex flex-col items-center flex-shrink-0">
+                    <div className="flex flex-col flex-shrink-0">
                       <div
-                        className="rounded-xl border-2 px-4 py-3 flex flex-col items-center"
+                        className="flex-1 rounded-xl border-2 px-4 py-4 flex flex-col items-center justify-center"
                         style={{ borderColor: `${highScoreTone}4D`, backgroundColor: `${highScoreTone}0D` }}
                       >
-                        <span className="text-5xl font-bold leading-none" style={{ color: highScoreTone }}>
+                        <span className="text-6xl font-bold leading-none" style={{ color: highScoreTone }}>
                           {highScore > 0 ? highScore : '--'}
                         </span>
                         <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wide text-gray-400 mt-1.5">
                           High Score
                         </p>
                       </div>
-
-                      <p className="mt-2 text-xs md:text-[10px] text-gray-400 whitespace-nowrap">
-                        {totalSessions} Sessions <span className="text-gray-300">·</span> {jobsPracticed} Jobs Practiced
-                      </p>
                     </div>
 
                     {/* The completion panel's three bands, in its headings and
@@ -932,10 +928,10 @@ export default function MyInterviewsPage() {
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
                       {SCORE_BANDS.map(({ icon, title, color, range }) => (
                         <div key={title} className="pl-2 border-l-2" style={{ borderColor: `${color}4D` }}>
-                          <p className="text-xs font-semibold whitespace-nowrap" style={{ color }}>
+                          <p className="text-sm font-semibold whitespace-nowrap" style={{ color }}>
                             {icon} {title}
                           </p>
-                          <p className="text-xs md:text-[10px] text-gray-400 leading-snug">{range}</p>
+                          <p className="text-xs text-gray-400 leading-snug">{range}</p>
                         </div>
                       ))}
                     </div>
@@ -945,7 +941,7 @@ export default function MyInterviewsPage() {
                 {/* Practice out loud callout */}
                 <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[74px] overflow-hidden">
                   <p className="text-sm md:text-xs text-gray-700 leading-snug">
-                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in their actual interviews. Our realistic interview practice makes it easy.
+                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in their interviews. Our realistic interview practice makes it easy.
                   </p>
                 </div>
 
