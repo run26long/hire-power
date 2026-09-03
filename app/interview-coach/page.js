@@ -18,6 +18,15 @@ const QUESTIONS_OF_THE_DAY = [
   "Describe a situation where you had to learn something new quickly. How did you manage it?",
 ];
 
+// The three bands the completion panel sorts answers into, in its headings and
+// its colours, so the hub reads as the key to a screen the candidate may not
+// have reached yet.
+const SCORE_BANDS = [
+  { heading: '🎯 Nailed It', color: '#9333ea', range: 'Scored 80+' },
+  { heading: '💪 Solid Ground', color: '#81c784', range: 'Scored 60-79' },
+  { heading: '🌱 Room to Grow', color: '#ffc870', range: 'Below 60' }
+];
+
 // Match score ring color, matching Resume Coach's getCircleColor.
 function getCircleColor(score) {
   if (score >= 85) return '#9333ea';
@@ -699,7 +708,7 @@ export default function MyInterviewsPage() {
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
 
-        <div className="px-6 pt-0 pb-6">
+        <div className="px-6 pt-0 pb-6 flex-1 flex flex-col">
 
           {/* Steps */}
           <div style={{ marginBottom: 16 }}>
@@ -754,8 +763,10 @@ export default function MyInterviewsPage() {
             ))}
           </div>
 
-          {/* Bottom section */}
-          <div>
+          {/* Bottom section. mt-auto so it closes the sidebar at the foot of
+              the column rather than leaving the gradient running empty under
+              it — there are four steps here, where Resume Coach has five. */}
+          <div className="mt-auto">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
             <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Ready to interview?
@@ -787,7 +798,7 @@ export default function MyInterviewsPage() {
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-2">
-                    <span className="font-semibold text-gray-700">47%</span> of candidates fail interviews because they didn&apos;t prepare. <span className="whitespace-nowrap font-semibold text-gray-700">Hire Power</span> makes sure you&apos;re not one of them.
+                    47% of candidates fail interviews because they didn&apos;t prepare. Hire Power makes sure you&apos;re not one of them.
                   </p>
 
                       <div>
@@ -874,35 +885,42 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                {/* One layout whatever the plan. The headline number is the
-                    best interview they have given; the pair underneath is the
-                    work behind it, said quietly. */}
+                {/* Their best interview on the left, what the bands beside it
+                    mean on the right: the card doubles as the key to a scoring
+                    screen they may not have seen yet. */}
                 <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] flex flex-col">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
-                  {/* HIGH SCORE — the same ramp the score displays use, so a
-                      number means the same thing wherever it is read. */}
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-3 bg-gray-50 rounded-lg">
-                    <span
-                      className={`text-2xl font-bold ${highScore > 0 ? '' : 'text-gray-300'}`}
-                      style={highScore > 0 ? { color: getCircleColor(highScore) } : undefined}
-                    >
-                      {highScore > 0 ? highScore : '--'}
-                    </span>
-                    <p className="text-sm md:text-xs font-medium text-gray-700 uppercase tracking-wide">High Score</p>
-                  </div>
+                  <div className="flex-1 flex gap-3 min-h-0">
 
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {[
-                      { label: 'Sessions', val: totalSessions },
-                      { label: 'Jobs Practiced', val: jobsPracticed },
-                    ].map(({ label, val }) => (
-                      <div key={label} className="flex flex-col items-center justify-center text-center p-2 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-bold text-gray-500">{val}</span>
-                        <p className="text-xs md:text-[10px] text-gray-400 whitespace-nowrap">{label}</p>
+                    {/* HIGH SCORE — the same ramp the score displays use, so a
+                        number means the same thing wherever it is read. */}
+                    <div className="flex flex-col items-center justify-center text-center flex-shrink-0">
+                      <span
+                        className={`text-4xl font-bold leading-none ${highScore > 0 ? '' : 'text-gray-300'}`}
+                        style={highScore > 0 ? { color: getCircleColor(highScore) } : undefined}
+                      >
+                        {highScore > 0 ? highScore : '--'}
+                      </span>
+                      <p className="text-xs md:text-[10px] font-semibold text-gray-500 uppercase tracking-wide mt-1.5">High Score</p>
+
+                      <div className="mt-2 space-y-0.5 text-xs md:text-[10px] text-gray-400 whitespace-nowrap">
+                        <p><span className="font-bold text-gray-500">{totalSessions}</span> Sessions</p>
+                        <p><span className="font-bold text-gray-500">{jobsPracticed}</span> Jobs Practiced</p>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* The completion panel's three bands, in its headings and
+                        its colours, so the words land the same in both places. */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                      {SCORE_BANDS.map(({ heading, color, range }) => (
+                        <div key={heading}>
+                          <p className="text-sm md:text-xs font-bold whitespace-nowrap" style={{ color }}>{heading}</p>
+                          <p className="text-xs md:text-[10px] text-gray-400 leading-snug">{range}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Only useful before there's anything to show. */}
@@ -912,9 +930,9 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Practice out loud callout */}
-                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[92px] overflow-hidden">
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[74px] overflow-hidden">
                   <p className="text-sm md:text-xs text-gray-700 leading-snug">
-                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews. Start practicing now.
+                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews. Make every answer count.
                   </p>
                 </div>
 
