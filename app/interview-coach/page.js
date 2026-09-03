@@ -525,6 +525,34 @@ export default function MyInterviewsPage() {
     loadData();
   }, [supabase, router]);
 
+  // The counters the gate reads are written by the routes behind the detail
+  // page, so a copy of the profile taken on mount goes out of date the moment
+  // someone leaves. Re-read when the tab comes back rather than on a timer:
+  // that is when it matters, and it is one row. A client navigation back to
+  // the hub remounts the page and reloads everything anyway; this covers the
+  // rest — another tab, another window, an upgrade bought elsewhere.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    const refreshProfile = async () => {
+      if (document.visibilityState === 'hidden') return;
+      const { data: profile } = await supabase
+        .from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (cancelled || !profile) return;
+      setUserProfile(profile);
+      setIsPro(profile.subscription_tier === 'pro');
+    };
+
+    window.addEventListener('focus', refreshProfile);
+    document.addEventListener('visibilitychange', refreshProfile);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', refreshProfile);
+      document.removeEventListener('visibilitychange', refreshProfile);
+    };
+  }, [user?.id, supabase]);
+
   function handleOpenPracticeModal() {
     setSelectedJobSourceId('');
     setPracticeJobTitle('');
