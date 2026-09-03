@@ -612,6 +612,14 @@ export default function MyInterviewsPage() {
   const totalSessions = practiceCards.reduce((sum, c) => sum + (c.sessionsCount || 0), 0);
   const maxLevel = practiceCards.reduce((max, c) => Math.max(max, c.level || 0), 0);
 
+  // A job that already has a practice card is left out of the New Interview
+  // Practice picker: its card is already on the hub above, and a second one for
+  // the same job would only be a duplicate to explain. Derived rather than
+  // filtered on load, so throwing a practice away puts its job back in the list.
+  const availableJobSources = jobSources.filter(
+    source => !practiceCards.some(card => card.jobCardId === source.id)
+  );
+
   return (
     <div className="h-screen bg-gray-50 flex">
 
@@ -906,7 +914,7 @@ export default function MyInterviewsPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              {jobSources.length > 0 && (
+              {availableJobSources.length > 0 && (
                 <div>
                   <label className="block text-xs md:text-[10px] font-semibold text-gray-700 mb-1">Use details from existing job</label>
                   <p className="text-[10px] text-gray-400 mb-1">Select an existing job to auto-fill the details below, or fill them in manually.</p>
@@ -920,7 +928,7 @@ export default function MyInterviewsPage() {
                         setPracticeJobCompany('');
                         setPracticeJobDescription('');
                       } else {
-                        const selected = jobSources.find(s => s.id === val);
+                        const selected = availableJobSources.find(s => s.id === val);
                         setSelectedJobSourceId(val);
                         setPracticeJobTitle(selected?.title || '');
                         setPracticeJobCompany(selected?.company || '');
@@ -930,7 +938,7 @@ export default function MyInterviewsPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base md:text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
                   >
                     <option value="">None selected</option>
-                    {jobSources.map(s => (
+                    {availableJobSources.map(s => (
                       <option key={s.id} value={s.id}>{s.displayLabel}</option>
                     ))}
                   </select>

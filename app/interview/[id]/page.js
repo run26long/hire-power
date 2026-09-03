@@ -295,18 +295,30 @@ export default function InterviewDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, powerAnalysis]);
 
-  // Apply the hub's jump once the load has settled. View state only: this is a
-  // backward jump to revisit a finished step, so it must not write current_step
-  // or highest_step_reached. The saved position stays whatever it was.
+  // Apply the hub's jump once the load has settled. A jump back to a step
+  // already reached is view state only: it must not write current_step or
+  // highest_step_reached, and the saved position stays whatever it was.
   useEffect(() => {
     if (loading || !hasPA || !jumpStep || jumpAppliedRef.current) return;
     jumpAppliedRef.current = true;
-    // Clamped to the high-water mark. A hand-typed ?step= must not unlock what
-    // the strip keeps locked, and the furthest step they have actually reached
-    // is the closest honest answer to what was asked for.
+
     const reached = reachedIndexFor(powerAnalysis?.highest_step_reached);
     const requested = VALID_STEPS.indexOf(jumpStep);
-    setCurrentStep(requested > reached ? VALID_STEPS[Math.max(reached, 0)] : jumpStep);
+
+    if (requested === reached + 1) {
+      // The step just past the mark is the one the hub's own button offers, and
+      // pressing it is the user choosing to proceed — the same move as the
+      // forward button on the step before it, so it is recorded the same way.
+      // Without this the lock reads it as a jump ahead and hands it straight
+      // back to the step they were already on.
+      goToStep(jumpStep);
+    } else if (requested > reached) {
+      // Further ahead than that was never offered to anyone, so it lands on the
+      // furthest step actually reached rather than unlocking the rest.
+      setCurrentStep(VALID_STEPS[Math.max(reached, 0)]);
+    } else {
+      setCurrentStep(jumpStep);
+    }
     // Drop the param so a refresh lands on the saved step instead of jumping
     // again. replaceState rather than router.replace: this is tidying the URL,
     // not a navigation, and it shouldn't re-render the tree.
