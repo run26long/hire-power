@@ -421,6 +421,11 @@ export default function MyInterviewsPage() {
 
   // Practice cards
   const [practiceCards, setPracticeCards] = useState([]);
+  // Read from finished sessions rather than from the cards: these are
+  // account-wide numbers, and a job whose card was thrown away was still
+  // practiced for.
+  const [highScore, setHighScore] = useState(0);
+  const [jobsPracticed, setJobsPracticed] = useState(0);
   const [showOlderModal, setShowOlderModal] = useState(false);
 
   // New Practice Modal state
@@ -512,6 +517,25 @@ export default function MyInterviewsPage() {
         });
 
       setPracticeCards(cards);
+
+      // Every finished session on the account, for the stats card. Two columns
+      // and no join: the best score and how many different jobs it took.
+      const { data: sessionRows, error: sessionsError } = await supabase
+        .from('interview_sessions')
+        .select('readiness_score_after, job_card_id')
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+
+      if (sessionsError) {
+        // Stats are a summary of work already done and safe to lose. Logged
+        // rather than failing a hub that is otherwise perfectly usable.
+        console.error('Practice stats load failed:', sessionsError);
+      } else {
+        const finished = sessionRows || [];
+        setHighScore(finished.reduce((max, s) => Math.max(max, s.readiness_score_after || 0), 0));
+        setJobsPracticed(new Set(finished.map(s => s.job_card_id).filter(Boolean)).size);
+      }
+
       setLoading(false);
 
       // A practice card in hand: walk them through the hub once. Desktop only —
@@ -637,10 +661,8 @@ export default function MyInterviewsPage() {
     );
   }
 
-  // Practice Stats totals. Sessions accumulate across every job; level is the
-  // furthest the user has reached on any single one, not a sum.
+  // Practice Stats totals. Sessions accumulate across every job.
   const totalSessions = practiceCards.reduce((sum, c) => sum + (c.sessionsCount || 0), 0);
-  const maxLevel = practiceCards.reduce((max, c) => Math.max(max, c.level || 0), 0);
 
   // A job that already has a practice card is left out of the New Interview
   // Practice picker: its card is already on the hub above, and a second one for
@@ -703,7 +725,7 @@ export default function MyInterviewsPage() {
                 num: '4',
                 title: 'Interview Practice',
                 desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
-                tag: 'Free: 1 session · Pro: Unlimited'
+                tag: 'Free: 3 sessions · Pro: Unlimited sessions'
               },
             ].map(({ num, title, desc, tag }) => (
               <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
@@ -737,7 +759,10 @@ export default function MyInterviewsPage() {
           <div>
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
             <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
-              You already have the experience. We help you tell it.
+              Ready to interview?
+            </p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              Your power analysis, company research, and interviewer questions are compiled into a printable Interview Toolkit. Print a copy to review before the actual interview.
             </p>
           </div>
 
@@ -763,7 +788,7 @@ export default function MyInterviewsPage() {
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-2">
-                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Interview Prep</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all or just what you need.
+                    <span className="font-semibold text-gray-700">47%</span> of candidates fail interviews because they didn&apos;t prepare. <span className="whitespace-nowrap font-semibold text-gray-700">Hire Power</span> makes sure you&apos;re not one of them.
                   </p>
 
                       <div>
@@ -814,7 +839,7 @@ export default function MyInterviewsPage() {
                               {practiceCards.length > 3 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
-                                    className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 mb-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     View all interview practices →
                                   </button>
@@ -834,14 +859,14 @@ export default function MyInterviewsPage() {
                 <div data-tour="question-of-the-day" className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-base font-semibold text-gray-900">Question of the Day</h2>
-                    <span className="text-xs md:text-[10px] text-gray-400">Think it through, no pressure</span>
                   </div>
+                  <div> <p className="text-sm md:text-xs text-gray-500 mb-2">
+                    Get stronger skills with daily practice! Use the STAR method - Situation, Task, Action, Result - to craft compelling answers.
+                  </p></div>
                   <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded-r mt-3">
                     <p className="text-base md:text-sm text-gray-800 font-medium leading-relaxed">{questionOfTheDay}</p>
                   </div>
-                  <div className="mt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-1.5">
-                    <p className="text-sm md:text-xs text-gray-500">Use the STAR method: Situation, Task, Action, Result</p>
-                  </div>
+                 
                 </div>
 
               </div>
@@ -850,80 +875,63 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                <div data-tour="practice-stats" className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] ${isPro ? 'flex flex-col' : ''}`}>
+                {/* One layout whatever the plan. The headline number is the
+                    best interview they have given; the pair underneath is the
+                    work behind it, said quietly. */}
+                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] flex flex-col">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
-                  {isPro ? (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="grid grid-cols-3 gap-2 w-full">
-                        {[
-                          { label: 'Sessions', sub: 'Across all jobs', val: String(totalSessions), tone: 'purple' },
-                          { label: 'Level', sub: 'Per job', val: String(maxLevel), tone: 'purple' },
-                          { label: 'Total Jobs', sub: 'Unique targets', val: String(practiceCards.length), tone: 'gray' },
-                        ].map((stat) => {
-                          // Zero stays muted; a real value takes the tone for its stat.
-                          const isZero = (Number(stat.val) || 0) === 0;
-                          const valueClass = isZero
-                            ? 'text-gray-300'
-                            : stat.tone === 'purple'
-                              ? 'text-purple-600'
-                              : 'text-gray-700';
-                          return (
-                            <div key={stat.label} className="flex flex-col items-center justify-center text-center p-3 bg-gray-50 rounded-lg">
-                              <span className={`text-2xl font-bold ${valueClass}`}>{stat.val}</span>
-                              <p className="text-sm md:text-xs font-medium text-gray-700 whitespace-nowrap">{stat.label}</p>
-                              <p className="text-xs md:text-[10px] text-gray-400">{stat.sub}</p>
-                            </div>
-                          );
-                        })}
+                  {/* HIGH SCORE — the same ramp the score displays use, so a
+                      number means the same thing wherever it is read. */}
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-3 bg-gray-50 rounded-lg">
+                    <span
+                      className={`text-2xl font-bold ${highScore > 0 ? '' : 'text-gray-300'}`}
+                      style={highScore > 0 ? { color: getCircleColor(highScore) } : undefined}
+                    >
+                      {highScore > 0 ? highScore : '--'}
+                    </span>
+                    <p className="text-sm md:text-xs font-medium text-gray-700 uppercase tracking-wide">High Score</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {[
+                      { label: 'Sessions', val: totalSessions },
+                      { label: 'Jobs Practiced', val: jobsPracticed },
+                    ].map(({ label, val }) => (
+                      <div key={label} className="flex flex-col items-center justify-center text-center p-2 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-bold text-gray-500">{val}</span>
+                        <p className="text-xs md:text-[10px] text-gray-400 whitespace-nowrap">{label}</p>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex flex-col items-center justify-center text-center p-2 bg-gray-50 rounded-lg">
-                        <span className="text-2xl font-bold text-gray-300">0</span>
-                        <p className="text-sm md:text-xs font-medium text-gray-700">Total Sessions</p>
-                        <p className="text-xs md:text-[10px] text-gray-400">Across all jobs</p>
-                      </div>
-                      <div className="flex items-center justify-between p-2.5 bg-purple-50 border border-purple-200 rounded-lg gap-3">
-                        <p className="text-sm md:text-xs text-purple-800 leading-snug">Unlock Power Analysis, coaching, and job-specific practice sessions.</p>
-                        <button
-                          onClick={() => router.push('/pricing')}
-                          className="text-white rounded-md py-1.5 px-3 text-xs md:text-[11px] font-semibold flex-shrink-0 transition-opacity hover:opacity-90"
-                          style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                        >
-                          Go Pro
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
 
                   {/* Only useful before there's anything to show. */}
                   {totalSessions === 0 && (
-                    <p className={`text-xs md:text-[10px] text-gray-400 text-center ${isPro ? 'mt-auto pt-2' : 'mt-2'}`}>Start practicing to see your stats here</p>
+                    <p className="text-xs md:text-[10px] text-gray-400 text-center mt-2">Start practicing to see your stats here</p>
                   )}
                 </div>
 
                 {/* Practice out loud callout */}
-                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[74px] overflow-hidden">
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[92px] overflow-hidden">
                   <p className="text-sm md:text-xs text-gray-700 leading-snug">
-                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews.
+                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews. Start practicing now.
                   </p>
                 </div>
 
                 {/* Interview Readiness Checklist */}
                 <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[250px] overflow-hidden">
-                  <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">Quick prep before any interview</p>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Your Interview Checklist</h2>
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">Complete these before every interview so nothing catches you off guard.</p>
 
                   <div className="space-y-1.5">
                     {[
-                      { label: 'Tailored & reviewed resume', key: 'resume' },
-                       { label: 'Prepared 3 STAR stories', key: 'stories' },
-                        { label: 'Completed company research', key: 'research' },
-                      { label: 'Thought of questions for interviewer', key: 'question' },
-                      { label: 'Practiced out loud at least once', key: 'practiced' },
+                      { label: 'Review your tailored resume', key: 'resume' },
+                       { label: 'Research the company', key: 'research' },
+                      { label: 'Prepare 3-4 questions to ask your interviewer', key: 'question' },
+                      { label: 'Practice out loud at least once', key: 'practice' },
+                       { label: 'Print resume and interview tool kit', key: 'toolkit' },
+                      
                     ].map((item) => (
                       <ChecklistItem key={item.key} label={item.label} />
                     ))}
