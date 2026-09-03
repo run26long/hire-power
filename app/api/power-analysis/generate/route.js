@@ -4,6 +4,10 @@ import { apiError } from '@/lib/apiError';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// One analysis for the life of a free account, across every job. Refreshing an
+// existing one spends the same call, so it counts against the same one.
+const FREE_PA_LIMIT = 1;
+
 // ============================================================================
 // RESUME TEXT CONVERSION
 // Same as /api/job-analyze - keeps Power Analysis and JMS coherent
@@ -452,6 +456,31 @@ export async function POST(request) {
       return Response.json({ error: 'JOB_CARD_INCOMPLETE' }, { status: 400 });
     }
 
+    // ---- TIER GATE ----
+    // A free account gets one Power Analysis for the life of the account, not
+    // one per job, and a refresh is a generation like any other — it costs the
+    // same call. Counted on the profile rather than by counting analyses: a
+    // count of rows drops when one is deleted, which would hand the allowance
+    // back. Internal calls are gated too. The shared secret says who is
+    // asking, not what they are entitled to.
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_tier, interview_samples_used')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Power Analysis profile lookup error:', profileError);
+      return Response.json({ error: 'FETCH_FAILED' }, { status: 500 });
+    }
+
+    const isPro = profile?.subscription_tier === 'pro';
+    const samplesUsed = profile?.interview_samples_used ?? 0;
+
+    if (!isPro && samplesUsed >= FREE_PA_LIMIT) {
+      return Response.json({ error: 'FREE_PA_LIMIT_REACHED' }, { status: 403 });
+    }
+
     // ---- RESOLVE RESUME ----
     // Priority:
     //   1. If applications.resume_id is set, use that resume
@@ -619,6 +648,20 @@ ${jobCard.description}`;
         return Response.json({ error: 'SAVE_FAILED' }, { status: 500 });
       }
       powerAnalysisRow = inserted;
+    }
+
+    // ---- COUNT THE ANALYSIS ----
+    // Only ever up, and only for free accounts: this is the number the gate
+    // above reads, and deleting a practice must not buy another analysis.
+    // Non-blocking — the analysis is written and returned either way.
+    if (!isPro) {
+      const { error: usageError } = await supabase
+        .from('profiles')
+        .update({ interview_samples_used: samplesUsed + 1 })
+        .eq('id', userId);
+      if (usageError) {
+        console.error('interview_samples_used increment failed (non-blocking):', usageError);
+      }
     }
 
     // ---- UPDATE RESUME'S JMS DATA ----

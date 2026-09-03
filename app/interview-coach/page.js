@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import ErrorToast from '../components/ErrorToast';
+import UpgradeModal from '../components/UpgradeModal';
 import { getJobSources } from '../utils/getJobSources';
 
 const QUESTIONS_OF_THE_DAY = [
@@ -416,6 +417,7 @@ export default function MyInterviewsPage() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Practice cards
   const [practiceCards, setPracticeCards] = useState([]);
@@ -620,6 +622,11 @@ export default function MyInterviewsPage() {
     source => !practiceCards.some(card => card.jobCardId === source.id)
   );
 
+  // One job, prepared for properly, is the whole free tier. Read from the
+  // counter the routes enforce rather than from the cards on screen: a card
+  // can be deleted, and the analysis behind it still counted.
+  const practiceLocked = !isPro && (userProfile?.interview_samples_used ?? 0) >= 1;
+
   return (
     <div className="h-screen bg-gray-50 flex">
 
@@ -657,8 +664,7 @@ export default function MyInterviewsPage() {
               {
                 num: '2',
                 title: 'Company Research',
-                desc: 'Learn about the company to align your experience with business goals.',
-                tag: 'Pro only'
+                desc: 'Learn about the company to align your experience with business goals.'
               },
               {
                 num: '3',
@@ -734,18 +740,37 @@ export default function MyInterviewsPage() {
 
                       <div>
                         <div className="space-y-2">
-                          <button
-                            onClick={handleOpenPracticeModal}
-                            className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                            style={{ height: '44px' }}
-                          >
-                            <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
-                              <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
+                          {practiceLocked ? (
+                            /* The free job is spent, so the way in is closed and
+                               what stands in its place says why. The card below
+                               still opens: what they prepared is still theirs. */
+                            <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 flex items-center gap-3">
+                              <span className="text-base flex-shrink-0 leading-none">🔒</span>
+                              <p className="flex-1 text-sm md:text-xs text-purple-900 leading-snug">
+                                You&apos;ve used your free interview prep. Go Pro to practice for every job you pursue.
+                              </p>
+                              <button
+                                onClick={() => setShowUpgradeModal(true)}
+                                className="flex-shrink-0 rounded-md py-1.5 px-4 font-semibold text-white text-sm md:text-xs transition-opacity hover:opacity-90"
+                                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                              >
+                                Go Pro
+                              </button>
                             </div>
-                            <div className="text-sm md:text-xs font-semibold text-gray-900">New Interview Practice</div>
-                          </button>
+                          ) : (
+                            <button
+                              onClick={handleOpenPracticeModal}
+                              className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                              style={{ height: '44px' }}
+                            >
+                              <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
+                                <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                              </div>
+                              <div className="text-sm md:text-xs font-semibold text-gray-900">New Interview Practice</div>
+                            </button>
+                          )}
 
                           {practiceCards && practiceCards.length > 0 ? (
                             <>
@@ -753,6 +778,7 @@ export default function MyInterviewsPage() {
                                 <PracticeCard
                                   key={card.jobCardId}
                                   card={card}
+                                  canDelete={isPro}
                                   onClick={() => router.push(`/interview/${card.jobCardId}`)}
                                   onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
                                 />
@@ -1017,6 +1043,7 @@ export default function MyInterviewsPage() {
                     key={card.jobCardId}
                     card={card}
                     compact
+                    canDelete={isPro}
                     onClick={() => { setShowOlderModal(false); router.push(`/interview/${card.jobCardId}`); }}
                     onDeleteRequest={() => setConfirmDeletePracticeId(card.jobCardId)}
                   />
@@ -1074,6 +1101,7 @@ export default function MyInterviewsPage() {
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
     </div>
   );
 }
@@ -1117,7 +1145,10 @@ const STEP_DISPLAY_NAMES = {
   feedback: 'Feedback',
 };
 
-function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
+// `canDelete` is off for free accounts: the analysis behind a card is counted
+// whether or not the card is still there, so throwing one away would only cost
+// them the work and give nothing back.
+function PracticeCard({ card, onClick, onDeleteRequest, canDelete = true, compact = false }) {
   const router = useRouter();
   const [navigatingTo, setNavigatingTo] = useState(null);
 
@@ -1275,17 +1306,19 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
         </div>
 
         {/* Delete */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
-            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
-            title="Delete practice"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        </div>
+        {canDelete && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
+              className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+              title="Delete practice"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
     </div>

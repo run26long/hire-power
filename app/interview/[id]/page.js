@@ -15,6 +15,16 @@ import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 // derived from this array's indexes rather than written out again.
 const VALID_STEPS = ['analyze', 'research', 'prepare', 'practice'];
 
+// What a free account gets, mirrored from the routes that enforce it: one
+// Power Analysis and three practice sessions, both for the life of the account
+// rather than per job. Read here only to show the gate before a request is
+// made — the server is what actually refuses.
+const FREE_PA_LIMIT = 1;
+const FREE_SESSION_LIMIT = 3;
+
+const FREE_PA_LIMIT_MESSAGE =
+  "You've used your free Power Analysis. Go Pro to analyze every job you pursue.";
+
 // highest_step_reached can still read 'coach' on rows written before that step
 // came out of the flow. It was the last step then, so a row that reached it
 // reached the end: without this it indexes to -1 and every step looks locked.
@@ -290,6 +300,13 @@ export default function InterviewDetailPage() {
   // Auto-generate Power Analysis on first landing if none exists
   useEffect(() => {
     if (!loading && jobCard && !powerAnalysis && !paError && !generating) {
+      // A free account that has already had its one analysis is shown the gate
+      // here rather than sent to the route to be refused. The answer is the
+      // same either way, and landing on a spinner first only delays it.
+      if (!isPro && (userProfile?.interview_samples_used ?? 0) >= FREE_PA_LIMIT) {
+        setPaError({ type: 'free_limit', message: FREE_PA_LIMIT_MESSAGE });
+        return;
+      }
       handleGeneratePA();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,6 +447,10 @@ export default function InterviewDetailPage() {
         }
         if (data.error === 'JOB_CARD_INCOMPLETE') {
           setPaError({ type: 'incomplete', message: "This job card is missing a title or job description. Add those in Job Tracker first." });
+          return;
+        }
+        if (data.error === 'FREE_PA_LIMIT_REACHED') {
+          setPaError({ type: 'free_limit', message: FREE_PA_LIMIT_MESSAGE });
           return;
         }
         setPaError({ type: 'generic', message: "We couldn't analyze this job right now. Try again in a moment." });
@@ -665,17 +686,22 @@ export default function InterviewDetailPage() {
                       <strong>Your resume was updated since this analysis.</strong> This analysis reflects the previous version of your resume.
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Refreshing creates a new analysis. Continue?")) {
-                        handleGeneratePA();
-                      }
-                    }}
-                    disabled={generating}
-                    className="text-xs font-semibold text-amber-900 hover:text-amber-700 underline whitespace-nowrap disabled:opacity-50 flex-shrink-0"
-                  >
-                    {generating ? 'Refreshing...' : 'Refresh →'}
-                  </button>
+                  {/* A refresh is a whole analysis, and a free account has
+                      only ever had one. The warning still stands — there is
+                      just nothing to offer under it. */}
+                  {isPro && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Refreshing creates a new analysis. Continue?")) {
+                          handleGeneratePA();
+                        }
+                      }}
+                      disabled={generating}
+                      className="text-xs font-semibold text-amber-900 hover:text-amber-700 underline whitespace-nowrap disabled:opacity-50 flex-shrink-0"
+                    >
+                      {generating ? 'Refreshing...' : 'Refresh →'}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -687,7 +713,28 @@ export default function InterviewDetailPage() {
                 </div>
               )}
 
-              {paError && (
+              {/* FREE TIER — the one analysis is spent. Purple rather than the
+                  red the errors below use: nothing has gone wrong, there is
+                  simply nothing more to give away. */}
+              {paError?.type === 'free_limit' && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base flex-shrink-0">🔒</span>
+                    <div className="flex-1">
+                      <p className="text-sm md:text-xs text-purple-900 leading-snug mb-3">{paError.message}</p>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className={STEP_PRIMARY_CLASS}
+                        style={STEP_PRIMARY_STYLE}
+                      >
+                        Go Pro
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {paError && paError.type !== 'free_limit' && (
                 <div className="border border-red-200 rounded-lg p-4 bg-red-50">
                   <div className="flex items-start gap-2">
                     <span className="text-base flex-shrink-0">⚠️</span>
@@ -895,6 +942,10 @@ export default function InterviewDetailPage() {
                   experienceLevel={experienceLevel}
                   jobTitle={jobCard.title}
                   jobCompany={jobCard.company}
+                  // Shown before the mode selector rather than after a refused
+                  // request. The route is still what enforces it.
+                  practiceLocked={!isPro && (userProfile?.interview_sessions_used ?? 0) >= FREE_SESSION_LIMIT}
+                  onUpgradeClick={() => setShowUpgradeModal(true)}
                   reviewSessionId={reviewSessionId}
                   resumeSessionId={resumeSessionId}
                   // The open session, if there is one. Read from the same list

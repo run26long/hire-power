@@ -407,6 +407,10 @@ export default function PracticeView({
   // fetching it again here would be a second trip for two strings.
   jobTitle = '',
   jobCompany = '',
+  // Free practice is spent. Read from the profile by the parent, so the gate
+  // shows in place of the mode selector rather than after a refused request.
+  practiceLocked = false,
+  onUpgradeClick = () => {},
   reviewSessionId = null,
   // A paused session the candidate clicked in the history, to be picked up
   // rather than read back.
@@ -457,6 +461,8 @@ export default function PracticeView({
   // selectedMode does not move until the consent row is actually written.
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
   const [starting, setStarting] = useState(false);
+  // Set when the route refuses a session the parent thought was still owed.
+  const [limitReached, setLimitReached] = useState(false);
   const [sending, setSending] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [coachingLoading, setCoachingLoading] = useState(false);
@@ -787,7 +793,10 @@ export default function PracticeView({
 
       if (!res.ok) {
         if (data.error === 'FREE_LIMIT_REACHED') {
-          onError("You've used your free practice session for this job. Upgrade to Pro for unlimited practice.");
+          // The panel says it rather than a toast that scrolls away: this is
+          // the end of the free tier, not a hiccup to dismiss. Reached when
+          // the profile the parent read has fallen behind the server's count.
+          setLimitReached(true);
         } else if (data.error === 'MONTHLY_CAP_REACHED') {
           onError(`You've reached your monthly practice limit. Your limit resets on ${formatResetDate(data.resetDate)}.`);
         } else if (data.error === 'SESSION_ALREADY_OPEN') {
@@ -1668,6 +1677,35 @@ export default function PracticeView({
   }
 
   if (sessionState === 'idle') {
+    // Nothing left to choose between: the mode selector and the start button
+    // come out, and what replaces them is the only thing that would help.
+    if (practiceLocked || limitReached) {
+      return (
+        <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+          <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-start gap-2">
+              <span className="text-base flex-shrink-0">🔒</span>
+              <div className="flex-1">
+                <p className="text-sm md:text-xs text-purple-900 leading-snug mb-3">
+                  You&apos;ve completed your free interview prep. Go Pro for unlimited practice on
+                  every job you pursue.
+                </p>
+                <button
+                  onClick={onUpgradeClick}
+                  className="text-white rounded-lg py-2 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+                  style={GRADIENT}
+                >
+                  Go Pro
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="px-5 py-4 space-y-2 flex-1 flex flex-col">
         <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>

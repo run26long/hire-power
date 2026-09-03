@@ -5,13 +5,17 @@ import { convertResumeToText } from '@/lib/resumeText';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// A free trial is one session per job card. Pro practice is capped monthly
-// rather than per card so a candidate can spread it across their search.
-const FREE_TRIAL_LIMIT = 1;
+// A free account gets three sessions for the life of the account rather than
+// one per job card: the free tier is one job prepared for properly, not a
+// taste of every job. Pro practice is capped monthly rather than per card so a
+// candidate can spread it across their search.
+const FREE_TRIAL_LIMIT = 3;
 const MONTHLY_PRACTICE_CAP = 30;
 
-const QUESTION_COUNTS = { free_trial: 5, pro_practice: 10 };
-const BANK_COUNTS = { free_trial: 1, pro_practice: 2 };
+// One interview, whatever the plan. Free and Pro differ in how many sessions
+// you get, never in what a session is.
+const QUESTION_COUNT = 10;
+const BANK_COUNT = 2;
 
 const VALID_SESSION_TYPES = ['free_trial', 'pro_practice'];
 const VALID_VOICE_MODES = ['mode_1', 'mode_2', 'mode_3'];
@@ -307,7 +311,8 @@ async function logApiCall(supabase, { userId, sessionId, usage }) {
 // Request body: {
 //   job_card_id: string,
 //   power_analysis_id: string,
-//   session_type: 'free_trial' | 'pro_practice',
+//   session_type: 'free_trial' | 'pro_practice',  // advisory; the tier on the
+//                                                 // profile is what decides
 //   voice_mode: 'mode_1' | 'mode_2' | 'mode_3'
 // }
 // ============================================================================
@@ -384,25 +389,36 @@ export async function POST(request) {
       }
     }
 
-    // ---- GATING ----
-    if (session_type === 'free_trial') {
-      const { count, error: countError } = await supabase
-        .from('interview_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('job_card_id', job_card_id)
-        .in('status', ['completed', 'in_progress']);
+    // ---- TIER ----
+    // Read from the profile rather than taken from the request. session_type is
+    // only the client's word for which plan it thinks it is on, and a free
+    // account sending 'pro_practice' would otherwise walk straight past the
+    // gate below.
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_tier, interview_sessions_used')
+      .eq('id', userId)
+      .maybeSingle();
 
-      if (countError) {
-        console.error('Mock session free trial count error:', countError);
-        return Response.json({ error: 'SESSION_CREATION_FAILED' }, { status: 500 });
-      }
-      if ((count ?? 0) >= FREE_TRIAL_LIMIT) {
+    if (profileError) {
+      console.error('Mock session profile lookup error:', profileError);
+      return Response.json({ error: 'SESSION_CREATION_FAILED' }, { status: 500 });
+    }
+
+    const isPro = profile?.subscription_tier === 'pro';
+    const sessionsUsed = profile?.interview_sessions_used ?? 0;
+
+    // ---- GATING ----
+    if (!isPro) {
+      // Counted on the profile rather than by counting session rows: a count
+      // of rows drops when one is deleted, which would hand the allowance
+      // back. This number only ever goes up.
+      if (sessionsUsed >= FREE_TRIAL_LIMIT) {
         return Response.json({ error: 'FREE_LIMIT_REACHED' }, { status: 403 });
       }
     }
 
-    if (session_type === 'pro_practice') {
+    if (isPro) {
       const now = new Date();
       const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
       // Date.UTC rolls a month index of 12 into January of the next year.
@@ -510,8 +526,8 @@ export async function POST(request) {
     )];
 
     // ---- GENERATE ----
-    const questionCount = QUESTION_COUNTS[session_type];
-    const bankCount = BANK_COUNTS[session_type];
+    const questionCount = QUESTION_COUNT;
+    const bankCount = BANK_COUNT;
 
     let generated;
     try {
@@ -595,7 +611,10 @@ export async function POST(request) {
         user_id: userId,
         job_card_id,
         power_analysis_id,
-        session_type,
+        // The plan this session was actually created under, not the one the
+        // request claimed: the row is what the history and the counts are read
+        // back from, so it says what the server decided.
+        session_type: isPro ? 'pro_practice' : 'free_trial',
         voice_mode,
         question_count_target: questions.length,
         status: 'in_progress',
@@ -610,6 +629,21 @@ export async function POST(request) {
     if (sessionError || !session) {
       console.error('Mock session insert error:', sessionError);
       return Response.json({ error: 'SESSION_CREATION_FAILED' }, { status: 500 });
+    }
+
+    // ---- COUNT THE SESSION ----
+    // Counted when the session is created, not when it is finished: the
+    // questions above are already generated and paid for by this point.
+    // Non-blocking — the interview exists either way, and a candidate should
+    // not lose one to a failed write on a counter.
+    if (!isPro) {
+      const { error: usageError } = await supabase
+        .from('profiles')
+        .update({ interview_sessions_used: sessionsUsed + 1 })
+        .eq('id', userId);
+      if (usageError) {
+        console.error('interview_sessions_used increment failed (non-blocking):', usageError);
+      }
     }
 
     // ---- CREATE QUESTIONS ----
