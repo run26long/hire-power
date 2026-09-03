@@ -1121,7 +1121,13 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   // The high-water mark is what decides the next step, not current_step: a
   // card whose owner clicked back to an earlier step should still be pointed
   // forward. A mark we don't recognise reads as the first step.
-  const markIndex = DETAIL_STEP_ORDER.indexOf(card.highestStepReached || 'analyze');
+  //
+  // 'coach' is a mark from before that step came out of the flow, where it was
+  // the last one: a card that reached it reached the end, which leaves Practice
+  // — the repeatable step — as the one to go back to.
+  const markIndex = card.highestStepReached === 'coach'
+    ? DETAIL_STEP_ORDER.length - 1
+    : DETAIL_STEP_ORDER.indexOf(card.highestStepReached || 'analyze');
   const reachedIndex = markIndex === -1 ? 0 : markIndex;
 
   // One past the mark, capped at the last step. Practice is the repeatable

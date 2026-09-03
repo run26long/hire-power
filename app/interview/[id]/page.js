@@ -15,6 +15,14 @@ import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 // derived from this array's indexes rather than written out again.
 const VALID_STEPS = ['analyze', 'research', 'prepare', 'practice'];
 
+// highest_step_reached can still read 'coach' on rows written before that step
+// came out of the flow. It was the last step then, so a row that reached it
+// reached the end: without this it indexes to -1 and every step looks locked.
+function reachedIndexFor(mark) {
+  if (mark === 'coach') return VALID_STEPS.length - 1;
+  return VALID_STEPS.indexOf(mark || 'analyze');
+}
+
 export default function InterviewDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -296,7 +304,7 @@ export default function InterviewDetailPage() {
     // Clamped to the high-water mark. A hand-typed ?step= must not unlock what
     // the strip keeps locked, and the furthest step they have actually reached
     // is the closest honest answer to what was asked for.
-    const reached = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
+    const reached = reachedIndexFor(powerAnalysis?.highest_step_reached);
     const requested = VALID_STEPS.indexOf(jumpStep);
     setCurrentStep(requested > reached ? VALID_STEPS[Math.max(reached, 0)] : jumpStep);
     // Drop the param so a refresh lands on the saved step instead of jumping
@@ -547,7 +555,7 @@ export default function InterviewDetailPage() {
   // Research and Prepare have nothing to finish, so reaching them is what
   // counts. Measured against the high-water mark rather than the current step,
   // so walking back through the strip doesn't strip their checks.
-  const reachedIndex = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
+  const reachedIndex = reachedIndexFor(powerAnalysis?.highest_step_reached);
   const completeByKey = {
     analyze: analyzeComplete,
     research: reachedIndex >= VALID_STEPS.indexOf('research'),
@@ -804,7 +812,7 @@ export default function InterviewDetailPage() {
                     { label: 'Research', key: 'research' },
                     { label: 'Prep', key: 'prepare' },
                     { label: 'Practice', key: 'practice' }
-                  ].map(({ label, key }, i) => {
+                  ].map(({ label, key }) => {
                     const current = key === currentStep;
                     // Unlocked by the high-water mark rather than by
                     // completion: a step they have already opened is one they
@@ -820,17 +828,20 @@ export default function InterviewDetailPage() {
                     return (
                       <div
                         key={key}
-                        className={`flex flex-col items-center ${clickable ? 'cursor-pointer' : 'cursor-default'} ${unlocked ? '' : 'opacity-50'}`}
+                        className="flex flex-col items-center"
                         onClick={onStepClick}
                       >
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10 ${
-                          unlocked ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
+                          current ? 'text-white' :
+                          unlocked ? 'text-white cursor-pointer transition-colors' :
+                          'bg-white border-2 border-gray-300 text-gray-400'
                         }`} style={unlocked ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
-                          {unlocked ? '✓' : i + 1}
+                          {current ? '●' : unlocked ? '✓' : '○'}
                         </div>
-                        <span className={`text-xs md:text-[10px] mt-1 ${
+                        <span className={`text-sm md:text-xs mt-1 ${
                           current ? 'text-purple-600 font-semibold' :
-                          unlocked ? 'text-purple-600' : 'text-gray-400'
+                          unlocked ? 'text-purple-600 cursor-pointer hover:underline' :
+                          'text-gray-400'
                         }`}>{label}</span>
                       </div>
                     );
