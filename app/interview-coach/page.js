@@ -1225,7 +1225,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
             onClick={(e) => { setNavigatingTo(primaryStep); goToDetail(e, primaryStep); }}
             disabled={!!navigatingTo}
             className={`flex-shrink-0 rounded-md py-1.5 font-semibold text-white whitespace-nowrap flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              compact ? 'px-4 text-xs md:text-[11px]' : 'px-6 text-sm md:text-xs'
+              compact ? 'min-w-[125px] px-4 text-xs md:text-[11px]' : 'min-w-[150px] px-6 text-sm md:text-xs'
             }`}
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
