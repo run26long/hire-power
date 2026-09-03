@@ -857,7 +857,7 @@ export default function MyInterviewsPage() {
                               {practiceCards.length > 3 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
-                                    className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 mb-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     View all interview practices →
                                   </button>
@@ -923,11 +923,10 @@ export default function MyInterviewsPage() {
                     </div>
 
                     {/* The completion panel's three bands, in its headings and
-                        its colours, each ruled in its own so the eye sorts them
-                        before reading a word. */}
+                        its colours, so the words land the same in both places. */}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
                       {SCORE_BANDS.map(({ icon, title, color, range }) => (
-                        <div key={title} className="pl-2 border-l-2" style={{ borderColor: `${color}4D` }}>
+                        <div key={title}>
                           <p className="text-sm font-semibold whitespace-nowrap" style={{ color }}>
                             {icon} {title}
                           </p>
