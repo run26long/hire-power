@@ -22,9 +22,9 @@ const QUESTIONS_OF_THE_DAY = [
 // its colours, so the hub reads as the key to a screen the candidate may not
 // have reached yet.
 const SCORE_BANDS = [
-  { heading: '🎯 Nailed It', color: '#9333ea', range: 'Scored 80+' },
-  { heading: '💪 Solid Ground', color: '#81c784', range: 'Scored 60-79' },
-  { heading: '🌱 Room to Grow', color: '#ffc870', range: 'Below 60' }
+  { icon: '🎯', title: 'Nailed It', color: '#9333ea', range: 'Scored 80+' },
+  { icon: '💪', title: 'Solid Ground', color: '#81c784', range: 'Scored 60-79' },
+  { icon: '🌱', title: 'Room to Grow', color: '#ffc870', range: 'Below 60' }
 ];
 
 // Match score ring color, matching Resume Coach's getCircleColor.
@@ -685,6 +685,11 @@ export default function MyInterviewsPage() {
   // can be deleted, and the analysis behind it still counted.
   const practiceLocked = !isPro && (userProfile?.interview_samples_used ?? 0) >= 1;
 
+  // The badge takes the colour of the score it carries. With nothing to show
+  // yet it stays grey rather than wearing the bottom of the ramp, which would
+  // read as a bad score rather than as no score.
+  const highScoreTone = highScore > 0 ? getCircleColor(highScore) : '#d1d5db';
+
   return (
     <div className="h-screen bg-gray-50 flex">
 
@@ -710,8 +715,11 @@ export default function MyInterviewsPage() {
 
         <div className="px-6 pt-0 pb-6 flex-1 flex flex-col">
 
-          {/* Steps */}
-          <div style={{ marginBottom: 16 }}>
+          {/* Steps. Spread across whatever height the viewport leaves rather
+              than stacked at the top: four steps left the column half empty at
+              any window size, and a number picked for one screen is wrong on
+              the next. */}
+          <div className="flex-1 flex flex-col justify-between" style={{ marginBottom: 16 }}>
             {[
               { 
                 num: '1', 
@@ -766,7 +774,7 @@ export default function MyInterviewsPage() {
           {/* Bottom section. mt-auto so it closes the sidebar at the foot of
               the column rather than leaving the gradient running empty under
               it — there are four steps here, where Resume Coach has five. */}
-          <div className="mt-auto">
+          <div className="mt-auto mb-4">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
             <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Ready to interview?
@@ -792,7 +800,7 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-8 space-y-2">
 
                 {/* Practice History Card */}
-                <div data-tour="interview-prep" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[384px]">
+                <div data-tour="interview-prep" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col overflow-hidden md:h-[434px]">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
@@ -807,7 +815,7 @@ export default function MyInterviewsPage() {
                             /* The free job is spent, so the way in is closed and
                                what stands in its place says why. The card below
                                still opens: what they prepared is still theirs. */
-                            <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 flex items-center gap-3">
+                            <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 flex items-center gap-3" style={{ height: '66px' }}>
                               <span className="text-base flex-shrink-0 leading-none">🔒</span>
                               <p className="flex-1 text-sm md:text-xs text-purple-900 leading-snug">
                                 You&apos;ve used your free interview prep. Go Pro to practice for every job you pursue.
@@ -824,7 +832,7 @@ export default function MyInterviewsPage() {
                             <button
                               onClick={handleOpenPracticeModal}
                               className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
-                              style={{ height: '44px' }}
+                              style={{ height: '66px' }}
                             >
                               <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
                                 <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -849,7 +857,7 @@ export default function MyInterviewsPage() {
                               {practiceCards.length > 3 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
-                                    className="w-full text-center py-1.5 mb-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     View all interview practices →
                                   </button>
@@ -885,61 +893,66 @@ export default function MyInterviewsPage() {
               <div className="col-span-1 md:col-span-4 space-y-2 flex flex-col self-stretch">
 
                 {/* Practice Stats */}
-                {/* Their best interview on the left, what the bands beside it
-                    mean on the right: the card doubles as the key to a scoring
-                    screen they may not have seen yet. */}
+                {/* Their best interview badged on the left in its own colour,
+                    the bands it was measured against on the right: the card
+                    doubles as the key to a scoring screen they may not have
+                    reached yet. */}
                 <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] flex flex-col">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
-                  <div className="flex-1 flex gap-3 min-h-0">
+                  <div className="flex-1 flex items-center gap-3 min-h-0">
 
-                    {/* HIGH SCORE — the same ramp the score displays use, so a
-                        number means the same thing wherever it is read. */}
-                    <div className="flex flex-col items-center justify-center text-center flex-shrink-0">
-                      <span
-                        className={`text-4xl font-bold leading-none ${highScore > 0 ? '' : 'text-gray-300'}`}
-                        style={highScore > 0 ? { color: getCircleColor(highScore) } : undefined}
+                    {/* HIGH SCORE — the ramp the score displays use, so a number
+                        means the same thing wherever it is read. The border and
+                        the wash behind it are that same colour at 30% and 5%,
+                        so the badge is tinted by the score rather than by a
+                        palette of its own. */}
+                    <div className="flex flex-col items-center flex-shrink-0">
+                      <div
+                        className="rounded-xl border-2 px-4 py-3 flex flex-col items-center"
+                        style={{ borderColor: `${highScoreTone}4D`, backgroundColor: `${highScoreTone}0D` }}
                       >
-                        {highScore > 0 ? highScore : '--'}
-                      </span>
-                      <p className="text-xs md:text-[10px] font-semibold text-gray-500 uppercase tracking-wide mt-1.5">High Score</p>
-
-                      <div className="mt-2 space-y-0.5 text-xs md:text-[10px] text-gray-400 whitespace-nowrap">
-                        <p><span className="font-bold text-gray-500">{totalSessions}</span> Sessions</p>
-                        <p><span className="font-bold text-gray-500">{jobsPracticed}</span> Jobs Practiced</p>
+                        <span className="text-5xl font-bold leading-none" style={{ color: highScoreTone }}>
+                          {highScore > 0 ? highScore : '--'}
+                        </span>
+                        <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wide text-gray-400 mt-1.5">
+                          High Score
+                        </p>
                       </div>
+
+                      <p className="mt-2 text-xs md:text-[10px] text-gray-400 whitespace-nowrap">
+                        {totalSessions} Sessions <span className="text-gray-300">·</span> {jobsPracticed} Jobs Practiced
+                      </p>
                     </div>
 
                     {/* The completion panel's three bands, in its headings and
-                        its colours, so the words land the same in both places. */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                      {SCORE_BANDS.map(({ heading, color, range }) => (
-                        <div key={heading}>
-                          <p className="text-sm md:text-xs font-bold whitespace-nowrap" style={{ color }}>{heading}</p>
+                        its colours, each ruled in its own so the eye sorts them
+                        before reading a word. */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
+                      {SCORE_BANDS.map(({ icon, title, color, range }) => (
+                        <div key={title} className="pl-2 border-l-2" style={{ borderColor: `${color}4D` }}>
+                          <p className="text-xs font-semibold whitespace-nowrap" style={{ color }}>
+                            {icon} {title}
+                          </p>
                           <p className="text-xs md:text-[10px] text-gray-400 leading-snug">{range}</p>
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  {/* Only useful before there's anything to show. */}
-                  {totalSessions === 0 && (
-                    <p className="text-xs md:text-[10px] text-gray-400 text-center mt-2">Start practicing to see your stats here</p>
-                  )}
                 </div>
 
                 {/* Practice out loud callout */}
                 <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[74px] overflow-hidden">
                   <p className="text-sm md:text-xs text-gray-700 leading-snug">
-                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in real interviews. Make every answer count.
+                    Candidates who practice out loud, not just in their head, are significantly more confident and articulate in their actual interviews. Our realistic interview practice makes it easy.
                   </p>
                 </div>
 
                 {/* Interview Readiness Checklist */}
                 <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[250px] overflow-hidden">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Your Interview Checklist</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">Complete these before every interview so nothing catches you off guard.</p>
+                  <p className="text-sm md:text-xs text-gray-500 mb-4">Complete these before each interview to be fully prepared.</p>
 
                   <div className="space-y-1.5">
                     {[
