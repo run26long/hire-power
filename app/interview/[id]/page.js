@@ -881,7 +881,7 @@ export default function InterviewDetailPage() {
                   onResumePaused={(id) => { setReviewSessionId(null); setResumeSessionId(id); }}
                   onSessionDeleted={handleSessionDeleted}
                   resetSignal={practiceResetSignal}
-                  onBack={() => goToStep('research')}
+                  onBack={() => goToStep('prepare')}
                   onSessionPaused={() => {
                     setResumeSessionId(null);
                     setReviewSessionId(null);
@@ -1422,7 +1422,7 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
             You’re ready.
           </h4>
           <p className="text-sm md:text-xs text-gray-600 leading-snug">
-            Keep what you learned in mind as you practice.
+            Review your prep materials before you practice.
           </p>
         </div>
         <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
