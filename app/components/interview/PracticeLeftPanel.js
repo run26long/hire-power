@@ -810,6 +810,48 @@ function CompletedPanel({
   );
 }
 
+// ============================================================================
+// INTERVIEW TIPS
+// Static, every session the same. Nothing here is scored, generated or read
+// from a row: it's the handful of things worth being reminded of while the
+// next question is being read out.
+// ============================================================================
+
+const STAR_STEPS = [
+  { label: 'Situation', text: 'Set the scene briefly' },
+  { label: 'Task', text: 'What was your responsibility' },
+  { label: 'Action', text: 'What YOU specifically did' },
+  { label: 'Result', text: 'The measurable outcome' }
+];
+
+// The two categories every answer comes back scored on, said the way the
+// feedback says them, so the panel and the scores use one vocabulary.
+const SCORED_CATEGORIES = [
+  { label: 'Clarity', text: 'How well-structured and easy to follow your answer is. Use a clear opening, logical flow, and a strong finish.' },
+  { label: 'Content', text: 'How relevant and specific your answer is. Include real examples, numbers, and results from your experience.' }
+];
+
+const QUICK_TIPS = [
+  'Take a breath before answering',
+  "It's okay to pause and think",
+  'Specific beats generic every time',
+  'Connect your answer back to the role'
+];
+
+// min-h-0 so the fixed-height parent divides the space rather than the words
+// inside claiming it, and overflow-hidden so a card that runs long is clipped
+// instead of pushing its neighbours out of the block.
+function TipCard({ icon, title, children }) {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 overflow-hidden md:flex-1 md:min-h-0">
+      <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
+        {icon} {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
 export default function PracticeLeftPanel({
   // Only for the storage path a recording is filed under.
   userId = null,
@@ -817,10 +859,6 @@ export default function PracticeLeftPanel({
   sessionData = null,
   completionData = null,
   pastSessions = [],
-  interviewerQuestions = [],
-  // Only to tell "questions still loading" from "no questions": an empty array
-  // is the same value either way, and the id is the thing they'd load from.
-  powerAnalysisId = null,
   onSelectSession,
   onStartNew,
   // Deleting a session is the parent's to record: it owns the list this one
@@ -838,8 +876,8 @@ export default function PracticeLeftPanel({
     // the list keeps its full shape before the questions have loaded.
     const slotCount = Math.max(sessionData?.session?.question_count_target ?? 0, questions.length);
 
-    // A flex column rather than the usual block: the interviewer questions
-    // claim all the height left under the progress card.
+    // A flex column rather than the usual block: the progress card sits at the
+    // top and the tips take a fixed block underneath it.
     return (
       <div className="flex flex-col gap-3 flex-1 min-h-0">
 
@@ -874,45 +912,48 @@ export default function PracticeLeftPanel({
           </div>
         </div>
 
-        {/* QUESTIONS FOR YOUR INTERVIEWER — full width under both cards, and
-            scrolls if the list outgrows the space left. */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex-1 min-h-0 overflow-y-auto">
-          <h4 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: '#9333ea' }}>
-            Questions For Your Interviewer
+        {/* INTERVIEW TIPS — a fixed-height block, sized the way the hub sizes
+            its panel cards. The three cards divide what's left of it between
+            them, so each one holds its shape rather than growing with the
+            words inside it: this is read at a glance mid-interview, and a
+            panel that reflows is a panel nobody can find their place in. */}
+        <div className="flex flex-col gap-3 flex-shrink-0 md:h-[520px]">
+          <h4 className="text-sm font-bold uppercase tracking-wide flex-shrink-0" style={{ color: '#9333ea' }}>
+            Interview Tips
           </h4>
 
-          {/* An empty array is ambiguous on its own — it's the same value while
-              the fetch is in flight and after it comes back with nothing. The
-              spinner shows until there's a power analysis to have loaded from. */}
-          {!powerAnalysisId ? (
-            <div className="flex justify-center py-3">
-              <div className="h-4 w-4 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
-            </div>
-          ) : interviewerQuestions.length > 0 ? (
-            <div className="space-y-2">
-              {interviewerQuestions.map((q, i) => (
-                <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-2'}>
-                  <div className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
-                    <div className="min-w-0">
-                      <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
-                        {q.tailored_text || q.original_text}
-                      </p>
-                      {q.rationale && (
-                        <p className="text-sm md:text-xs text-gray-600 leading-snug mt-0.5">
-                          {q.rationale}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          <TipCard icon="⭐" title="The STAR Method">
+            <ul className="space-y-1">
+              {STAR_STEPS.map(({ label, text }) => (
+                <li key={label} className="text-xs leading-snug">
+                  <span className="font-bold text-gray-900">{label}:</span>{' '}
+                  <span className="text-gray-600">{text}</span>
+                </li>
               ))}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-500">
-              Complete Research to generate interviewer questions.
-            </p>
-          )}
+            </ul>
+          </TipCard>
+
+          <TipCard icon="📊" title="What We Score">
+            <ul className="space-y-1.5">
+              {SCORED_CATEGORIES.map(({ label, text }) => (
+                <li key={label} className="text-xs leading-snug">
+                  <span className="font-bold text-gray-900">{label}:</span>{' '}
+                  <span className="text-gray-600">{text}</span>
+                </li>
+              ))}
+            </ul>
+          </TipCard>
+
+          <TipCard icon="💡" title="Quick Tips">
+            <ul className="space-y-1">
+              {QUICK_TIPS.map(tip => (
+                <li key={tip} className="text-xs leading-snug text-gray-600 flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </TipCard>
         </div>
       </div>
     );

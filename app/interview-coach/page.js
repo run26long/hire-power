@@ -74,7 +74,7 @@ const HUB_TOUR_STEPS = [
     targets: ['interview-prep'],
     placement: 'right',
     title: 'Your interview prep hub',
-    body: 'Start a new practice for any job, or pick up where you left off. Each card shows three ways to prepare for your interview: Analysis, Research, and Practice. Do them in order or skip to what you need.'
+    body: 'Start a new practice for any job, or pick up where you left off. Each card shows four ways to prepare for your interview: Analysis, Research, Prep, and Practice. Do them in order or skip to what you need.'
   },
   {
     id: 'practice-stats',
@@ -654,6 +654,11 @@ export default function MyInterviewsPage() {
               },
               {
                 num: '3',
+                title: 'Interview Prep',
+                desc: 'Get questions to ask your interviewer and print a toolkit to take with you.'
+              },
+              {
+                num: '4',
                 title: 'Interview Practice',
                 desc: 'Practice with customized questions based on your skills and experience and the job requirements.',
                 tag: 'Free: 1 session · Pro: Unlimited'
@@ -716,7 +721,7 @@ export default function MyInterviewsPage() {
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
                   <p className="text-sm md:text-xs text-gray-500 mb-2">
-                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all or just what you need.
+                    Prep for any interview with <span className="whitespace-nowrap font-semibold text-gray-700">Power Analysis</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Company Research</span>, <span className="whitespace-nowrap font-semibold text-gray-700">Interview Prep</span>, or <span className="whitespace-nowrap font-semibold text-gray-700">Interview Practice</span>. Do all or just what you need.
                   </p>
 
                       <div>
@@ -1082,21 +1087,24 @@ const FEEDBACK_STEP_BUILT = false;
 const STEP_FROM_DETAIL = {
   analyze: 'analysis',
   research: 'research',
+  prepare: 'prepare',
   practice: 'practice',
 };
 
 // The detail page's order, and the dropdown key each position maps to. Used to
 // decide how far down the flow a card has been.
-const DETAIL_STEP_ORDER = ['analyze', 'research', 'practice'];
+const DETAIL_STEP_ORDER = ['analyze', 'research', 'prepare', 'practice'];
 const STEP_TO_DETAIL = {
   analysis: 'analyze',
   research: 'research',
+  prepare: 'prepare',
   practice: 'practice',
 };
 
 const STEP_DISPLAY_NAMES = {
   analysis: 'Analysis',
   research: 'Research',
+  prepare: 'Prep',
   practice: 'Practice',
   feedback: 'Feedback',
 };
@@ -1106,44 +1114,32 @@ function PracticeCard({ card, onClick, onDeleteRequest, compact = false }) {
   const [navigatingTo, setNavigatingTo] = useState(null);
 
   const hasAnalyzed = true; // card only appears if PA exists
-  const hasPracticed = (card.sessionsCount || 0) > 0;
-  // No research completion detection yet — always false until it's wired up.
-  const hasResearch = card.hasResearch || false;
-  const hasFeedback = card.hasFeedback || false;
 
   const interviewIsUpcoming = card.interviewDate && new Date(card.interviewDate).getTime() > Date.now();
   const interviewIsPast = card.interviewDate && new Date(card.interviewDate).getTime() < Date.now();
 
-  // Where they actually are beats anything we could infer, so a saved step is
-  // taken at face value. The inference below only runs for cards last touched
-  // before the detail page started recording it.
-  const savedStep = STEP_FROM_DETAIL[card.currentStep];
+  // The high-water mark is what decides the next step, not current_step: a
+  // card whose owner clicked back to an earlier step should still be pointed
+  // forward. A mark we don't recognise reads as the first step.
+  const markIndex = DETAIL_STEP_ORDER.indexOf(card.highestStepReached || 'analyze');
+  const reachedIndex = markIndex === -1 ? 0 : markIndex;
 
-  let primaryStep;
-  if (savedStep) {
-    primaryStep = savedStep;
-  } else if (!hasResearch) {
-    primaryStep = 'research';
-  } else if (!hasPracticed) {
-    primaryStep = 'practice';
-  } else if (FEEDBACK_STEP_BUILT && !hasFeedback) {
-    primaryStep = 'feedback';
-  } else {
-    primaryStep = 'practice';
-  }
+  // One past the mark, capped at the last step. Practice is the repeatable
+  // one, so a card that has reached it keeps being sent back to it.
+  const primaryStep = STEP_FROM_DETAIL[
+    DETAIL_STEP_ORDER[Math.min(reachedIndex + 1, DETAIL_STEP_ORDER.length - 1)]
+  ];
 
   const primaryLabel = `Go to ${STEP_DISPLAY_NAMES[primaryStep] || 'Analysis'}`;
 
   // The dropdown is for going back, not skipping ahead, so it stops at the
-  // furthest step they've actually reached. A null mark means they've never
-  // navigated, which leaves Analysis on its own.
-  const reachedIndex = DETAIL_STEP_ORDER.indexOf(card.highestStepReached || 'analyze');
-
-  // Bare names: everything listed has been reached, so a tick against each one
-  // said nothing the filter hadn't already said.
+  // furthest step they've actually reached. Bare names: everything listed has
+  // been reached, so a tick against each one said nothing the filter hadn't
+  // already said.
   const otherSteps = [
     { key: 'analysis', label: 'Analysis' },
     { key: 'research', label: 'Research' },
+    { key: 'prepare', label: 'Prep' },
     { key: 'practice', label: 'Practice' },
   ]
     .filter(step => {

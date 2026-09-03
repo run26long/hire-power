@@ -13,7 +13,7 @@ import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 
 // Order matters: every position, counter and high-water mark in this file is
 // derived from this array's indexes rather than written out again.
-const VALID_STEPS = ['analyze', 'research', 'practice'];
+const VALID_STEPS = ['analyze', 'research', 'prepare', 'practice'];
 
 export default function InterviewDetailPage() {
   const router = useRouter();
@@ -71,7 +71,6 @@ export default function InterviewDetailPage() {
   // Bumped to ask PracticeView for a fresh start. A counter rather than a
   // boolean so pressing Practice Again twice in a row still registers twice.
   const [practiceResetSignal, setPracticeResetSignal] = useState(0);
-  const [interviewerQuestions, setInterviewerQuestions] = useState([]);
   const [experienceLevel, setExperienceLevel] = useState('mid');
 
  const [errorToast, setErrorToast] = useState(null);
@@ -230,20 +229,6 @@ export default function InterviewDetailPage() {
         else setPastPracticeSessions(sessions || []);
       }
 
-      // The candidate's own questions, for the closer.
-      if (powerAnalysis?.id) {
-        const { data: questions, error: questionsError } = await supabase
-          .from('interviewer_questions_selected')
-          .select('*')
-          .eq('power_analysis_id', powerAnalysis.id)
-          .eq('user_id', user.id)
-          .order('order_index', { ascending: true });
-        if (!cancelled) {
-          if (questionsError) console.error('Interviewer questions load failed:', questionsError);
-          else setInterviewerQuestions(questions || []);
-        }
-      }
-
       // Display only. The route re-derives the level server side.
       const { data: context } = await supabase
         .from('career_context')
@@ -256,7 +241,7 @@ export default function InterviewDetailPage() {
     loadPracticeData();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, user?.id, powerAnalysis?.id, params.id, practiceDataSignal]);
+  }, [currentStep, user?.id, params.id, practiceDataSignal]);
 
   // ============================================================================
   // OPEN SESSION CHECK
@@ -308,7 +293,12 @@ export default function InterviewDetailPage() {
   useEffect(() => {
     if (loading || !hasPA || !jumpStep || jumpAppliedRef.current) return;
     jumpAppliedRef.current = true;
-    setCurrentStep(jumpStep);
+    // Clamped to the high-water mark. A hand-typed ?step= must not unlock what
+    // the strip keeps locked, and the furthest step they have actually reached
+    // is the closest honest answer to what was asked for.
+    const reached = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
+    const requested = VALID_STEPS.indexOf(jumpStep);
+    setCurrentStep(requested > reached ? VALID_STEPS[Math.max(reached, 0)] : jumpStep);
     // Drop the param so a refresh lands on the saved step instead of jumping
     // again. replaceState rather than router.replace: this is tidying the URL,
     // not a navigation, and it shouldn't re-render the tree.
@@ -554,13 +544,14 @@ export default function InterviewDetailPage() {
   // now that the step carries its own session panel the card only competed with it.
   const flatStep = true;
 
-  // Research has nothing to finish, so reaching it is what counts. Measured
-  // against the high-water mark rather than the current step, so walking back
-  // through the strip doesn't strip its check.
+  // Research and Prepare have nothing to finish, so reaching them is what
+  // counts. Measured against the high-water mark rather than the current step,
+  // so walking back through the strip doesn't strip their checks.
   const reachedIndex = VALID_STEPS.indexOf(powerAnalysis?.highest_step_reached || 'analyze');
   const completeByKey = {
     analyze: analyzeComplete,
     research: reachedIndex >= VALID_STEPS.indexOf('research'),
+    prepare: reachedIndex >= VALID_STEPS.indexOf('prepare'),
     practice: sessionsCount > 0
   };
 
@@ -642,9 +633,6 @@ export default function InterviewDetailPage() {
                   currentStep={currentStep}
                   titleOnly={flatStep}
                   company={jobCard.company}
-                  jobCardId={params.id}
-                  powerAnalysisId={powerAnalysis?.id}
-                  candidateName={userProfile?.display_name}
                 />
               )}
 
@@ -710,6 +698,17 @@ export default function InterviewDetailPage() {
                   with company research, so they step aside rather than stack. */}
               {currentStep === 'research' && <ResearchStepContent jobCard={jobCard} />}
 
+              {/* PREPARE — like research, takes over the working surface. The
+                  questions and the kit are what the candidate carries into the
+                  room, and the buckets have nothing to do with either. */}
+              {currentStep === 'prepare' && (
+                <PrepareLeftColumn
+                  jobCard={jobCard}
+                  powerAnalysisId={powerAnalysis?.id}
+                  candidateName={userProfile?.display_name}
+                />
+              )}
+
               {/* PRACTICE — session history and live progress. */}
               {currentStep === 'practice' && (
                 <PracticeLeftPanel
@@ -718,8 +717,6 @@ export default function InterviewDetailPage() {
                   sessionData={practiceShape}
                   completionData={practiceShape.completion}
                   pastSessions={pastPracticeSessions}
-                  interviewerQuestions={interviewerQuestions}
-                  powerAnalysisId={powerAnalysis?.id}
                   onSelectSession={(s) => {
                     // A finished session is read back; an open one is picked
                     // back up. Same click, two different destinations.
@@ -805,14 +802,17 @@ export default function InterviewDetailPage() {
                   {[
                     { label: 'Analyze', key: 'analyze' },
                     { label: 'Research', key: 'research' },
+                    { label: 'Prep', key: 'prepare' },
                     { label: 'Practice', key: 'practice' }
                   ].map(({ label, key }, i) => {
-                    const complete = completeByKey[key];
                     const current = key === currentStep;
-                    // Only finished steps are clickable, and only to go back to
-                    // them. A grey dot is a step they haven't reached, so it
-                    // does nothing: the first pass runs on the panel buttons.
-                    const clickable = complete && !current;
+                    // Unlocked by the high-water mark rather than by
+                    // completion: a step they have already opened is one they
+                    // can go back to, finished or not. Everything past the mark
+                    // is locked — grey, dimmed and inert — so the only way
+                    // forward is the panel button that also records the move.
+                    const unlocked = current || VALID_STEPS.indexOf(key) <= reachedIndex;
+                    const clickable = unlocked && !current;
                     const onStepClick = () => {
                       if (!clickable) return;
                       goToStep(key);
@@ -820,17 +820,17 @@ export default function InterviewDetailPage() {
                     return (
                       <div
                         key={key}
-                        className={`flex flex-col items-center ${clickable ? 'cursor-pointer' : 'cursor-default'}`}
+                        className={`flex flex-col items-center ${clickable ? 'cursor-pointer' : 'cursor-default'} ${unlocked ? '' : 'opacity-50'}`}
                         onClick={onStepClick}
                       >
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold z-10 ${
-                          complete || current ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
-                        }`} style={(complete || current) ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
-                          {complete ? '✓' : current ? '●' : i + 1}
+                          unlocked ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
+                        }`} style={unlocked ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
+                          {unlocked ? '✓' : i + 1}
                         </div>
                         <span className={`text-xs md:text-[10px] mt-1 ${
                           current ? 'text-purple-600 font-semibold' :
-                          complete ? 'text-purple-600' : 'text-gray-400'
+                          unlocked ? 'text-purple-600' : 'text-gray-400'
                         }`}>{label}</span>
                       </div>
                     );
@@ -850,9 +850,16 @@ export default function InterviewDetailPage() {
 
               {currentStep === 'research' && (
                 <ResearchIdlePanel
+                  onGoToPrepare={() => goToStep('prepare')}
+                  onBack={() => goToStep('analyze')}
+                />
+              )}
+
+              {currentStep === 'prepare' && (
+                <PrepareStepContent
                   hasActiveSession={hasActiveSession}
                   onGoToPractice={() => goToStep('practice')}
-                  onBack={() => goToStep('analyze')}
+                  onBack={() => goToStep('research')}
                 />
               )}
 
@@ -967,13 +974,12 @@ const STEP_BUTTON_BASE =
   'flex items-center justify-center gap-2 rounded-lg py-2 px-6 font-semibold text-sm md:text-xs whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
 const STEP_PRIMARY_CLASS = `${STEP_BUTTON_BASE} text-white transition-opacity hover:opacity-90`;
 const STEP_PRIMARY_STYLE = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
-const STEP_SECONDARY_CLASS = `${STEP_BUTTON_BASE} bg-white border border-purple-300 text-purple-600 transition-colors hover:bg-purple-50`;
 
-function BackLink({ onClick }) {
+function BackLink({ onClick, label = '← Back' }) {
   return (
     <div className="text-center">
       <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
-        ← Back
+        {label}
       </button>
     </div>
   );
@@ -1022,6 +1028,23 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
     </div>
   );
 }
+
+// Platform status colors, same triad the Job Tracker score rings use.
+const DOT_GREEN = '#81c784';
+const DOT_AMBER = '#ffc870';
+const DOT_PURPLE = '#9333ea';
+// Headings on the tinted overview card — purple on purple loses contrast.
+const HEADING_DARK = '#111827';
+
+// Culture values and question types read as the same kind of thing, so they
+// share one definition rather than two that can drift apart.
+const TAG_GREY = 'text-sm md:text-xs bg-gray-100 text-gray-600';
+
+const TAG_VARIANTS = {
+  culture: TAG_GREY,
+  question: TAG_GREY,
+  default: 'text-[11px] md:text-[10px] bg-purple-50 text-purple-700'
+};
 
 function Tag({ children, variant }) {
   const variantClass = TAG_VARIANTS[variant] || TAG_VARIANTS.default;
@@ -1191,12 +1214,18 @@ function useCompanyResearch(jobCard) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobCard?.id, jobCard?.company, attempt]);
 
+  // Settled means the fetch is done and said something definite, whether that
+  // was a brief, a recruiter, or nothing findable.
+  const researchSettled =
+    !researchLoading && !researchError && (!!research || researchNotFound || isRecruiter);
+
   return {
     research,
     researchLoading,
     researchError,
     researchNotFound,
     isRecruiter,
+    researchSettled,
     retryResearch: () => setAttempt(a => a + 1)
   };
 }
@@ -1226,8 +1255,8 @@ function ResearchStepContent({ jobCard }) {
       {!researchLoading && isRecruiter && (
         <ResearchEmptyState emoji="🏢" heading="Recruiting firm detected">
           {jobCard?.company || 'This company'} appears to be a recruiting firm hiring on behalf
-          of an undisclosed client. Your Power Analysis and coaching are based on the job
-          description, so you&apos;re still well prepared.
+          of an undisclosed client. Your Power Analysis is based on the job description, so
+          you&apos;re still well prepared.
         </ResearchEmptyState>
       )}
 
@@ -1361,7 +1390,7 @@ function ResearchStepContent({ jobCard }) {
 // left; this side just moves the user forward.
 // ============================================================================
 
-function ResearchIdlePanel({ hasActiveSession = false, onGoToPractice, onBack }) {
+function ResearchIdlePanel({ onGoToPrepare, onBack }) {
   return (
     <div className="px-5 py-4 flex-1 flex flex-col">
       <div className="space-y-2">
@@ -1396,8 +1425,8 @@ function ResearchIdlePanel({ hasActiveSession = false, onGoToPractice, onBack })
             Keep what you learned in mind as you practice.
           </p>
         </div>
-        <button onClick={onGoToPractice} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
-          {hasActiveSession ? 'Resume Practice' : 'Go to Practice'}
+        <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
+          Go to Prep
         </button>
         <div className="mt-1.5">
           <BackLink onClick={onBack} />
@@ -1407,6 +1436,191 @@ function ResearchIdlePanel({ hasActiveSession = false, onGoToPractice, onBack })
   );
 }
 
+// ============================================================================
+// PREPARE STEP
+// The last stop before practice: the questions the candidate asks, and the kit
+// they print and carry in. Selection happens once per Power Analysis on the
+// server, so arriving here is what fixes the list — the same questions are
+// waiting on every later visit.
+// ============================================================================
+
+function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
+  const supabase = createClient();
+  const { research, researchSettled, researchError } = useCompanyResearch(jobCard);
+  const [questions, setQuestions] = useState([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionsError, setQuestionsError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuestions() {
+      setQuestionsLoading(true);
+      setQuestionsError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No session');
+
+        const res = await fetch('/api/interview/interviewer-questions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            powerAnalysisId,
+            jobCardId: jobCard.id,
+            companyName: jobCard.company,
+            jobTitle: jobCard.title,
+            jobDescription: jobCard.description,
+            companyResearch: research || null
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Questions failed');
+        if (cancelled) return;
+        setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      } catch (err) {
+        console.error('Interviewer questions load failed:', err);
+        if (!cancelled) {
+          setQuestionsError("Couldn't load your interviewer questions right now.");
+        }
+      } finally {
+        if (!cancelled) setQuestionsLoading(false);
+      }
+    }
+
+    if (!powerAnalysisId || !jobCard?.id) return;
+    // Waits on the brief so it rides along in the same request and the
+    // questions can name something real about the company. Settling covers
+    // not-found and recruiter too. A brief that failed outright goes ahead
+    // anyway, on the job description alone: the questions matter more than the
+    // tailoring, and there may never be a retry.
+    if (!researchSettled && !researchError) return;
+
+    loadQuestions();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [researchSettled, researchError, powerAnalysisId, jobCard?.id]);
+
+  // Still working means the brief hasn't settled yet or the questions are in
+  // flight. One spinner covers both: from here it is the same wait.
+  const stillWorking = questionsLoading || (!researchSettled && !researchError);
+
+  // No padding of its own — the left column already pads and gaps its children.
+  return (
+    <div className="space-y-3">
+
+      {/* QUESTIONS FOR YOUR INTERVIEWER */}
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+        <CardHeading color={DOT_PURPLE}>Questions For Your Interviewer</CardHeading>
+
+        {stillWorking ? (
+          <div className="flex justify-center py-3">
+            <div className="h-4 w-4 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
+          </div>
+        ) : questionsError ? (
+          <p className="text-sm md:text-xs text-gray-600">{questionsError}</p>
+        ) : questions.length > 0 ? (
+          <div className="space-y-2">
+            {questions.map((q, i) => (
+              <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-2'}>
+                <div className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
+                  <div className="min-w-0">
+                    <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
+                      {q.tailored_text || q.original_text}
+                    </p>
+                    {q.rationale && (
+                      <p className="text-sm md:text-xs text-gray-600 leading-snug mt-0.5">
+                        {q.rationale}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm md:text-xs text-gray-400">No questions available.</p>
+        )}
+      </div>
+
+      {/* PRINTABLE INTERVIEW TOOLKIT */}
+      <InterviewToolkit
+        jobCardId={jobCard?.id}
+        powerAnalysisId={powerAnalysisId}
+        candidateName={candidateName}
+        company={jobCard?.company}
+      />
+    </div>
+  );
+}
+
+// ============================================================================
+// PREPARE STEP PANEL
+// Right-column step driver for the prepare step. The questions and the kit are
+// on the left; this side says what they are for and moves the user on.
+// ============================================================================
+
+function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }) {
+  return (
+    <div className="px-5 py-4 flex-1 flex flex-col">
+      <div className="space-y-2">
+        <h3 className="font-semibold text-lg -mt-3">📋 Interview Prep</h3>
+
+        <p className="text-sm md:text-xs text-gray-700">
+          Your questions for the interviewer are on the left, each with the reason it works.
+          Asking something specific is what separates a candidate who studied the company from
+          one who skimmed the job post.
+        </p>
+
+        <p className="text-sm md:text-xs text-gray-700">
+          These questions are designed for your actual interview, not the practice. Review them,
+          pick the ones that feel right, and print your toolkit to bring with you.
+        </p>
+
+        <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
+          <div className="text-sm md:text-xs text-purple-900 space-y-2">
+            <div><strong>💡 Questions for your interviewer</strong></div>
+            <div><strong>🏢 Company highlights</strong></div>
+            <div><strong>📄 The job description</strong></div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      {/* Explicit margins rather than space-y, so the gap under the button can
+          be tightened without also tightening the one above it. */}
+      <div className="mt-auto pt-3 border-t border-gray-300">
+        <div className="text-center mb-3">
+          <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">
+            Take it with you.
+          </h4>
+          <p className="text-sm md:text-xs text-gray-600 leading-snug">
+            Tick what you want in your toolkit and print it before you go.
+          </p>
+        </div>
+        <button onClick={onGoToPractice} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
+          {hasActiveSession ? 'Resume Practice' : 'Go to Practice'}
+        </button>
+        <div className="mt-1.5">
+          <BackLink onClick={onBack} label="← Back to Research" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// The kit checklist. Keys are what the PDF template gates each section on, and
+// the order here is the order the sections print in, so ticking down the list
+// reads the same way the printout does.
+const KIT_ITEMS = [
+  { key: 'highlights', label: 'Company Highlights' },
+  { key: 'questions', label: 'Interviewer Questions' },
+  { key: 'jobDescription', label: 'Job Description' }
+];
 
 function KitCheckbox({ checked, onChange, label }) {
   return (
@@ -1428,10 +1642,9 @@ function KitCheckbox({ checked, onChange, label }) {
   );
 }
 
-// Rides in the header rather than owning a card: on the practice step the
-// title leaves the whole right side empty, and the kit is a thing you reach
-// for once mid-interview, not a surface to work on.
-function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
+// The kit the candidate prints and carries in. One row of tick boxes and a
+// button: it is a thing you reach for once, not a surface to work on.
+function InterviewToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
   const supabase = createClient();
   const [selected, setSelected] = useState({});
   const [buildingPdf, setBuildingPdf] = useState(false);
@@ -1507,11 +1720,8 @@ function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
 
   const disabled = checkedCount === 0 || buildingPdf || !jobCardId;
 
-  // self-center rather than the parent's items-start: this block and the title
-  // beside it are different heights, and aligning them by their tops leaves
-  // whichever is shorter hanging.
   return (
-    <div className="flex-shrink-0 self-center">
+    <div>
       <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: '#9333ea' }}>
         📋 Printable Interview Toolkit
       </p>
@@ -1560,8 +1770,7 @@ function HeaderToolkit({ jobCardId, powerAnalysisId, candidateName, company }) {
 }
 
 function InterviewHeaderStrip({
-  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company,
-  jobCardId, powerAnalysisId, candidateName
+  interviewDate, countdown, interviewDateIsPast, currentStep, titleOnly, company
 }) {
   const hasDate = !!interviewDate;
   const dateObj = hasDate ? new Date(interviewDate) : null;
@@ -1579,12 +1788,14 @@ function InterviewHeaderStrip({
             ? <>Company Research: <span style={{ color: DOT_PURPLE }}>{company}</span></>
             : 'Company Research'
         )}
+        {currentStep === 'prepare' && 'Interview Prep'}
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
-        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 3'}
-        {currentStep === 'research' && 'Interview Coach: Step 2 of 3'}
-        {currentStep === 'practice' && 'Interview Coach: Step 3 of 3'}
+        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
+        {currentStep === 'research' && 'Interview Coach: Step 2 of 4'}
+        {currentStep === 'prepare' && 'Interview Coach: Step 3 of 4'}
+        {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
       </p>
     </div>
   );
@@ -1595,14 +1806,6 @@ function InterviewHeaderStrip({
     return (
       <div className="flex items-start justify-between gap-3">
         {title}
-        {currentStep === 'practice' && (
-          <HeaderToolkit
-            jobCardId={jobCardId}
-            powerAnalysisId={powerAnalysisId}
-            candidateName={candidateName}
-            company={company}
-          />
-        )}
       </div>
     );
   }

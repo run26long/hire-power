@@ -41,7 +41,7 @@ export async function GET(request) {
     // ---- LOAD JOB CARD ----
     const { data: jobCard, error: jobCardError } = await supabase
       .from('applications')
-      .select('id, title, company, description, resume_id, match_score, interview_level, interview_readiness_score, interview_sessions_count, interview_last_practiced_at, interview_step, interview_active_story_id')
+      .select('id, title, company, description, resume_id, match_score, interview_level, interview_readiness_score, interview_sessions_count, interview_last_practiced_at, interview_step')
       .eq('id', jobCardId)
       .eq('user_id', userId)
       .single();
@@ -103,8 +103,7 @@ export async function GET(request) {
         interview_readiness_score: jobCard.interview_readiness_score ?? 0,
         interview_sessions_count: jobCard.interview_sessions_count ?? 0,
         interview_last_practiced_at: jobCard.interview_last_practiced_at,
-        interview_step: jobCard.interview_step ?? null,
-        interview_active_story_id: jobCard.interview_active_story_id ?? null
+        interview_step: jobCard.interview_step ?? null
       },
       resume: resume ? {
         id: resume.id,
@@ -124,9 +123,7 @@ export async function GET(request) {
         refresh_count: powerAnalysis.refresh_count ?? 0,
         last_refreshed_at: powerAnalysis.last_refreshed_at,
         status: powerAnalysis.status,
-        // Where the candidate is in the flow, and whether they finished or
-        // skipped coaching. The hub reads the same two columns.
-        coaching_status: powerAnalysis.coaching_status,
+        // Where the candidate is in the flow. The hub reads the same column.
         current_step: powerAnalysis.current_step,
         // High-water mark. current_step moves both ways; this only moves
         // forward, so it's what decides which steps show complete.
