@@ -1483,7 +1483,7 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
         Get to know the company before your interview so that you can ask thoughtful questions. We&apos;ve gotten you started with the following info:
       </p>
-      <ul className="space-y-2">
+      <ul className="space-y-2 pl-3">
         {RESEARCH_TOPICS.map(({ icon, label }) => (
           <li key={label} className="flex items-start gap-2">
             <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">{icon}</span>
@@ -1496,7 +1496,7 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
       </p>
       {/* One flex item, so the row gap above the button doesn't also open
          between the button and the link under it. */}
-      <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-col items-center gap-1">
         <button onClick={onGoToPrepare} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
           Go to Prep
         </button>
