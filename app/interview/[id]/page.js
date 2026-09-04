@@ -1683,6 +1683,7 @@ function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }
 // the order here is the order the sections print in, so ticking down the list
 // reads the same way the printout does.
 const KIT_ITEMS = [
+  { key: 'powerAnalysis', label: 'Power Analysis' },
   { key: 'highlights', label: 'Company Highlights' },
   { key: 'questions', label: 'Interviewer Questions' },
   { key: 'jobDescription', label: 'Job Description' }
@@ -1787,9 +1788,10 @@ function InterviewToolkit({ jobCardId, powerAnalysisId, candidateName, company }
   const disabled = checkedCount === 0 || buildingPdf || !jobCardId;
 
   return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: '#9333ea' }}>
-        📋 Printable Interview Toolkit
+    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+      <CardHeading color={DOT_PURPLE}>📋 Printable Interview Toolkit</CardHeading>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">
+        Select what you want to include and print it to take with you.
       </p>
 
       <div className="flex items-center gap-3">

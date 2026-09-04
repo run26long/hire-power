@@ -157,6 +157,15 @@ function bucketLabel(itemType) {
   return BUCKET_LABELS[itemType] || null
 }
 
+// The Power Analysis buckets, in the order the screen shows them. Each names
+// the field holding the item's title and the field holding its coaching, so
+// three differently shaped bucket arrays print as one uniform list.
+const PA_BUCKETS = [
+  { key: 'core_power', label: 'Core Power', title: 'skill', body: 'evidence' },
+  { key: 'hidden_power', label: 'Hidden Power', title: 'skill', body: 'evidence_reframe' },
+  { key: 'power_gaps', label: 'Power Gaps', title: 'gap', body: 'bridge_strategy' },
+]
+
 // polishedStory is what coaching writes when a story completes. The raw STAR
 // fields are the fallback for stories saved before polishing, or if it's blank.
 function storyBody(story) {
@@ -187,6 +196,7 @@ function Bullet({ children }) {
 export default function InterviewKitPDF({
   selected = {},
   jobCard,
+  powerAnalysis = null,
   candidateName,
   storyTitleFor,
   coachedStories = [],
@@ -195,6 +205,15 @@ export default function InterviewKitPDF({
   generatedOn,
 }) {
   const subtitle = [jobCard?.title, jobCard?.company].filter(Boolean).join(' — ')
+
+  // An empty bucket drops out here rather than printing a heading with nothing
+  // under it, and an analysis empty in all three drops the section.
+  const paBuckets = PA_BUCKETS
+    .map(bucket => ({
+      ...bucket,
+      items: Array.isArray(powerAnalysis?.[bucket.key]) ? powerAnalysis[bucket.key] : [],
+    }))
+    .filter(bucket => bucket.items.length > 0)
 
   return (
     <Document>
@@ -206,6 +225,24 @@ export default function InterviewKitPDF({
         {generatedOn ? <Text style={styles.date}>Prepared {generatedOn}</Text> : null}
 
         <View style={styles.divider} />
+
+        {selected.powerAnalysis && paBuckets.length > 0 && (
+          <Section title="Power Analysis">
+            {paBuckets.map(bucket => (
+              <View key={bucket.key}>
+                <Text style={styles.bucketTag}>{bucket.label}</Text>
+                {bucket.items.map((item, i) => (
+                  <View key={i} style={styles.block} wrap={false}>
+                    <Text style={styles.bold}>{item?.[bucket.title] || 'Untitled'}</Text>
+                    {item?.[bucket.body] ? (
+                      <Text style={styles.body}>{item[bucket.body]}</Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </Section>
+        )}
 
         {selected.stories && coachedStories.length > 0 && (
           <Section title="STAR Stories">

@@ -8,9 +8,10 @@ import { apiError } from '@/lib/apiError';
 // POST /api/interview/interview-kit-pdf
 // Body: { jobCardId, powerAnalysisId }
 //
-// Assembles everything the candidate carries into the room — the job
-// description, their coached STAR stories, company highlights, and the
-// questions they picked for the interviewer — and returns it as a PDF.
+// Assembles everything the candidate carries into the room — their Power
+// Analysis, the job description, their coached STAR stories, company
+// highlights, and the questions they picked for the interviewer — and returns
+// it as a PDF.
 //
 // Rendered server-side rather than in the browser: @react-pdf/renderer is well
 // over a megabyte, and the practice step shouldn't carry it in its bundle for
@@ -67,12 +68,16 @@ export async function POST(request) {
     // gets the whole kit, which is what the checkboxes default to anyway.
     const sections = selected && typeof selected === 'object'
       ? {
+          powerAnalysis: !!selected.powerAnalysis,
           stories: !!selected.stories,
           highlights: !!selected.highlights,
           questions: !!selected.questions,
           jobDescription: !!selected.jobDescription
         }
-      : { stories: true, highlights: true, questions: true, jobDescription: true };
+      : {
+          powerAnalysis: true, stories: true, highlights: true,
+          questions: true, jobDescription: true
+        };
 
     // ---- JOB CARD ----
     // Scoped to the caller: the service role key bypasses RLS, so ownership is
@@ -93,6 +98,18 @@ export async function POST(request) {
       .select('display_name')
       .eq('id', user.id)
       .maybeSingle();
+
+    // ---- POWER ANALYSIS ----
+    let powerAnalysis = null;
+    if (sections.powerAnalysis && powerAnalysisId) {
+      const { data: paRow } = await supabase
+        .from('power_analysis')
+        .select('core_power, hidden_power, power_gaps')
+        .eq('id', powerAnalysisId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      powerAnalysis = paRow || null;
+    }
 
     // ---- COACHED STORIES ----
     // Each section is fetched only when it's being printed: an unticked box
@@ -174,6 +191,7 @@ export async function POST(request) {
     const element = React.createElement(InterviewKitPDF, {
       selected: sections,
       jobCard,
+      powerAnalysis,
       candidateName: profile?.display_name || null,
       storyTitleFor: storyTitle,
       coachedStories,
