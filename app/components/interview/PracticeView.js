@@ -1720,7 +1720,7 @@ export default function PracticeView({
         <button
           onClick={startSession}
           disabled={starting}
-          className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           style={GRADIENT}
         >
           {starting && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
