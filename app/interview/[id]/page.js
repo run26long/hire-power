@@ -1637,7 +1637,7 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
 
 function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }) {
   return (
-    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+    <div className="px-5 py-4 space-y-2 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">📋 Interview Prep</h3>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
         Of course you&apos;re thinking about what they&apos;re going to ask you. But have you thought about what you want to ask them?
