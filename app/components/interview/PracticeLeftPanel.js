@@ -893,6 +893,10 @@ export default function PracticeLeftPanel({
             Interview Tips
           </h4>
 
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+            A few simple strategies to help you give stronger, more confident answers.
+          </p>
+
           <div className="grid grid-cols-2 gap-3">
             <TipCard icon="⭐" title="The STAR Method">
               <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-1.5">
