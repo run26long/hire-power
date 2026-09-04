@@ -1304,24 +1304,29 @@ function PracticeCard({ card, onClick, onDeleteRequest, canDelete = true, compac
           <div className="text-sm md:text-xs text-gray-500 truncate">{card.company}</div>
         </div>
 
+        {/* Ring and label together come to 43px, which is what the 66px row
+            leaves once its padding is taken out. */}
         {card.matchScore && (
-          <div className="relative w-8 h-8 flex-shrink-0">
-            <svg className="w-8 h-8 transform -rotate-90">
-              <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
-              <circle
-                cx="16" cy="16" r="12"
-                stroke={getCircleColor(card.matchScore)}
-                strokeWidth="2.5" fill="none"
-                strokeDasharray={`${2 * Math.PI * 12}`}
-                strokeDashoffset={`${2 * Math.PI * 12 * (1 - card.matchScore / 100)}`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-[9px] font-bold" style={{ color: getCircleColor(card.matchScore) }}>
-                {card.matchScore}%
+          <div className="flex flex-col items-center flex-shrink-0">
+            <div className="relative w-8 h-8">
+              <svg className="w-8 h-8 transform -rotate-90">
+                <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+                <circle
+                  cx="16" cy="16" r="12"
+                  stroke={getCircleColor(card.matchScore)}
+                  strokeWidth="2.5" fill="none"
+                  strokeDasharray={`${2 * Math.PI * 12}`}
+                  strokeDashoffset={`${2 * Math.PI * 12 * (1 - card.matchScore / 100)}`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-[9px] font-bold" style={{ color: getCircleColor(card.matchScore) }}>
+                  {card.matchScore}%
+                </div>
               </div>
             </div>
+            <span className="text-[9px] text-gray-400 uppercase tracking-wide leading-none mt-0.5">Match</span>
           </div>
         )}
 
