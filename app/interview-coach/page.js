@@ -905,7 +905,7 @@ export default function MyInterviewsPage() {
                     the bands it was measured against on the right: the card
                     doubles as the key to a scoring screen they may not have
                     reached yet. */}
-                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] flex flex-col">
+                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[220px] flex flex-col">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Score 80+ and you’re interview ready.</p>
 
