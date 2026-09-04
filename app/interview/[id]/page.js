@@ -1584,7 +1584,7 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
     <div className="space-y-3">
 
       {/* QUESTIONS FOR YOUR INTERVIEWER */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-5">
         <CardHeading color={DOT_PURPLE}>Questions For Your Interviewer</CardHeading>
 
         {stillWorking ? (
@@ -1594,13 +1594,13 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
         ) : questionsError ? (
           <p className="text-sm md:text-xs text-gray-600">{questionsError}</p>
         ) : questions.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {questions.map((q, i) => (
-              <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-2'}>
+              <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-4'}>
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
                   <div className="min-w-0">
-                    <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
+                    <p className="text-base md:text-sm font-semibold text-gray-900 leading-snug">
                       {q.tailored_text || q.original_text}
                     </p>
                     {q.rationale && (
