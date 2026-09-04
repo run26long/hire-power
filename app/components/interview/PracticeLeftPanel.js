@@ -893,7 +893,7 @@ export default function PracticeLeftPanel({
             Interview Tips
           </h4>
 
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed -mt-2">
             A few simple strategies to help you give stronger, more confident answers.
           </p>
 
