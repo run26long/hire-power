@@ -814,7 +814,7 @@ const QUICK_TIPS = [
 // clipped rather than pushing its neighbours around.
 function TipCard({ icon, title, children }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-purple-300 p-2.5 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-purple-300 py-3 px-2.5 overflow-hidden">
       <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
         {icon} {title}
       </p>
@@ -888,14 +888,14 @@ export default function PracticeLeftPanel({
             the page whole, which is what matters for something read at a
             glance mid-interview. */}
         <div className="flex flex-col gap-3 flex-shrink-0">
-          <h4 className="text-sm font-bold uppercase tracking-wide flex-shrink-0" style={{ color: '#9333ea' }}>
+          <h4 className="text-sm font-bold uppercase tracking-wide flex-shrink-0 mt-3" style={{ color: '#9333ea' }}>
             Interview Tips
           </h4>
 
           <div className="grid grid-cols-2 gap-3">
             <TipCard icon="⭐" title="The STAR Method">
               <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-1.5">
-                Structure your answers so the interviewer can follow your thinking and see real results.
+                Structure your answers so the interviewer can understand your real results.
               </p>
               <ul className="space-y-1">
                 {STAR_STEPS.map(({ label, text }) => (
@@ -923,6 +923,9 @@ export default function PracticeLeftPanel({
           </div>
 
           <TipCard icon="📊" title="What We Score">
+            <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-1.5">
+              Both make a lasting impression on an interviewer.
+            </p>
             <ul className="space-y-1.5">
               {SCORED_CATEGORIES.map(({ label, text }) => (
                 <li key={label} className="text-sm md:text-xs leading-snug">
