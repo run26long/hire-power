@@ -1064,30 +1064,30 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Your Power Analysis identifies three categories to help you prepare for this interview:
+        Your Power Analysis shows you where to focus so you can walk into your interview ready.
       </p>
       <ul className="space-y-2">
         <li className="flex items-start gap-2">
           <span className="text-sm flex-shrink-0 leading-none mt-0.5">✅</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-green-800">Core Power:</span> items to lead with
+            <span className="font-bold text-green-800">Core Power:</span> Your strongest matches for this role. These are the skills and experiences to include in your answers.
           </p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm flex-shrink-0 leading-none mt-0.5">💡</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-yellow-800">Hidden Power:</span> items to reframe
+            <span className="font-bold text-yellow-800">Hidden Power:</span> Strengths you already have, even if they don’t look like an obvious match. We’ll show you how to connect the dots and make them work for you.
           </p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm flex-shrink-0 leading-none mt-0.5">⚠️</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-red-800">Power Gaps:</span> items to address proactively
+            <span className="font-bold text-red-800">Power Gaps:</span> Skills the job asks for that you may not have yet. Don't panic. We’ll help you prepare in case they come up.
           </p>
         </li>
       </ul>
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
-        Keep these in mind as you research the company and practice your answers.
+        Next step? We'll help you research the company.
       </p>
       {/* First step, so no back link. Completion lives in the strip's purple
           check; a second green badge saying the same thing only competed with

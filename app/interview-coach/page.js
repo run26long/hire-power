@@ -857,7 +857,7 @@ export default function MyInterviewsPage() {
                               {practiceCards.length > 3 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
-                                    className="w-full text-center py-1.5 mb-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 mt-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     View all interview practices →
                                   </button>
@@ -901,7 +901,10 @@ export default function MyInterviewsPage() {
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
 
-                  <div className="flex-1 flex items-stretch gap-3 min-h-0">
+                  {/* justify-evenly rather than a gap: it lays the same space
+                      before, between and after the two columns, so neither
+                      side of the card is emptier than the other. */}
+                  <div className="flex-1 flex items-stretch justify-evenly min-h-0">
 
                     {/* HIGH SCORE — the ramp the score displays use, so a number
                         means the same thing wherever it is read. The border and
@@ -910,13 +913,13 @@ export default function MyInterviewsPage() {
                         palette of its own. */}
                     <div className="flex flex-col flex-shrink-0">
                       <div
-                        className="flex-1 rounded-xl border-2 px-4 py-4 flex flex-col items-center justify-center"
+                        className="flex-1 rounded-xl border-2 px-8 py-4 flex flex-col items-center justify-center"
                         style={{ borderColor: `${highScoreTone}4D`, backgroundColor: `${highScoreTone}0D` }}
                       >
                         <span className="text-6xl font-bold leading-none" style={{ color: highScoreTone }}>
                           {highScore > 0 ? highScore : '--'}
                         </span>
-                        <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wide text-gray-400 mt-1.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mt-1.5">
                           High Score
                         </p>
                       </div>
@@ -924,7 +927,7 @@ export default function MyInterviewsPage() {
 
                     {/* The completion panel's three bands, in its headings and
                         its colours, so the words land the same in both places. */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
+                    <div className="min-w-0 flex flex-col justify-center gap-2">
                       {SCORE_BANDS.map(({ icon, title, color, range }) => (
                         <div key={title}>
                           <p className="text-sm font-semibold whitespace-nowrap" style={{ color }}>
