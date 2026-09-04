@@ -905,7 +905,7 @@ export default function MyInterviewsPage() {
                     the bands it was measured against on the right: the card
                     doubles as the key to a scoring screen they may not have
                     reached yet. */}
-                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] flex flex-col">
+                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[232px] flex flex-col">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
                   <p className="text-sm md:text-xs text-gray-500 mb-3.5">Score 80+ and you’re interview ready.</p>
 
@@ -921,7 +921,7 @@ export default function MyInterviewsPage() {
                         palette of its own. */}
                     <div className="flex flex-col flex-shrink-0">
                       <div
-                        className="rounded-xl border-2 px-6 py-4 flex flex-col items-center justify-center"
+                        className="rounded-xl border-2 px-6 py-6 flex flex-col items-center justify-center"
                         style={{ borderColor: `${highScoreTone}4D`, backgroundColor: `${highScoreTone}0D` }}
                       >
                         <span className="text-6xl font-bold leading-none" style={{ color: highScoreTone }}>
@@ -937,11 +937,12 @@ export default function MyInterviewsPage() {
                         its colours, so the words land the same in both places. */}
                     <div className="min-w-0 flex flex-col justify-center gap-2">
                       {SCORE_BANDS.map(({ icon, title, color, range }) => (
-                        <div key={title}>
-                          <p className="text-sm font-semibold whitespace-nowrap" style={{ color }}>
-                            {icon} {title}
-                          </p>
-                          <p className="text-xs text-gray-400 leading-snug">{range}</p>
+                        <div key={title} className="flex items-start gap-1.5">
+                          <span className="text-sm flex-shrink-0 leading-none mt-0.5">{icon}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold whitespace-nowrap" style={{ color }}>{title}</p>
+                            <p className="text-xs text-gray-400 leading-snug">{range}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
