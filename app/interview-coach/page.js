@@ -646,8 +646,8 @@ export default function MyInterviewsPage() {
     try {
       setDeletingPracticeId(jobCardId);
 
-      // Archive the Power Analysis. Coached stories stay put — they're the
-      // user's own words and survive a removed practice.
+      // Archive the Power Analysis rather than delete it. The practice
+      // sessions hang off it, so hiding it takes them out of the hub too.
       const { error: paError } = await supabase
         .from('power_analysis')
         .update({ is_active: false })
@@ -1139,7 +1139,7 @@ export default function MyInterviewsPage() {
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this interview practice?</h3>
-            <p className="text-sm md:text-xs text-gray-600 mb-5">This removes the Power Analysis and coached stories. The job card stays in your Job Tracker and you can restart practice anytime.</p>
+            <p className="text-sm md:text-xs text-gray-600 mb-5">This removes the Power Analysis and all practice sessions. The job card stays in your Job Tracker and you can restart practice anytime.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeletePracticeId(null)}

@@ -189,7 +189,7 @@ const helpContent = [
     questions: [
       {
         question: 'How does Interview Coach work?',
-        answer: 'Interview Coach uses your resume and a job description to create tailored practice questions, coach STAR stories, add company research, and give feedback on content and delivery. More FAQs will be added as additional features become available.'
+        answer: 'Interview Coach walks you through four steps for a specific job. Power Analysis reads your resume against the job description and sorts what it finds into your core strengths, your hidden strengths, and your gaps. Company Research gathers a brief on the company. Interview Prep gives you questions to ask your interviewer and a toolkit you can print. Practice runs a mock interview by voice or text and scores every answer on clarity and content. More FAQs will be added as additional features become available.'
       }
     ]
   },
