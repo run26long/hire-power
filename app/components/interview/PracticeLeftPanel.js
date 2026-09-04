@@ -806,7 +806,8 @@ const QUICK_TIPS = [
   'Take a breath before answering',
   "It's okay to pause and think",
   'Specific beats generic every time',
-  'Connect your answer back to the role'
+  'Connect your answer back to the role',
+  'Keep your answer focused and concise'
 ];
 
 // The left rule is the one the research and prep cards carry, so a tip reads
