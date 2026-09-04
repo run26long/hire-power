@@ -1068,26 +1068,26 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
       </p>
       <ul className="space-y-2">
         <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">✅</span>
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">✅</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
             <span className="font-bold text-green-800">Core Power:</span> Your strongest matches for this role. These are the skills and experiences to include in your answers.
           </p>
         </li>
         <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">💡</span>
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">💡</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
             <span className="font-bold text-yellow-800">Hidden Power:</span> Strengths you already have, even if they don’t look like an obvious match. We’ll show you how to connect the dots and make them work for you.
           </p>
         </li>
         <li className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0 leading-none mt-0.5">⚠️</span>
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">⚠️</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-red-800">Power Gaps:</span> Skills the job calls for that you may not have yet. Don't panic. We’ll help you prepare in case they come up.
+            <span className="font-bold text-red-800">Power Gaps:</span> Skills the job calls for that you may not have yet. Don&apos;t panic. We’ll help you prepare in case they come up.
           </p>
         </li>
       </ul>
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
-        Next step? We'll help you research the company.
+        Next step? We&apos;ll help you research the company.
       </p>
       {/* First step, so no back link. Completion lives in the strip's purple
           check; a second green badge saying the same thing only competed with
@@ -1481,12 +1481,12 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Get to know the company before your interview so that you can ask thoughtful questions. We've gotten you started with the following info:
+        Get to know the company before your interview so that you can ask thoughtful questions. We&apos;ve gotten you started with the following info:
       </p>
       <ul className="space-y-2">
         {RESEARCH_TOPICS.map(({ icon, label }) => (
           <li key={label} className="flex items-start gap-2">
-            <span className="text-sm flex-shrink-0 leading-none mt-0.5">{icon}</span>
+            <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">{icon}</span>
             <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{label}</p>
           </li>
         ))}
