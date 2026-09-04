@@ -9,18 +9,13 @@ import { apiError } from '@/lib/apiError';
 // Body: { jobCardId, powerAnalysisId }
 //
 // Assembles everything the candidate carries into the room — their Power
-// Analysis, the job description, their coached STAR stories, company
-// highlights, and the questions they picked for the interviewer — and returns
-// it as a PDF.
+// Analysis, the job description, company highlights, and the questions they
+// picked for the interviewer — and returns it as a PDF.
 //
 // Rendered server-side rather than in the browser: @react-pdf/renderer is well
 // over a megabyte, and the practice step shouldn't carry it in its bundle for
 // a button most candidates press once.
 // ============================================================================
-
-// How many stories the kit prints, and the order the buckets print in.
-const MAX_KIT_STORIES = 3;
-const BUCKET_ORDER = { core_power: 0, hidden_power: 1, power_gap: 2 };
 
 // Long prose fields are written as paragraphs. The highlights list wants one
 // line each, so take the opening sentence and leave the rest.
@@ -30,17 +25,6 @@ function firstSentence(text) {
   if (!trimmed) return null;
   const match = trimmed.match(/^.*?[.!?](\s|$)/);
   return (match ? match[0] : trimmed).trim();
-}
-
-// A story has no title of its own, so the opening line of the polished story
-// stands in for one. Falls back through the raw STAR fields, then to the skill.
-function storyTitle(story) {
-  return (
-    firstSentence(story.polishedStory) ||
-    firstSentence(story.starSituation) ||
-    story.itemSkill ||
-    'Untitled story'
-  );
 }
 
 export async function POST(request) {
@@ -69,13 +53,12 @@ export async function POST(request) {
     const sections = selected && typeof selected === 'object'
       ? {
           powerAnalysis: !!selected.powerAnalysis,
-          stories: !!selected.stories,
           highlights: !!selected.highlights,
           questions: !!selected.questions,
           jobDescription: !!selected.jobDescription
         }
       : {
-          powerAnalysis: true, stories: true, highlights: true,
+          powerAnalysis: true, highlights: true,
           questions: true, jobDescription: true
         };
 
@@ -110,44 +93,6 @@ export async function POST(request) {
         .maybeSingle();
       powerAnalysis = paRow || null;
     }
-
-    // ---- COACHED STORIES ----
-    // Each section is fetched only when it's being printed: an unticked box
-    // should cost nothing, not fetch rows the template then discards.
-    let storyRows = [];
-    if (sections.stories) {
-      const { data } = await supabase
-        .from('interview_stories')
-        .select('id, item_type, item_index, item_skill, star_situation, star_task, star_action, star_result, polished_story')
-        .eq('job_card_id', jobCardId)
-        .eq('user_id', user.id)
-        .eq('coaching_complete', true)
-        .order('item_index', { ascending: true });
-
-      // Capped at three. This is a page the candidate skims in a corridor five
-      // minutes before the interview, and a dozen stories is a document nobody
-      // reads. Core Power first, since those are the items the analysis says to
-      // lead with; gaps last, since they only come up if asked.
-      storyRows = (data || [])
-        .slice()
-        .sort((a, b) =>
-          (BUCKET_ORDER[a.item_type] ?? 99) - (BUCKET_ORDER[b.item_type] ?? 99)
-          || (a.item_index ?? 0) - (b.item_index ?? 0)
-        )
-        .slice(0, MAX_KIT_STORIES);
-    }
-
-    const coachedStories = (storyRows || []).map(row => ({
-      id: row.id,
-      itemType: row.item_type,
-      itemIndex: row.item_index,
-      itemSkill: row.item_skill,
-      starSituation: row.star_situation,
-      starTask: row.star_task,
-      starAction: row.star_action,
-      starResult: row.star_result,
-      polishedStory: row.polished_story
-    }));
 
     // ---- INTERVIEWER QUESTIONS ----
     // powerAnalysisId is optional: without it the kit simply prints without
@@ -193,8 +138,6 @@ export async function POST(request) {
       jobCard,
       powerAnalysis,
       candidateName: profile?.display_name || null,
-      storyTitleFor: storyTitle,
-      coachedStories,
       highlights,
       questions,
       generatedOn: new Date().toLocaleDateString('en-US', {

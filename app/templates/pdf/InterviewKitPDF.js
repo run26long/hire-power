@@ -82,11 +82,6 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 4,
   },
-  muted: {
-    fontSize: 10,
-    color: '#555',
-    marginBottom: 2,
-  },
   italicMuted: {
     fontSize: 10,
     color: '#555',
@@ -144,19 +139,6 @@ function toParagraphs(text) {
     .filter(Boolean)
 }
 
-// Which bucket of the Power Analysis a story came from. Printed on the story
-// so the candidate knows what they're holding: something to lead with, to
-// reframe, or to have an answer ready for.
-const BUCKET_LABELS = {
-  core_power: 'Core Power',
-  hidden_power: 'Hidden Power',
-  power_gap: 'Power Gap',
-}
-
-function bucketLabel(itemType) {
-  return BUCKET_LABELS[itemType] || null
-}
-
 // The Power Analysis buckets, in the order the screen shows them. Each names
 // the field holding the item's title and the field holding its coaching, so
 // three differently shaped bucket arrays print as one uniform list.
@@ -167,15 +149,6 @@ const PA_BUCKETS = [
   { key: 'hidden_power', label: 'Hidden Power', title: 'skill', body: 'evidence_reframe', color: '#81c784' },
   { key: 'power_gaps', label: 'Power Gaps', title: 'gap', body: 'bridge_strategy', color: '#ffc870' },
 ]
-
-// polishedStory is what coaching writes when a story completes. The raw STAR
-// fields are the fallback for stories saved before polishing, or if it's blank.
-function storyBody(story) {
-  if (story?.polishedStory) return story.polishedStory
-  return [story?.starSituation, story?.starTask, story?.starAction, story?.starResult]
-    .filter(Boolean)
-    .join(' ')
-}
 
 function Section({ title, children }) {
   return (
@@ -200,8 +173,6 @@ export default function InterviewKitPDF({
   jobCard,
   powerAnalysis = null,
   candidateName,
-  storyTitleFor,
-  coachedStories = [],
   highlights = [],
   questions = [],
   generatedOn,
@@ -241,23 +212,6 @@ export default function InterviewKitPDF({
                     ) : null}
                   </View>
                 ))}
-              </View>
-            ))}
-          </Section>
-        )}
-
-        {selected.stories && coachedStories.length > 0 && (
-          <Section title="STAR Stories">
-            {coachedStories.map(story => (
-              <View key={story.id} style={styles.block}>
-                {bucketLabel(story.itemType) ? (
-                  <Text style={styles.bucketTag}>{bucketLabel(story.itemType)}</Text>
-                ) : null}
-                <Text style={styles.bold}>
-                  {storyTitleFor ? storyTitleFor(story) : (story.itemSkill || 'Untitled story')}
-                </Text>
-                {story.itemSkill ? <Text style={styles.muted}>{story.itemSkill}</Text> : null}
-                <Text style={styles.body}>{storyBody(story)}</Text>
               </View>
             ))}
           </Section>
