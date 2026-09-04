@@ -940,9 +940,9 @@ export default function PracticeView({
   const typingThisQuestion = !!current && typedFallbackId === current.id;
 
   const stopPlayback = () => {
-    // Settle whatever is waiting on this audio before tearing it down. Skip
-    // goes through here, and so does every question change: without this the
-    // sequence behind the utterance would wait on a promise nothing can keep.
+    // Settle whatever is waiting on this audio before tearing it down. Every
+    // question change goes through here: without this the sequence behind the
+    // utterance would wait on a promise nothing can keep.
     if (speechResolveRef.current) {
       const settle = speechResolveRef.current;
       speechResolveRef.current = null;
@@ -1021,8 +1021,8 @@ export default function PracticeView({
   };
 
   // Resolves rather than fires-and-forgets, so one utterance can be chained
-  // onto the end of another. 'stopped' covers Skip and every teardown: the
-  // promise has to settle either way or the chain behind it stalls.
+  // onto the end of another. 'stopped' covers every teardown: the promise has
+  // to settle either way or the chain behind it stalls.
   const playUrl = (url) => new Promise(resolve => {
     const settle = (outcome) => {
       if (speechResolveRef.current === settle) speechResolveRef.current = null;
