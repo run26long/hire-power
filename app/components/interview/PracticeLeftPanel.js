@@ -90,7 +90,7 @@ const RESULT_COLUMNS = [
 function formatDate(iso) {
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   } catch {
     return '';
   }
@@ -171,81 +171,72 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
   // Whether they spoke it or typed it. Anything unrecognised reads as text,
   // which is what a session with no mode recorded on it was.
   const isVoice = session.voice_mode === 'mode_1' || session.voice_mode === 'mode_2';
-  // Still open. It has no readiness score yet, and showing the zero it would
-  // default to would read as a session that scored nothing rather than one
-  // that has not finished.
+  // Still open. It has no readiness score and no level yet, and showing the
+  // zeroes it would default to would read as a session that scored nothing
+  // rather than one that has not finished.
   const isPaused = session.status === 'in_progress';
   return (
     <div
       onClick={onClick}
-      className="group border border-gray-200 rounded-lg px-3 py-4 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden flex items-center"
+      className="group border border-gray-200 rounded-lg px-3 py-2.5 hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer overflow-hidden flex items-center"
+      style={{ height: '66px' }}
     >
-      <div className="flex items-center justify-between w-full gap-3">
-        {/* WHEN, AND HOW FAR THEY GOT */}
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-800 truncate">
+      <div className="flex items-center w-full gap-3">
+        <div className="min-w-0 md:flex-shrink-0 md:w-36">
+          <div className="text-base md:text-sm font-semibold text-gray-900 truncate">
             {formatDate(session.completed_at || session.created_at)}
           </div>
-          <div className="text-xs text-gray-500 truncate">
+          <div className="text-sm md:text-xs text-gray-500 truncate">
             {session.questions_answered ?? 0} of {session.question_count_target ?? 0} answered
+            <span className="text-gray-300"> · </span>
+            <span className={isVoice ? 'text-xs text-purple-500' : 'text-xs text-gray-400'}>
+              {isVoice ? 'Voice' : 'Text'}
+            </span>
           </div>
         </div>
 
-        {/* HOW THEY PRACTISED — the one thing that tells two sessions apart at
-            a glance, so it carries the weight in the middle of the card. */}
-        <div
-          className={`text-lg font-bold tracking-wider uppercase flex-shrink-0 ${isVoice ? '' : 'text-gray-400'}`}
-          style={isVoice ? { color: '#9333ea' } : undefined}
-        >
-          {isVoice ? 'Voice' : 'Text'}
-        </div>
+        {!isPaused && score > 0 && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-[9px] text-gray-400 uppercase tracking-wide whitespace-nowrap">
+              Session Score
+            </span>
+            <div className="relative w-8 h-8">
+              <svg className="w-8 h-8 transform -rotate-90">
+                <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
+                <circle
+                  cx="16" cy="16" r="12"
+                  stroke={scoreColor(score)}
+                  strokeWidth="2.5" fill="none"
+                  strokeDasharray={`${2 * Math.PI * 12}`}
+                  strokeDashoffset={`${2 * Math.PI * 12 * (1 - score / 100)}`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-[9px] font-bold" style={{ color: scoreColor(score) }}>{score}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* WHAT THEY SCORED — the hub card's ring and stacked label. A session
-            still open has no score to show, so the badge stands in for it. */}
-        <div className="flex flex-col items-center flex-shrink-0">
-          {isPaused ? (
+        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+          {isPaused && (
             <span className="text-xs md:text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
               Paused
             </span>
-          ) : score > 0 ? (
-            <>
-              <span className="flex flex-col items-center text-center text-[9px] text-gray-400 uppercase tracking-wide leading-tight">
-                <span>Session</span>
-                <span>Score</span>
-              </span>
-              {/* The circle is drawn in 32 units and the viewBox scales it to
-                  whatever the wrapper is, so only the wrapper sets the size. */}
-              <div className="relative w-10 h-10 mt-0.5">
-                <svg viewBox="0 0 32 32" className="w-10 h-10 transform -rotate-90">
-                  <circle cx="16" cy="16" r="12" stroke="#e5e7eb" strokeWidth="2.5" fill="none" />
-                  <circle
-                    cx="16" cy="16" r="12"
-                    stroke={scoreColor(score)}
-                    strokeWidth="2.5" fill="none"
-                    strokeDasharray={`${2 * Math.PI * 12}`}
-                    strokeDashoffset={`${2 * Math.PI * 12 * (1 - score / 100)}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-xs font-bold" style={{ color: scoreColor(score) }}>{score}</div>
-                </div>
-              </div>
-            </>
-          ) : null}
+          )}
+          {/* The row itself opens the session for review, so this has to stop
+              the click before it gets there. */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
+            className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
+            title="Delete session"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
-
-        {/* The row itself opens the session for review, so this has to stop
-            the click before it gets there. */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
-          className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
-          title="Delete session"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
       </div>
     </div>
   );

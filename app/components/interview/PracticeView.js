@@ -1710,9 +1710,9 @@ export default function PracticeView({
       <div className="px-5 py-4 space-y-2 flex-1 flex flex-col">
         <h3 className="font-semibold text-lg -mt-3">🎤 Practice Your Interview</h3>
 
-        <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#111827' }}>
-          Choose Your Interview Mode
-        </h4>
+        <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          Choose your interview mode
+        </p>
 
         <div className="flex flex-col gap-2">
           {MODES.map(mode => {
