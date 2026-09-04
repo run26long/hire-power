@@ -814,7 +814,7 @@ const QUICK_TIPS = [
 // clipped rather than pushing its neighbours around.
 function TipCard({ icon, title, children }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-purple-300 py-3 px-2.5 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-purple-300 py-4 px-2.5 overflow-hidden">
       <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
         {icon} {title}
       </p>
@@ -924,7 +924,7 @@ export default function PracticeLeftPanel({
 
           <TipCard icon="📊" title="What We Score">
             <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-1.5">
-              Both make a lasting impression on an interviewer.
+              A great answer isn&apos;t just what you say. It&apos;s how you say it. That&apos;s why we score both.
             </p>
             <ul className="space-y-1.5">
               {SCORED_CATEGORIES.map(({ label, text }) => (
