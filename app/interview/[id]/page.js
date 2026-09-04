@@ -1483,7 +1483,7 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
         Get to know the company before your interview so that you can ask thoughtful questions. We&apos;ve gotten you started with the following info:
       </p>
-      <ul className="space-y-2 pl-3">
+      <ul className="space-y-1.5 pl-3">
         {RESEARCH_TOPICS.map(({ icon, label }) => (
           <li key={label} className="flex items-start gap-2">
             <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">{icon}</span>
