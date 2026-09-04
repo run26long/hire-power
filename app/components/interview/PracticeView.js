@@ -29,7 +29,7 @@ const MAX_RECORDING_SECONDS = 300;
 const VOICE_CARD_KEY = 'voice';
 
 const MODES = [
-  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers. No microphone, no audio.' },
+  { key: 'mode_3', icon: '💬', title: 'Text Interview', subtitle: 'Type your answers. No audio.' },
   { key: VOICE_CARD_KEY, icon: '🎤', title: 'Voice Interview', subtitle: 'Speak your answers out loud.' }
 ];
 
