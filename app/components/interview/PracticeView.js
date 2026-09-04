@@ -143,8 +143,8 @@ function VoiceWelcome({ voiceMode, isResume, onBegin }) {
 
   return (
     <div className="w-full max-w-sm text-center space-y-3">
-      <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center mx-auto">
-        <span className="text-lg">🎤</span>
+      <div className="h-28 w-28 bg-purple-50 rounded-lg flex items-center justify-center mx-auto">
+        <span className="text-5xl">🎤</span>
       </div>
 
       <p className="text-sm font-semibold text-gray-800">Voice Mode</p>
@@ -198,7 +198,7 @@ function VoiceInputPanel({
           </div>
           <p className="text-sm md:text-xs text-gray-500">Listening to the question...</p>
           <button onClick={onSkipSpeaking} className="text-xs text-gray-400 hover:text-gray-600">
-            Skip
+            Skip this question
           </button>
         </>
       )}
@@ -1551,10 +1551,13 @@ export default function PracticeView({
 
   // The way out of a paused session for someone who does not want to finish
   // it. The route takes the questions, the row and the recordings with it, so
-  // there is nothing to clean up here beyond telling the parent it is gone.
+  // the only local state worth clearing is the microphone: it is released
+  // before the request rather than after, so a failed delete still gives the
+  // browser's recording indicator back.
   const deletePausedSession = async () => {
     if (!pausedSession?.id || deletingPaused) return;
     setDeletingPaused(true);
+    teardownRecorder();
     try {
       const token = await getToken();
       if (!token) throw new Error('No access token');
@@ -1622,8 +1625,12 @@ export default function PracticeView({
 
         <p className="text-sm md:text-xs text-gray-600 leading-snug">
           You have an interview in progress, {pausedSession.questions_answered ?? 0} of {pausedSession.question_count_target ?? 0} questions
-          answered. Pick up where you left off, or delete it from the list on
-          the left to start a new one.
+          answered.
+        </p>
+
+        <p className="text-sm md:text-xs text-gray-600 leading-snug">
+          Pick up where you left off, or delete it from the list on the left to
+          start a new one.
         </p>
 
         <button
@@ -1704,8 +1711,10 @@ export default function PracticeView({
                 key={mode.key}
                 type="button"
                 onClick={() => handleSelectMode(mode.key)}
-                className={`text-left bg-white shadow-sm rounded-lg p-3 border transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm ${
-                  active ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
+                className={`text-left shadow-sm rounded-lg p-3 border border-l-4 transition-all cursor-pointer hover:border-purple-300 hover:shadow-sm ${
+                  active
+                    ? 'border-purple-500 border-l-purple-500 bg-purple-50'
+                    : 'border-gray-200 border-l-gray-200 bg-white'
                 }`}
               >
                 <div className="flex items-start gap-3">
