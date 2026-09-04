@@ -188,10 +188,6 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
           </div>
           <div className="text-sm md:text-xs text-gray-500 truncate">
             {session.questions_answered ?? 0} of {session.question_count_target ?? 0} answered
-            <span className="text-gray-300"> · </span>
-            <span className={isVoice ? 'text-xs text-purple-500' : 'text-xs text-gray-400'}>
-              {isVoice ? 'Voice' : 'Text'}
-            </span>
           </div>
         </div>
 
@@ -225,6 +221,12 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
               Paused
             </span>
           )}
+          <span
+            className={`text-sm font-bold uppercase ${isVoice ? '' : 'text-gray-400'}`}
+            style={isVoice ? { color: '#9333ea' } : undefined}
+          >
+            {isVoice ? 'Voice' : 'Text'}
+          </span>
           {/* The row itself opens the session for review, so this has to stop
               the click before it gets there. */}
           <button
@@ -291,14 +293,16 @@ function SessionList({ sessions, onSelectSession, onDeleteRequest, onViewAll }) 
   }
   return (
     <div className="space-y-2">
-      {sessions.slice(0, VISIBLE_SESSIONS).map(s => (
-        <SessionRow
-          key={s.id}
-          session={s}
-          onClick={() => onSelectSession?.(s)}
-          onDeleteRequest={() => onDeleteRequest?.(s)}
-        />
-      ))}
+      <div className="grid grid-cols-2 gap-3">
+        {sessions.slice(0, VISIBLE_SESSIONS).map(s => (
+          <SessionRow
+            key={s.id}
+            session={s}
+            onClick={() => onSelectSession?.(s)}
+            onDeleteRequest={() => onDeleteRequest?.(s)}
+          />
+        ))}
+      </div>
       {sessions.length > VISIBLE_SESSIONS && (
         <button
           onClick={onViewAll}
