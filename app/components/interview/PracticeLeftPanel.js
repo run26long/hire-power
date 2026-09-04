@@ -809,12 +809,12 @@ const QUICK_TIPS = [
   'Connect your answer back to the role'
 ];
 
-// min-h-0 so the fixed-height parent divides the space rather than the words
-// inside claiming it, and overflow-hidden so a card that runs long is clipped
-// instead of pushing its neighbours out of the block.
+// The left rule is the one the research and prep cards carry, so a tip reads
+// as the same kind of thing. overflow-hidden so a card that runs long is
+// clipped rather than pushing its neighbours around.
 function TipCard({ icon, title, children }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 overflow-hidden md:flex-1 md:min-h-0">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 border-l-4 border-l-purple-300 p-2.5 overflow-hidden">
       <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: '#9333ea' }}>
         {icon} {title}
       </p>
@@ -882,44 +882,52 @@ export default function PracticeLeftPanel({
           </div>
         </div>
 
-        {/* INTERVIEW TIPS — a fixed-height block, sized the way the hub sizes
-            its panel cards. The three cards divide what's left of it between
-            them, so each one holds its shape rather than growing with the
-            words inside it: this is read at a glance mid-interview, and a
-            panel that reflows is a panel nobody can find their place in. */}
-        <div className="flex flex-col gap-3 flex-shrink-0 md:h-[520px]">
+        {/* INTERVIEW TIPS — the two short cards share a row and the one with
+            sentences in it takes the width below them. Sized to their words
+            rather than to a fixed block: two rows are short enough to sit on
+            the page whole, which is what matters for something read at a
+            glance mid-interview. */}
+        <div className="flex flex-col gap-3 flex-shrink-0">
           <h4 className="text-sm font-bold uppercase tracking-wide flex-shrink-0" style={{ color: '#9333ea' }}>
             Interview Tips
           </h4>
 
-          <TipCard icon="⭐" title="The STAR Method">
-            <ul className="space-y-1">
-              {STAR_STEPS.map(({ label, text }) => (
-                <li key={label} className="text-xs leading-snug">
-                  <span className="font-bold text-gray-900">{label}:</span>{' '}
-                  <span className="text-gray-600">{text}</span>
-                </li>
-              ))}
-            </ul>
-          </TipCard>
+          <div className="grid grid-cols-2 gap-3">
+            <TipCard icon="⭐" title="The STAR Method">
+              <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-1.5">
+                Structure your answers so the interviewer can follow your thinking and see real results.
+              </p>
+              <ul className="space-y-1">
+                {STAR_STEPS.map(({ label, text }) => (
+                  <li key={label} className="text-sm md:text-xs leading-snug">
+                    <span className="text-sm font-bold text-gray-900">{label}:</span>{' '}
+                    <span className="text-gray-600">{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </TipCard>
+
+            <TipCard icon="💡" title="Quick Tips">
+              <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-1.5">
+                Small things that make a big difference in how you come across.
+              </p>
+              <ul className="space-y-1">
+                {QUICK_TIPS.map(tip => (
+                  <li key={tip} className="text-sm md:text-xs leading-snug text-gray-600 flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </TipCard>
+          </div>
 
           <TipCard icon="📊" title="What We Score">
             <ul className="space-y-1.5">
               {SCORED_CATEGORIES.map(({ label, text }) => (
-                <li key={label} className="text-xs leading-snug">
-                  <span className="font-bold text-gray-900">{label}:</span>{' '}
+                <li key={label} className="text-sm md:text-xs leading-snug">
+                  <span className="text-sm font-bold text-gray-900">{label}:</span>{' '}
                   <span className="text-gray-600">{text}</span>
-                </li>
-              ))}
-            </ul>
-          </TipCard>
-
-          <TipCard icon="💡" title="Quick Tips">
-            <ul className="space-y-1">
-              {QUICK_TIPS.map(tip => (
-                <li key={tip} className="text-xs leading-snug text-gray-600 flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
-                  <span>{tip}</span>
                 </li>
               ))}
             </ul>
