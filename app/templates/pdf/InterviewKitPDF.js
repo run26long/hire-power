@@ -163,8 +163,8 @@ function bucketLabel(itemType) {
 // The colour is the one the bucket carries on screen, darkened where the
 // screen value is too light to read as small print on white.
 const PA_BUCKETS = [
-  { key: 'core_power', label: 'Core Power', title: 'skill', body: 'evidence', color: '#81c784' },
-  { key: 'hidden_power', label: 'Hidden Power', title: 'skill', body: 'evidence_reframe', color: '#9333ea' },
+  { key: 'core_power', label: 'Core Power', title: 'skill', body: 'evidence', color: '#9333ea' },
+  { key: 'hidden_power', label: 'Hidden Power', title: 'skill', body: 'evidence_reframe', color: '#81c784' },
   { key: 'power_gaps', label: 'Power Gaps', title: 'gap', body: 'bridge_strategy', color: '#ffc870' },
 ]
 

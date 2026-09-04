@@ -816,7 +816,7 @@ export default function InterviewDetailPage() {
                   <BucketColumn
                     title="Core Power"
                     icon="✅"
-                    colorClass="green"
+                    colorClass="purple"
                     items={powerAnalysis.core_power}
                     emptyText="No core matches surfaced. Consider tailoring your resume."
                     getTextField={(item) => item.evidence}
@@ -826,7 +826,7 @@ export default function InterviewDetailPage() {
                   <BucketColumn
                     title="Hidden Power"
                     icon="💡"
-                    colorClass="yellow"
+                    colorClass="green"
                     items={powerAnalysis.hidden_power}
                     emptyText="No hidden transferable skills surfaced."
                     getTextField={(item) => item.evidence_reframe}
@@ -837,7 +837,7 @@ export default function InterviewDetailPage() {
                   <BucketColumn
                     title="Power Gaps"
                     icon="⚠️"
-                    colorClass="red"
+                    colorClass="amber"
                     items={powerAnalysis.power_gaps}
                     emptyText="No major gaps. You're well positioned for this role."
                     getTextField={(item) => item.bridge_strategy}
@@ -988,9 +988,9 @@ function BucketColumn({
   getTextField, getNameField, getSourceField
 }) {
   const colors = {
+    purple: { border: 'border-purple-200', bg: 'bg-purple-50', titleText: 'text-purple-800', countText: 'text-purple-700', emptyText: 'text-purple-700' },
     green: { border: 'border-green-200', bg: 'bg-green-50', titleText: 'text-green-800', countText: 'text-green-700', emptyText: 'text-green-700' },
-    yellow: { border: 'border-yellow-200', bg: 'bg-yellow-50', titleText: 'text-yellow-800', countText: 'text-yellow-700', emptyText: 'text-yellow-800' },
-    red: { border: 'border-red-200', bg: 'bg-red-50', titleText: 'text-red-800', countText: 'text-red-700', emptyText: 'text-red-800' }
+    amber: { border: 'border-amber-200', bg: 'bg-amber-50', titleText: 'text-amber-800', countText: 'text-amber-700', emptyText: 'text-amber-800' }
   };
   const c = colors[colorClass];
 
@@ -1070,19 +1070,19 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">✅</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-green-800">Core Power:</span> Your strongest matches for this role. These are the skills and experiences to include in your answers.
+            <span className="font-bold text-purple-800">Core Power:</span> Your strongest matches for this role. These are the skills and experiences to include in your answers.
           </p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">💡</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-yellow-800">Hidden Power:</span> Strengths you already have, even if they don’t look like an obvious match. We’ll show you how to connect the dots and make them work for you.
+            <span className="font-bold text-green-800">Hidden Power:</span> Strengths you already have, even if they don’t look like an obvious match. We’ll show you how to connect the dots and make them work for you.
           </p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">⚠️</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-red-800">Power Gaps:</span> Skills the job calls for that you may not have yet. Don&apos;t panic. We’ll help you prepare in case they come up.
+            <span className="font-bold text-amber-800">Power Gaps:</span> Skills the job calls for that you may not have yet. Don&apos;t panic. We’ll help you prepare in case they come up.
           </p>
         </li>
       </ul>
