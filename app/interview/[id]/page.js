@@ -86,9 +86,6 @@ export default function InterviewDetailPage() {
   // Bumped whenever the history list needs re-reading, which the practice
   // step's own effect has no other reason to do.
   const [practiceDataSignal, setPracticeDataSignal] = useState(0);
-  // Bumped to ask PracticeView for a fresh start. A counter rather than a
-  // boolean so pressing Practice Again twice in a row still registers twice.
-  const [practiceResetSignal, setPracticeResetSignal] = useState(0);
   const [experienceLevel, setExperienceLevel] = useState('mid');
 
  const [errorToast, setErrorToast] = useState(null);
@@ -795,14 +792,6 @@ export default function InterviewDetailPage() {
                       setReviewSessionId(s.id);
                     }
                   }}
-                  onStartNew={() => {
-                    setReviewSessionId(null);
-                    setPracticeShape({ state: 'idle', session: null, questions: [], currentIndex: 0, completion: null });
-                    // The panel above is only a mirror. Without this the right
-                    // column stays on the results and reports itself completed
-                    // again on its next render, pulling the mirror back with it.
-                    setPracticeResetSignal(n => n + 1);
-                  }}
                   onSessionDeleted={handleSessionDeleted}
                   onSuccess={setSuccessToast}
                   onError={setErrorToast}
@@ -954,7 +943,6 @@ export default function InterviewDetailPage() {
                   pausedSession={pastPracticeSessions.find(s => s.status === 'in_progress') || null}
                   onResumePaused={(id) => { setReviewSessionId(null); setResumeSessionId(id); }}
                   onSessionDeleted={handleSessionDeleted}
-                  resetSignal={practiceResetSignal}
                   onBack={() => goToStep('prepare')}
                   onSessionPaused={() => {
                     setResumeSessionId(null);

@@ -422,8 +422,6 @@ export default function PracticeView({
   // Told when a session is destroyed, so the history and the paused-session
   // block both stop showing one that no longer exists.
   onSessionDeleted = () => {},
-  // Bumped by the parent when Practice Again is pressed on the score card.
-  resetSignal = 0,
   onBack,
   // Told when an interview is paused, so the history list can show it.
   onSessionPaused = () => {},
@@ -1541,23 +1539,6 @@ export default function PracticeView({
     }
     setSessionState('idle');
   };
-
-  // Practice Again lives on the left column's score card, which belongs to the
-  // parent. Rather than reach in here, it bumps a counter, and this drops the
-  // right column back to the mode selector. Skips the first run: mounting is
-  // not a request to reset, and resetting on mount would throw away a session
-  // the resume lookup had just restored.
-  const resetSignalSeenRef = useRef(false);
-  useEffect(() => {
-    if (!resetSignalSeenRef.current) {
-      resetSignalSeenRef.current = true;
-      return;
-    }
-    resetToIdle();
-    // resetToIdle is stable in practice and re-running this on its identity
-    // would reset the column on every render. The signal is the trigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetSignal]);
 
   // Stays on the practice step rather than stepping back to research. The row
   // is left in_progress on purpose and deliberately not dismissed: the card
