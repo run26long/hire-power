@@ -680,16 +680,16 @@ function CompletedPanel({
   return (
     <div className="space-y-3">
 
-      {/* SCORE CARD — one row: the headline score, what it is made of, and the
-          level it earned. Stacked, these three took most of the column before
-          the candidate reached a single question. */}
+      {/* SCORE CARD — one row: the headline score and what it is made of.
+          Stacked, these took most of the column before the candidate reached
+          a single question. */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
         <div className="flex items-center gap-4">
 
           {/* READINESS */}
           <div className="flex flex-col items-center flex-shrink-0" style={{ width: '42%' }}>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-gray-900">{readiness}</span>
+              <span className="text-5xl font-bold text-gray-900">{readiness}</span>
               <span className="text-lg text-gray-600">/100</span>
             </div>
             <p className="text-xs font-bold uppercase tracking-wide mt-0.5" style={{ color: '#9333ea' }}>
@@ -712,7 +712,7 @@ function CompletedPanel({
           </div>
 
           {/* BREAKDOWN */}
-          <div className="flex items-center gap-2 flex-shrink-0 min-w-0" style={{ width: '40%' }}>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {[
               { label: 'Clarity', value: clarity },
               { label: 'Content', value: content },
@@ -745,14 +745,6 @@ function CompletedPanel({
           </div>
 
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
-            <button
-              onClick={onStartNew}
-              className="text-white rounded-lg py-1.5 px-4 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-90"
-              style={GRADIENT}
-            >
-              Practice Again
-            </button>
-
             {progression.level_changed && (
               <p className="text-[9px] text-gray-500 whitespace-nowrap">
                 Level {progression.level_before} → Level {progression.level_after}
@@ -763,10 +755,9 @@ function CompletedPanel({
       </div>
 
       {/* Only mode_1 recorded anything to delete. Its own line rather than
-          inside the level column above: that row is three columns at fixed
-          percentages, and a longer label than Practice Again would squeeze
-          the breakdown beside it. Right-aligned so it still reads as sitting
-          under the button. */}
+          inside the row above: that row is sized to the score and its
+          breakdown, and a label this long would squeeze them. Right-aligned so
+          it still reads as sitting under the card. */}
       {voiceMode === 'mode_1' && !audioDeleted && userId && sessionId && (
         <div className="flex justify-end -mt-1">
           <button
