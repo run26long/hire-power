@@ -1112,11 +1112,11 @@ const HEADING_DARK = '#111827';
 
 // Culture values and question types read as the same kind of thing, so they
 // share one definition rather than two that can drift apart.
-const TAG_GREY = 'text-sm md:text-xs bg-gray-100 text-gray-600';
+const TAG_SOFT = 'text-sm md:text-xs bg-purple-50 text-gray-600 border border-purple-100';
 
 const TAG_VARIANTS = {
-  culture: TAG_GREY,
-  question: TAG_GREY,
+  culture: TAG_SOFT,
+  question: TAG_SOFT,
   default: 'text-[11px] md:text-[10px] bg-purple-50 text-purple-700'
 };
 
@@ -1141,10 +1141,11 @@ function CardHeading({ children, color }) {
 
 // Every card renders whether or not it has data, so the grid keeps its shape.
 // An empty card says so rather than collapsing and reflowing its neighbours.
-// No border — the shadow against the gray page is what makes it a card.
+// The shadow against the gray page is what makes it a card; the left rule is
+// what marks it as a section of the brief.
 function ResearchCard({ title, color, isEmpty, emptyText = 'No information available.', headerRight, children }) {
   return (
-    <div className="bg-white shadow-sm rounded-lg p-4">
+    <div className="bg-white shadow-sm rounded-lg p-4 border-l-4 border-purple-300">
       {headerRight ? (
         <div className="flex items-start justify-between gap-2">
           <CardHeading color={color}>{title}</CardHeading>
@@ -1197,9 +1198,9 @@ function Stat({ label, value, bullets, color = DOT_PURPLE }) {
     ? String(value).split(',').map(p => p.trim()).filter(Boolean)
     : null;
 
-  // Left rule matches the callout treatment in the right-hand panel.
+  // Left rule at the same weight as the section cards, so nothing shouts.
   return (
-    <div className="border-l-4 border-purple-500 pl-3">
+    <div className="border-l-4 border-purple-300 pl-3">
       <CardHeading color={color}>{label}</CardHeading>
       {parts ? (
         <DotList items={parts} color={DOT_PURPLE} />
@@ -1375,9 +1376,9 @@ function ResearchStepContent({ jobCard }) {
           </div>
 
           {/* ROW 2 — RECENT NEWS | CULTURE AND VALUES */}
-          {/* Bold headline then one sentence, in the same label-dash-body shape
-              the right-hand panel uses. The date is dropped: headlines almost
-              always carry the timeframe already. */}
+          {/* Bold headline on its own line, the sentence beneath it — two long
+              strings joined on one line read as a run-on. The date is dropped:
+              headlines almost always carry the timeframe already. */}
           <ResearchCard title="📰 Recent News" color={DOT_PURPLE} isEmpty={news.length === 0}>
             <ul className="space-y-2">
               {news.map((item, i) => (
@@ -1387,8 +1388,8 @@ function ResearchStepContent({ jobCard }) {
                     style={{ backgroundColor: DOT_PURPLE }}
                   />
                   <span>
-                    <strong className="text-gray-900">{item.headline}</strong>
-                    {item.summary && <> — {item.summary}</>}
+                    <strong className="block text-gray-900">{item.headline}</strong>
+                    {item.summary && <span className="text-gray-600">{item.summary}</span>}
                   </span>
                 </li>
               ))}
