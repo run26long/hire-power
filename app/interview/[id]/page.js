@@ -1637,48 +1637,45 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
 
 function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }) {
   return (
-    <div className="px-5 py-4 flex-1 flex flex-col">
-      <div className="space-y-2">
-        <h3 className="font-semibold text-lg -mt-3">📋 Interview Prep</h3>
-
-        <p className="text-sm md:text-xs text-gray-700">
-          Your questions for the interviewer are on the left, each with the reason it works.
-          Asking something specific is what separates a candidate who studied the company from
-          one who skimmed the job post.
-        </p>
-
-        <p className="text-sm md:text-xs text-gray-700">
-          These questions are designed for your actual interview, not the practice. Review them,
-          pick the ones that feel right, and print your toolkit to bring with you.
-        </p>
-
-        <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
-          <div className="text-sm md:text-xs text-purple-900 space-y-2">
-            <div><strong>💡 Questions for your interviewer</strong></div>
-            <div><strong>🏢 Company highlights</strong></div>
-            <div><strong>📄 The job description</strong></div>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA */}
-      {/* Explicit margins rather than space-y, so the gap under the button can
-          be tightened without also tightening the one above it. */}
-      <div className="mt-auto pt-3 border-t border-gray-300">
-        <div className="text-center mb-3">
-          <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">
-            Take it with you.
-          </h4>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">
-            Tick what you want in your toolkit and print it before you go.
-          </p>
-        </div>
-        <button onClick={onGoToPractice} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
+    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <h3 className="font-semibold text-lg -mt-3">📋 Interview Prep</h3>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        Of course you&apos;re thinking about what they&apos;re going to ask you. But have you thought about what you want to ask them?
+      </p>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        Great questions show that you&apos;re prepared, engaged, and seriously considering whether the role is right for you, too. We&apos;ve put together a few tailored ideas to get you started, along with why each one works.
+      </p>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        After that, it&apos;s almost time to practice! Your printable Interview Toolkit keeps your prep work close at hand during practice and before the real thing:
+      </p>
+      <ul className="space-y-1.5 pl-3">
+        <li className="flex items-start gap-2">
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">📊</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Your Power Analysis</p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">💡</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Questions for your interviewer</p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">🏢</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Company highlights</p>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">📄</span>
+          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">The job description</p>
+        </li>
+      </ul>
+      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+        Ready to practice? Time to put your prep to work.
+      </p>
+      {/* One flex item, so the row gap above the button doesn't also open
+         between the button and the link under it. */}
+      <div className="flex flex-col items-center gap-1">
+        <button onClick={onGoToPractice} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
           {hasActiveSession ? 'Resume Practice' : 'Go to Practice'}
         </button>
-        <div className="mt-1.5">
-          <BackLink onClick={onBack} label="← Back to Research" />
-        </div>
+        <BackLink onClick={onBack} />
       </div>
     </div>
   );
