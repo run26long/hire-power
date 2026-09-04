@@ -744,14 +744,7 @@ function CompletedPanel({
             })}
           </div>
 
-          {/* LEVEL — a line of text rather than a badge. Carded, it read as a
-              third stat competing with the breakdown beside it; the level is a
-              label on the session, not another score. */}
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
-            <p className="text-sm font-bold whitespace-nowrap" style={{ color: '#9333ea' }}>
-              Level {level} · {LEVEL_NAMES[level] || ''}
-            </p>
-
             <button
               onClick={onStartNew}
               className="text-white rounded-lg py-1.5 px-4 text-xs font-semibold whitespace-nowrap transition-opacity hover:opacity-90"

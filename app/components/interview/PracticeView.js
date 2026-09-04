@@ -1777,8 +1777,9 @@ export default function PracticeView({
             into categories needs the width. This column explains what the
             categories mean, so the colours over there are not a code the
             candidate has to break. */}
-        <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">
-          Here&apos;s how your answers were evaluated.
+        <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          Click any question on the left to review your full answer and detailed
+          feedback. Here&apos;s how your answers were evaluated.
         </p>
 
         <div className="space-y-2">
@@ -1796,7 +1797,7 @@ export default function PracticeView({
             {
               heading: '🌱 Room to Grow',
               color: '#ffc870',
-              body: 'Answers below 60. These need stronger examples or a clearer framework. Use your coached stories to build better responses.'
+              body: 'Answers below 60. These need stronger examples or a clearer framework.'
             }
           ].map(({ heading, color, body }) => (
             <div key={heading}>
@@ -1806,42 +1807,32 @@ export default function PracticeView({
           ))}
         </div>
 
-        <div className="bg-purple-50 border-l-4 border-purple-600 p-2 rounded-r">
-          <p className="text-sm md:text-xs text-gray-700">
-            Click any question on the left to review your full answer and detailed feedback.
-          </p>
-        </div>
+        <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          Use the Coach&apos;s Notes to improve your answers for your next practice
+          or actual interview.
+        </p>
 
-        {/* Two ways onward, sized to their labels. Practising again lives on
-            the score card in the left column, and the progress strip above
-            carries every other move, so neither is repeated here. */}
         {/* Grid rather than flex: two equal columns keep the buttons the same
             width whatever their labels say, and nowrap stops the shorter one
             breaking across two lines in a narrow column. */}
         <div className="grid grid-cols-2 gap-3">
+          {/* Back to the mode selector rather than back a step: the results
+              stay in the history on the left, and the way out of them is to
+              start another interview. */}
           <button
-            onClick={onGoToCoach}
-            className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
+            onClick={resetToIdle}
+            className="text-white rounded-lg py-2 px-3 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90 whitespace-nowrap"
+            style={GRADIENT}
           >
-            Coach Stories
+            Practice Again
           </button>
           <button
             onClick={() => router.push('/interview-coach')}
             className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
           >
-            Interview Coach
+            End Practice
           </button>
         </div>
-
-        {/* Back to the mode selector rather than back a step: the results stay
-            in the history on the left, and the way out of them is to start
-            another interview. */}
-        <button
-          onClick={resetToIdle}
-          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center -mt-1"
-        >
-          ← Back to Practice
-        </button>
       </div>
     );
   }
