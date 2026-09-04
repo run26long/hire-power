@@ -1082,7 +1082,7 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
         <li className="flex items-start gap-2">
           <span className="text-sm flex-shrink-0 leading-none mt-0.5">⚠️</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-            <span className="font-bold text-red-800">Power Gaps:</span> Skills the job asks for that you may not have yet. Don't panic. We’ll help you prepare in case they come up.
+            <span className="font-bold text-red-800">Power Gaps:</span> Skills the job calls for that you may not have yet. Don't panic. We’ll help you prepare in case they come up.
           </p>
         </li>
       </ul>
@@ -1464,48 +1464,40 @@ function ResearchStepContent({ jobCard }) {
 // left; this side just moves the user forward.
 // ============================================================================
 
+// What the brief on the left covers, in the order it covers it. Uniform, so a
+// list rather than seven copies of the same markup.
+const RESEARCH_TOPICS = [
+  { icon: '🏢', label: 'Company overview' },
+  { icon: '📰', label: 'Recent news' },
+  { icon: '🧭', label: 'Culture and values' },
+  { icon: '✅', label: 'What people like' },
+  { icon: '⚠️', label: 'Common complaints' },
+  { icon: '🎯', label: 'Interview format' },
+  { icon: '💬', label: 'Question types' }
+];
+
 function ResearchIdlePanel({ onGoToPrepare, onBack }) {
   return (
-    <div className="px-5 py-4 flex-1 flex flex-col">
-      <div className="space-y-2">
-        <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
-
-        <p className="text-sm md:text-xs text-gray-700">
-          Get to know the company before your interview so that you can ask thoughtful questions.
-        </p>
-
-        <div className="bg-purple-50 border-l-4 border-purple-500 p-3 rounded">
-          <div className="text-sm md:text-xs text-purple-900 space-y-2">
-            <div><strong>🏢 Company overview</strong></div>
-            <div><strong>📰 Recent news</strong></div>
-            <div><strong>🧭 Culture and values</strong></div>
-            <div><strong>✅ What people like</strong></div>
-            <div><strong>⚠️ Common complaints</strong></div>
-            <div><strong>🎯 Interview format</strong></div>
-            <div><strong>💬 Question types</strong></div>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA */}
-      {/* Explicit margins rather than space-y, so the gap under the button can
-          be tightened without also tightening the one above it. */}
-      <div className="mt-auto pt-3 border-t border-gray-300">
-        <div className="text-center mb-3">
-          <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">
-            You’re ready.
-          </h4>
-          <p className="text-sm md:text-xs text-gray-600 leading-snug">
-            Review your prep materials before you practice.
-          </p>
-        </div>
-        <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
-          Go to Prep
-        </button>
-        <div className="mt-1.5">
-          <BackLink onClick={onBack} />
-        </div>
-      </div>
+    <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
+      <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
+      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+        Get to know the company before your interview so that you can ask thoughtful questions.
+      </p>
+      <ul className="space-y-2">
+        {RESEARCH_TOPICS.map(({ icon, label }) => (
+          <li key={label} className="flex items-start gap-2">
+            <span className="text-sm flex-shrink-0 leading-none mt-0.5">{icon}</span>
+            <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{label}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+        Next step? Prep your materials before you practice.
+      </p>
+      <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
+        Go to Prep
+      </button>
+      <BackLink onClick={onBack} />
     </div>
   );
 }
