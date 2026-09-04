@@ -3,7 +3,13 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "PowerShell($p = 'app/interview/[id]/page.js'; $l = Get-Content -LiteralPath $p; 1105..1113 | ForEach-Object { Write-Output \"$\\($_+1\\): $\\($l[$_]\\)\" })",
+      "PowerShell($p = 'app/interview/[id]/page.js'; $l = Get-Content -LiteralPath $p; 1096..1105 | ForEach-Object { Write-Output \"$\\($_+1\\): $\\($l[$_]\\)\" })",
+      "PowerShell($p = 'app/interview/[id]/page.js'; $l = Get-Content -LiteralPath $p; 1090..1096 | ForEach-Object { Write-Output \"$\\($_+1\\): $\\($l[$_]\\)\" })",
+      "PowerShell(Set-Content *)",
+      "PowerShell(npx eslint 'app/interview/[id]/page.js' 2>&1 | Select-Object -First 30)",
+      "PowerShell(npx eslint \"app/interview-coach/page.js\" 2>&1 | Select-Object -First 20; Write-Output \"=== interview page ===\"; npx eslint 'app/interview/[id]/page.js' 2>&1 | Select-Object -First 12)"
     ]
   }
 }

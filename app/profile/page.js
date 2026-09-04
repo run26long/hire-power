@@ -37,6 +37,78 @@ export default function Profile() {
   const [toastError, setToastError] = useState('')
   const [subscriptionDetails, setSubscriptionDetails] = useState(null)
 
+  // Voice and privacy. voiceMode is the mode of their most recent practice
+  // session, which is what "last used" means to someone reading this card.
+  const [voiceMode, setVoiceMode] = useState(null)
+  const [consentRecords, setConsentRecords] = useState([])
+  const [showDeleteVoiceModal, setShowDeleteVoiceModal] = useState(false)
+  const [voiceDeleting, setVoiceDeleting] = useState(false)
+  // Whether there is anything to delete. Folder-level only: a session folder
+  // standing means recordings were made under it, which is close enough to
+  // decide whether a button should be pressable.
+  const [hasVoiceData, setHasVoiceData] = useState(false)
+
+  // What each mode did with their audio, said from the outside. mode_3 is
+  // here because "last used" can honestly be the mode that records nothing.
+  const VOICE_MODE_LABELS = {
+    mode_1: 'Voice with playback. Answers recorded and stored',
+    mode_2: 'Voice only. Audio never stored',
+    mode_3: 'Text only. Microphone never used'
+  }
+
+  const formatConsentDate = (iso) => {
+    if (!iso) return ''
+    try {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    } catch {
+      return ''
+    }
+  }
+
+  // Recordings sit two levels down, one folder per session, so the user's
+  // folder holds prefixes rather than files. Listing it once and removing what
+  // comes back would delete nothing and report success.
+  const deleteAllVoiceData = async () => {
+    if (!user?.id || voiceDeleting) return
+    setVoiceDeleting(true)
+    try {
+      const { data: sessionFolders, error: listError } = await supabase.storage
+        .from('interview-audio')
+        .list(user.id)
+      if (listError) throw listError
+
+      const paths = []
+      for (const folder of sessionFolders || []) {
+        const { data: recordings, error: filesError } = await supabase.storage
+          .from('interview-audio')
+          .list(`${user.id}/${folder.name}`)
+        if (filesError) throw filesError
+        ;(recordings || []).forEach(file => {
+          paths.push(`${user.id}/${folder.name}/${file.name}`)
+        })
+      }
+
+      if (paths.length > 0) {
+        const { error: removeError } = await supabase.storage
+          .from('interview-audio')
+          .remove(paths)
+        if (removeError) throw removeError
+      }
+
+      // Nothing stored is the same outcome they asked for, so an empty folder
+      // reports success rather than an error about a request that was already
+      // satisfied.
+      setShowDeleteVoiceModal(false)
+      setToastSuccess('Voice data deleted.')
+    } catch (err) {
+      console.error('Voice data delete failed:', err)
+      setShowDeleteVoiceModal(false)
+      setToastError("We couldn't delete your voice data. Try again, or contact support.")
+    } finally {
+      setVoiceDeleting(false)
+    }
+  }
+
   // Password strength: returns { score: 0-3, label, color, width }
   const getPasswordStrength = (password) => {
     if (!password) return null;
@@ -69,6 +141,49 @@ export default function Profile() {
   const [vaultCheckoutPrompt, setVaultCheckoutPrompt] = useState(null)
 
   useEffect(() => { loadProfile() }, [])
+
+  // Voice and privacy data. Read-only, and a failure costs the card rather
+  // than the page: someone here to change their password should not be
+  // stopped by a consent list that would not load.
+  useEffect(() => {
+    if (!user?.id) return
+    let cancelled = false
+
+    async function loadVoiceData() {
+      const { data: lastSession, error: sessionError } = await supabase
+        .from('interview_sessions')
+        .select('voice_mode')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!cancelled) {
+        if (sessionError) console.error('Voice mode load failed:', sessionError)
+        else setVoiceMode(lastSession?.voice_mode ?? null)
+      }
+
+      const { data: consents, error: consentError } = await supabase
+        .from('user_voice_consent')
+        .select('id, mode_selected, consented_at')
+        .eq('user_id', user.id)
+        .order('consented_at', { ascending: false })
+      if (!cancelled) {
+        if (consentError) console.error('Voice consent history load failed:', consentError)
+        else setConsentRecords(consents || [])
+      }
+
+      const { data: audioFolders, error: audioError } = await supabase.storage
+        .from('interview-audio')
+        .list(user.id)
+      if (!cancelled) {
+        if (audioError) console.error('Voice recording check failed:', audioError)
+        else setHasVoiceData((audioFolders || []).length > 0)
+      }
+    }
+
+    loadVoiceData()
+    return () => { cancelled = true }
+  }, [user?.id, supabase])
 
   // Detect email change confirmation redirect from Supabase
   useEffect(() => {
@@ -511,6 +626,7 @@ export default function Profile() {
                 <li className="flex items-start"><span className="mr-2">•</span><span>Career context snapshot</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Plan and billing</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Account settings</span></li>
+                <li className="flex items-start"><span className="mr-2">•</span><span>Voice and privacy</span></li>
                 <li className="flex items-start"><span className="mr-2">•</span><span>Data export and privacy</span></li>
               </ul>
             </div>
@@ -541,7 +657,7 @@ export default function Profile() {
             {/* SINGLE ROW: Left stack | Right stack */}
             <div className="hp-row" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, flex: '0 0 auto', alignItems: 'stretch' }}>
 
-              {/* LEFT STACK: Personal Info + Career Context + Your Career Your Info */}
+              {/* LEFT STACK: Personal Info + Career Context + Your Career Your Info + Voice & Privacy */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 {/* PERSONAL INFO */}
@@ -549,7 +665,7 @@ export default function Profile() {
                   <div style={cardHeader()}>
                     <span style={cardTitle}>Personal Information</span>
                   </div>
-                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 29, paddingTop: 14, paddingBottom: 24 }}>
+                  <div style={{ ...cardBody, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 14, paddingBottom: 16 }}>
                     <div className="hp-photo-fields-row" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                       {/* Photo */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -579,13 +695,17 @@ export default function Profile() {
                             <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>&nbsp;</p>
                           </div>
                         </div>
+                        {/* Save sits in the email row rather than under it. The
+                            row is duplicated for the two breakpoints the same
+                            way the field itself already is, since only one of
+                            the two is ever on screen. */}
                         <div className="hp-email-desktop">
                           <label style={labelSm}>Email</label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {editingEmail ? (
-                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1 }} placeholder="New email address" autoFocus />
+                              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1, maxWidth: 220 }} placeholder="New email address" autoFocus />
                             ) : (
-                              <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1 }} />
+                              <input type="email" value={user?.email || ''} disabled style={{ ...inputDis, flex: 1, maxWidth: 220 }} />
                             )}
                             <button
                               onClick={editingEmail ? () => { setEditingEmail(false); setNewEmail(''); } : () => { setNewEmail(user?.email || ''); setEditingEmail(true); }}
@@ -593,13 +713,17 @@ export default function Profile() {
                             >
                               {editingEmail ? 'Cancel' : 'Edit'}
                             </button>
+                            {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>Saved!</span>}
+                            <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1, whiteSpace: 'nowrap', marginLeft: 'auto' }}>
+                              {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="hp-email-mobile" style={{ display: 'none' }}>
                       <label style={labelSm}>Email</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         {editingEmail ? (
                           <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ ...inputSm, flex: 1 }} placeholder="New email address" />
                         ) : (
@@ -611,13 +735,11 @@ export default function Profile() {
                         >
                           {editingEmail ? 'Cancel' : 'Edit'}
                         </button>
+                        {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>Saved!</span>}
+                        <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                          {saving ? 'Saving...' : 'Save Changes'}
+                        </button>
                       </div>
-                    </div>
-                    <div className="hp-save-row" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-                      {saveSuccess && <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a' }}>Saved!</span>}
-                      <button onClick={saveProfile} disabled={saving} style={{ ...btnPurple, opacity: saving ? 0.6 : 1 }}>
-                        {saving ? 'Saving...' : 'Save Changes'}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -676,6 +798,64 @@ export default function Profile() {
                       <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ ...btnOutline, flex: 1, textAlign: 'center', textDecoration: 'none' }}>
                         Terms of Service
                       </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* VOICE & PRIVACY */}
+                <div style={cardBase}>
+                  <div style={cardHeader()}>
+                    <span style={cardTitle}>Voice &amp; Privacy</span>
+                  </div>
+                  <div style={cardBody}>
+                    <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
+                      <span style={{ fontWeight: 700, color: '#374151' }}>Last interview mode:</span>{' '}
+                      {VOICE_MODE_LABELS[voiceMode] || "You haven't practiced an interview yet."}
+                    </p>
+
+                    {/* One record reads as a sentence, so the label leads it.
+                        Several need the label to stand over them instead. */}
+                    {consentRecords.length === 1 && (
+                      <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4, marginBottom: 14 }}>
+                        <span style={{ fontWeight: 700, color: '#374151' }}>Consent history:</span>{' '}
+                        {VOICE_MODE_LABELS[consentRecords[0].mode_selected] || consentRecords[0].mode_selected}
+                        {' - '}
+                        {formatConsentDate(consentRecords[0].consented_at)}
+                      </p>
+                    )}
+
+                    {consentRecords.length > 1 && (
+                      <div style={{ marginBottom: 14 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#374151', lineHeight: 1.4 }}>
+                          Consent history:
+                        </p>
+                        {consentRecords.map(record => (
+                          <p key={record.id} style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>
+                            {VOICE_MODE_LABELS[record.mode_selected] || record.mode_selected}
+                            {' - '}
+                            {formatConsentDate(record.consented_at)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <p style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>
+                        Deleting your recordings does not affect your transcripts, scores, or feedback.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteVoiceModal(true)}
+                        disabled={!hasVoiceData}
+                        title={hasVoiceData ? undefined : 'No voice recordings to delete.'}
+                        style={{
+                          ...btnRed,
+                          flexShrink: 0,
+                          opacity: hasVoiceData ? 1 : 0.5,
+                          cursor: hasVoiceData ? 'pointer' : 'not-allowed'
+                        }}
+                      >
+                        Delete All Voice Data
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -832,7 +1012,6 @@ export default function Profile() {
           .hp-name-email-grid { grid-template-columns: 1fr !important; }
           .hp-mobile-top { display: block !important; }
           .hp-photo-fields-row { align-items: flex-start !important; }
-          .hp-save-row { justify-content: center !important; }
           .hp-email-desktop { display: none !important; }
           .hp-email-mobile { display: block !important; }
 
@@ -1190,6 +1369,47 @@ export default function Profile() {
               >
                 {exportLoading ? 'Exporting...' : 'Download My Data'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE VOICE DATA MODAL ── */}
+      {showDeleteVoiceModal && (
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, maxWidth: 440 }}>
+            <div style={{ ...modalHead('linear-gradient(135deg,#dc2626,#991b1b)'), position: 'relative' }}>
+              <button
+                onClick={() => setShowDeleteVoiceModal(false)}
+                disabled={voiceDeleting}
+                style={{ position: 'absolute', top: 12, right: 14, background: 'transparent', border: 'none', color: 'white', fontSize: 24, lineHeight: 1, cursor: 'pointer', padding: 0, fontWeight: 300 }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <p style={modalTitle}>Delete All Voice Data</p>
+              <p style={modalSub}>This cannot be undone.</p>
+            </div>
+            <div style={modalBody}>
+              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, marginBottom: 14 }}>
+                Every recording from every practice interview will be permanently deleted. Your transcripts, scores, and coaching notes stay exactly as they are, so nothing you have practiced is lost.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => setShowDeleteVoiceModal(false)}
+                  disabled={voiceDeleting}
+                  style={{ ...btnGhost, flex: 1, textAlign: 'center' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={deleteAllVoiceData}
+                  disabled={voiceDeleting}
+                  style={{ ...btnRedSolid, flex: 1, textAlign: 'center', opacity: voiceDeleting ? 0.6 : 1 }}
+                >
+                  {voiceDeleting ? 'Deleting...' : 'Delete All Voice Data'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

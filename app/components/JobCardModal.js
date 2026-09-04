@@ -366,12 +366,15 @@ export default function JobCardModal({
                         </span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div
+                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                      onClick={() => router.push(`/interview/${card.id}`)}
+                    >
                       <div>
                         <p className="text-sm md:text-xs font-semibold text-purple-800">Prep for Interview</p>
-                        <p className="text-xs md:text-[10px] text-purple-500">Practice questions for this role</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Power Analysis and practice for this role</p>
                       </div>
-                      <span className="text-xs md:text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                      <span className="text-sm md:text-xs font-semibold text-purple-500">Open →</span>
                     </div>
                   </>
                 )}
@@ -390,12 +393,15 @@ export default function JobCardModal({
                       </div>
                       <span className="text-sm md:text-xs font-semibold text-amber-500">+ Add →</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div
+                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                      onClick={() => router.push(`/interview/${card.id}`)}
+                    >
                       <div>
                         <p className="text-sm md:text-xs font-semibold text-purple-800">Practice Interview</p>
-                        <p className="text-xs md:text-[10px] text-purple-500">AI-spoken questions for this role</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Power Analysis and practice for this role</p>
                       </div>
-                      <span className="text-xs md:text-[10px] text-purple-300 font-semibold">Coming soon</span>
+                      <span className="text-sm md:text-xs font-semibold text-purple-500">Open →</span>
                     </div>
                   
                   </>
