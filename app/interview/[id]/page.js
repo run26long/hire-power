@@ -1641,14 +1641,12 @@ function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }
       <h3 className="font-semibold text-lg -mt-3">📋 Interview Prep</h3>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
         Of course you&apos;re thinking about what they&apos;re going to ask you. But have you thought about what you want to ask them?
+            
       </p>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Great questions show that you&apos;re prepared, engaged, and seriously considering whether the role is right for you, too. We&apos;ve put together a few tailored ideas to get you started, along with why each one works.
+        Great questions show that you&apos;re prepared, engaged, and seriously considering whether the role is right for you, too. We&apos;ve put together a few ideas to get you started - plus an Interview Toolkit you can print as a reference. It includes:
       </p>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        After that, it&apos;s almost time to practice! Your printable Interview Toolkit keeps your prep work close at hand during practice and before the real thing:
-      </p>
-      <ul className="space-y-1.5 pl-3">
+      <ul className="space-y-1 pl-3">
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">📊</span>
           <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Your Power Analysis</p>
@@ -1667,7 +1665,7 @@ function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }
         </li>
       </ul>
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
-        Ready to practice? Time to put your prep to work.
+        Ready to practice? Your mock interview is ready!
       </p>
       {/* One flex item, so the row gap above the button doesn't also open
          between the button and the link under it. */}
