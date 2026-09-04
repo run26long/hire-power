@@ -20,15 +20,6 @@ function scoreColor(score) {
   return '#ffc870';
 }
 
-const LEVEL_NAMES = {
-  0: 'Not started',
-  1: 'Beginner',
-  2: 'Foundation',
-  3: 'Strong',
-  4: 'Excellent',
-  5: 'Mastery'
-};
-
 // The three bands the score ramp reads as, named the way the completion
 // columns name them, so the key under the bar and the columns beside it are
 // saying one thing rather than two.
@@ -607,7 +598,6 @@ function CompletedPanel({
   userId,
   sessionId,
   coachingLoading,
-  onStartNew,
   onSuccess = () => {},
   onError = () => {}
 }) {
@@ -648,8 +638,6 @@ function CompletedPanel({
   };
 
   const summary = completionData.session_summary || {};
-  const progression = completionData.level_progression || {};
-  const level = progression.level_after ?? 0;
   const readiness = summary.readiness_score ?? 0;
   const clarity = summary.avg_score_structure ?? 0;
   const content = summary.avg_score_content ?? 0;
@@ -742,14 +730,6 @@ function CompletedPanel({
                 </div>
               );
             })}
-          </div>
-
-          <div className="flex flex-col items-center gap-1 flex-shrink-0">
-            {progression.level_changed && (
-              <p className="text-[9px] text-gray-500 whitespace-nowrap">
-                Level {progression.level_before} → Level {progression.level_after}
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -851,7 +831,6 @@ export default function PracticeLeftPanel({
   completionData = null,
   pastSessions = [],
   onSelectSession,
-  onStartNew,
   // Deleting a session is the parent's to record: it owns the list this one
   // renders, and the toasts that report how it went.
   onSessionDeleted = () => {},
@@ -960,7 +939,6 @@ export default function PracticeLeftPanel({
         userId={userId}
         sessionId={sessionData?.session?.id}
         coachingLoading={!!sessionData?.coachingLoading}
-        onStartNew={onStartNew}
         onSuccess={onSuccess}
         onError={onError}
       />

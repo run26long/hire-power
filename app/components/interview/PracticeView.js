@@ -427,9 +427,6 @@ export default function PracticeView({
   onBack,
   // Told when an interview is paused, so the history list can show it.
   onSessionPaused = () => {},
-  // Back to the coaching step to build more stories. Falls back to onBack so
-  // the button still leads somewhere if the parent doesn't wire it.
-  onGoToCoach = onBack,
   onSessionChange = () => {},
   onError = () => {}
 }) {
