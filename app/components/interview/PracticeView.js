@@ -294,7 +294,7 @@ function MicPermissionModal({ onEnable, onUseText, requesting }) {
             <button
               onClick={onEnable}
               disabled={requesting}
-              className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               style={GRADIENT}
             >
               {requesting && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
@@ -303,7 +303,7 @@ function MicPermissionModal({ onEnable, onUseText, requesting }) {
             <button
               onClick={onUseText}
               disabled={requesting}
-              className="w-full text-sm md:text-xs text-gray-400 hover:text-gray-600 py-1 disabled:opacity-50"
+              className="mx-auto block text-sm md:text-xs text-gray-400 hover:text-gray-600 py-1 disabled:opacity-50"
             >
               Use Text Instead
             </button>
@@ -1623,7 +1623,7 @@ export default function PracticeView({
 
         <button
           onClick={() => onResumePaused(pausedSession.id)}
-          className="w-full text-white rounded-lg py-2.5 px-6 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
+          className="mx-auto mt-4 text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
           style={GRADIENT}
         >
           Continue Interview
@@ -1631,7 +1631,7 @@ export default function PracticeView({
 
         <button
           onClick={() => setShowDeletePaused(true)}
-          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center"
+          className="mt-2 text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center"
         >
           Delete and start over
         </button>
@@ -1687,7 +1687,7 @@ export default function PracticeView({
           Choose your interview mode
         </p>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {MODES.map(mode => {
             // The voice card stands for either voice mode, so it reads as
             // chosen whenever the session is not going to be a typed one.
@@ -1720,7 +1720,7 @@ export default function PracticeView({
         <button
           onClick={startSession}
           disabled={starting}
-          className="mx-auto text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="mx-auto mt-4 text-white rounded-lg py-2.5 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           style={GRADIENT}
         >
           {starting && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent"></div>}
