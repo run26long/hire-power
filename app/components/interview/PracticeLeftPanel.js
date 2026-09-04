@@ -11,11 +11,13 @@ import { createClient } from '@/utils/supabase/client';
 
 const GRADIENT = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 
+// Three bands, cut where the completion columns cut: an answer's colour and
+// the column it lands in are the same judgement, so they read off the same
+// two numbers.
 function scoreColor(score) {
-  if (score >= 85) return '#9333ea';
-  if (score >= 75) return '#81c784';
-  if (score >= 60) return '#ffc870';
-  return '#e57373';
+  if (score >= 80) return '#9333ea';
+  if (score >= 60) return '#81c784';
+  return '#ffc870';
 }
 
 const LEVEL_NAMES = {
@@ -27,22 +29,21 @@ const LEVEL_NAMES = {
   5: 'Mastery'
 };
 
-// The four bands the score ramp reads as, same swatches the resume assess
-// display puts under its bar.
+// The three bands the score ramp reads as, named the way the completion
+// columns name them, so the key under the bar and the columns beside it are
+// saying one thing rather than two.
 const SCORE_LEGEND = [
-  { color: '#e57373', label: 'Needs Work' },
-  { color: '#ffc870', label: 'Developing' },
-  { color: '#81c784', label: 'Strong' },
-  { color: '#9333ea', label: 'Excellent' },
+  { color: '#ffc870', label: 'Room to Grow' },
+  { color: '#81c784', label: 'Solid Ground' },
+  { color: '#9333ea', label: 'Nailed It' },
 ];
 
 // Names the band a score falls in. Thresholds are scoreColor's, so a dot and
 // the word beside it can never disagree.
 function scoreBand(score) {
-  if (score >= 85) return 'Excellent';
-  if (score >= 75) return 'Strong';
-  if (score >= 60) return 'Developing';
-  return 'Needs Work';
+  if (score >= 80) return 'Nailed It';
+  if (score >= 60) return 'Solid Ground';
+  return 'Room to Grow';
 }
 
 // What the categories sort on. Content carries more weight than clarity: a
@@ -58,9 +59,10 @@ function isFailed(q) {
   return q.evaluation_status === 'failed' || q.evaluation_status === 'needs_retry';
 }
 
-// Amber is the only fill light enough to need dark text on it.
+// Amber is the only fill light enough to need dark text on it, and it is now
+// the bottom band rather than the middle one.
 function scoreTextClass(score) {
-  return score >= 60 && score < 75 ? 'text-gray-900' : 'text-white';
+  return score < 60 ? 'text-gray-900' : 'text-white';
 }
 
 function ScorePill({ label, value }) {

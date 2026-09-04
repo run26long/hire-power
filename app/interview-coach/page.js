@@ -21,10 +21,12 @@ const QUESTIONS_OF_THE_DAY = [
 // The three bands the completion panel sorts answers into, in its headings and
 // its colours, so the hub reads as the key to a screen the candidate may not
 // have reached yet.
+// Ordered high to low, so the first band a score clears is the one it belongs
+// to. `min` is the same cut the completion columns sort on.
 const SCORE_BANDS = [
-  { icon: '🎯', title: 'Nailed It', color: '#9333ea', range: 'Scored 80+' },
-  { icon: '💪', title: 'Solid Ground', color: '#81c784', range: 'Scored 60-79' },
-  { icon: '🌱', title: 'Room to Grow', color: '#ffc870', range: 'Below 60' }
+  { icon: '🎯', title: 'Nailed It', color: '#9333ea', min: 80, range: 'Scored 80+' },
+  { icon: '💪', title: 'Solid Ground', color: '#81c784', min: 60, range: 'Scored 60-79' },
+  { icon: '🌱', title: 'Room to Grow', color: '#ffc870', min: 0, range: 'Below 60' }
 ];
 
 // Match score ring color, matching Resume Coach's getCircleColor.
@@ -685,10 +687,16 @@ export default function MyInterviewsPage() {
   // can be deleted, and the analysis behind it still counted.
   const practiceLocked = !isPro && (userProfile?.interview_samples_used ?? 0) >= 1;
 
-  // The badge takes the colour of the score it carries. With nothing to show
-  // yet it stays grey rather than wearing the bottom of the ramp, which would
-  // read as a bad score rather than as no score.
-  const highScoreTone = highScore > 0 ? getCircleColor(highScore) : '#d1d5db';
+  // The badge takes the colour of the band its score falls in, read from the
+  // same list the bands beside it are drawn from, so the number and the row it
+  // belongs to can never disagree. getCircleColor is left to the match score
+  // rings below: that ramp is the resume one, and it is cut elsewhere.
+  //
+  // With nothing to show yet the badge stays grey rather than wearing the
+  // bottom of the ramp, which would read as a bad score rather than as none.
+  const highScoreTone = highScore > 0
+    ? SCORE_BANDS.find(band => highScore >= band.min).color
+    : '#d1d5db';
 
   return (
     <div className="h-screen bg-gray-50 flex">
@@ -898,13 +906,13 @@ export default function MyInterviewsPage() {
                     doubles as the key to a scoring screen they may not have
                     reached yet. */}
                 <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[213px] flex flex-col">
-                  <h2 className="text-base font-semibold text-gray-900 mb-1">Practice Stats</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-3.5">Your interview training at a glance</p>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
+                  <p className="text-sm md:text-xs text-gray-500 mb-3.5">Score 80+ and you’re interview ready.</p>
 
                   {/* justify-evenly rather than a gap: it lays the same space
                       before, between and after the two columns, so neither
                       side of the card is emptier than the other. */}
-                  <div className="flex-1 flex items-stretch justify-evenly min-h-0">
+                  <div className="flex-1 flex items-center justify-evenly min-h-0">
 
                     {/* HIGH SCORE — the ramp the score displays use, so a number
                         means the same thing wherever it is read. The border and
@@ -913,14 +921,14 @@ export default function MyInterviewsPage() {
                         palette of its own. */}
                     <div className="flex flex-col flex-shrink-0">
                       <div
-                        className="flex-1 rounded-xl border-2 px-8 py-4 flex flex-col items-center justify-center"
+                        className="rounded-xl border-2 px-6 py-4 flex flex-col items-center justify-center"
                         style={{ borderColor: `${highScoreTone}4D`, backgroundColor: `${highScoreTone}0D` }}
                       >
                         <span className="text-6xl font-bold leading-none" style={{ color: highScoreTone }}>
                           {highScore > 0 ? highScore : '--'}
                         </span>
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mt-1.5">
-                          High Score
+                         Your High Score
                         </p>
                       </div>
                     </div>
