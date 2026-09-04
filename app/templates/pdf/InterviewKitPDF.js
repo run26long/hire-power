@@ -24,7 +24,7 @@ const ACCENT = '#5b4fcf'
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Lato',
-    fontSize: 11,
+    fontSize: 10,
     paddingTop: 54,
     paddingBottom: 54,
     paddingLeft: 60,
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   body: {
-    fontSize: 11,
+    fontSize: 10,
     lineHeight: 1.6,
     color: '#1a1a1a',
     marginBottom: 4,
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   bold: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
     marginBottom: 2,
   },
@@ -116,11 +116,11 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   bulletDot: {
-    fontSize: 11,
+    fontSize: 10,
     width: 12,
   },
   bulletText: {
-    fontSize: 11,
+    fontSize: 10,
     flex: 1,
     lineHeight: 1.5,
   },
@@ -160,10 +160,12 @@ function bucketLabel(itemType) {
 // The Power Analysis buckets, in the order the screen shows them. Each names
 // the field holding the item's title and the field holding its coaching, so
 // three differently shaped bucket arrays print as one uniform list.
+// The colour is the one the bucket carries on screen, darkened where the
+// screen value is too light to read as small print on white.
 const PA_BUCKETS = [
-  { key: 'core_power', label: 'Core Power', title: 'skill', body: 'evidence' },
-  { key: 'hidden_power', label: 'Hidden Power', title: 'skill', body: 'evidence_reframe' },
-  { key: 'power_gaps', label: 'Power Gaps', title: 'gap', body: 'bridge_strategy' },
+  { key: 'core_power', label: 'Core Power', title: 'skill', body: 'evidence', color: '#81c784' },
+  { key: 'hidden_power', label: 'Hidden Power', title: 'skill', body: 'evidence_reframe', color: '#d4a843' },
+  { key: 'power_gaps', label: 'Power Gaps', title: 'gap', body: 'bridge_strategy', color: '#e57373' },
 ]
 
 // polishedStory is what coaching writes when a story completes. The raw STAR
@@ -230,7 +232,7 @@ export default function InterviewKitPDF({
           <Section title="Power Analysis">
             {paBuckets.map(bucket => (
               <View key={bucket.key}>
-                <Text style={styles.bucketTag}>{bucket.label}</Text>
+                <Text style={[styles.bucketTag, { color: bucket.color }]}>{bucket.label}</Text>
                 {bucket.items.map((item, i) => (
                   <View key={i} style={styles.block} wrap={false}>
                     <Text style={styles.bold}>{item?.[bucket.title] || 'Untitled'}</Text>

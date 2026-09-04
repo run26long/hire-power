@@ -1594,9 +1594,9 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
         ) : questionsError ? (
           <p className="text-sm md:text-xs text-gray-600">{questionsError}</p>
         ) : questions.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {questions.map((q, i) => (
-              <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-2'}>
+              <div key={q.id || i} className={i === 0 ? '' : 'border-t border-purple-200 pt-1.5'}>
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
                   <div className="min-w-0">
