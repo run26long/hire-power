@@ -1600,7 +1600,7 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
                   <div className="min-w-0">
-                    <p className="text-base md:text-sm font-semibold text-gray-900 leading-snug">
+                    <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
                       {q.tailored_text || q.original_text}
                     </p>
                     {q.rationale && (
