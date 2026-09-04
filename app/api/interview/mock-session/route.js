@@ -74,9 +74,6 @@ You will be told the candidate's level (entry, mid, or senior). Calibrate accord
 INDUSTRY AWARENESS:
 Read the company name and job description to determine the industry. Use industry-appropriate vocabulary and framing. A healthcare interview sounds different from a fintech interview.
 
-SKILLS THE CANDIDATE HAS ALREADY PRACTICED:
-You will be given a list of skills the candidate has already drilled in coaching (STAR stories). Do not avoid these entirely, but do not stack multiple questions on skills they have clearly practiced. Spread your questions across their full experience, including areas they have NOT practiced. The goal is a realistic interview, not a victory lap.
-
 QUESTION QUALITY RULES:
 - Each question must test a different skill or competency. No duplicates.
 - Escalate difficulty: warmup first, standard questions in the middle, the most challenging questions last.
@@ -134,7 +131,6 @@ function buildUserMessage({
   jobCompany,
   jobDescription,
   companyResearch,
-  practicedSkills,
   bankQuestions,
   bankCount,
   questionCount
@@ -147,8 +143,6 @@ Culture: ${companyResearch.culture_signals ? JSON.stringify(companyResearch.cult
 Interview style: ${companyResearch.interview_style ? JSON.stringify(companyResearch.interview_style) : 'Not available'}
 `
     : '';
-
-  const practicedBlock = practicedSkills.length ? practicedSkills.join('\n') : 'None yet';
 
   const bankBlock = bankQuestions.length
     ? bankQuestions
@@ -164,9 +158,6 @@ ${resumeText}
 JOB DESCRIPTION (${jobTitle || 'Not specified'} at ${jobCompany || 'Not specified'}):
 ${jobDescription}
 ${companyBlock}
-SKILLS THE CANDIDATE HAS ALREADY PRACTICED IN COACHING:
-${practicedBlock}
-
 BEHAVIORAL QUESTION BANK (select ${bankCount} from this list, return the id):
 ${bankBlock}
 
@@ -511,20 +502,6 @@ export async function POST(request) {
     const bank = bankQuestions || [];
     const bankIds = new Set(bank.map(q => q.id));
 
-    // ---- ALREADY-PRACTICED SKILLS ----
-    // Only finished stories count. A story still mid-coaching is not something
-    // the candidate has practiced yet.
-    const { data: stories } = await supabase
-      .from('interview_stories')
-      .select('item_skill, item_type')
-      .eq('power_analysis_id', power_analysis_id)
-      .eq('user_id', userId)
-      .eq('coaching_complete', true);
-
-    const practicedSkills = [...new Set(
-      (stories || []).map(s => s.item_skill).filter(s => typeof s === 'string' && s.trim())
-    )];
-
     // ---- GENERATE ----
     const questionCount = QUESTION_COUNT;
     const bankCount = BANK_COUNT;
@@ -538,7 +515,6 @@ export async function POST(request) {
         jobCompany: jobCard.company,
         jobDescription: jobCard.description || '',
         companyResearch,
-        practicedSkills,
         bankQuestions: bank,
         bankIds,
         bankCount,
