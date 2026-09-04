@@ -181,7 +181,6 @@ function VoiceWelcome({ voiceMode, isResume, onBegin }) {
 function VoiceInputPanel({
   stage,
   recordingSeconds,
-  onSkipSpeaking,
   onStartRecording,
   onStopRecording,
   onTypeInstead
@@ -197,9 +196,6 @@ function VoiceInputPanel({
             <EqualizerBars />
           </div>
           <p className="text-sm md:text-xs text-gray-500">Listening to the question...</p>
-          <button onClick={onSkipSpeaking} className="text-xs text-gray-400 hover:text-gray-600">
-            Skip this question
-          </button>
         </>
       )}
 
@@ -1291,14 +1287,6 @@ export default function PracticeView({
     }
   };
 
-  // Skipping means "I have heard enough of the question", which is the same
-  // moment onended would have reached. Straight to recording, same as if the
-  // audio had run to the end on its own.
-  const skipSpeaking = () => {
-    stopPlayback();
-    startRecording();
-  };
-
   // Scoped to this question only. The session stays a voice session, and the
   // next question opens with the interviewer speaking as usual.
   const typeInstead = () => {
@@ -1872,7 +1860,6 @@ export default function PracticeView({
               <VoiceInputPanel
                 stage={voiceStage}
                 recordingSeconds={recordingSeconds}
-                onSkipSpeaking={skipSpeaking}
                 onStartRecording={startRecording}
                 onStopRecording={stopRecording}
                 onTypeInstead={typeInstead}
