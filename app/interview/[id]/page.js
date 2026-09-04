@@ -1481,7 +1481,7 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
       <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
-        Get to know the company before your interview so that you can ask thoughtful questions.
+        Get to know the company before your interview so that you can ask thoughtful questions. We've gotten you started with the following info:
       </p>
       <ul className="space-y-2">
         {RESEARCH_TOPICS.map(({ icon, label }) => (
@@ -1492,12 +1492,16 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
         ))}
       </ul>
       <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
-        Next step? Prep your materials before you practice.
+        Next step? Print your interview toolkit.
       </p>
-      <button onClick={onGoToPrepare} className={`mx-auto ${STEP_PRIMARY_CLASS}`} style={STEP_PRIMARY_STYLE}>
-        Go to Prep
-      </button>
-      <BackLink onClick={onBack} />
+      {/* One flex item, so the row gap above the button doesn't also open
+         between the button and the link under it. */}
+      <div className="flex flex-col items-center gap-1.5">
+        <button onClick={onGoToPrepare} className={STEP_PRIMARY_CLASS} style={STEP_PRIMARY_STYLE}>
+          Go to Prep
+        </button>
+        <BackLink onClick={onBack} />
+      </div>
     </div>
   );
 }
