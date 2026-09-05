@@ -505,7 +505,17 @@ const handleReassess = async (overrideData = null, { systemTriggered = false } =
         })
       })
 
-      if (!response.ok) throw new Error('Analysis failed')
+      if (!response.ok) {
+        // The one refusal worth naming: the free allowance is spent, and no
+        // amount of retrying changes that.
+        const errBody = await response.json().catch(() => ({}))
+        if (errBody.error === 'JMS_LIMIT_REACHED') {
+          setErrorToast("You've used all 3 free Job Match Scores.")
+          setShowUpgradeModal(true)
+          return
+        }
+        throw new Error('Analysis failed')
+      }
 
       const result = await response.json()
 
@@ -767,7 +777,15 @@ async function handleKnowledgeRescore() {
       })
     })
 
-    if (!response.ok) throw new Error('Re-score failed')
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}))
+      if (errBody.error === 'JMS_LIMIT_REACHED') {
+        setErrorToast("You've used all 3 free Job Match Scores.")
+        setShowUpgradeModal(true)
+        return
+      }
+      throw new Error('Re-score failed')
+    }
 
     const result = await response.json()
     setKnowledgeRescore(result.matchScore)

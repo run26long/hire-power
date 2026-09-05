@@ -13,6 +13,13 @@ import ResumeContent from '../components/ResumeContent';
 import Breadcrumb from '../components/Breadcrumb';
 import { fetchJSON } from '@/lib/fetchJSON';
 
+// The two usage limits the server enforces. Both come back as the bare code in
+// the error body, so they are matched on the message rather than on err.code.
+const LIMIT_MESSAGES = {
+  JMS_LIMIT_REACHED: "You've used all 3 free Job Match Scores.",
+  CL_LIMIT_REACHED: "You've used all 3 free cover letters."
+};
+
 async function fireT8IfFirst(supabase) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -1083,7 +1090,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       // Navigate to new resume
       router.push(`/resume/${newResume.id}`);
     } catch (err) {
-      setJobCreateError(err.message);
+      const limitMessage = LIMIT_MESSAGES[err.message];
+      setJobCreateError(limitMessage || err.message);
+      if (limitMessage) setShowUpgradeModal(true);
     } finally {
       setCreatingJob(false);
     }
@@ -1232,7 +1241,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
       router.push(`/cover-letter/${newCL.id}`);
     } catch (err) {
-      setClCreateError(err.message);
+      const limitMessage = LIMIT_MESSAGES[err.message];
+      setClCreateError(limitMessage || err.message);
+      if (limitMessage) setShowUpgradeModal(true);
     } finally {
       setCreatingCL(false);
     }
