@@ -1147,8 +1147,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         // so reuse its keywords rather than paying for a second analysis. Only
         // a core-resume source (which stores a quality analysis with no
         // missingKeywords) falls through to the live call.
-        let missingKeywords = sourceResume?.ai_analysis?.missingKeywords;
-        if (!Array.isArray(missingKeywords) || missingKeywords.length === 0) {
+        // A free account's job match scores are a separate, smaller allowance, and
+        // this call would spend one of them on a cover letter. Keywords only enrich
+        // the letter, so a free account takes the resume-alone path instead.
+        const isProUser = data?.userTier === TIERS.PRO;
+        let missingKeywords = Array.isArray(sourceResume?.ai_analysis?.missingKeywords)
+          ? sourceResume.ai_analysis.missingKeywords
+          : [];
+        if (isProUser && missingKeywords.length === 0) {
           const clAnalysis = await fetchJSON('/api/job-analyze', {
             method: 'POST',
             headers: {
