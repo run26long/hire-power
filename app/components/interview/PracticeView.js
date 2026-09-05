@@ -1617,8 +1617,7 @@ export default function PracticeView({
         </p>
 
         <p className="text-sm md:text-xs text-gray-600 leading-snug">
-          Pick up where you left off, or delete it from the list on the left to
-          start a new one.
+          Pick up where you left off.
         </p>
 
         <button

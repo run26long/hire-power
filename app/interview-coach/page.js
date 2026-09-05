@@ -600,6 +600,14 @@ export default function MyInterviewsPage() {
   }
 
   async function handleStartPractice() {
+    // A free account gets one prepared job. The New Practice button is already
+    // hidden at the limit, so this is the backstop for every other way in.
+    if (!isPro && (userProfile?.interview_samples_used ?? 0) >= 1) {
+      setShowPracticeModal(false);
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (selectedJobSourceId) {
       setShowPracticeModal(false);
       router.push(`/interview/${selectedJobSourceId}`);

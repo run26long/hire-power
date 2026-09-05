@@ -305,6 +305,31 @@ export async function POST(request) {
       return Response.json({ error: 'jobCardId and companyName required' }, { status: 400 });
     }
 
+    // ---- TIER GATE ----
+    // This step is part of the prep a Power Analysis opens. A free account has
+    // one of those, so the analysis for this job is what says whether the step
+    // is theirs to run.
+    const { data: gateProfile } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (gateProfile?.subscription_tier !== 'pro') {
+      const { data: gateAnalysis } = await supabase
+        .from('power_analysis')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('job_card_id', jobCardId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (!gateAnalysis) {
+        return Response.json({ error: 'FREE_PA_REQUIRED' }, { status: 403 });
+      }
+    }
+
     const normalized = companyName.toLowerCase().trim();
 
     // ---- CACHE LOOKUP ----
