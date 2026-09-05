@@ -151,6 +151,22 @@ export default function BuildPage() {
       .maybeSingle();
     setUserProfile(profile);
 
+    // One core resume per user. Anyone who already has an active one goes back to
+    // the hub rather than building a second here.
+    const { data: existingCore } = await supabase
+      .from('resumes')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('resume_type', 'core')
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingCore) {
+      router.push('/resume-coach');
+      return;
+    }
+
     // Get URL params
     const params = new URLSearchParams(window.location.search);
     setFromPage(params.get('from') || 'career-coach');
