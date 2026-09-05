@@ -940,14 +940,26 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
-    if (token !== process.env.INTERNAL_API_SECRET) {
-      const { createClient: createAuthClient } = await import('@supabase/supabase-js')
-      const authSupabase = createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-      const { data: { user }, error: authError } = await authSupabase.auth.getUser(token)
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
+    // The account this call is billed to comes from the token, never from the
+    // body: a userId the caller supplies is a userId the caller can change.
+    let userId
+    if (token === process.env.INTERNAL_API_SECRET) {
+      const bodyForAuth = await request.clone().json()
+      userId = bodyForAuth.userId
+      if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      userId = user.id
     }
 
-    const { resumeData, jobTitle, jobCompany, jobDescription, positioningStatement, additionalContext, userId, knowledgeMatches } = await request.json()
+    const { resumeData, jobTitle, jobCompany, jobDescription, positioningStatement, additionalContext, knowledgeMatches } = await request.json()
 
     if (!resumeData || !jobDescription) {
       return NextResponse.json(
@@ -957,10 +969,6 @@ export async function POST(request) {
     }
 
     // Free tier CL limit check
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
