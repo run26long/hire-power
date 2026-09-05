@@ -1795,6 +1795,7 @@ export default function JobTrackerPage() {
           interviewRounds={interviewRounds}
           context="tracker"
           isPro={isPro}
+          clCount={userProfile?.cl_count ?? 0}
           onMoveCard={handleMoveCard}
         />
       )}

@@ -40,9 +40,13 @@ export default function JobCardModal({
   context = 'tracker',
   accomplishmentsCount = 0,
   isPro = true,
+  clCount = 0,
 }) {
   const router = useRouter();
   const supabase = createClient();
+  // Three cover letters is the whole free allowance. Past it the action stays
+  // on the card but leads to the upgrade prompt instead of the CL flow.
+  const clLimitReached = !isPro && clCount >= 3;
   const [showJdModal, setShowJdModal] = useState(false);
   const [cardWins, setCardWins] = useState([]);
 
@@ -308,25 +312,38 @@ export default function JobCardModal({
                 <p className="text-xs md:text-[10px] font-bold text-gray-400 uppercase tracking-wide">Actions</p>
 
                 {card.application_status === 'resume_in_progress' && !card.cover_letter_id && (
-                  <div
-                    className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
-                    onClick={() => {
-                      const params = new URLSearchParams({
-                        action: 'new-cover-letter',
-                        ...(card.title && { jobTitle: card.title }),
-                        ...(card.company && { jobCompany: card.company }),
-                        ...(card.resume_id && { resumeId: card.resume_id }),
-                        ...(card.id && { applicationId: card.id }),
-                      });
-                      router.push(`/resume-coach?${params.toString()}`);
-                    }}
-                  >
-                    <div>
-                      <p className="text-sm md:text-xs font-semibold text-purple-800">Build Cover Letter</p>
-                      <p className="text-xs md:text-[10px] text-purple-500">Tailored to this job</p>
+                  clLimitReached ? (
+                    <div
+                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                      onClick={() => setShowUpgradeModal(true)}
+                    >
+                      <div>
+                        <p className="text-sm md:text-xs font-semibold text-purple-800">Build Cover Letter</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Upgrade to Pro to unlock</p>
+                      </div>
+                      <span className="text-sm md:text-xs font-semibold text-purple-500">Pro →</span>
                     </div>
-                    <span className="text-sm md:text-xs font-semibold text-purple-500">+ Create →</span>
-                  </div>
+                  ) : (
+                    <div
+                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100 cursor-pointer hover:border-purple-300 transition-colors"
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          action: 'new-cover-letter',
+                          ...(card.title && { jobTitle: card.title }),
+                          ...(card.company && { jobCompany: card.company }),
+                          ...(card.resume_id && { resumeId: card.resume_id }),
+                          ...(card.id && { applicationId: card.id }),
+                        });
+                        router.push(`/resume-coach?${params.toString()}`);
+                      }}
+                    >
+                      <div>
+                        <p className="text-sm md:text-xs font-semibold text-purple-800">Build Cover Letter</p>
+                        <p className="text-xs md:text-[10px] text-purple-500">Tailored to this job</p>
+                      </div>
+                      <span className="text-sm md:text-xs font-semibold text-purple-500">+ Create →</span>
+                    </div>
+                  )
                 )}
 
                 {card.application_status === 'applied' && (

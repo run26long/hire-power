@@ -1016,6 +1016,7 @@ export default function CareerVaultPage() {
           context="vault"
           accomplishmentsCount={accomplishments.length}
           isPro={isPro}
+          clCount={userProfile?.cl_count ?? 0}
         />
       )}
 
@@ -1285,6 +1286,7 @@ export default function CareerVaultPage() {
           jsResumes={jsResumes}
           context="vault"
           isPro={isPro}
+          clCount={userProfile?.cl_count ?? 0}
         />
       )}
 
