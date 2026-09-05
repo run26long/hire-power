@@ -1539,12 +1539,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       >
                         {downloadingResumeId === data.coreResume.id ? '...' : '⬇️ Download'}
                       </button>
+                      {isPro && (
                       <button
                         onClick={() => setConfirmDeleteId(data.coreResume.id)}
                         className="flex-1 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                       >
                         🗑 Delete
                       </button>
+                      )}
                     </div>
 
                     {/* Thumbnail LEFT | Score RIGHT */}
@@ -1632,6 +1634,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   )}
                                 </button>
                                 {/* Delete */}
+                                {isPro && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1644,6 +1647,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
                                 </button>
+                                )}
                               </div>
                             </div>
                           </div>

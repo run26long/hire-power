@@ -1198,10 +1198,12 @@ export default function CareerVaultPage() {
                               disabled={archiveActionLoading}
                               className="text-[10px] text-green-600 font-semibold hover:text-green-700 disabled:opacity-50"
                             >Restore</button>
+                            {isPro && (
                             <button
                               onClick={() => setConfirmDelete({ id: resume.id, type: 'core' })}
                               className="text-[10px] text-red-400 font-semibold hover:text-red-600"
                             >Delete</button>
+                            )}
                           </div>
                         </div>
                       </div>
