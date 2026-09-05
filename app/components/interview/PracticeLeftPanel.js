@@ -157,7 +157,7 @@ export function DeleteSessionModal({ onCancel, onConfirm, deleting }) {
   );
 }
 
-function SessionRow({ session, onClick, onDeleteRequest }) {
+function SessionRow({ session, onClick, onDeleteRequest, canDelete = true }) {
   const score = session.readiness_score_after ?? 0;
   // Whether they spoke it or typed it. Anything unrecognised reads as text,
   // which is what a session with no mode recorded on it was.
@@ -220,6 +220,7 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
           </span>
           {/* The row itself opens the session for review, so this has to stop
               the click before it gets there. */}
+          {canDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); onDeleteRequest(); }}
             className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-full bg-[#fdecea] hover:bg-[#e57373] flex items-center justify-center text-[#e57373] hover:text-white transition-all flex-shrink-0"
@@ -229,6 +230,7 @@ function SessionRow({ session, onClick, onDeleteRequest }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
+          )}
         </div>
       </div>
     </div>
@@ -241,7 +243,7 @@ const VISIBLE_SESSIONS = 5;
 
 // The hub's own modal shell: same backdrop, same max-w-lg card, same gradient
 // header with a count, same 60vh scrolling body.
-function AllSessionsModal({ sessions, onSelectSession, onDeleteRequest, onClose }) {
+function AllSessionsModal({ sessions, onSelectSession, onDeleteRequest, onClose, canDelete = true }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
@@ -262,6 +264,7 @@ function AllSessionsModal({ sessions, onSelectSession, onDeleteRequest, onClose 
                 session={s}
                 onClick={() => onSelectSession?.(s)}
                 onDeleteRequest={() => onDeleteRequest?.(s)}
+                canDelete={canDelete}
               />
             ))}
           </div>
@@ -271,7 +274,7 @@ function AllSessionsModal({ sessions, onSelectSession, onDeleteRequest, onClose 
   );
 }
 
-function SessionList({ sessions, onSelectSession, onDeleteRequest, onViewAll }) {
+function SessionList({ sessions, onSelectSession, onDeleteRequest, onViewAll, canDelete = true }) {
   if (!sessions?.length) {
     return (
       <div className="text-center py-4">
@@ -291,6 +294,7 @@ function SessionList({ sessions, onSelectSession, onDeleteRequest, onViewAll }) 
             session={s}
             onClick={() => onSelectSession?.(s)}
             onDeleteRequest={() => onDeleteRequest?.(s)}
+            canDelete={canDelete}
           />
         ))}
       </div>
@@ -835,6 +839,9 @@ export default function PracticeLeftPanel({
   // Deleting a session is the parent's to record: it owns the list this one
   // renders, and the toasts that report how it went.
   onSessionDeleted = () => {},
+  // Free accounts cannot delete a session: the allowance it spent is counted
+  // whether or not the row is still there.
+  canDelete = true,
   onSuccess = () => {},
   onError = () => {}
 }) {
@@ -967,6 +974,7 @@ export default function PracticeLeftPanel({
       pastSessions={pastSessions}
       onSelectSession={onSelectSession}
       onSessionDeleted={onSessionDeleted}
+      canDelete={canDelete}
       onSuccess={onSuccess}
       onError={onError}
     />
@@ -976,7 +984,7 @@ export default function PracticeLeftPanel({
 // Its own component for the same reason CompletedPanel is: the confirmation
 // modal needs state, and a hook on PracticeLeftPanel would run in every one of
 // its states rather than only the one that uses it.
-function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess, onError }) {
+function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess, onError, canDelete = true }) {
   const supabase = createClient();
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -1022,6 +1030,7 @@ function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess,
           sessions={pastSessions}
           onSelectSession={onSelectSession}
           onDeleteRequest={setPendingDelete}
+          canDelete={canDelete}
           onViewAll={() => setShowAllSessions(true)}
         />
       </div>
@@ -1031,6 +1040,7 @@ function IdlePanel({ pastSessions, onSelectSession, onSessionDeleted, onSuccess,
           sessions={pastSessions}
           onSelectSession={(s) => { setShowAllSessions(false); onSelectSession?.(s); }}
           onDeleteRequest={setPendingDelete}
+          canDelete={canDelete}
           onClose={() => setShowAllSessions(false)}
         />
       )}

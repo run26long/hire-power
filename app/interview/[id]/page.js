@@ -793,6 +793,7 @@ export default function InterviewDetailPage() {
                     }
                   }}
                   onSessionDeleted={handleSessionDeleted}
+                  canDelete={isPro}
                   onSuccess={setSuccessToast}
                   onError={setErrorToast}
                 />

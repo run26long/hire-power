@@ -1629,12 +1629,14 @@ export default function PracticeView({
           Continue Interview
         </button>
 
+        {isPro && (
         <button
           onClick={() => setShowDeletePaused(true)}
           className="mt-2 text-xs text-gray-400 hover:text-gray-600 cursor-pointer text-center"
         >
           Delete and start over
         </button>
+        )}
 
         <p className="text-center text-[11px] text-gray-400 py-1">Your progress is saved automatically.</p>
 
