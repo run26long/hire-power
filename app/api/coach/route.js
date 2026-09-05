@@ -1192,11 +1192,14 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
+    let authenticatedUserId = null
+    let supabase = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       const { data: { user }, error: authError } = await supabase.auth.getUser(token)
       if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      authenticatedUserId = user.id
     }
 
     const {
@@ -1215,6 +1218,34 @@ export async function POST(request) {
     } = await request.json()
 
     const userTier = tier || 'pro'
+
+    // One core resume per free user. Recoach modes and job-specific sessions both
+    // run against a resume that already exists, so neither is a second core.
+    if (authenticatedUserId && !isJobSpecific && tier !== 'conversational_fix' && tier !== 'targeted') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', authenticatedUserId)
+        .maybeSingle()
+
+      const isFree = !profile?.subscription_tier || profile.subscription_tier === 'free'
+
+      if (isFree) {
+        const { data: completedCore } = await supabase
+          .from('resumes')
+          .select('id')
+          .eq('user_id', authenticatedUserId)
+          .eq('resume_type', 'core')
+          .eq('is_active', true)
+          .eq('coaching_complete', true)
+          .limit(1)
+          .maybeSingle()
+
+        if (completedCore) {
+          return NextResponse.json({ error: 'CORE_LIMIT_REACHED' }, { status: 403 })
+        }
+      }
+    }
 
     let textToCoach = resumeText
     if (!textToCoach && resumeData) {
