@@ -388,7 +388,7 @@ function DashboardContent() {
 
   const icCta = !resumeCompleted
     ? 'Finish your resume first'
-    : isPro ? 'Start interview prep' : 'Use your free session';
+    : 'Start interview prep';
 
   const c4label = isVaultTier ? 'Career Vault' : 'Job Tracker';
   const c4path  = isVaultTier ? '/career-vault' : '/job-tracker';
@@ -699,7 +699,7 @@ function DashboardContent() {
                   {rcStatus === 'not-started' ? 'Not Started' : rcStatus === 'in-progress' ? 'In Progress' : 'Completed'}
                 </span>
                 <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Coach</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a $500 résumé writer would. Free tells you what's wrong. Pro fixes it for you.</p>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a $500 resume writer would.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{rcCta}</span>
                   <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
@@ -714,7 +714,7 @@ function DashboardContent() {
               <>
                 <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
                 <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Coach</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>AI-spoken practice that mimics a real interview using your resume and the job description. Get coaching on how to present your experience for each specific job.</p>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>AI-spoken practice that mimics a real interview using your resume and the job description. Prepare with a Power Analysis, research, and practice questions for each job.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{icCta}</span>
                   <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>

@@ -453,7 +453,7 @@ const supabase = createClient();
                   </h2>
                   <p className="text-purple-100 text-xs">
                     {signupAsPro
-                      ? 'Free tells you what\'s wrong. Pro fixes it for you.'
+                      ? ''
                       : 'No credit card required. Free forever plan.'}
                   </p>
                 </div>
@@ -626,9 +626,9 @@ const supabase = createClient();
                     {signupAsPro && (
                       <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 space-y-1">
                         {[
-                          'Coaching conversation that rewrites your resume for you',
                           'Unlimited job-specific resumes and cover letters',
-                          'Unlimited coaching before every interview',
+                          'Unlimited interview prep for every job',
+                          'Unlimited AI editing tools',
                         ].map((item) => (
                           <div key={item} className="flex items-start gap-2 text-xs text-purple-900">
                             <span className="text-purple-500 flex-shrink-0 mt-0.5">✓</span>
@@ -1026,7 +1026,7 @@ const supabase = createClient();
                 // HIDDEN: Career Coach - restore when feature is re-enabled
                 // {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. The best five-minute investment in your career."},
                 {n:'1',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
-                {n:'2',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps and coach you on the most effective ways to address each in your interview. Then we practice with AI-spoken questions that simulate a real interview."},
+                {n:'2',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps. Then you research the company, review prep questions, and practice with AI-spoken questions that simulate a real interview."},
                 {n:'3',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(
                 <div key={step.n} className="how-step" style={{marginBottom: '8px'}}>
@@ -1226,30 +1226,22 @@ const supabase = createClient();
               <div className="tier-os-tag">Try the OS</div>
               <div className="tier-name">Free</div>
               <div className="tier-price">$0</div>
-              <p className="tier-desc">Get a real feel for conversation-based coaching. No credit card. No expiration.</p>
+              <p className="tier-desc">A full coached resume, interview prep, and tools to start your search. No credit card. No expiration.</p>
               <ul className="tier-features">
                 {/* HIDDEN: Career Coach - restore when feature is re-enabled */}
                 {/* <li><span className="check">✓</span> Career Coach - one session</li> */}
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Coach</li>
-                <li><span className="check">✓</span> Core resume with AI analysis</li>
+                <li><span className="check">✓</span> Core resume with full AI coaching</li>
                 <li><span className="check">✓</span> Resume Power Score</li>
-                <li>
-                  <span className="check">✓</span>
-                  <span>Improvement Action Plan
-                    <span style={{display:'block',fontSize:'12px',color:'#9ca3af',fontWeight:400,marginTop:'2px'}}>You apply the changes</span>
-                  </span>
-                </li>
-               <li><span className="check">✓</span> Resume coaching trial</li>
+                <li><span className="check">✓</span> Improvements applied automatically</li>
                 <li><span className="check">✓</span> ATS-optimized templates</li>
                 <li><span className="check">✓</span> Unlimited downloads</li>
+                <li><span className="check">✓</span> 3 reword, fix, and add edits</li>
                 <li><span className="check">✓</span> 3 job match scores</li>
                 <li><span className="check">✓</span> 3 custom cover letters</li>
                 <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Coach</li>
-                <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
-                <li><span className="check">✓</span> Unlimited with general questions</li>
-                <li><span className="check">✓</span> 1 session with job-specific questions</li>
-                <li><span className="check">✓</span> 1 Power Analysis reveal after your job-specific session: see what Pro prepares you with before each interview</li>
+                <li><span className="check">✓</span> Interview Coach: 1 Power Analysis, Research and Prep, 3 practice sessions</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => setShowSignupModal(true)} className="tier-btn ghost" style={{width:'100%',cursor:'pointer',border:'1.5px solid rgba(0,0,0,0.12)'}}>Get started free</button>
@@ -1266,25 +1258,13 @@ const supabase = createClient();
               <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Coach</li>
-                <li><span className="check">✓</span> Core resume with AI analysis + coaching</li>
-                 <li><span className="check">✓</span> Resume Power Score</li>
-                <li>
-                  <span className="check">✓</span>
-                  <span>Improvement Action Plan
-                    <span style={{display:'block',fontSize:'12px',color:'rgba(255,255,255,0.4)',fontWeight:400,marginTop:'2px'}}>Applied automatically in under a minute</span>
-                  </span>
-                </li>
-                <li><span className="check">✓</span> Tailored resume for every application</li>
-               <li><span className="check">✓</span> ATS-optimized templates</li>
-                <li><span className="check">✓</span> Unlimited downloads</li>
-                <li><span className="check">✓</span> Unlimited job match scores</li>
-                <li><span className="check">✓</span> Custom cover letter for each application</li>
-                <li><span className="check">✓</span> Job application tracking</li>
+                <li><span className="check">✓</span> Unlimited job-specific resumes</li>
+                <li><span className="check">✓</span> Unlimited reword, fix, and add edits</li>
+                <li><span className="check">✓</span> Unlimited cover letters and job match scores</li>
                 <li><span className="check">✓</span> Career Vault: log wins between searches</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Coach</li>
-                <li><span className="check">✓</span> AI-spoken interview practice that mimics a real interview</li>
-                <li><span className="check">✓</span> Power Analysis and Interview Coaching: Learn how to best present your experience for each specific role</li>
-                <li><span className="check">✓</span> Unlimited coaching + practice</li>
+                <li><span className="check">✓</span> Power Analysis and full prep for every job</li>
+                <li><span className="check">✓</span> Unlimited interview practice</li>
                 <li><span className="check">✓</span> Post-practice performance feedback</li>
                 <li><span className="check">✓</span> Company research integration</li>
                 <li><span className="check">✓</span> Level up before your interview with gamified practice progression</li>
@@ -1328,7 +1308,7 @@ const supabase = createClient();
                 name: 'Free',
                 price: '$0',
                 tag: 'Try the OS',
-                desc: 'Get a real feel for conversation-based coaching. No credit card. No expiration.',
+                desc: 'A full coached resume, interview prep, and tools to start your search. No credit card. No expiration.',
                 cta: 'Get started free',
                 ctaStyle: {border:'1.5px solid rgba(0,0,0,0.12)',background:'white',color:'#0D0D0D'},
                 onCta: () => setShowSignupModal(true),
@@ -1336,18 +1316,16 @@ const supabase = createClient();
                 features: [
                   // HIDDEN: Career Coach - restore when feature is re-enabled
                   // 'Career Coach: full access, unlimited',
-                  'Core resume with AI analysis',
+                  'Core resume with full AI coaching',
                   'Resume Power Score',
-                  'Improvement Action Plan (you apply the changes)',
-                  'Resume coaching trial',
+                  'Improvements applied automatically',
                   'ATS-optimized templates',
                   'Unlimited downloads',
+                  '3 reword, fix, and add edits',
                   '3 job match scores',
                   '3 custom cover letters',
                   'Job application tracking',
-                  'AI-spoken interview practice',
-                  '1 job-specific interview session',
-                  '1 Power Analysis reveal',
+                  'Interview Coach: 1 Power Analysis, Research and Prep, 3 practice sessions',
                 ]
               },
               {
@@ -1363,14 +1341,12 @@ const supabase = createClient();
                 featured: true,
                 features: [
                   'Everything in Free, plus:',
-                  'Full resume coaching conversation',
-                  'Improvements applied automatically',
                   'Unlimited job-specific resumes',
-                  'Unlimited job match scores',
-                  'Unlimited cover letters',
+                  'Unlimited reword, fix, and add edits',
+                  'Unlimited cover letters and job match scores',
                   'Career Vault: log wins between searches',
-                  'Power Analysis before every interview',
-                  'Unlimited interview coaching and practice',
+                  'Power Analysis and full prep for every job',
+                  'Unlimited interview practice',
                   'Post-practice performance feedback',
                   'Company research integration',
                   'Gamified practice progression',
