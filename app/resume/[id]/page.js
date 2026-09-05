@@ -732,7 +732,6 @@ useEffect(() => {
   if (knowledgeMatchRanRef.current) return
   if (!resume || !userProfile) return
   if (resume.resume_type !== 'job_specific') return
-  if ((userProfile.subscription_tier || 'free') === 'free') return
   if (resume.coaching_complete) return
   if ((resume.journey_step || '') !== 'assess') return
 
@@ -1389,7 +1388,7 @@ if (data.ai_analysis) {
           {showEditorTip && (
             <div className="bg-purple-50 border-b border-purple-100 px-3 py-1.5 flex items-center justify-between">
               <p className="text-xs text-purple-700 text-center">
-                {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete
+                {['improve','format','save'].includes(resume?.journey_step) && resume?.coaching_complete
                   ? '✏️ Tap any section to edit · 📄 Fonts & Templates · ⚙️ Undo, Save & Download · ⚡ Add or Change · ▲▼ Reorder'
                   : '✏️ Tap any section to edit · 📄 Format for templates and fonts · ⚙️ Actions to save, undo, or re-assess'
                 }
@@ -1429,7 +1428,7 @@ if (data.ai_analysis) {
               ⚙️Actions
             </button>
             {/* Improve — Pro with coaching only */}
-            {['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete && (
+            {['improve','format','save'].includes(resume?.journey_step) && ((userProfile?.subscription_tier || 'free') !== 'free' || (userProfile?.reword_used ?? 0) < 3 || (userProfile?.fix_used ?? 0) < 3 || (userProfile?.add_used ?? 0) < 3) && resume?.coaching_complete && (
               <button
                 onClick={() => setMobileToolbar(mobileToolbar === 'improve' ? null : 'improve')}
                 className="py-1 text-xs font-medium rounded transition-colors flex items-center justify-center gap-1"
@@ -1631,7 +1630,8 @@ if (data.ai_analysis) {
                     setMobileToolbar(null)
                     setMobilePanel('resume')
                   }}
-                  className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+                  disabled={(userProfile?.subscription_tier || 'free') === 'free' && (userProfile?.reword_used ?? 0) >= 3 && (userProfile?.fix_used ?? 0) >= 3}
+                  className={`py-1.5 border rounded text-[12px] font-semibold ${(userProfile?.subscription_tier || 'free') === 'free' && (userProfile?.reword_used ?? 0) >= 3 && (userProfile?.fix_used ?? 0) >= 3 ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed' : 'border-purple-300 text-purple-600 bg-white hover:bg-purple-50'}`}
                 >
                   ✏️ Reword or Fix
                 </button>
@@ -1640,7 +1640,8 @@ if (data.ai_analysis) {
                     setReviseModalState({ mode: 'add' })
                     setMobileToolbar(null)
                   }}
-                  className="py-1.5 border border-purple-300 rounded text-[12px] font-semibold text-purple-600 bg-white hover:bg-purple-50"
+                  disabled={(userProfile?.subscription_tier || 'free') === 'free' && (userProfile?.add_used ?? 0) >= 3}
+                  className={`py-1.5 border rounded text-[12px] font-semibold ${(userProfile?.subscription_tier || 'free') === 'free' && (userProfile?.add_used ?? 0) >= 3 ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed' : 'border-purple-300 text-purple-600 bg-white hover:bg-purple-50'}`}
                 >
                   ✨ Add More
                 </button>
@@ -1973,7 +1974,7 @@ if (data.ai_analysis) {
                 </div>
 
                 {/* Hidden outright for free users; grayed until the improve step makes it usable */}
-                {(userProfile?.subscription_tier || 'free') !== 'free' && (
+                {resume?.coaching_complete && (
                   <div className="relative group/tipreword">
                     <span className={`block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default ${['improve','format','save'].includes(resume?.journey_step) ? '' : 'grayscale'}`}>⚡</span>
                     <div className="absolute right-0 top-full mt-1 w-max bg-white border border-gray-200 rounded-md shadow-lg px-2 py-1 text-xs text-gray-700 hidden group-hover/tipreword:block z-30">
@@ -2031,7 +2032,7 @@ if (data.ai_analysis) {
                   formatDate={formatDate}
                   templateStyles={getTemplateStyles(selectedTemplate, accentColor, selectedSize, selectedFont)}
                   selectedTemplate={selectedTemplate}
-                  onBulletAction={['improve','format','save'].includes(resume?.journey_step) && (userProfile?.subscription_tier || 'free') !== 'free' && resume?.coaching_complete ? (text, location) => {
+                  onBulletAction={['improve','format','save'].includes(resume?.journey_step) && ((userProfile?.subscription_tier || 'free') !== 'free' || (userProfile?.reword_used ?? 0) < 3 || (userProfile?.fix_used ?? 0) < 3) && resume?.coaching_complete ? (text, location) => {
                     setBulletSelectMode(null)
                     setReviseModalState({ mode: 'choose', text, location })
                   } : null}
@@ -2884,61 +2885,7 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           </div>      
 {/* CTA */}
           <div className="pt-3 border-t border-gray-300">
-        {userTier === 'free' ? (
-              // FREE TIER - Go to coaching
-              <div className="space-y-3">
-                <div className="text-center">
-                  <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">What's Next?</h4>
-            
-                </div>
-                    <button
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="block mx-auto text-white rounded-lg py-2 px-4 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                    >
-                      Upgrade to Pro — we'll find the missing details and rewrite everything for you.
-                    </button>
-                    <p className="text-sm md:text-xs text-gray-500 text-center">
-                      Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
-                    </p>
-                    <button
-                      onClick={async () => {
-                        setIsUpdatingJourney(true)
-                        try {
-                          const journeyUpdate = { journey_step: 'coach', updated_at: new Date().toISOString() }
-                          // Stamp the pre-coaching baseline once. An already-persisted
-                          // value is the real original, so it is never overwritten.
-                          if (resume?.score_before_coaching == null) {
-                            journeyUpdate.score_before_coaching = score
-                          }
-                          const { error } = await supabase
-                            .from('resumes')
-                            .update(journeyUpdate)
-                            .eq('id', params.id)
-                          if (error) {
-                            console.error('Error starting free trial coaching:', error)
-                            setErrorToast("We couldn't start your coaching session. Please try again.")
-                            return
-                          }
-                          setResume(prev => ({ ...prev, ...journeyUpdate }))
-                       } catch (err) {
-                        console.error('Unexpected error starting free trial coaching:', err)
-                        setErrorToast("Something went wrong starting your coaching session. Please try again.")
-                      } finally {
-                        setIsUpdatingJourney(false)
-                      }
-                    }}
-                    disabled={isUpdatingJourney}
-                    className={`block mx-auto bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-8 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors ${
-                        isUpdatingJourney ? 'opacity-75 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      Try a free coaching session →
-                    </button>
-              </div>
-            ) : (
-              // PRO TIER - Start coaching only if not yet started AND not already complete
-              (resume?.coaching_complete || maxStepIndex > steps.indexOf('assess')) ? null : (
+            {(resume?.coaching_complete || maxStepIndex > steps.indexOf('assess')) ? null : (
                 <button
                   onClick={async () => {
                     setIsUpdatingJourney(true)
@@ -2976,7 +2923,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
                   )}
                   {isUpdatingJourney ? 'Loading...' : 'Start Coaching →'}
                 </button>
-              )
             )}
             
                 </div>
@@ -3077,6 +3023,7 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
     userTier={userTier}
     setReviseModalState={setReviseModalState}
     coachingComplete={resume?.coaching_complete}
+    userProfile={userProfile}
     setViewingStep={setViewingStep}
   />
 )}
@@ -3972,7 +3919,7 @@ const getMessageText = (msg) => {
     )
   }
 
-  // ── Main chat UI (free trial or pro) ──
+  // ── Main chat UI ──
   return (
     <>
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -5480,7 +5427,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 // ─────────────────────────────────────────────
 // FORMAT STEP
 // ─────────────────────────────────────────────
-function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier, setReviseModalState, coachingComplete, setViewingStep }) {
+function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, score, userTier, userProfile, setReviseModalState, coachingComplete, setViewingStep }) {
   const [advancing, setAdvancing] = useState(false)
   const [errorToastFormat, setErrorToastFormat] = useState(null)
 
@@ -5512,7 +5459,7 @@ function FormatStep({ supabase, params, setResume, handleReassess, isAnalyzing, 
         </div>
       )}
      <div className="flex gap-2 justify-center pt-1 px-1">
-        {userTier !== 'free' && coachingComplete && (
+        {(userTier !== 'free' || (userProfile?.add_used ?? 0) < 3) && coachingComplete && (
           <button
             onClick={() => setReviseModalState({ mode: 'add' })}
             className="bg-white text-purple-600 border border-purple-300 rounded-lg px-4 py-2 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors whitespace-nowrap"
