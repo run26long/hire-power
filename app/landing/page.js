@@ -1241,7 +1241,7 @@ const supabase = createClient();
                 <li><span className="check">✓</span> 3 custom cover letters</li>
                 <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Coach</li>
-                <li><span className="check">✓</span> Interview Coach: 1 Power Analysis, Research and Prep, 3 practice sessions</li>
+                <li><span className="check">✓</span> 1 Power Analysis, Research and Prep, 3 practice sessions</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => setShowSignupModal(true)} className="tier-btn ghost" style={{width:'100%',cursor:'pointer',border:'1.5px solid rgba(0,0,0,0.12)'}}>Get started free</button>
@@ -1267,7 +1267,6 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Unlimited interview practice</li>
                 <li><span className="check">✓</span> Post-practice performance feedback</li>
                 <li><span className="check">✓</span> Company research integration</li>
-                <li><span className="check">✓</span> Level up before your interview with gamified practice progression</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => { setSignupAsPro(true); setShowSignupModal(true); }} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none',background:'linear-gradient(to right, #667eea, #764ba2)'}}>Go Pro: $29.99/mo</button>
@@ -1349,7 +1348,6 @@ const supabase = createClient();
                   'Unlimited interview practice',
                   'Post-practice performance feedback',
                   'Company research integration',
-                  'Gamified practice progression',
                 ]
               },
               {
