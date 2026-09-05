@@ -266,11 +266,13 @@ export async function POST(request) {
     }
 
     const token = authHeader.replace('Bearer ', '')
+    let authenticatedUserId = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
       if (authError || !user) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
+      authenticatedUserId = user.id
     }
 
     const body = await request.json()
@@ -316,6 +318,29 @@ export async function POST(request) {
         return Response.json({ error: 'Invalid mode. Use reword, fix, or add.' }, { status: 400 })
     }
 
+    // Free tier gets three of each edit tool. Counters live on profiles.
+    const USAGE_COLUMN = { reword: 'reword_used', fix: 'fix_used', add: 'add_used' }
+    const LIMIT_ERROR = { reword: 'REWORD_LIMIT_REACHED', fix: 'FIX_LIMIT_REACHED', add: 'ADD_LIMIT_REACHED' }
+    const usageColumn = USAGE_COLUMN[mode]
+    let usageCount = null
+
+    if (authenticatedUserId) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('subscription_tier, reword_used, fix_used, add_used')
+        .eq('id', authenticatedUserId)
+        .maybeSingle()
+
+      const isFree = !profile?.subscription_tier || profile.subscription_tier === 'free'
+
+      if (isFree) {
+        usageCount = profile?.[usageColumn] ?? 0
+        if (usageCount >= 3) {
+          return Response.json({ error: LIMIT_ERROR[mode] }, { status: 403 })
+        }
+      }
+    }
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1500,
@@ -333,6 +358,20 @@ export async function POST(request) {
     } catch (parseError) {
       console.error('Failed to parse coach-revise response:', responseText)
       return Response.json({ error: 'Failed to parse response. Please try again.' }, { status: 500 })
+    }
+
+    // Only a finished edit spends a use. A clarifying question, a job still
+    // awaiting confirmation, or an unsupported request costs the user nothing,
+    // so a multi-turn add counts once.
+    const NON_TERMINAL = ['clarification', 'confirmJob', 'unsupported']
+    if (usageCount !== null && !NON_TERMINAL.includes(parsed?.type)) {
+      const { error: usageError } = await supabaseAdmin
+        .from('profiles')
+        .update({ [usageColumn]: usageCount + 1 })
+        .eq('id', authenticatedUserId)
+      if (usageError) {
+        console.error('coach-revise usage increment failed (non-blocking):', usageError)
+      }
     }
 
     return Response.json({
