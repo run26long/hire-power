@@ -11,6 +11,7 @@ import SuccessToast from '@/app/components/SuccessToast'
 import PDFViewer from '@/app/components/PDFViewer'
 import { fetchJSON } from '@/lib/fetchJSON'
 import CoachReviseModal from '@/app/components/CoachReviseModal'
+import UpgradeModal from '@/app/components/UpgradeModal'
 
 // Mirrors the display_name convention job-specific resumes are created with,
 // so a job reads the same whichever document you are looking at.
@@ -63,6 +64,7 @@ export default function CoverLetterPage() {
   const [showEditorTip, setShowEditorTip] = useState(false)
   const [reviseModalState, setReviseModalState] = useState(null)
   const [bulletSelectMode, setBulletSelectMode] = useState(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const isUndoingRef = useRef(false)
@@ -1227,6 +1229,7 @@ export default function CoverLetterPage() {
             updateCoverLetterData(newData)
             supabase.from('cover_letters').update({ cover_letter_data: newData, updated_at: new Date().toISOString() }).eq('id', params.id)
           }}
+          onShowUpgrade={() => setShowUpgradeModal(true)}
         />
       )}
 
@@ -1295,6 +1298,11 @@ export default function CoverLetterPage() {
           </div>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   )
 }

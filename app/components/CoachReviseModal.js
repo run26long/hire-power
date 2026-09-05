@@ -3,6 +3,9 @@ import { useState } from 'react'
 
 const isText = v => typeof v === 'string' && v.trim().length > 0
 
+const LIMIT_MODES = { REWORD_LIMIT_REACHED: 'reword', FIX_LIMIT_REACHED: 'fix', ADD_LIMIT_REACHED: 'add' }
+const NON_TERMINAL_RESULTS = ['clarification', 'confirmJob', 'unsupported']
+
 const looksLikeJobEntry = v =>
   v && typeof v === 'object' && !Array.isArray(v) &&
   ('company' in v || 'title' in v || 'startDate' in v || 'bullets' in v)
@@ -136,7 +139,7 @@ function normalizeAddResult(result) {
   return result
 }
 
-export default function CoachReviseModal({ state, onClose, resumeData, coachingMessages, careerContext, supabase, resumeId, setResume, onUpdate, onReviewChangeUpdate, onApplyChange, onApplyAdd, documentLabel = 'Resume', isCoverLetter = false }) {
+export default function CoachReviseModal({ state, onClose, resumeData, coachingMessages, careerContext, supabase, resumeId, setResume, onUpdate, onReviewChangeUpdate, onApplyChange, onApplyAdd, onShowUpgrade = null, onUsageUpdate = null, documentLabel = 'Resume', isCoverLetter = false }) {
   const [loading, setLoading] = useState(false)
   const [alternatives, setAlternatives] = useState([])
   const [revised, setRevised] = useState(null)
@@ -144,6 +147,7 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
   const [addTurns, setAddTurns] = useState([])
   const [userInput, setUserInput] = useState('')
   const [error, setError] = useState(null)
+  const [limitReached, setLimitReached] = useState(null)
   const [mode, setMode] = useState(state.mode === 'choose' ? null : state.mode) // null = choosing, 'reword', 'fix', 'add'
   const [editingAdd, setEditingAdd] = useState(false)
   const [editedAddText, setEditedAddText] = useState('')
@@ -201,6 +205,7 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
   async function callApi(apiMode, input) {
     setLoading(true)
     setError(null)
+    setLimitReached(null)
     try {
       const token = (await supabase.auth.getSession())?.data?.session?.access_token
       const res = await fetch('/api/coach-revise', {
@@ -227,14 +232,43 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
       }
 
       const data = await res.json()
+      if (onUsageUpdate && !NON_TERMINAL_RESULTS.includes(data.result?.type)) {
+        onUsageUpdate(apiMode)
+      }
       return data.result
     } catch (err) {
       console.error('Coach revise error:', err)
-      setError(err.message || 'Something went wrong. Please try again.')
+      if (LIMIT_MODES[err.message]) {
+        setLimitReached(LIMIT_MODES[err.message])
+      } else {
+        setError(err.message || 'Something went wrong. Please try again.')
+      }
       return null
     } finally {
       setLoading(false)
     }
+  }
+
+  function renderLimitPanel(limitMode) {
+    return (
+      <div className="text-center">
+        <p className="text-sm text-gray-700 mb-4 leading-snug">
+          You've used your 3 free {limitMode} edits. Upgrade to Pro for unlimited editing tools.
+        </p>
+        {onShowUpgrade && (
+          <button
+            onClick={onShowUpgrade}
+            className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+          >
+            Upgrade to Pro
+          </button>
+        )}
+        <div className="mt-3">
+          <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2">Close</button>
+        </div>
+      </div>
+    )
   }
 
   async function handleReword() {
@@ -483,7 +517,7 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
   // ── REWORD MODAL ──
   if (mode === 'reword') {
     // Loading/error state in narrow modal
-    if (loading || (error && alternatives.length === 0)) {
+    if (loading || limitReached === 'reword' || (error && alternatives.length === 0)) {
       return (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"
@@ -513,7 +547,8 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
                   <span className="ml-3 text-sm text-gray-500">Generating alternatives...</span>
                 </div>
               )}
-              {error && (
+              {limitReached === 'reword' && renderLimitPanel('reword')}
+              {!limitReached && error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-xs text-red-700">{error}</p>
                 </div>
@@ -697,7 +732,9 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
               <p className="text-xs text-gray-700 leading-relaxed">{currentText}</p>
             </div>
 
-            {!revised ? (
+            {limitReached === 'fix' ? (
+              renderLimitPanel('fix')
+            ) : !revised ? (
               <>
                 <textarea
                   value={userInput}
@@ -855,7 +892,9 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
           </div>
 
           <div className="p-5">
-            {!addResult ? (
+            {limitReached === 'add' ? (
+              renderLimitPanel('add')
+            ) : !addResult ? (
               <>
                 <p className="text-sm text-gray-700 mb-3">
                   Left something out? It happens. Drop it here and we'll add it in. 

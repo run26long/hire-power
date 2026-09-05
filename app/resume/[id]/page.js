@@ -2297,6 +2297,11 @@ if (data.ai_analysis) {
             })
             setReviseModalState(null)
           }}
+          onShowUpgrade={() => setShowUpgradeModal(true)}
+          onUsageUpdate={(usedMode) => {
+            const column = usedMode === 'reword' ? 'reword_used' : usedMode === 'fix' ? 'fix_used' : 'add_used'
+            setUserProfile(prev => prev ? { ...prev, [column]: (prev[column] ?? 0) + 1 } : prev)
+          }}
         />
       )}
 
