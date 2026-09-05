@@ -1427,7 +1427,7 @@ if (data.ai_analysis) {
             >
               ⚙️Actions
             </button>
-            {/* Improve — Pro with coaching only */}
+            {/* Improve — AI editing tools */}
             {['improve','format','save'].includes(resume?.journey_step) && ((userProfile?.subscription_tier || 'free') !== 'free' || (userProfile?.reword_used ?? 0) < 3 || (userProfile?.fix_used ?? 0) < 3 || (userProfile?.add_used ?? 0) < 3) && resume?.coaching_complete && (
               <button
                 onClick={() => setMobileToolbar(mobileToolbar === 'improve' ? null : 'improve')}
@@ -1620,7 +1620,7 @@ if (data.ai_analysis) {
             </div>
           )}
 
-          {/* Improve panel — AI editing tools (Pro with coaching only) */}
+          {/* Improve panel — AI editing tools */}
           {mobileToolbar === 'improve' && (
             <div className="px-4 pt-2 pb-3">
               <div className="grid grid-cols-2 gap-1.5">
@@ -1973,7 +1973,7 @@ if (data.ai_analysis) {
                   </div>
                 </div>
 
-                {/* Hidden outright for free users; grayed until the improve step makes it usable */}
+                {/* Shown after coaching is complete */}
                 {resume?.coaching_complete && (
                   <div className="relative group/tipreword">
                     <span className={`block text-sm opacity-50 hover:opacity-100 transition-opacity cursor-default ${['improve','format','save'].includes(resume?.journey_step) ? '' : 'grayscale'}`}>⚡</span>
