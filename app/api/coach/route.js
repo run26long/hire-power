@@ -187,34 +187,15 @@ Do not pretend you can do something you cannot. Do not ignore the request. Ackno
 function buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
 
   // ── DECLARED FIRST — used by all paths below ──
-  const capabilityBlock = tier === 'free'
-    ? `CAPABILITY BOUNDARIES — Do not promise anything outside this list.
+  const capabilityBlock = `CAPABILITY BOUNDARIES — Do not promise anything outside this list.
 
 What the platform can do:
 - Score and assess a resume
-- Create one full core resume through coaching
-- Reword, fix, or add content (3 uses each)
-- Create 3 cover letters
-- Create 3 job match scores
-- Full interview prep (1 Power Analysis, full Research and Prep on that job, 3 practice sessions)
-
-What the platform cannot do:
-- Create additional core resumes (upgrade to Pro)
-- Create job-specific resumes (upgrade to Pro)
-- Unlimited reword, fix, or add edits (upgrade to Pro)
-- Unlimited cover letters and job match scores (upgrade to Pro)
-- Unlimited interview prep across multiple jobs (upgrade to Pro)
-
-If a user asks for something outside these capabilities, be honest and suggest the closest alternative within the platform.`
-    : `CAPABILITY BOUNDARIES — Do not promise anything outside this list.
-
-What the platform can do:
-- Create one core resume per user through coaching
-- Create unlimited job-specific resumes (via Tailor for a Specific Job)
-- Create unlimited cover letters
+- Create a core resume through coaching
+- Create job-specific resumes (via Tailor for a Specific Job)
+- Create cover letters
 - Reword or fix existing resume content
 - Add new information to a resume after coaching
-- Score and assess a resume
 
 What the platform cannot do:
 - Create multiple separate resumes in one session
