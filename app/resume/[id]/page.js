@@ -206,7 +206,6 @@ const [rewrittenResume, setRewrittenResume] = useState(null)
   const [scoreAfterCoaching, setScoreAfterCoaching] = useState(null)
 const [resumeChanges, setResumeChanges] = useState([])
 const [coachingMessages, setCoachingMessages] = useState([])
-const [coachingSamplesUsed, setCoachingSamplesUsed] = useState(0)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
   const [successToast, setSuccessToast] = useState(null)
@@ -929,12 +928,6 @@ function formatDate(dateString, format = dateFormat) {
 
     createJobCard()
   }, [resume?.id])
-
-  useEffect(() => {
-    if (userProfile) {
-      setCoachingSamplesUsed(userProfile.coaching_samples_used || 0)
-    }
-  }, [userProfile])
 
   // Load saved capture counts from DB on mount.
   // captured_data persists across reloads so the counter is accurate.
@@ -2057,7 +2050,6 @@ if (data.ai_analysis) {
               analysisResults={analysisResults}
               filteredAnalysisResults={filteredAnalysisResults}
               userTier={userProfile?.subscription_tier || 'free'}
-              coachingSamplesUsed={coachingSamplesUsed}
               resumeName={resume.display_name || 'Core Resume'}
               userName={userProfile?.display_name}
               userProfile={userProfile}
@@ -2091,7 +2083,6 @@ if (data.ai_analysis) {
           recoachAttempts={recoachAttempts}
           setRecoachAttempts={setRecoachAttempts}
           setShowUpgradeModal={setShowUpgradeModal}
-          setCoachingSamplesUsed={setCoachingSamplesUsed}
           handleDownload={handleDownload}
           isDownloading={isDownloading}
           resetHistory={resetHistory}
@@ -2339,7 +2330,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, coachingSamplesUsed, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, setCoachingSamplesUsed, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
+function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -2900,53 +2891,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
                   <h4 className="font-semibold text-gray-900 mb-1 text-base md:text-sm">What's Next?</h4>
             
                 </div>
-                {coachingSamplesUsed > 0 ? (
-                  <>
-                    <button
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="block mx-auto text-white rounded-lg py-2 px-4 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                    >
-                      Upgrade to Pro — we'll find the missing details and rewrite everything for you.
-                    </button>
-                    <p className="text-sm md:text-xs text-gray-500 text-center">
-                      Pro users avg <strong className="text-purple-600">+16 pts</strong> after full coaching
-                    </p>
-                    <div className="text-center">
-                      <button
-                        onClick={async () => {
-                          setIsUpdatingJourney(true)
-                          try {
-                            const { error } = await supabase
-                              .from('resumes')
-                              .update({
-                                journey_step: 'improve',
-                                updated_at: new Date().toISOString()
-                              })
-                              .eq('id', params.id)
-                            if (error) {
-                              console.error('Error advancing to improve step:', error)
-                              setErrorToast("We couldn't move you to the improve step. Please try again.")
-                              return
-                            }
-                            setResume(prev => ({ ...prev, journey_step: 'improve' }))
-                            fireO4MarkerIfFirst(supabase)
-                          } catch (err) {
-                            console.error('Unexpected error advancing to improve step:', err)
-                            setErrorToast("Something went wrong. Please try again.")
-                          } finally {
-                            setIsUpdatingJourney(false)
-                          }
-                        }}
-                        disabled={isUpdatingJourney}
-                        className="text-sm md:text-xs text-gray-400 hover:text-gray-600"
-                      >
-                        Make changes myself →
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
                     <button
                       onClick={() => setShowUpgradeModal(true)}
                       className="block mx-auto text-white rounded-lg py-2 px-4 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
@@ -2991,8 +2935,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
                     >
                       Try a free coaching session →
                     </button>
-                  </>
-                )}
               </div>
             ) : (
               // PRO TIER - Start coaching only if not yet started AND not already complete
@@ -3046,7 +2988,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           resume={resume}
           resumeData={resumeData}
           coachingComplete={resume?.coaching_complete || false}
-          coachingTierAtSave={resume?.coaching_tier_at_save || null}
           careerContext={careerContext}
           isConversational={isConversational}
           detectedLevel={detectedLevel}
@@ -3060,7 +3001,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           setRewrittenResume={setRewrittenResume}
           setResumeChanges={setResumeChanges}
           userTier={userTier}
-          trialCoachingUsed={coachingSamplesUsed > 0}
           isJobSpecific={isJobSpecific}
           jobDescription={resume?.job_description || null}
           jobTitle={resume?.job_title || null}
@@ -3073,7 +3013,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           setScoreBeforeCoaching={setScoreBeforeCoaching}
           setPostCoachingAnalysis={setPostCoachingAnalysis}
           setRemainingGaps={setRemainingGaps}
-          setCoachingSamplesUsed={setCoachingSamplesUsed}
           changesAccepted={resume?.changes_accepted || false}
           remainingGaps={remainingGaps}
           score={score}
@@ -3107,7 +3046,6 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           scoreBeforeCoaching={scoreBeforeCoaching}
           setScoreBeforeCoaching={setScoreBeforeCoaching}
           scoreAfterCoaching={scoreAfterCoaching}
-          coachingSamplesUsed={coachingSamplesUsed}
           remainingGaps={remainingGaps}
           setRemainingGaps={setRemainingGaps}
           recoachAttempts={recoachAttempts}
@@ -3281,17 +3219,12 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, trialCoachingUsed, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, filteredAnalysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, setCoachingSamplesUsed, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, coachingTierAtSave, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, knowledgeMatches }) {
+function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, filteredAnalysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, knowledgeMatches }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
   const [userInput, setUserInput] = useState('')
   const [userTier, setUserTier] = useState(userTierProp || null)
-  const [trialComplete, setTrialComplete] = useState(false)
-  const [trialResult, setTrialResult] = useState(null)
-  const [showTrialRevealModal, setShowTrialRevealModal] = useState(false)
-  const [editingBullet, setEditingBullet] = useState(false)
-  const [editedBullet, setEditedBullet] = useState('')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const previousMessageCount = useRef(0)
@@ -3306,9 +3239,6 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
   // Runs as fire-and-forget so it never blocks the UI.
   async function processCaptures(userMessageText, assistantResponseText) {
     if (!setCaptureCounts || !setCaptureBumpKey || !setCaptureToast) return
-
-    // Skip capture processing for free trial — only single-bullet feedback, no captures
-    if (userTier === 'free') return
 
     if (!userMessageText || !assistantResponseText) return
 
@@ -3588,9 +3518,6 @@ const getMessageText = (msg) => {
     )
   )
 
-  const isProCoachingComplete = isCoachingComplete
-  const isTrialCoachingComplete = isCoachingComplete
-
   // Auto-scroll and re-focus after each exchange
   useEffect(() => {
     if (coachingMessages.length > previousMessageCount.current) {
@@ -3656,16 +3583,8 @@ const getMessageText = (msg) => {
         setUserTier(tier)
 
       const hasRealMessages = coachingMessages.some(m => m.content && typeof m.content === 'string' && m.content.trim().length > 0)
-      const savedTier = coachingTierAtSave
-      const isTrialUpgrade = tier !== 'free' && hasRealMessages && !coachingComplete && savedTier === 'free'
 
-      if (isTrialUpgrade && !hasStartedCoaching.current) {
-        // Saved conversation was from a trial session — user has since upgraded. Start fresh Pro session with trial as context.
-        hasStartedCoaching.current = true
-        const capturedTrialTranscript = [...coachingMessages]
-        setCoachingMessages([])
-        await startCoaching(tier, capturedTrialTranscript)
-      } else if ((coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current) {
+      if ((coachingMessages.length === 0 || !hasRealMessages) && !hasStartedCoaching.current) {
         hasStartedCoaching.current = true
         await startCoaching(tier)
       }
@@ -3678,7 +3597,7 @@ const getMessageText = (msg) => {
     init()
   }, [])
 
- async function startCoaching(tier, trialTranscript = null) {
+ async function startCoaching(tier) {
     if (isConversational) return
     setSending(true)
     try {
@@ -3692,8 +3611,7 @@ const getMessageText = (msg) => {
         body: JSON.stringify({
           resumeData: {
             ...resumeData,
-            _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null,
-            _trialTranscript: trialTranscript || ((tier !== 'free' && coachingMessages?.length > 0) ? coachingMessages : null)
+            _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null
           },
           careerContext,
           detectedLevel,
@@ -3928,186 +3846,8 @@ const getMessageText = (msg) => {
       setIsFinishing(false)
     }
   }
-
-  async function finishTrialCoaching() {
-    setIsFinishing(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const response = await fetch('/api/trial-coach-finish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          resumeData,
-          conversation: coachingMessages,
-          detectedLevel,
-          careerContext
-        })
-      })
-      const data = await response.json()
-
-      const { error: resumeError } = await supabase
-        .from('resumes')
-        .update({
-          trial_coaching_used: true,
-          coaching_conversation: coachingMessages,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', params.id)
-
-      if (resumeError) {
-        console.error('Error marking trial coaching used:', resumeError)
-        setErrorToast("We finished your coaching but couldn't save the result. Please try the reveal button again.")
-        setIsFinishing(false)
-        return
-      }
-
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError) {
-        console.error('Auth error in finishTrialCoaching:', authError)
-      } else if (user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('coaching_samples_used')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (profileError) {
-          console.error('Error reading profile sample count:', profileError)
-          setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
-        } else {
-          const newCount = (profile?.coaching_samples_used || 0) + 1
-          const { error: profileUpdateError } = await supabase
-            .from('profiles')
-            .update({ coaching_samples_used: newCount })
-            .eq('id', user.id)
-
-          if (profileUpdateError) {
-            console.error('Error updating profile sample count:', profileUpdateError)
-            setErrorToast("Your trial finished, but your account didn't update properly. Please refresh the page.")
-          } else {
-            setCoachingSamplesUsed(newCount)
-            const now = new Date().toISOString()
-            try {
-              await supabase.from('profiles').update({ coaching_completed_at: now }).eq('id', user.id)
-              await fetch('/api/loops/sync-contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, userId: user.id, coachingCompletedAt: now }) })
-            } catch (e) { console.error('T7 trigger update failed (non-blocking):', e) }
-          }
-        }
-      }
-
-      setTrialResult(data)
-      setEditedBullet(data.after)
-      setTrialComplete(true)
-      setShowTrialRevealModal(true)
-    } catch (err) {
-      console.error('Error finishing trial:', err)
-      setErrorToast('Something went wrong. Please try again.')
-    } finally {
-      setIsFinishing(false)
-    }
-  }
-
-  async function applyTrialBullet(bulletText) {
-    try {
-      const updatedResume = JSON.parse(JSON.stringify(resumeData))
-      const job = updatedResume.experience?.[0]
-      if (job && trialResult?.before) {
-        const bulletIndex = job.bullets?.findIndex(b => b === trialResult.before)
-        if (bulletIndex !== -1) {
-          job.bullets[bulletIndex] = bulletText
-        } else {
-          job.bullets = job.bullets || []
-          job.bullets[0] = bulletText
-        }
-      }
-
-      const { error: saveError } = await supabase
-        .from('resumes')
-        .update({
-          resume_data: updatedResume,
-          journey_step: 'improve',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', params.id)
-
-      if (saveError) {
-        console.error('Error applying trial bullet:', saveError)
-        setErrorToast("We couldn't apply that change. Please try again.")
-        return
-      }
-
-      setResume(prev => ({ ...prev, resume_data: updatedResume, journey_step: 'improve' }))
-    } catch (err) {
-      console.error('Error applying bullet:', err)
-      setErrorToast("Something went wrong applying that change. Please try again.")
-      await advanceToImprove()
-    }
-  }
-
-  async function advanceToImprove() {
-    const { error: saveError } = await supabase
-      .from('resumes')
-      .update({ journey_step: 'improve', updated_at: new Date().toISOString() })
-      .eq('id', params.id)
-
-    if (saveError) {
-      console.error('Error advancing to improve step:', saveError)
-      setErrorToast("We couldn't move you to the next step. Please try again.")
-      return
-    }
-
-    setResume(prev => ({ ...prev, journey_step: 'improve' }))
-  }
 // ── Coaching locked (Pro/JS, complete) — chat renders normally, just hide input and finish button ──
-  const proCoachingLocked = coachingComplete && !trialComplete && userTier !== 'free' && !isConversational
-
-  // ── Already used trial → upsell ──
-if (trialCoachingUsed && !trialComplete && userTier === 'free') {
-      return (
-      <div className="space-y-2">
-        <h3 className="font-semibold text-lg -mt-3">💬 Resume Coach</h3>
-        <div className="bg-purple-50 rounded-lg p-2">
-          <p className="text-sm md:text-xs font-semibold text-gray-900 mb-1">You've used your free coaching session</p>
-          <p className="text-sm md:text-xs text-gray-600 mb-3">
-            Upgrade to Pro to coach every job, every bullet, and uncover skills you didn't know belonged on a resume.
-          </p>
-          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-100">
-            <p className="text-sm md:text-xs font-semibold text-purple-700 mb-2">Pro coaching includes:</p>
-            <ul className="text-sm md:text-xs text-gray-600 space-y-1.5">
-              <li>✓ Full conversation across all jobs</li>
-              <li>✓ Every bullet improved automatically</li>
-              <li>✓ Hidden skill identification</li>
-              <li>✓ Achievement quantification</li>
-              <li>✓ Before/after review for every change</li>
-            </ul>
-          </div>
-          <p className="text-sm md:text-xs text-purple-700 font-medium mb-3 text-center">
-            Pro users see an average <strong>16-point improvement</strong> after coaching.
-          </p>
-          <div className="flex justify-center mb-2">
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="text-white rounded-lg px-4 py-2 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              Upgrade to Pro →
-            </button>
-          </div>
-          <div className="flex justify-center">
-            <button
-              onClick={advanceToImprove}
-              className="text-gray-400 text-sm md:text-xs hover:text-gray-600"
-            >
-              Continue improving myself →
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const proCoachingLocked = coachingComplete && !isConversational
 
   // ── Loading state ──
   if (userTier === null) {
@@ -4237,16 +3977,8 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
     <>
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <h3 className="font-semibold text-lg mb-1 flex-shrink-0">
-          💬 {userTier === 'free' ? 'Free Coaching Trial' : 'Coaching in Progress'}
+          💬 Coaching in Progress
         </h3>
-
-        {userTier === 'free' && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-2 flex-shrink-0">
-            <p className="text-sm md:text-xs text-gray-600">
-              <strong>Free trial:</strong> Try Resume Coach on one role and see how a single rewritten bullet can transform how your experience reads.
-            </p>
-          </div>
-        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 min-h-0">
@@ -4300,7 +4032,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         </div>
 
         {/* Input */}
-        {!isProCoachingComplete && !isTrialCoachingComplete && !proCoachingLocked && (
+        {!isCoachingComplete && !proCoachingLocked && (
           <div className="border-t pt-2 pb-4 md:pb-1 flex-shrink-0 px-1 md:px-3 md:-mx-3" style={{ backgroundColor: 'white' }}>
             <div className="flex gap-2 items-end">
               <textarea
@@ -4348,7 +4080,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
         )}
 
         {/* Pro finish button */}
-        {isProCoachingComplete && userTier !== 'free' && !proCoachingLocked && !coachingComplete && (
+        {isCoachingComplete && !proCoachingLocked && !coachingComplete && (
           <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
            <button
               onClick={finishCoaching}
@@ -4364,150 +4096,9 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
           </div>
         )}
 
-        {/* Trial finish button */}
-       {isTrialCoachingComplete && userTier === 'free' && !trialComplete && (
-          <div className="border-t pt-2 pb-3 flex-shrink-0 md:-mx-3 md:px-3 flex justify-center" style={{ backgroundColor: 'white' }}>
-            <button
-              onClick={finishTrialCoaching}
-              disabled={isFinishing}
-              className="px-6 py-2 rounded-lg text-sm md:text-xs font-semibold flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-              {isFinishing ? 'Analyzing your session...' : '⚡ Reveal My Coached Bullet →'}
-            </button>
-          </div>
-        )}
-
         <p className="text-center text-[11px] text-gray-400 py-1 flex-shrink-0">Your coaching progress is saved automatically.</p>
       </div>
 
-      {/* Trial Reveal Modal */}
-      {showTrialRevealModal && trialResult && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
-        >
-          <div
-            className="bg-white shadow-2xl w-full max-w-2xl border border-gray-200 flex flex-col"
-            style={{ borderRadius: '8px' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Purple-only gradient header — matches improve modal exactly */}
-            <div
-              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
-              className="px-6 py-4 flex items-center justify-between flex-shrink-0"
-            >
-              <div className="flex items-center gap-3">
-               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto flex-shrink-0" />
-                <div>
-                  <h2 className="text-base font-bold text-white">Your First Coached Bullet</h2>
-                  <p className="text-purple-100 text-xs">
-                    Resume Coach | {resumeData?.experience?.[0]?.company || resumeData?.experience?.[0]?.title || 'First Job'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowTrialRevealModal(false)}
-                className="text-white hover:text-gray-200 text-4xl leading-none font-light w-8 h-8 flex items-center justify-center"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex flex-col flex-1 p-4 min-h-0">
-
-              {/* Column labels */}
-              <div className="grid grid-cols-2 gap-3 mb-1 flex-shrink-0">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Before</p>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">After</p>
-              </div>
-
-              {/* Before / After boxes */}
-              <div className="grid grid-cols-2 gap-3 mb-3" style={{ minHeight: 0 }}>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 overflow-y-auto" style={{ maxHeight: '120px' }}>
-                  <p className="text-xs text-gray-600 leading-snug line-through decoration-red-400">
-                    {trialResult.before}
-                  </p>
-                </div>
-
-                {editingBullet ? (
-                  <textarea
-                    className="w-full text-xs text-gray-800 leading-snug bg-green-50 border border-green-200 rounded-lg p-2.5 outline-none resize-none"
-                    style={{ maxHeight: '120px' }}
-                    value={editedBullet}
-                    onChange={e => setEditedBullet(e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 overflow-y-auto" style={{ maxHeight: '120px' }}>
-                    <p className="text-xs text-gray-800 leading-snug font-medium">{editedBullet}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Why this is better — white bg, purple left border only */}
-              <div className="bg-white border border-gray-100 border-l-4 border-l-purple-600 p-2.5 rounded-r mb-2 flex-shrink-0">
-                <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wide mb-0.5">Why this is better</p>
-                <p className="text-xs text-gray-700 leading-snug">{trialResult.reason}</p>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex-shrink-0 space-y-2">
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => advanceToImprove()}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors whitespace-nowrap"
-                  >
-                    ✗ Keep Original
-                  </button>
-                  {!editingBullet ? (
-                    <button
-                      onClick={() => setEditingBullet(true)}
-                      className="px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg text-xs font-medium hover:bg-purple-50 transition-colors whitespace-nowrap"
-                    >
-                      ✏️ Edit Change
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setEditingBullet(false)}
-                      className="px-4 py-2 bg-white text-gray-600 border border-gray-300 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    onClick={() => applyTrialBullet(editedBullet)}
-                    className="px-4 py-2 bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-semibold hover:bg-purple-200 transition-colors whitespace-nowrap"
-                  >
-                    ✓ Apply Change
-                  </button>
-                </div>
-
-                {/* Upgrade CTA */}
-                <div className="flex flex-col items-center gap-3 pt-5">
-                  {trialResult.skillsCount > 0 && (
-                    <p className="text-xs text-gray-600 text-center">
-                      <strong className="text-purple-700">We identified {trialResult.skillsCount} skills</strong> in this conversation that aren't on your resume yet. <strong className="text-purple-700">Go Pro</strong> to see them!
-                    </p>
-                  )}
-                  <button
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="text-white rounded-lg px-6 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
-                    style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                  >
-                    Upgrade to Pro → Coach My Entire Resume
-                  </button>
-                  <p className="text-xs text-gray-400">
-                    We found this in <strong>5 minutes</strong> from one job. Imagine what's in the rest. Go Pro, and we'll rewrite it all for you!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
    
    <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
 
@@ -4522,7 +4113,7 @@ if (trialCoachingUsed && !trialComplete && userTier === 'free') {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, coachingSamplesUsed, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -4866,7 +4457,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   }
 
   // RETURNING VISITOR VIEW — changes already accepted, don't show accept/review UI again
- if (changesAccepted && userTier !== 'free' && !showRevealModal && !showGapsModal && !showTargetedRecoach && !accepting) {
+ if (changesAccepted && !showRevealModal && !showGapsModal && !showTargetedRecoach && !accepting) {
     const showPushHarder = score < 80 && remainingGaps?.length > 0 && recoachAttempts < 1
 
     return (
@@ -4960,143 +4551,6 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           </button>
         </div>
       </div>
-    )
-  }
-
-  // FREE USER VIEW — must come before rewrittenResume check (free users never have one)
-  if (userTier === 'free') {
-    const suggestions = analysisResults?.analysis?.suggestions || []
-    const allSuggestions = suggestions
-
-    return (
-      <>
-        <FreeImproveStep
-          suggestions={allSuggestions}
-          supabase={supabase}
-          params={params}
-          setResume={setResume}
-          coachingSamplesUsed={coachingSamplesUsed}
-          handleReassess={handleReassess}
-          isAnalyzing={isAnalyzing}
-          setShowRevealModal={setShowRevealModal}
-          setShowUpgradeModal={setShowUpgradeModal}
-        />
-
-        {/* Score Reveal Modal — free users */}
-        {showRevealModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
-          >
-            <div className="relative flex items-center md:w-[740px] md:h-[560px] w-full px-4">
-
-              {/* Resume Thumbnail — left panel, desktop only */}
-              <div
-                className="absolute left-0 bg-white shadow-2xl overflow-hidden hidden md:block"
-                style={{ width: '420px', height: '560px', borderRadius: '0px', border: '1px solid #e5e7eb' }}
-              >
-                <div className="absolute inset-0 z-10" style={{ background: 'rgba(147, 51, 234, 0.06)' }} />
-                <div
-                  style={{ transform: 'scale(0.45)', transformOrigin: 'top left', width: '933px', pointerEvents: 'none' }}
-                  className="p-8 font-sans"
-                >
-                  <ResumeContent
-                    resumeData={resumeData}
-                    onUpdate={() => {}}
-                    isUndoingRef={{ current: false }}
-                    formatDate={(d) => d || ''}
-                    readOnly={true}
-                  />
-                </div>
-                <div
-                  className="absolute bottom-0 left-0 right-0 z-20 px-4 py-3"
-                  style={{ background: 'linear-gradient(to top, rgba(255,255,255,0.95), transparent)' }}
-                >
-                  <p className="text-xs text-gray-400 text-center">Your improved resume</p>
-                </div>
-              </div>
-
-              {/* Score Card — full width on mobile, overlapping on desktop */}
-              <div
-                className="bg-white shadow-2xl flex flex-col w-full md:absolute md:w-[380px]"
-                style={{ borderRadius: '8px', border: '1px solid #e5e7eb', zIndex: 10 }}
-              >
-                <div
-                  style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
-                  className="md:[border-radius:0] px-6 py-5 text-center"
-                >
-                  <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-8 w-auto mx-auto mb-1" />
-                  <h2 className="text-xl font-bold text-white">Improvement Complete.</h2>
-                </div>
-
-              <div className="p-6 text-center">
-                {scoreBeforeCoaching && scoreAfterCoaching ? (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-center gap-4 mb-2">
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500 mb-1">Before</p>
-                          <p className="text-5xl font-bold" style={{ color: scoreBeforeCoaching >= 85 ? '#9333ea' : scoreBeforeCoaching >= 75 ? '#81c784' : scoreBeforeCoaching >= 60 ? '#ffc870' : '#e57373' }}>{scoreBeforeCoaching}</p>
-                        </div>
-                        <div className="text-2xl" style={{ color: '#9ca3af' }}>→</div>
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500 mb-1">After</p>
-                          <p className="text-5xl font-bold" style={{ color: scoreAfterCoaching >= 85 ? '#9333ea' : scoreAfterCoaching >= 75 ? '#81c784' : scoreAfterCoaching >= 60 ? '#ffc870' : '#e57373' }}>{scoreAfterCoaching}</p>
-                        </div>
-                      </div>
-                      {scoreAfterCoaching > scoreBeforeCoaching ? (
-                        <p className="text-sm font-semibold text-green-600">
-                          +{scoreAfterCoaching - scoreBeforeCoaching} points from your edits
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500">Score held — your resume was already well-optimized.</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mb-4">
-                      <p className="text-3xl font-bold text-purple-600">{scoreAfterCoaching || score}/100</p>
-                      <p className="text-sm text-gray-500 mt-1">Resume scored</p>
-                    </div>
-                  )}
-
-                 <p className="text-sm text-gray-700 mb-3">Your resume is ready to download.</p>
-
-                  <div className="flex justify-center mb-3">
-                    <button
-                      onClick={async () => {
-                        setShowRevealModal(false)
-                        await supabase
-                          .from('resumes')
-                          .update({ journey_step: 'format', updated_at: new Date().toISOString() })
-                          .eq('id', params.id)
-                        setResume(prev => ({ ...prev, journey_step: 'format' }))
-                      }}
-                      className="text-white rounded-lg py-2 px-8 font-semibold text-xs transition-opacity hover:opacity-90"
-                      style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-                    >
-                      Format My Resume →
-                    </button>
-                  </div>
-
-                  <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 mb-3 text-left">
-<p className="text-sm text-gray-700 leading-relaxed mb-2 text-center">Want your entire resume coached and rewritten? Upgrade to Pro and we'll do it for you.</p>                    <div className="flex justify-center">
-                      <button
-                        onClick={() => {
-                          setShowRevealModal(false)
-                          setShowUpgradeModal(true)
-                        }}
-                        className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 font-semibold text-xs hover:bg-purple-50 transition-colors"
-                      >
-                        Let Us Rewrite It
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-      </>
     )
   }
 
@@ -5726,166 +5180,6 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   )
 }
 
-// ─────────────────────────────────────────────
-// FREE IMPROVE STEP
-// ─────────────────────────────────────────────
-function FreeImproveStep({ suggestions, supabase, params, setResume, coachingSamplesUsed, handleReassess, isAnalyzing, setShowRevealModal, setShowUpgradeModal }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isChecking, setIsChecking] = useState(false)
-  const [errorToastFree, setErrorToastFree] = useState(null)
-  const isDone = currentIndex >= suggestions.length
-  const hasUsedTrial = coachingSamplesUsed > 0
-
-  return (
-    <div className="space-y-2 -mt-2">
-      <h3 className="font-semibold text-lg">✏️ Improve Your Resume</h3>
-      <p className="text-sm md:text-xs text-gray-700 text-center">Ready to tackle the rest? We'll walk you through the recommended changes one at a time below.</p>
-
-      {!isDone ? (
-        <div className="space-y-2">
-          {/* Numbered circles progress bar */}
-          <div className="flex items-center justify-between gap-1">
-            {suggestions.map((_, i) => {
-              const done = i < currentIndex
-              const current = i === currentIndex
-              return (
-                <div key={i} className="flex items-center flex-1">
-                  <div
-                    className="flex items-center justify-center rounded-full text-[10px] font-bold flex-shrink-0 transition-all"
-                    style={{
-                      width: current ? '22px' : '18px',
-                      height: current ? '22px' : '18px',
-                      backgroundColor: done ? '#7c3aed' : current ? '#9333ea' : '#d1d5db',
-                      color: '#ffffff',
-                      boxShadow: current ? '0 0 0 2px #e9d5ff' : 'none'
-                    }}
-                  >
-                    {done ? '✓' : i + 1}
-                  </div>
-                  {i < suggestions.length - 1 && (
-                    <div className="flex-1 h-px mx-0.5" style={{ backgroundColor: i < currentIndex ? '#7c3aed' : '#d1d5db' }} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Current suggestion */}
-          <div className="bg-gray-50 border-l-4 border-purple-600 border border-gray-200 p-2.5 rounded-r">
-            <p className="text-xs md:text-[10px] font-bold text-purple-700 uppercase tracking-wide mb-1">🎯 Action Item {currentIndex + 1}</p>
-            <p className="text-sm md:text-xs text-gray-800 leading-snug">{suggestions[currentIndex]}</p>
-          </div>
-
-          <p className="text-sm md:text-[12px] text-gray-600 text-center">
-            Make this change on your resume, then click Next Suggestion to make the next improvement.
-          </p>
-
-          <div className="mt-5 space-y-2">
-            <div className="flex gap-2">
-             <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 font-semibold text-sm md:text-xs hover:bg-purple-50 transition-colors"
-              >
-                Let Us Rewrite It
-              </button>
-             <button
-                onClick={async () => {
-                  const isLast = currentIndex === suggestions.length - 1
-                  if (isLast) {
-                    setIsChecking(true)
-                    try {
-                      await handleReassess()
-                      setShowRevealModal(true)
-                    } catch (err) {
-                      console.error('Error during final reassess:', err)
-                      setErrorToastFree("We couldn't check your score. Please try again.")
-                    } finally {
-                      setIsChecking(false)
-                    }
-                  } else {
-                    setCurrentIndex(prev => prev + 1)
-                  }
-                }}
-                disabled={isChecking}
-                className="flex-1 text-white rounded-lg py-2 px-3 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1 whitespace-nowrap"
-                style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-              >
-              {isChecking
-                ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Checking...</>
-                : currentIndex === suggestions.length - 1 ? 'Check My Score →' : 'Next Improvement →'}
-              </button>
-            </div>
-            <div className="flex justify-center">
-              <button
-                onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                disabled={currentIndex === 0}
-                className="text-gray-400 text-sm md:text-xs hover:text-gray-600 disabled:opacity-30"
-              >
-                ← Back
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-            <p className="text-xl mb-0.5">✅</p>
-            <p className="font-semibold text-green-800 text-sm md:text-xs">All suggestions reviewed!</p>
-            <p className="text-sm md:text-xs text-green-700">Made changes? Check your updated score.</p>
-          </div>
-
-          <div className="flex flex-col items-center gap-2 mt-5">
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="flex-1 text-white rounded-lg py-2 px-3 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-              style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-            >
-              Let Us Rewrite It
-            </button>
-           <button
-              onClick={async () => {
-                try {
-                  await handleReassess()
-                  setShowRevealModal(true)
-                } catch (err) {
-                  console.error('Error during reassess:', err)
-                  setErrorToastFree("We couldn't check your score. Please try again.")
-                }
-              }}
-              disabled={isAnalyzing}
-              className="bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-4 text-sm md:text-xs font-semibold hover:bg-purple-50 transition-colors flex items-center gap-1"
-            >
-              {isAnalyzing
-                ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div> Analyzing...</>
-                : '📊 Re-assess My Score'
-              }
-            </button>
-            <button
-              onClick={async () => {
-              const { error: saveError } = await supabase
-                .from('resumes')
-                .update({ journey_step: 'format', updated_at: new Date().toISOString() })
-                .eq('id', params.id)
-              if (saveError) {
-                console.error('Error advancing to format step:', saveError)
-                setErrorToastFree("We couldn't move you to the format step. Please try again.")
-                return
-              }
-              setResume(prev => ({ ...prev, journey_step: 'format' }))
-              if (setViewingStep) setViewingStep(null)
-            }}
-            className="text-white rounded-lg py-2 px-8 font-semibold text-sm md:text-xs transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
-          >
-            Format My Resume →
-            </button>
-          </div>
-        </div>
-      )}
-      <ErrorToast message={errorToastFree} onClose={() => setErrorToastFree(null)} />
-    </div>
-  )
-}
 // ─────────────────────────────────────────────
 // TARGETED RECOACH STEP
 // ─────────────────────────────────────────────
