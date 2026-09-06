@@ -871,12 +871,15 @@ function formatDate(dateString, format = dateFormat) {
         }
         if (!user) return
 
+        // Archived cards count here. A card that already points at this exact resume
+        // means the resume has been tracked and retired, so there is nothing to add.
+        // Skipping archived instead would insert a duplicate every time the archived
+        // resume was opened.
         const { data: resumeCards, error: resumeCardsError } = await supabase
           .from('applications')
           .select('id')
           .eq('resume_id', resume.id)
           .eq('user_id', user.id)
-          .neq('application_status', 'archived')
           .limit(1)
 
         if (resumeCardsError) {

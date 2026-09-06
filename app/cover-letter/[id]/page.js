@@ -184,7 +184,10 @@ export default function CoverLetterPage() {
 
       if (existingCards?.[0]) return // already linked, nothing to do
 
-      // Check if a card exists for the linked job specific resume (only if it's job-specific)
+      // Check if a card exists for the linked job specific resume (only if it's
+      // job-specific). Archived cards count: one that already points at that resume
+      // is the card this cover letter belongs to, retired or not. Skipping archived
+      // instead would create a duplicate card every time the cover letter was opened.
       if (coverLetter.linked_resume_id) {
         const { data: linkedResume, error: linkedResumeError } = await supabase
           .from('resumes')
@@ -201,7 +204,6 @@ export default function CoverLetterPage() {
             .select('id')
             .eq('resume_id', coverLetter.linked_resume_id)
             .eq('user_id', user.id)
-            .neq('application_status', 'archived')
             .limit(1)
           if (resumeCardsError) throw resumeCardsError
 
