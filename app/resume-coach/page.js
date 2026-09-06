@@ -1514,9 +1514,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // every lens core built from it, so all three lines are reachable: nothing left to
   // build, more than one core in hand, or suggestions still waiting.
   function lensCaptionFor({ builtCount, suggestionCount }) {
-    if (suggestionCount === 0) return 'Switch between your core resumes.';
-    if (builtCount > 1) return 'Switch between your cores, or build the next one.';
-    return 'Coach identified more directions in your background. Build a core resume for each.';
+    if (suggestionCount === 0) return 'Switch between your Core Resumes.';
+    if (builtCount > 1) return 'Switch between your Core Resumes, or build the next one.';
+    return 'Coach identified multiple strong career directions in your background. Build additional Core Resumes for the paths you want to pursue.';
   }
   const score = selectedCore?.current_score || null;
   const journeyStep = selectedCore?.journey_step || 'review';
