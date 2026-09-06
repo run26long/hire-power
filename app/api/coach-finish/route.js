@@ -2531,12 +2531,13 @@ async function saveExperienceLevel(userId, experienceLevel) {
 }
 
 // ─────────────────────────────────────────────
-// CAREER CONTEXT + SUGGESTED LENSES
+// CAREER CONTEXT
 // Shared by both core coaching paths. Each path issues the model call itself so
 // it can overlap the other work it is already doing; the raw text comes back
-// here to be parsed, split and written, so the schema and the write rules live
-// in one place. Every failure is non-fatal — the resume is the product, and none
-// of this is worth losing it over.
+// here to be parsed and written, so the schema and the write rules live in one
+// place. Lens suggestions are no longer part of this: they come from the whole
+// knowledge base instead, below. Every failure is non-fatal — the resume is the
+// product, and none of this is worth losing it over.
 // ─────────────────────────────────────────────
 
 function buildCareerContextPrompt(convText) {
@@ -2631,12 +2632,13 @@ async function ensureCareerProfile(supabaseWrite, userId, displayName) {
 }
 
 // Deduped by slug against every status, so a lens the user has already accepted
-// or dismissed is never re-suggested. A row the user owns is never touched: only
-// a row this extraction wrote gets its evidence refreshed, and only its evidence.
+// or dismissed is never re-suggested. A row the user owns is never touched, and
+// neither is one they have built: only a still-suggested row this evaluation
+// wrote gets its evidence refreshed, and only its evidence.
 async function saveSuggestedLenses(supabaseWrite, { userId, profileId, coreResumeId, lenses }) {
   if (!profileId || !Array.isArray(lenses) || lenses.length === 0) return
 
-  for (const lens of lenses.slice(0, 3)) {
+  for (const lens of lenses) {
     const name = typeof lens?.name === 'string' ? lens.name.trim() : ''
     const slug = slugify(name)
     if (!name || !slug) continue
@@ -2645,13 +2647,13 @@ async function saveSuggestedLenses(supabaseWrite, { userId, profileId, coreResum
     try {
       const { data: existing } = await supabaseWrite
         .from('profile_lenses')
-        .select('id, source')
+        .select('id, source, status')
         .eq('profile_id', profileId)
         .eq('slug', slug)
         .maybeSingle()
 
       if (existing) {
-        if (existing.source === 'coaching_extraction' && evidence) {
+        if (existing.source === 'coaching_extraction' && existing.status === 'suggested' && evidence) {
           const { error: updateError } = await supabaseWrite
             .from('profile_lenses')
             .update({ evidence_summary: evidence, updated_at: new Date().toISOString() })
@@ -2697,7 +2699,7 @@ function isMissingColumnError(error, column) {
 
 // Returns true when career_context was written, so a caller can skip its own
 // experience_level fallback rather than overwrite the value extracted here.
-async function persistCareerContext({ userId, rawText, displayName, resumeId, setCompletedAt }) {
+async function persistCareerContext({ userId, rawText, setCompletedAt }) {
   if (!userId || !rawText) return false
 
   try {
@@ -2707,9 +2709,11 @@ async function persistCareerContext({ userId, rawText, displayName, resumeId, se
     }
     const parsed = JSON.parse(json)
 
-    // career_context has no suggested_lenses column, and one unknown key fails
-    // the whole upsert, so the lenses are split off before the write.
-    const { suggested_lenses: suggestedLenses, ...contextFields } = parsed
+    // career_context has no suggested_lenses column, and one unknown key fails the
+    // whole upsert, so the key is split off and dropped. Lens suggestions come from
+    // the knowledge base now, not from a single transcript, so whatever the context
+    // extraction still returns under that key is not used here.
+    const { suggested_lenses: _unusedLenses, ...contextFields } = parsed
 
     const { createClient } = await import('@supabase/supabase-js')
     const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -2744,20 +2748,139 @@ async function persistCareerContext({ userId, rawText, displayName, resumeId, se
       return false
     }
 
-    if (Array.isArray(suggestedLenses) && suggestedLenses.length > 0) {
-      const profileId = await ensureCareerProfile(supabaseWrite, userId, displayName)
-      await saveSuggestedLenses(supabaseWrite, {
-        userId,
-        profileId,
-        coreResumeId: resumeId,
-        lenses: suggestedLenses
-      })
-    }
-
     return true
   } catch (e) {
     console.error('Career context write failed (non-fatal):', e)
     return false
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// LENS EVALUATION
+// A direction worth its own core resume shows up across a body of evidence, and a
+// single coaching transcript cannot see that. This reads the whole knowledge base
+// instead, so a direction has to earn its place against everything known about the
+// person rather than off one session that happened to dwell on it. Runs in the
+// background, so every failure here is non-fatal and silent to the user.
+// ─────────────────────────────────────────────
+
+// Below this there is not enough of a career on file to tell a direction from a
+// passing mention, and anything suggested would be noise.
+const MIN_KNOWLEDGE_FOR_LENSES = 5
+
+function buildLensEvaluationPrompt({ knowledge, targetRoles, currentLensName, existingLensNames }) {
+  const entries = knowledge.map(k => {
+    const source = [k.source_job_title, k.source_job_company].filter(Boolean).join(' at ')
+    const kind = [k.knowledge_type, k.confidence].filter(Boolean).join(', ')
+    return `- [${kind}] ${k.content}${source ? ` (from ${source})` : ''}`
+  }).join('\n')
+
+  const targeting = [
+    currentLensName ? `Current direction: ${currentLensName}` : null,
+    targetRoles?.length ? `Target roles: ${targetRoles.join(', ')}` : null
+  ].filter(Boolean).join('\n') || 'Not yet established.'
+
+  const already = existingLensNames.length ? existingLensNames.join(', ') : 'None yet.'
+
+  return `Given this person's complete career knowledge base, what distinct professional directions could each support a separate core resume?
+
+CAREER KNOWLEDGE BASE:
+${entries}
+
+ALREADY TARGETING:
+${targeting}
+
+DIRECTIONS ALREADY ON THEIR LIST:
+${already}
+
+RULES:
+- Each direction must have substantial evidence across multiple knowledge entries, not just a passing mention.
+- Do not suggest the direction they are currently targeting, named above.
+- Do not suggest any direction that already exists in their list above.
+- Name each direction at the level of a career direction, not a specific craft or task. Prefer the broader professional frame when the evidence supports it: "Performance" rather than "Choreography" if the evidence shows performing that includes choreography, "Operations" rather than "Scheduling". Use a narrow name only when the evidence is genuinely confined to that specialty.
+- One or two words per name.
+- Return as many as the evidence genuinely supports. There is no maximum, but quality over quantity. An empty array is the right answer when nothing clears the bar.
+- evidence_summary is one sentence naming what in the knowledge base supports the direction.
+
+Respond with ONLY valid JSON, no markdown, no explanation:
+{"suggested_lenses":[{"name":"...","evidence_summary":"..."}]}`
+}
+
+async function evaluateLensesFromKnowledge({ userId, supabase, displayName }) {
+  if (!userId) return
+
+  try {
+    let client = supabase
+    if (!client) {
+      const { createClient } = await import('@supabase/supabase-js')
+      client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    }
+
+    const [knowledgeRes, contextRes, lensRes] = await Promise.all([
+      client
+        .from('career_knowledge')
+        .select('knowledge_type, content, confidence, source_job_title, source_job_company')
+        .eq('user_id', userId)
+        .is('superseded_by', null),
+      client
+        .from('career_context')
+        .select('target_roles, current_lens_name')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      client
+        .from('profile_lenses')
+        .select('name, slug, status')
+        .eq('user_id', userId)
+    ])
+
+    if (knowledgeRes.error) {
+      console.error('[lens-eval] Knowledge lookup failed (non-fatal):', knowledgeRes.error)
+      return
+    }
+
+    const knowledge = knowledgeRes.data || []
+    if (knowledge.length < MIN_KNOWLEDGE_FOR_LENSES) return
+
+    // Every status counts as taken. A direction the user dismissed or already built
+    // is not a suggestion, and naming them keeps the model from proposing one back.
+    // The slug check inside saveSuggestedLenses is what actually enforces it.
+    const existingLensNames = (lensRes.data || []).map(l => l.name).filter(Boolean)
+
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
+      temperature: 0,
+      messages: [{
+        role: 'user',
+        content: buildLensEvaluationPrompt({
+          knowledge,
+          targetRoles: contextRes.data?.target_roles || [],
+          currentLensName: contextRes.data?.current_lens_name || null,
+          existingLensNames
+        })
+      }]
+    })
+
+    let json = message.content[0].text.trim()
+    if (json.startsWith('```')) {
+      json = json.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    }
+    const parsed = JSON.parse(json)
+    const lenses = Array.isArray(parsed?.suggested_lenses) ? parsed.suggested_lenses : []
+    if (lenses.length === 0) return
+
+    const profileId = await ensureCareerProfile(client, userId, displayName)
+    await saveSuggestedLenses(client, {
+      userId,
+      profileId,
+      // A suggestion is not tied to a resume. build-core sets core_resume_id when
+      // the user turns one into an actual core.
+      coreResumeId: null,
+      lenses
+    })
+  } catch (e) {
+    console.error('[lens-eval] Lens evaluation failed (non-fatal):', e)
   }
 }
 
@@ -3350,8 +3473,6 @@ export async function POST(request) {
         await persistCareerContext({
           userId: authenticatedUserId,
           rawText: careerContextExtractMsg.content[0].text,
-          displayName: convResume?.fullName,
-          resumeId,
           setCompletedAt: true
         })
       }
@@ -3376,6 +3497,19 @@ export async function POST(request) {
               jobCompany: null
             })
           }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+        )
+      }
+
+      // ── BACKGROUND: lens evaluation (brb/conversational path) ──
+      // Reads the whole knowledge base rather than this conversation, so a direction has
+      // to hold up across everything on file. Runs alongside the extraction above, which
+      // means this session's facts land in the next evaluation, not this one.
+      if (authenticatedUserId) {
+        waitUntil(
+          evaluateLensesFromKnowledge({
+            userId: authenticatedUserId,
+            displayName: convResume?.fullName
+          })
         )
       }
 
@@ -3486,6 +3620,19 @@ export async function POST(request) {
               jobCompany: jobCompany || null
             })
           }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+        )
+      }
+
+      // ── BACKGROUND: lens evaluation (job-specific path) ──
+      // Reads the whole knowledge base rather than this conversation, so a direction has
+      // to hold up across everything on file. Runs alongside the extraction above, which
+      // means this session's facts land in the next evaluation, not this one.
+      if (authenticatedUserId) {
+        waitUntil(
+          evaluateLensesFromKnowledge({
+            userId: authenticatedUserId,
+            displayName: resumeData?.fullName
+          })
         )
       }
 
@@ -3640,8 +3787,6 @@ export async function POST(request) {
       wroteCareerContext = await persistCareerContext({
         userId: authenticatedUserId,
         rawText: coreContextMsg.content[0].text,
-        displayName: resumeData?.fullName,
-        resumeId,
         setCompletedAt: false
       })
     }
@@ -3666,6 +3811,19 @@ export async function POST(request) {
             jobCompany: null
           })
         }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+      )
+    }
+
+    // ── BACKGROUND: lens evaluation (core resume path) ──
+    // Reads the whole knowledge base rather than this conversation, so a direction has
+    // to hold up across everything on file. Runs alongside the extraction above, which
+    // means this session's facts land in the next evaluation, not this one.
+    if (authenticatedUserId && !isLensCore) {
+      waitUntil(
+        evaluateLensesFromKnowledge({
+          userId: authenticatedUserId,
+          displayName: resumeData?.fullName
+        })
       )
     }
 
