@@ -354,11 +354,37 @@ export async function GET(req) {
     }
 
     // Check if user has completed Career Coach
-    const { data: careerContext } = await supabase
+    // current_lens_name is newer than this query. If the column is not there yet
+    // the whole select fails and completed_at would read as absent, which would
+    // wrongly report Career Coach as unfinished, so the old select is the fallback.
+    let { data: careerContext, error: careerContextError } = await supabase
       .from('career_context')
-      .select('completed_at')
+      .select('completed_at, current_lens_name')
       .eq('user_id', user.id)
       .maybeSingle();
+
+    if (careerContextError) {
+      ({ data: careerContext } = await supabase
+        .from('career_context')
+        .select('completed_at')
+        .eq('user_id', user.id)
+        .maybeSingle());
+    }
+
+    // Directions Coach found in the background that the user has not acted on yet.
+    // Service role, so this is not subject to RLS on profile_lenses.
+    const { data: suggestedLenses, error: lensesError } = await supabase
+      .from('profile_lenses')
+      .select('id, name, slug, evidence_summary')
+      .eq('user_id', user.id)
+      .eq('status', 'suggested')
+      .eq('source', 'coaching_extraction')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (lensesError) {
+      console.error('Suggested lenses error:', lensesError);
+    }
     
     // Format core resume data
     const coreResumeData = coreResume ? {
@@ -408,6 +434,8 @@ export async function GET(req) {
       coreResume: coreResumeData,
       resumeVersions: resumeVersionsData,
       coverLetters: coverLetters || [],
+      suggestedLenses: suggestedLenses || [],
+      currentLensName: careerContext?.current_lens_name || null,
       stats: {
         hasCoreResume: !!coreResume,
         hasCareerContext: !!careerContext?.completed_at,
