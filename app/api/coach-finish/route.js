@@ -2800,7 +2800,10 @@ RULES:
 - Do not suggest any direction that already exists in their list above.
 - Name each direction at the level of a career direction, not a specific craft or task. Prefer the broader professional frame when the evidence supports it: "Performance" rather than "Choreography" if the evidence shows performing that includes choreography, "Operations" rather than "Scheduling". Use a narrow name only when the evidence is genuinely confined to that specialty.
 - One or two words per name.
-- Return as many as the evidence genuinely supports. There is no maximum, but quality over quantity. An empty array is the right answer when nothing clears the bar.
+- Each direction must represent a distinct job search. If someone would use the same resume for two directions, they are not separate directions. Merge them.
+- A direction is a career path someone applies for jobs under, not a skill or competency. "Business Development" is a direction. "Proposal Management" is a skill used within Business Development. "Strategic Planning" is a capability, not a job search. Only suggest directions that would appear as a job title or department.
+- Consolidate related directions. "Government Sales" and "Defense Contracting" serving the same markets should be one direction, not two. "Technical Sales" and "Business Development" using the same skills should be one.
+- Aim for 3 to 5 high-confidence directions. More than 5 almost always means some should be merged. Fewer is better than more, and an empty array is the right answer when nothing clears the bar.
 - evidence_summary is one sentence naming what in the knowledge base supports the direction.
 
 Respond with ONLY valid JSON, no markdown, no explanation:

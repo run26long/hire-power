@@ -1502,6 +1502,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const builtLenses = profileLenses.filter(l => l.status === 'active' && l.core_resume_id);
   const suggestedLenses = profileLenses.filter(l => l.status !== 'active');
 
+  // The row is three tiles wide and never scrolls, so the core on screen leaves two
+  // slots. Cores the user has built claim them first because those already exist;
+  // suggestions fill whatever is left, in the order the route returned them. Anything
+  // past that is simply not shown.
+  const LENS_TILE_SLOTS = 2;
+  const visibleBuiltLenses = builtLenses.slice(0, LENS_TILE_SLOTS);
+  const visibleSuggestedLenses = suggestedLenses.slice(0, LENS_TILE_SLOTS - visibleBuiltLenses.length);
+
   // Caption for the core-resume selector. builtCount counts the priority core plus
   // every lens core built from it, so all three lines are reachable: nothing left to
   // build, more than one core in hand, or suggestions still waiting.
@@ -2006,7 +2014,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       it has without this card. */}
                   {hasLensCard && (
                     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[92px] ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
-                      <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + builtLenses.length, suggestionCount: suggestedLenses.length })}</p>
+                      <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
                       <div className="flex gap-2">
 
                         {/* The core the route opens with. Selecting a tile swaps the
@@ -2030,7 +2038,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                         {/* Cores already built from a lens. Same tab behaviour as the
                             tile above: the card swaps, the page stays. */}
-                        {builtLenses.map((lens) => (
+                        {visibleBuiltLenses.map((lens) => (
                           <div
                             key={lens.id}
                             role="button"
@@ -2049,7 +2057,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </div>
                         ))}
 
-                        {suggestedLenses.map((lens) => {
+                        {visibleSuggestedLenses.map((lens) => {
                           const isEditing = editingLensId === lens.id;
                           const failed = lensRenameError === lens.id;
                           return (
