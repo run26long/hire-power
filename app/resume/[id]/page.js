@@ -2361,8 +2361,10 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
   const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
 
   const isConversational = resume?.created_via === 'resume_chat'
-  // A lens core is coached from a clone, so it has no before-score to reveal.
-  // Improve takes the same branch the conversational build does for that reason.
+  // A lens core is a clone of an existing core, reframed around one career
+  // direction. That core was already reviewed and scored, so this one skips Review
+  // and Assess and opens straight into coaching, the way a brb build does. Improve
+  // takes the conversational branch for the same reason: there is no before-score.
   const isLensCore = resume?.created_via === 'lens_core'
   const skippedCoaching = isJobSpecific && resume?.coaching_complete === true && (!resume?.coaching_conversation || resume.coaching_conversation.length === 0)
   const steps = isJobSpecific
@@ -2373,6 +2375,8 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
         : ['assess', 'coach', 'improve', 'format', 'save'])
     : isConversational
     ? ['chat', 'improve', 'format', 'save']
+    : isLensCore
+    ? ['coach', 'improve', 'format', 'save']
     : ['review', 'assess', 'coach', 'improve', 'format', 'save']
   const currentIndex = steps.indexOf(journeyStep)
   const [isUpdatingJourney, setIsUpdatingJourney] = useState(false)
@@ -3583,6 +3587,7 @@ const getMessageText = (msg) => {
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
+          resumeId: params.id,
           resumeData: {
             ...resumeData,
             _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null
@@ -3648,6 +3653,7 @@ const getMessageText = (msg) => {
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
+          resumeId: params.id,
           resumeData: {
             ...resumeData,
             _analysisResults: (filteredAnalysisResults || analysisResults)?.analysis || null

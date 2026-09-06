@@ -184,7 +184,7 @@ If they ask you to do something the platform cannot do (like build two different
 
 Do not pretend you can do something you cannot. Do not ignore the request. Acknowledge it, be clear about the boundary, and keep coaching.`
 
-function buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
+function buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, lensName) {
 
   // ── DECLARED FIRST — used by all paths below ──
   const capabilityBlock = `CAPABILITY BOUNDARIES — Do not promise anything outside this list.
@@ -642,6 +642,32 @@ CAREER COACH CONTEXT (from earlier conversation):
 
 Use this context to guide every coaching question. For career changers, actively look for
 transferable skills. If skills_not_on_resume has entries, probe those specifically.
+` : ''
+
+  // ── LENS CORE ──
+  // A lens core is a second core resume, cloned from the one the candidate already
+  // has so the same history can be told for one specific direction they picked by
+  // name. That choice is made before the session opens, so the coach never asks it.
+  const lensBlock = lensName ? `
+THIS SESSION IS BUILDING A ${lensName.toUpperCase()} RESUME
+
+The resume below already exists. It is a second core resume, cloned from the
+candidate's main one so their history can be presented for a specific direction they
+chose themselves: ${lensName}. That decision is already made and settled.
+
+What that means for you:
+- Do NOT ask what they are targeting, or whether they want something different. They
+  answered that when they picked ${lensName}. Asking again reads as not listening.
+- ${lensName} is the target for everything: what you probe, what you emphasize, what
+  belongs in the summary, and what gets shortened.
+- Open by naming the direction in one plain sentence so they know you have it. For
+  example: "We are building your ${lensName} resume, so everything I ask about is
+  pointed at that."
+- The wording on the page was written for a different emphasis. Your job is to surface
+  the experience, skills, and results that matter for ${lensName} and that the current
+  resume buries or leaves out.
+- Experience that does not serve ${lensName} still stays. Reframe it or shorten it.
+  Never cut their history.
 ` : ''
 
 // ── CONVERSATIONAL FIX MODE ──
@@ -1171,13 +1197,13 @@ ${analysisBlock(analysis)}
 RESUME CONTENT (reference this, never invent beyond it):
 ${resumeText}
 
-${phaseStructure}
+${lensBlock}${phaseStructure}
 
 Be warm, direct, and genuinely curious. You are a professional resume coach who has helped thousands of people discover the value they didn't know they had. You know that everyone — including the person who thinks they have nothing impressive — has something worth putting on the page. Your job is to find it.`
 }
 
-function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany) {
-  return buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
+function buildCoachingPrompt(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, lensName) {
+  return buildCoachingPromptBase(level, resumeText, userName, careerContext, tier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, lensName)
 }
 
 // ─────────────────────────────────────────────
@@ -1204,6 +1230,7 @@ export async function POST(request) {
 
     const {
       resumeData,
+      resumeId,
       resumeText,
       conversation,
       displayName,
@@ -1247,6 +1274,43 @@ export async function POST(request) {
       }
     }
 
+    // ── LENS CORE ──
+    // A lens core is a second core the candidate asked for by name, so the direction
+    // is settled before this session opens. The name lives on the lens row, which
+    // points at the resume it was built for.
+    let lensName = null
+    if (supabase && authenticatedUserId && resumeId && !isJobSpecific) {
+      const { data: lensResume, error: lensResumeError } = await supabase
+        .from('resumes')
+        .select('created_via')
+        .eq('id', resumeId)
+        .eq('user_id', authenticatedUserId)
+        .maybeSingle()
+
+      if (lensResumeError) {
+        console.error('Lens core lookup failed (non-blocking):', lensResumeError)
+      } else if (lensResume?.created_via === 'lens_core') {
+        const { data: lens, error: lensError } = await supabase
+          .from('profile_lenses')
+          .select('name')
+          .eq('core_resume_id', resumeId)
+          .eq('user_id', authenticatedUserId)
+          .maybeSingle()
+
+        if (lensError) {
+          console.error('Lens name lookup failed (non-blocking):', lensError)
+        } else if (lens?.name) {
+          lensName = lens.name
+        }
+      }
+    }
+
+    // The direction the candidate picked stands in as the target, which is what keeps
+    // Phase 0 from asking them to pick it again a moment after they did.
+    const coachingCareerContext = lensName
+      ? { ...(careerContext || {}), target_roles: [lensName] }
+      : careerContext
+
     let textToCoach = resumeText
     if (!textToCoach && resumeData) {
       textToCoach = convertStructuredToText(resumeData)
@@ -1285,7 +1349,7 @@ export async function POST(request) {
       textToCoach = textToCoach + '\n\nADDITIONAL VERIFIED EXPERIENCE:\n' + knowledgeAddendum
     }
 
-    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, careerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany)
+    const systemPrompt = buildCoachingPrompt(level, textToCoach, userName, coachingCareerContext, userTier, resumeData, isJobSpecific, jobDescription, jobTitle, jobCompany, lensName)
 
     const userMessages = conversation
       .filter(msg => msg.role !== 'system')
