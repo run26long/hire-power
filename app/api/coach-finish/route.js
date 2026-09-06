@@ -2552,6 +2552,11 @@ A suggested lens is an ADDITIONAL professional direction the candidate could cre
 - Return an empty array when the conversation shows no strong additional direction. An empty array is the correct answer more often than not.
 - Maximum 3.
 
+CURRENT LENS:
+current_lens_name names the direction the candidate said they are targeting in this
+session — the same direction reflected in target_roles. It is NOT an additional
+direction. Name it in the same style as a suggested lens name: one or two words.
+
 Return this exact structure:
 {
   "current_role": "their most recent job title or null",
@@ -2563,6 +2568,7 @@ Return this exact structure:
   "skills_not_on_resume": ["skills mentioned but not part of formal experience"],
   "timeline": "actively_searching or passively_looking or not_searching or null",
   "experience_level": "entry or mid or senior",
+  "current_lens_name": "one or two word name for the professional direction this resume targets, following the same naming style as suggested_lenses names (e.g. 'Production', 'Business Development')",
   "suggested_lenses": [{ "name": "short lens name e.g. 'Performance', 'Teaching'", "evidence_summary": "one sentence on what in their background supports this direction" }]
 }`
 }
@@ -2673,6 +2679,16 @@ async function saveSuggestedLenses(supabaseWrite, { userId, profileId, coreResum
   }
 }
 
+// True when a write failed only because the named column does not exist yet.
+// PostgREST reports an unknown key in the payload as PGRST204; Postgres itself
+// uses 42703. The column name is matched too, so an unrelated schema problem is
+// never silently retried away.
+function isMissingColumnError(error, column) {
+  if (!error) return false
+  const text = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`
+  return (error.code === 'PGRST204' || error.code === '42703') && text.includes(column)
+}
+
 // Returns true when career_context was written, so a caller can skip its own
 // experience_level fallback rather than overwrite the value extracted here.
 async function persistCareerContext({ userId, rawText, displayName, resumeId, setCompletedAt }) {
@@ -2692,16 +2708,30 @@ async function persistCareerContext({ userId, rawText, displayName, resumeId, se
     const { createClient } = await import('@supabase/supabase-js')
     const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-    const { error: contextError } = await supabaseWrite
+    const contextRow = {
+      user_id: userId,
+      ...contextFields,
+      // completed_at is the "finished Career Coach" flag read by
+      // /api/resume-coach/data. Only the path that has always set it does.
+      ...(setCompletedAt ? { completed_at: new Date().toISOString() } : {}),
+      last_updated: new Date().toISOString()
+    }
+
+    let { error: contextError } = await supabaseWrite
       .from('career_context')
-      .upsert({
-        user_id: userId,
-        ...contextFields,
-        // completed_at is the "finished Career Coach" flag read by
-        // /api/resume-coach/data. Only the path that has always set it does.
-        ...(setCompletedAt ? { completed_at: new Date().toISOString() } : {}),
-        last_updated: new Date().toISOString()
-      }, { onConflict: 'user_id' })
+      .upsert(contextRow, { onConflict: 'user_id' })
+
+    // current_lens_name is newer than the table. Until the column exists the
+    // unknown key fails the whole payload, so the write is retried without it
+    // rather than lost. Once the column is added the first attempt succeeds and
+    // this branch stops running, with no code change.
+    if (isMissingColumnError(contextError, 'current_lens_name')) {
+      console.warn('career_context.current_lens_name is missing — writing career context without it')
+      const { current_lens_name: _unsupported, ...withoutLensName } = contextRow
+      ;({ error: contextError } = await supabaseWrite
+        .from('career_context')
+        .upsert(withoutLensName, { onConflict: 'user_id' }))
+    }
 
     if (contextError) {
       console.error('Career context write failed (non-fatal):', contextError)
