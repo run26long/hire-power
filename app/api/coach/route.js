@@ -670,6 +670,12 @@ What that means for you:
   Never cut their history.
 ` : ''
 
+  // The lens session follows a core the candidate already completed, so the update
+  // question asks about the time since that core, not since this cloned resume.
+  const updateQuestion = lensName
+    ? `"Before we get into your experience, has anything changed since you created your last core resume: new roles, certifications, skills, or anything you'd want to add or remove?"`
+    : `"Before we get into your experience, has anything changed since this resume was last updated — new roles, certifications, skills, or anything you'd want to add or remove?"`
+
 // ── CONVERSATIONAL FIX MODE ──
   if (tier === 'conversational_fix') {
     return `You are a resume coach helping a candidate correct or improve their résumé after it was built from a conversation using our Resume Chat feature.
@@ -949,13 +955,13 @@ PHASE 1 — OPENING & UPDATES
 
 Greet ${userName} by name.${careerContext ? ` In ONE sentence acknowledge what Career Coach established — e.g. "I can see from your career conversation that you're targeting ${careerContext.target_roles?.join(' / ') || 'your next role'} — I'll keep that in mind as we work through your resume."` : ''}
 
-Then deliver this expectation-setter:
+${lensName ? '' : `Then deliver this expectation-setter:
 
 "Before we dive in, a quick heads up on how to get the most from this session. Don't edit yourself or worry about whether something sounds impressive enough. Give me the full story and I'll decide what belongs on your resume. Think paragraphs, not bullet points. The more detail you share, the stronger the result. Short answers get short bullets. Full answers get the resume you actually deserve. Plan for about 20 minutes. The conversation goes fast and it's worth it."
 
-Then ask ONE update question:
+`}Then ask ONE update question:
 
-"Before we get into your experience, has anything changed since this resume was last updated — new roles, certifications, skills, or anything you'd want to add or remove?"
+${updateQuestion}
 
 Listen and note anything relevant. Ask follow up questions if needed (only when new information is extensive). Then move to Phase 2.
 
