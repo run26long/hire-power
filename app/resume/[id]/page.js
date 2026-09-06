@@ -2055,8 +2055,8 @@ if (data.ai_analysis) {
             {resume?.created_via === 'resume_chat' && !resumeData?.fullName && (
               <div className="flex flex-col items-center justify-center h-full min-h-[300px] px-8 text-center">
                 <div className="text-4xl mb-4">💬</div>
-                <p className="text-sm font-semibold text-gray-700 mb-1">Your résumé will appear here</p>
-                <p className="text-xs text-gray-500 leading-snug">Finish your conversation with Coach, then click the build button to see your résumé.</p>
+                <p className="text-sm font-semibold text-gray-700 mb-1">Your resume will appear here</p>
+                <p className="text-xs text-gray-500 leading-snug">Finish your conversation with Coach, then click the build button to see your resume.</p>
               </div>
             )}
             <div
@@ -2124,6 +2124,7 @@ if (data.ai_analysis) {
               setScoreBeforeCoaching={setScoreBeforeCoaching}
               scoreAfterCoaching={scoreAfterCoaching}
               resume={resume}
+              setAnalysisResults={setAnalysisResults}
               setPostCoachingAnalysis={setPostCoachingAnalysis}
               setRemainingGaps={setRemainingGaps}
           remainingGaps={remainingGaps}
@@ -2382,7 +2383,7 @@ if (data.ai_analysis) {
 }
 
 // Right Panel Component
-function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
+function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, filteredAnalysisResults, userTier, resumeName, userName, userProfile, supabase, params, setResume, handleReassess, isAnalyzing, detectedLevel, resumeData, careerContext, rewrittenResume, setRewrittenResume, resumeChanges, setResumeChanges, coachingMessages, setCoachingMessages, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, resume, showUpgradeModal, setShowUpgradeModal, setPostCoachingAnalysis, setRemainingGaps, remainingGaps, recoachAttempts, setRecoachAttempts, handleDownload, isDownloading, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, setReviseModalState, bulletSelectMode, setBulletSelectMode, knowledgeMatches }) {
   const isJobSpecific = resume?.resume_type === 'job_specific'
   const jobAnalysis = analysisResults?.analysis || analysisResults || {}
   const matchedCount = jobAnalysis.matchedCount ?? jobAnalysis.matchedKeywords?.length ?? 0
@@ -3015,6 +3016,7 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           setShowUpgradeModal={setShowUpgradeModal}
           scoreBeforeCoaching={scoreBeforeCoaching}
           setScoreBeforeCoaching={setScoreBeforeCoaching}
+          setAnalysisResults={setAnalysisResults}
           setPostCoachingAnalysis={setPostCoachingAnalysis}
           setRemainingGaps={setRemainingGaps}
           changesAccepted={resume?.changes_accepted || false}
@@ -3225,7 +3227,7 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
 // ─────────────────────────────────────────────
 // COACH STEP
 // ─────────────────────────────────────────────
-function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, filteredAnalysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, knowledgeMatches }) {
+function CoachStep({ resume, resumeData, careerContext, setAnalysisResults, detectedLevel, userName, userProfile, supabase, params, setResume, coachingMessages, setCoachingMessages, setRewrittenResume, setResumeChanges, userTier: userTierProp, isJobSpecific, jobDescription, jobTitle, jobCompany, analysisResults, filteredAnalysisResults, showUpgradeModal, setShowUpgradeModal, scoreBeforeCoaching, setScoreBeforeCoaching, setPostCoachingAnalysis, setRemainingGaps, coachingComplete, remainingGaps, changesAccepted, score, isConversational, resetHistory, captureCounts, setCaptureCounts, setCaptureBumpKey, setCaptureToast, knowledgeMatches }) {
   const [sending, setSending] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
   const [errorToast, setErrorToast] = useState(null)
@@ -3363,7 +3365,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({
-          conversation: [{ role: 'user', content: "Hi! I'm ready to build my résumé." }],
+          conversation: [{ role: 'user', content: "Hi! I'm ready to build my resume." }],
           displayName: userName
         })
       })
@@ -3487,8 +3489,8 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
       }).eq('id', params.id)
 
       if (saveError) {
-        console.error('Error saving rewritten résumé:', saveError)
-        setErrorToast("We built your résumé but couldn't save it. Please try the build button again.")
+        console.error('Error saving rewritten resume:', saveError)
+        setErrorToast("We built your resume but couldn't save it. Please try the build button again.")
         setIsFinishing(false)
         return
       }
@@ -3504,7 +3506,7 @@ function CoachStep({ resume, resumeData, careerContext, detectedLevel, userName,
 
     } catch (err) {
       console.error('Error finishing resume chat:', err)
-      setErrorToast('Something went wrong building your résumé. Please try again.')
+      setErrorToast('Something went wrong building your resume. Please try again.')
     } finally {
       setIsFinishing(false)
     }
@@ -3822,6 +3824,19 @@ const getMessageText = (msg) => {
       setRewrittenResume(finalResume)
       setResumeChanges(finalChanges)
 
+      // A lens core never passes through Assess, so this score check is the only
+      // analysis it ever gets. It is persisted the way the brb build persists its
+      // own, because both land on the same Improve step and that step reads the
+      // breakdown out of ai_analysis.
+      const isLensCore = resume?.created_via === 'lens_core'
+      const lensAnalysisFields = isLensCore
+        ? {
+            ai_analysis: scoreCheckData?.analysis || null,
+            score_breakdown: scoreCheckData?.analysis?.breakdown || null,
+            last_assessed_at: new Date().toISOString()
+          }
+        : {}
+
       const { error: saveError } = await supabase
         .from('resumes')
         .update({
@@ -3832,6 +3847,7 @@ const getMessageText = (msg) => {
           coaching_complete: true,
           remaining_gaps: gaps,
           ...(displayScore !== null ? { current_score: displayScore } : {}),
+          ...lensAnalysisFields,
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
@@ -3844,6 +3860,11 @@ const getMessageText = (msg) => {
       }
 
       setResume(prev => ({ ...prev, journey_step: 'improve', resume_data: finalResume, coaching_complete: true, ...(displayScore !== null ? { current_score: displayScore } : {}) }))
+      // Without this the breakdown panel on the next step would read a null analysis
+      // and show every category as zero until the page was reloaded.
+      if (isLensCore && scoreCheckData?.analysis) {
+        setAnalysisResults({ analysis: scoreCheckData.analysis })
+      }
       if (isJobSpecific) fireT4IfFirst(supabase)
       fireO4MarkerIfFirst(supabase)
 
@@ -3968,7 +3989,7 @@ const getMessageText = (msg) => {
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', minWidth: '180px' }}
               >
                 {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent flex-shrink-0"></div>}
-                {isFinishing ? 'Building your résumé...' : '✨ Build My Resume →'}
+                {isFinishing ? 'Building your resume...' : '✨ Build My Resume →'}
               </button>
             </div>
           )}
@@ -4200,7 +4221,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
               <div>
                 <p className="font-bold text-white text-base md:text-sm">Looking good!</p>
-                <p className="text-purple-100 text-sm md:text-xs">Your résumé is ready to format and download.</p>
+                <p className="text-purple-100 text-sm md:text-xs">Your resume is ready to format and download.</p>
               </div>
             </div>
             {score && (
@@ -4329,7 +4350,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             <div className="px-4 py-2 flex items-center gap-2" style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)' }}>
               <img src="/images/Hire_Power_icon.png" alt="Hire Power" className="h-6 w-auto flex-shrink-0" />
               <div>
-                <p className="font-bold text-white text-sm">Your Résumé is Ready!</p>
+                <p className="font-bold text-white text-sm">Your Resume is Ready!</p>
                 
               </div>
             </div>
@@ -4429,7 +4450,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
           <ul className="space-y-1.5 text-sm md:text-xs text-gray-600 list-disc list-inside leading-snug">
             <li>Click any section to edit text directly</li>
             <li>Tap the lightning bolt to reword or fix any sentence</li>
-            <li>Use "More to add?" below to add anything you left out</li>
+            <li>Use "More to add?" to add anything you left out</li>
             <li>Use arrows to reorder content and trash to remove what you don't need</li>
           </ul>
           <div className="flex justify-center gap-2 pt-1 flex-wrap">
@@ -5249,7 +5270,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
           detectedLevel,
           displayName: userName,
           tier: isConversationalFix ? 'conversational_fix' : 'targeted',
-          conversation: [{ role: 'user', content: isConversationalFix ? "I'd like to review my résumé." : "I have more information to share." }]
+          conversation: [{ role: 'user', content: isConversationalFix ? "I'd like to review my resume." : "I have more information to share." }]
         })
       })
       const data = await response.json()
@@ -5348,7 +5369,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
 
       if (saveError) {
         console.error('Error saving targeted recoach result:', saveError)
-        setErrorToast("We rewrote your résumé but couldn't save it. Please try the update button again.")
+        setErrorToast("We rewrote your resume but couldn't save it. Please try the update button again.")
         setIsFinishing(false)
         return
       }
@@ -5477,7 +5498,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               {isFinishing && <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>}
-              {isFinishing ? 'Updating your resume...' : isConversationalFix ? '✨ Update My Résumé →' : '✨ Update My Resume →'}
+              {isFinishing ? 'Updating your resume...' : isConversationalFix ? '✨ Update My Resume →' : '✨ Update My Resume →'}
             </button>
           )}
         </div>
