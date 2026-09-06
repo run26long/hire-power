@@ -66,6 +66,21 @@ function flattenSkills(resumeData) {
   return flat
 }
 
+// A display cap only. The generation prompt asks for four sentences; anything
+// written before that tightened still needs to fit the column without burying
+// the sections under it. Cuts on a sentence, never mid thought, and returns
+// null when there is no sentence break to cut on so nothing is ever mangled.
+const BIO_COLLAPSE_AT = 600
+
+function truncateAtSentence(text, limit) {
+  const full = String(text || '')
+  if (full.length <= limit) return null
+  const window = full.slice(0, limit)
+  const cut = Math.max(window.lastIndexOf('.'), window.lastIndexOf('!'), window.lastIndexOf('?'))
+  if (cut === -1) return null
+  return full.slice(0, cut + 1)
+}
+
 const PAGE_CSS = `
 .cp-root {
   --cp-bg: #0c0a14;
@@ -171,6 +186,7 @@ export default function CareerProfilePage() {
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState(null)
   const [trackShift, setTrackShift] = useState(0)
+  const [bioExpanded, setBioExpanded] = useState(false)
 
   const dragRef = useRef({ startX: null, dragging: false })
   const viewportRef = useRef(null)
@@ -223,6 +239,7 @@ export default function CareerProfilePage() {
     setFading(true)
     const timer = setTimeout(() => {
       setContentIndex(activeIndex)
+      setBioExpanded(false)
       setFading(false)
     }, CROSSFADE_MS)
     return () => clearTimeout(timer)
@@ -283,6 +300,10 @@ export default function CareerProfilePage() {
   const lensResume = data?.lensResumes?.[selectedLens?.core_resume_id] || null
   const activeResume = lensResume || data?.coreResume || null
   const skills = useMemo(() => flattenSkills(activeResume?.resume_data), [activeResume])
+
+  const fullBio = selectedLens?.bio || ''
+  const collapsedBio = useMemo(() => truncateAtSentence(fullBio, BIO_COLLAPSE_AT), [fullBio])
+  const bioToShow = collapsedBio && !bioExpanded ? collapsedBio : fullBio
 
   const imowText = data?.profile?.imow_text || null
 
@@ -350,7 +371,7 @@ export default function CareerProfilePage() {
       <header className="w-full border-b" style={{ borderColor: 'var(--cp-border)' }}>
         <div className="mx-auto flex max-w-[1100px] items-center justify-between px-5 py-[14px] md:px-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/hp-logo-white.png" alt="Hire Power" style={{ height: '30px', width: 'auto' }} />
+          <img src="/images/hp-logo-white.png" alt="Hire Power" style={{ height: '40px', width: 'auto' }} />
           <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
         </div>
       </header>
@@ -496,15 +517,24 @@ export default function CareerProfilePage() {
               {/* Deliberately larger than every other section label, so the
                   written bio reads as the primary voice and the quote beside it
                   as the aside. */}
-              <div style={{ ...sectionLabel, fontSize: '15px', marginBottom: '14px' }}>Bio</div>
+              <div style={{ ...sectionLabel, fontSize: '18px', marginBottom: '14px' }}>Bio</div>
 
               {selectedLens?.bio ? (
                 <div className="space-y-4">
-                  {String(selectedLens.bio).split(/\n\s*\n/).filter(Boolean).map((paragraph, index) => (
+                  {bioToShow.split(/\n\s*\n/).filter(Boolean).map((paragraph, index) => (
                     <p key={index} style={{ fontSize: '13px', lineHeight: 1.85, color: 'var(--cp-text-secondary)' }}>
                       {paragraph}
                     </p>
                   ))}
+                  {collapsedBio && (
+                    <button
+                      type="button"
+                      onClick={() => setBioExpanded(value => !value)}
+                      style={{ fontSize: '11px', fontWeight: 500, color: 'var(--cp-accent-light)', letterSpacing: '0.4px' }}
+                    >
+                      {bioExpanded ? 'Read less' : 'Read more'}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div>
