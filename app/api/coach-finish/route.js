@@ -3496,20 +3496,14 @@ export async function POST(request) {
               jobTitle: null,
               jobCompany: null
             })
-          }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
-        )
-      }
-
-      // ── BACKGROUND: lens evaluation (brb/conversational path) ──
-      // Reads the whole knowledge base rather than this conversation, so a direction has
-      // to hold up across everything on file. Runs alongside the extraction above, which
-      // means this session's facts land in the next evaluation, not this one.
-      if (authenticatedUserId) {
-        waitUntil(
-          evaluateLensesFromKnowledge({
-            userId: authenticatedUserId,
-            displayName: convResume?.fullName
           })
+            // Chained rather than run alongside: the evaluation reads the knowledge
+            // base, so it has to wait for this session's facts to land in it first.
+            .then(() => evaluateLensesFromKnowledge({
+              userId: authenticatedUserId,
+              displayName: convResume?.fullName
+            }))
+            .catch(e => console.error('[career-knowledge] Background extraction or lens evaluation failed (non-fatal):', e))
         )
       }
 
@@ -3619,20 +3613,14 @@ export async function POST(request) {
               jobTitle: jobTitle || null,
               jobCompany: jobCompany || null
             })
-          }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
-        )
-      }
-
-      // ── BACKGROUND: lens evaluation (job-specific path) ──
-      // Reads the whole knowledge base rather than this conversation, so a direction has
-      // to hold up across everything on file. Runs alongside the extraction above, which
-      // means this session's facts land in the next evaluation, not this one.
-      if (authenticatedUserId) {
-        waitUntil(
-          evaluateLensesFromKnowledge({
-            userId: authenticatedUserId,
-            displayName: resumeData?.fullName
           })
+            // Chained rather than run alongside: the evaluation reads the knowledge
+            // base, so it has to wait for this session's facts to land in it first.
+            .then(() => evaluateLensesFromKnowledge({
+              userId: authenticatedUserId,
+              displayName: resumeData?.fullName
+            }))
+            .catch(e => console.error('[career-knowledge] Background extraction or lens evaluation failed (non-fatal):', e))
         )
       }
 
@@ -3810,20 +3798,15 @@ export async function POST(request) {
             jobTitle: null,
             jobCompany: null
           })
-        }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
-      )
-    }
-
-    // ── BACKGROUND: lens evaluation (core resume path) ──
-    // Reads the whole knowledge base rather than this conversation, so a direction has
-    // to hold up across everything on file. Runs alongside the extraction above, which
-    // means this session's facts land in the next evaluation, not this one.
-    if (authenticatedUserId && !isLensCore) {
-      waitUntil(
-        evaluateLensesFromKnowledge({
-          userId: authenticatedUserId,
-          displayName: resumeData?.fullName
         })
+          // Chained rather than run alongside: the evaluation reads the knowledge
+          // base, so it has to wait for this session's facts to land in it first.
+          // A lens core still evaluates nothing, so it only gets the extraction.
+          .then(() => isLensCore ? null : evaluateLensesFromKnowledge({
+            userId: authenticatedUserId,
+            displayName: resumeData?.fullName
+          }))
+          .catch(e => console.error('[career-knowledge] Background extraction or lens evaluation failed (non-fatal):', e))
       )
     }
 
