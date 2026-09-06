@@ -78,7 +78,7 @@ export async function GET(request, { params }) {
         .from('profile_lenses')
         .select(LENS_FULL)
         .eq('profile_id', profile.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'suggested'])
         .order('sort_order', { ascending: true }),
       supabase
         .from('profiles')
@@ -95,7 +95,7 @@ export async function GET(request, { params }) {
       // that predates the column, which would empty the page.
       supabase
         .from('resumes')
-        .select('id, display_name, resume_data')
+        .select('id, display_name, resume_data, current_score')
         .eq('user_id', profile.user_id)
         .eq('resume_type', 'core')
         .eq('is_active', true)
@@ -111,7 +111,7 @@ export async function GET(request, { params }) {
         .from('profile_lenses')
         .select(LENS_BASE)
         .eq('profile_id', profile.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'suggested'])
         .order('sort_order', { ascending: true })
       lenses = baseLenses
     } else if (lensRes.error) {
@@ -119,11 +119,11 @@ export async function GET(request, { params }) {
       return Response.json({ error: 'PROFILE_LOAD_FAILED' }, { status: 500 })
     }
 
-    const activeLenses = lenses || []
+    const visibleLenses = lenses || []
 
     // ---- LENS RESUMES ----
     // One query for all of them rather than one per lens.
-    const lensResumeIds = [...new Set(activeLenses.map(l => l.core_resume_id).filter(Boolean))]
+    const lensResumeIds = [...new Set(visibleLenses.map(l => l.core_resume_id).filter(Boolean))]
     let lensResumes = {}
     if (lensResumeIds.length > 0) {
       const { data: rows, error: lensResumeError } = await supabase
@@ -144,6 +144,17 @@ export async function GET(request, { params }) {
 
     const coreResume = (coreRes.data || [])[0] || null
 
+    // A profile with no lenses is still a profile. The priority core stands in
+    // as the default view so the page has a name, a line about the person, and a
+    // score rather than rendering empty.
+    const fallback = visibleLenses.length === 0 && coreResume
+      ? {
+          name: coreResume.display_name || null,
+          headline: coreResume.resume_data?.summary || null,
+          score: coreResume.current_score ?? null
+        }
+      : null
+
     return Response.json({
       isOwner,
       profile: {
@@ -161,7 +172,8 @@ export async function GET(request, { params }) {
         target_roles: contextRes.data?.target_roles || [],
         current_lens_name: contextRes.data?.current_lens_name || null
       },
-      lenses: activeLenses,
+      lenses: visibleLenses,
+      fallback,
       coreResume,
       lensResumes
     })
