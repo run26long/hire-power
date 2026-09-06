@@ -1545,7 +1545,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'md:h-[432px]' : 'md:h-[540px]'}`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'md:h-[440px]' : 'md:h-[540px]'}`}>
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">{hasLensCard && data.currentLensName ? `${data.currentLensName} Core Resume` : 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
@@ -1580,7 +1580,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
 
                     {/* Thumbnail LEFT | Score RIGHT */}
-                    <div className={`grid grid-cols-12 gap-4 ${hasLensCard ? 'mb-2' : 'mb-4'}`}>
+                    <div className={`grid grid-cols-12 gap-4 ${hasLensCard ? 'mb-1' : 'mb-4'}`}>
                       
                       {/* Left: Thumbnail (35%) — desktop only */}
                       <div className={`hidden md:block ${hasLensCard ? 'md:col-span-3' : 'md:col-span-4'}`}>
@@ -1591,7 +1591,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           >
                             <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200" style={{ aspectRatio: '8.5/11' }}>
                               {data.coreResume.resume_data ? (
-                                <div style={{ transform: hasLensCard ? 'scale(0.165)' : 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: 0 }}>
+                                <div style={{ transform: hasLensCard ? 'scale(0.165)' : 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: hasLensCard ? '50%' : 0, marginLeft: hasLensCard ? '-67.32px' : undefined }}>
                                   <ResumeContent
                                     resumeData={data.coreResume.resume_data}
                                     onUpdate={() => {}}
@@ -1913,7 +1913,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       432 + 16 (mt-4) + 92 = 540, so the left column keeps the height
                       it has without this card. */}
                   {hasLensCard && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[92px] mt-4">
+                    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[92px] ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
                       <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1, suggestionCount: suggestedLenses.length })}</p>
                       <div className="flex gap-2">
 
