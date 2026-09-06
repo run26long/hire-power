@@ -16,7 +16,8 @@ const PROOF_POINT_COUNT = 3
 // points, a forward-looking line, and target tags. Everything is written from
 // the user's knowledge base and resume, never invented.
 //
-// Pro only. Request body: { lensId: string }
+// Pro, or a free account with only its one entitled direction.
+// Request body: { lensId: string }
 // ============================================================================
 
 // The resume reaches the prompt as text rather than JSON so the model reads it
@@ -238,8 +239,23 @@ export async function POST(request) {
       console.error('[career-profile] Profile lookup failed:', profileError)
       return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
     }
+    // A free account is entitled to one direction, so it can generate a profile
+    // for that one. The moment there is more than one, choosing between them is
+    // the Pro feature, and generating for any of them is gated.
     if (profile?.subscription_tier !== 'pro') {
-      return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+      const { count, error: lensCountError } = await supabase
+        .from('profile_lenses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .in('status', ['active', 'suggested'])
+
+      if (lensCountError) {
+        console.error('[career-profile] Lens count failed:', lensCountError)
+        return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
+      }
+      if ((count || 0) > 1) {
+        return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+      }
     }
 
     // ---- THE LENS ----
