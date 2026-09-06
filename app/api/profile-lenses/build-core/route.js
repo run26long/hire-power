@@ -90,7 +90,7 @@ export async function POST(request) {
       .insert({
         user_id: userId,
         resume_type: 'core',
-        display_name: lens.name,
+        display_name: `${lens.name} Core Resume`,
         resume_data: source.resume_data,
         template_id: source.template_id,
         font_family: source.font_family,

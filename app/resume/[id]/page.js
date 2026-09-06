@@ -134,6 +134,7 @@ export default function ResumePage() {
   const [userProfile, setUserProfile] = useState(null)
   const [siblingResumes, setSiblingResumes] = useState([])
   const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
+  const [coreResumes, setCoreResumes] = useState([])
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -1110,13 +1111,28 @@ if (data.ai_analysis) {
     }
   }
 
-  // Breadcrumb dropdown targets: the user's other job-specific resumes, and
-  // this job's cover letter if one was written. Core resumes have neither, so
-  // they skip the queries entirely and keep their two static crumbs.
+  // Breadcrumb dropdown targets. A job-specific resume points at the user's other
+  // job-specific resumes and at this job's cover letter. A core resume points at
+  // the user's other cores, so a lens core and the one it was cloned from can
+  // switch between each other without a trip back to the hub.
   async function loadBreadcrumbLinks(resumeRow, userId) {
-    if (resumeRow?.resume_type !== 'job_specific') return
-
     try {
+      if (resumeRow?.resume_type === 'core') {
+        const { data: cores } = await supabase
+          .from('resumes')
+          .select('id, display_name')
+          .eq('user_id', userId)
+          .eq('resume_type', 'core')
+          .eq('is_active', true)
+          .order('is_priority_core', { ascending: false })
+          .order('created_at', { ascending: true })
+
+        setCoreResumes(cores || [])
+        return
+      }
+
+      if (resumeRow?.resume_type !== 'job_specific') return
+
       const [{ data: versions }, { data: coverLetters }] = await Promise.all([
         supabase
           .from('resumes')
@@ -1354,7 +1370,19 @@ if (data.ai_analysis) {
               ]
             : [
                 { label: 'Resume Coach', path: '/resume-coach' },
-                { label: resume.display_name || 'Core Resume' }
+                {
+                  label: resume.display_name || 'Core Resume',
+                  // One core is the ordinary case and stays a plain label. The menu
+                  // lists every core including this one, checked, so the user can see
+                  // which of them they are looking at.
+                  options: coreResumes.length > 1
+                    ? coreResumes.map(r => ({
+                        label: r.display_name || 'Core Resume',
+                        path: `/resume/${r.id}`,
+                        current: r.id === resume.id
+                      }))
+                    : []
+                }
               ]
         } />
       </div>

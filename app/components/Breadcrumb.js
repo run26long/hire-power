@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// items: [{ label, path?, options?: [{ label, path }] }]
+// items: [{ label, path?, options?: [{ label, path, current? }] }]
 // An item with options renders a ▾ toggle that opens a dropdown of sibling
-// destinations. Callers filter the current page out of its own options.
+// destinations. Callers either leave the current page out of its own options
+// or mark it with current: true, which shows it checked and unclickable.
 export default function Breadcrumb({ items }) {
   const router = useRouter();
   const [openIndex, setOpenIndex] = useState(null);
@@ -42,6 +43,9 @@ export default function Breadcrumb({ items }) {
         {items.map((item, index) => {
           const options = Array.isArray(item.options) ? item.options : [];
           const hasDropdown = options.length > 0;
+          // Only a menu that flags its current entry gets the check column. Menus
+          // that do not (job-specific resumes, cover letters) render as before.
+          const marksCurrent = options.some((option) => option.current);
           // The last crumb is the page you are on, so it keeps the purple pill.
           const isCurrent = index === items.length - 1;
           const isOpen = openIndex === index;
@@ -112,11 +116,21 @@ export default function Breadcrumb({ items }) {
                           type="button"
                           onClick={() => {
                             setOpenIndex(null);
-                            router.push(option.path);
+                            // The current entry is in the list so it can be seen, not
+                            // so it can be navigated to.
+                            if (!option.current) router.push(option.path);
                           }}
-                          className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-purple-600 truncate"
+                          aria-current={option.current ? 'page' : undefined}
+                          className={
+                            marksCurrent
+                              ? `flex w-full items-center gap-1.5 text-left px-3 py-1.5 text-xs ${option.current ? 'text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-50 hover:text-purple-600'}`
+                              : "block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-purple-600 truncate"
+                          }
                         >
-                          {option.label}
+                          {marksCurrent && (
+                            <span aria-hidden="true" className={option.current ? 'text-purple-600' : 'invisible'}>✓</span>
+                          )}
+                          {marksCurrent ? <span className="truncate">{option.label}</span> : option.label}
                         </button>
                       ))}
                     </div>
