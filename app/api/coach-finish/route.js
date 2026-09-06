@@ -2551,11 +2551,17 @@ A suggested lens is an ADDITIONAL professional direction the candidate could cre
 - Do NOT invent a direction from thin evidence. One passing mention is not a lens. A body of experience is.
 - Return an empty array when the conversation shows no strong additional direction. An empty array is the correct answer more often than not.
 - Maximum 3.
+- Name each lens at the level of a career direction, not a specific craft or task. Prefer the broader professional frame when the evidence supports it: 'Performance' rather than 'Choreography' if the evidence shows performing that includes choreography; 'Operations' rather than 'Scheduling'. Use a narrow name only when the evidence is genuinely confined to that specialty.
 
 CURRENT LENS:
 current_lens_name names the direction the candidate said they are targeting in this
 session — the same direction reflected in target_roles. It is NOT an additional
 direction. Name it in the same style as a suggested lens name: one or two words.
+Name it at the level of a career direction, not a specific craft or task. Prefer the
+broader professional frame when the evidence supports it: 'Performance' rather than
+'Choreography' if the evidence shows performing that includes choreography;
+'Operations' rather than 'Scheduling'. Use a narrow name only when the evidence is
+genuinely confined to that specialty.
 
 Return this exact structure:
 {
