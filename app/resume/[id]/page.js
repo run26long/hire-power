@@ -4449,7 +4449,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
             <h3 className="font-semibold text-lg text-gray-900">Your Resume is Ready!</h3>
             <p className="text-sm md:text-xs text-gray-600 mt-1 leading-snug">You talked. Coach listened. Here's what came out of it. A few quick edits and it's all yours.</p>
           </div>
-          <ul className="space-y-1.5 text-sm md:text-xs text-gray-600 list-disc pl-5 leading-snug">
+          <ul className="space-y-1.5 text-sm md:text-xs text-gray-600 list-disc pl-4 leading-snug">
             <li>Click any section to edit text directly</li>
             <li>Tap the lightning bolt to reword or fix any sentence</li>
             <li>Use "More to add?" to add anything you left out</li>
