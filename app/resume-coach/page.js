@@ -1569,7 +1569,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
 
                     {/* Thumbnail LEFT | Score RIGHT */}
-                    <div className="grid grid-cols-12 gap-4 mb-4">
+                    <div className={`grid grid-cols-12 gap-4 ${hasLensCard ? 'mb-2' : 'mb-4'}`}>
                       
                       {/* Left: Thumbnail (35%) — desktop only */}
                       <div className={`hidden md:block ${hasLensCard ? 'md:col-span-3' : 'md:col-span-4'}`}>
@@ -1682,7 +1682,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <div data-tour="score" className={`col-span-12 flex flex-col justify-between ${hasLensCard ? 'md:col-span-9 py-1' : 'md:col-span-8 py-3'}`}>
                         {/* Giant Score */}
                         <div className="text-center">
-                          <div className="mb-3">
+                          <div className={hasLensCard ? 'mb-1' : 'mb-3'}>
                             {!showPlaceholder ? (
                               <>
                                 <span className={`${hasLensCard ? 'text-6xl' : 'text-7xl'} font-bold text-gray-900`}>{score}</span>
@@ -1695,13 +1695,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               </>
                             )}
                           </div>
-                          <div className="text-sm md:text-xs text-gray-500 uppercase tracking-wide mb-3">
+                          <div className={`text-sm md:text-xs text-gray-500 uppercase tracking-wide ${hasLensCard ? 'mb-1' : 'mb-3'}`}>
                             {!showPlaceholder ? 'Resume Power Score' : 'Not Yet Assessed'}
                           </div>
                           
                           {/* Score Bar - Improved */}
                           <div className="max-w-md mx-auto">
-                            <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-3 shadow-inner">
+                            <div className={`h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner ${hasLensCard ? 'mb-2' : 'mb-3'}`}>
                               <div 
                                 className="h-full transition-all duration-500"
                                 style={{ 
@@ -1730,8 +1730,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         
                    {/* Breakdown Grid - Bigger Text */}
                         <div className="grid grid-cols-3 gap-1.5">
-                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold mb-0.5">
+                          <div className={`text-center bg-gray-50 rounded-lg ${hasLensCard ? 'p-1' : 'p-1.5'}`}>
+                            <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
                                   <span className="text-gray-900">{data.coreResume.score_breakdown?.impact ?? '--'}</span>
@@ -1744,7 +1744,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </>
                               )}
                             </div>
-                           <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Impact</div>
+                            <div className={hasLensCard ? 'flex items-center justify-center gap-1.5' : ''}>
+                           <div className={`text-xs md:text-[10px] text-gray-600 uppercase tracking-wide ${hasLensCard ? '' : 'mb-0.5'}`}>Impact</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).color }}></span>
@@ -1757,10 +1758,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <span className="text-xs md:text-[10px] text-gray-400">—</span>
                               </div>
                             )}
+                            </div>
                           </div>
                           
-                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold mb-0.5">
+                          <div className={`text-center bg-gray-50 rounded-lg ${hasLensCard ? 'p-1' : 'p-1.5'}`}>
+                            <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
                                   <span className="text-gray-900">{data.coreResume.score_breakdown?.clarity ?? '--'}</span>
@@ -1773,7 +1775,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </>
                               )}
                             </div>
-                            <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Clarity</div>
+                            <div className={hasLensCard ? 'flex items-center justify-center gap-1.5' : ''}>
+                            <div className={`text-xs md:text-[10px] text-gray-600 uppercase tracking-wide ${hasLensCard ? '' : 'mb-0.5'}`}>Clarity</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).color }}></span>
@@ -1786,10 +1789,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <span className="text-xs md:text-[10px] text-gray-400">—</span>
                               </div>
                             )}
+                            </div>
                           </div>
                           
-                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold mb-0.5">
+                          <div className={`text-center bg-gray-50 rounded-lg ${hasLensCard ? 'p-1' : 'p-1.5'}`}>
+                            <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
                                   <span className="text-gray-900">{data.coreResume.score_breakdown?.keywords ?? '--'}</span>
@@ -1802,7 +1806,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </>
                               )}
                             </div>
-                            <div className="text-xs md:text-[10px] text-gray-600 uppercase tracking-wide mb-0.5">Keywords</div>
+                            <div className={hasLensCard ? 'flex items-center justify-center gap-1.5' : ''}>
+                            <div className={`text-xs md:text-[10px] text-gray-600 uppercase tracking-wide ${hasLensCard ? '' : 'mb-0.5'}`}>Keywords</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).color }}></span>
@@ -1815,13 +1820,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <span className="text-xs md:text-[10px] text-gray-400">—</span>
                               </div>
                             )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                     {/* Progress Bar */}
-                    <div data-tour="progress" className="mb-4">
-                      <div className="text-sm md:text-xs font-semibold text-gray-400 uppercase tracking-wide text-center mb-2">Progress</div>
+                    <div data-tour="progress" className={hasLensCard ? 'mb-2' : 'mb-4'}>
+                      <div className={`text-sm md:text-xs font-semibold text-gray-400 uppercase tracking-wide text-center ${hasLensCard ? 'mb-1' : 'mb-2'}`}>Progress</div>
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200">
                           <div 
@@ -1862,7 +1868,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                     
                     {/* What This Means */}
-                    <div data-tour="progress-meaning" className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                    <div data-tour="progress-meaning" className={`bg-purple-50 border-l-4 border-purple-600 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${hasLensCard ? 'p-2' : 'p-3'}`}>
                       <div className="flex-1">
                        <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
                         <p className="text-sm md:text-xs text-gray-700 leading-snug">
