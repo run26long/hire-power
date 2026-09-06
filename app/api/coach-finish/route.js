@@ -2531,6 +2531,201 @@ async function saveExperienceLevel(userId, experienceLevel) {
 }
 
 // ─────────────────────────────────────────────
+// CAREER CONTEXT + SUGGESTED LENSES
+// Shared by both core coaching paths. Each path issues the model call itself so
+// it can overlap the other work it is already doing; the raw text comes back
+// here to be parsed, split and written, so the schema and the write rules live
+// in one place. Every failure is non-fatal — the resume is the product, and none
+// of this is worth losing it over.
+// ─────────────────────────────────────────────
+
+function buildCareerContextPrompt(convText) {
+  return `Extract career context from this coaching conversation. Respond with ONLY valid JSON, no markdown, no explanation.
+
+CONVERSATION:
+${convText}
+
+SUGGESTED LENSES:
+A suggested lens is an ADDITIONAL professional direction the candidate could credibly pursue, distinct from the direction they are already targeting.
+- Do NOT suggest a direction they already named as a target. Those belong in target_roles.
+- Do NOT invent a direction from thin evidence. One passing mention is not a lens. A body of experience is.
+- Return an empty array when the conversation shows no strong additional direction. An empty array is the correct answer more often than not.
+- Maximum 3.
+
+Return this exact structure:
+{
+  "current_role": "their most recent job title or null",
+  "target_roles": ["array of target job titles they mentioned"],
+  "career_goal": "same_field or career_change or exploring",
+  "is_career_changer": true or false,
+  "previous_field": "their previous field if career changer, otherwise null",
+  "transferable_skills": ["skills mentioned as transferable"],
+  "skills_not_on_resume": ["skills mentioned but not part of formal experience"],
+  "timeline": "actively_searching or passively_looking or not_searching or null",
+  "experience_level": "entry or mid or senior",
+  "suggested_lenses": [{ "name": "short lens name e.g. 'Performance', 'Teaching'", "evidence_summary": "one sentence on what in their background supports this direction" }]
+}`
+}
+
+function slugify(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+}
+
+// A lens needs a profile to hang off, and core coaching is the first thing that
+// ever needs one. The slug here is a placeholder the user renames later in the
+// profile builder, so an existing row is never renamed and never reused for a
+// different name.
+async function ensureCareerProfile(supabaseWrite, userId, displayName) {
+  const { data: existing } = await supabaseWrite
+    .from('career_profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (existing) return existing.id
+
+  const base = slugify(displayName) || `u-${String(userId).slice(0, 8)}`
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`
+    const { data: created, error } = await supabaseWrite
+      .from('career_profiles')
+      .insert({ user_id: userId, slug })
+      .select('id')
+      .single()
+
+    if (created) return created.id
+
+    // 23505 is a unique violation, and it means one of two things: the slug is
+    // taken by someone else, or a concurrent run already made this user's
+    // profile. Check for theirs before trying the next slug.
+    if (error?.code !== '23505') {
+      console.error('Career profile create failed (non-fatal):', error)
+      return null
+    }
+    const { data: raced } = await supabaseWrite
+      .from('career_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (raced) return raced.id
+  }
+
+  console.error('Career profile create failed (non-fatal): could not find a free slug')
+  return null
+}
+
+// Deduped by slug against every status, so a lens the user has already accepted
+// or dismissed is never re-suggested. A row the user owns is never touched: only
+// a row this extraction wrote gets its evidence refreshed, and only its evidence.
+async function saveSuggestedLenses(supabaseWrite, { userId, profileId, coreResumeId, lenses }) {
+  if (!profileId || !Array.isArray(lenses) || lenses.length === 0) return
+
+  for (const lens of lenses.slice(0, 3)) {
+    const name = typeof lens?.name === 'string' ? lens.name.trim() : ''
+    const slug = slugify(name)
+    if (!name || !slug) continue
+    const evidence = typeof lens?.evidence_summary === 'string' ? lens.evidence_summary.trim() : null
+
+    try {
+      const { data: existing } = await supabaseWrite
+        .from('profile_lenses')
+        .select('id, source')
+        .eq('profile_id', profileId)
+        .eq('slug', slug)
+        .maybeSingle()
+
+      if (existing) {
+        if (existing.source === 'coaching_extraction' && evidence) {
+          const { error: updateError } = await supabaseWrite
+            .from('profile_lenses')
+            .update({ evidence_summary: evidence, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+          if (updateError) console.error('Lens evidence update failed (non-fatal):', updateError)
+        }
+        continue
+      }
+
+      const { error: insertError } = await supabaseWrite
+        .from('profile_lenses')
+        .insert({
+          profile_id: profileId,
+          user_id: userId,
+          name,
+          slug,
+          evidence_summary: evidence,
+          status: 'suggested',
+          source: 'coaching_extraction',
+          core_resume_id: coreResumeId || null
+        })
+
+      // A concurrent run can take the slug between the check above and this
+      // insert. The row we wanted exists either way, so this is not a failure.
+      if (insertError && insertError.code !== '23505') {
+        console.error('Lens insert failed (non-fatal):', insertError)
+      }
+    } catch (e) {
+      console.error('Lens write failed (non-fatal):', e)
+    }
+  }
+}
+
+// Returns true when career_context was written, so a caller can skip its own
+// experience_level fallback rather than overwrite the value extracted here.
+async function persistCareerContext({ userId, rawText, displayName, resumeId, setCompletedAt }) {
+  if (!userId || !rawText) return false
+
+  try {
+    let json = String(rawText).trim()
+    if (json.startsWith('```')) {
+      json = json.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    }
+    const parsed = JSON.parse(json)
+
+    // career_context has no suggested_lenses column, and one unknown key fails
+    // the whole upsert, so the lenses are split off before the write.
+    const { suggested_lenses: suggestedLenses, ...contextFields } = parsed
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    const { error: contextError } = await supabaseWrite
+      .from('career_context')
+      .upsert({
+        user_id: userId,
+        ...contextFields,
+        // completed_at is the "finished Career Coach" flag read by
+        // /api/resume-coach/data. Only the path that has always set it does.
+        ...(setCompletedAt ? { completed_at: new Date().toISOString() } : {}),
+        last_updated: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+
+    if (contextError) {
+      console.error('Career context write failed (non-fatal):', contextError)
+      return false
+    }
+
+    if (Array.isArray(suggestedLenses) && suggestedLenses.length > 0) {
+      const profileId = await ensureCareerProfile(supabaseWrite, userId, displayName)
+      await saveSuggestedLenses(supabaseWrite, {
+        userId,
+        profileId,
+        coreResumeId: resumeId,
+        lenses: suggestedLenses
+      })
+    }
+
+    return true
+  } catch (e) {
+    console.error('Career context write failed (non-fatal):', e)
+    return false
+  }
+}
+
+// ─────────────────────────────────────────────
 // CORE RESUME BUILD PROMPT (used by both core and conversational paths)
 // ─────────────────────────────────────────────
 function buildCoreRewritePrompt({ resumeData, conversation, level, levelInstructions, careerContext, isConversational = false, knowledgeVoice }) {
@@ -3105,28 +3300,9 @@ export async function POST(request) {
         authenticatedUserId
           ? anthropic.messages.create({
               model: 'claude-sonnet-4-6',
-              max_tokens: 500,
+              max_tokens: 800,
               temperature: 0,
-              messages: [{
-                role: 'user',
-                content: `Extract career context from this Resume Chat conversation. Respond with ONLY valid JSON, no markdown, no explanation.
-
-CONVERSATION:
-${convText}
-
-Return this exact structure:
-{
-  "current_role": "their most recent job title or null",
-  "target_roles": ["array of target job titles they mentioned"],
-  "career_goal": "same_field or career_change or exploring",
-  "is_career_changer": true or false,
-  "previous_field": "their previous field if career changer, otherwise null",
-  "transferable_skills": ["skills mentioned as transferable"],
-  "skills_not_on_resume": ["skills mentioned but not part of formal experience"],
-  "timeline": "actively_searching or passively_looking or not_searching or null",
-  "experience_level": "entry or mid or senior"
-}`
-              }]
+              messages: [{ role: 'user', content: buildCareerContextPrompt(convText) }]
             })
           : Promise.resolve(null)
       ])
@@ -3135,26 +3311,13 @@ Return this exact structure:
 
       // ── WRITE CAREER CONTEXT BACK TO SUPABASE ──
       if (authenticatedUserId && careerContextExtractMsg) {
-        try {
-          let careerContextJson = careerContextExtractMsg.content[0].text.trim()
-          if (careerContextJson.startsWith('```')) {
-            careerContextJson = careerContextJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-          }
-          const extractedContext = JSON.parse(careerContextJson)
-
-          const { createClient } = await import('@supabase/supabase-js')
-          const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-          await supabaseWrite
-            .from('career_context')
-            .upsert({
-              user_id: authenticatedUserId,
-              ...extractedContext,
-              completed_at: new Date().toISOString(),
-              last_updated: new Date().toISOString()
-            }, { onConflict: 'user_id' })
-        } catch (e) {
-          console.error('Career context write failed (non-fatal):', e)
-        }
+        await persistCareerContext({
+          userId: authenticatedUserId,
+          rawText: careerContextExtractMsg.content[0].text,
+          displayName: convResume?.fullName,
+          resumeId,
+          setCompletedAt: true
+        })
       }
 
       // ── BACKGROUND: career knowledge extraction (BRB/conversational path) ──
@@ -3367,8 +3530,9 @@ Return this exact structure:
       jobCompany: null
     })
     const coreChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
+    const coreConvText = (conversation || []).map(m => typeof m.content === 'string' ? m.content : '').join(' ')
 
-    const [coreSummaryMessage, coreChangesMessage] = await Promise.all([
+    const [coreSummaryMessage, coreChangesMessage, coreContextMsg] = await Promise.all([
       anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 500,
@@ -3378,7 +3542,15 @@ Return this exact structure:
         model: 'claude-sonnet-4-6',
         max_tokens: 4000,
         messages: [{ role: 'user', content: coreChangesPrompt }]
-      })
+      }),
+      authenticatedUserId
+        ? anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 800,
+            temperature: 0,
+            messages: [{ role: 'user', content: buildCareerContextPrompt(coreConvText) }]
+          })
+        : Promise.resolve(null)
     ])
 
     rewrittenResume.summary = coreSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
@@ -3394,6 +3566,20 @@ Return this exact structure:
     } catch (e) {
       console.warn('Changes JSON truncated or malformed — continuing without change list')
       changes = []
+    }
+
+    // ── CAREER CONTEXT + SUGGESTED LENSES (core resume path) ──
+    // completed_at is deliberately not set: that column means the user finished
+    // Career Coach, and coaching a resume is not that.
+    let wroteCareerContext = false
+    if (authenticatedUserId && coreContextMsg) {
+      wroteCareerContext = await persistCareerContext({
+        userId: authenticatedUserId,
+        rawText: coreContextMsg.content[0].text,
+        displayName: resumeData?.fullName,
+        resumeId,
+        setCompletedAt: false
+      })
     }
 
     // ── BACKGROUND: career knowledge extraction (core resume path) ──
@@ -3419,10 +3605,11 @@ Return this exact structure:
       )
     }
 
-    // ── BACKGROUND: write experience level to career_context (core resume path) ──
-    // Non-critical, so it never blocks the response. Skipped when invoked via
-    // INTERNAL_API_SECRET — no authenticated user to attribute the level to.
-    if (authenticatedUserId) {
+    // ── BACKGROUND: experience level fallback (core resume path) ──
+    // Only when the extraction above did not run or failed: that write already
+    // carries experience_level, and this would overwrite it with a weaker guess.
+    // Non-critical, so it never blocks the response.
+    if (authenticatedUserId && !wroteCareerContext) {
       waitUntil(
         resolveExperienceLevel({ detectedLevel, conversation, resumeData })
           .then(coreLevel => saveExperienceLevel(authenticatedUserId, coreLevel))
