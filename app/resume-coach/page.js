@@ -654,7 +654,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     // and goes back to the old one if it does not land.
     setData(prev => prev ? {
       ...prev,
-      suggestedLenses: (prev.suggestedLenses || []).map(l => l.id === lens.id ? { ...l, name: nextName } : l)
+      profileLenses: (prev.profileLenses || []).map(l => l.id === lens.id ? { ...l, name: nextName } : l)
     } : prev);
 
     try {
@@ -674,14 +674,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       if (saved) {
         setData(prev => prev ? {
           ...prev,
-          suggestedLenses: (prev.suggestedLenses || []).map(l => l.id === saved.id ? { ...l, ...saved } : l)
+          profileLenses: (prev.profileLenses || []).map(l => l.id === saved.id ? { ...l, ...saved } : l)
         } : prev);
       }
     } catch (err) {
       console.error('Lens rename failed:', err);
       setData(prev => prev ? {
         ...prev,
-        suggestedLenses: (prev.suggestedLenses || []).map(l => l.id === lens.id ? { ...l, name: previousName } : l)
+        profileLenses: (prev.profileLenses || []).map(l => l.id === lens.id ? { ...l, name: previousName } : l)
       } : prev);
       setLensRenameError(lens.id);
     }
@@ -1490,12 +1490,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const isPro = data?.userTier === TIERS.PRO;
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
-  const suggestedLenses = data?.suggestedLenses || [];
-  const hasLensCard = suggestedLenses.length > 0;
+  const profileLenses = data?.profileLenses || [];
+  const hasLensCard = profileLenses.length > 0;
+  // A lens the user built is a core they can switch to. One they have not is still
+  // an offer. The card shows both, so the two are split here rather than in the JSX.
+  const builtLenses = profileLenses.filter(l => l.status === 'active' && l.core_resume_id);
+  const suggestedLenses = profileLenses.filter(l => l.status !== 'active');
 
-  // Caption for the core-resume selector. The card only renders once a core
-  // exists, so builtCount is 1 today and the last line is the reachable one.
-  // The other two are the states that arrive once a lens core can be built.
+  // Caption for the core-resume selector. builtCount counts the priority core plus
+  // every lens core built from it, so all three lines are reachable: nothing left to
+  // build, more than one core in hand, or suggestions still waiting.
   function lensCaptionFor({ builtCount, suggestionCount }) {
     if (suggestionCount === 0) return 'Switch between your core resumes.';
     if (builtCount > 1) return 'Switch between your cores, or build the next one.';
@@ -1997,7 +2001,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       it has without this card. */}
                   {hasLensCard && (
                     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[92px] ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
-                      <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1, suggestionCount: suggestedLenses.length })}</p>
+                      <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + builtLenses.length, suggestionCount: suggestedLenses.length })}</p>
                       <div className="flex gap-2">
 
                         {/* The core they already have — the selected state of the
@@ -2011,6 +2015,27 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className="text-xs md:text-[10px] text-purple-600">Current core</div>
                           </div>
                         </div>
+
+                        {/* Cores already built from a lens. The tile above is the
+                            priority core, so each of these is a switch target. */}
+                        {builtLenses.map((lens) => (
+                          <div
+                            key={lens.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => router.push(`/resume/${lens.core_resume_id}`)}
+                            title={`Switch to your ${lens.name} core resume`}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 bg-white hover:bg-purple-50 hover:border-purple-400 transition-colors flex-1 min-w-0 text-left"
+                          >
+                            <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div className="min-w-0">
+                              <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
+                              <div className="text-xs md:text-[10px] text-purple-600">Switch to this core</div>
+                            </div>
+                          </div>
+                        ))}
 
                         {suggestedLenses.map((lens) => {
                           const isEditing = editingLensId === lens.id;

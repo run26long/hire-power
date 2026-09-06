@@ -373,19 +373,21 @@ export async function GET(req) {
         .maybeSingle());
     }
 
-    // Directions Coach found in the background that the user has not acted on yet.
+    // Directions Coach found in the background, whether or not the user acted on them.
     // Service role, so this is not subject to RLS on profile_lenses.
-    const { data: suggestedLenses, error: lensesError } = await supabase
+    // Both statuses: a suggestion is a core the user could build, an active lens is
+    // one they already did, and the hub selector needs to show either as a tile.
+    const { data: profileLenses, error: lensesError } = await supabase
       .from('profile_lenses')
-      .select('id, name, slug, evidence_summary')
+      .select('id, name, slug, evidence_summary, status, core_resume_id')
       .eq('user_id', user.id)
-      .eq('status', 'suggested')
+      .in('status', ['suggested', 'active'])
       .eq('source', 'coaching_extraction')
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
 
     if (lensesError) {
-      console.error('Suggested lenses error:', lensesError);
+      console.error('Profile lenses error:', lensesError);
     }
     
     // Format core resume data
@@ -436,7 +438,7 @@ export async function GET(req) {
       coreResume: coreResumeData,
       resumeVersions: resumeVersionsData,
       coverLetters: coverLetters || [],
-      suggestedLenses: suggestedLenses || [],
+      profileLenses: profileLenses || [],
       currentLensName: careerContext?.current_lens_name || null,
       stats: {
         hasCoreResume: !!coreResume,
