@@ -2060,6 +2060,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         {visibleSuggestedLenses.map((lens) => {
                           const isEditing = editingLensId === lens.id;
                           const failed = lensRenameError === lens.id;
+                          // Dashed and greyed: a suggestion is an offer, not a core. Only
+                          // the sub-label carries colour, so it reads as the call to action.
+                          // Hover fills the tile in to show it is live.
                           return (
                           <div
                             key={lens.id}
@@ -2067,9 +2070,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             tabIndex={0}
                             onClick={() => { if (isEditing) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
                             title={isEditing ? undefined : (isPro ? `Build your ${lens.name} core resume` : 'Upgrade to Pro to build this core')}
-                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg border bg-white transition-colors flex-1 min-w-0 text-left ${failed ? 'border-red-300' : 'border-purple-300 hover:bg-purple-50 hover:border-purple-400'}`}
+                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left ${failed ? 'border-red-300 bg-white' : 'border-gray-300 bg-gray-50 hover:border-solid hover:border-purple-400 hover:bg-purple-50'}`}
                           >
-                            <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <div className="min-w-0 flex-1">
@@ -2088,7 +2091,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   className="w-full text-sm md:text-xs font-semibold text-gray-900 bg-white border border-purple-300 rounded px-1 focus:outline-none focus:border-purple-500"
                                 />
                               ) : (
-                                <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
+                                <div className="text-sm md:text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors truncate">{lens.name}</div>
                               )}
                               <div className={`text-xs md:text-[10px] ${failed ? 'text-red-500' : 'text-purple-600'}`}>
                                 {failed ? "Couldn't rename" : 'Build this core'}
