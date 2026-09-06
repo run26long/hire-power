@@ -3262,9 +3262,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             </div>
 
             <div className="p-5">
-              {buildLens.evidence_summary && (
-                <p className="text-sm md:text-xs text-gray-700 leading-snug mb-3">{buildLens.evidence_summary}</p>
-              )}
+              <p className="text-sm md:text-xs text-gray-700 leading-snug mb-3">
+                During your core resume coaching, we noticed strong experience that could support a separate {buildLens.name} resume.
+              </p>
               <p className="text-sm md:text-xs text-gray-600 leading-snug mb-4">
                 This core keeps your experience but reframes it for {buildLens.name} roles. Different emphasis, different story, same truth. You&apos;ll coach it with me briefly, then it&apos;s ready to use for any job in this direction.
               </p>
