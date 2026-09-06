@@ -119,24 +119,67 @@ const PAGE_CSS = `
   50%      { opacity: 1; }
 }
 
-/* Drifting glow behind the hero. Pointer-events off so it never eats a tap. */
-.cp-orb {
+/* The hero clips its own glow and monogram, so neither can bleed into the row
+   of directions below it. */
+.cp-hero { position: relative; overflow: hidden; }
+
+.cp-spotlight {
   position: absolute;
-  top: -60px;
+  top: 50%;
   left: 50%;
-  width: 240px;
-  height: 240px;
-  margin-left: -120px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(120, 93, 202, 0.12) 0%, rgba(120, 93, 202, 0.04) 50%, transparent 70%);
-  animation: cp-drift 22s ease-in-out infinite;
+  width: 500px;
+  height: 320px;
+  margin: -160px 0 0 -250px;
+  background: radial-gradient(ellipse 50% 60% at 50% 30%, rgba(120, 93, 202, 0.12) 0%, rgba(120, 93, 202, 0.04) 35%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
-@keyframes cp-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(46px, 22px) scale(1.08); }
-  66%      { transform: translate(-36px, 12px) scale(0.96); }
+
+/* The name and headline sit in their own relative box so the monogram behind
+   them is positioned against the text, not against the section. */
+.cp-namewrap { position: relative; display: inline-block; z-index: 1; }
+
+.cp-monogram {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 200px;
+  font-weight: 500;
+  letter-spacing: -6px;
+  line-height: 1;
+  white-space: nowrap;
+  background: linear-gradient(180deg, rgba(120, 93, 202, 0.14) 0%, rgba(120, 93, 202, 0.05) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 0;
+}
+
+.cp-name {
+  position: relative;
+  z-index: 1;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  line-height: 1.12;
+  background: linear-gradient(180deg, #ffffff 0%, #d4d0e8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(120, 93, 202, 0.2));
+}
+
+.cp-headline {
+  position: relative;
+  z-index: 1;
+  font-size: 15px;
+  color: #9b95b8;
+  text-shadow: 0 0 20px rgba(120, 93, 202, 0.1);
 }
 
 /* The track slides; the items sit in normal flow inside it, so no two names can
@@ -169,7 +212,7 @@ const PAGE_CSS = `
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cp-shimmer, .cp-orb { animation: none; }
+  .cp-shimmer { animation: none; }
   .cp-track, .cp-lens, .cp-fade, .cp-skill { transition: none; }
 }
 `
@@ -377,36 +420,15 @@ export default function CareerProfilePage() {
       </header>
 
       {/* ---- HERO ---- */}
-      <section className="relative mx-auto max-w-[1100px] px-5 pb-8 pt-11 md:px-6">
-        <div className="cp-orb" aria-hidden="true" />
+      <section className="cp-hero mx-auto max-w-[1100px] px-5 text-center md:px-6" style={{ paddingTop: '56px', paddingBottom: '40px' }}>
+        <div className="cp-spotlight" aria-hidden="true" />
 
-        <div className="relative z-10 flex items-center gap-4">
-          <div
-            className="flex h-14 w-14 flex-shrink-0 items-center justify-center text-base font-semibold"
-            style={{
-              borderRadius: '8px',
-              background: 'linear-gradient(to bottom right, var(--cp-accent), var(--cp-accent-dark))',
-              color: '#fff'
-            }}
-            aria-hidden="true"
-          >
-            {initialsFrom(displayName)}
-          </div>
-
-          <div className="min-w-0">
-            <h1
-              className="truncate text-[28px] md:text-[38px]"
-              style={{ color: '#fff', fontWeight: 500, lineHeight: 1.12, letterSpacing: '-0.5px' }}
-            >
-              {displayName}
-            </h1>
-            <p
-              className="cp-fade mt-1.5"
-              style={{ fontSize: '14px', color: 'var(--cp-text-muted)', opacity: fading ? 0 : 1 }}
-            >
-              {headline}
-            </p>
-          </div>
+        <div className="cp-namewrap">
+          <div className="cp-monogram" aria-hidden="true">{initialsFrom(displayName)}</div>
+          <h1 className="cp-name text-[32px] md:text-[44px]">{displayName}</h1>
+          <p className="cp-fade cp-headline mt-2" style={{ opacity: fading ? 0 : 1 }}>
+            {headline}
+          </p>
         </div>
       </section>
 
