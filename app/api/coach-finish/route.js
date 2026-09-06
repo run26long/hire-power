@@ -3014,6 +3014,31 @@ export async function POST(request) {
       let changes = []
       try { changes = JSON.parse(cleanedChanges) } catch (e) { changes = [] }
 
+      // ── BACKGROUND: career knowledge extraction (targeted recoach path) ──
+      // A recoach is where a candidate volunteers the detail that closes a gap,
+      // so it is worth mining like any other coaching conversation. Runs after
+      // the rewrite fully succeeded. Does not block the response. Skipped when
+      // invoked via INTERNAL_API_SECRET — no user token to forward.
+      if (authenticatedUserId) {
+        waitUntil(
+          fetch(new URL('/api/career-knowledge', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader
+            },
+            body: JSON.stringify({
+              action: 'extract',
+              resumeId: resumeId || null,
+              transcript: conversation,
+              resumeData,
+              jobTitle: jobTitle || null,
+              jobCompany: jobCompany || null
+            })
+          }).catch(e => console.error('[career-knowledge] Background extraction failed (non-fatal):', e))
+        )
+      }
+
       return NextResponse.json({ rewrittenResume: enhancedResume, changes, detectedLevel: level })
     }
 
