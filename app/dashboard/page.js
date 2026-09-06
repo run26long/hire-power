@@ -193,6 +193,7 @@ function DashboardContent() {
           .from('resumes').select('*').eq('user_id', user.id)
           .eq('resume_type', 'core')
           .eq('is_active', true)
+          .order('is_priority_core', { ascending: false })
           .order('updated_at', { ascending: false });
         if (resumesError) {
           console.warn('Dashboard resumes load issue (non-fatal):', resumesError);

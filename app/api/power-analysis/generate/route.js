@@ -506,6 +506,7 @@ export async function POST(request) {
         .eq('user_id', userId)
         .eq('resume_type', 'core')
         .eq('is_active', true)
+        .order('is_priority_core', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(1);
 
