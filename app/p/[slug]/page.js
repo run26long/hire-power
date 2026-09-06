@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -16,34 +16,26 @@ import { createClient } from '@/utils/supabase/client'
 const CROSSFADE_MS = 300
 const SWIPE_THRESHOLD_PX = 40
 
-// Where a lens sits relative to the one in the spotlight. The first step out is
-// the largest so the active name gets room; every step after that is tighter,
-// which is what makes the row read as depth rather than a list.
-function offsetForDistance(distance) {
-  if (distance === 0) return 0
-  const magnitude = 110 + (Math.abs(distance) - 1) * 70
-  return Math.sign(distance) * magnitude
-}
-
+// Size and weight by distance from the spotlight. Font size is deliberately not
+// transitioned: it changes layout, and the carousel measures that layout to
+// centre itself. Animating it would mean measuring a width that is still moving.
 function lensStyleForDistance(distance) {
   const abs = Math.abs(distance)
   if (abs === 0) {
     return {
-      fontSize: '20px',
+      fontSize: '22px',
       fontWeight: 500,
       color: '#fff',
       opacity: 1,
+      padding: '0 20px',
       textShadow: '0 0 24px rgba(155, 133, 216, 0.45)',
       letterSpacing: '0.01em'
     }
   }
   if (abs === 1) {
-    return { fontSize: '11px', fontWeight: 400, color: 'var(--cp-text-faint)', opacity: 1, letterSpacing: '0.04em' }
+    return { fontSize: '13px', fontWeight: 400, color: 'var(--cp-text-faint)', opacity: 1, padding: '0 16px', letterSpacing: '0.04em' }
   }
-  if (abs === 2) {
-    return { fontSize: '10px', fontWeight: 400, color: 'var(--cp-border-accent)', opacity: 1, letterSpacing: '0.04em' }
-  }
-  return { fontSize: '10px', fontWeight: 400, color: 'var(--cp-border-accent)', opacity: 0, letterSpacing: '0.04em' }
+  return { fontSize: '11px', fontWeight: 400, color: 'var(--cp-border-accent)', opacity: 1, padding: '0 14px', letterSpacing: '0.04em' }
 }
 
 function initialsFrom(name) {
@@ -132,27 +124,29 @@ const PAGE_CSS = `
   66%      { transform: translate(-36px, 12px) scale(0.96); }
 }
 
-.cp-carousel-item {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+/* The track slides; the items sit in normal flow inside it, so no two names can
+   ever overlap no matter how long they are. */
+.cp-track {
+  display: flex;
+  align-items: center;
   white-space: nowrap;
-  cursor: pointer;
+  width: max-content;
+  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.cp-lens {
   background: none;
   border: 0;
-  padding: 0;
-  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              font-size 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.2;
+  transition: color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
               opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
               text-shadow 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .cp-fade { transition: opacity ${CROSSFADE_MS}ms ease; }
 
-.cp-skill {
-  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
-}
+.cp-skill { transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease; }
 .cp-skill:hover {
   border-color: var(--cp-accent) !important;
   background: rgba(120, 93, 202, 0.1);
@@ -161,7 +155,7 @@ const PAGE_CSS = `
 
 @media (prefers-reduced-motion: reduce) {
   .cp-shimmer, .cp-orb { animation: none; }
-  .cp-carousel-item, .cp-fade, .cp-skill { transition: none; }
+  .cp-track, .cp-lens, .cp-fade, .cp-skill { transition: none; }
 }
 `
 
@@ -176,8 +170,11 @@ export default function CareerProfilePage() {
   const [fading, setFading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState(null)
+  const [trackShift, setTrackShift] = useState(0)
 
   const dragRef = useRef({ startX: null, dragging: false })
+  const viewportRef = useRef(null)
+  const itemRefs = useRef([])
 
   useEffect(() => {
     if (!slug) return
@@ -231,6 +228,21 @@ export default function CareerProfilePage() {
     return () => clearTimeout(timer)
   }, [activeIndex, contentIndex])
 
+  // Centre the active name by measuring where it actually landed, rather than
+  // guessing an offset. A long direction name and a short one then behave the
+  // same, and nothing is ever clipped at either end of the row.
+  useLayoutEffect(() => {
+    function centre() {
+      const viewport = viewportRef.current
+      const item = itemRefs.current[activeIndex]
+      if (!viewport || !item) return
+      setTrackShift(viewport.offsetWidth / 2 - (item.offsetLeft + item.offsetWidth / 2))
+    }
+    centre()
+    window.addEventListener('resize', centre)
+    return () => window.removeEventListener('resize', centre)
+  }, [activeIndex, lenses.length, loadState])
+
   function moveBy(step) {
     setActiveIndex(prev => {
       const next = prev + step
@@ -259,6 +271,8 @@ export default function CareerProfilePage() {
   const hasGeneratedContent = Boolean(selectedLens?.headline || selectedLens?.bio || proofPoints.length > 0)
 
   const displayName = data?.person?.displayName || data?.fallback?.name || 'Career Profile'
+  // The generated headline is written for this direction, so it wins. Target
+  // roles are only the stand-in for a lens that has not been generated yet.
   const fallbackHeadline = data?.careerContext?.target_roles?.length
     ? data.careerContext.target_roles.join(' · ')
     : data?.careerContext?.current_lens_name || ''
@@ -332,19 +346,17 @@ export default function CareerProfilePage() {
       <style>{PAGE_CSS}</style>
       <div className="cp-shimmer" />
 
-      {/* ---- 2. HEADER BAR ---- */}
+      {/* ---- HEADER BAR ---- */}
       <header className="w-full border-b" style={{ borderColor: 'var(--cp-border)' }}>
         <div className="mx-auto flex max-w-[1100px] items-center justify-between px-5 py-[14px] md:px-6">
-          <div style={{ fontSize: '12px', letterSpacing: '2px' }}>
-            <span style={{ color: '#fff' }}>Hire</span>
-            <span style={{ color: 'var(--cp-accent-light)' }}>Power</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/hp-logo-white.png" alt="Hire Power" style={{ height: '30px', width: 'auto' }} />
           <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
         </div>
       </header>
 
-      {/* ---- 3. HERO ---- */}
-      <section className="relative mx-auto max-w-[1100px] px-5 pb-7 pt-11 md:px-6">
+      {/* ---- HERO ---- */}
+      <section className="relative mx-auto max-w-[1100px] px-5 pb-8 pt-11 md:px-6">
         <div className="cp-orb" aria-hidden="true" />
 
         <div className="relative z-10 flex items-center gap-4">
@@ -362,106 +374,108 @@ export default function CareerProfilePage() {
 
           <div className="min-w-0">
             <h1
-              className="truncate text-[26px] md:text-[32px]"
-              style={{ color: '#fff', fontWeight: 500, lineHeight: 1.15, letterSpacing: '-0.01em' }}
+              className="truncate text-[28px] md:text-[38px]"
+              style={{ color: '#fff', fontWeight: 500, lineHeight: 1.12, letterSpacing: '-0.5px' }}
             >
               {displayName}
             </h1>
             <p
-              className="cp-fade mt-1 text-[12px] md:text-[13px]"
-              style={{ color: 'var(--cp-text-muted)', opacity: fading ? 0 : 1 }}
+              className="cp-fade mt-1.5"
+              style={{ fontSize: '14px', color: 'var(--cp-text-muted)', opacity: fading ? 0 : 1 }}
             >
               {headline}
             </p>
           </div>
         </div>
+      </section>
 
-        {/* ---- 4. LENS CAROUSEL ---- */}
-        {lenses.length > 0 && (
-          hasCarousel ? (
-            <div className="relative z-10 mt-8" aria-label="Career directions">
-              <div
-                className="relative h-[60px] w-full select-none overflow-hidden"
-                onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
-                onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
-                onMouseDown={(e) => onDragStart(e.clientX)}
-                onMouseUp={(e) => onDragEnd(e.clientX)}
-                onMouseLeave={() => { dragRef.current = { startX: null, dragging: false } }}
-              >
+      {/* ---- LENS CAROUSEL ----
+          Full bleed rather than boxed with the hero, so the row of directions
+          reads as spanning the page. */}
+      {lenses.length > 0 && (
+        hasCarousel ? (
+          <section className="relative w-full pb-9" aria-label="Career directions">
+            <div
+              ref={viewportRef}
+              className="relative h-[64px] w-full select-none overflow-hidden"
+              onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
+              onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
+              onMouseDown={(e) => onDragStart(e.clientX)}
+              onMouseUp={(e) => onDragEnd(e.clientX)}
+              onMouseLeave={() => { dragRef.current = { startX: null, dragging: false } }}
+            >
+              <div className="cp-track h-full" style={{ transform: `translateX(${trackShift}px)` }}>
                 {lenses.map((lens, index) => {
                   const distance = index - activeIndex
                   return (
                     <button
                       key={lens.id}
+                      ref={(el) => { itemRefs.current[index] = el }}
                       type="button"
-                      className="cp-carousel-item"
+                      className="cp-lens"
                       aria-current={distance === 0 ? 'true' : undefined}
                       onClick={() => setActiveIndex(index)}
-                      style={{
-                        ...lensStyleForDistance(distance),
-                        transform: `translate(calc(-50% + ${offsetForDistance(distance)}px), -50%)`,
-                        pointerEvents: Math.abs(distance) > 2 ? 'none' : 'auto'
-                      }}
+                      style={lensStyleForDistance(distance)}
                     >
                       {lens.name}
                     </button>
                   )
                 })}
               </div>
-
-              <div className="flex justify-center">
-                <div
-                  className="h-[2px] w-[54px] rounded-full"
-                  style={{ background: 'linear-gradient(90deg, transparent, var(--cp-accent-light), transparent)' }}
-                />
-              </div>
-
-              <div className="mt-4 flex justify-center gap-1.5">
-                {lenses.map((lens, index) => (
-                  <button
-                    key={`dot-${lens.id}`}
-                    type="button"
-                    aria-label={`Show ${lens.name}`}
-                    onClick={() => setActiveIndex(index)}
-                    className="h-1.5 w-1.5 rounded-full transition-colors"
-                    style={{ background: index === activeIndex ? 'var(--cp-accent-light)' : 'var(--cp-border-accent)' }}
-                  />
-                ))}
-              </div>
             </div>
-          ) : (
-            <div className="relative z-10 mt-8 text-center">
-              <span style={{ fontSize: '20px', color: '#fff', fontWeight: 500, textShadow: '0 0 24px rgba(155, 133, 216, 0.45)' }}>
-                {lenses[0].name}
-              </span>
-              <div className="mt-3 flex justify-center">
-                <div
-                  className="h-[2px] w-[54px] rounded-full"
-                  style={{ background: 'linear-gradient(90deg, transparent, var(--cp-accent-light), transparent)' }}
-                />
-              </div>
+
+            <div className="flex justify-center">
+              <div
+                className="h-[2px] w-[54px] rounded-full"
+                style={{ background: 'linear-gradient(90deg, transparent, var(--cp-accent-light), transparent)' }}
+              />
             </div>
-          )
-        )}
-      </section>
+
+            <div className="mt-4 flex justify-center gap-1.5">
+              {lenses.map((lens, index) => (
+                <button
+                  key={`dot-${lens.id}`}
+                  type="button"
+                  aria-label={`Show ${lens.name}`}
+                  onClick={() => setActiveIndex(index)}
+                  className="h-1.5 w-1.5 rounded-full transition-colors"
+                  style={{ background: index === activeIndex ? 'var(--cp-accent-light)' : 'var(--cp-border-accent)' }}
+                />
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="w-full pb-9 text-center">
+            <span style={{ fontSize: '22px', color: '#fff', fontWeight: 500, textShadow: '0 0 24px rgba(155, 133, 216, 0.45)' }}>
+              {lenses[0].name}
+            </span>
+            <div className="mt-3 flex justify-center">
+              <div
+                className="h-[2px] w-[54px] rounded-full"
+                style={{ background: 'linear-gradient(90deg, transparent, var(--cp-accent-light), transparent)' }}
+              />
+            </div>
+          </section>
+        )
+      )}
 
       <div className="cp-fade" style={{ opacity: fading ? 0 : 1 }}>
 
-        {/* ---- 5. PROOF POINTS ---- */}
+        {/* ---- PROOF POINTS ---- */}
         {proofPoints.length > 0 && (
           <section className="mx-auto max-w-[1100px] border-y" style={{ borderColor: 'var(--cp-border)' }}>
             <div className="grid grid-cols-3">
               {proofPoints.map((point, index) => (
                 <div
                   key={`${point?.num || 'point'}-${index}`}
-                  className="px-3 py-6 text-center md:px-5"
+                  className="px-3 py-9 text-center md:px-5"
                   style={index > 0 ? { borderLeft: '1px solid var(--cp-border)' } : undefined}
                 >
                   <div style={{ fontSize: '32px', fontWeight: 500, color: '#fff', lineHeight: 1.1 }}>
                     {point?.num}
                   </div>
                   <div
-                    className="mt-1.5"
+                    className="mt-2"
                     style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--cp-text-dim)' }}
                   >
                     {point?.label}
@@ -472,11 +486,11 @@ export default function CareerProfilePage() {
           </section>
         )}
 
-        {/* ---- 6. BIO + IN MY OWN WORDS ---- */}
+        {/* ---- BIO + IN MY OWN WORDS ---- */}
         <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
           <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
             <div
-              className="border-b px-5 py-8 md:border-b-0 md:border-r md:py-8 md:pl-6 md:pr-7"
+              className="border-b px-5 py-10 md:border-b-0 md:border-r md:pl-6 md:pr-7"
               style={{ borderColor: 'var(--cp-border)' }}
             >
               {/* Deliberately larger than every other section label, so the
@@ -526,7 +540,7 @@ export default function CareerProfilePage() {
             {/* Sized for a 16:9 clip that will live here later, so adding video
                 does not change the shape of the page. */}
             <div
-              className="px-5 py-7 md:pl-7 md:pr-6"
+              className="px-5 py-9 md:pl-7 md:pr-6"
               style={{ background: 'var(--cp-surface)', minHeight: '200px' }}
             >
               <div style={{ ...sectionLabel, marginBottom: '14px' }}>In my own words</div>
@@ -543,10 +557,10 @@ export default function CareerProfilePage() {
           </div>
         </section>
 
-        {/* ---- 7. OPEN TO ---- */}
+        {/* ---- OPEN TO ---- */}
         {(readyTags.length > 0 || selectedLens?.ready_for_next) && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div className="flex flex-wrap items-center gap-4 px-5 py-4 md:px-6">
+            <div className="flex flex-wrap items-center gap-4 px-5 py-7 md:px-6">
               <span style={{ fontSize: '13px', fontWeight: 500, color: '#fff' }}>Open to</span>
               <span className="hidden md:block" style={{ width: '1px', height: '20px', background: 'var(--cp-border-accent)' }} />
               {readyTags.length > 0 ? (
@@ -573,57 +587,28 @@ export default function CareerProfilePage() {
           </section>
         )}
 
-        {/* ---- 8. SKILLS + CAREER HIGHLIGHTS ---- */}
-        {(skills.length > 0 || proofPoints.length > 0) && (
+        {/* ---- SKILLS ---- */}
+        {skills.length > 0 && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div className="grid grid-cols-1 md:grid-cols-[5fr_4fr]">
-              <div
-                className="border-b px-5 py-7 md:border-b-0 md:border-r md:px-6"
-                style={{ borderColor: 'var(--cp-border)' }}
-              >
-                <div style={{ ...sectionLabel, marginBottom: '14px' }}>Skills</div>
-                {skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {skills.map((skill, index) => (
-                      <span
-                        key={`${skill}-${index}`}
-                        className="cp-skill"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          padding: '5px 14px',
-                          border: '1px solid var(--cp-border)',
-                          borderRadius: '3px',
-                          color: 'var(--cp-text-muted)'
-                        }}
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ fontSize: '12px', color: 'var(--cp-text-faint)' }}>No skills published yet.</p>
-                )}
-              </div>
-
-              <div className="px-5 py-7 md:px-6" style={{ background: 'var(--cp-surface)' }}>
-                <div style={{ ...sectionLabel, marginBottom: '14px' }}>Career highlights</div>
-                {proofPoints.length > 0 ? (
-                  <div className="space-y-4">
-                    {proofPoints.map((point, index) => (
-                      <div key={`highlight-${index}`} className="flex items-baseline gap-4">
-                        <span style={{ fontSize: '28px', fontWeight: 500, color: '#fff', minWidth: '70px', lineHeight: 1.1 }}>
-                          {point?.num}
-                        </span>
-                        <span style={{ fontSize: '11px', color: 'var(--cp-text-dim)', lineHeight: 1.5 }}>
-                          {point?.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ fontSize: '12px', color: 'var(--cp-text-faint)' }}>No highlights published yet.</p>
-                )}
+            <div className="px-5 py-10 md:px-6">
+              <div style={{ ...sectionLabel, marginBottom: '16px' }}>Skills</div>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill, index) => (
+                  <span
+                    key={`${skill}-${index}`}
+                    className="cp-skill"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      padding: '5px 14px',
+                      border: '1px solid var(--cp-border)',
+                      borderRadius: '3px',
+                      color: 'var(--cp-text-muted)'
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
               </div>
             </div>
           </section>
