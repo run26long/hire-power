@@ -1409,6 +1409,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
   const suggestedLenses = data?.suggestedLenses || [];
   const hasLensCard = suggestedLenses.length > 0;
+
+  // Caption for the core-resume selector. The card only renders once a core
+  // exists, so builtCount is 1 today and the last line is the reachable one.
+  // The other two are the states that arrive once a lens core can be built.
+  function lensCaptionFor({ builtCount, suggestionCount }) {
+    if (suggestionCount === 0) return 'Switch between your core resumes.';
+    if (builtCount > 1) return 'Switch between your cores, or build the next one.';
+    return 'Coach identified more directions in your background. Build a core resume for each.';
+  }
   const score = data?.coreResume?.current_score || null;
   const journeyStep = data?.coreResume?.journey_step || 'review';
   const displayStep = (journeyStep === 'assess' && score) ? 'coach' : journeyStep;
@@ -1536,9 +1545,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'md:h-[420px]' : 'md:h-[540px]'}`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'md:h-[432px]' : 'md:h-[540px]'}`}>
                    <div className="flex items-center justify-between mb-1">
-                      <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
+                      <h2 className="text-lg font-semibold text-gray-900">{hasLensCard && data.currentLensName ? `${data.currentLensName} Core Resume` : 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
                     </div>
                     <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
@@ -1730,7 +1739,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         
                    {/* Breakdown Grid - Bigger Text */}
                         <div className="grid grid-cols-3 gap-1.5">
-                          <div className={`text-center bg-gray-50 rounded-lg ${hasLensCard ? 'p-1' : 'p-1.5'}`}>
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
                             <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
@@ -1761,7 +1770,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                           </div>
                           
-                          <div className={`text-center bg-gray-50 rounded-lg ${hasLensCard ? 'p-1' : 'p-1.5'}`}>
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
                             <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
@@ -1792,7 +1801,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                           </div>
                           
-                          <div className={`text-center bg-gray-50 rounded-lg ${hasLensCard ? 'p-1' : 'p-1.5'}`}>
+                          <div className="text-center p-1.5 bg-gray-50 rounded-lg">
                             <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
@@ -1868,7 +1877,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                     
                     {/* What This Means */}
-                    <div data-tour="progress-meaning" className={`bg-purple-50 border-l-4 border-purple-600 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${hasLensCard ? 'p-2' : 'p-3'}`}>
+                    <div data-tour="progress-meaning" className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                       <div className="flex-1">
                        <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">What This Means</div>
                         <p className="text-sm md:text-xs text-gray-700 leading-snug">
@@ -1898,24 +1907,23 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     </div>
                   </div>
 
-                  {/* Additional Core Resumes — only when Coach found other directions.
-                      420 + 16 (mt-4) + 104 = 540, so the left column keeps the height
+                  {/* Core resume selector — only when Coach found other directions.
+                      432 + 16 (mt-4) + 92 = 540, so the left column keeps the height
                       it has without this card. */}
                   {hasLensCard && (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[104px] mt-4">
-                      <h3 className="text-base font-semibold text-gray-900">Additional Core Resumes</h3>
-                      <p className="text-sm md:text-xs text-gray-500 mb-2">Coach identified other directions in your background</p>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[92px] mt-4">
+                      <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1, suggestionCount: suggestedLenses.length })}</p>
                       <div className="flex gap-2">
 
-                        {/* The core they already have. Not a destination — it is the
-                            card above. */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 flex-1 min-w-0">
-                          <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {/* The core they already have — the selected state of the
+                            selector, and the card above. */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 bg-purple-50 flex-1 min-w-0">
+                          <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div className="min-w-0">
                             <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{data.currentLensName || 'Your Core Resume'}</div>
-                            <div className="text-xs md:text-[10px] text-gray-500">Current core</div>
+                            <div className="text-xs md:text-[10px] text-purple-600">Current core</div>
                           </div>
                         </div>
 
