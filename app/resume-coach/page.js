@@ -497,6 +497,9 @@ export default function MyResumesPage() {
   const [downloadError, setDownloadError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  // Which core the card above the selector is showing. Null means the one the
+  // route opened with, so the first paint needs no effect to correct it.
+  const [selectedCoreId, setSelectedCoreId] = useState(null);
   
  // Job-specific modal state
   const [showJobModal, setShowJobModal] = useState(false);
@@ -1369,10 +1372,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   const handleStartCoaching = async () => {
-    if (!data?.coreResume) return;
+    if (!selectedCore) return;
     
-    const journeyStep = data.coreResume.journey_step || 'review';
-    const resumeId = data.coreResume.id;
+    const journeyStep = selectedCore.journey_step || 'review';
+    const resumeId = selectedCore.id;
     
     // Special case: If journey is "save", trigger download instead of navigating
     if (journeyStep === 'save') {
@@ -1486,7 +1489,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   const activeChatResume = data?.activeChatResume || null;
-  const coreResumeForDisplay = data?.coreResume || null;
+  // The card reads this, never data.coreResume directly. An id that no longer
+  // matches a core (one just deleted, say) falls back to the route's own pick.
+  const selectedCore = (data?.coreResumes || []).find(c => c.id === selectedCoreId) || data?.coreResume || null;
   const isPro = data?.userTier === TIERS.PRO;
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
@@ -1505,8 +1510,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     if (builtCount > 1) return 'Switch between your cores, or build the next one.';
     return 'Coach identified more directions in your background. Build a core resume for each.';
   }
-  const score = data?.coreResume?.current_score || null;
-  const journeyStep = data?.coreResume?.journey_step || 'review';
+  const score = selectedCore?.current_score || null;
+  const journeyStep = selectedCore?.journey_step || 'review';
   const displayStep = (journeyStep === 'assess' && score) ? 'coach' : journeyStep;
 
   // Show placeholder scores in review OR assess steps (before assessment runs) OR when no score exists
@@ -1634,7 +1639,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-8">
                   <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'md:h-[440px]' : 'md:h-[540px]'}`}>
                    <div className="flex items-center justify-between mb-1">
-                      <h2 className="text-lg font-semibold text-gray-900">{hasLensCard && data.currentLensName ? `${data.currentLensName} Core Resume` : 'Core Resume'}</h2>
+                      <h2 className="text-lg font-semibold text-gray-900">{selectedCore?.display_name || 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
                     </div>
                     {!hasLensCard && (
@@ -1644,21 +1649,21 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {/* Mobile: 3 action buttons */}
                     <div className="flex md:hidden gap-2 mb-4">
                       <button
-                        onClick={() => router.push(`/resume/${data.coreResume.id}`)}
+                        onClick={() => router.push(`/resume/${selectedCore.id}`)}
                         className="flex-1 py-2 px-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
                       >
                         View Resume
                       </button>
                       <button
-                        onClick={() => handleDownloadResume(data.coreResume.id)}
-                        disabled={downloadingResumeId === data.coreResume.id}
+                        onClick={() => handleDownloadResume(selectedCore.id)}
+                        disabled={downloadingResumeId === selectedCore.id}
                         className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
                       >
-                        {downloadingResumeId === data.coreResume.id ? '...' : '⬇️ Download'}
+                        {downloadingResumeId === selectedCore.id ? '...' : '⬇️ Download'}
                       </button>
                       {isPro && (
                       <button
-                        onClick={() => setConfirmDeleteId(data.coreResume.id)}
+                        onClick={() => setConfirmDeleteId(selectedCore.id)}
                         className="flex-1 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                       >
                         🗑 Delete
@@ -1673,14 +1678,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <div className={`hidden md:block ${hasLensCard ? 'md:col-span-3' : 'md:col-span-4'}`}>
                         <div className="relative">
                           <div
-                            onClick={() => router.push(`/resume/${data.coreResume.id}`)}
+                            onClick={() => router.push(`/resume/${selectedCore.id}`)}
                             className="w-full group cursor-pointer"
                           >
                             <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200" style={{ aspectRatio: '8.5/11' }}>
-                              {data.coreResume.resume_data ? (
+                              {selectedCore.resume_data ? (
                                 <div style={{ transform: hasLensCard ? 'scale(0.165)' : 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: hasLensCard ? '50%' : 0, marginLeft: hasLensCard ? '-67.32px' : undefined }}>
                                   <ResumeContent
-                                    resumeData={data.coreResume.resume_data}
+                                    resumeData={selectedCore.resume_data}
                                     onUpdate={() => {}}
                                     isUndoingRef={{ current: false }}
                                     formatDate={(d) => d || ''}
@@ -1706,7 +1711,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleOpenResume(data.coreResume.id);
+                                    handleOpenResume(selectedCore.id);
                                   }}
                                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
                                   title="Open resume"
@@ -1720,7 +1725,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleCopyToJobSpecific(data.coreResume.id);
+                                    handleCopyToJobSpecific(selectedCore.id);
                                   }}
                                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
                                   title="Create job-specific resume"
@@ -1733,13 +1738,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleDownloadResume(data.coreResume.id);
+                                    handleDownloadResume(selectedCore.id);
                                   }}
-                                  disabled={downloadingResumeId === data.coreResume.id}
+                                  disabled={downloadingResumeId === selectedCore.id}
                                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Download PDF"
                                 >
-                                  {downloadingResumeId === data.coreResume.id ? (
+                                  {downloadingResumeId === selectedCore.id ? (
                                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1755,7 +1760,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setConfirmDeleteId(data.coreResume.id);
+                                    setConfirmDeleteId(selectedCore.id);
                                   }}
                                   className="w-9 h-9 rounded-full bg-[#e57373] hover:bg-[#c62828] flex items-center justify-center text-white transition-colors"
                                   title="Delete resume"
@@ -1771,7 +1776,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           
                           {/* Single-line footer - subtle */}
                           <div className="mt-2 text-center text-xs text-gray-500">
-                            {data.coreResume.resume_data?.fullName || 'Resume'} • Edited {formatDate(data.coreResume.updated_at).split(',')[0]}
+                            {selectedCore.resume_data?.fullName || 'Resume'} • Edited {formatDate(selectedCore.updated_at).split(',')[0]}
                           </div>
                         </div>
                       </div>
@@ -1832,7 +1837,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">{data.coreResume.score_breakdown?.impact ?? '--'}</span>
+                                  <span className="text-gray-900">{selectedCore.score_breakdown?.impact ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/50</span>
                                 </>
                               ) : (
@@ -1846,9 +1851,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                            <div className={`text-xs md:text-[10px] text-gray-600 uppercase tracking-wide ${hasLensCard ? '' : 'mb-0.5'}`}>Impact</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).color }}></span>
-                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).text}`}>
-                                  {getBreakdownLabel(data.coreResume.score_breakdown?.impact ?? 0, 50).label}
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(selectedCore.score_breakdown?.impact ?? 0, 50).color }}></span>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(selectedCore.score_breakdown?.impact ?? 0, 50).text}`}>
+                                  {getBreakdownLabel(selectedCore.score_breakdown?.impact ?? 0, 50).label}
                                 </span>
                               </div>
                             ) : (
@@ -1863,7 +1868,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">{data.coreResume.score_breakdown?.clarity ?? '--'}</span>
+                                  <span className="text-gray-900">{selectedCore.score_breakdown?.clarity ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/30</span>
                                 </>
                               ) : (
@@ -1877,9 +1882,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={`text-xs md:text-[10px] text-gray-600 uppercase tracking-wide ${hasLensCard ? '' : 'mb-0.5'}`}>Clarity</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).color }}></span>
-                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).text}`}>
-                                  {getBreakdownLabel(data.coreResume.score_breakdown?.clarity ?? 0, 30).label}
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(selectedCore.score_breakdown?.clarity ?? 0, 30).color }}></span>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(selectedCore.score_breakdown?.clarity ?? 0, 30).text}`}>
+                                  {getBreakdownLabel(selectedCore.score_breakdown?.clarity ?? 0, 30).label}
                                 </span>
                               </div>
                             ) : (
@@ -1894,7 +1899,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={`text-2xl font-bold ${hasLensCard ? 'mb-0' : 'mb-0.5'}`}>
                               {!showPlaceholder ? (
                                 <>
-                                  <span className="text-gray-900">{data.coreResume.score_breakdown?.keywords ?? '--'}</span>
+                                  <span className="text-gray-900">{selectedCore.score_breakdown?.keywords ?? '--'}</span>
                                   <span className="text-sm text-gray-400">/20</span>
                                 </>
                               ) : (
@@ -1908,9 +1913,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <div className={`text-xs md:text-[10px] text-gray-600 uppercase tracking-wide ${hasLensCard ? '' : 'mb-0.5'}`}>Keywords</div>
                             {!showPlaceholder ? (
                               <div className="flex items-center justify-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).color }}></span>
-                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).text}`}>
-                                  {getBreakdownLabel(data.coreResume.score_breakdown?.keywords ?? 0, 20).label}
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: getBreakdownLabel(selectedCore.score_breakdown?.keywords ?? 0, 20).color }}></span>
+                                <span className={`text-xs md:text-[10px] font-medium ${getBreakdownLabel(selectedCore.score_breakdown?.keywords ?? 0, 20).text}`}>
+                                  {getBreakdownLabel(selectedCore.score_breakdown?.keywords ?? 0, 20).label}
                                 </span>
                               </div>
                             ) : (
@@ -1975,11 +1980,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       <button 
                         onClick={handleStartCoaching}
-                        disabled={isDownloading && (data.coreResume.journey_step === 'save')}
-                        className={`text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${(data.coreResume.journey_step || 'review') === 'review' ? 'animate-pulse hover:animate-none' : ''}`}
+                        disabled={isDownloading && (selectedCore.journey_step === 'save')}
+                        className={`text-white px-4 py-2 rounded-lg transition-opacity font-medium text-sm whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${(selectedCore.journey_step || 'review') === 'review' ? 'animate-pulse hover:animate-none' : ''}`}
                         style={{background:'linear-gradient(to right, #667eea, #764ba2)'}}
                       >
-                        {isDownloading && (data.coreResume.journey_step === 'save') ? (
+                        {isDownloading && (selectedCore.journey_step === 'save') ? (
                           <>
                             <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1989,7 +1994,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </>
                         ) : (
                           <>
-                            {displayStep === 'coach' && data.coreResume?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
+                            {displayStep === 'coach' && selectedCore?.has_coaching_conversation ? 'Continue Coaching' : getButtonText(displayStep)} {displayStep !== 'save' && '→'}
                           </>
                         )}
                       </button>
@@ -2004,35 +2009,42 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + builtLenses.length, suggestionCount: suggestedLenses.length })}</p>
                       <div className="flex gap-2">
 
-                        {/* The core they already have — the selected state of the
-                            selector, and the card above. */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 bg-purple-50 flex-1 min-w-0">
+                        {/* The core the route opens with. Selecting a tile swaps the
+                            card above rather than navigating, so this one is a tab
+                            like the rest and reads as selected by default. */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedCoreId(data.coreResume.id)}
+                          title="Show your core resume"
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 transition-colors flex-1 min-w-0 text-left ${selectedCore?.id === data.coreResume.id ? 'bg-purple-50' : 'bg-white hover:bg-purple-50 hover:border-purple-400'}`}
+                        >
                           <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div className="min-w-0">
                             <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{data.currentLensName || 'Your Core Resume'}</div>
-                            <div className="text-xs md:text-[10px] text-purple-600">Current core</div>
+                            <div className="text-xs md:text-[10px] text-purple-600">{selectedCore?.id === data.coreResume.id ? 'Current core' : 'Switch to this core'}</div>
                           </div>
                         </div>
 
-                        {/* Cores already built from a lens. The tile above is the
-                            priority core, so each of these is a switch target. */}
+                        {/* Cores already built from a lens. Same tab behaviour as the
+                            tile above: the card swaps, the page stays. */}
                         {builtLenses.map((lens) => (
                           <div
                             key={lens.id}
                             role="button"
                             tabIndex={0}
-                            onClick={() => router.push(`/resume/${lens.core_resume_id}`)}
-                            title={`Switch to your ${lens.name} core resume`}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 bg-white hover:bg-purple-50 hover:border-purple-400 transition-colors flex-1 min-w-0 text-left"
+                            onClick={() => setSelectedCoreId(lens.core_resume_id)}
+                            title={`Show your ${lens.name} core resume`}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 transition-colors flex-1 min-w-0 text-left ${selectedCore?.id === lens.core_resume_id ? 'bg-purple-50' : 'bg-white hover:bg-purple-50 hover:border-purple-400'}`}
                           >
                             <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <div className="min-w-0">
                               <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
-                              <div className="text-xs md:text-[10px] text-purple-600">Switch to this core</div>
+                              <div className="text-xs md:text-[10px] text-purple-600">{selectedCore?.id === lens.core_resume_id ? 'Current core' : 'Switch to this core'}</div>
                             </div>
                           </div>
                         ))}

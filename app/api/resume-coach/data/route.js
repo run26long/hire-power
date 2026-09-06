@@ -390,22 +390,36 @@ export async function GET(req) {
       console.error('Profile lenses error:', lensesError);
     }
     
-    // Format core resume data
-    const coreResumeData = coreResume ? {
-      id: coreResume.id,
-      display_name: coreResume.display_name || 'Core Resume',
-      resume_data: coreResume.resume_data,
-      current_score: coreResume.current_score,
-      initial_score: coreResume.initial_resume_power_score,
-      score_improvement: coreResume.current_score && coreResume.initial_resume_power_score 
-        ? coreResume.current_score - coreResume.initial_resume_power_score 
+    // The card shape, shared by the core the hub opens with and every core it can
+    // toggle to. The thumbnail is passed in because only the one core above pays to
+    // have one generated; the rest carry whatever they already had.
+    const projectCore = (core, generatedThumbnail) => ({
+      id: core.id,
+      display_name: core.display_name || 'Core Resume',
+      resume_data: core.resume_data,
+      current_score: core.current_score,
+      initial_score: core.initial_resume_power_score,
+      score_improvement: core.current_score && core.initial_resume_power_score
+        ? core.current_score - core.initial_resume_power_score
         : 0,
-      journey_step: coreResume.journey_step || 'review',
-      updated_at: coreResume.updated_at,
-      thumbnail_url: thumbnailUrl,
-      score_breakdown: coreResume.score_breakdown,
-      has_coaching_conversation: !!(coreResume.coaching_conversation?.length > 0)
-    } : null;
+      journey_step: core.journey_step || 'review',
+      updated_at: core.updated_at,
+      thumbnail_url: generatedThumbnail ?? core.thumbnail_url,
+      score_breakdown: core.score_breakdown,
+      has_coaching_conversation: !!(core.coaching_conversation?.length > 0)
+    });
+
+    // Format core resume data
+    const coreResumeData = coreResume ? projectCore(coreResume, thumbnailUrl) : null;
+
+    // Every core the hub can toggle between. Only finished ones: an unfinished brb
+    // attempt or a lens core still being coached is not something to switch to,
+    // which is the same rule the resume page breadcrumb switcher uses. That test
+    // also subsumes the resume_chat check the single core above makes, since an
+    // unfinished chat resume fails coaching_complete on its own.
+    const allCoreData = allCore
+      .filter(r => r.coaching_complete === true)
+      .map(r => projectCore(r, r.id === coreResume?.id ? thumbnailUrl : null));
     
     // Format resume versions data (tier-specific)
     const resumeVersionsData = versions?.map(v => ({
@@ -436,6 +450,7 @@ export async function GET(req) {
         jms_count: profile.jms_count ?? 0
       },
       coreResume: coreResumeData,
+      coreResumes: allCoreData,
       resumeVersions: resumeVersionsData,
       coverLetters: coverLetters || [],
       profileLenses: profileLenses || [],
