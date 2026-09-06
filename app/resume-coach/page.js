@@ -485,6 +485,9 @@ export default function MyResumesPage() {
   // Escape unmounts the input, and removing a focused element fires blur in
   // some browsers. This tells the blur handler the edit was abandoned.
   const cancelLensRenameRef = useRef(false);
+  const [buildLens, setBuildLens] = useState(null);
+  const [buildingCore, setBuildingCore] = useState(false);
+  const [buildCoreError, setBuildCoreError] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [retryCount, setRetryCount] = useState(1);
   const [uploading, setUploading] = useState(false);
@@ -609,6 +612,31 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       window.history.replaceState({}, '', '/resume-coach');
     }
   }, []);
+
+  async function startLensCore(lens) {
+    if (buildingCore) return;
+    setBuildingCore(true);
+    setBuildCoreError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { resumeId } = await fetchJSON('/api/profile-lenses/build-core', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ lensId: lens.id })
+      });
+      if (!resumeId) throw new Error('No resume returned');
+      // The modal stays up through the navigation rather than flashing the hub
+      // on the way out.
+      router.push(`/resume/${resumeId}`);
+    } catch (err) {
+      console.error('Build lens core failed:', err);
+      setBuildCoreError("We couldn't start this core resume. Please try again.");
+      setBuildingCore(false);
+    }
+  }
 
   async function commitLensRename(lens) {
     if (cancelLensRenameRef.current) {
@@ -1992,8 +2020,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             key={lens.id}
                             role="button"
                             tabIndex={0}
-                            onClick={() => { if (!isEditing && !isPro) setShowUpgradeModal(true); }}
-                            title={isEditing ? undefined : (isPro ? 'Coming soon' : 'Upgrade to Pro to build this core')}
+                            onClick={() => { if (isEditing) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
+                            title={isEditing ? undefined : (isPro ? `Build your ${lens.name} core resume` : 'Upgrade to Pro to build this core')}
                             className={`group flex items-center gap-2 px-3 py-2 rounded-lg border bg-white transition-colors flex-1 min-w-0 text-left ${failed ? 'border-red-300' : 'border-purple-300 hover:bg-purple-50 hover:border-purple-400'}`}
                           >
                             <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3206,6 +3234,67 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       )}
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+
+      {buildLens && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(15, 10, 30, 0.75)' }}
+          onMouseDown={(e) => { e.currentTarget.dataset.downTarget = e.target === e.currentTarget ? 'backdrop' : 'inside'; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && e.currentTarget.dataset.downTarget === 'backdrop' && !buildingCore) { setBuildLens(null); } }}
+        >
+          <div
+            className="bg-white shadow-2xl flex flex-col"
+            style={{ borderRadius: '8px', border: '1px solid #e5e7eb', width: '364px' }}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            <div
+              style={{ background: 'linear-gradient(to bottom right, #667eea, #764ba2)', borderRadius: '8px 8px 0 0' }}
+              className="px-5 py-4 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚡</span>
+                <h2 className="text-base font-bold text-white">Build your {buildLens.name} core resume</h2>
+              </div>
+              <button
+                onClick={() => { if (!buildingCore) setBuildLens(null); }}
+                className="text-white hover:text-gray-200 text-2xl leading-none font-light"
+              >×</button>
+            </div>
+
+            <div className="p-5">
+              {buildLens.evidence_summary && (
+                <p className="text-sm md:text-xs text-gray-700 leading-snug mb-3">{buildLens.evidence_summary}</p>
+              )}
+              <p className="text-sm md:text-xs text-gray-600 leading-snug mb-4">
+                This core keeps your experience but reframes it for {buildLens.name} roles. Different emphasis, different story, same truth. You&apos;ll coach it with me briefly, then it&apos;s ready to use for any job in this direction.
+              </p>
+
+              {buildCoreError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-red-700">{buildCoreError}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { if (!buildingCore) setBuildLens(null); }}
+                  disabled={buildingCore}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 disabled:opacity-50"
+                >Cancel</button>
+                <button
+                  onClick={() => startLensCore(buildLens)}
+                  disabled={buildingCore}
+                  className="text-white rounded-lg px-4 py-2 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
+                  style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                >
+                  {buildingCore && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>}
+                  {buildingCore ? 'Starting...' : 'Start Coaching'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <UpgradeModal
         isOpen={showUpgradeModal}

@@ -274,13 +274,15 @@ export async function GET(req) {
     
     const userTier = profile?.subscription_tier || 'free';
     
-    // Get core resume
+    // Get core resume. The flagged priority core wins; without one the newest
+    // still does, which is how this behaved before lens cores existed.
     const { data: coreResumes, error: resumeError } = await supabase
       .from('resumes')
       .select('*')
       .eq('user_id', user.id)
       .eq('resume_type', 'core')
       .eq('is_active', true)
+      .order('is_priority_core', { ascending: false })
       .order('created_at', { ascending: false });
     
     if (resumeError) {

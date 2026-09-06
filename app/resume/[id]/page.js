@@ -2361,6 +2361,9 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
   const missingCount = jobAnalysis.missingCount ?? jobAnalysis.missingKeywords?.length ?? 0
 
   const isConversational = resume?.created_via === 'resume_chat'
+  // A lens core is coached from a clone, so it has no before-score to reveal.
+  // Improve takes the same branch the conversational build does for that reason.
+  const isLensCore = resume?.created_via === 'lens_core'
   const skippedCoaching = isJobSpecific && resume?.coaching_complete === true && (!resume?.coaching_conversation || resume.coaching_conversation.length === 0)
   const steps = isJobSpecific
     ? (userTier === 'free'
@@ -2999,6 +3002,7 @@ function RightPanel({ journeyStep, score, analysisResults, filteredAnalysisResul
           rewrittenResume={rewrittenResume}
           resumeChanges={resumeChanges}
           isConversational={isConversational}
+          isLensCore={isLensCore}
           setRewrittenResume={setRewrittenResume}
           setResumeChanges={setResumeChanges}
           originalResumeData={resumeData}
@@ -4083,7 +4087,7 @@ const getMessageText = (msg) => {
 // ─────────────────────────────────────────────
 // IMPROVE STEP
 // ─────────────────────────────────────────────
-function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
+function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, isLensCore = false, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -4153,7 +4157,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
   }
 
  // ── CONVERSATIONAL IMPROVE PATH ──
-  if (isConversational) {
+  if (isConversational || isLensCore) {
     if (changesAccepted) {
       return (
         <div className="space-y-3">
