@@ -3515,6 +3515,7 @@ export async function POST(request) {
 
     // ── JOB-SPECIFIC REWRITE PATH ──
     if (isJobSpecific && jobDescription) {
+      console.time('js-coach-finish-total')
       const jsRewritePrompt = buildJobSpecificRewritePrompt({
         resumeData,
         conversation,
@@ -3531,6 +3532,7 @@ export async function POST(request) {
         knowledgeMatches: knowledgeMatches || []
       })
 
+      console.time('js-rewrite')
       const rewriteMessage = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
@@ -3542,6 +3544,7 @@ export async function POST(request) {
           ]
         }]
       })
+      console.timeEnd('js-rewrite')
 
       let cleanedRewrite = rewriteMessage.content[0].text.trim()
       if (cleanedRewrite.startsWith('```')) {
@@ -3570,6 +3573,7 @@ export async function POST(request) {
       })
       const jsChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
 
+      console.time('js-summary-changes')
       const [jsSummaryMessage, jsChangesMessage] = await Promise.all([
         anthropic.messages.create({
           model: 'claude-sonnet-4-6',
@@ -3582,6 +3586,7 @@ export async function POST(request) {
           messages: [{ role: 'user', content: jsChangesPrompt }]
         })
       ])
+      console.timeEnd('js-summary-changes')
 
       rewrittenResume.summary = jsSummaryMessage.content[0].text.trim().replace(/—/g, ', ')
 
@@ -3638,6 +3643,7 @@ export async function POST(request) {
         )
       }
 
+      console.timeEnd('js-coach-finish-total')
       return NextResponse.json({ rewrittenResume, changes, detectedLevel: level })
     }
 
