@@ -1113,8 +1113,9 @@ if (data.ai_analysis) {
 
   // Breadcrumb dropdown targets. A job-specific resume points at the user's other
   // job-specific resumes and at this job's cover letter. A core resume points at
-  // the user's other cores, so a lens core and the one it was cloned from can
-  // switch between each other without a trip back to the hub.
+  // the user's other finished cores, so a lens core and the one it was cloned from
+  // can switch between each other without a trip back to the hub. A core still being
+  // coached is not a destination yet, so it stays out of the list.
   async function loadBreadcrumbLinks(resumeRow, userId) {
     try {
       if (resumeRow?.resume_type === 'core') {
@@ -1124,6 +1125,7 @@ if (data.ai_analysis) {
           .eq('user_id', userId)
           .eq('resume_type', 'core')
           .eq('is_active', true)
+          .eq('coaching_complete', true)
           .order('is_priority_core', { ascending: false })
           .order('created_at', { ascending: true })
 
