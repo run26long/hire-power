@@ -3568,6 +3568,34 @@ export async function POST(request) {
     const coreChangesPrompt = buildChangesPrompt(resumeData, rewrittenResume)
     const coreConvText = (conversation || []).map(m => typeof m.content === 'string' ? m.content : '').join(' ')
 
+    // ── LENS CORE ──
+    // A lens core tells the same history through a direction the user already
+    // picked, so its conversation is not evidence of where their career is headed.
+    // Extracting from it would overwrite the target and current_lens_name their
+    // original core established, and mine a fresh set of suggestions off every
+    // session. created_via is not in the request body, so the row is read for it.
+    let isLensCore = false
+    if (authenticatedUserId && resumeId) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseRead = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: coreRow, error: coreRowError } = await supabaseRead
+        .from('resumes')
+        .select('created_via')
+        .eq('id', resumeId)
+        .eq('user_id', authenticatedUserId)
+        .maybeSingle()
+
+      if (coreRowError) {
+        // An unreadable row is an unknown one, and overwriting a career direction
+        // on a guess is the more expensive mistake. A normal core loses one round
+        // of suggestions; a lens core would lose the direction it was built from.
+        console.error('Lens core check failed, skipping career extraction:', coreRowError)
+        isLensCore = true
+      } else {
+        isLensCore = coreRow?.created_via === 'lens_core'
+      }
+    }
+
     const [coreSummaryMessage, coreChangesMessage, coreContextMsg] = await Promise.all([
       anthropic.messages.create({
         model: 'claude-sonnet-4-6',
@@ -3579,7 +3607,7 @@ export async function POST(request) {
         max_tokens: 4000,
         messages: [{ role: 'user', content: coreChangesPrompt }]
       }),
-      authenticatedUserId
+      authenticatedUserId && !isLensCore
         ? anthropic.messages.create({
             model: 'claude-sonnet-4-6',
             max_tokens: 800,
@@ -3644,8 +3672,9 @@ export async function POST(request) {
     // ── BACKGROUND: experience level fallback (core resume path) ──
     // Only when the extraction above did not run or failed: that write already
     // carries experience_level, and this would overwrite it with a weaker guess.
+    // Skipped for a lens core as well, since it writes to career_context too.
     // Non-critical, so it never blocks the response.
-    if (authenticatedUserId && !wroteCareerContext) {
+    if (authenticatedUserId && !wroteCareerContext && !isLensCore) {
       waitUntil(
         resolveExperienceLevel({ detectedLevel, conversation, resumeData })
           .then(coreLevel => saveExperienceLevel(authenticatedUserId, coreLevel))
