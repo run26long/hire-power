@@ -48,6 +48,52 @@ All three keys must be present. Use an empty array for any category with no item
 
 Return ONLY the JSON object. No preamble, no markdown code fences, no explanation.`
 
+// Static prefix for the resume-only action. Here the uploaded resume is the
+// source rather than the exclusion filter it is during a coaching extraction,
+// so the instructions cannot be shared. Same output shape and same eight
+// types, so everything downstream parses it identically.
+const RESUME_EXTRACTION_INSTRUCTIONS = `Extract every discrete career fact, skill, experience, achievement, client relationship, tool proficiency, certification, or methodology stated on the candidate's resume.
+
+You will be given the candidate's EXISTING KNOWLEDGE BASE and the RESUME DATA. The resume is the source to extract from, not a list of things to skip.
+
+For every fact on the resume, first check whether it already appears in the EXISTING KNOWLEDGE BASE. Judge by meaning, not by wording. The same experience described in different words is a match, not a new item.
+
+If it is a match, return it under "matches" with the id of the existing item and the resume's phrasing.
+
+For "improved_content": if the existing content statement could be worded more clearly, return the improved version. Otherwise return null.
+
+An improvement may ONLY change wording. It may not add information, remove information, broaden the fact, or narrow the fact. The improved version must state exactly the same fact as the original, no more and no less. If the resume states information the existing item does not, that is NOT an improvement. It is a conflict.
+
+If a fact overlaps an existing item but states something materially different, contradictory scope, different numbers, different dates, or additional detail that changes the fact, return it under "conflicts" with the id of the existing item and a short conflict_reason.
+
+If a fact does not appear in the knowledge base at all, return it under "new".
+
+Extract only what the resume actually states. Do not infer skills the candidate might have, do not expand a job title into the duties it usually implies, and do not add tools or methodologies a role normally involves. If it is not written on the resume, it does not exist.
+
+FIELD DEFINITIONS
+- knowledge_type: one of skill, experience, achievement, relationship, credential, tool, industry, methodology
+- content: a structured, factual, self-contained statement written in third person without pronouns. Use plain English descriptions of what the resume actually says. Do not use field-standard terminology, technical labels, or vocabulary from your training that the resume did not use itself. The content must reflect the candidate's own language, not the model's. Example: "Managed GSA Schedule 70 contracts for federal IT procurement"
+- raw_phrasing: the resume's own wording for this item, verbatim or near verbatim
+- confidence: always return "explicit". The caller sets the stored confidence itself.
+- id: the id shown in the EXISTING KNOWLEDGE BASE for the item being matched or conflicted. Copy it exactly. Never invent an id.
+- improved_content: a wording-only rewrite of the existing content statement, or null. Apply the same vocabulary rule as content.
+- conflict_reason: one short sentence naming exactly what differs
+
+Do not extract plans, intentions, or objectives. A summary or objective line describing what the candidate is looking for is not a fact about what they have done. Only extract things the resume says they have actually done, built, used, or held.
+
+OUTPUT SHAPE
+Return exactly this JSON object:
+
+{
+  "new": [ { "knowledge_type": "...", "content": "...", "raw_phrasing": "...", "confidence": "..." } ],
+  "matches": [ { "id": "...", "raw_phrasing": "...", "confidence": "...", "improved_content": null } ],
+  "conflicts": [ { "id": "...", "knowledge_type": "...", "content": "...", "raw_phrasing": "...", "confidence": "...", "conflict_reason": "..." } ]
+}
+
+All three keys must be present. Use an empty array for any category with no items.
+
+Return ONLY the JSON object. No preamble, no markdown code fences, no explanation.`
+
 // Static prefix for the match action. The missing-keyword list is the only part
 // that varies per call, so it is sent last and everything above it stays cacheable.
 const MATCH_INSTRUCTIONS = `You are matching a candidate's existing career knowledge against gaps identified in a job match analysis.
@@ -296,7 +342,7 @@ If nothing is covered, return [].`
 
 // Shared by "new" and "conflicts" — both carry a full item payload and both are
 // written as rows, so both need the same per-row validation.
-function validateItem(item, label) {
+function validateItem(item, label, resumeMode = false) {
   const content = typeof item?.content === 'string' ? item.content.trim() : ''
   if (!content) {
     console.log(`[career-knowledge] SKIPPED (${label}) — missing or empty content. Item:`, JSON.stringify(item))
@@ -313,9 +359,17 @@ function validateItem(item, label) {
     console.log(`[career-knowledge] SKIPPED (${label}) — invalid knowledge_type:`, JSON.stringify(item?.knowledge_type ?? null), '| Content:', content)
     return null
   }
-  const confidence = (item?.confidence === 'explicit' || item?.confidence === 'inferred') ? item.confidence : 'inferred'
-  if (confidence !== item?.confidence) {
-    console.log(`[career-knowledge] Defaulted invalid confidence to inferred. Received:`, JSON.stringify(item?.confidence ?? null), '| Content:', content)
+  // A resume-sourced row does not take the model's word for confidence. A skill
+  // printed on a resume is stated outright; everything else is the resume's own
+  // claim about itself and stays inferred until the candidate says it out loud.
+  let confidence
+  if (resumeMode) {
+    confidence = item.knowledge_type === 'skill' ? 'explicit' : 'inferred'
+  } else {
+    confidence = (item?.confidence === 'explicit' || item?.confidence === 'inferred') ? item.confidence : 'inferred'
+    if (confidence !== item?.confidence) {
+      console.log(`[career-knowledge] Defaulted invalid confidence to inferred. Received:`, JSON.stringify(item?.confidence ?? null), '| Content:', content)
+    }
   }
   return {
     content_key: contentKey,
@@ -353,14 +407,22 @@ export async function POST(request) {
       }
     }
 
-    if (action !== 'extract') {
+    const isResumeMode = action === 'extract_resume'
+
+    if (action !== 'extract' && !isResumeMode) {
       console.error('[career-knowledge] Unknown action:', action)
       return NextResponse.json(noop)
     }
 
-    const transcriptText = normalizeTranscript(transcript)
-    if (!transcriptText.trim()) {
+    // Resume mode has no transcript by definition: the resume is the source. Every
+    // other mode needs one, and without it there is nothing to read.
+    const transcriptText = isResumeMode ? '' : normalizeTranscript(transcript)
+    if (!isResumeMode && !transcriptText.trim()) {
       console.error('[career-knowledge] No transcript provided, nothing to extract')
+      return NextResponse.json(noop)
+    }
+    if (isResumeMode && !resumeData) {
+      console.error('[career-knowledge] No resumeData provided, nothing to extract')
       return NextResponse.json(noop)
     }
 
@@ -397,11 +459,16 @@ export async function POST(request) {
             // Two cache breakpoints: the instructions never change, and the
             // knowledge base only changes when rows are added, so a session
             // that adds nothing new replays both prefixes from cache.
-            { type: 'text', text: EXTRACTION_INSTRUCTIONS, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: isResumeMode ? RESUME_EXTRACTION_INSTRUCTIONS : EXTRACTION_INSTRUCTIONS, cache_control: { type: 'ephemeral' } },
             { type: 'text', text: buildKnowledgeBaseBlock(knowledgeBase), cache_control: { type: 'ephemeral' } },
             {
               type: 'text',
-              text: `RESUME DATA ALREADY ON FILE (do not extract anything already represented here):
+              text: isResumeMode
+                ? `RESUME DATA (extract from this):
+${JSON.stringify(resumeData ?? null)}
+
+Return the JSON object now.`
+                : `RESUME DATA ALREADY ON FILE (do not extract anything already represented here):
 ${JSON.stringify(resumeData ?? null)}
 
 COACHING CONVERSATION TRANSCRIPT:
@@ -454,7 +521,7 @@ Return the JSON object now.`
     const byKey = new Map()
     const promotedToMatches = []
     for (const item of newRaw) {
-      const validated = validateItem(item, 'new')
+      const validated = validateItem(item, 'new', isResumeMode)
       if (!validated) continue
       // Safety net under the semantic pass: an exact key collision would be
       // swallowed by ignoreDuplicates and lose the mention bump.
@@ -481,7 +548,7 @@ Return the JSON object now.`
         console.log('[career-knowledge] SKIPPED (conflict) — unknown id:', JSON.stringify(item?.id ?? null))
         continue
       }
-      const validated = validateItem(item, 'conflict')
+      const validated = validateItem(item, 'conflict', isResumeMode)
       if (!validated) continue
       const reason = typeof item?.conflict_reason === 'string' ? item.conflict_reason : null
       console.log(
@@ -506,6 +573,7 @@ Return the JSON object now.`
     if (items.length > 0) {
       const rows = items.map(i => ({
         user_id: user.id,
+        source_type: isResumeMode ? 'uploaded_resume' : 'conversation',
         resume_id: resumeId || null,
         knowledge_type: i.knowledge_type,
         content: i.content,
@@ -570,7 +638,9 @@ Return the JSON object now.`
         console.log('[career-knowledge] SKIPPED (match) — unknown id:', JSON.stringify(item?.id ?? null))
         continue
       }
-      const confidence = (item?.confidence === 'explicit' || item?.confidence === 'inferred') ? item.confidence : 'inferred'
+      const confidence = isResumeMode
+        ? (existing.knowledge_type === 'skill' ? 'explicit' : 'inferred')
+        : ((item?.confidence === 'explicit' || item?.confidence === 'inferred') ? item.confidence : 'inferred')
 
       let improvedContent = typeof item?.improved_content === 'string' ? item.improved_content.trim() : ''
       if (improvedContent && improvedContent === existing.content) improvedContent = ''
@@ -647,6 +717,7 @@ Return the JSON object now.`
       const row = {
         user_id: user.id,
         resume_id: resumeId || null,
+        source_type: isResumeMode ? 'uploaded_resume' : 'conversation',
         knowledge_type: entry.item.knowledge_type,
         content: entry.item.content,
         content_key: entry.item.content_key,
