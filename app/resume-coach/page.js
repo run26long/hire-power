@@ -2023,7 +2023,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div className="min-w-0">
-                            <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{data.currentLensName || 'Your Core Resume'}</div>
+                            <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{data.coreResume.display_name || 'Your Core Resume'}</div>
                             <div className="text-xs md:text-[10px] text-purple-600">{selectedCore?.id === data.coreResume.id ? 'Current core' : 'Switch to this core'}</div>
                           </div>
                         </div>
