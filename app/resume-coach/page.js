@@ -2015,7 +2015,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   {hasLensCard && (
                     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 md:h-[92px] ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
                       <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col md:flex-row gap-2">
 
                         {/* The core the route opens with. Selecting a tile swaps the
                             card above rather than navigating, so this one is a tab
@@ -2062,7 +2062,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           const failed = lensRenameError === lens.id;
                           // Dashed and greyed: a suggestion is an offer, not a core. Only
                           // the sub-label carries colour, so it reads as the call to action.
-                          // Hover fills the tile in to show it is live.
+                          // Hover fills the tile in for a Pro user, who can actually build
+                          // it. For a free user it stays grey: the click opens the upgrade
+                          // modal, and a tile that lights up would promise otherwise.
                           return (
                           <div
                             key={lens.id}
@@ -2070,9 +2072,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             tabIndex={0}
                             onClick={() => { if (isEditing) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
                             title={isEditing ? undefined : (isPro ? `Build your ${lens.name} core resume` : 'Upgrade to Pro to build this core')}
-                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left ${failed ? 'border-red-300 bg-white' : 'border-gray-300 bg-gray-50 hover:border-solid hover:border-purple-400 hover:bg-purple-50'}`}
+                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left cursor-pointer ${failed ? 'border-red-300 bg-white' : `border-gray-300 bg-gray-50 ${isPro ? 'hover:border-solid hover:border-purple-400 hover:bg-purple-50' : ''}`}`}
                           >
-                            <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className={`w-5 h-5 text-gray-400 transition-colors flex-shrink-0 ${isPro ? 'group-hover:text-purple-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <div className="min-w-0 flex-1">
