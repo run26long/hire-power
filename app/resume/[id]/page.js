@@ -5285,6 +5285,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
             _remainingGaps: remainingGaps,
             _baseScore: score
           },
+          resumeId: params.id,
           conversation: targetedMessages,
           detectedLevel,
           isTargetedEnhancement: isConversationalFix ? false : true,
