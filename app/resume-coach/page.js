@@ -479,6 +479,12 @@ export default function MyResumesPage() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [editingLensId, setEditingLensId] = useState(null);
+  const [editingLensName, setEditingLensName] = useState('');
+  const [lensRenameError, setLensRenameError] = useState(null);
+  // Escape unmounts the input, and removing a focused element fires blur in
+  // some browsers. This tells the blur handler the edit was abandoned.
+  const cancelLensRenameRef = useRef(false);
   const [loadError, setLoadError] = useState(null);
   const [retryCount, setRetryCount] = useState(1);
   const [uploading, setUploading] = useState(false);
@@ -603,6 +609,55 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       window.history.replaceState({}, '', '/resume-coach');
     }
   }, []);
+
+  async function commitLensRename(lens) {
+    if (cancelLensRenameRef.current) {
+      cancelLensRenameRef.current = false;
+      return;
+    }
+    const nextName = editingLensName.trim();
+    setEditingLensId(null);
+    if (!nextName || nextName === lens.name) return;
+
+    const previousName = lens.name;
+    setLensRenameError(null);
+
+    // Optimistic: the tile carries the new name while the request is in flight,
+    // and goes back to the old one if it does not land.
+    setData(prev => prev ? {
+      ...prev,
+      suggestedLenses: (prev.suggestedLenses || []).map(l => l.id === lens.id ? { ...l, name: nextName } : l)
+    } : prev);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/profile-lenses/rename', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ lensId: lens.id, newName: nextName })
+      });
+      if (!res.ok) throw new Error('Rename failed');
+
+      // The server owns the slug, so take its row rather than assuming.
+      const { lens: saved } = await res.json();
+      if (saved) {
+        setData(prev => prev ? {
+          ...prev,
+          suggestedLenses: (prev.suggestedLenses || []).map(l => l.id === saved.id ? { ...l, ...saved } : l)
+        } : prev);
+      }
+    } catch (err) {
+      console.error('Lens rename failed:', err);
+      setData(prev => prev ? {
+        ...prev,
+        suggestedLenses: (prev.suggestedLenses || []).map(l => l.id === lens.id ? { ...l, name: previousName } : l)
+      } : prev);
+      setLensRenameError(lens.id);
+    }
+  }
 
   async function loadData() {
     try {
@@ -1929,22 +1984,58 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           </div>
                         </div>
 
-                        {suggestedLenses.map((lens) => (
-                          <button
+                        {suggestedLenses.map((lens) => {
+                          const isEditing = editingLensId === lens.id;
+                          const failed = lensRenameError === lens.id;
+                          return (
+                          <div
                             key={lens.id}
-                            onClick={() => { if (!isPro) setShowUpgradeModal(true); }}
-                            title={isPro ? 'Coming soon' : 'Upgrade to Pro to build this core'}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 bg-white hover:bg-purple-50 hover:border-purple-400 transition-colors flex-1 min-w-0 text-left"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => { if (!isEditing && !isPro) setShowUpgradeModal(true); }}
+                            title={isEditing ? undefined : (isPro ? 'Coming soon' : 'Upgrade to Pro to build this core')}
+                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg border bg-white transition-colors flex-1 min-w-0 text-left ${failed ? 'border-red-300' : 'border-purple-300 hover:bg-purple-50 hover:border-purple-400'}`}
                           >
                             <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <div className="min-w-0">
-                              <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
-                              <div className="text-xs md:text-[10px] text-purple-600">Build this core</div>
+                            <div className="min-w-0 flex-1">
+                              {isEditing ? (
+                                <input
+                                  autoFocus
+                                  value={editingLensName}
+                                  maxLength={40}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => setEditingLensName(e.target.value)}
+                                  onBlur={() => commitLensRename(lens)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+                                    if (e.key === 'Escape') { e.preventDefault(); cancelLensRenameRef.current = true; setEditingLensId(null); }
+                                  }}
+                                  className="w-full text-sm md:text-xs font-semibold text-gray-900 bg-white border border-purple-300 rounded px-1 focus:outline-none focus:border-purple-500"
+                                />
+                              ) : (
+                                <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
+                              )}
+                              <div className={`text-xs md:text-[10px] ${failed ? 'text-red-500' : 'text-purple-600'}`}>
+                                {failed ? "Couldn't rename" : 'Build this core'}
+                              </div>
                             </div>
-                          </button>
-                        ))}
+                            {!isEditing && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setLensRenameError(null); setEditingLensName(lens.name); setEditingLensId(lens.id); }}
+                                title="Rename"
+                                className="flex-shrink-0 text-gray-400 hover:text-purple-600 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                          );
+                        })}
 
                       </div>
                     </div>
