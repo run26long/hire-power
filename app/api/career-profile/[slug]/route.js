@@ -23,10 +23,14 @@ function isMissingColumnError(error) {
   return error.code === '42703' || error.code === 'PGRST204'
 }
 
+// The page shows three directions at most, the same ceiling the hub selector
+// card uses.
+const LENS_DISPLAY_LIMIT = 3
+
 const PROFILE_BASE = 'id, user_id, slug'
 const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type`
 
-const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id'
+const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
 const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags`
 
 export async function GET(request, { params }) {
@@ -119,7 +123,22 @@ export async function GET(request, { params }) {
       return Response.json({ error: 'PROFILE_LOAD_FAILED' }, { status: 500 })
     }
 
-    const visibleLenses = lenses || []
+    // A built core outranks a suggestion, because it is a direction the person
+    // has actually committed to. Within a status the profile keeps the order the
+    // hub gave it. Anything past the third is not shown.
+    const orderRank = (lens) => (lens?.status === 'active' ? 0 : 1)
+    const sortWeight = (lens) => (Number.isFinite(lens?.sort_order) ? lens.sort_order : Number.MAX_SAFE_INTEGER)
+
+    const visibleLenses = (lenses || [])
+      .slice()
+      .sort((a, b) => {
+        const byStatus = orderRank(a) - orderRank(b)
+        if (byStatus !== 0) return byStatus
+        const byOrder = sortWeight(a) - sortWeight(b)
+        if (byOrder !== 0) return byOrder
+        return String(a.created_at || '').localeCompare(String(b.created_at || ''))
+      })
+      .slice(0, LENS_DISPLAY_LIMIT)
 
     // ---- LENS RESUMES ----
     // One query for all of them rather than one per lens.
