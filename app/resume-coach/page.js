@@ -1837,7 +1837,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                     </div>
                     {/* Progress Bar */}
-                    <div data-tour="progress" className={hasLensCard ? 'mb-3' : 'mb-4'}>
+                    <div data-tour="progress" className={hasLensCard ? 'mb-4' : 'mb-4'}>
                       <div className={`text-sm md:text-xs font-semibold text-gray-400 uppercase tracking-wide text-center ${hasLensCard ? 'mb-1' : 'mb-2'}`}>Progress</div>
                       <div className="relative max-w-2xl mx-auto">
                         <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200">
