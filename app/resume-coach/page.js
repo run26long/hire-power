@@ -2093,7 +2093,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                   className="w-full text-sm md:text-xs font-semibold text-gray-900 bg-white border border-purple-300 rounded px-1 focus:outline-none focus:border-purple-500"
                                 />
                               ) : (
-                                <div className="text-sm md:text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors truncate">{lens.name}</div>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="text-sm md:text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors truncate">{lens.name}</div>
+                                  {/* Same badge MainNav uses, so "Pro" reads the same
+                                      everywhere. Only here: a built core is already
+                                      theirs, and this tile is the one thing on the row
+                                      a free account cannot have. */}
+                                  {!isPro && (
+                                    <span className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full flex-shrink-0">PRO</span>
+                                  )}
+                                </div>
                               )}
                               <div className={`text-xs md:text-[10px] ${failed ? 'text-red-500' : 'text-purple-600'}`}>
                                 {failed ? "Couldn't rename" : 'Build this core'}
