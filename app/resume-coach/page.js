@@ -1550,7 +1550,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <h2 className="text-lg font-semibold text-gray-900">{hasLensCard && data.currentLensName ? `${data.currentLensName} Core Resume` : 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
                     </div>
-                    <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
+                    {!hasLensCard && (
+                      <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
+                    )}
                     
                     {/* Mobile: 3 action buttons */}
                     <div className="flex md:hidden gap-2 mb-4">
@@ -1589,7 +1591,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           >
                             <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200" style={{ aspectRatio: '8.5/11' }}>
                               {data.coreResume.resume_data ? (
-                                <div style={{ transform: 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: 0 }}>
+                                <div style={{ transform: hasLensCard ? 'scale(0.165)' : 'scale(0.22)', transformOrigin: 'top left', width: '816px', pointerEvents: 'none', position: 'absolute', top: 0, left: 0 }}>
                                   <ResumeContent
                                     resumeData={data.coreResume.resume_data}
                                     onUpdate={() => {}}
@@ -1688,7 +1690,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       </div>
                       
                       {/* Right: Score Section (65%) */}
-                      <div data-tour="score" className={`col-span-12 flex flex-col justify-between ${hasLensCard ? 'md:col-span-9 py-1' : 'md:col-span-8 py-3'}`}>
+                      <div data-tour="score" className={`col-span-12 flex flex-col justify-between py-3 ${hasLensCard ? 'md:col-span-9' : 'md:col-span-8'}`}>
                         {/* Giant Score */}
                         <div className="text-center">
                           <div className={hasLensCard ? 'mb-1' : 'mb-3'}>
