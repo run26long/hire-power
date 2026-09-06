@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { apiError } from '@/lib/apiError'
+import { waitUntil } from '@vercel/functions'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -10,11 +11,13 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
+    let authenticatedUserId = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { createClient } = await import('@supabase/supabase-js')
       const authSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       const { data: { user }, error: authError } = await authSupabase.auth.getUser(token)
       if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      authenticatedUserId = user.id
     }
 
     const { parsedText } = await request.json()
@@ -184,6 +187,28 @@ CRITICAL INSTRUCTIONS:
     // Ensure hideSummary exists
     if (extractedData.hideSummary === undefined) {
       extractedData.hideSummary = false
+    }
+
+    // ── BACKGROUND: mine the uploaded resume into career knowledge ──
+    // Runs before any coaching, so experience the rewrite later drops is already
+    // kept. Never blocks the upload: a failure here costs the user nothing they
+    // can see. Skipped when invoked via INTERNAL_API_SECRET — no user token to
+    // forward. The resumes row does not exist yet, so resumeId is null.
+    if (authenticatedUserId) {
+      waitUntil(
+        fetch(new URL('/api/career-knowledge', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({
+            action: 'extract_resume',
+            resumeId: null,
+            resumeData: extractedData
+          })
+        }).catch(e => console.error('[career-knowledge] Resume extraction failed (non-fatal):', e))
+      )
     }
 
     return Response.json({ data: extractedData })
