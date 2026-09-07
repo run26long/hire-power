@@ -15,8 +15,8 @@ import { createClient } from '@/utils/supabase/client'
 
 const CROSSFADE_MS = 300
 const SWIPE_THRESHOLD_PX = 40
-// 0.3s up + 0.15s held + 0.3s back. Must match the lensZoom keyframe.
-const LENS_ZOOM_MS = 750
+// 0.385s up + 0.22s held + 0.495s back. Must match the lensZoom keyframe.
+const LENS_ZOOM_MS = 1100
 
 // Rank at rest is size and colour: the chosen lens sits at 1.3, its neighbours
 // at 1.0 and the rest at 0.85, and the transition on .cp-lens carries them
@@ -219,21 +219,23 @@ const PAGE_CSS = `
   max-width: none;
   transform-origin: center center;
   will-change: transform;
-  transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
-              color 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
-              text-shadow 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
-              opacity 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+              color 0.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+              text-shadow 0.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+              opacity 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* The focus pull: a lens swells as it is chosen and settles back. Timed to
-   LENS_ZOOM_MS - 0.3s out, 0.15s held, 0.3s back. */
+/* The focus pull: a lens swells past its resting size as it is chosen and
+   settles onto it. Timed to LENS_ZOOM_MS - 0.385s out, 0.22s held, 0.495s
+   back. The easing overshoots on purpose, so the settle carries a little
+   spring rather than arriving flat. */
 @keyframes lensZoom {
   0%   { transform: scale(1); }
-  40%  { transform: scale(1.8); }
-  60%  { transform: scale(1.8); }
+  35%  { transform: scale(2); }
+  55%  { transform: scale(2); }
   100% { transform: scale(1.3); }
 }
-.cp-lens-zoom { animation: lensZoom 750ms cubic-bezier(0.25, 0.1, 0.25, 1); }
+.cp-lens-zoom { animation: lensZoom 1100ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 /* The light that blooms behind the name as it is chosen. Centred on margins
    rather than a translate, the way .cp-spotlight is, so lensBurst owns the
@@ -259,7 +261,7 @@ const PAGE_CSS = `
   60%  { transform: scale(2.5); opacity: 0.1; }
   100% { transform: scale(4); opacity: 0; }
 }
-.cp-lens-burst { animation: lensBurst 750ms cubic-bezier(0.25, 0.1, 0.25, 1); }
+.cp-lens-burst { animation: lensBurst 1100ms cubic-bezier(0.25, 0.1, 0.25, 1); }
 
 /* The name rides above the burst. */
 .cp-lens-label { position: relative; z-index: 1; }
@@ -490,7 +492,7 @@ export default function CareerProfilePage() {
         <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4" style={{ padding: '24px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/hp-logo-white.png"
+            src="/images/hire-power-logo-white-v2.png"
             alt="Hire Power"
             className="cp-logo flex-shrink-0"
           />
@@ -520,7 +522,7 @@ export default function CareerProfilePage() {
             <div className="cp-spotlight" aria-hidden="true" />
             <div
               ref={viewportRef}
-              className="relative z-10 h-[72px] w-full select-none overflow-hidden"
+              className="relative z-10 h-[100px] w-full select-none overflow-hidden"
               onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
               onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
               onMouseDown={(e) => onDragStart(e.clientX)}
