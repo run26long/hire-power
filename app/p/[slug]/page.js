@@ -16,26 +16,24 @@ import { createClient } from '@/utils/supabase/client'
 const CROSSFADE_MS = 300
 const SWIPE_THRESHOLD_PX = 40
 
-// Size and weight by distance from the spotlight. Font size is deliberately not
-// transitioned: it changes layout, and the carousel measures that layout to
-// centre itself. Animating it would mean measuring a width that is still moving.
+// Every name renders at the same font size and is scaled instead. Font size
+// changes layout, which the carousel has to measure to centre itself; a
+// transform does not, so the row stays measurable while the zoom animates and
+// the whole thing runs on the compositor.
 function lensStyleForDistance(distance) {
   const abs = Math.abs(distance)
   if (abs === 0) {
     return {
-      fontSize: '22px',
-      fontWeight: 500,
+      transform: 'scale(1.5)',
       color: '#fff',
       opacity: 1,
-      padding: '0 20px',
-      textShadow: '0 0 24px rgba(155, 133, 216, 0.45)',
-      letterSpacing: '0.01em'
+      textShadow: '0 0 24px rgba(155, 133, 216, 0.45)'
     }
   }
   if (abs === 1) {
-    return { fontSize: '13px', fontWeight: 400, color: 'var(--cp-text-faint)', opacity: 1, padding: '0 16px', letterSpacing: '0.04em' }
+    return { transform: 'scale(1)', color: 'var(--cp-text-faint)', opacity: 1 }
   }
-  return { fontSize: '11px', fontWeight: 400, color: 'var(--cp-border-accent)', opacity: 1, padding: '0 14px', letterSpacing: '0.04em' }
+  return { transform: 'scale(0.8)', color: 'var(--cp-border-accent)', opacity: 1 }
 }
 
 function initialsFrom(name) {
@@ -119,9 +117,12 @@ const PAGE_CSS = `
   50%      { opacity: 1; }
 }
 
-/* The hero clips its own glow and monogram, so neither can bleed into the row
-   of directions below it. */
-.cp-hero { position: relative; overflow: hidden; }
+/* The header clips its own monogram, so the watermark cannot bleed into the
+   row of directions below it. */
+.cp-header { position: relative; overflow: hidden; }
+
+/* The stage the carousel plays on. Clipped so the glow stays inside it. */
+.cp-stage { position: relative; overflow: hidden; }
 
 .cp-spotlight {
   position: absolute;
@@ -144,7 +145,7 @@ const PAGE_CSS = `
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 200px;
+  font-size: 120px;
   font-weight: 500;
   letter-spacing: -6px;
   line-height: 1;
@@ -164,22 +165,16 @@ const PAGE_CSS = `
   position: relative;
   z-index: 1;
   font-weight: 500;
-  letter-spacing: -0.5px;
-  line-height: 1.12;
-  background: linear-gradient(180deg, #ffffff 0%, #d4d0e8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 12px rgba(120, 93, 202, 0.2));
+  letter-spacing: -0.3px;
+  line-height: 1.15;
+  color: #fff;
 }
 
 .cp-headline {
   position: relative;
   z-index: 1;
-  font-size: 15px;
-  color: #9b95b8;
-  text-shadow: 0 0 20px rgba(120, 93, 202, 0.1);
+  font-size: 12px;
+  color: var(--cp-text-muted);
 }
 
 /* The track slides; the items sit in normal flow inside it, so no two names can
@@ -197,9 +192,14 @@ const PAGE_CSS = `
   cursor: pointer;
   white-space: nowrap;
   line-height: 1.2;
-  transition: color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              text-shadow 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0 28px;
+  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+              color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+              text-shadow 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+              opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .cp-fade { transition: opacity ${CROSSFADE_MS}ms ease; }
@@ -410,37 +410,41 @@ export default function CareerProfilePage() {
       <style>{PAGE_CSS}</style>
       <div className="cp-shimmer" />
 
-      {/* ---- HEADER BAR ---- */}
-      <header className="w-full border-b" style={{ borderColor: 'var(--cp-border)' }}>
-        <div className="mx-auto flex max-w-[1100px] items-center justify-between px-5 py-[14px] md:px-6">
+      {/* ---- HEADER: the identity lives here now ---- */}
+      <header className="cp-header w-full border-b" style={{ borderColor: 'var(--cp-border)' }}>
+        <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4" style={{ padding: '20px 24px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/hp-logo-white.png" alt="Hire Power" style={{ height: '40px', width: 'auto' }} />
-          <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
+          <img
+            src="/images/hp-logo-white.png"
+            alt="Hire Power"
+            className="flex-shrink-0"
+            style={{ height: '48px', width: 'auto' }}
+          />
+
+          <div className="min-w-0 flex-1 text-center">
+            <div className="cp-namewrap">
+              <div className="cp-monogram" aria-hidden="true">{initialsFrom(displayName)}</div>
+              <h1 className="cp-name text-[20px] md:text-[32px]">{displayName}</h1>
+              <p className="cp-fade cp-headline mt-0.5" style={{ opacity: fading ? 0 : 1 }}>
+                {headline}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex-shrink-0">
+            <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
+          </div>
         </div>
       </header>
 
-      {/* ---- HERO ---- */}
-      <section className="cp-hero mx-auto max-w-[1100px] px-5 text-center md:px-6" style={{ paddingTop: '56px', paddingBottom: '40px' }}>
-        <div className="cp-spotlight" aria-hidden="true" />
-
-        <div className="cp-namewrap">
-          <div className="cp-monogram" aria-hidden="true">{initialsFrom(displayName)}</div>
-          <h1 className="cp-name text-[32px] md:text-[44px]">{displayName}</h1>
-          <p className="cp-fade cp-headline mt-2" style={{ opacity: fading ? 0 : 1 }}>
-            {headline}
-          </p>
-        </div>
-      </section>
-
-      {/* ---- LENS CAROUSEL ----
-          Full bleed rather than boxed with the hero, so the row of directions
-          reads as spanning the page. */}
+      {/* ---- THE CAROUSEL IS THE HERO ---- */}
       {lenses.length > 0 && (
         hasCarousel ? (
-          <section className="relative w-full pb-9" aria-label="Career directions">
+          <section className="cp-stage w-full" style={{ paddingTop: '48px', paddingBottom: '40px' }} aria-label="Career directions">
+            <div className="cp-spotlight" aria-hidden="true" />
             <div
               ref={viewportRef}
-              className="relative h-[64px] w-full select-none overflow-hidden"
+              className="relative z-10 h-[56px] w-full select-none overflow-hidden"
               onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
               onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
               onMouseDown={(e) => onDragStart(e.clientX)}
@@ -467,14 +471,7 @@ export default function CareerProfilePage() {
               </div>
             </div>
 
-            <div className="flex justify-center">
-              <div
-                className="h-[2px] w-[54px] rounded-full"
-                style={{ background: 'linear-gradient(90deg, transparent, var(--cp-accent-light), transparent)' }}
-              />
-            </div>
-
-            <div className="mt-4 flex justify-center gap-1.5">
+            <div className="relative z-10 mt-6 flex justify-center gap-1.5">
               {lenses.map((lens, index) => (
                 <button
                   key={`dot-${lens.id}`}
@@ -488,16 +485,14 @@ export default function CareerProfilePage() {
             </div>
           </section>
         ) : (
-          <section className="w-full pb-9 text-center">
-            <span style={{ fontSize: '22px', color: '#fff', fontWeight: 500, textShadow: '0 0 24px rgba(155, 133, 216, 0.45)' }}>
+          <section className="cp-stage w-full text-center" style={{ paddingTop: '48px', paddingBottom: '40px' }}>
+            <div className="cp-spotlight" aria-hidden="true" />
+            <span
+              className="relative z-10"
+              style={{ fontSize: '22px', color: '#fff', fontWeight: 500, textShadow: '0 0 24px rgba(155, 133, 216, 0.45)' }}
+            >
               {lenses[0].name}
             </span>
-            <div className="mt-3 flex justify-center">
-              <div
-                className="h-[2px] w-[54px] rounded-full"
-                style={{ background: 'linear-gradient(90deg, transparent, var(--cp-accent-light), transparent)' }}
-              />
-            </div>
           </section>
         )
       )}
@@ -552,7 +547,7 @@ export default function CareerProfilePage() {
                     <button
                       type="button"
                       onClick={() => setBioExpanded(value => !value)}
-                      style={{ fontSize: '11px', fontWeight: 500, color: 'var(--cp-accent-light)', letterSpacing: '0.4px' }}
+                      style={{ fontSize: '11px', fontWeight: 500, color: 'var(--cp-accent)', letterSpacing: '0.4px' }}
                     >
                       {bioExpanded ? 'Read less' : 'Read more'}
                     </button>
@@ -609,7 +604,34 @@ export default function CareerProfilePage() {
           </div>
         </section>
 
-        {/* ---- OPEN TO ---- */}
+        {/* ---- SKILLS ---- */}
+        {skills.length > 0 && (
+          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+            <div className="px-5 py-10 md:px-6">
+              <div style={{ ...sectionLabel, marginBottom: '16px' }}>Skills</div>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill, index) => (
+                  <span
+                    key={`${skill}-${index}`}
+                    className="cp-skill"
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      padding: '5px 14px',
+                      border: '1px solid var(--cp-border)',
+                      borderRadius: '3px',
+                      color: 'var(--cp-text-muted)'
+                    }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ---- OPEN TO: the closing note, after everything it rests on ---- */}
         {(readyTags.length > 0 || selectedLens?.ready_for_next) && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
             <div className="flex flex-wrap items-center gap-4 px-5 py-7 md:px-6">
@@ -639,32 +661,7 @@ export default function CareerProfilePage() {
           </section>
         )}
 
-        {/* ---- SKILLS ---- */}
-        {skills.length > 0 && (
-          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div className="px-5 py-10 md:px-6">
-              <div style={{ ...sectionLabel, marginBottom: '16px' }}>Skills</div>
-              <div className="flex flex-wrap gap-2">
-                {skills.map((skill, index) => (
-                  <span
-                    key={`${skill}-${index}`}
-                    className="cp-skill"
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 500,
-                      padding: '5px 14px',
-                      border: '1px solid var(--cp-border)',
-                      borderRadius: '3px',
-                      color: 'var(--cp-text-muted)'
-                    }}
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+
       </div>
     </div>
   )

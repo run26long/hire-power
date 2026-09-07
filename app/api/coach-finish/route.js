@@ -2687,6 +2687,105 @@ async function saveSuggestedLenses(supabaseWrite, { userId, profileId, coreResum
   }
 }
 
+
+// The direction the person is actually targeting is a lens like any other, and
+// the public profile has nothing to show without it. Coaching a core is the
+// moment it becomes knowable, so it is written here rather than waiting for the
+// user to name it themselves.
+//
+// source 'user' and sort_order 0 mark it as the primary. That pair is also the
+// idempotency key: a re-coach updates the row it finds rather than adding a
+// second one, and a renamed direction renames the lens with it.
+async function ensurePrimaryLens({ userId, displayName }) {
+  if (!userId) return
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseWrite = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    const profileId = await ensureCareerProfile(supabaseWrite, userId, displayName)
+    if (!profileId) return
+
+    const [contextRes, coreRes, existingRes] = await Promise.all([
+      supabaseWrite
+        .from('career_context')
+        .select('current_lens_name')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      // Ordering rather than a strict is_priority_core filter: the column
+      // defaults false, so an account that predates it would match nothing.
+      supabaseWrite
+        .from('resumes')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('resume_type', 'core')
+        .eq('is_active', true)
+        .order('is_priority_core', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1),
+      supabaseWrite
+        .from('profile_lenses')
+        .select('id, name, core_resume_id')
+        .eq('profile_id', profileId)
+        .eq('source', 'user')
+        .eq('sort_order', 0)
+        .maybeSingle()
+    ])
+
+    const name = (contextRes.data?.current_lens_name || '').trim() || 'Core'
+    const slug = slugify(name) || 'core'
+    const coreResumeId = (coreRes.data || [])[0]?.id || null
+    const existing = existingRes.data
+
+    if (existing) {
+      const patch = {}
+      if (existing.name !== name) { patch.name = name; patch.slug = slug }
+      if (!existing.core_resume_id && coreResumeId) patch.core_resume_id = coreResumeId
+      if (Object.keys(patch).length === 0) return
+
+      patch.updated_at = new Date().toISOString()
+      const { error: updateError } = await supabaseWrite
+        .from('profile_lenses')
+        .update(patch)
+        .eq('id', existing.id)
+        .eq('user_id', userId)
+
+      // 23505 means the new slug is taken by one of their other lenses. The
+      // primary keeps the name it had rather than colliding.
+      if (updateError && updateError.code !== '23505') {
+        console.error('Primary lens update failed (non-fatal):', updateError)
+      }
+      return
+    }
+
+    // UNIQUE(profile_id, slug): a suggestion may already hold this slug, so the
+    // primary takes the next free one rather than failing to exist.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = attempt === 0 ? slug : `${slug}-${attempt + 1}`
+      const { error: insertError } = await supabaseWrite
+        .from('profile_lenses')
+        .insert({
+          profile_id: profileId,
+          user_id: userId,
+          name,
+          slug: candidate,
+          status: 'active',
+          source: 'user',
+          sort_order: 0,
+          core_resume_id: coreResumeId
+        })
+
+      if (!insertError) return
+      if (insertError.code !== '23505') {
+        console.error('Primary lens insert failed (non-fatal):', insertError)
+        return
+      }
+    }
+  } catch (e) {
+    console.error('Primary lens write failed (non-fatal):', e)
+  }
+}
+
 // True when a write failed only because the named column does not exist yet.
 // PostgREST reports an unknown key in the payload as PGRST204; Postgres itself
 // uses 42703. The column name is matched too, so an unrelated schema problem is
@@ -3480,6 +3579,13 @@ export async function POST(request) {
         })
       }
 
+      // ── BACKGROUND: primary lens (brb/conversational path) ──
+      // Runs after the context write above, because the lens takes its name from
+      // the direction that write just established.
+      if (authenticatedUserId) {
+        waitUntil(ensurePrimaryLens({ userId: authenticatedUserId, displayName: convResume?.fullName }))
+      }
+
       // ── BACKGROUND: career knowledge extraction (BRB/conversational path) ──
       // Runs after the rewrite fully succeeded. Does not block the response.
       // Skipped when invoked via INTERNAL_API_SECRET — no user token to forward.
@@ -3780,6 +3886,13 @@ export async function POST(request) {
         rawText: coreContextMsg.content[0].text,
         setCompletedAt: false
       })
+    }
+
+    // ── BACKGROUND: primary lens (core resume path) ──
+    // A lens core is a second direction, not the primary one, so it never writes
+    // this. Runs after the context write above for the same reason as brb.
+    if (authenticatedUserId && !isLensCore) {
+      waitUntil(ensurePrimaryLens({ userId: authenticatedUserId, displayName: resumeData?.fullName }))
     }
 
     // ── BACKGROUND: career knowledge extraction (core resume path) ──

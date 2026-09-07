@@ -641,6 +641,34 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     }
   }
 
+  async function dismissLens(lens) {
+    if (!window.confirm('Remove this suggestion?')) return;
+
+    // Optimistic: the tile goes now and comes back if the write does not land.
+    const previous = data?.profileLenses || [];
+    setData(prev => prev ? {
+      ...prev,
+      profileLenses: (prev.profileLenses || []).filter(l => l.id !== lens.id)
+    } : prev);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/profile-lenses/dismiss', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ lensId: lens.id })
+      });
+      if (!res.ok) throw new Error('Dismiss failed');
+    } catch (err) {
+      console.error('Lens dismiss failed:', err);
+      setData(prev => prev ? { ...prev, profileLenses: previous } : prev);
+      setErrorToast("We couldn't remove that suggestion. Please try again.");
+    }
+  }
+
   async function commitLensRename(lens) {
     if (cancelLensRenameRef.current) {
       cancelLensRenameRef.current = false;
@@ -2072,8 +2100,23 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             tabIndex={0}
                             onClick={() => { if (isEditing) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
                             title={isEditing ? undefined : (isPro ? `Build your ${lens.name} core resume` : 'Upgrade to Pro to build this core')}
-                            className={`group flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left cursor-pointer ${failed ? 'border-red-300 bg-white' : `border-gray-300 bg-gray-50 ${isPro ? 'hover:border-solid hover:border-purple-400 hover:bg-purple-50' : ''}`}`}
+                            className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left cursor-pointer ${failed ? 'border-red-300 bg-white' : `border-gray-300 bg-gray-50 ${isPro ? 'hover:border-solid hover:border-purple-400 hover:bg-purple-50' : ''}`}`}
                           >
+                            {/* Only a suggestion can be dismissed, so this lives here
+                                and not on the core tile or a built one. */}
+                            {!isEditing && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); dismissLens(lens); }}
+                                title="Remove this suggestion"
+                                aria-label={`Remove the ${lens.name} suggestion`}
+                                className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-400 opacity-100 transition-opacity hover:border-gray-400 hover:text-gray-600 md:opacity-0 md:group-hover:opacity-100"
+                              >
+                                <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
                             <svg className={`w-5 h-5 text-gray-400 transition-colors flex-shrink-0 ${isPro ? 'group-hover:text-purple-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
