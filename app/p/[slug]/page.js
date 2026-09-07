@@ -18,23 +18,26 @@ const SWIPE_THRESHOLD_PX = 40
 // 0.3s up + 0.15s held + 0.3s back. Must match the lensZoom keyframe.
 const LENS_ZOOM_MS = 750
 
-// Rank at rest is colour only - no transform, so the row never distorts and
-// the carousel can measure it. The zoom is a one-shot animation on selection
-// (see lensZoom); it uses a transform, which does not affect layout, so the
-// measurement holds while it plays and the whole thing runs on the compositor.
+// Rank at rest is size and colour: the chosen lens sits at 1.3, its neighbours
+// at 1.0 and the rest at 0.85, and the transition on .cp-lens carries them
+// between those. Scaling rather than restyling the font keeps the row's layout
+// fixed, so the carousel can still measure it to centre itself, and the whole
+// thing runs on the compositor. Selecting a lens also fires the one-shot
+// lensZoom over the top, which lands on 1.3 so the handover is invisible.
 function lensStyleForDistance(distance) {
   const abs = Math.abs(distance)
   if (abs === 0) {
     return {
+      transform: 'scale(1.3)',
       color: '#fff',
       opacity: 1,
       textShadow: '0 0 30px rgba(120, 93, 202, 0.5)'
     }
   }
   if (abs === 1) {
-    return { color: 'var(--cp-text-faint)', opacity: 1 }
+    return { transform: 'scale(1)', color: 'var(--cp-text-faint)', opacity: 1 }
   }
-  return { color: 'var(--cp-border-accent)', opacity: 1 }
+  return { transform: 'scale(0.85)', color: 'var(--cp-border-accent)', opacity: 1 }
 }
 
 function initialsFrom(name) {
@@ -225,9 +228,9 @@ const PAGE_CSS = `
    LENS_ZOOM_MS - 0.3s out, 0.15s held, 0.3s back. */
 @keyframes lensZoom {
   0%   { transform: scale(1); }
-  40%  { transform: scale(1.4); }
-  60%  { transform: scale(1.4); }
-  100% { transform: scale(1); }
+  40%  { transform: scale(1.8); }
+  60%  { transform: scale(1.8); }
+  100% { transform: scale(1.3); }
 }
 .cp-lens-zoom { animation: lensZoom 750ms cubic-bezier(0.25, 0.1, 0.25, 1); }
 
@@ -487,7 +490,7 @@ export default function CareerProfilePage() {
             <div className="cp-spotlight" aria-hidden="true" />
             <div
               ref={viewportRef}
-              className="relative z-10 h-[56px] w-full select-none overflow-hidden"
+              className="relative z-10 h-[72px] w-full select-none overflow-hidden"
               onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
               onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
               onMouseDown={(e) => onDragStart(e.clientX)}
