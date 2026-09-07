@@ -83,6 +83,74 @@ function truncateAtSentence(text, limit) {
   return full.slice(0, cut + 1)
 }
 
+// Experience rows keep their dates in two fields plus a `current` flag. A role
+// with neither reads better as an empty date column than as a stray dash.
+function dateRangeFor(job) {
+  const start = String(job?.startDate || '').trim()
+  const end = job?.current ? 'Present' : String(job?.endDate || '').trim()
+  if (start && end) return `${start} - ${end}`
+  return start || end || ''
+}
+
+// A role's detail has been stored under two names over the life of the builder,
+// and some roles carry a written summary instead of bullets. All of it ends up
+// as one list so the card does not have to care which shape it was handed. The
+// summary leads, because it is the line the role is actually about, and the
+// card highlights whatever comes first.
+function bulletsFor(job) {
+  const raw = Array.isArray(job?.bullets)
+    ? job.bullets
+    : Array.isArray(job?.achievements)
+    ? job.achievements
+    : []
+  const list = raw.map(b => (typeof b === 'string' ? b.trim() : '')).filter(Boolean)
+  const summary = typeof job?.summary === 'string' ? job.summary.trim() : ''
+  return summary ? [summary, ...list] : list
+}
+
+// Evidence is tinted and iconed by media_class. Anything unrecognised still
+// gets a card, just the neutral one: a link holder should never see a gap where
+// a piece of evidence is meant to be.
+const EVIDENCE_VISUALS = {
+  image: { tint: 'rgba(120, 93, 202, 0.14)', paths: ['M4 5h16v14H4z', 'M4 15l4-4 3 3 4-4 5 5'] },
+  video: { tint: 'rgba(155, 133, 216, 0.16)', paths: ['M3 6h12v12H3z', 'M15 10l6-3v10l-6-3z'] },
+  audio: { tint: 'rgba(92, 66, 168, 0.22)', paths: ['M9 17V5l10-2v12'] },
+  document: { tint: 'rgba(120, 93, 202, 0.10)', paths: ['M6 3h8l4 4v14H6z', 'M14 3v4h4'] },
+  link: {
+    tint: 'rgba(155, 133, 216, 0.10)',
+    paths: ['M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1', 'M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1']
+  }
+}
+const EVIDENCE_FALLBACK = { tint: 'rgba(120, 93, 202, 0.10)', paths: ['M5 4h14v16H5z'] }
+
+function evidenceVisual(item) {
+  const key = String(item?.media_class || item?.kind || '').toLowerCase()
+  return EVIDENCE_VISUALS[key] || EVIDENCE_FALLBACK
+}
+
+const CERT_ICON_PATHS = ['M12 15a6 6 0 100-12 6 6 0 000 12z', 'M8.2 14L7 22l5-3 5 3-1.2-8']
+const CARET_ICON_PATHS = ['M9 6l6 6-6 6']
+
+// One 24x24 stroke icon, drawn from whichever paths it is handed. Stroked
+// rather than filled so every icon on the page carries the same weight.
+function StrokeIcon({ paths, size = 18, color = 'var(--cp-accent-light)' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths.map((d, index) => <path key={index} d={d} />)}
+    </svg>
+  )
+}
+
 const PAGE_CSS = `
 .cp-root {
   --cp-bg: #0c0a14;
@@ -276,11 +344,37 @@ const PAGE_CSS = `
   color: var(--cp-text-secondary);
 }
 
+/* A role card lifts its border so it reads as something that opens, and the
+   caret turns as it does. */
+.cp-role { transition: border-color 0.2s ease; }
+.cp-role:hover { border-color: var(--cp-border-accent); }
+.cp-caret { display: inline-flex; transition: transform 0.2s ease; }
+.cp-caret-open { transform: rotate(90deg); }
+
+.cp-ev { transition: transform 0.2s ease, border-color 0.2s ease; }
+.cp-ev:hover { transform: translateY(-2px); border-color: var(--cp-accent); }
+
+/* The question box and the job description box share one look. Neither is
+   wired to anything yet, so the focus ring is the only thing that answers. */
+.cp-field {
+  display: block;
+  width: 100%;
+  background: var(--cp-surface-2);
+  border: 1px solid var(--cp-border-accent);
+  border-radius: 3px;
+  color: var(--cp-text);
+  transition: border-color 0.2s ease;
+}
+.cp-field:focus { outline: none; border-color: var(--cp-accent); }
+.cp-field::placeholder { color: var(--cp-text-faint); }
+.cp-field:disabled { cursor: not-allowed; }
+
 @media (prefers-reduced-motion: reduce) {
   .cp-shimmer { animation: none; }
   /* .cp-lens is deliberately absent: the zoom is how the carousel reads, so it's
      kept even here. */
-  .cp-track, .cp-fade, .cp-skill { transition: none; }
+  .cp-track, .cp-fade, .cp-skill, .cp-role, .cp-caret, .cp-ev, .cp-field { transition: none; }
+  .cp-ev:hover { transform: none; }
 }
 `
 
@@ -298,6 +392,7 @@ export default function CareerProfilePage() {
   const [generateError, setGenerateError] = useState(null)
   const [trackShift, setTrackShift] = useState(0)
   const [bioExpanded, setBioExpanded] = useState(false)
+  const [expandedRole, setExpandedRole] = useState(null)
 
   const dragRef = useRef({ startX: null, dragging: false })
   const viewportRef = useRef(null)
@@ -357,6 +452,7 @@ export default function CareerProfilePage() {
     const timer = setTimeout(() => {
       setContentIndex(activeIndex)
       setBioExpanded(false)
+      setExpandedRole(null)
       setFading(false)
     }, CROSSFADE_MS)
     return () => clearTimeout(timer)
@@ -427,6 +523,31 @@ export default function CareerProfilePage() {
   const bioToShow = collapsedBio && !bioExpanded ? collapsedBio : fullBio
 
   const imowText = data?.profile?.imow_text || null
+
+  // Experience, certifications and education follow the lens the page is
+  // showing, and fall back to the priority core for a lens that has not been
+  // built yet. The route resolved both, so this is only the pick between them.
+  const lensSections = data?.resumeSections?.byLens?.[selectedLens?.id] || data?.resumeSections?.fallback || null
+  const experience = Array.isArray(lensSections?.experience) ? lensSections.experience : []
+
+  // Certifications have been written as bare strings as well as objects.
+  const certifications = (Array.isArray(lensSections?.certifications) ? lensSections.certifications : [])
+    .map(cert => (typeof cert === 'string' ? { name: cert } : cert))
+    .filter(cert => cert && (cert.name || cert.title))
+
+  // A testimonial with no text and a piece of evidence with neither a title nor
+  // a link are not content, so they do not get to keep their sections open.
+  const testimonials = (Array.isArray(data?.testimonials) ? data.testimonials : [])
+    .filter(item => String(item?.polished_text || '').trim())
+  const evidence = (Array.isArray(data?.evidence) ? data.evidence : [])
+    .filter(item => item && (item.title || item.url))
+
+  // The sample question reads better carrying the name the page is already
+  // showing than a stranger's.
+  const askName = String(data?.person?.displayName || data?.fallback?.name || '').trim().split(/\s+/)[0]
+  const askPlaceholder = askName
+    ? `Has ${askName} managed government contracts?`
+    : 'Has this candidate managed government contracts?'
 
   async function handleGenerate() {
     if (!selectedLens || generating) return
@@ -745,7 +866,368 @@ export default function CareerProfilePage() {
         )}
 
 
+
+        {/* ---- EXPERIENCE ---- */}
+        {experience.length > 0 && (
+          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+            <div style={{ padding: '32px 24px' }}>
+              <div style={{ ...sectionLabel, marginBottom: '16px' }}>Experience</div>
+
+              {experience.map((job, index) => {
+                const bullets = bulletsFor(job)
+                const isOpen = expandedRole === index
+                return (
+                  <div
+                    key={`${job?.company || 'role'}-${index}`}
+                    className="cp-role"
+                    style={{
+                      border: '1px solid var(--cp-border)',
+                      background: 'var(--cp-surface)',
+                      borderRadius: '3px',
+                      marginBottom: '2px'
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedRole(isOpen ? null : index)}
+                      aria-expanded={bullets.length > 0 ? isOpen : undefined}
+                      disabled={bullets.length === 0}
+                      className="grid w-full grid-cols-1 text-left md:grid-cols-[130px_1fr]"
+                      style={{ cursor: bullets.length === 0 ? 'default' : 'pointer' }}
+                    >
+                      <div
+                        className="border-b md:border-b-0 md:border-r"
+                        style={{
+                          background: 'var(--cp-surface)',
+                          borderColor: 'var(--cp-border)',
+                          padding: '12px 14px',
+                          fontSize: '11px',
+                          color: 'var(--cp-text-muted)'
+                        }}
+                      >
+                        {dateRangeFor(job)}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3" style={{ padding: '12px 16px' }}>
+                        <div className="min-w-0">
+                          <div style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>
+                            {job?.title || 'Role'}
+                          </div>
+                          {job?.company && (
+                            <div className="mt-0.5" style={{ fontSize: '11px', color: 'var(--cp-text-muted)' }}>
+                              {job.company}
+                            </div>
+                          )}
+                        </div>
+                        {bullets.length > 0 && (
+                          <span className={isOpen ? 'cp-caret cp-caret-open flex-shrink-0' : 'cp-caret flex-shrink-0'}>
+                            <StrokeIcon paths={CARET_ICON_PATHS} size={14} color="var(--cp-text-faint)" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {isOpen && bullets.length > 0 && (
+                      <div className="px-4 pb-4 md:pl-[146px] md:pr-6">
+                        {/* The first line is the one the role is remembered for,
+                            so it is lit rather than listed. */}
+                        <div
+                          style={{
+                            borderLeft: '2px solid var(--cp-accent)',
+                            background: 'rgba(120, 93, 202, 0.08)',
+                            borderRadius: '0 3px 3px 0',
+                            padding: '10px 14px',
+                            fontSize: '12.5px',
+                            lineHeight: 1.7,
+                            color: 'var(--cp-text-secondary)'
+                          }}
+                        >
+                          {bullets[0]}
+                        </div>
+
+                        {bullets.length > 1 && (
+                          <ul className="mt-3 space-y-2">
+                            {bullets.slice(1).map((bullet, bulletIndex) => (
+                              <li
+                                key={bulletIndex}
+                                className="flex gap-2.5"
+                                style={{ fontSize: '12px', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}
+                              >
+                                <span style={{ color: 'var(--cp-accent)' }} aria-hidden="true">&middot;</span>
+                                <span>{bullet}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ---- TESTIMONIALS + IMPACT ---- */}
+        {testimonials.length > 0 && (
+          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+            <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
+              <div
+                className="border-b md:border-b-0 md:border-r"
+                style={{ borderColor: 'var(--cp-border)', padding: '32px 24px' }}
+              >
+                <div style={{ ...sectionLabel, marginBottom: '18px' }}>Testimonials</div>
+                {testimonials.map((item, index) => {
+                  const isLast = index === testimonials.length - 1
+                  const attribution = [item?.recipient_name, item?.recipient_title].filter(Boolean).join(', ')
+                  return (
+                    <div
+                      key={item?.id || index}
+                      style={{
+                        paddingTop: index === 0 ? 0 : '18px',
+                        paddingBottom: isLast ? 0 : '18px',
+                        borderBottom: isLast ? 'none' : '1px solid var(--cp-border)'
+                      }}
+                    >
+                      <p style={{ fontStyle: 'italic', fontSize: '14px', lineHeight: 1.8, color: 'var(--cp-text-secondary)' }}>
+                        {`"${item.polished_text}"`}
+                      </p>
+                      {attribution && (
+                        <div className="mt-3" style={{ fontSize: '11px', color: 'var(--cp-accent)' }}>
+                          {attribution}
+                        </div>
+                      )}
+                      {item?.relationship && (
+                        <div
+                          className="mt-1"
+                          style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--cp-text-dim)' }}
+                        >
+                          {item.relationship}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Held for the read across the testimonials that comes later. */}
+              <div style={{ background: 'var(--cp-surface)', padding: '32px 24px' }}>
+                <div style={{ ...sectionLabel, marginBottom: '14px' }}>Impact</div>
+                <p style={{ fontStyle: 'italic', fontSize: '12px', lineHeight: 1.8, color: 'var(--cp-text-muted)' }}>
+                  Impact insights will appear once enough testimonials are collected.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ---- CERTIFICATIONS ---- */}
+        {certifications.length > 0 && (
+          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+            <div style={{ padding: '32px 24px' }}>
+              <div style={{ ...sectionLabel, marginBottom: '16px' }}>Certifications</div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {certifications.map((cert, index) => {
+                  const issuer = [cert.organization || cert.issuer, cert.date || cert.details].filter(Boolean).join(' · ')
+                  return (
+                    <div
+                      key={`${cert.name || cert.title}-${index}`}
+                      className="flex items-center gap-3"
+                      style={{
+                        border: '1px solid var(--cp-border)',
+                        background: 'var(--cp-surface)',
+                        borderRadius: '3px',
+                        padding: '12px 14px'
+                      }}
+                    >
+                      <span
+                        className="flex flex-shrink-0 items-center justify-center"
+                        style={{ width: '36px', height: '36px', borderRadius: '3px', background: 'rgba(120, 93, 202, 0.12)' }}
+                      >
+                        <StrokeIcon paths={CERT_ICON_PATHS} size={18} />
+                      </span>
+                      <div className="min-w-0">
+                        <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--cp-text)' }}>
+                          {cert.name || cert.title}
+                        </div>
+                        {issuer && (
+                          <div className="mt-0.5" style={{ fontSize: '10px', color: 'var(--cp-text-muted)' }}>
+                            {issuer}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ---- EVIDENCE + ASK MY CAREER ---- */}
+        {/* With nothing filed yet the question box takes the full width rather
+            than sitting beside an empty column. */}
+        <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+          <div className={evidence.length > 0 ? 'grid grid-cols-1 md:grid-cols-[3fr_2fr]' : 'grid grid-cols-1'}>
+            {evidence.length > 0 && (
+              <div
+                className="border-b md:border-b-0 md:border-r"
+                style={{ borderColor: 'var(--cp-border)', padding: '32px 24px' }}
+              >
+                <div style={{ ...sectionLabel, marginBottom: '16px' }}>Evidence</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {evidence.map((item, index) => {
+                    const visual = evidenceVisual(item)
+                    const cardStyle = {
+                      display: 'block',
+                      background: 'var(--cp-surface)',
+                      border: '1px solid var(--cp-border)',
+                      borderRadius: '3px',
+                      padding: '10px'
+                    }
+                    const inner = (
+                      <>
+                        <span
+                          className="flex items-center justify-center"
+                          style={{ height: '64px', borderRadius: '3px', background: visual.tint }}
+                        >
+                          <StrokeIcon paths={visual.paths} size={20} />
+                        </span>
+                        <span className="mt-2 block" style={{ fontSize: '11px', fontWeight: 500, color: 'var(--cp-text)' }}>
+                          {item.title || 'Untitled'}
+                        </span>
+                        {(item.kind || item.media_class) && (
+                          <span
+                            className="mt-1 block"
+                            style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--cp-text-dim)' }}
+                          >
+                            {item.kind || item.media_class}
+                          </span>
+                        )}
+                      </>
+                    )
+                    return item.url ? (
+                      <a
+                        key={item.id || index}
+                        className="cp-ev"
+                        style={cardStyle}
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {inner}
+                      </a>
+                    ) : (
+                      <div key={item.id || index} className="cp-ev" style={cardStyle}>{inner}</div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: 'var(--cp-surface)', padding: '32px 24px' }}>
+              <div style={{ fontSize: '15px', fontWeight: 500, color: '#fff' }}>Ask my career</div>
+              <p className="mt-2" style={{ fontSize: '12px', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}>
+                Get answers sourced from verified career history.
+              </p>
+              <input
+                type="text"
+                className="cp-field mt-4"
+                disabled
+                title="Ask my career is not wired up yet"
+                aria-label="Ask a question about this career"
+                placeholder={askPlaceholder}
+                style={{ fontSize: '12px', padding: '10px 12px' }}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ---- EVALUATE FOR A ROLE ---- */}
+        <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+          <div style={{ padding: '32px 24px' }}>
+            <div style={{ ...sectionLabel, marginBottom: '10px' }}>Evaluate for a role</div>
+            <p style={{ fontSize: '13px', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}>
+              Paste a job description. Get a sourced brief you can share with your hiring team.
+            </p>
+            <textarea
+              className="cp-field mt-4"
+              aria-label="Job description"
+              placeholder="Paste a job description here..."
+              style={{ minHeight: '120px', fontSize: '13px', lineHeight: 1.7, padding: '12px 14px', resize: 'vertical' }}
+            />
+            <button
+              type="button"
+              disabled
+              title="Role evaluation is not wired up yet"
+              className="mt-4"
+              style={{
+                background: 'linear-gradient(to right, var(--cp-accent), var(--cp-accent-dark))',
+                color: '#fff',
+                fontSize: '11px',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.8px',
+                padding: '10px 24px',
+                borderRadius: '3px',
+                opacity: 0.55,
+                cursor: 'not-allowed'
+              }}
+            >
+              Generate brief
+            </button>
+          </div>
+        </section>
+
+        {/* ---- ACTIONS ---- */}
+        <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+          <div style={{ padding: '28px 24px' }}>
+            <div className="flex flex-wrap items-center" style={{ gap: '10px' }}>
+              <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
+              <button
+                type="button"
+                disabled
+                title="Contact is not wired up yet"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--cp-border-accent)',
+                  color: 'var(--cp-text-muted)',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.8px',
+                  padding: '7px 20px',
+                  borderRadius: '3px',
+                  opacity: 0.55,
+                  cursor: 'not-allowed'
+                }}
+              >
+                Contact
+              </button>
+            </div>
+            {selectedLens?.name && (
+              <p className="mt-3" style={{ fontSize: '9px', letterSpacing: '0.4px', color: 'var(--cp-text-faint)' }}>
+                {`Downloads the ${selectedLens.name} resume`}
+              </p>
+            )}
+          </div>
+        </section>
       </div>
+
+      {/* ---- FOOTER: outside the crossfade, because it does not change when
+           the lens does ---- */}
+      <footer className="text-center" style={{ paddingTop: '16px', paddingBottom: '24px' }}>
+        <span
+          style={{
+            fontSize: '9px',
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px',
+            color: 'var(--cp-border-accent)'
+          }}
+        >
+          Powered by Hire Power
+        </span>
+      </footer>
     </div>
   )
 }
