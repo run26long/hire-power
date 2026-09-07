@@ -11,5 +11,19 @@
       "PowerShell(npx eslint 'app/interview/[id]/page.js' 2>&1 | Select-Object -First 30)",
       "PowerShell(npx eslint \"app/interview-coach/page.js\" 2>&1 | Select-Object -First 20; Write-Output \"=== interview page ===\"; npx eslint 'app/interview/[id]/page.js' 2>&1 | Select-Object -First 12)"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/Jessica Long/.claude/hooks/copy-last-response.js\"",
+            "timeout": 15,
+            "statusMessage": "Copying response to clipboard"
+          }
+        ]
+      }
+    ]
   }
 }
