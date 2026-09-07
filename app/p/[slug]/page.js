@@ -226,13 +226,14 @@ const PAGE_CSS = `
 }
 
 /* The focus pull: a lens swells past its resting size as it is chosen and
-   settles onto it. Timed to LENS_ZOOM_MS - 0.385s out, 0.22s held, 0.495s
-   back. The easing overshoots on purpose, so the settle carries a little
-   spring rather than arriving flat. */
+   settles onto it. Timed to LENS_ZOOM_MS - 0.33s out, 0.22s held, then 0.33s
+   down to a slight undershoot and 0.22s easing back up onto the resting 1.3.
+   The dip is what stops the landing reading as a snap. */
 @keyframes lensZoom {
   0%   { transform: scale(1); }
-  35%  { transform: scale(2); }
-  55%  { transform: scale(2); }
+  30%  { transform: scale(2); }
+  50%  { transform: scale(2); }
+  80%  { transform: scale(1.25); }
   100% { transform: scale(1.3); }
 }
 .cp-lens-zoom { animation: lensZoom 1100ms cubic-bezier(0.34, 1.56, 0.64, 1); }
