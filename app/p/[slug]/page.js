@@ -183,6 +183,12 @@ function evidenceVisual(item) {
 
 const CERT_ICON_PATHS = ['M12 15a6 6 0 100-12 6 6 0 000 12z', 'M8.2 14L7 22l5-3 5 3-1.2-8']
 const CARET_ICON_PATHS = ['M9 6l6 6-6 6']
+const ASK_ICON_PATHS = ['M12 4c4.42 0 8 2.91 8 6.5s-3.58 6.5-8 6.5c-.8 0-1.58-.1-2.3-.28L5 19l1.15-3.1C4.83 14.7 4 12.7 4 10.5 4 6.91 7.58 4 12 4z']
+const EVALUATE_ICON_PATHS = [
+  'M5 3h9l4 4v14H5z',
+  'M10.4 12.6a2.8 2.8 0 105.6 0 2.8 2.8 0 00-5.6 0',
+  'M15.7 16.5L18.2 19'
+]
 
 // One 24x24 stroke icon, drawn from whichever paths it is handed. Stroked
 // rather than filled so every icon on the page carries the same weight.
@@ -204,20 +210,16 @@ function StrokeIcon({ paths, size = 18, color = 'var(--cp-accent-light)' }) {
   )
 }
 
-// What the owner sees where a section has nothing in it yet: one muted line and
-// the action that would fill it. A recruiter never sees this, so it stays a
-// single line rather than an empty box holding the space open.
+// What the owner sees where a section has nothing in it yet. A recruiter never
+// sees it, so it is written as an invitation to fill the space rather than a
+// notice that the space is empty: centred, given room, and carrying the action
+// as a pill instead of a line of italics that reads like a warning.
 function SectionPrompt({ text, action, hint }) {
   return (
-    <p style={{ fontSize: '12px', fontStyle: 'italic', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}>
-      {text}{' '}
-      <span
-        title={hint}
-        style={{ fontStyle: 'normal', fontWeight: 500, color: 'var(--cp-accent)', cursor: 'default' }}
-      >
-        {action}
-      </span>
-    </p>
+    <div className="text-center" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <span style={{ fontSize: '13px', lineHeight: 1.7, color: 'var(--cp-text-dim)' }}>{text}</span>
+      <span className="cp-invite" title={hint}>{action}</span>
+    </div>
   )
 }
 
@@ -433,9 +435,29 @@ const PAGE_CSS = `
   border: 1px solid var(--cp-border-accent);
   border-radius: 3px;
   color: var(--cp-text);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.cp-field:focus { outline: none; border-color: var(--cp-accent); }
+.cp-field:focus {
+  outline: none;
+  border-color: var(--cp-accent);
+  box-shadow: 0 0 0 1px var(--cp-accent), 0 0 12px rgba(120, 93, 202, 0.15);
+}
+
+/* The action on an empty section. A pill rather than a link, so what the owner
+   sees in a section they have not filled yet is an offer, not a fault. */
+.cp-invite {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cp-accent);
+  background: rgba(120, 93, 202, 0.1);
+  cursor: default;
+  transition: background 0.2s ease;
+}
+.cp-invite:hover { background: rgba(120, 93, 202, 0.2); }
 .cp-field::placeholder { color: var(--cp-text-faint); }
 .cp-field:disabled { cursor: not-allowed; }
 
@@ -443,7 +465,7 @@ const PAGE_CSS = `
   .cp-shimmer { animation: none; }
   /* .cp-lens is deliberately absent: the zoom is how the carousel reads, so it's
      kept even here. */
-  .cp-track, .cp-fade, .cp-skill, .cp-role, .cp-caret, .cp-ev, .cp-field { transition: none; }
+  .cp-track, .cp-fade, .cp-skill, .cp-role, .cp-caret, .cp-ev, .cp-field, .cp-invite { transition: none; }
   .cp-ev:hover { transform: none; }
 }
 `
@@ -572,6 +594,7 @@ export default function CareerProfilePage() {
   const selectedLens = lenses[contentIndex] || null
   const proofPoints = Array.isArray(selectedLens?.proof_points) ? selectedLens.proof_points : []
   const readyTags = Array.isArray(selectedLens?.ready_tags) ? selectedLens.ready_tags : []
+  const hasOpenTo = readyTags.length > 0 || Boolean(selectedLens?.ready_for_next)
   const hasGeneratedContent = Boolean(selectedLens?.headline || selectedLens?.bio || proofPoints.length > 0)
 
   const displayName = data?.person?.displayName || data?.fallback?.name || 'Career Profile'
@@ -870,9 +893,11 @@ export default function CareerProfilePage() {
                   {`"${imowText}"`}
                 </p>
               ) : data?.isOwner ? (
-                <p style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: '17px', lineHeight: 1.7, color: 'var(--cp-text-faint)' }}>
-                  Add your personal statement.
-                </p>
+                <SectionPrompt
+                  text="A line in your own voice sets the tone."
+                  action="Add your personal statement"
+                  hint="Personal statement editing is not wired up yet"
+                />
               ) : null}
             </div>
           </div>
@@ -904,38 +929,6 @@ export default function CareerProfilePage() {
             </div>
           </section>
         )}
-
-        {/* ---- OPEN TO: the closing note, after everything it rests on ---- */}
-        {(readyTags.length > 0 || selectedLens?.ready_for_next) && (
-          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div className="flex flex-wrap items-center gap-4 px-5 py-7 md:px-6">
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#fff' }}>Open to</span>
-              <span className="hidden md:block" style={{ width: '1px', height: '20px', background: 'var(--cp-border-accent)' }} />
-              {readyTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {readyTags.map((tag, index) => (
-                    <span
-                      key={`${tag}-${index}`}
-                      style={{
-                        fontSize: '11px',
-                        padding: '4px 12px',
-                        border: '1px solid var(--cp-border-accent)',
-                        borderRadius: '3px',
-                        color: 'var(--cp-accent-light)'
-                      }}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span style={{ fontSize: '12px', color: 'var(--cp-text-muted)' }}>{selectedLens.ready_for_next}</span>
-              )}
-            </div>
-          </section>
-        )}
-
-
 
         {/* ---- EXPERIENCE ---- */}
         {experience.length > 0 && (
@@ -1230,7 +1223,10 @@ export default function CareerProfilePage() {
                 className="border-b md:border-b-0 md:border-r"
                 style={{ borderColor: 'var(--cp-border)', padding: '14px 24px 24px' }}
               >
-                <div style={sectionLabel}>Ask my career</div>
+                <div className="flex items-center" style={{ gap: '8px' }}>
+                  <StrokeIcon paths={ASK_ICON_PATHS} size={20} color="var(--cp-accent)" />
+                  <span style={sectionLabel}>Ask my career</span>
+                </div>
                 <p className="mt-1.5" style={{ fontSize: '12px', lineHeight: 1.6, color: 'var(--cp-text-muted)' }}>
                   Get answers sourced from verified career history.
                 </p>
@@ -1246,7 +1242,10 @@ export default function CareerProfilePage() {
               </div>
 
               <div style={{ padding: '14px 24px 24px' }}>
-                <div style={sectionLabel}>Evaluate for a role</div>
+                <div className="flex items-center" style={{ gap: '8px' }}>
+                  <StrokeIcon paths={EVALUATE_ICON_PATHS} size={20} color="var(--cp-accent)" />
+                  <span style={sectionLabel}>Evaluate for a role</span>
+                </div>
                 <p className="mt-1.5" style={{ fontSize: '12px', lineHeight: 1.6, color: 'var(--cp-text-muted)' }}>
                   Paste a job description. Get a sourced brief you can share with your hiring team.
                 </p>
@@ -1282,10 +1281,42 @@ export default function CareerProfilePage() {
           </div>
         </section>
 
-        {/* ---- ACTIONS ---- */}
+        {/* ---- ACTIONS: what this person is open to, and the two ways to act
+             on it, on one line ---- */}
         <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-          <div style={{ padding: '24px' }}>
-            <div className="flex flex-wrap items-center" style={{ gap: '10px' }}>
+          <div
+            className={`flex flex-col gap-4 md:flex-row md:items-center ${hasOpenTo ? 'md:justify-between' : 'md:justify-end'}`}
+            style={{ padding: '20px 24px' }}
+          >
+            {hasOpenTo && (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex-shrink-0" style={{ fontSize: '13px', fontWeight: 500, color: '#fff' }}>
+                  Open to
+                </span>
+                {readyTags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {readyTags.map((tag, index) => (
+                      <span
+                        key={`${tag}-${index}`}
+                        style={{
+                          fontSize: '11px',
+                          padding: '4px 12px',
+                          border: '1px solid var(--cp-border-accent)',
+                          borderRadius: '3px',
+                          color: 'var(--cp-accent-light)'
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '12px', color: 'var(--cp-text-muted)' }}>{selectedLens.ready_for_next}</span>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-shrink-0 flex-wrap items-center" style={{ gap: '10px' }}>
               <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
               <button
                 type="button"
@@ -1308,11 +1339,6 @@ export default function CareerProfilePage() {
                 Contact
               </button>
             </div>
-            {selectedLens?.name && (
-              <p className="mt-3" style={{ fontSize: '9px', letterSpacing: '0.4px', color: 'var(--cp-text-faint)' }}>
-                {`Downloads the ${selectedLens.name} resume`}
-              </p>
-            )}
           </div>
         </section>
       </div>
