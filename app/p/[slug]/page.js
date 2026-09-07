@@ -104,6 +104,15 @@ const PAGE_CSS = `
   overflow-x: hidden;
 }
 
+/* Large enough to read as the mark, held back so the name leads. */
+.cp-logo {
+  height: 80px;
+  width: auto;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+.cp-logo:hover { opacity: 0.8; }
+
 .cp-shimmer {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -188,6 +197,7 @@ const PAGE_CSS = `
   align-items: center;
   white-space: nowrap;
   width: max-content;
+  overflow: visible;
   transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 .cp-lens {
@@ -196,11 +206,14 @@ const PAGE_CSS = `
   cursor: pointer;
   white-space: nowrap;
   line-height: 1.2;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0 28px;
+  overflow: visible;
+  max-width: none;
   transform-origin: center center;
+  will-change: transform;
   transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
               color 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
               text-shadow 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
@@ -218,7 +231,9 @@ const PAGE_CSS = `
 
 @media (prefers-reduced-motion: reduce) {
   .cp-shimmer { animation: none; }
-  .cp-track, .cp-lens, .cp-fade, .cp-skill { transition: none; }
+  /* .cp-lens is deliberately absent: the zoom is how the carousel reads, so it's
+     kept even here. */
+  .cp-track, .cp-fade, .cp-skill { transition: none; }
 }
 `
 
@@ -422,8 +437,7 @@ export default function CareerProfilePage() {
           <img
             src="/images/hp-logo-white.png"
             alt="Hire Power"
-            className="flex-shrink-0"
-            style={{ height: '48px', width: 'auto' }}
+            className="cp-logo flex-shrink-0"
           />
 
           <div className="min-w-0 flex-1 text-center">
@@ -451,7 +465,7 @@ export default function CareerProfilePage() {
             <div className="cp-spotlight" aria-hidden="true" />
             <div
               ref={viewportRef}
-              className="relative z-10 h-[56px] w-full select-none overflow-hidden"
+              className="relative z-10 h-[84px] w-full select-none overflow-hidden"
               onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
               onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
               onMouseDown={(e) => onDragStart(e.clientX)}
