@@ -500,6 +500,9 @@ export default function MyResumesPage() {
   // Which core the card above the selector is showing. Null means the one the
   // route opened with, so the first paint needs no effect to correct it.
   const [selectedCoreId, setSelectedCoreId] = useState(null);
+  // Which suggestion is asking to be confirmed. The question lives on the tile
+  // rather than in a dialog, so removing one never takes over the page.
+  const [confirmingLensId, setConfirmingLensId] = useState(null);
   
  // Job-specific modal state
   const [showJobModal, setShowJobModal] = useState(false);
@@ -642,7 +645,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   async function dismissLens(lens) {
-    if (!window.confirm('Remove this suggestion?')) return;
+    setConfirmingLensId(null);
 
     // Optimistic: the tile goes now and comes back if the write does not land.
     const previous = data?.profileLenses || [];
@@ -2088,6 +2091,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                         {visibleSuggestedLenses.map((lens) => {
                           const isEditing = editingLensId === lens.id;
                           const failed = lensRenameError === lens.id;
+                          const isConfirming = confirmingLensId === lens.id;
                           // Dashed and greyed: a suggestion is an offer, not a core. Only
                           // the sub-label carries colour, so it reads as the call to action.
                           // Hover fills the tile in for a Pro user, who can actually build
@@ -2098,16 +2102,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             key={lens.id}
                             role="button"
                             tabIndex={0}
-                            onClick={() => { if (isEditing) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
+                            onClick={() => { if (isEditing || isConfirming) return; if (!isPro) { setShowUpgradeModal(true); return; } setBuildCoreError(null); setBuildLens(lens); }}
                             title={isEditing ? undefined : (isPro ? `Build your ${lens.name} core resume` : 'Upgrade to Pro to build this core')}
                             className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed transition-colors flex-1 min-w-0 text-left cursor-pointer ${failed ? 'border-red-300 bg-white' : `border-gray-300 bg-gray-50 ${isPro ? 'hover:border-solid hover:border-purple-400 hover:bg-purple-50' : ''}`}`}
                           >
                             {/* Only a suggestion can be dismissed, so this lives here
                                 and not on the core tile or a built one. */}
-                            {!isEditing && (
+                            {!isEditing && !isConfirming && (
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); dismissLens(lens); }}
+                                onClick={(e) => { e.stopPropagation(); setConfirmingLensId(lens.id); }}
                                 title="Remove this suggestion"
                                 aria-label={`Remove the ${lens.name} suggestion`}
                                 className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-400 opacity-100 transition-opacity hover:border-gray-400 hover:text-gray-600 md:opacity-0 md:group-hover:opacity-100"
@@ -2117,10 +2121,42 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 </svg>
                               </button>
                             )}
-                            <svg className={`w-5 h-5 text-gray-400 transition-colors flex-shrink-0 ${isPro ? 'group-hover:text-purple-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {/* The question replaces the tile's own content, inside the
+                                same borders. Both layers stay mounted so one fades out
+                                as the other fades in. */}
+                            {isConfirming && (
+                              <div className="absolute inset-0 z-10 flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3">
+                                <span className="text-sm md:text-xs font-semibold text-gray-700">Remove?</span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); dismissLens(lens); }}
+                                    title="Remove this suggestion"
+                                    aria-label={`Remove the ${lens.name} suggestion`}
+                                    className="flex h-5 w-5 items-center justify-center rounded-full text-purple-600 transition-colors hover:bg-purple-100"
+                                  >
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setConfirmingLensId(null); }}
+                                    title="Keep this suggestion"
+                                    aria-label="Keep this suggestion"
+                                    className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
+                                  >
+                                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            <svg className={`w-5 h-5 text-gray-400 transition-opacity transition-colors flex-shrink-0 ${isConfirming ? 'opacity-0' : 'opacity-100'} ${isPro ? 'group-hover:text-purple-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <div className="min-w-0 flex-1">
+                            <div className={`min-w-0 flex-1 transition-opacity ${isConfirming ? 'opacity-0' : 'opacity-100'}`}>
                               {isEditing ? (
                                 <input
                                   autoFocus
@@ -2151,7 +2187,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 {failed ? "Couldn't rename" : 'Build this core'}
                               </div>
                             </div>
-                            {!isEditing && (
+                            {!isEditing && !isConfirming && (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setLensRenameError(null); setEditingLensName(lens.name); setEditingLensId(lens.id); }}

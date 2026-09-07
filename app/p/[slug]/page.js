@@ -27,7 +27,7 @@ function lensStyleForDistance(distance) {
       transform: 'scale(1.5)',
       color: '#fff',
       opacity: 1,
-      textShadow: '0 0 24px rgba(155, 133, 216, 0.45)'
+      textShadow: '0 0 30px rgba(120, 93, 202, 0.5)'
     }
   }
   if (abs === 1) {
@@ -140,17 +140,21 @@ const PAGE_CSS = `
    them is positioned against the text, not against the section. */
 .cp-namewrap { position: relative; display: inline-block; z-index: 1; }
 
+/* The monogram is centred on this, not on the whole block, so it sits behind
+   the name and never washes over the headline beneath it. */
+.cp-nameline { position: relative; display: inline-block; padding: 4px 0; }
+
 .cp-monogram {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 120px;
+  font-size: 100px;
   font-weight: 500;
   letter-spacing: -6px;
   line-height: 1;
   white-space: nowrap;
-  background: linear-gradient(180deg, rgba(120, 93, 202, 0.14) 0%, rgba(120, 93, 202, 0.05) 100%);
+  background: linear-gradient(180deg, rgba(120, 93, 202, 0.08) 0%, rgba(120, 93, 202, 0.05) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -196,10 +200,11 @@ const PAGE_CSS = `
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0 28px;
-  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              text-shadow 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
-              opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform-origin: center center;
+  transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
+              color 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
+              text-shadow 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
+              opacity 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .cp-fade { transition: opacity ${CROSSFADE_MS}ms ease; }
@@ -412,7 +417,7 @@ export default function CareerProfilePage() {
 
       {/* ---- HEADER: the identity lives here now ---- */}
       <header className="cp-header w-full border-b" style={{ borderColor: 'var(--cp-border)' }}>
-        <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4" style={{ padding: '20px 24px' }}>
+        <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4" style={{ padding: '24px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/hp-logo-white.png"
@@ -423,9 +428,11 @@ export default function CareerProfilePage() {
 
           <div className="min-w-0 flex-1 text-center">
             <div className="cp-namewrap">
-              <div className="cp-monogram" aria-hidden="true">{initialsFrom(displayName)}</div>
-              <h1 className="cp-name text-[20px] md:text-[32px]">{displayName}</h1>
-              <p className="cp-fade cp-headline mt-0.5" style={{ opacity: fading ? 0 : 1 }}>
+              <div className="cp-nameline">
+                <div className="cp-monogram" aria-hidden="true">{initialsFrom(displayName)}</div>
+                <h1 className="cp-name text-[20px] md:text-[32px]">{displayName}</h1>
+              </div>
+              <p className="cp-fade cp-headline mt-1" style={{ opacity: fading ? 0 : 1 }}>
                 {headline}
               </p>
             </div>
