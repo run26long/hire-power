@@ -214,6 +214,7 @@ const PAGE_CSS = `
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0 28px;
+  position: relative;
   overflow: visible;
   max-width: none;
   transform-origin: center center;
@@ -233,6 +234,35 @@ const PAGE_CSS = `
   100% { transform: scale(1.3); }
 }
 .cp-lens-zoom { animation: lensZoom 750ms cubic-bezier(0.25, 0.1, 0.25, 1); }
+
+/* The light that blooms behind the name as it is chosen. Centred on margins
+   rather than a translate, the way .cp-spotlight is, so lensBurst owns the
+   transform outright and the circle grows from its own centre. Invisible until
+   the animation runs. */
+.cp-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -40px 0 0 -40px;
+  display: block;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(120, 93, 202, 0.4) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+@keyframes lensBurst {
+  0%   { transform: scale(0); opacity: 0; }
+  30%  { transform: scale(1); opacity: 0.3; }
+  60%  { transform: scale(2.5); opacity: 0.1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.cp-lens-burst { animation: lensBurst 750ms cubic-bezier(0.25, 0.1, 0.25, 1); }
+
+/* The name rides above the burst. */
+.cp-lens-label { position: relative; z-index: 1; }
 
 .cp-fade { transition: opacity ${CROSSFADE_MS}ms ease; }
 
@@ -510,7 +540,11 @@ export default function CareerProfilePage() {
                       onClick={() => selectLens(index)}
                       style={lensStyleForDistance(distance)}
                     >
-                      {lens.name}
+                      <span
+                        className={index === animatingLensIndex ? 'cp-burst cp-lens-burst' : 'cp-burst'}
+                        aria-hidden="true"
+                      />
+                      <span className="cp-lens-label">{lens.name}</span>
                     </button>
                   )
                 })}
