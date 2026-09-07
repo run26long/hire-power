@@ -15,25 +15,26 @@ import { createClient } from '@/utils/supabase/client'
 
 const CROSSFADE_MS = 300
 const SWIPE_THRESHOLD_PX = 40
+// 0.3s up + 0.15s held + 0.3s back. Must match the lensZoom keyframe.
+const LENS_ZOOM_MS = 750
 
-// Every name renders at the same font size and is scaled instead. Font size
-// changes layout, which the carousel has to measure to centre itself; a
-// transform does not, so the row stays measurable while the zoom animates and
-// the whole thing runs on the compositor.
+// Rank at rest is colour only - no transform, so the row never distorts and
+// the carousel can measure it. The zoom is a one-shot animation on selection
+// (see lensZoom); it uses a transform, which does not affect layout, so the
+// measurement holds while it plays and the whole thing runs on the compositor.
 function lensStyleForDistance(distance) {
   const abs = Math.abs(distance)
   if (abs === 0) {
     return {
-      transform: 'scale(1.5)',
       color: '#fff',
       opacity: 1,
       textShadow: '0 0 30px rgba(120, 93, 202, 0.5)'
     }
   }
   if (abs === 1) {
-    return { transform: 'scale(1)', color: 'var(--cp-text-faint)', opacity: 1 }
+    return { color: 'var(--cp-text-faint)', opacity: 1 }
   }
-  return { transform: 'scale(0.8)', color: 'var(--cp-border-accent)', opacity: 1 }
+  return { color: 'var(--cp-border-accent)', opacity: 1 }
 }
 
 function initialsFrom(name) {
@@ -106,12 +107,12 @@ const PAGE_CSS = `
 
 /* Large enough to read as the mark, held back so the name leads. */
 .cp-logo {
-  height: 80px;
+  height: 40px;
   width: auto;
-  opacity: 0.5;
+  opacity: 0.4;
   transition: opacity 0.3s ease;
 }
-.cp-logo:hover { opacity: 0.8; }
+.cp-logo:hover { opacity: 0.7; }
 
 .cp-shimmer {
   position: absolute;
@@ -206,7 +207,7 @@ const PAGE_CSS = `
   cursor: pointer;
   white-space: nowrap;
   line-height: 1.2;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0 28px;
@@ -219,6 +220,16 @@ const PAGE_CSS = `
               text-shadow 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
               opacity 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
+
+/* The focus pull: a lens swells as it is chosen and settles back. Timed to
+   LENS_ZOOM_MS - 0.3s out, 0.15s held, 0.3s back. */
+@keyframes lensZoom {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.4); }
+  60%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+.cp-lens-zoom { animation: lensZoom 750ms cubic-bezier(0.25, 0.1, 0.25, 1); }
 
 .cp-fade { transition: opacity ${CROSSFADE_MS}ms ease; }
 
@@ -244,6 +255,7 @@ export default function CareerProfilePage() {
   const [data, setData] = useState(null)
   const [loadState, setLoadState] = useState('loading')
   const [activeIndex, setActiveIndex] = useState(0)
+  const [animatingLensIndex, setAnimatingLensIndex] = useState(null)
   const [contentIndex, setContentIndex] = useState(0)
   const [fading, setFading] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -294,6 +306,12 @@ export default function CareerProfilePage() {
   const lenses = useMemo(() => data?.lenses || [], [data])
   const hasCarousel = lenses.length > 1
 
+  useEffect(() => {
+    if (animatingLensIndex === null) return
+    const timer = setTimeout(() => setAnimatingLensIndex(null), LENS_ZOOM_MS)
+    return () => clearTimeout(timer)
+  }, [animatingLensIndex])
+
   // The carousel moves immediately; the content below it crosses over. Swapping
   // both at once makes the whole page jump, which reads as a reload rather than
   // a change of view.
@@ -323,12 +341,16 @@ export default function CareerProfilePage() {
     return () => window.removeEventListener('resize', centre)
   }, [activeIndex, lenses.length, loadState])
 
+  function selectLens(index) {
+    if (index === activeIndex) return
+    setActiveIndex(index)
+    setAnimatingLensIndex(index)
+  }
+
   function moveBy(step) {
-    setActiveIndex(prev => {
-      const next = prev + step
-      if (next < 0 || next > lenses.length - 1) return prev
-      return next
-    })
+    const next = activeIndex + step
+    if (next < 0 || next > lenses.length - 1) return
+    selectLens(next)
   }
 
   function onDragStart(clientX) {
@@ -465,7 +487,7 @@ export default function CareerProfilePage() {
             <div className="cp-spotlight" aria-hidden="true" />
             <div
               ref={viewportRef}
-              className="relative z-10 h-[84px] w-full select-none overflow-hidden"
+              className="relative z-10 h-[56px] w-full select-none overflow-hidden"
               onTouchStart={(e) => onDragStart(e.touches[0].clientX)}
               onTouchEnd={(e) => onDragEnd(e.changedTouches[0]?.clientX ?? null)}
               onMouseDown={(e) => onDragStart(e.clientX)}
@@ -480,9 +502,9 @@ export default function CareerProfilePage() {
                       key={lens.id}
                       ref={(el) => { itemRefs.current[index] = el }}
                       type="button"
-                      className="cp-lens"
+                      className={index === animatingLensIndex ? 'cp-lens cp-lens-zoom' : 'cp-lens'}
                       aria-current={distance === 0 ? 'true' : undefined}
-                      onClick={() => setActiveIndex(index)}
+                      onClick={() => selectLens(index)}
                       style={lensStyleForDistance(distance)}
                     >
                       {lens.name}
@@ -498,7 +520,7 @@ export default function CareerProfilePage() {
                   key={`dot-${lens.id}`}
                   type="button"
                   aria-label={`Show ${lens.name}`}
-                  onClick={() => setActiveIndex(index)}
+                  onClick={() => selectLens(index)}
                   className="h-1.5 w-1.5 rounded-full transition-colors"
                   style={{ background: index === activeIndex ? 'var(--cp-accent-light)' : 'var(--cp-border-accent)' }}
                 />
