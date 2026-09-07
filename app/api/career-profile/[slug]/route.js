@@ -77,7 +77,7 @@ export async function GET(request, { params }) {
     }
 
     // ---- EVERYTHING THE PAGE RENDERS ----
-    const [lensRes, personRes, contextRes, coreRes] = await Promise.all([
+    const [lensRes, personRes, contextRes, coreRes, testimonialRes, evidenceRes] = await Promise.all([
       supabase
         .from('profile_lenses')
         .select(LENS_FULL)
@@ -105,7 +105,25 @@ export async function GET(request, { params }) {
         .eq('is_active', true)
         .order('is_priority_core', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(1)
+        .limit(1),
+      // Published testimonials only. recipient_email, raw_text and
+      // request_token are deliberately not named: a draft testimonial, the
+      // referee's address and the token that lets someone write one are not
+      // things a link holder gets.
+      supabase
+        .from('profile_testimonials')
+        .select('id, polished_text, recipient_name, recipient_title, relationship')
+        .eq('profile_id', profile.id)
+        .eq('status', 'published')
+        .order('created_at', { ascending: true }),
+      // Public evidence only. storage_path, thumbnail_path and user_id are
+      // left out for the same reason; url is the one link meant to be shared.
+      supabase
+        .from('profile_evidence')
+        .select('id, kind, media_class, title, description, url, sort_order')
+        .eq('profile_id', profile.id)
+        .eq('privacy', 'public')
+        .order('sort_order', { ascending: true })
     ])
 
     let lenses = lensRes.data
@@ -161,7 +179,37 @@ export async function GET(request, { params }) {
       }
     }
 
+    // Neither of these is worth failing the page over. A profile with no
+    // testimonials and no evidence is a normal profile; it renders fewer
+    // sections, which is exactly what an empty section is supposed to do.
+    if (testimonialRes.error) {
+      console.error('[career-profile] Testimonial lookup failed (non-fatal):', testimonialRes.error)
+    }
+    if (evidenceRes.error) {
+      console.error('[career-profile] Evidence lookup failed (non-fatal):', evidenceRes.error)
+    }
+    const testimonials = testimonialRes.error ? [] : (testimonialRes.data || [])
+    const evidence = evidenceRes.error ? [] : (evidenceRes.data || [])
+
     const coreResume = (coreRes.data || [])[0] || null
+
+    // Experience, certifications and education follow the rule the rest of the
+    // page follows: the lens's own resume once it has been built, the priority
+    // core until then. Resolved here so the page reads one shape rather than
+    // repeating the lookup per section.
+    const sectionsFrom = (resumeData) => ({
+      experience: Array.isArray(resumeData?.experience) ? resumeData.experience : [],
+      certifications: Array.isArray(resumeData?.certifications) ? resumeData.certifications : [],
+      education: Array.isArray(resumeData?.education) ? resumeData.education : []
+    })
+    const resumeSections = {
+      byLens: Object.fromEntries(
+        visibleLenses
+          .filter(lens => lens.core_resume_id && lensResumes[lens.core_resume_id])
+          .map(lens => [lens.id, sectionsFrom(lensResumes[lens.core_resume_id].resume_data)])
+      ),
+      fallback: sectionsFrom(coreResume?.resume_data)
+    }
 
     // A profile with no lenses is still a profile. The priority core stands in
     // as the default view so the page has a name, a line about the person, and a
@@ -194,7 +242,10 @@ export async function GET(request, { params }) {
       lenses: visibleLenses,
       fallback,
       coreResume,
-      lensResumes
+      lensResumes,
+      resumeSections,
+      testimonials,
+      evidence
     })
 
   } catch (error) {
