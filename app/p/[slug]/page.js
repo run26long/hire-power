@@ -83,13 +83,66 @@ function truncateAtSentence(text, limit) {
   return full.slice(0, cut + 1)
 }
 
-// Experience rows keep their dates in two fields plus a `current` flag. A role
-// with neither reads better as an empty date column than as a stray dash.
+// Resume dates arrive in whatever shape the builder stored them: "2025-03",
+// "2025-03-01", "March 2025", a bare year. A profile is the wrong place to show
+// a recruiter something that reads like a database column, so each end is
+// normalised to "Mar 2025", and anything unrecognised passes through untouched
+// rather than mangled.
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTH_LOOKUP = {
+  jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+  may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10,
+  dec: 11, december: 11
+}
+
+function formatResumeDate(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^(present|current|now|ongoing|to date)$/i.test(text)) return 'Present'
+
+  // 2025-03, 2025-03-01, 2025/03
+  const yearFirst = text.match(/^(\d{4})[-/](\d{1,2})(?:[-/]\d{1,2})?$/)
+  if (yearFirst) {
+    const month = Number(yearFirst[2]) - 1
+    if (month >= 0 && month <= 11) return `${MONTH_NAMES[month]} ${yearFirst[1]}`
+  }
+
+  // 03/2025, 3-2025
+  const monthFirst = text.match(/^(\d{1,2})[-/](\d{4})$/)
+  if (monthFirst) {
+    const month = Number(monthFirst[1]) - 1
+    if (month >= 0 && month <= 11) return `${MONTH_NAMES[month]} ${monthFirst[2]}`
+  }
+
+  // March 2025, Mar. 2025
+  const named = text.match(/^([A-Za-z]+)\.?\s+(\d{4})$/)
+  if (named) {
+    const month = MONTH_LOOKUP[named[1].toLowerCase()]
+    if (month !== undefined) return `${MONTH_NAMES[month]} ${named[2]}`
+  }
+
+  return text
+}
+
+// Experience rows keep their dates in two fields plus a `current` flag, and the
+// field names have drifted over the life of the builder. Some rows carry the
+// whole range as one written string instead, so that is split on its dash and
+// each end formatted the same way. A role with no date at all reads better as
+// an empty column than as a stray dash.
 function dateRangeFor(job) {
-  const start = String(job?.startDate || '').trim()
-  const end = job?.current ? 'Present' : String(job?.endDate || '').trim()
+  const start = formatResumeDate(job?.startDate || job?.start_date)
+  const end = job?.current || job?.is_current
+    ? 'Present'
+    : formatResumeDate(job?.endDate || job?.end_date)
   if (start && end) return `${start} - ${end}`
-  return start || end || ''
+  if (start || end) return start || end
+
+  const combined = String(job?.dates || job?.date || job?.period || '').trim()
+  if (!combined) return ''
+  const parts = combined.split(/\s+(?:[-\u2013\u2014]|to)\s+/i).filter(Boolean)
+  if (parts.length === 2) return `${formatResumeDate(parts[0])} - ${formatResumeDate(parts[1])}`
+  return formatResumeDate(combined)
 }
 
 // A role's detail has been stored under two names over the life of the builder,
@@ -148,6 +201,23 @@ function StrokeIcon({ paths, size = 18, color = 'var(--cp-accent-light)' }) {
     >
       {paths.map((d, index) => <path key={index} d={d} />)}
     </svg>
+  )
+}
+
+// What the owner sees where a section has nothing in it yet: one muted line and
+// the action that would fill it. A recruiter never sees this, so it stays a
+// single line rather than an empty box holding the space open.
+function SectionPrompt({ text, action, hint }) {
+  return (
+    <p style={{ fontSize: '12px', fontStyle: 'italic', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}>
+      {text}{' '}
+      <span
+        title={hint}
+        style={{ fontStyle: 'normal', fontWeight: 500, color: 'var(--cp-accent)', cursor: 'default' }}
+      >
+        {action}
+      </span>
+    </p>
   )
 }
 
@@ -602,7 +672,7 @@ export default function CareerProfilePage() {
     )
   }
 
-  const sectionLabel = { color: 'var(--cp-accent)', fontSize: '11px', fontWeight: 500, letterSpacing: '1.4px' }
+  const sectionLabel = { color: 'var(--cp-accent)', fontSize: '11px', fontWeight: 500, letterSpacing: '1.4px', textTransform: 'uppercase' }
 
   return (
     <div className="cp-root">
@@ -710,7 +780,7 @@ export default function CareerProfilePage() {
               {proofPoints.map((point, index) => (
                 <div
                   key={`${point?.num || 'point'}-${index}`}
-                  className="px-3 py-9 text-center md:px-5"
+                  className="px-3 py-7 text-center md:px-5"
                   style={index > 0 ? { borderLeft: '1px solid var(--cp-border)' } : undefined}
                 >
                   <div style={{ fontSize: '32px', fontWeight: 500, color: '#fff', lineHeight: 1.1 }}>
@@ -732,7 +802,7 @@ export default function CareerProfilePage() {
         <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
           <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
             <div
-              className="border-b px-5 py-10 md:border-b-0 md:border-r md:pl-6 md:pr-7"
+              className="border-b px-5 py-7 md:border-b-0 md:border-r md:pl-6 md:pr-7"
               style={{ borderColor: 'var(--cp-border)' }}
             >
               {/* Deliberately larger than every other section label, so the
@@ -791,7 +861,7 @@ export default function CareerProfilePage() {
             {/* Sized for a 16:9 clip that will live here later, so adding video
                 does not change the shape of the page. */}
             <div
-              className="px-5 py-9 md:pl-7 md:pr-6"
+              className="px-5 py-7 md:pl-7 md:pr-6"
               style={{ background: 'var(--cp-surface)', minHeight: '200px' }}
             >
               <div style={{ ...sectionLabel, marginBottom: '14px' }}>In my own words</div>
@@ -811,7 +881,7 @@ export default function CareerProfilePage() {
         {/* ---- SKILLS ---- */}
         {skills.length > 0 && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div className="px-5 py-10 md:px-6">
+            <div className="px-5 py-7 md:px-6">
               <div style={{ ...sectionLabel, marginBottom: '16px' }}>Skills</div>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill, index) => (
@@ -870,7 +940,7 @@ export default function CareerProfilePage() {
         {/* ---- EXPERIENCE ---- */}
         {experience.length > 0 && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div style={{ padding: '32px 24px' }}>
+            <div style={{ padding: '26px 24px' }}>
               <div style={{ ...sectionLabel, marginBottom: '16px' }}>Experience</div>
 
               {experience.map((job, index) => {
@@ -969,14 +1039,21 @@ export default function CareerProfilePage() {
         )}
 
         {/* ---- TESTIMONIALS + IMPACT ---- */}
-        {testimonials.length > 0 && (
+        {(testimonials.length > 0 || data?.isOwner) && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
             <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr]">
               <div
                 className="border-b md:border-b-0 md:border-r"
-                style={{ borderColor: 'var(--cp-border)', padding: '32px 24px' }}
+                style={{ borderColor: 'var(--cp-border)', padding: '26px 24px' }}
               >
-                <div style={{ ...sectionLabel, marginBottom: '18px' }}>Testimonials</div>
+                <div style={{ ...sectionLabel, marginBottom: testimonials.length > 0 ? '18px' : '8px' }}>Testimonials</div>
+                {testimonials.length === 0 && (
+                  <SectionPrompt
+                    text="Request testimonials to build social proof."
+                    action="Request"
+                    hint="Testimonial requests are not wired up yet"
+                  />
+                )}
                 {testimonials.map((item, index) => {
                   const isLast = index === testimonials.length - 1
                   const attribution = [item?.recipient_name, item?.recipient_title].filter(Boolean).join(', ')
@@ -1011,7 +1088,7 @@ export default function CareerProfilePage() {
               </div>
 
               {/* Held for the read across the testimonials that comes later. */}
-              <div style={{ background: 'var(--cp-surface)', padding: '32px 24px' }}>
+              <div style={{ background: 'var(--cp-surface)', padding: '26px 24px' }}>
                 <div style={{ ...sectionLabel, marginBottom: '14px' }}>Impact</div>
                 <p style={{ fontStyle: 'italic', fontSize: '12px', lineHeight: 1.8, color: 'var(--cp-text-muted)' }}>
                   Impact insights will appear once enough testimonials are collected.
@@ -1024,7 +1101,7 @@ export default function CareerProfilePage() {
         {/* ---- CERTIFICATIONS ---- */}
         {certifications.length > 0 && (
           <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-            <div style={{ padding: '32px 24px' }}>
+            <div style={{ padding: '26px 24px' }}>
               <div style={{ ...sectionLabel, marginBottom: '16px' }}>Certifications</div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {certifications.map((cert, index) => {
@@ -1064,18 +1141,16 @@ export default function CareerProfilePage() {
           </section>
         )}
 
-        {/* ---- EVIDENCE + ASK MY CAREER ---- */}
-        {/* With nothing filed yet the question box takes the full width rather
-            than sitting beside an empty column. */}
-        <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-          <div className={evidence.length > 0 ? 'grid grid-cols-1 md:grid-cols-[3fr_2fr]' : 'grid grid-cols-1'}>
-            {evidence.length > 0 && (
-              <div
-                className="border-b md:border-b-0 md:border-r"
-                style={{ borderColor: 'var(--cp-border)', padding: '32px 24px' }}
-              >
-                <div style={{ ...sectionLabel, marginBottom: '16px' }}>Evidence</div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* ---- EVIDENCE ---- */}
+        {/* The owner keeps the section while it is empty, because an empty
+            section is the only thing that tells them it exists. */}
+        {(evidence.length > 0 || data?.isOwner) && (
+          <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
+            <div style={{ padding: '26px 24px' }}>
+              <div style={{ ...sectionLabel, marginBottom: evidence.length > 0 ? '14px' : '8px' }}>Evidence</div>
+
+              {evidence.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {evidence.map((item, index) => {
                     const visual = evidenceVisual(item)
                     const cardStyle = {
@@ -1122,66 +1197,94 @@ export default function CareerProfilePage() {
                     )
                   })}
                 </div>
-              </div>
-            )}
-
-            <div style={{ background: 'var(--cp-surface)', padding: '32px 24px' }}>
-              <div style={{ fontSize: '15px', fontWeight: 500, color: '#fff' }}>Ask my career</div>
-              <p className="mt-2" style={{ fontSize: '12px', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}>
-                Get answers sourced from verified career history.
-              </p>
-              <input
-                type="text"
-                className="cp-field mt-4"
-                disabled
-                title="Ask my career is not wired up yet"
-                aria-label="Ask a question about this career"
-                placeholder={askPlaceholder}
-                style={{ fontSize: '12px', padding: '10px 12px' }}
-              />
+              ) : (
+                <SectionPrompt
+                  text="Upload documents, links, and work samples."
+                  action="Add evidence"
+                  hint="Evidence upload is not wired up yet"
+                />
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* ---- EVALUATE FOR A ROLE ---- */}
+        {/* ---- RECRUITER TOOLS: the two things a recruiter does here, side by
+             side, so neither reads as the page's conclusion ---- */}
         <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-          <div style={{ padding: '32px 24px' }}>
-            <div style={{ ...sectionLabel, marginBottom: '10px' }}>Evaluate for a role</div>
-            <p style={{ fontSize: '13px', lineHeight: 1.7, color: 'var(--cp-text-muted)' }}>
-              Paste a job description. Get a sourced brief you can share with your hiring team.
-            </p>
-            <textarea
-              className="cp-field mt-4"
-              aria-label="Job description"
-              placeholder="Paste a job description here..."
-              style={{ minHeight: '120px', fontSize: '13px', lineHeight: 1.7, padding: '12px 14px', resize: 'vertical' }}
-            />
-            <button
-              type="button"
-              disabled
-              title="Role evaluation is not wired up yet"
-              className="mt-4"
-              style={{
-                background: 'linear-gradient(to right, var(--cp-accent), var(--cp-accent-dark))',
-                color: '#fff',
-                fontSize: '11px',
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                letterSpacing: '0.8px',
-                padding: '10px 24px',
-                borderRadius: '3px',
-                opacity: 0.55,
-                cursor: 'not-allowed'
-              }}
-            >
-              Generate brief
-            </button>
+          <div style={{ background: 'var(--cp-surface)' }}>
+            <div style={{ padding: '16px 24px 0' }}>
+              <div
+                style={{
+                  fontSize: '9px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.6px',
+                  color: 'var(--cp-text-faint)'
+                }}
+              >
+                Recruiter tools
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div
+                className="border-b md:border-b-0 md:border-r"
+                style={{ borderColor: 'var(--cp-border)', padding: '14px 24px 24px' }}
+              >
+                <div style={sectionLabel}>Ask my career</div>
+                <p className="mt-1.5" style={{ fontSize: '12px', lineHeight: 1.6, color: 'var(--cp-text-muted)' }}>
+                  Get answers sourced from verified career history.
+                </p>
+                <input
+                  type="text"
+                  className="cp-field mt-3"
+                  disabled
+                  title="Ask my career is not wired up yet"
+                  aria-label="Ask a question about this career"
+                  placeholder={askPlaceholder}
+                  style={{ fontSize: '12px', padding: '10px 12px' }}
+                />
+              </div>
+
+              <div style={{ padding: '14px 24px 24px' }}>
+                <div style={sectionLabel}>Evaluate for a role</div>
+                <p className="mt-1.5" style={{ fontSize: '12px', lineHeight: 1.6, color: 'var(--cp-text-muted)' }}>
+                  Paste a job description. Get a sourced brief you can share with your hiring team.
+                </p>
+                <textarea
+                  className="cp-field mt-3"
+                  aria-label="Job description"
+                  placeholder="Paste a job description here..."
+                  style={{ minHeight: '80px', fontSize: '12px', lineHeight: 1.6, padding: '10px 12px', resize: 'vertical' }}
+                />
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    disabled
+                    title="Role evaluation is not wired up yet"
+                    style={{
+                      background: 'linear-gradient(to right, var(--cp-accent), var(--cp-accent-dark))',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.8px',
+                      padding: '9px 22px',
+                      borderRadius: '3px',
+                      opacity: 0.55,
+                      cursor: 'not-allowed'
+                    }}
+                  >
+                    Generate brief
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* ---- ACTIONS ---- */}
         <section className="mx-auto max-w-[1100px] border-b" style={{ borderColor: 'var(--cp-border)' }}>
-          <div style={{ padding: '28px 24px' }}>
+          <div style={{ padding: '24px' }}>
             <div className="flex flex-wrap items-center" style={{ gap: '10px' }}>
               <DownloadButton resume={activeResume} isOwner={data?.isOwner} />
               <button
