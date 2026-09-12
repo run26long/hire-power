@@ -714,10 +714,10 @@ export default function MyInterviewsPage() {
       
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Interview Coach</h1>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
+          <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
             Job hunting is small talk.
           </p>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
+          <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight">
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
@@ -765,10 +765,10 @@ export default function MyInterviewsPage() {
                   {num}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
                     {title}
                   </p>
-                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
                     {desc}
                   </p>
                   {tag && (
@@ -786,10 +786,10 @@ export default function MyInterviewsPage() {
               it — there are four steps here, where Resume Coach has five. */}
           <div className="mt-auto mb-4">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Ready to interview?
             </p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
               Your power analysis, company research, and interviewer questions are compiled into a printable Interview Toolkit. Print a copy to review before the actual interview.
             </p>
           </div>
@@ -965,7 +965,7 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Practice out loud callout */}
-                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:flex-1 overflow-hidden">
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r overflow-hidden">
                   <p className="text-sm text-gray-700 leading-snug">
                     Candidates who practice out loud, not just in their head, are significantly more confident and articulate in their interviews. Our realistic interview practice makes it easy.
                   </p>

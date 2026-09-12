@@ -607,10 +607,10 @@ export default function CareerVaultPage() {
       
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Career Vault</h1>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
+          <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
             Job hunting is small talk.
           </p>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
+          <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight">
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
@@ -663,10 +663,10 @@ export default function CareerVaultPage() {
                   {num}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
                     {title}
                   </p>
-                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
                     {desc}
                   </p>
                   {tag && (
@@ -682,10 +682,10 @@ export default function CareerVaultPage() {
           {/* Bottom section */}
           <div className="mt-auto mb-4">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Three years from now?
             </p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
               You won't remember today's achievements. But Hire Power will.
             </p>
           </div>

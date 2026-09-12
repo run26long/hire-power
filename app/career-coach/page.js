@@ -228,10 +228,10 @@ export default function MyCareerPage() {
       
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Career Coach</h1>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
+          <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
             Job hunting is small talk.
           </p>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
+          <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight">
             Your career deserves a conversation.
           </p>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
