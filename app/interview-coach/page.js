@@ -765,10 +765,10 @@ export default function MyInterviewsPage() {
                   {num}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
                     {title}
                   </p>
-                  <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
                     {desc}
                   </p>
                   {tag && (
@@ -786,10 +786,10 @@ export default function MyInterviewsPage() {
               it — there are four steps here, where Resume Coach has five. */}
           <div className="mt-auto mb-4">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Ready to interview?
             </p>
-            <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
               Your power analysis, company research, and interviewer questions are compiled into a printable Interview Toolkit. Print a copy to review before the actual interview.
             </p>
           </div>
@@ -972,7 +972,7 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:flex-1 overflow-hidden">
+                <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 overflow-hidden">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Your Interview Checklist</h2>
                   <p className="text-sm text-gray-500 mb-4">Complete these before each interview to be fully prepared.</p>
 

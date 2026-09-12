@@ -527,10 +527,10 @@ const resumeCoachSidebar = (
                   {num}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
                     {title}
                   </p>
-                  <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
                     {desc}
                   </p>
                   {tag && (
@@ -546,10 +546,10 @@ const resumeCoachSidebar = (
           {/* Bottom section */}
           <div className="mt-auto mb-4">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Ready to apply?
             </p>
-            <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
               Job cards are created automatically for each job-specific resume or cover letter. Visit your Job Tracker board to track that application through the entire process.
             </p>
           </div>
@@ -1679,7 +1679,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-4 ${hasLensCard ? 'md:flex-1' : ''}`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-4`}>
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">{selectedCore?.display_name || 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
