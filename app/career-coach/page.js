@@ -302,7 +302,7 @@ export default function MyCareerPage() {
                     <h2 className="text-lg font-semibold text-gray-900">Career Profile</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Coach</span>
                   </div>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">The context that makes your resume and interviews sharper.</p>
+                  <p className="text-sm text-gray-500 mb-4">The context that makes your resume and interviews sharper.</p>
 
                   {/* Profile Grid */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
@@ -321,7 +321,7 @@ export default function MyCareerPage() {
                         <p className="text-xl font-bold text-gray-200">--</p>
                       )}
                       {hasContext && careerContext.years_experience && (
-                        <p className="text-sm md:text-xs text-gray-500 mt-0.5">{careerContext.years_experience} years experience</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{careerContext.years_experience} years experience</p>
                       )}
                     </div>
 
@@ -342,7 +342,7 @@ export default function MyCareerPage() {
                             </div>
                           )}
                           {careerContext.is_career_changer && careerContext.previous_field && (
-                            <p className="text-sm md:text-xs text-gray-500 mt-0.5">
+                            <p className="text-sm text-gray-500 mt-0.5">
                               {careerContext.previous_field} → {careerContext.target_industries?.[0] || 'New Field'}
                             </p>
                           )}
@@ -361,7 +361,7 @@ export default function MyCareerPage() {
                         <p className="text-xl font-bold text-gray-200">--</p>
                       )}
                       {hasContext && careerContext.target_industries?.length > 0 && (
-                        <p className="text-sm md:text-xs text-gray-500 mt-0.5">in {careerContext.target_industries.join(', ')}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">in {careerContext.target_industries.join(', ')}</p>
                       )}
                     </div>
 
@@ -400,7 +400,7 @@ export default function MyCareerPage() {
                       <div className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-1">
                         {hasContext ? 'Career Profile Complete' : 'Get Started'}
                       </div>
-                      <p className="text-sm md:text-xs text-gray-700 leading-snug">
+                      <p className="text-sm text-gray-700 leading-snug">
                         {hasContext
                           ? 'Your career direction is set. Resume Coach and Interview Coach will use this to tailor everything to your goals.'
                           : "Tell us where you're headed so we can help you get there. The best 5-minute investment in your career."
@@ -440,8 +440,8 @@ export default function MyCareerPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm md:text-xs font-semibold text-gray-900">Resume Coach</p>
-                          <p className="text-sm md:text-xs text-gray-500 leading-snug">Your target roles and career direction shape which achievements we extract and how we frame your experience.</p>
+                          <p className="text-sm font-semibold text-gray-900">Resume Coach</p>
+                          <p className="text-sm text-gray-500 leading-snug">Your target roles and career direction shape which achievements we extract and how we frame your experience.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -451,8 +451,8 @@ export default function MyCareerPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm md:text-xs font-semibold text-gray-900">Interview Coach</p>
-                          <p className="text-sm md:text-xs text-gray-500 leading-snug">Your goals and hidden skills inform your Power Analysis and the gaps we help you address before you walk in.</p>
+                          <p className="text-sm font-semibold text-gray-900">Interview Coach</p>
+                          <p className="text-sm text-gray-500 leading-snug">Your goals and hidden skills inform your Power Analysis and the gaps we help you address before you walk in.</p>
                         </div>
                       </div>
                       
@@ -467,7 +467,7 @@ export default function MyCareerPage() {
                 {/* Status Card */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <h2 className="text-lg font-semibold text-gray-900">Career Readiness</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">How prepared is your career profile?</p>
+                  <p className="text-sm text-gray-500 mb-4">How prepared is your career profile?</p>
 
                   <div className="space-y-3">
                     {/* Career Conversation */}
@@ -481,7 +481,7 @@ export default function MyCareerPage() {
                         <p className={`text-base md:text-sm font-medium ${hasContext ? 'text-gray-900' : 'text-gray-400'}`}>
                           Career Conversation
                         </p>
-                        <p className="text-sm md:text-xs text-gray-400">Goals, direction, target roles</p>
+                        <p className="text-sm text-gray-400">Goals, direction, target roles</p>
                       </div>
                     </div>
 
@@ -496,7 +496,7 @@ export default function MyCareerPage() {
                         <p className={`text-base md:text-sm font-medium ${existingResume ? 'text-gray-900' : 'text-gray-400'}`}>
                           Resume on File
                         </p>
-                        <p className="text-sm md:text-xs text-gray-400">Core resume uploaded or built</p>
+                        <p className="text-sm text-gray-400">Core resume uploaded or built</p>
                       </div>
                     </div>
 
@@ -507,7 +507,7 @@ export default function MyCareerPage() {
                       </div>
                       <div>
                         <p className="text-base md:text-sm font-medium text-gray-400">Interview Ready</p>
-                        <p className="text-sm md:text-xs text-gray-400">Interview Coach prep complete</p>
+                        <p className="text-sm text-gray-400">Interview Coach prep complete</p>
                       </div>
                     </div>
                   </div>
@@ -516,13 +516,13 @@ export default function MyCareerPage() {
                 {/* Coming Soon Assessments */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Career Assessments</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">Additional tools to guide your career development</p>
+                  <p className="text-sm text-gray-500 mb-4">Additional tools to guide your career development</p>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       <span className="text-lg">⭕</span>
                       <div className="flex-1">
-                        <p className="text-sm md:text-xs font-medium text-gray-500">Aptitude Assessment</p>
+                        <p className="text-sm font-medium text-gray-500">Aptitude Assessment</p>
                         <p className="text-xs md:text-[10px] text-gray-400">Discover roles that match your strengths</p>
                       </div>
                       <span className="text-xs md:text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
@@ -530,7 +530,7 @@ export default function MyCareerPage() {
                     <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       <span className="text-lg">⭕</span>
                       <div className="flex-1">
-                        <p className="text-sm md:text-xs font-medium text-gray-500">Career Exploration</p>
+                        <p className="text-sm font-medium text-gray-500">Career Exploration</p>
                         <p className="text-xs md:text-[10px] text-gray-400">Map paths from your current experience</p>
                       </div>
                       <span className="text-xs md:text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>
@@ -538,7 +538,7 @@ export default function MyCareerPage() {
                     <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg">
                       <span className="text-lg">⭕</span>
                       <div className="flex-1">
-                        <p className="text-sm md:text-xs font-medium text-gray-500">Skills Inventory</p>
+                        <p className="text-sm font-medium text-gray-500">Skills Inventory</p>
                         <p className="text-xs md:text-[10px] text-gray-400">Map your complete skillset including hidden strengths</p>
                       </div>
                       <span className="text-xs md:text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded whitespace-nowrap">Coming Soon</span>

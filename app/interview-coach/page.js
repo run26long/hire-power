@@ -801,10 +801,10 @@ export default function MyInterviewsPage() {
       <AppShell.Main>
         <MainNav currentPage="interview-coach" userProfile={userProfile} />
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-4 md:px-6 py-2 md:py-3 max-w-[1400px] mx-auto w-full">
+        <div className="flex-1 overflow-y-auto md:flex md:flex-col">
+          <div className="px-4 md:px-6 py-2 md:py-3 max-w-[1400px] mx-auto w-full md:flex-1 md:flex md:flex-col md:min-h-0">
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:flex-1 md:min-h-0 md:grid-rows-1">
 
               {/* LEFT: Practice History (8 cols) */}
               <div className="col-span-1 md:col-span-8 space-y-2">
@@ -815,7 +815,7 @@ export default function MyInterviewsPage() {
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
                     <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
                   </div>
-                  <p className="text-sm md:text-xs text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     47% of candidates fail interviews because they didn&apos;t prepare. Hire Power makes sure you&apos;re not one of them.
                   </p>
 
@@ -827,12 +827,12 @@ export default function MyInterviewsPage() {
                                still opens: what they prepared is still theirs. */
                             <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 flex items-center gap-3" style={{ height: '66px' }}>
                               <span className="text-base flex-shrink-0 leading-none">🔒</span>
-                              <p className="flex-1 text-sm md:text-xs text-purple-900 leading-snug">
+                              <p className="flex-1 text-sm text-purple-900 leading-snug">
                                 You&apos;ve used your free interview prep. Go Pro to practice for every job you pursue.
                               </p>
                               <button
                                 onClick={() => setShowUpgradeModal(true)}
-                                className="flex-shrink-0 rounded-md py-1.5 px-4 font-semibold text-white text-sm md:text-xs transition-opacity hover:opacity-90"
+                                className="flex-shrink-0 rounded-md py-1.5 px-4 font-semibold text-white text-sm transition-opacity hover:opacity-90"
                                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                               >
                                 Go Pro
@@ -849,7 +849,7 @@ export default function MyInterviewsPage() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                               </div>
-                              <div className="text-sm md:text-xs font-semibold text-gray-900">New Interview Practice</div>
+                              <div className="text-sm font-semibold text-gray-900">New Interview Practice</div>
                             </button>
                           )}
 
@@ -867,16 +867,29 @@ export default function MyInterviewsPage() {
                               {practiceCards.length > 3 && (
                                <button
                                     onClick={() => setShowOlderModal(true)}
-                                    className="w-full text-center py-1.5 mb-3 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                    className="w-full text-center py-1.5 mb-3 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                   >
                                     View all interview practices →
                                   </button>
                               )}
                             </>
                           ) : (
-                            <div className="text-center py-4 text-gray-500">
-                              <div className="text-2xl mb-1">🎯</div>
-                              <p className="text-sm md:text-xs">No interview practices yet.<br />Click "New Interview Practice" when you're ready.</p>
+                            <div className="pt-3 border-t border-gray-100">
+                              <div className="text-xs font-bold text-purple-600 uppercase tracking-wide mb-2.5">How Practice Works</div>
+                              <div className="space-y-2.5">
+                                {[
+                                  { num: '1', text: 'Answer 10 interview questions tailored to the job' },
+                                  { num: '2', text: 'Get scored on each answer with specific feedback' },
+                                  { num: '3', text: 'Track your improvement across sessions' },
+                                ].map(({ num, text }) => (
+                                  <div key={num} className="flex items-start gap-2.5">
+                                    <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-purple-600">
+                                      {num}
+                                    </div>
+                                    <p className="text-sm text-gray-600 leading-snug">{text}</p>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -888,7 +901,7 @@ export default function MyInterviewsPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-base font-semibold text-gray-900">Question of the Day</h2>
                   </div>
-                  <div> <p className="text-sm md:text-xs text-gray-500 mb-2">
+                  <div> <p className="text-sm text-gray-500 mb-2">
                     Get stronger skills with daily practice! Use the STAR method - Situation, Task, Action, Result - to craft compelling answers.
                   </p></div>
                   <div className="bg-purple-50 border-l-4 border-purple-600 p-4 rounded-r mt-3">
@@ -907,9 +920,9 @@ export default function MyInterviewsPage() {
                     the bands it was measured against on the right: the card
                     doubles as the key to a scoring screen they may not have
                     reached yet. */}
-                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[220px] flex flex-col">
+                <div data-tour="practice-stats" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:flex-1 flex flex-col">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Interview Readiness</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-3.5">Score 80+ and you’re interview ready.</p>
+                  <p className="text-sm text-gray-500 mb-3.5">Score 80+ and you’re interview ready.</p>
 
                   {/* justify-evenly rather than a gap: it lays the same space
                       before, between and after the two columns, so neither
@@ -952,16 +965,16 @@ export default function MyInterviewsPage() {
                 </div>
 
                 {/* Practice out loud callout */}
-                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:h-[74px] overflow-hidden">
-                  <p className="text-sm md:text-xs text-gray-700 leading-snug">
+                <div className="bg-purple-50 border-l-4 border-purple-600 p-3 rounded-r md:flex-1 overflow-hidden">
+                  <p className="text-sm text-gray-700 leading-snug">
                     Candidates who practice out loud, not just in their head, are significantly more confident and articulate in their interviews. Our realistic interview practice makes it easy.
                   </p>
                 </div>
 
                 {/* Interview Readiness Checklist */}
-                <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:h-[250px] overflow-hidden">
+                <div data-tour="interview-readiness" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:flex-1 overflow-hidden">
                   <h2 className="text-base font-semibold text-gray-900 mb-1">Your Interview Checklist</h2>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">Complete these before each interview to be fully prepared.</p>
+                  <p className="text-sm text-gray-500 mb-4">Complete these before each interview to be fully prepared.</p>
 
                   <div className="space-y-1.5">
                     {[
@@ -1002,7 +1015,7 @@ export default function MyInterviewsPage() {
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-white">New Interview Practice</h2>
-                    <p className="text-purple-100 text-sm md:text-xs">Pick a job from your tracker, or start a new one.</p>
+                    <p className="text-purple-100 text-sm">Pick a job from your tracker, or start a new one.</p>
                   </div>
                 </div>
                 <button
@@ -1046,7 +1059,7 @@ export default function MyInterviewsPage() {
                 </div>
               )}
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Title *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Job Title *</label>
                 <input
                   type="text"
                   value={practiceJobTitle}
@@ -1057,7 +1070,7 @@ export default function MyInterviewsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Company</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Company</label>
                 <input
                   type="text"
                   value={practiceJobCompany}
@@ -1068,7 +1081,7 @@ export default function MyInterviewsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm md:text-xs font-semibold text-gray-700 mb-1">Job Description *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Job Description *</label>
                 <textarea
                   value={practiceJobDescription}
                   onChange={e => setPracticeJobDescription(e.target.value)}
@@ -1079,13 +1092,13 @@ export default function MyInterviewsPage() {
               </div>
 
               {practiceCreateError && (
-                <p className="text-sm md:text-xs text-red-600">{practiceCreateError}</p>
+                <p className="text-sm text-red-600">{practiceCreateError}</p>
               )}
 
               <button
                 onClick={handleStartPractice}
                 disabled={creatingPractice}
-                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm md:text-xs flex items-center justify-center gap-2"
+                className="block mx-auto rounded-lg py-2 px-8 font-semibold text-sm flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: 'white', opacity: creatingPractice ? 0.85 : 1 }}
               >
                 <span key={creatingPractice ? 'loading' : 'idle'} className="flex items-center gap-2">
@@ -1141,18 +1154,18 @@ export default function MyInterviewsPage() {
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this interview practice?</h3>
-            <p className="text-sm md:text-xs text-gray-600 mb-5">This removes the Power Analysis and all practice sessions. The job card stays in your Job Tracker and you can restart practice anytime.</p>
+            <p className="text-sm text-gray-600 mb-5">This removes the Power Analysis and all practice sessions. The job card stays in your Job Tracker and you can restart practice anytime.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeletePracticeId(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-xs font-medium"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeletePractice(confirmDeletePracticeId)}
                 disabled={deletingPracticeId === confirmDeletePracticeId}
-                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:opacity-90 transition-opacity text-sm md:text-xs font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-[#e57373] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {deletingPracticeId === confirmDeletePracticeId ? (
                   <>
@@ -1344,7 +1357,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, canDelete = true, compac
             onClick={(e) => { setNavigatingTo(primaryStep); goToDetail(e, primaryStep); }}
             disabled={!!navigatingTo}
             className={`flex-shrink-0 rounded-md py-1.5 font-semibold text-white whitespace-nowrap flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 ${
-              compact ? 'min-w-[125px] px-4 text-xs md:text-[11px]' : 'min-w-[150px] px-6 text-sm md:text-xs'
+              compact ? 'min-w-[125px] px-4 text-xs md:text-[11px]' : 'min-w-[150px] px-6 text-sm'
             }`}
             style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
           >
@@ -1369,7 +1382,7 @@ function PracticeCard({ card, onClick, onDeleteRequest, canDelete = true, compac
             }}
             disabled={!!navigatingTo}
             className={`flex-shrink-0 border border-gray-300 bg-white rounded-md py-1.5 text-gray-600 cursor-pointer hover:bg-gray-100 focus:outline-none disabled:opacity-50 ${
-              compact ? 'w-[110px] px-1.5 text-xs md:text-[11px]' : 'w-[130px] px-2 text-sm md:text-xs'
+              compact ? 'w-[110px] px-1.5 text-xs md:text-[11px]' : 'w-[130px] px-2 text-sm'
             }`}
           >
             <option value="" disabled>Other Steps</option>
@@ -1421,7 +1434,7 @@ function ChecklistItem({ label }) {
           </svg>
         )}
       </div>
-      <span className={`text-sm md:text-xs transition-colors ${checked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+      <span className={`text-sm transition-colors ${checked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
         {label}
       </span>
     </button>

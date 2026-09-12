@@ -1002,7 +1002,7 @@ export default function JobTrackerPage() {
                         borderBottom: 'none',
                       }}
                     >
-                      <span className="text-sm md:text-xs" style={{ fontWeight: 800, color: col.color }}>{col.label}</span>
+                      <span className="text-sm" style={{ fontWeight: 800, color: col.color }}>{col.label}</span>
                       <span className="text-xs md:text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: col.border, color: col.color }}>{cards.length}</span>
                     </div>
 

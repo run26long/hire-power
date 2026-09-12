@@ -717,7 +717,7 @@ export default function CareerVaultPage() {
                       <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
                     </div>
                   </div>
-                  <p className="text-sm md:text-xs text-gray-500 mb-4">
+                  <p className="text-sm text-gray-500 mb-4">
                     The saved job description and any wins you log here attach to this job to create your next resume.
                   </p>
 
@@ -755,7 +755,7 @@ export default function CareerVaultPage() {
                             <p className="text-base md:text-sm font-bold text-gray-900 truncate">{currentJobEntry.title}</p>
                             <p className="text-sm md:text-xs text-gray-500 truncate">{currentJobEntry.company}</p>
                           </div>
-                          <span className="text-gray-300 group-hover:text-purple-400 text-sm md:text-xs transition-colors flex-shrink-0">→</span>
+                          <span className="text-gray-300 group-hover:text-purple-400 text-sm transition-colors flex-shrink-0">→</span>
                         </button>
 
                         {/* Tenure + Wins */}
@@ -784,12 +784,12 @@ export default function CareerVaultPage() {
                     );
                   })() : (
                     <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50">
-                      <p className="text-sm md:text-xs text-gray-500 mb-2">
+                      <p className="text-sm text-gray-500 mb-2">
                         No current job set. Mark a job card as Hired and it appears here automatically.
                       </p>
                       <button
                         onClick={() => setShowSetJobModal(true)}
-                        className="text-sm md:text-xs text-purple-600 font-semibold hover:text-purple-700"
+                        className="text-sm text-purple-600 font-semibold hover:text-purple-700"
                       >
                         Set current job manually →
                       </button>
@@ -802,16 +802,16 @@ export default function CareerVaultPage() {
                   <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
                       <div className="flex items-center gap-2 min-w-0">
                         <h2 className="text-lg font-semibold text-gray-900 truncate">Accomplishments</h2>
-                        <span className="text-sm md:text-xs text-gray-400 flex-shrink-0">{accomplishments.length} logged</span>
+                        <span className="text-sm text-gray-400 flex-shrink-0">{accomplishments.length} logged</span>
                       </div>
                       <button
                         onClick={() => setShowLogModal(true)}
-                        className="text-sm md:text-xs font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap flex-shrink-0"
+                        className="text-sm font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap flex-shrink-0"
                       >
                         + Log a Win
                       </button>
                     </div>
-                  <p className="text-sm md:text-xs text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     Log wins as they happen: promotions, projects, metrics, skills, anything worth remembering.
                   </p>
 
@@ -827,14 +827,14 @@ export default function CareerVaultPage() {
                         >
                           <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm md:text-xs text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
+                            <p className="text-sm text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
                           </div>
                         </div>
                       ))}
                       {accomplishments.length > 4 && (
                         <button
                           onClick={() => setShowOlderWinsModal(true)}
-                          className="w-full text-center pt-4 text-sm md:text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                          className="w-full text-center pt-4 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
                         >
                           See {accomplishments.length - 4} more win{accomplishments.length - 4 > 1 ? 's' : ''} →
                         </button>
@@ -846,14 +846,14 @@ export default function CareerVaultPage() {
                       {!currentJobEntry ? (
                         <>
                           <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">No current job set</p>
-                          <p className="text-sm md:text-xs text-gray-400 text-center leading-relaxed">
+                          <p className="text-sm text-gray-400 text-center leading-relaxed">
                             Mark a job as Hired and wins you log will attach to that role automatically.
                           </p>
                         </>
                       ) : (
                         <>
                           <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
-                          <p className="text-sm md:text-xs text-gray-400 text-center leading-relaxed">
+                          <p className="text-sm text-gray-400 text-center leading-relaxed">
                             The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
                           </p>
                         </>
@@ -942,9 +942,9 @@ export default function CareerVaultPage() {
                   {isPro ? (
                       <>
                         <h2 className="text-lg md:text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
-                        <p className="text-sm md:text-xs text-gray-500 mb-1.5">Update your resume in minutes using your logged wins.</p>
+                        <p className="text-sm text-gray-500 mb-1.5">Update your resume in minutes using your logged wins.</p>
                         <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                          <p className="text-sm md:text-xs text-gray-700 leading-snug">
+                          <p className="text-sm text-gray-700 leading-snug">
                             You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Your coach remembers all of it.
                           </p>
                         </div>
@@ -959,9 +959,9 @@ export default function CareerVaultPage() {
                     ) : (
                       <>
                         <h2 className="text-lg md:text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
-                        <p className="text-sm md:text-xs text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
+                        <p className="text-sm text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
                         <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                          <p className="text-sm md:text-xs text-gray-700 leading-snug">
+                          <p className="text-sm text-gray-700 leading-snug">
                             You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Upgrade so your coach can apply them to your resume.
                           </p>
                         </div>
