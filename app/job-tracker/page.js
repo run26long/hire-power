@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import AppShell from '../components/AppShell';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 import { fetchJSON } from '@/lib/fetchJSON';
@@ -824,13 +825,10 @@ export default function JobTrackerPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <AppShell sidebar={<>
 
       {/* Sidebar */}
-      <div
-        className="w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40 hidden md:flex"
-        style={{ background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)', height: '100vh', overflowY: 'hidden' }}
-      >
+      
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 tracking-tight">Job Tracker</h1>
           <p className="text-[13px] text-white leading-tight mb-0.5">Job hunting is small talk.</p>
@@ -908,10 +906,10 @@ export default function JobTrackerPage() {
           </div>
 
         </div>
-      </div>
+      </>}>
 
       {/* Main */}
-      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <AppShell.Main>
         <MainNav currentPage="job-tracker" userProfile={userProfile} />
 
         <div className="flex-1 overflow-hidden flex flex-col">
@@ -1119,7 +1117,7 @@ export default function JobTrackerPage() {
             </div>
           </div>
         </div>
-      </div>
+      </AppShell.Main>
 
       {/* Add Card Modal */}
       {showAddModal && (
@@ -1800,6 +1798,6 @@ export default function JobTrackerPage() {
         />
       )}
 
-    </div>
+    </AppShell>
   );
 }

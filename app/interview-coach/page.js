@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import AppShell from '../components/AppShell';
 import ErrorToast from '../components/ErrorToast';
 import UpgradeModal from '../components/UpgradeModal';
 import { getJobSources } from '../utils/getJobSources';
@@ -707,17 +708,10 @@ export default function MyInterviewsPage() {
     : '#d1d5db';
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <AppShell sidebar={<>
 
       {/* Left Sidebar */}
-      <div
-        className="hidden md:flex w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40"
-        style={{
-          background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
-          height: '100vh',
-          overflowY: 'hidden'
-        }}
-      >
+      
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Interview Coach</h1>
           <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
@@ -801,10 +795,10 @@ export default function MyInterviewsPage() {
           </div>
 
         </div>
-      </div>
+      </>}>
 
       {/* Main Content */}
-      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <AppShell.Main>
         <MainNav currentPage="interview-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
@@ -987,7 +981,7 @@ export default function MyInterviewsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </AppShell.Main>
 
       {/* New Interview Practice Modal */}
       {showPracticeModal && (
@@ -1183,7 +1177,7 @@ export default function MyInterviewsPage() {
 
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
-    </div>
+    </AppShell>
   );
 }
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import AppShell from '../components/AppShell';
 import UpgradeModal from '../components/UpgradeModal';
 import ErrorToast from '../components/ErrorToast';
 import { getJobSources } from '../utils/getJobSources';
@@ -462,6 +463,100 @@ function HubTour({ isPro, onStepChange, onClose }) {
     </>
   );
 }
+
+// Sidebar content for the Resume Coach shell. It is entirely static, so it
+// lives at module scope and is shared by the error shell and the loaded one
+// rather than being written out twice.
+const resumeCoachSidebar = (
+  <>
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 flex-shrink-0">
+          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Resume Coach</h1>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
+            Job hunting is small talk.
+          </p>
+          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
+            Your career deserves a conversation.
+          </p>
+          <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
+        </div>
+        
+        {/* Main Content */}
+        <div className="px-6 pt-0 pb-6">
+
+          {/* Steps */}
+          <div style={{ marginBottom: 16 }}>
+                     {[
+              { 
+                num: '1', 
+                title: 'Add Your Resume', 
+                desc: 'Upload or build from scratch' 
+              },
+              { 
+                num: '2', 
+                title: 'Build Your Core Resume', 
+                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resume is your foundation for every application.' 
+              },
+              { 
+                num: '3', 
+                title: 'Job Match Score', 
+                desc: 'See how well your experience matches any job posting.',
+                tag: 'Free: 3 matches · Pro: Unlimited matches'
+              },
+              { 
+                num: '4', 
+                title: 'Job-Specific Resume', 
+                desc: 'Employers expect a tailored resume for every application. Hire Power lets you create one in minutes!',
+                tag: 'Pro only'
+              },
+              { 
+                num: '5', 
+                title: 'Cover Letter', 
+                desc: 'Written for this job, not every job.',
+                tag: 'Free: 3 letters ·  Pro: Unlimited letters'
+              },
+            ].map(({ num, title, desc, tag }) => (
+              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: '50%', 
+                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                  flexShrink: 0, marginTop: 1
+                }}>
+                  {num}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
+                    {title}
+                  </p>
+                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
+                    {desc}
+                  </p>
+                  {tag && (
+                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: 0 }}>
+                      {tag}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom section */}
+          <div>
+            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+              Ready to apply?
+            </p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
+              Job cards are created automatically for each job-specific resume or cover letter. Visit your Job Tracker board to track that application through the entire process.
+            </p>
+          </div>
+
+        </div>
+  </>
+);
 
 export default function MyResumesPage() {
   const router = useRouter();
@@ -1479,14 +1574,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // Show error state if loading failed
   if (loadError) {
     return (
-      <div className="h-screen bg-gray-50 flex">
+      <AppShell sidebar={<>
         {/* Left Sidebar */}
-        <div className="w-64 bg-gradient-to-br from-purple-600 to-blue-600 text-white p-6 flex flex-col h-screen overflow-hidden flex-shrink-0">
-          <h1 className="text-2xl font-bold mb-8">HIRE POWER</h1>
-        </div>
+        
+          {resumeCoachSidebar}
+        </>}>
 
         {/* Main Content */}
-        <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+        <AppShell.Main>
           <MainNav currentPage="resume-coach" userProfile={userProfile} onUpgradeClick={() => setShowUpgradeModal(true)} />
 
           <div className="flex-1 overflow-y-auto">
@@ -1514,8 +1609,8 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </AppShell.Main>
+      </AppShell>
     );
   }
 
@@ -1564,107 +1659,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const totalSteps = steps.length;
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <AppShell sidebar={<>
       
       {/* Left Sidebar */}
-      <div 
-        className="hidden md:flex w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40"
-        style={{ 
-          background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
-          height: '100vh',
-          overflowY: 'hidden'
-        }}
-      >
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex-shrink-0">
-          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Resume Coach</h1>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
-            Job hunting is small talk.
-          </p>
-          <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight">
-            Your career deserves a conversation.
-          </p>
-          <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
-        </div>
-        
-        {/* Main Content */}
-        <div className="px-6 pt-0 pb-6">
-
-          {/* Steps */}
-          <div style={{ marginBottom: 16 }}>
-                     {[
-              { 
-                num: '1', 
-                title: 'Add Your Resume', 
-                desc: 'Upload or build from scratch' 
-              },
-              { 
-                num: '2', 
-                title: 'Build Your Core Resume', 
-                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resume is your foundation for every application.' 
-              },
-              { 
-                num: '3', 
-                title: 'Job Match Score', 
-                desc: 'See how well your experience matches any job posting.',
-                tag: 'Free: 3 matches · Pro: Unlimited matches'
-              },
-              { 
-                num: '4', 
-                title: 'Job-Specific Resume', 
-                desc: 'Employers expect a tailored resume for every application. Hire Power lets you create one in minutes!',
-                tag: 'Pro only'
-              },
-              { 
-                num: '5', 
-                title: 'Cover Letter', 
-                desc: 'Written for this job, not every job.',
-                tag: 'Free: 3 letters ·  Pro: Unlimited letters'
-              },
-            ].map(({ num, title, desc, tag }) => (
-              <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                <div style={{ 
-                  width: 20, height: 20, borderRadius: '50%', 
-                  border: '1.5px solid rgba(255,255,255,0.4)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
-                  flexShrink: 0, marginTop: 1
-                }}>
-                  {num}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 2 }}>
-                    {title}
-                  </p>
-                  <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
-                    {desc}
-                  </p>
-                  {tag && (
-                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: 0 }}>
-                      {tag}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom section */}
-          <div>
-            <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
-              Ready to apply?
-            </p>
-            <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
-              Job cards are created automatically for each job-specific resume or cover letter. Visit your Job Tracker board to track that application through the entire process.
-            </p>
-          </div>
-
-        </div>
-      </div>
+      
+        {resumeCoachSidebar}
+      </>}>
 
       {/* Main Content Area */}
-      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <AppShell.Main>
         <MainNav currentPage="resume-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
@@ -2213,7 +2216,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
                   {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
-                  <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px', marginBottom: '16px' }}>
+                  <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -2409,7 +2412,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ minHeight: '262px' }}>
+                  <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden">
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
@@ -2757,7 +2760,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                 {/* Right Column: job specific Resumes + Cover Letters (empty state) */}
                 <div className="col-span-1 md:col-span-4 flex flex-col" style={{ height: '100%' }}>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px', marginBottom: '16px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -2774,7 +2777,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <p className="text-sm md:text-xs">Complete your core resume first</p>
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ height: '262px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                     <p className="text-sm md:text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
                     <div className="text-center py-6 text-gray-400">
@@ -2787,7 +2790,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             )}
           </div>
         </div>
-      </div>
+      </AppShell.Main>
 
      {/* Job-Specific Resume Modal */}
       {showJobModal && (
@@ -3439,6 +3442,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
-    </div>
+    </AppShell>
   );
 }

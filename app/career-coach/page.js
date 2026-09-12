@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
+import AppShell from '../components/AppShell';
 import Breadcrumb from '../components/Breadcrumb';
 import UpgradeModal from '../components/UpgradeModal';
 import { track } from '../utils/analytics';
@@ -221,17 +222,10 @@ export default function MyCareerPage() {
   const firstName = userProfile?.first_name || careerContext?.current_role?.split(' ')[0] || '';
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <AppShell sidebar={<>
 
       {/* Left Sidebar */}
-      <div
-        className="hidden md:flex w-64 text-white flex-col fixed left-0 top-0 shadow-lg z-40"
-        style={{
-          background: 'linear-gradient(180deg, #667eea 0%, #764ba2 100%)',
-          height: '100vh',
-          overflowY: 'hidden'
-        }}
-      >
+      
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
           <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Career Coach</h1>
           <p className="text-[13px] text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
@@ -290,10 +284,10 @@ export default function MyCareerPage() {
             </div>
           </div>
         </div>
-      </div>
+      </>}>
 
       {/* Main Content Area */}
-      <div className="ml-0 md:ml-64 flex-1 flex flex-col h-screen overflow-hidden">
+      <AppShell.Main>
         <MainNav currentPage="career-coach" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
@@ -555,7 +549,7 @@ export default function MyCareerPage() {
             </div>
           </div>
         </div>
-      </div>
+      </AppShell.Main>
 
      {/* Onboarding Modal */}
       {showModal && (
@@ -702,6 +696,6 @@ export default function MyCareerPage() {
 
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
 
-    </div>
+    </AppShell>
   );
 }
