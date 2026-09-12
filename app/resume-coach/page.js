@@ -2049,7 +2049,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       splitting a fixed total. */}
                   {hasLensCard && (
                     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
-                      <h2 className="text-base font-semibold text-gray-900">Career Directions</h2>
+                     
                       <p className="text-sm text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
                       <div className="flex flex-col md:flex-row gap-2">
 
