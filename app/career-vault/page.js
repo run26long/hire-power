@@ -616,7 +616,7 @@ export default function CareerVaultPage() {
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
           </div>
 
-        <div className="px-6 pt-0 pb-6">
+        <div className="px-6 pt-0 pb-6 flex-1 flex flex-col">
 
           {/* Steps */}
           <div style={{ marginBottom: 16 }}>
@@ -680,7 +680,7 @@ export default function CareerVaultPage() {
           </div>
 
           {/* Bottom section */}
-          <div>
+          <div className="mt-auto mb-4">
             <div className="border-b border-gray-400 border-opacity-10" style={{ marginBottom: 14 }}></div>
             <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
               Three years from now?
