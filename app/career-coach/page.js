@@ -240,7 +240,7 @@ export default function MyCareerPage() {
           </p>
         </div>
 
-        <div className="flex-1 px-6 pt-3 pb-6 flex flex-col">
+        <div className="flex-1 px-6 pt-0 pb-6 flex flex-col">
           <div>
             {/* Career Conversation */}
             <div className="mb-5">
