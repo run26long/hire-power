@@ -1679,7 +1679,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:flex-1 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">{selectedCore?.display_name || 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
@@ -2049,6 +2049,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       splitting a fixed total. */}
                   {hasLensCard && (
                     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
+                      <h2 className="text-base font-semibold text-gray-900">Career Directions</h2>
                       <p className="text-sm md:text-xs text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
                       <div className="flex flex-col md:flex-row gap-2">
 
@@ -2216,7 +2217,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 <div className="col-span-1 md:col-span-4 flex flex-col self-stretch">
 
                   {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
-                  <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden" style={{ marginBottom: '16px' }}>
+                  <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden md:flex-1" style={{ marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
@@ -2579,7 +2580,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:flex-1 md:min-h-0 md:grid-rows-1">
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 md:flex-1">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                     <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
@@ -2760,7 +2761,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                 {/* Right Column: job specific Resumes + Cover Letters (empty state) */}
                 <div className="col-span-1 md:col-span-4 flex flex-col">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ marginBottom: '16px' }}>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:flex-1" style={{ marginBottom: '16px' }}>
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
