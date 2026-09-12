@@ -1545,7 +1545,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       format: "Content is locked in. Run Auto-fit to get the perfect page fit, try different templates, and preview the end result before downloading.",
       save: isFree
         ? "Your core resume is complete! Download it for immediate use, and when you're ready, upload a job description to create a cover letter or see how well your resume matches that role."
-        : "Your core resume is bulletproof. Download it for immediate use, and when you're ready, create a job-specific version that builds on this foundation with a cover letter to match."
+        : "Your core resume is bulletproof. Download it for immediate use, or create job-specific versions with a cover letters to match."
     };
     return messages[step] || messages.review;
   };
@@ -1642,7 +1642,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   function lensCaptionFor({ builtCount, suggestionCount }) {
     if (suggestionCount === 0) return 'Switch between your Core Resumes.';
     if (builtCount > 1) return 'Switch between your Core Resumes, or build the next one.';
-    return 'Coach identified multiple career directions in your background. Create Core Resumes for any paths you want to pursue.';
+    return 'Coach identified multiple career directions. Create Core Resumes for any paths you want to pursue.';
   }
   const score = selectedCore?.current_score || null;
   const journeyStep = selectedCore?.journey_step || 'review';
@@ -1679,7 +1679,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 
                 {/* Core Resume Card (8 cols) */}
                 <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-4`}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">{selectedCore?.display_name || 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
@@ -2221,7 +2221,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
-                        <p className="text-sm text-gray-500 mb-2">Tailored versions optimized for specific applications</p>
+                        <p className="text-sm text-gray-500 mb-2">Tailored versions for specific applications</p>
                       <div>
                         <div className="space-y-2">
                           <button
