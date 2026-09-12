@@ -1670,16 +1670,16 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       <AppShell.Main>
         <MainNav currentPage="resume-coach" userProfile={userProfile} />
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-4 md:px-8 py-2 md:py-4 max-w-[1400px] mx-auto w-full">
+        <div className="flex-1 overflow-y-auto md:flex md:flex-col">
+          <div className="px-4 md:px-8 py-2 md:py-4 max-w-[1400px] mx-auto w-full md:flex-1 md:flex md:flex-col md:min-h-0">
             
             {/* Clean 2-Column Layout - NO OLD BANNER */}
             {data?.coreResume && (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:flex-1 md:min-h-0 md:grid-rows-1">
                 
                 {/* Core Resume Card (8 cols) */}
-                <div className="col-span-1 md:col-span-8">
-                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
+                <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:flex-1 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">{selectedCore?.display_name || 'Core Resume'}</h2>
                       <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
@@ -2412,7 +2412,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   </div>
 
                  {/* Card 2: Cover Letters */}
-                  <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden">
+                  <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden md:flex-1">
                     {isPro ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
@@ -2576,10 +2576,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
             {/* Empty State - EXACT Same Layout, Just Empty */}
             {!data?.coreResume && (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:flex-1 md:min-h-0 md:grid-rows-1">
                 {/* Core Resume Card (8 cols) */}
-                <div className="col-span-1 md:col-span-8">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div className="col-span-1 md:col-span-8 md:flex md:flex-col md:min-h-0">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 md:flex-1">
                     <h2 className="text-lg font-semibold text-gray-900">Core Resume</h2>
                     <p className="text-sm md:text-xs text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
                     
@@ -2759,7 +2759,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 </div>
 
                 {/* Right Column: job specific Resumes + Cover Letters (empty state) */}
-                <div className="col-span-1 md:col-span-4 flex flex-col" style={{ height: '100%' }}>
+                <div className="col-span-1 md:col-span-4 flex flex-col">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4" style={{ marginBottom: '16px' }}>
                     {isPro ? (
                       <>
@@ -2777,7 +2777,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                       <p className="text-sm md:text-xs">Complete your core resume first</p>
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:flex-1">
                     <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                     <p className="text-sm md:text-xs text-gray-500 mb-4">Stand out by showing how your skills align</p>
                     <div className="text-center py-6 text-gray-400">
