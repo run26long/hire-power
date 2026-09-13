@@ -55,6 +55,7 @@ function tileScale(label) {
 
 export default function SkillsSection({
   clusters,
+  featuredSkills,
   animate = true,
   reducedMotion = false,
   directionKey
@@ -76,6 +77,20 @@ export default function SkillsSection({
   const trackRef = useRef(null)
   const frame = useRef(0)
   const dragging = useRef(false)
+
+  // The few skills this direction leads with. Matching is case-insensitive but
+  // otherwise exact, because the names were validated against these very
+  // strings when they were stored. A name that matches nothing simply does not
+  // emphasise anything, which is why a direction can carry emphasis written
+  // before its resume changed without the section ever rendering wrong.
+  const featured = useMemo(
+    () => new Set(
+      (Array.isArray(featuredSkills) ? featuredSkills : [])
+        .map(skill => String(skill || '').trim().toLowerCase())
+        .filter(Boolean)
+    ),
+    [featuredSkills]
+  )
 
   // The first paint, on the server and before anything has been measured, uses
   // the packer's own estimate. The first measurement replaces it.
@@ -339,6 +354,9 @@ export default function SkillsSection({
                                   className="hp-tile"
                                   data-skill={skill}
                                   data-scale={tileScale(skill)}
+                                  // Absent rather than "false" on the rest, so
+                                  // [data-featured] is a clean hook.
+                                  data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
                                   style={{ '--tile': tile++ }}
                                   key={`${skill}-${i}`}
                                 >

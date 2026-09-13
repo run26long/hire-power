@@ -31,7 +31,7 @@ const PROFILE_BASE = 'id, user_id, slug'
 const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type`
 
 const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
-const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags`
+const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis`
 
 export async function GET(request, { params }) {
   try {

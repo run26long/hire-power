@@ -11,6 +11,11 @@ const MODEL = 'claude-haiku-4-5-20251001'
 const TEMPERATURE = 0.4
 const PROOF_POINT_COUNT = 3
 
+// Few enough that emphasising them still means something. A direction that
+// leads with a dozen skills is not leading with anything.
+const SKILL_EMPHASIS_MIN = 3
+const SKILL_EMPHASIS_MAX = 5
+
 // ============================================================================
 // POST /api/career-profile/generate
 // Generates the Career Profile content for ONE lens: headline, bio, three proof
@@ -141,7 +146,8 @@ Return this exact structure:
     {"num": "90%+", "label": "account renewal rate"}
   ],
   "ready_for_next": "1 to 2 sentences on what comes next in this direction, pronoun-free, opening on a construction like \"Ready to\"",
-  "ready_tags": ["VP Operations", "Manufacturing", "Process improvement"]
+  "ready_tags": ["VP Operations", "Manufacturing", "Process improvement"],
+  "skill_emphasis": ["Lean Manufacturing", "WIP Reporting", "P&L Management"]
 }
 
 RULES:
@@ -153,6 +159,7 @@ RULES:
 - headline: must differ from the headlines of their other directions above.
 - ready_for_next: forward looking, about what comes next, not a summary of what has already been done. Pronoun-free like the rest: "Ready to take full operational ownership of a multi-department site", never "I am ready to" and never "they are ready to".
 - ready_tags: 3 to 5 short tags naming target roles, industries, or capabilities for this direction.
+- skill_emphasis: ${SKILL_EMPHASIS_MIN} to ${SKILL_EMPHASIS_MAX} skills this direction leads with, chosen from the SKILLS section of the resume above. Copy each one exactly as it is written there, character for character, including punctuation and capitalisation. Do not reword one, do not shorten one, and do not name a skill that is not in that section. Choose the ones a person hiring for ${lensName} would look for first, not simply the most impressive ones.
 - Everything must be traceable to the knowledge base or the resume. If you cannot support a claim from that material, leave it out.
 - Do not use em dashes anywhere. Use commas, periods, or semicolons instead.
 
@@ -170,7 +177,7 @@ function parseGenerated(rawText) {
 // A shape the profile page can render without guarding every field. A partial
 // generation is worse than a failed one: it would half fill the profile and
 // look finished.
-function validateGenerated(parsed) {
+function validateGenerated(parsed, allowedSkills) {
   const headline = typeof parsed?.headline === 'string' ? parsed.headline.trim() : ''
   const bio = typeof parsed?.bio === 'string' ? parsed.bio.trim() : ''
   const readyForNext = typeof parsed?.ready_for_next === 'string' ? parsed.ready_for_next.trim() : ''
@@ -192,13 +199,49 @@ function validateGenerated(parsed) {
     .map(t => stripEmDashes(t.trim()))
   if (readyTags.length === 0) return null
 
+  // Emphasis only ever points at a skill the resume already lists, so what is
+  // stored is the resume's own string rather than the model's echo of it. That
+  // is what lets the profile match a tile without guessing. Matching is
+  // case-insensitive but otherwise exact: "P&L" is not "P&L Management", and
+  // emphasising the wrong tile is worse than emphasising none.
+  //
+  // Unlike the fields above, this does not fail the generation. A direction
+  // with no emphasis renders every skill evenly, which is where the profile
+  // started; a direction with no headline would render as a gap.
+  const emphasis = Array.isArray(parsed?.skill_emphasis) ? parsed.skill_emphasis : []
+  const skillEmphasis = []
+  for (const raw of emphasis) {
+    const name = typeof raw === 'string' ? raw.trim() : ''
+    if (!name) continue
+    const stored = allowedSkills.get(name.toLowerCase())
+    if (stored && !skillEmphasis.includes(stored)) skillEmphasis.push(stored)
+    if (skillEmphasis.length === SKILL_EMPHASIS_MAX) break
+  }
+
   return {
     headline: stripEmDashes(headline),
     bio: stripEmDashes(bio),
     proof_points: proofPoints,
     ready_for_next: stripEmDashes(readyForNext),
-    ready_tags: readyTags
+    ready_tags: readyTags,
+    skill_emphasis: skillEmphasis
   }
+}
+
+// Every skill the profile could render for this direction, keyed for matching
+// and valued with the exact string the resume stores. The direction's own
+// resume is preferred over the core for the same reason the profile prefers it:
+// it is the one whose skills will actually be on screen.
+function skillLookup(lensResumeData, coreResumeData) {
+  const source = normalizeSkillCategories(lensResumeData).length > 0 ? lensResumeData : coreResumeData
+  const lookup = new Map()
+  for (const group of normalizeSkillCategories(source)) {
+    for (const skill of group.skills) {
+      const text = typeof skill === 'string' ? skill.trim() : ''
+      if (text) lookup.set(text.toLowerCase(), text)
+    }
+  }
+  return lookup
 }
 
 // PostgREST reports an unknown key in the payload as PGRST204; Postgres uses
@@ -347,6 +390,11 @@ export async function POST(request) {
     const otherLenses = others || []
 
     const coreResume = (coreRes.data || [])[0] || null
+
+    // The names emphasis is allowed to point at, taken from the same resume the
+    // prompt is written from and the profile will render.
+    const allowedSkills = skillLookup(lensResumeRes.data?.resume_data, coreResume?.resume_data)
+
     const prompt = buildProfilePrompt({
       lensName: lens.name,
       evidenceSummary: lens.evidence_summary,
@@ -382,7 +430,7 @@ export async function POST(request) {
       }
 
       try {
-        const validated = validateGenerated(parseGenerated(message.content[0].text))
+        const validated = validateGenerated(parseGenerated(message.content[0].text), allowedSkills)
         if (validated) {
           generated = validated
           break
@@ -407,6 +455,7 @@ export async function POST(request) {
         proof_points: generated.proof_points,
         ready_for_next: generated.ready_for_next,
         ready_tags: generated.ready_tags,
+        skill_emphasis: generated.skill_emphasis,
         updated_at: new Date().toISOString()
       })
       .eq('id', lens.id)

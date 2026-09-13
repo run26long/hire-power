@@ -327,6 +327,7 @@ export default function CareerProfilePage() {
 
         <SkillsSection
           clusters={skillClusters}
+          featuredSkills={selectedLens?.skill_emphasis}
           animate={animate}
           reducedMotion={reducedMotion}
           directionKey={contentIndex}
