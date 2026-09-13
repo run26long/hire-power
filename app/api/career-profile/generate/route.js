@@ -17,6 +17,191 @@ const SKILL_EMPHASIS_MIN = 3
 const SKILL_EMPHASIS_MAX = 5
 
 // ============================================================================
+// SKILL PROOF
+//
+// After a direction knows which skills it leads with, this works out what backs
+// each of them up, from the material already on the public profile: the public
+// evidence, the published testimonials, and the bullets of the resume the
+// profile renders for this direction.
+//
+// What gets stored is references, never copies. A snippet copied into the table
+// outlives the thing it came from: the user edits a case study and the profile
+// keeps the old wording, or makes one private and the copy keeps publishing it.
+// Ids are resolved at render against the payload, which is already filtered to
+// public rows, so anything withdrawn simply stops appearing.
+//
+// Bullets have no id, only a position, and positions move when a resume is
+// recoached. A bullet reference therefore carries its path and its exact text,
+// and the page shows it only while the two still agree.
+//
+// This runs after the profile has been written and never fails it. A direction
+// with no proof renders exactly as it did before proof existed.
+// ============================================================================
+
+const PROOF_PER_SKILL_MAX = 3
+
+// The bullets of one resume, each with the path that locates it and the text
+// that proves the path still points at the same sentence.
+function bulletPool(resumeData) {
+  const experience = Array.isArray(resumeData?.experience) ? resumeData.experience : []
+  const out = []
+  experience.forEach((role, roleIndex) => {
+    const bullets = Array.isArray(role?.bullets) ? role.bullets : []
+    bullets.forEach((bullet, bulletIndex) => {
+      const text = typeof bullet === 'string' ? bullet.trim() : ''
+      if (!text) return
+      out.push({
+        path: `experience[${roleIndex}].bullets[${bulletIndex}]`,
+        text,
+        company: typeof role?.company === 'string' ? role.company : ''
+      })
+    })
+  })
+  return out
+}
+
+function buildProofPrompt({ lensName, skills, evidence, testimonials, bullets }) {
+  const evidenceBlock = evidence.length
+    ? evidence.map(e => `[evidence:${e.id}] ${e.title}${e.description ? ` — ${e.description}` : ''}`).join('\n')
+    : '(none)'
+
+  const testimonialBlock = testimonials.length
+    ? testimonials.map(t => `[testimonial:${t.id}] ${t.polished_text}`).join('\n')
+    : '(none)'
+
+  const bulletBlock = bullets.length
+    ? bullets.map(b => `[bullet:${b.path}] ${b.text}`).join('\n')
+    : '(none)'
+
+  return `You are connecting a person's skills to the proof of those skills that is already published on their career profile.
+
+THE DIRECTION: ${lensName}
+
+THE SKILLS, each of which needs its proof found:
+${skills.map(s => `- ${s}`).join('\n')}
+
+THE ONLY MATERIAL YOU MAY POINT AT. Every reference you return must be one of these, by its exact tag:
+
+PUBLISHED EVIDENCE:
+${evidenceBlock}
+
+PUBLISHED TESTIMONIALS:
+${testimonialBlock}
+
+RESUME BULLETS:
+${bulletBlock}
+
+Return this exact structure:
+{
+  "proofs": [
+    {
+      "skill": "the skill, copied exactly from the list above",
+      "refs": ["evidence:<id>", "testimonial:<id>", "bullet:experience[0].bullets[1]"]
+    }
+  ]
+}
+
+RULES:
+- A reference is proof only if the material actually demonstrates the skill being used or its result. A passing mention of the same words is not proof. A case study about building a sole source procurement document proves sole source procurement; a bullet that merely contains the word "procurement" does not.
+- Judge by what the material describes, not by whether it repeats the skill's wording. "Sole Source Procurement Framework" proves "Sole Source Procurement Strategy". A bullet about rebuilding a production floor can prove "Lean Manufacturing" without using the phrase.
+- At most ${PROOF_PER_SKILL_MAX} references per skill, strongest first. Fewer is correct and normal.
+- A skill with nothing that genuinely demonstrates it is left out of the array entirely. Returning weak proof is worse than returning none: the reader clicks expecting evidence and finds a coincidence.
+- Copy every tag exactly as written above, including the id or the path. Never invent one, never adjust one, and never point at material that is not listed.
+- Do not explain the connection. Return references only.
+
+Respond with ONLY valid JSON, no markdown, no explanation.`
+}
+
+// Every returned reference is checked against the material actually supplied,
+// so a tag the model invented or altered can never reach the table. A bullet is
+// checked twice over: the path must exist, and the text at it must still be the
+// text that was offered.
+function validateProof(parsed, { skills, evidence, testimonials, bullets }) {
+  const allowedSkills = new Map(skills.map(s => [s.toLowerCase(), s]))
+  const evidenceIds = new Set(evidence.map(e => e.id))
+  const testimonialIds = new Set(testimonials.map(t => t.id))
+  const bulletsByPath = new Map(bullets.map(b => [b.path, b.text]))
+
+  const rows = []
+  const entries = Array.isArray(parsed?.proofs) ? parsed.proofs : []
+
+  for (const entry of entries) {
+    const rawSkill = typeof entry?.skill === 'string' ? entry.skill.trim() : ''
+    const label = allowedSkills.get(rawSkill.toLowerCase())
+    if (!label) continue
+
+    const refs = Array.isArray(entry?.refs) ? entry.refs : []
+    const proofs = []
+
+    for (const raw of refs) {
+      if (typeof raw !== 'string') continue
+      const divider = raw.indexOf(':')
+      if (divider === -1) continue
+      const source = raw.slice(0, divider).trim()
+      const rest = raw.slice(divider + 1).trim()
+      if (!rest) continue
+
+      if (source === 'evidence' && evidenceIds.has(rest)) {
+        proofs.push({ source: 'evidence', id: rest })
+      } else if (source === 'testimonial' && testimonialIds.has(rest)) {
+        proofs.push({ source: 'testimonial', id: rest })
+      } else if (source === 'bullet' && bulletsByPath.has(rest)) {
+        proofs.push({ source: 'bullet', path: rest, text: bulletsByPath.get(rest) })
+      }
+
+      if (proofs.length === PROOF_PER_SKILL_MAX) break
+    }
+
+    if (proofs.length > 0) rows.push({ skill_label: label, proofs })
+  }
+
+  return rows
+}
+
+// Finds the proof for one direction's emphasised skills and stores it. Upserts
+// per skill, so a skill regenerated under a second direction updates the one
+// row that already describes it rather than adding a competing one.
+async function storeSkillProof({ supabase, profileId, userId, lensName, skills, resumeData, evidence, testimonials }) {
+  if (!profileId || !Array.isArray(skills) || skills.length === 0) return
+
+  const bullets = bulletPool(resumeData)
+  if (evidence.length === 0 && testimonials.length === 0 && bullets.length === 0) return
+
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 1500,
+    temperature: 0,
+    messages: [{
+      role: 'user',
+      content: buildProofPrompt({ lensName, skills, evidence, testimonials, bullets })
+    }]
+  })
+
+  const rows = validateProof(
+    parseGenerated(message.content?.[0]?.text),
+    { skills, evidence, testimonials, bullets }
+  )
+  if (rows.length === 0) return
+
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('profile_skill_proofs')
+    .upsert(
+      rows.map(row => ({
+        profile_id: profileId,
+        user_id: userId,
+        skill_label: row.skill_label,
+        proofs: row.proofs,
+        generated_at: now,
+        updated_at: now
+      })),
+      { onConflict: 'profile_id,skill_key' }
+    )
+
+  if (error) throw error
+}
+
+// ============================================================================
 // POST /api/career-profile/generate
 // Generates the Career Profile content for ONE lens: headline, bio, three proof
 // points, a forward-looking line, and target tags. Everything is written from
@@ -391,6 +576,26 @@ export async function POST(request) {
 
     const coreResume = (coreRes.data || [])[0] || null
 
+    // What the profile actually publishes, which is the only material proof is
+    // allowed to point at. Filtered here exactly as the public profile API
+    // filters it, so proof can never reference something a visitor cannot see.
+    const [evidenceRes, testimonialRes] = await Promise.all([
+      profileId
+        ? supabase
+            .from('profile_evidence')
+            .select('id, title, description')
+            .eq('profile_id', profileId)
+            .eq('privacy', 'public')
+        : Promise.resolve({ data: [], error: null }),
+      profileId
+        ? supabase
+            .from('profile_testimonials')
+            .select('id, polished_text')
+            .eq('profile_id', profileId)
+            .eq('status', 'published')
+        : Promise.resolve({ data: [], error: null })
+    ])
+
     // The names emphasis is allowed to point at, taken from the same resume the
     // prompt is written from and the profile will render.
     const allowedSkills = skillLookup(lensResumeRes.data?.resume_data, coreResume?.resume_data)
@@ -470,6 +675,26 @@ export async function POST(request) {
         console.error('[career-profile] Lens update failed:', updateError)
       }
       return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
+    }
+
+    // ---- SKILL PROOF ----
+    // Everything above is the profile. This is the layer underneath it, and it
+    // is deliberately allowed to fail on its own: a direction with no proof
+    // renders exactly as it did before proof existed, where a direction with no
+    // headline would render as a gap.
+    try {
+      await storeSkillProof({
+        supabase,
+        profileId,
+        userId,
+        lensName: lens.name,
+        skills: generated.skill_emphasis,
+        resumeData: lensResumeRes.data?.resume_data || coreResume?.resume_data,
+        evidence: evidenceRes.error ? [] : (evidenceRes.data || []),
+        testimonials: testimonialRes.error ? [] : (testimonialRes.data || [])
+      })
+    } catch (proofError) {
+      console.error('[career-profile] Skill proof failed (non-fatal):', proofError)
     }
 
     return Response.json({ lens: updated })

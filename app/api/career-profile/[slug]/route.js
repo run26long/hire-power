@@ -77,7 +77,7 @@ export async function GET(request, { params }) {
     }
 
     // ---- EVERYTHING THE PAGE RENDERS ----
-    const [lensRes, personRes, contextRes, coreRes, testimonialRes, evidenceRes, impactRes] = await Promise.all([
+    const [lensRes, personRes, contextRes, coreRes, testimonialRes, evidenceRes, impactRes, skillProofRes] = await Promise.all([
       supabase
         .from('profile_lenses')
         .select(LENS_FULL)
@@ -132,7 +132,14 @@ export async function GET(request, { params }) {
         .from('profile_collective_impacts')
         .select('summary, themes, generated_at')
         .eq('profile_id', profile.id)
-        .maybeSingle()
+        .maybeSingle(),
+      // What backs a skill up. References only: they are resolved on the page
+      // against the evidence and testimonials above, so anything withdrawn
+      // since they were written is simply not there to resolve.
+      supabase
+        .from('profile_skill_proofs')
+        .select('skill_label, proofs')
+        .eq('profile_id', profile.id)
     ])
 
     let lenses = lensRes.data
@@ -208,6 +215,13 @@ export async function GET(request, { params }) {
     }
     const collectiveImpact = impactRes.error ? null : (impactRes.data || null)
 
+    // A profile that predates the table renders without proof, which is a
+    // normal profile rather than a failure.
+    if (skillProofRes.error && skillProofRes.error.code !== '42P01') {
+      console.error('[career-profile] Skill proof lookup failed (non-fatal):', skillProofRes.error)
+    }
+    const skillProofs = skillProofRes.error ? [] : (skillProofRes.data || [])
+
     const coreResume = (coreRes.data || [])[0] || null
 
     // Experience, certifications and education follow the rule the rest of the
@@ -263,7 +277,8 @@ export async function GET(request, { params }) {
       resumeSections,
       testimonials,
       evidence,
-      collectiveImpact
+      collectiveImpact,
+      skillProofs
     })
 
   } catch (error) {

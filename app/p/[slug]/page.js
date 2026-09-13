@@ -12,6 +12,7 @@ import { usePrefersReducedMotion } from './_lib/motion'
 import {
   BIO_COLLAPSE_AT,
   groupSkills,
+  resolveSkillProof,
   truncateAtSentence
 } from './_lib/profileData'
 
@@ -195,6 +196,17 @@ export default function CareerProfilePage() {
   const evidence = (Array.isArray(data?.evidence) ? data.evidence : [])
     .filter(item => item && (item.title || item.url))
 
+  // References become renderable proof here, against the evidence and
+  // testimonials this page was already given and the resume it is showing.
+  const skillProof = useMemo(
+    () => resolveSkillProof(data?.skillProofs, {
+      evidence,
+      testimonials,
+      resumeData: activeResume?.resume_data
+    }),
+    [data?.skillProofs, evidence, testimonials, activeResume]
+  )
+
   async function handleGenerate() {
     if (!selectedLens || generating) return
     setGenerating(true)
@@ -328,6 +340,7 @@ export default function CareerProfilePage() {
         <SkillsSection
           clusters={skillClusters}
           featuredSkills={selectedLens?.skill_emphasis}
+          skillProof={skillProof}
           animate={animate}
           reducedMotion={reducedMotion}
           directionKey={contentIndex}

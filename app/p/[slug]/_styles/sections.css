@@ -992,7 +992,7 @@
   gap: 8px 6px;
 }
 
-.hp-tile {
+.hp-slide-row .hp-tile {
   display: inline-block;
   max-width: 100%;
   padding: 5px 9px;
@@ -1009,9 +1009,9 @@
    identical on every tile: a brighter tile would read as a skill that does
    something, and none of them do yet. When skill proof arrives, emphasis is
    what it gets to mean. */
-.hp-tile[data-scale="lg"] { font-size: 15px; }
+.hp-slide-row .hp-tile[data-scale="lg"] { font-size: 15px; }
 
-.hp-tile[data-scale="sm"] { font-size: 13px; padding: 5px 8px; }
+.hp-slide-row .hp-tile[data-scale="sm"] { font-size: 13px; padding: 5px 8px; }
 
 /* ---- The settle ----
    One pass as the deck arrives: each tile starts a little out of place and
@@ -1185,9 +1185,9 @@
   .hp-block + .hp-block { margin-top: 18px; padding-top: 18px; }
   .hp-slide-field { gap: 9px; }
   .hp-slide-row { gap: 9px 8px; }
-  .hp-tile { font-size: 14.5px; padding: 6px 11px; }
-  .hp-tile[data-scale="lg"] { font-size: 15.5px; }
-  .hp-tile[data-scale="sm"] { font-size: 13.5px; }
+  .hp-slide-row .hp-tile { font-size: 14.5px; padding: 6px 11px; }
+  .hp-slide-row .hp-tile[data-scale="lg"] { font-size: 15.5px; }
+  .hp-slide-row .hp-tile[data-scale="sm"] { font-size: 13.5px; }
 }
 
 @media (min-width: 1200px) {
@@ -1205,9 +1205,9 @@
   .hp-slide-field { gap: 10px; }
   .hp-slide-row { gap: 10px 9px; }
 
-  .hp-tile { font-size: 15px; padding: 7px 12px; }
-  .hp-tile[data-scale="lg"] { font-size: 16px; }
-  .hp-tile[data-scale="sm"] { font-size: 14px; }
+  .hp-slide-row .hp-tile { font-size: 15px; padding: 7px 12px; }
+  .hp-slide-row .hp-tile[data-scale="lg"] { font-size: 16px; }
+  .hp-slide-row .hp-tile[data-scale="sm"] { font-size: 14px; }
 
   .hp-deck-nav { margin-top: 24px; padding-right: 24px; gap: 20px; }
 }

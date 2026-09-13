@@ -225,6 +225,67 @@ export function skillSlides(clusters, options = {}) {
   return slides
 }
 
+// ---------------------------------------------------------------------------
+// Skill proof, resolved.
+//
+// What is stored against a skill is references, never copies, so this is where
+// they become something to render. Everything is resolved against what the page
+// was actually given: the public evidence and the published testimonials it
+// already holds, and the resume it is already showing.
+//
+// That is the whole point of storing references. A piece of evidence the owner
+// has since deleted or made private is not in the payload, so it resolves to
+// nothing and quietly disappears from the proof. A bullet that moved when the
+// resume was recoached no longer matches the text recorded beside its path, so
+// it disappears too rather than pointing confidently at the wrong sentence.
+// Proof either still stands up or it is not shown.
+//
+// Returns a Map keyed by the lowercased skill label, which is how a rendered
+// tile finds its own proof.
+// ---------------------------------------------------------------------------
+function bulletAt(resumeData, path) {
+  const match = /^experience\[(\d+)\]\.bullets\[(\d+)\]$/.exec(String(path || ''))
+  if (!match) return null
+  const role = resumeData?.experience?.[Number(match[1])]
+  const bullet = role?.bullets?.[Number(match[2])]
+  return typeof bullet === 'string' ? { text: bullet, company: role?.company || '' } : null
+}
+
+export function resolveSkillProof(skillProofs, { evidence, testimonials, resumeData } = {}) {
+  const byLabel = new Map()
+  if (!Array.isArray(skillProofs) || skillProofs.length === 0) return byLabel
+
+  const evidenceById = new Map((evidence || []).map(item => [item.id, item]))
+  const testimonialById = new Map((testimonials || []).map(item => [item.id, item]))
+
+  for (const row of skillProofs) {
+    const label = typeof row?.skill_label === 'string' ? row.skill_label.trim() : ''
+    if (!label) continue
+
+    const resolved = []
+    for (const ref of Array.isArray(row?.proofs) ? row.proofs : []) {
+      if (ref?.source === 'evidence') {
+        const item = evidenceById.get(ref.id)
+        if (item) resolved.push({ source: 'evidence', id: item.id, title: item.title, detail: item.description, url: item.url, kind: item.kind })
+      } else if (ref?.source === 'testimonial') {
+        const item = testimonialById.get(ref.id)
+        if (item) resolved.push({ source: 'testimonial', id: item.id, title: item.recipient_name, detail: item.polished_text, role: item.recipient_title })
+      } else if (ref?.source === 'bullet') {
+        const found = bulletAt(resumeData, ref.path)
+        // The text recorded beside the path is what proves the path still
+        // points where it did. A mismatch means the resume moved underneath it.
+        if (found && found.text.trim() === String(ref.text || '').trim()) {
+          resolved.push({ source: 'bullet', id: ref.path, title: found.company, detail: found.text })
+        }
+      }
+    }
+
+    if (resolved.length > 0) byLabel.set(label.toLowerCase(), resolved)
+  }
+
+  return byLabel
+}
+
 // Which testimonials a three-position wheel is showing, given how far it has
 // been turned. Pure, and here rather than in the section, so the wrap can be
 // checked on its own without a database or a browser.

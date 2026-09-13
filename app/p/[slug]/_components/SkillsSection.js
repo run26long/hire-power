@@ -56,6 +56,7 @@ function tileScale(label) {
 export default function SkillsSection({
   clusters,
   featuredSkills,
+  skillProof,
   animate = true,
   reducedMotion = false,
   directionKey
@@ -69,6 +70,9 @@ export default function SkillsSection({
   // to sit where the deck actually is rather than at the nearest slide.
   const [position, setPosition] = useState(0)
   const [metrics, setMetrics] = useState(null)
+  // One skill open at a time. A field of open panels is a wall of text, and the
+  // question a reader is asking is about one skill.
+  const [openSkill, setOpenSkill] = useState(null)
   const [entered, setEntered] = useState(false)
   const [shownFor, setShownFor] = useState(directionKey)
 
@@ -91,6 +95,11 @@ export default function SkillsSection({
     ),
     [featuredSkills]
   )
+
+  // Proof arrives already resolved against what the page holds, so a skill is
+  // in this map only while its proof still stands up.
+  const proofFor = (skill) =>
+    (skillProof instanceof Map ? skillProof.get(String(skill).trim().toLowerCase()) : null) || null
 
   // The first paint, on the server and before anything has been measured, uses
   // the packer's own estimate. The first measurement replaces it.
@@ -121,6 +130,7 @@ export default function SkillsSection({
     setShownFor(directionKey)
     setPosition(0)
     setEntered(false)
+    setOpenSkill(null)
   }
 
   // ---- Measuring ----
@@ -347,24 +357,78 @@ export default function SkillsSection({
                         )}
 
                         <div className="hp-slide-field">
-                          {block.rows.map((row, rowIndex) => (
-                            <div className="hp-slide-row" key={`row-${rowIndex}`}>
-                              {row.map((skill, i) => (
-                                <span
-                                  className="hp-tile"
-                                  data-skill={skill}
-                                  data-scale={tileScale(skill)}
-                                  // Absent rather than "false" on the rest, so
-                                  // [data-featured] is a clean hook.
-                                  data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
-                                  style={{ '--tile': tile++ }}
-                                  key={`${skill}-${i}`}
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          ))}
+                          {block.rows.map((row, rowIndex) => {
+                            // The panel belongs to the row, not to the tile.
+                            // A row is a wrapping flex line, so a panel placed
+                            // among the tiles would become one of them; placed
+                            // after the row it opens underneath the skill it
+                            // belongs to and pushes the rest of the card down.
+                            const openInRow = row.find(skill => skill === openSkill && proofFor(skill))
+                            const panelId = `proof-${slideIndex}-${blockIndex}-${rowIndex}`
+
+                            return (
+                              <div className="hp-slide-line" key={`row-${rowIndex}`}>
+                                <div className="hp-slide-row">
+                                  {row.map((skill, i) => {
+                                    const proof = proofFor(skill)
+                                    const isOpen = openSkill === skill && Boolean(proof)
+
+                                    // A skill with nothing behind it is not a
+                                    // control and never pretends to be one.
+                                    if (!proof) {
+                                      return (
+                                        <span
+                                          className="hp-tile"
+                                          data-skill={skill}
+                                          data-scale={tileScale(skill)}
+                                          // Absent rather than "false" on the
+                                          // rest, so [data-featured] is a clean
+                                          // hook.
+                                          data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
+                                          style={{ '--tile': tile++ }}
+                                          key={`${skill}-${i}`}
+                                        >
+                                          {skill}
+                                        </span>
+                                      )
+                                    }
+
+                                    return (
+                                      <button
+                                        type="button"
+                                        className="hp-tile"
+                                        data-skill={skill}
+                                        data-scale={tileScale(skill)}
+                                        data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
+                                        data-has-proof="true"
+                                        aria-expanded={isOpen}
+                                        aria-controls={panelId}
+                                        onClick={() => setOpenSkill(current => (current === skill ? null : skill))}
+                                        style={{ '--tile': tile++ }}
+                                        key={`${skill}-${i}`}
+                                      >
+                                        {skill}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+
+                                {openInRow && (
+                                  <div className="hp-proof" id={panelId} data-skill={openInRow}>
+                                    <ul className="hp-proof-list">
+                                      {proofFor(openInRow).map(item => (
+                                        <li className="hp-proof-item" data-source={item.source} key={`${item.source}-${item.id}`}>
+                                          {item.title && <span className="hp-proof-title">{item.title}</span>}
+                                          {item.role && <span className="hp-proof-role">{item.role}</span>}
+                                          {item.detail && <span className="hp-proof-detail">{item.detail}</span>}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     ))}
