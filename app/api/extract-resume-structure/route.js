@@ -65,8 +65,9 @@ Return this exact JSON structure (use empty arrays/strings/null if sections don'
     }
   ],
   "skillsCategories": {
-    "Technical Skills": ["skill1", "skill2"],
-    "Professional Skills": ["skill3", "skill4"]
+    "Category Name A": ["skill1", "skill2"],
+    "Category Name B": ["skill3", "skill4"],
+    "Category Name C": ["skill5", "skill6"]
   },
   "projects": [
     {
@@ -102,7 +103,7 @@ CRITICAL INSTRUCTIONS:
 - education.field: The field of study only (e.g., "Computer Science", "Business Administration", "Entertainment Management"). Empty string if not present.
 - education.graduationDate: Graduation or expected graduation date in YYYY-MM format. Null if not present.
 - education.lines: Supplementary info ONLY — GPA, honors, relevant coursework, honor societies. Do NOT put degree name or field of study in lines[]. Those go in degree and field above. Do NOT put any version of the graduation date in lines[] — not the numeric date, not a written-out date (e.g., "December 2027"), not an "expected" phrase (e.g., "expected December 2027" or "graduating May 2024"). The graduationDate field captures the date; do not duplicate it.
-- skillsCategories: ALWAYS categorize skills into "Technical Skills" and "Professional Skills". Technical = programming languages, software, tools, technical abilities. Professional = soft skills, leadership, communication, management. If you can't categorize, use "Skills" as single category.
+- skillsCategories: Write exactly 3 categories, named for this candidate's real domains of expertise as the resume shows them. Derive the names from the content in front of you — read the roles, the tools, and the vocabulary, and name the areas the work actually falls into. An operations candidate might yield "Operations & Manufacturing", "Commercial Strategy", "Tools & Platforms"; an engineering candidate might yield "Software Engineering", "Data & Analytics", "Cloud Infrastructure". Those are illustrations of the right altitude, not a list to choose from. NEVER use "Technical Skills" or "Professional Skills" as a category name — they describe the shape of a list rather than what the person does. Each category holds 5 to 12 skills. If the resume genuinely supports fewer than 3 distinct domains, write the ones it supports rather than padding with an empty or generic third.
 - projects: Extract any personal projects, side projects, or portfolio work. Include project name, brief description, and link if available.
 - certifications: Extract professional certifications, licenses, or credentials. Format as "name" and "details" (organization | date).
 - volunteer: Extract volunteer work or community service. Include organization name and description of role/activities.

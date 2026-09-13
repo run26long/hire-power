@@ -433,6 +433,9 @@ Keywords belong in two places: naturally embedded in bullets where the work is d
 KEYWORD ORDER: 
 Within each category of the skills section, order keyword from most important to least important to the target job.
 
+CATEGORY ORDER:
+Order the skill categories too, not just the keywords inside them. When a direction or target role is given above, the category closest to that direction goes first and the rest follow by how much they serve it. When no direction is given, lead with the candidate's strongest area — the one the experience section spends the most weight on and the one their vocabulary is deepest in. Ordering is the only emphasis available here: never drop a category, never rename one to make it fit, and never move a skill into a category it does not belong to in order to promote it.
+
 KEYWORD CALIBRATION BY CAREER LENGTH AND JOB LEVEL:
 
 Early Career and Entry Level: basic to intermediate field vocabulary is expected. Breadth is less important than accuracy and specificity. A student with 5 genuinely relevant tools named specifically scores better than one with 20 generic soft skills. Focus on tools actually used, field terminology learned through education or training, and role-appropriate vocabulary for their target field.
@@ -1412,6 +1415,9 @@ SKILLS SECTION:
 - Skills section is a secondary ATS target — bullets are primary.
 - Keep skills honest — only add what the coaching conversation or resume supports.
 - Never consolidate specific software tool names into suite names (kills ATS matching).
+- REORDER CATEGORIES so the category most relevant to this job description comes first, then the rest in descending relevance to it.
+- REORDER SKILLS within each category so the ones the job description asks for come first.
+- Reordering is de-emphasis, exactly as it is for bullets. Never drop a category, never rename one to match the job description, and never move a skill into a category it does not belong to.
 
 NO HALLUCINATION — ABSOLUTE:
 Only add a keyword if the candidate actually has that skill or experience.
@@ -1473,7 +1479,7 @@ WHAT YOU CAN DO:
 
 3. TAILOR THE SUMMARY toward the target role using existing experience. The summary positioning can shift to emphasize aspects of the candidate's background most relevant to this JD. The summary will be written in the dedicated second pass — set it to "" in your output.
 
-4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the job description requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills.
+4. SURFACE EXISTING SKILLS in the skills section that are relevant to the JD. If the candidate has Excel listed and the job description requires Excel, confirm it stays prominent. If a JD-relevant skill is buried in a bullet but missing from the skills section, add it to skills. Order the categories so the one most relevant to this job description comes first, and inside each category put the JD-relevant skills first. Reorder only: same categories, same skills, nothing renamed and nothing moved between categories.
 
 5. DE-EMPHASIZE LESS RELEVANT CONTENT by moving it to the bottom of its role, not by deleting it. A bullet that does nothing for this job description still establishes scope, range, and credibility for the candidate as a whole. Push it down the list so the JD-relevant bullets are read first. Leave it in.
 
@@ -1844,6 +1850,8 @@ Never add specific numbers, quantities, counts, or measurements to bullets unles
 
 5. SKILLS SECTION — Add any missing keywords that could not fit into bullets.
    Keep all existing specific tool names — never consolidate into suite names.
+   Order the categories so the one most relevant to this job description comes first, and inside
+   each category put the JD-relevant skills first. Reorder only: same categories, same skills.
 
 5b. EDUCATION:
    Do not modify graduation dates or add any date-related text to education lines. You may add
@@ -3005,6 +3013,11 @@ CAREER DIRECTION CONTEXT:
 
 For career changers: frame transferable skills explicitly. The resume should position this person 
 for their TARGET field, not just document their past.
+
+SKILLS ORDER FOR THIS DIRECTION: the target roles above are the direction this resume is being cut
+for. Put the skill category that serves that direction first, then the rest in descending relevance,
+and inside every category put the skills that serve it first. Reordering only — the same categories
+and the same skills come out as went in.
 ` : ''
 
   const assessmentBlock = resumeData?._analysisResults ? `
