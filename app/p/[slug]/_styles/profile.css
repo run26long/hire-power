@@ -1,0 +1,1286 @@
+/* ===========================================================================
+   Career Profile - Signature shell and ACT I.
+
+   Read alongside _styles/tokens.css and _styles/sections.css. Nothing in here
+   states a colour: every value comes through a --profile-* token so Mode and
+   Palette can be added later without touching a component or a rule below.
+
+   ACT I is the header, the identity, the proof and the direction invitation
+   composed as one opening act rather than two stacked sections. Everything
+   from About downwards is in sections.css and is untouched by this pass; the
+   shared layout block below is what those sections stand on and is left
+   exactly as it was.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------- shell -- */
+
+.hp-profile {
+  background: var(--profile-ground);
+  color: var(--profile-body);
+  font-family: var(--profile-font-ui);
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  /* `clip` rather than `hidden`: hidden would make this a scroll container and
+     silently kill the sticky direction control inside it. */
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hp-profile *,
+.hp-profile *::before,
+.hp-profile *::after { box-sizing: border-box; }
+
+.hp-profile button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: inherit;
+}
+
+.hp-profile a { color: inherit; text-decoration: none; }
+
+.hp-profile :focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.hp-state {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--profile-pad);
+  text-align: center;
+}
+
+.hp-state-text { font-size: 17px; line-height: 1.65; color: var(--profile-meta); }
+
+.hp-spinner {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--profile-line-strong);
+  border-right-color: transparent;
+  animation: hp-spin 0.8s linear infinite;
+}
+
+@keyframes hp-spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------- the frame -- */
+/* One outer width for the whole Profile. No section is centred in a narrower
+   column of its own, and there are no horizontal rules between sections. */
+
+.hp-frame,
+.hp-wrap,
+.hp-wrap-mid,
+.hp-wrap-tight {
+  max-width: var(--profile-frame);
+  margin-inline: auto;
+  padding-inline: var(--profile-pad);
+}
+
+/* ---- The sections below the opening ----
+   Untouched by this pass beyond the outer frame above and the removal of the
+   rules that used to sit between them. */
+
+.hp-section { padding-block: 80px; }
+.hp-read { max-width: var(--profile-read); }
+
+.hp-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+  margin-bottom: 20px;
+}
+
+.hp-label-note {
+  display: block;
+  margin: -10px 0 26px;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--profile-meta);
+}
+
+.hp-split { display: grid; gap: 32px; }
+.hp-split-intro > .hp-label { margin-bottom: 12px; }
+.hp-split-intro > .hp-label-note { margin: 0; }
+
+@media (min-width: 1024px) {
+  .hp-section { padding-block: 96px; }
+  .hp-split {
+    grid-template-columns: minmax(220px, 26fr) minmax(0, 74fr);
+    column-gap: var(--profile-gutter);
+    align-items: start;
+  }
+  .hp-split-intro { position: sticky; top: 100px; }
+}
+
+/* ------------------------------------------------------- the type system -- */
+/* Four registers, deliberately far apart. */
+
+.hp-eyebrow {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-body { font-size: 17px; line-height: 1.65; font-weight: 400; color: var(--profile-body); }
+.hp-meta { font-size: 13px; line-height: 1.4; font-weight: 500; color: var(--profile-meta); }
+
+/* ========================================================== ACT I ======= */
+/* The cover.
+ *
+ * One stage, not two columns. Below 1200 it is a compact editorial sequence in
+ * source order; at 1200 and up the same elements are placed on a twelve column
+ * grid and deliberately allowed to cross each other: the identity holds
+ * columns 1 to 8, the lead proof runs 8 to 12 and is pulled back over that
+ * shared column so it lands inside the vertical band the name and deck make.
+ * The two supporting figures sit lower on a stagger, and the invitation
+ * anchors the foot of the same cover.
+ *
+ * Nothing here is a panel, a card, a sidebar or a module.
+ * ========================================================================= */
+
+.hp-act1 {
+  position: relative;
+  background: var(--profile-void);
+  overflow: hidden;
+}
+
+/* The one light. Two fields, both far wider than the box that carries them, so
+   the falloff never resolves into a shape. Static: atmosphere, not animation. */
+.hp-act1-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--profile-atmosphere);
+}
+
+/* The beam. Exists only for the length of a direction change and falls from the
+   selector down into the identity and the proof, which is the direction the
+   cause and effect actually run: choose above, the page rewrites below. */
+.hp-act1-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 88%;
+  pointer-events: none;
+  background: var(--profile-beam);
+  animation: hp-beam var(--profile-glow-ms) var(--profile-ease-out) forwards;
+}
+
+@keyframes hp-beam {
+  0% { opacity: 0; transform: translateY(-56px); }
+  38% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(72px); }
+}
+
+.hp-act1-frame {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Act I sets its own eyebrow rather than borrowing the one the sections below
+   use, so nothing under About moves and nothing here drops under 13px. */
+.hp-act1-eyebrow {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+/* ---------------------------------------------------------------- header -- */
+/* Quiet floating editorial chrome. The mark is held well back: the person is
+   the title of this page, not the product. */
+
+.hp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-block: 18px;
+}
+
+/* Legible rather than ghosted, and still small: the mark identifies the
+   product, the name is the title of the page. */
+.hp-header-mark {
+  height: 22px;
+  width: auto;
+  opacity: 0.85;
+  flex-shrink: 0;
+  transition: opacity var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---- The two actions ----
+   Scoped to the header so the resolution at the foot of the Profile keeps the
+   treatment it already had. The descendant selector is also what settles the
+   long standing specificity problem: the button reset near the top of this
+   file is (0,1,1) and has been flattening padding and borders on every
+   control, while ".hp-header .hp-btn" is (0,2,0) and outranks it. Nothing
+   outside this header is affected. */
+.hp-header .hp-btn,
+.hp-bar .hp-btn {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  border-radius: 9px;
+  padding: 9px 15px;
+  cursor: pointer;
+  transition: background var(--profile-move-ms) var(--profile-ease-in),
+              border-color var(--profile-move-ms) var(--profile-ease-in),
+              color var(--profile-move-ms) var(--profile-ease-in),
+              transform var(--profile-move-ms) var(--profile-ease-in);
+}
+
+/* Contact: the conversion. One restrained sweep, no halo. */
+.hp-header .hp-btn-primary,
+.hp-bar .hp-btn-primary {
+  color: var(--profile-text);
+  background: linear-gradient(158deg, var(--profile-action-lift) 0%, var(--profile-action-deep) 100%);
+  border: 1px solid transparent;
+}
+
+/* Download résumé: a real control, just a quieter one. Surface and border
+   rather than fill, so it never competes with Contact. */
+.hp-header .hp-btn-secondary,
+.hp-bar .hp-btn-secondary {
+  color: var(--profile-body);
+  background: var(--profile-surface-2);
+  border: 1px solid var(--profile-line-strong);
+}
+
+.hp-header .hp-btn:disabled,
+.hp-bar .hp-btn:disabled { cursor: not-allowed; }
+
+.hp-header .hp-btn:focus-visible,
+.hp-bar .hp-btn:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+}
+
+.hp-header .hp-btn:not(:disabled):active,
+.hp-bar .hp-btn:not(:disabled):active { transform: translateY(1px); }
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-header .hp-btn-primary:not(:disabled):hover,
+  .hp-bar .hp-btn-primary:not(:disabled):hover {
+    background: linear-gradient(158deg, var(--profile-accent) 0%, var(--profile-action) 100%);
+  }
+  .hp-header .hp-btn-secondary:not(:disabled):hover,
+  .hp-bar .hp-btn-secondary:not(:disabled):hover {
+    color: var(--profile-text);
+    border-color: var(--profile-accent-edge);
+  }
+}
+
+/* Neither action has a backend yet, so each keeps the disabled state and the
+   explanation it already carried.
+
+   Note for a later pass, deliberately not acted on here: the `.hp-profile
+   button` reset above is (0,1,1) and outranks `.hp-action` at (0,1,0), so the
+   border and padding declared here have never actually applied and both the
+   header and the resolution render these as quiet text. Raising the
+   specificity would change the resolution at the foot of the Profile, which is
+   outside this pass. Left exactly as it is. */
+.hp-action {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--profile-body);
+  border: 1px solid var(--profile-line-strong);
+  border-radius: var(--profile-radius-pill);
+  padding: 9px 20px;
+  white-space: nowrap;
+  transition: border-color var(--profile-move-ms) var(--profile-ease-in),
+              color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-action-primary { border-color: var(--profile-accent-edge); color: var(--profile-text); }
+.hp-action:disabled { cursor: not-allowed; opacity: 0.55; }
+
+.hp-owner-note { font-size: 13px; line-height: 1.4; color: var(--profile-notice); }
+
+.hp-owner-action {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--profile-text);
+  background: var(--profile-action);
+  border-radius: var(--profile-radius-pill);
+  padding: 9px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-owner-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-header-mark:hover { opacity: 1; }
+  .hp-action:not(:disabled):hover { border-color: var(--profile-accent-edge); color: var(--profile-text); }
+}
+
+/* ----------------------------------------------------------------- stage -- */
+/* Mobile and up: the sequence, in source order, tightly spaced. The twelve
+   column stage is layered over this from 768. */
+
+.hp-act1-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  padding-block: 8px 0;
+}
+
+.hp-name {
+  font-family: var(--profile-font-display);
+  font-weight: 700;
+  font-size: clamp(56px, 17vw, 72px);
+  line-height: 0.88;
+  letter-spacing: -0.05em;
+  color: var(--profile-text);
+  margin: 16px 0 0;
+}
+
+/* The deck. Source Serif against the grotesque above it is the second voice,
+   and the change of family, weight and rhythm is what stops the opening
+   reading as one typeface at two sizes. */
+.hp-act1-deck {
+  font-family: var(--profile-font-voice);
+  font-size: clamp(19px, 5vw, 22px);
+  line-height: 1.3;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--profile-body);
+  margin: 20px 0 0;
+  max-width: 630px;
+}
+
+/* ----------------------------------------------------------------- proof -- */
+/* An artifact found inside the portrait, not a column of statistics. */
+
+.hp-proof-lead { margin-top: 26px; }
+
+.hp-proof-caption {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+  margin-bottom: 10px;
+}
+
+.hp-proof-lead-num {
+  display: block;
+  font-family: var(--profile-font-display);
+  font-size: clamp(72px, 20vw, 92px);
+  font-weight: 650;
+  line-height: 0.86;
+  letter-spacing: -0.055em;
+  color: var(--profile-text);
+}
+
+.hp-proof-lead-label {
+  display: block;
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--profile-body);
+  max-width: 26ch;
+}
+
+/* Two columns on a phone, so the supporting figures cost one short band rather
+   than two tall ones. `display: contents` hands the children straight to the
+   twelve column stage at desktop. */
+.hp-proof-subs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+  width: 100%;
+}
+
+.hp-proof-num {
+  display: block;
+  font-family: var(--profile-font-display);
+  font-size: clamp(26px, 7vw, 30px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--profile-text);
+}
+
+.hp-proof-label {
+  display: block;
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--profile-meta);
+}
+
+/* ---- The value lockup ----
+   A proof value is a metric and, sometimes, a written unit. The metric keeps
+   the display scale the composition was built around; the unit sits beside it
+   at a fraction of that, which is what stops "8 leaders" being set at 130px
+   and wrapping across the field. A value with no unit renders exactly as
+   before: the core is the whole string and nothing else is emitted. */
+.hp-proof-core { white-space: nowrap; }
+
+.hp-proof-unit {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--profile-body);
+  white-space: nowrap;
+}
+
+/* Sized against the numeral it belongs to, with a floor so it can never drop
+   under the Profile's 13px minimum at the smallest breakpoint. */
+.hp-proof-lead-num .hp-proof-unit { font-size: clamp(16px, 0.24em, 32px); }
+.hp-proof-num .hp-proof-unit { font-size: clamp(13px, 0.44em, 18px); }
+
+/* The one guard for a value that is neither compound nor compact, such as a
+   written range with no space to split on. Nothing in the data reaches it
+   today, so every current metric keeps its approved scale. */
+.hp-proof-lead-num[data-len="long"] .hp-proof-core { font-size: 0.62em; }
+.hp-proof-num[data-len="long"] .hp-proof-core { font-size: 0.74em; }
+
+/* ------------------------------------------------------------ invitation -- */
+/* The foot of the cover, and the way into the Profile. */
+
+.hp-act1-invite { width: 100%; }
+
+.hp-invite-prompt {
+  font-family: var(--profile-font-voice);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  color: var(--profile-meta);
+  margin: 0 0 18px;
+  max-width: 30ch;
+}
+
+/* The rail and its step controls share a positioning context. The steps sit
+   over the faded edges rather than beside the row, so the row keeps its full
+   width and the controls read as part of the fade. */
+.hp-rail { position: relative; min-width: 0; }
+
+/* In the bar the rail is the flex item, not the track inside it, so the
+   sizing that used to sit on the track has to sit here or the track stops
+   being width constrained and never reports an overflow. */
+.hp-bar-inner > .hp-rail { flex: 1 1 auto; }
+
+.hp-directions {
+  display: flex;
+  align-items: flex-start;
+  gap: 26px;
+  /* Kept at every width: a third direction must never be unreachable. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* The track is a scroll container, so it clips anything drawn outside its
+     padding box, and the keyboard focus ring is drawn 4px outside the button.
+     That is what was cutting the ring into an L. The padding gives the ring
+     room and the matching negative margin gives the geometry back, so nothing
+     on the page moves. */
+  padding: 8px 8px 10px;
+  margin: -6px -8px -4px;
+  scroll-padding-inline: calc(var(--profile-pad) + 8px);
+}
+
+.hp-directions::-webkit-scrollbar { display: none; }
+
+/* ---- The step controls ----
+   Off on every desktop width: there the whole row fits and there is nothing to
+   discover. On a phone they are the only thing saying a third direction is
+   there at all. Quiet, no circle, no dots, no instruction. */
+/* The accent has to be reasserted at this weight: the profile's own button
+   reset is .hp-profile button, which outranks a single class, and without this
+   the chevron inherits body grey and reads as punctuation rather than as a
+   control. */
+.hp-rail .hp-rail-step {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  color: var(--profile-accent);
+  cursor: pointer;
+}
+
+/* Sat in its own gutter at the very edge rather than hanging over the row, so
+   it never reads as a mark inside a clipped name. */
+.hp-rail-step[data-step="prev"] { left: 0; }
+.hp-rail-step[data-step="next"] { right: 0; }
+
+.hp-rail-step:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.hp-rail-chevron {
+  width: 9px;
+  height: 9px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+}
+
+.hp-rail-step[data-step="next"] .hp-rail-chevron { transform: translateX(-2px) rotate(45deg); }
+.hp-rail-step[data-step="prev"] .hp-rail-chevron { transform: translateX(2px) rotate(225deg); }
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-rail-step:hover { color: var(--profile-accent-soft); }
+}
+
+.hp-direction {
+  flex-shrink: 0;
+  font-family: var(--profile-font-display);
+  /* One size for both states. Selection is carried by weight, colour and the
+     mark, never by scale, so no name can push its neighbours sideways. */
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-direction[data-active="true"] { color: var(--profile-text); font-weight: 650; }
+
+/* The width of the heaviest state, reserved at all times. The pseudo element is
+   the real measurer; the visible text sits under it. Without this, going from
+   500 to 650 would still reflow the row. */
+.hp-direction-label {
+  display: block;
+  white-space: nowrap;
+}
+
+.hp-direction-label::before {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 650;
+  pointer-events: none;
+}
+
+/* The mark. Scales and fades; it never changes the layout width of anything. */
+.hp-direction-mark {
+  display: block;
+  height: 2px;
+  margin-top: 11px;
+  border-radius: 2px;
+  background: var(--profile-accent);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--profile-move-ms) var(--profile-ease-in),
+              opacity var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-direction[data-active="true"] .hp-direction-mark,
+.hp-direction-single .hp-direction-mark {
+  opacity: 1;
+  transform: scaleX(1);
+  box-shadow: 0 0 18px var(--profile-accent-halo);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-direction:not([data-active="true"]):hover { color: var(--profile-body); }
+}
+
+/* A single direction is a statement about this person, not a choice. */
+.hp-direction-single {
+  display: inline-block;
+  font-family: var(--profile-font-display);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  color: var(--profile-text);
+}
+/* ================================================ STICKY DIRECTIONS ===== */
+/* Unchanged in mechanism. The only adjustments are the ones that make it read
+   as the small sibling of the selector above: one type size for both states,
+   the heaviest width reserved, and the same mark. */
+
+.hp-bar-sentinel { height: 1px; }
+
+/* The bar reserves no space in the flow until it is actually showing.
+   It used to hold its 68px at all times so that taking hold could not shift
+   anything, but that 68px is the empty band between Act I and About: it is
+   reserved for a control that is not on screen yet and cannot be seen.
+   Holding zero height and switching to fixed when the sentinel says it is
+   stuck gives the same result without the reservation. The flow height is 0
+   before and 0 after, so there is still nothing to jump, and once it is fixed
+   it is a 68px bar with the page running under it, which is what it looked
+   like anyway. */
+.hp-bar {
+  position: relative;
+  top: 0;
+  z-index: 20;
+  height: 0;
+  background: var(--profile-veil);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-bar[data-stuck="true"] { border-bottom-color: rgb(255 255 255 / 0.07); }
+
+.hp-bar-inner {
+  display: flex;
+  align-items: center;
+  height: 68px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--profile-move-ms) var(--profile-ease-in),
+              visibility var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-bar[data-stuck="true"] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 68px;
+}
+
+.hp-bar[data-stuck="true"] .hp-bar-inner { opacity: 1; visibility: visible; }
+
+.hp-bar-track {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* The track is a scroll container, so it clips anything drawn outside its
+     padding box, and the focus ring is drawn 6px outside the button. The
+     opening rail solved this the same way: padding to give the ring room, and
+     a matching negative inline margin to hand the geometry straight back, so
+     nothing on the bar moves. */
+  padding: 14px 8px 0;
+  margin-inline: -8px;
+  scroll-padding-inline: var(--profile-pad);
+}
+
+.hp-bar-track::-webkit-scrollbar { display: none; }
+
+.hp-bar-item {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.4;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-bar-item[data-active="true"] { font-weight: 700; color: var(--profile-text); }
+
+.hp-bar-label { display: block; white-space: nowrap; }
+
+.hp-bar-label::before {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.hp-bar-mark {
+  display: block;
+  height: 2px;
+  margin-top: 7px;
+  border-radius: 2px;
+  background: var(--profile-accent);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--profile-move-ms) var(--profile-ease-in),
+              opacity var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-bar-item[data-active="true"] .hp-bar-mark { opacity: 1; transform: scaleX(1); }
+
+.hp-bar-single { flex: 1 1 auto; font-size: 14px; font-weight: 700; color: var(--profile-text); white-space: nowrap; }
+
+/* ---- The bar's actions ----
+   The same two controls the masthead carries, rendered from the same
+   component. They sit in their own lane at the right, never shrink, and are
+   separated from the scrolling track by a hairline so a direction name cannot
+   appear to run into them. Slightly more compact than the masthead's pair, and
+   the bar stays 68px. */
+.hp-bar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+  padding-left: 14px;
+  border-left: 1px solid var(--profile-line);
+}
+
+.hp-bar .hp-btn { padding: 7px 13px; border-radius: 8px; }
+
+/* The short label belongs to the bar on a phone and nowhere else. The button
+   carries its full name in aria-label either way. */
+.hp-btn-short { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-bar-item:not([data-active="true"]):hover { color: var(--profile-body); }
+}
+
+/* ============================================== THE REFOCUS ============= */
+/* The same person, reinterpreted. The standing content softens and steps back,
+   the swap happens behind that, and the new content resolves in ordered
+   groups rather than all at once. */
+
+.hp-refocus {
+  transition: opacity var(--profile-out-ms) var(--profile-ease-out),
+              filter var(--profile-out-ms) var(--profile-ease-out),
+              transform var(--profile-out-ms) var(--profile-ease-out);
+}
+
+.hp-profile[data-phase="out"] .hp-refocus {
+  opacity: 0.58;
+  filter: blur(2px);
+  transform: translateY(6px) scale(0.992);
+}
+
+.hp-profile[data-phase="in"] .hp-refocus {
+  animation: hp-resolve var(--profile-in-ms) var(--profile-ease-in) both;
+}
+
+@keyframes hp-resolve {
+  from { opacity: 0; transform: translateY(12px); filter: blur(2px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+/* The ordered groups. */
+.hp-profile[data-phase="in"] [data-resolve="positioning"] { animation-delay: 120ms; }
+.hp-profile[data-phase="in"] [data-resolve="about"] { animation-delay: 180ms; }
+.hp-profile[data-phase="in"] [data-resolve="voice"] { animation-delay: 250ms; }
+
+/* ---- The long tail ----
+   Everything from About down also belongs to the direction, but blurring a
+   page that long rasterises the whole document for the length of the change.
+   It crosses on opacity alone: no filter, no transform, no layer. */
+.hp-refocus-soft {
+  transition: opacity var(--profile-out-ms) var(--profile-ease-out);
+}
+
+.hp-profile[data-phase="out"] .hp-refocus-soft { opacity: 0.58; }
+
+.hp-profile[data-phase="in"] .hp-refocus-soft {
+  animation: hp-resolve-soft var(--profile-in-ms) var(--profile-ease-in) both;
+}
+
+@keyframes hp-resolve-soft {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --------------------------------------------------------------- reveal -- */
+
+.hp-reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 520ms var(--profile-ease-in), transform 520ms var(--profile-ease-in);
+}
+
+.hp-reveal[data-revealed="true"] { opacity: 1; transform: none; }
+
+/* ====================================================== RESPONSIVE ====== */
+
+/* ---- Tablet ----
+   The stage opens onto the twelve columns, but with its own spans: the identity
+   runs wide, the lead proof steps in underneath and to the right of it, and the
+   two supporting figures stagger across. Not one centred stack, and not two
+   equal columns. */
+@media (min-width: 768px) {
+  .hp-profile { --profile-pad: 48px; }
+
+  .hp-act1-stage {
+    display: grid;
+    grid-template-columns: repeat(var(--profile-act-cols), minmax(0, 1fr));
+    column-gap: var(--profile-act-gap);
+    align-content: start;
+    padding-block: clamp(12px, 3vh, 40px) 0;
+  }
+
+  .hp-act1-identity { grid-column: 1 / 11; grid-row: 2; margin-top: clamp(34px, 5vh, 60px); }
+
+  .hp-name { font-size: clamp(76px, 10vw, 104px); line-height: 0.86; letter-spacing: -0.055em; margin-top: 20px; }
+  .hp-act1-deck { font-size: clamp(23px, 2.9vw, 28px); line-height: 1.22; margin-top: 26px; }
+
+  /* Stepped in from the identity and pulled up under it, so it reads as part of
+     the same field rather than the next block down. */
+  .hp-proof-lead {
+    grid-column: 5 / 13;
+    grid-row: 3;
+    margin-top: clamp(28px, 4vh, 52px);
+  }
+
+  .hp-proof-lead-num { font-size: clamp(100px, 12vw, 132px); }
+  .hp-proof-lead-label { font-size: 16px; margin-top: 14px; }
+
+  /* Handed to the stage so each figure can be placed on its own. */
+  .hp-proof-subs { display: contents; }
+
+  .hp-proof-sub[data-sub="0"] { grid-column: 4 / 9; grid-row: 4; margin-top: clamp(26px, 3.5vh, 44px); }
+  .hp-proof-sub[data-sub="1"] { grid-column: 9 / 13; grid-row: 4; margin-top: clamp(58px, 7vh, 92px); }
+
+  .hp-proof-num { font-size: clamp(30px, 3vw, 36px); }
+  .hp-proof-label { font-size: 15px; margin-top: 8px; }
+
+  .hp-act1-invite { grid-column: 1 / 13; grid-row: 1; }
+
+  /* With no proof on file nothing is held open for it: the identity takes the
+     whole stage and the measures relax so the name and deck genuinely use the
+     width rather than leaving an empty right side. Applies at every grid
+     breakpoint, since the attribute selector outranks the spans above. */
+  .hp-act1-stage[data-proof="false"] .hp-act1-identity { grid-column: 1 / 12; }
+  .hp-act1-stage[data-proof="false"] .hp-act1-invite { grid-column: 1 / 11; }
+  .hp-act1-stage[data-proof="false"] .hp-name { max-width: 12ch; }
+  .hp-act1-stage[data-proof="false"] .hp-act1-deck { max-width: 780px; }
+  .hp-invite-prompt { font-size: 18px; margin-bottom: 20px; }
+  .hp-direction { font-size: 25px; }
+  .hp-direction-single { font-size: 25px; }
+  .hp-directions { gap: 34px; }
+}
+
+/* ---- The cover ----
+   Identity across 1 to 8. The lead proof across 8 to 12, pulled back over the
+   shared column and dropped to the foot of the name and deck band, so the two
+   genuinely cross. Supporting figures staggered below. Invitation anchoring the
+   lower portion of the same stage. */
+@media (min-width: 1200px) {
+  .hp-profile { --profile-pad: 48px; }
+
+  .hp-act1 { min-height: var(--profile-act-height); }
+
+  .hp-act1-frame { min-height: var(--profile-act-height); }
+
+  .hp-act1-stage {
+    align-content: start;
+    padding-block: clamp(14px, 3vh, 36px) clamp(18px, 3vh, 40px);
+    row-gap: 0;
+  }
+
+  .hp-act1-identity { grid-column: 1 / 9; grid-row: 2; margin-top: clamp(40px, 6.5vh, 84px); }
+
+  /* The measure is what keeps the name clear of the figure that crosses it.
+     A long name breaks naturally onto a second line rather than running under
+     the numeral; a short one stays on one. No break is written into the
+     markup. */
+  .hp-name {
+    font-size: clamp(96px, 10.2vw, 146px);
+    line-height: 0.84;
+    letter-spacing: -0.062em;
+    margin-top: 22px;
+    max-width: 7ch;
+  }
+
+  .hp-act1-deck {
+    font-size: clamp(27px, 2.26vw, 34px);
+    line-height: 1.16;
+    font-weight: 400;
+    margin-top: 30px;
+    max-width: 630px;
+  }
+
+  /* The counterweight. Same grid row as the identity, but set from the top so
+     the figure enters level with the lower half of the name's first line: the
+     identity arrives from the left, the result arrives from the upper right,
+     and the empty quarter above the deck is inhabited rather than decorated.
+     The deck's 630px measure is what keeps the numeral clear of any text while
+     still overlapping the identity's field. */
+  .hp-proof-lead {
+    grid-column: 8 / 13;
+    grid-row: 2;
+    align-self: start;
+    position: relative;
+    /* The lead's own description is one line for some directions and two for
+       others, so the block grows downward toward the supporting tier. This
+       offset carries enough clearance for the two line case at the tightest
+       desktop width; the figure still enters inside the name's first line. */
+    /* The +27px drops the whole proof composition below the name's opening
+       line so the two stop reading as a matched pair. The supporting tier
+       carries the same 27px below, so the composition moves as one piece. */
+    margin: calc(clamp(104px, 14vh, 172px) + 75px) 0 0 clamp(-56px, -3vw, -24px);
+    padding-left: 54px;
+  }
+
+  /* The caption set on its side, down the left edge of the figure: part of the
+     composition rather than a heading over a module. The padding above is what
+     reserves its lane, so it never runs into the label. */
+  .hp-proof-caption {
+    position: absolute;
+    left: 0;
+    bottom: auto;
+    top: 6px;
+    width: 22px;
+    margin: 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    color: var(--profile-accent);
+    opacity: 0.75;
+  }
+
+  /* Capped below the name on purpose. It is the second loudest thing on the
+     cover and must never out-shout the person. */
+  /* Stepped down from 9vw so the name is unambiguously the first read. The
+     unit and the long-value treatment are both em-relative, so a compound
+     value like "$6M to $20M" keeps its internal proportions at the new size. */
+  .hp-proof-lead-num { font-size: clamp(94px, 7.8vw, 122px); line-height: 0.82; }
+  .hp-proof-lead-label { font-size: 17px; margin-top: 16px; max-width: 30ch; }
+
+  /* One supporting tier, formed by lifting the second figure up to the first
+     rather than by dropping the first down to it. Both sit in the identity's
+     own row, bottom aligned against it, which is the position the bridging
+     figure has held since the rebalance: at the foot of the identity field,
+     tied to the lead proof above rather than stranded under the composition.
+
+     Both selectors carry the shared properties on purpose. The tablet rules
+     above target [data-sub] and are (0,2,0); a bare .hp-proof-sub here would
+     be (0,1,0) and would lose to them. */
+  .hp-proof-sub[data-sub="0"],
+  .hp-proof-sub[data-sub="1"] {
+    grid-row: 2;
+    align-self: end;
+    margin-top: 0;
+    margin-bottom: clamp(0px, 1vh, 12px);
+  }
+
+  /* The bridging figure keeps the column it starts in, which is what holds its
+     horizontal position: column 8 while the deck's measure still reaches
+     across the middle of the frame, column 7 once there is room to its left.
+     Its right edge comes in by one column to open the lane the second figure
+     needs; the label is capped at 24ch regardless, so nothing rewraps. */
+  /* The stagger. Both figures are bottom aligned, so adding to one margin and
+     taking the same amount off the other splits them evenly around the
+     baseline they shared: the first lifts 11px, the second drops 11px, and the
+     midpoint of the pair does not move. 22px apart is enough to read as set by
+     hand and too little to read as a descent. Nothing else about either figure
+     changes. */
+  /* The figures are bottom aligned, so their numerals only sit on one line
+     while their blocks are the same height, and a block's height is its
+     label's line count. Descriptions in this data run to one, two or three
+     lines depending on the direction, which is what made the stagger collapse
+     the moment a direction with a longer description was chosen.
+
+     So the description reserves three lines of space whatever it holds, and
+     the shared offset gives that one reserved line back. A two line
+     description therefore lands exactly where it always did, and every
+     direction now produces the same block height and the same 22px. */
+  .hp-proof-sub .hp-proof-label { min-height: 4.2em; }
+
+  /* -96px carries the same 75px the lead block takes from the top, applied to
+     a bottom aligned block so it reads as downward movement. The +/-11px
+     stagger between the two figures is untouched by either step. */
+  .hp-proof-sub[data-sub="0"] {
+    grid-column: 8 / 11;
+    margin-bottom: calc(clamp(0px, 1vh, 12px) + 11px - 96px);
+  }
+
+  .hp-proof-sub[data-sub="1"] {
+    grid-column: 11 / 13;
+    margin-bottom: calc(clamp(0px, 1vh, 12px) - 11px - 96px);
+  }
+
+  .hp-proof-num { font-size: clamp(34px, 2.5vw, 40px); }
+  .hp-proof-label { font-size: 15px; max-width: 24ch; }
+
+  /* The index. The aside sits at the left and the three directions run out to
+     its right on one baseline: a masthead line, not a nav bar. `display:
+     contents` on the wrapper hands both straight to this grid. */
+  .hp-act1-invite {
+    grid-column: 1 / 13;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
+    column-gap: var(--profile-act-gap);
+    align-items: baseline;
+  }
+
+  .hp-invite { display: contents; }
+
+  /* Set well below the name. It has to be legible and no louder: the name is
+     still the entrance, and this is the line that qualifies it. */
+  .hp-invite-prompt { font-size: 17px; margin: 0; max-width: 32ch; }
+  .hp-direction { font-size: 21px; }
+  .hp-direction-single { font-size: 21px; }
+  /* Spread across the track rather than packed at its left, so the last
+     direction anchors near the right edge of the frame and the index reads as
+     a masthead line. Scrolling still takes over if the names ever exceed the
+     track. */
+  .hp-directions { gap: 40px; justify-content: space-between; }
+
+  /* Raised a little, and pulled toward the quarter the lead figure now
+     occupies. Still two very wide fields, so no edge resolves. */
+  .hp-act1-atmosphere { background: var(--profile-atmosphere-wide); }
+
+  .hp-bar-track { gap: 36px; }
+}
+
+@media (min-width: 1351px) {
+  .hp-profile { --profile-pad: 64px; }
+}
+
+/* Wide enough for the bridging figure to move in off the right and take the
+   middle of the field, clear of the deck's measure. */
+@media (min-width: 1440px) {
+  .hp-proof-sub[data-sub="0"] { grid-column: 7 / 11; }
+}
+
+
+/* ---- The 1200 to 1439 band ----
+   The cover keeps a viewport-height minimum from 1200 up, but between 1200 and
+   1439 the stage reflows shorter than that minimum and the difference is dead
+   space: 156px of it at 1200. Act I's content is not touched. The fixed floor
+   is swapped for a constant tail measured from wherever the content actually
+   ends, so the handoff to Positioning is the same distance across the whole
+   band, and at 1440 the original minimum takes over again. */
+@media (min-width: 1200px) and (max-width: 1439.98px) {
+  .hp-act1,
+  .hp-act1-frame { min-height: 0; }
+
+  /* 56px of tail, plus the 27px the proof composition was lowered by: the
+     supporting tier is bottom aligned and moves on a negative margin, which
+     shifts it visually without growing the box it sits in, so the reserve has
+     to absorb that shift for the handoff to stay where it was set. */
+  .hp-act1-frame { padding-bottom: 110px; }
+}
+
+/* ---- 1440 and up ----
+   The proof composition sits 75px below where it started, and from 1440 the
+   cover's height is a fixed minimum rather than a tail, so the minimum carries
+   the same offset. Without it the movement would come straight out of the
+   clearance under the lowest figure and pull Positioning up with it. */
+@media (min-width: 1440px) {
+  .hp-act1,
+  .hp-act1-frame { min-height: calc(var(--profile-act-height) + 48px); }
+}
+
+/* ---- Phone ----
+   A compact sequence, not a stack of desktop regions. The bottom padding is
+   clearance: the app's persistent help and feedback controls float over the
+   lower corners and must not land on the invitation or the active direction. */
+@media (max-width: 767px) {
+  .hp-profile { --profile-pad: 22px; }
+
+  /* The tail gives back exactly what the proof composition took, so the act
+     does not get taller and the handoff below it does not grow. */
+  .hp-act1-frame { padding-bottom: 10px; }
+  /* All three groups stay on one line at 390: the mark, then both actions. */
+  .hp-header { gap: 10px; }
+  .hp-header-actions { gap: 6px; }
+  .hp-header .hp-btn { padding: 8px 11px; }
+
+  /* The bar keeps both actions on one line beside the scrolling track by
+     shortening the secondary label. Nothing is hidden and nothing wraps. */
+  .hp-bar-actions { margin-left: 10px; padding-left: 10px; gap: 6px; }
+  .hp-bar .hp-btn { padding: 7px 11px; }
+  .hp-bar .hp-btn-full { display: none; }
+  .hp-bar .hp-btn-short { display: inline; }
+  /* Deliberate separation between the choice and what it governs, without
+     opening a band. */
+  .hp-act1-identity { margin-top: 30px; }
+  .hp-name { margin-top: 14px; }
+  .hp-act1-deck { margin-top: 18px; }
+  /* Lowered 22px as one piece: the supporting tier follows it in normal flow,
+     so every internal distance and the stagger are untouched. */
+  .hp-proof-lead { margin-top: 44px; }
+  .hp-proof-lead-label { margin-top: 10px; font-size: 14px; }
+  .hp-proof-subs { margin-top: 20px; gap: 16px; }
+  .hp-act1-invite { margin-top: 24px; }
+  .hp-invite-prompt { margin-bottom: 16px; }
+  /* ---- The rail ----
+     Below 768 the names outrun the width, so the row becomes a swipeable rail
+     rather than a row with its end cut off. Both expressions of the control
+     get the same treatment: one behaviour, not two.
+
+     Snapping is proximity rather than mandatory, so a deliberate swipe past
+     two names is not fought back to the nearest one, and the scroll padding is
+     what lets the first and last names come fully clear of the edges instead
+     of settling half under them. */
+  .hp-directions,
+  .hp-bar-track {
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Matches the weight of the base rule above, which had to be raised past
+     the profile's button reset to keep the accent. */
+  .hp-rail .hp-rail-step { display: flex; }
+
+  /* Real gutters, not a fade over the top of the row. Padding on the rail ends
+     the scrolling viewport 38px short of each edge, so no label, clipped word
+     or underline can ever render where a control sits. Both gutters are held
+     whether or not their control is showing, so the viewport does not jump
+     between the first, middle and last direction. The controls are absolutely
+     positioned against the rail's padding box, which is why left/right 0 puts
+     them inside the gutter rather than beside it.
+
+     The track carries an 8px negative inline margin of its own, for focus ring
+     room, so the padding here is 8px wider than the gutter it is buying: 46
+     minus 8 leaves the scrolling viewport starting 38px in. */
+  .hp-rail[data-steps="true"] { padding-inline: 46px; }
+
+  /* Centred on the label's text line rather than on the rail, which also holds
+     the track's padding and, in Act I, the underline below the name. Each value
+     is that track's own top padding plus half a label line, so the glyph sits
+     on the same optical line as the name it steps between. The 34px target and
+     the edge gutter are unchanged. */
+  .hp-directions ~ .hp-rail-step { top: 20px; }
+  .hp-bar-track ~ .hp-rail-step { top: 26px; }
+
+  .hp-direction,
+  .hp-bar-item { scroll-snap-align: center; }
+
+  /* The first and last snap to their own edge instead of the centre, which is
+     what stops the rail from trying to centre something it cannot centre. */
+  .hp-direction:first-child,
+  .hp-bar-item:first-child { scroll-snap-align: start; }
+
+  .hp-direction:last-child,
+  .hp-bar-item:last-child { scroll-snap-align: end; }
+
+  /* Room past the last name so it is not sitting under the help control, and
+     the same room again as scroll padding so the last name can reach the
+     middle of the rail rather than stopping short of it. */
+  /* The rail's gutters now hold the controls, so the track only needs its own
+     ring room back. */
+  .hp-directions {
+    padding-right: 8px;
+    scroll-padding-inline: 8px;
+  }
+
+  /* The 8px start matches the track's own padding: without it a snap lands the
+     first name flush against the edge, scrolling the ring room out of view and
+     clipping the ring it was added for. */
+  .hp-bar-track { scroll-padding-inline: 8px; }
+
+  /* ---- The edge cue ----
+     A fade drawn only on an edge that still has rail past it, from the data
+     attributes the rail sets off its own scroll position. At a boundary the
+     fade on that side is gone, which is what keeps the first and last names,
+     and the selected underline, out from under it. A row that fits carries no
+     mask at all. */
+  .hp-directions[data-fade-start="true"],
+  .hp-bar-track[data-fade-start="true"],
+  .hp-directions[data-fade-end="true"],
+  .hp-bar-track[data-fade-end="true"] {
+    -webkit-mask-image: var(--rail-mask);
+    mask-image: var(--rail-mask);
+  }
+
+  /* Wide enough that the name has faded out before the gutter the chevron
+     sits in, which is what separates the two. */
+  [data-fade-start="true"][data-fade-end="false"] {
+    --rail-mask: linear-gradient(90deg, transparent 0, #000 56px, #000 100%);
+  }
+
+  [data-fade-start="false"][data-fade-end="true"] {
+    --rail-mask: linear-gradient(90deg, #000 0, #000 calc(100% - 56px), transparent 100%);
+  }
+
+  [data-fade-start="true"][data-fade-end="true"] {
+    --rail-mask: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 56px,
+      #000 calc(100% - 56px),
+      transparent 100%
+    );
+  }
+}
+/* ---- Very narrow phones ----
+   The sticky bar is one row and it stays one row. Below 431 the two actions in
+   it leave the rail 102 to 172px, which is narrower than the direction names
+   themselves, so a name can only ever be half read there. The rail wins: the
+   actions in this bar are duplicates of the masthead pair at the top of the
+   page and the pair in the resolution at the foot of it, and both of those are
+   untouched, so nothing is actually lost by dropping the third copy.
+
+   display:none rather than a visual hide, so the duplicates leave the tab
+   order and the accessibility tree together with the layout. The bar's own
+   height is fixed at 68px and does not depend on them. */
+@media (max-width: 430px) {
+  .hp-bar-actions { display: none; }
+}
+
+/* ================================================== REDUCED MOTION ====== */
+/* No beam, no blur, no travel. A short opacity crossfade, and nothing else. */
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-profile *,
+  .hp-profile *::before,
+  .hp-profile *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hp-spinner { animation: none; border-right-color: var(--profile-accent); }
+  .hp-act1-beam { display: none; }
+
+  .hp-refocus,
+  .hp-refocus-soft { transition: opacity 180ms linear; }
+
+  .hp-profile[data-phase="out"] .hp-refocus,
+  .hp-profile[data-phase="out"] .hp-refocus-soft { opacity: 0; filter: none; transform: none; }
+
+  .hp-profile[data-phase="in"] .hp-refocus,
+  .hp-profile[data-phase="in"] .hp-refocus-soft {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+
+  .hp-direction-mark,
+  .hp-bar-mark { transition: none; }
+
+  .hp-reveal { opacity: 1; transform: none; transition: none; }
+}

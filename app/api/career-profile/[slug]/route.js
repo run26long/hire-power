@@ -77,7 +77,7 @@ export async function GET(request, { params }) {
     }
 
     // ---- EVERYTHING THE PAGE RENDERS ----
-    const [lensRes, personRes, contextRes, coreRes, testimonialRes, evidenceRes] = await Promise.all([
+    const [lensRes, personRes, contextRes, coreRes, testimonialRes, evidenceRes, impactRes] = await Promise.all([
       supabase
         .from('profile_lenses')
         .select(LENS_FULL)
@@ -123,7 +123,16 @@ export async function GET(request, { params }) {
         .select('id, kind, media_class, title, description, url, sort_order')
         .eq('profile_id', profile.id)
         .eq('privacy', 'public')
-        .order('sort_order', { ascending: true })
+        .order('sort_order', { ascending: true }),
+      // The stored synthesis. Read only: this page never generates it, and a
+      // profile that has never generated one simply has no row, which is a
+      // normal profile rather than a failure. user_id and source_hash are
+      // deliberately not named; neither is a link holder's business.
+      supabase
+        .from('profile_collective_impacts')
+        .select('summary, themes, generated_at')
+        .eq('profile_id', profile.id)
+        .maybeSingle()
     ])
 
     let lenses = lensRes.data
@@ -191,6 +200,14 @@ export async function GET(request, { params }) {
     const testimonials = testimonialRes.error ? [] : (testimonialRes.data || [])
     const evidence = evidenceRes.error ? [] : (evidenceRes.data || [])
 
+    // A missing table (42P01) reads the same as no row: the section is simply
+    // not there yet. Worth naming, because this table is newer than the rest
+    // and a deployment that has not run its migration still serves the page.
+    if (impactRes.error && impactRes.error.code !== '42P01') {
+      console.error('[career-profile] Collective impact lookup failed (non-fatal):', impactRes.error)
+    }
+    const collectiveImpact = impactRes.error ? null : (impactRes.data || null)
+
     const coreResume = (coreRes.data || [])[0] || null
 
     // Experience, certifications and education follow the rule the rest of the
@@ -245,7 +262,8 @@ export async function GET(request, { params }) {
       lensResumes,
       resumeSections,
       testimonials,
-      evidence
+      evidence,
+      collectiveImpact
     })
 
   } catch (error) {

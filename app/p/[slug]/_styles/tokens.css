@@ -1,0 +1,160 @@
+/* ===========================================================================
+   Career Profile - visual tokens.
+
+   TEMPLATE: Signature   MODE: dark   PALETTE: Signature default
+
+   Everything the Profile renders reads from the semantic names below. No
+   component knows a hex value and no component knows the palette's name, so a
+   future palette only has to replace what is declared here.
+
+   The raw ramp is declared once at the top; the semantic names underneath are
+   what components are allowed to use. Alpha compositions are built from the
+   `-rgb` triplets so a palette swap carries through the washes and edges too,
+   rather than leaving lavender residue behind in a green palette.
+   =========================================================================== */
+
+.hp-profile {
+  /* ---- Signature default palette: the raw ramp ---- */
+  --profile-void: #09060f;    /* the hero's own darker ground */
+  --profile-ground: #0d0916;  /* the page ground */
+  --profile-surface: #14101f;
+  --profile-surface-2: #1b1629;
+
+  --profile-line: rgba(255, 255, 255, 0.09);
+  --profile-line-strong: rgba(255, 255, 255, 0.14);
+
+  --profile-text: #ffffff;
+  --profile-body: #cfc9dd;
+  --profile-meta: #9a93ae;
+
+  --profile-accent: #a78bfa;
+  --profile-accent-soft: #c4b5fd;
+  --profile-action: #7c5cf5;
+  --profile-status: #4ade80;
+
+  /* Channel triplets, so every wash below is derived rather than restated. */
+  --profile-void-rgb: 9 6 15;
+  --profile-ground-rgb: 13 9 22;
+  --profile-accent-rgb: 167 139 250;
+  --profile-action-rgb: 124 92 245;
+
+  /* ---- Derived semantics: what components actually consume ---- */
+  --profile-accent-wash: rgb(var(--profile-accent-rgb) / 0.07);
+  --profile-accent-wash-strong: rgb(var(--profile-accent-rgb) / 0.13);
+  --profile-accent-edge: rgb(var(--profile-accent-rgb) / 0.28);
+  --profile-accent-halo: rgb(var(--profile-accent-rgb) / 0.38);
+  --profile-notice: #f2a0a8;
+
+  /* The primary action's two stops. Both are dark enough that white text on
+     them clears 4.5:1 anywhere in the sweep (5.5:1 at the light end, 8.5:1 at
+     the deep end), which the accent itself does not. */
+  --profile-action-lift: #6e4ce6;
+  --profile-action-deep: #5335ab;
+  /* The sticky control sits on the hero ground with the page showing through. */
+  --profile-veil: rgb(var(--profile-void-rgb) / 0.82);
+
+  /* The focus glow that resolves down from the direction stage. */
+  --profile-glow: radial-gradient(
+    ellipse at top center,
+    rgb(var(--profile-accent-rgb) / 0.18) 0%,
+    rgb(var(--profile-accent-rgb) / 0.07) 28%,
+    rgb(var(--profile-accent-rgb) / 0) 68%
+  );
+
+  /* ---- Act I atmosphere ----
+     One light source, and one beam. The atmosphere is static and sits behind
+     the name; the beam exists only for the length of a direction change and
+     carries the eye back up from the selector into the identity. */
+  /* Two very wide, very low fields rather than one circle. The radii are far
+     larger than the box, so no edge ever resolves: what reads is depth at the
+     point where the identity and the proof cross, not a shape on the page. */
+  --profile-atmosphere:
+    radial-gradient(
+      128% 96% at 64% 34%,
+      rgb(var(--profile-accent-rgb) / 0.085) 0%,
+      rgb(var(--profile-accent-rgb) / 0.032) 36%,
+      rgb(var(--profile-accent-rgb) / 0) 72%
+    ),
+    radial-gradient(
+      104% 84% at 8% 78%,
+      rgb(var(--profile-action-rgb) / 0.055) 0%,
+      rgb(var(--profile-action-rgb) / 0) 64%
+    );
+
+  /* The desktop cover only. Same two fields, lifted a little and pulled toward
+     the quarter the lead figure occupies, so the upper right reads as
+     inhabited rather than empty. Applied from 1200 up in profile.css, which is
+     what leaves the phone and tablet grounds exactly as they were. */
+  --profile-atmosphere-wide:
+    radial-gradient(
+      132% 104% at 70% 26%,
+      rgb(var(--profile-accent-rgb) / 0.125) 0%,
+      rgb(var(--profile-accent-rgb) / 0.048) 38%,
+      rgb(var(--profile-accent-rgb) / 0) 74%
+    ),
+    radial-gradient(
+      112% 90% at 6% 82%,
+      rgb(var(--profile-action-rgb) / 0.065) 0%,
+      rgb(var(--profile-action-rgb) / 0) 66%
+    );
+
+  /* Dense at its top edge: the beam is thrown from the selector and falls into
+     the composition underneath it, so the cause sits above the effect. */
+  --profile-beam: radial-gradient(
+    ellipse 70% 100% at 50% 0%,
+    rgb(var(--profile-accent-rgb) / 0.16) 0%,
+    rgb(var(--profile-accent-rgb) / 0.06) 34%,
+    rgb(var(--profile-accent-rgb) / 0) 72%
+  );
+
+  /* Artifact tints stay on the accent family so evidence reads as one set. */
+  --profile-artifact-image: rgb(var(--profile-accent-rgb) / 0.14);
+  --profile-artifact-video: rgb(var(--profile-accent-rgb) / 0.18);
+  --profile-artifact-audio: rgb(var(--profile-action-rgb) / 0.18);
+  --profile-artifact-document: rgb(var(--profile-accent-rgb) / 0.09);
+  --profile-artifact-link: rgb(var(--profile-accent-rgb) / 0.11);
+  --profile-artifact-default: rgb(var(--profile-accent-rgb) / 0.09);
+
+  /* ---- Type ----
+     The display face is the strongest grotesque already on the page. Geist is
+     loaded by the root layout through next/font and DM Sans stands behind it;
+     no font is added by this Profile. Inter Tight is named so the stack picks
+     it up for free the day the app loads it.
+     The serif is the human voice and nothing else. Source Serif 4 is already
+     loaded by the root layout, with Georgia behind it. */
+  --profile-font-display: var(--font-geist-sans), 'Inter Tight', 'DM Sans', Inter,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --profile-font-ui: var(--font-geist-sans), 'DM Sans', Inter,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --profile-font-voice: 'Source Serif 4', Georgia, serif;
+
+  /* ---- Shape ---- */
+  --profile-radius-panel: 22px;
+  --profile-radius-card: 16px;
+  --profile-radius-tile: 12px;
+  --profile-radius-pill: 999px;
+
+  /* ---- Motion ----
+     The refocus, stated once. page.js reads the same numbers so the timers and
+     the transitions can never drift. */
+  --profile-out-ms: 180ms;
+  --profile-in-ms: 420ms;
+  --profile-glow-ms: 420ms;
+  --profile-ease-out: ease-out;
+  --profile-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
+  --profile-move-ms: 240ms;
+  /* The easing the sections below the opening already use. */
+  --profile-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- Composition ----
+     Act I is sized, not locked: it aims at 88svh and is held between a floor
+     and a ceiling, so the section under it is always showing at the bottom of
+     the first screen. */
+  --profile-act-height: clamp(700px, 82svh, 790px);
+  --profile-act-cols: 12;
+  --profile-act-gap: clamp(16px, 1.6vw, 28px);
+  --profile-frame: 1440px;
+  --profile-pad: 22px;
+  --profile-gutter: 72px;
+  --profile-read: 62ch;
+}
