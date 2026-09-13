@@ -259,15 +259,15 @@ export default function ResumePDFPrestige({ resumeData, font = 'EB Garamond', fo
               }
 
               case 'skills': {
-                if (!Object.keys(skills).length) return null
-                const skillEntries = Object.entries(skills)
+                if (!skills.length) return null
+                const skillEntries = skills.map(g => [g.name, g.skills])
                 const [firstSkill, ...restSkills] = skillEntries
                 return (
                   <View key="skills" style={{ marginTop: Math.round(16*sp) }}>
                     <View wrap={false}>
                       <SH title={resumeData.sectionTitles?.skills || 'Skills'} />
                       <View style={{ marginBottom: Math.round(3*sp) }}>
-                        {Object.keys(skills).length > 1
+                        {skills.length > 1
                           ? <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold', color: '#1a1a1a' }}>{firstSkill[0] + ': '}</Text><Text style={{ color: '#444444' }}>{firstSkill[1].join(' \u2022 ')}</Text></Text>
                           : <Text style={{ fontFamily: f, fontSize: base, color: '#444444' }}>{firstSkill[1].join(' \u2022 ')}</Text>
                         }

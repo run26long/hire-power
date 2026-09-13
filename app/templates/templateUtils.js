@@ -1,3 +1,5 @@
+import { normalizeSkillCategories } from '@/lib/resumeText'
+
 // ─── Shared utilities for all Hire Power resume templates ───────────────────
 
 export function hexToRgba(hex, alpha) {
@@ -46,13 +48,9 @@ export function getCertDetails(cert) {
   return parts.filter(Boolean).map(p => ' | ' + p).join('');
 }
 
-// Renders skills from either skillsCategories (new) or skills (legacy array)
+// The ordered categories a template renders: [{ name, skills }]. Every shape
+// the table holds is reconciled by the normaliser, so a template never has to
+// know which one it was handed.
 export function getSkillsDisplay(resumeData) {
-  if (resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0) {
-    return resumeData.skillsCategories;
-  }
-  if (resumeData.skills && resumeData.skills.length > 0) {
-    return { 'Skills': resumeData.skills };
-  }
-  return {};
+  return normalizeSkillCategories(resumeData);
 }

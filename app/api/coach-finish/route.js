@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { waitUntil } from '@vercel/functions'
 import { apiError } from '@/lib/apiError'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 // ─────────────────────────────────────────────
 // WRITING CONSTITUTION
@@ -1538,9 +1539,9 @@ const OUTPUT_STRUCTURE = {
     location: "string",
     lines: ["string — supplementary info ONLY: GPA, honors, relevant coursework, honor societies. Do NOT put degree name or field of study in lines — those are already captured in the degree and field fields above. Putting them in lines too will cause them to display twice. Do NOT put the graduation date in lines in any form — the graduationDate field is the only place a date belongs."]
   }],
-  skillsCategories: {
-    "Category Name": ["skill1", "skill2"]
-  },
+  skillsCategories: [
+    { name: "Category Name", skills: ["skill1", "skill2"] }
+  ],
   projects: [{
     name: "string",
     description: "string",
@@ -1564,6 +1565,16 @@ const OUTPUT_STRUCTURE = {
 // ─────────────────────────────────────────────
 // BUILD JOB-SPECIFIC REWRITE PROMPT
 // ─────────────────────────────────────────────
+// The prompt asks for the array form. A model that regresses to the old object
+// is repaired here rather than stored in a shape nothing writes. Absent stays
+// absent: this fixes a shape, it does not invent a section.
+function coerceSkillCategories(resume) {
+  if (!resume || typeof resume !== 'object') return resume
+  if (resume.skillsCategories === undefined) return resume
+  resume.skillsCategories = normalizeSkillCategories(resume)
+  return resume
+}
+
 function normalizeEducation(education) {
   if (!education?.length) return education
   return education.map(ed => {
@@ -3370,7 +3381,7 @@ export async function POST(request) {
       if (cleanedFix.startsWith('```')) {
         cleanedFix = cleanedFix.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      const fixedResume = JSON.parse(cleanedFix)
+      const fixedResume = coerceSkillCategories(JSON.parse(cleanedFix))
 
       const changesPrompt = buildChangesPrompt(baseResume, fixedResume)
       const changesMessage = await anthropic.messages.create({
@@ -3418,7 +3429,7 @@ export async function POST(request) {
       if (cleanedEnhancement.startsWith('```')) {
         cleanedEnhancement = cleanedEnhancement.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      let enhancedResume = JSON.parse(cleanedEnhancement)
+      let enhancedResume = coerceSkillCategories(JSON.parse(cleanedEnhancement))
 
       // Score check — if no improvement, retry with stronger instruction
       const scoreCheckResponse = await fetch(new URL('/api/analyze-resume', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
@@ -3460,7 +3471,7 @@ export async function POST(request) {
           cleanedRetry = cleanedRetry.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
         }
         try {
-          const retryResume = JSON.parse(cleanedRetry)
+          const retryResume = coerceSkillCategories(JSON.parse(cleanedRetry))
           enhancedResume = retryResume
         } catch (e) {
           console.warn('Retry parse failed, using first attempt')
@@ -3546,7 +3557,7 @@ export async function POST(request) {
       if (cleanedConvRewrite.startsWith('```')) {
         cleanedConvRewrite = cleanedConvRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      let convResume = JSON.parse(cleanedConvRewrite)
+      let convResume = coerceSkillCategories(JSON.parse(cleanedConvRewrite))
       if (convResume.education?.length) {
         convResume.education = normalizeEducation(convResume.education)
       }
@@ -3666,7 +3677,7 @@ export async function POST(request) {
       if (cleanedRewrite.startsWith('```')) {
         cleanedRewrite = cleanedRewrite.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }
-      let rewrittenResume = JSON.parse(cleanedRewrite)
+      let rewrittenResume = coerceSkillCategories(JSON.parse(cleanedRewrite))
       if (rewrittenResume.education?.length) {
         rewrittenResume.education = normalizeEducation(rewrittenResume.education)
       }
@@ -3798,7 +3809,7 @@ export async function POST(request) {
 
     let rewrittenResume
     try {
-      rewrittenResume = JSON.parse(cleanedRewrite)
+      rewrittenResume = coerceSkillCategories(JSON.parse(cleanedRewrite))
     } catch (parseError) {
       console.error('Coach-finish rewrite JSON parse failed:', cleanedRewrite)
       return apiError(parseError, "We couldn't finalize your resume. Please try again.")

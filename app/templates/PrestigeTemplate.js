@@ -163,13 +163,13 @@ export default function PrestigeTemplate({ resumeData, font, fontSize, spacing =
         )}
 
         {/* Skills */}
-        {Object.keys(skills).length > 0 && (
+        {skills.length > 0 && (
           <div style={s.section}>
             <div style={s.sh}>Skills</div>
             <hr style={s.rule} />
-            {Object.entries(skills).map(([cat, items]) => (
+            {skills.map(({ name: cat, skills: items }) => (
               <div key={cat} style={{ marginBottom: px(3) }}>
-                {Object.keys(skills).length > 1
+                {skills.length > 1
                   ? <><span style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt`, color: '#1a1a1a' }}>{cat}: </span>
                       <span style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{items.join(' • ')}</span></>
                   : <span style={{ fontFamily, fontSize: `${base}pt`, color: '#444' }}>{items.join(' • ')}</span>

@@ -11,7 +11,7 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
   const px = (n) => `${Math.round(n * sp)}px`;
   const professionalTitle = resumeData.professionalTitle || resumeData.experience?.[0]?.title || '';
 
-  const allSkillValues = Object.values(skills).flat();
+  const allSkillValues = skills.flatMap(g => g.skills);
   const hasMoreSkills = allSkillValues.length > 0;
 
   const s = {
@@ -169,9 +169,9 @@ export default function SignatureTemplate({ resumeData, font, fontSize, spacing 
       {hasMoreSkills && allSkillValues.length > 0 && (
         <div style={s.section}>
           <div style={s.sh}>Skills</div>
-          {Object.entries(skills).map(([cat, items]) => (
+          {skills.map(({ name: cat, skills: items }) => (
             <div key={cat} style={{ marginBottom: px(4) }}>
-              {Object.keys(skills).length > 1
+              {skills.length > 1
                 ? <><span style={{ fontFamily, fontWeight: '700', fontSize: `${base}pt` }}>{cat}: </span>
                     <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span></>
                 : <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span>

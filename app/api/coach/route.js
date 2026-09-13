@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { apiError } from '@/lib/apiError'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 // ─────────────────────────────────────────────
 // Convert structured resume_data → plain text
@@ -59,16 +60,14 @@ function convertStructuredToText(data) {
     })
   }
 
-  if (data.skillsCategories && Object.keys(data.skillsCategories).length > 0) {
+  const skillGroups = normalizeSkillCategories(data)
+  if (skillGroups.length > 0) {
     text += 'SKILLS\n\n'
-    Object.entries(data.skillsCategories).forEach(([category, skills]) => {
-      const isSingle = Object.keys(data.skillsCategories).length === 1 && category === 'Skills'
-      if (!isSingle) text += `${category}:\n`
-      const arr = Array.isArray(skills) ? skills : [skills]
-      text += arr.join(', ') + '\n\n'
+    skillGroups.forEach(({ name, skills }) => {
+      const isSingle = skillGroups.length === 1 && name === 'Skills'
+      if (!isSingle) text += `${name}:\n`
+      text += skills.join(', ') + '\n\n'
     })
-  } else if (data.skills && data.skills.length > 0) {
-    text += `SKILLS\n${data.skills.join(', ')}\n\n`
   }
 
   if (data.projects && data.projects.length > 0) {

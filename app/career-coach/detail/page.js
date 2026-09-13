@@ -57,7 +57,7 @@ export default function CareerDetailPage() {
     experience: [],
     education: [],
     skills: [],
-    skillsCategories: {},
+    skillsCategories: [],
     projects: [],
     certifications: [],
     volunteer: [],

@@ -76,7 +76,7 @@ export default function BuildPage() {
     experience: [],
     education: [],
     skills: [],
-    skillsCategories: {},
+    skillsCategories: [],
     projects: [],
     certifications: [],
     volunteer: [],
@@ -1413,12 +1413,11 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
 
   const addSkill = () => {
     if (skillInput.trim()) {
-      const newCategories = { ...resumeData.skillsCategories };
-      if (!newCategories[categoryName]) {
-        newCategories[categoryName] = [];
-      }
-      newCategories[categoryName].push(skillInput.trim());
-      
+      const newCategories = (resumeData.skillsCategories || []).map(group => ({ ...group, skills: [...group.skills] }));
+      const existing = newCategories.find(group => group.name === categoryName);
+      if (existing) existing.skills.push(skillInput.trim());
+      else newCategories.push({ name: categoryName, skills: [skillInput.trim()] });
+
       setResumeData({
         ...resumeData,
         skillsCategories: newCategories,
@@ -1428,11 +1427,12 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
     }
   };
 
-  const removeSkill = (category, index) => {
-    const newCategories = { ...resumeData.skillsCategories };
-    newCategories[category].splice(index, 1);
-    if (newCategories[category].length === 0) {
-      delete newCategories[category];
+  const removeSkill = (categoryIndex, index) => {
+    const newCategories = (resumeData.skillsCategories || []).map(group => ({ ...group, skills: [...group.skills] }));
+    if (!newCategories[categoryIndex]) return;
+    newCategories[categoryIndex].skills.splice(index, 1);
+    if (newCategories[categoryIndex].skills.length === 0) {
+      newCategories.splice(categoryIndex, 1);
     }
     setResumeData({
       ...resumeData,
@@ -1440,7 +1440,7 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
     });
   };
 
-  const totalSkills = Object.values(resumeData.skillsCategories).reduce((sum, skills) => sum + skills.length, 0);
+  const totalSkills = (resumeData.skillsCategories || []).reduce((sum, group) => sum + group.skills.length, 0);
   const isValid = totalSkills >= 3;
 
   return (
@@ -1481,17 +1481,17 @@ function SkillsStep({ resumeData, setResumeData, onNext, onBack }) {
           </button>
         </div>
 
-        {Object.keys(resumeData.skillsCategories).length > 0 && (
+        {(resumeData.skillsCategories || []).length > 0 && (
           <div className="space-y-3 mt-4">
-            {Object.entries(resumeData.skillsCategories).map(([category, skills]) => (
-              <div key={category}>
+            {resumeData.skillsCategories.map(({ name: category, skills }, categoryIndex) => (
+              <div key={`${category}-${categoryIndex}`}>
                 <p className="text-xs font-semibold text-gray-700 mb-1">{category}:</p>
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill, index) => (
                     <div key={index} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs flex items-center gap-2">
                       {skill}
                       <button
-                        onClick={() => removeSkill(category, index)}
+                        onClick={() => removeSkill(categoryIndex, index)}
                         className="text-purple-500 hover:text-purple-700"
                       >
                         ×

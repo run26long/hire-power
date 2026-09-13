@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -87,20 +88,18 @@ function convertStructuredToText(data) {
   }
   
   // Skills - handle both categorized and flat
-  if (data.skillsCategories && Object.keys(data.skillsCategories).length > 0) {
+  const skillGroups = normalizeSkillCategories(data)
+  if (skillGroups.length > 0) {
     text += 'SKILLS\n\n'
-    Object.entries(data.skillsCategories).forEach(([category, skills]) => {
-      const isSingleCategory = Object.keys(data.skillsCategories).length === 1 && category === 'Skills'
-      
+    skillGroups.forEach(({ name, skills }) => {
+      const isSingleCategory = skillGroups.length === 1 && name === 'Skills'
+
       if (!isSingleCategory) {
-        text += `${category}:\n`
+        text += `${name}:\n`
       }
-      
-      const skillsArray = Array.isArray(skills) ? skills : [skills]
-      text += skillsArray.join(', ') + '\n\n'
+
+      text += skills.join(', ') + '\n\n'
     })
-  } else if (data.skills && data.skills.length > 0) {
-    text += `SKILLS\n${data.skills.join(', ')}\n\n`
   }
   
   // Projects

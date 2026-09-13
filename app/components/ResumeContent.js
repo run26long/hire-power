@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { groupExperience } from '../utils/groupExperience'
 import { groupEducation } from '../utils/groupEducation'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, formatDate, readOnly = false, templateStyles = {}, selectedTemplate = 'crisp', combineBannerDismissed = false, setCombineBannerDismissed = () => {}, onBulletAction = null, bulletSelectMode = null }) {
   const [confirmingDelete, setConfirmingDelete] = useState(null)
@@ -154,67 +155,76 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     onUpdate(newData)
   }
 
-  function renameSkillCategory(oldName, newName) {
-    if (!newName.trim() || oldName === newName) return
+  // Categories are an ordered array now, so every operation addresses one by
+  // its position. A row that has not been migrated yet is normalised on the way
+  // in by the render below, which means the first edit of any kind writes the
+  // whole section back in the canonical shape.
+  function skillCategoriesOf(data) {
+    return Array.isArray(data.skillsCategories) ? data.skillsCategories : normalizeSkillCategories(data)
+  }
+
+  function renameSkillCategory(index, newName) {
+    if (!newName.trim()) return
     const newData = JSON.parse(JSON.stringify(resumeData))
-    newData.skillsCategories[newName] = newData.skillsCategories[oldName]
-    delete newData.skillsCategories[oldName]
+    newData.skillsCategories = skillCategoriesOf(newData)
+    const group = newData.skillsCategories[index]
+    if (!group || group.name === newName) return
+    group.name = newName
     onUpdate(newData)
   }
 
-  function deleteSkillCategory(category) {
+  function deleteSkillCategory(index) {
     const newData = JSON.parse(JSON.stringify(resumeData))
-    const skillsToMerge = newData.skillsCategories[category]
-    const categories = Object.keys(newData.skillsCategories)
-    if (categories.length === 1) return
-    const targetCategory = categories.find(cat => cat !== category)
-    newData.skillsCategories[targetCategory] = [...newData.skillsCategories[targetCategory], ...skillsToMerge]
-    delete newData.skillsCategories[category]
+    newData.skillsCategories = skillCategoriesOf(newData)
+    const list = newData.skillsCategories
+    if (list.length <= 1 || !list[index]) return
+    // The skills go somewhere rather than away: into the first category that is
+    // not this one, which is what deleting one has always done here.
+    const target = index === 0 ? 1 : 0
+    list[target].skills = [...list[target].skills, ...list[index].skills]
+    list.splice(index, 1)
     onUpdate(newData)
   }
 
-  function moveSkillCategoryUp(category) {
+  function moveSkillCategory(index, delta) {
     const newData = JSON.parse(JSON.stringify(resumeData))
-    const keys = Object.keys(newData.skillsCategories)
-    const index = keys.indexOf(category)
-    if (index <= 0) return
-    const reordered = {}
-    keys.forEach((k, i) => {
-      if (i === index - 1) reordered[category] = newData.skillsCategories[category]
-      else if (i === index) reordered[keys[index - 1]] = newData.skillsCategories[keys[index - 1]]
-      else reordered[k] = newData.skillsCategories[k]
-    })
-    newData.skillsCategories = reordered
+    newData.skillsCategories = skillCategoriesOf(newData)
+    const list = newData.skillsCategories
+    const next = index + delta
+    if (next < 0 || next >= list.length) return
+    const moved = list[index]
+    list[index] = list[next]
+    list[next] = moved
     onUpdate(newData)
   }
 
-  function moveSkillCategoryDown(category) {
-    const newData = JSON.parse(JSON.stringify(resumeData))
-    const keys = Object.keys(newData.skillsCategories)
-    const index = keys.indexOf(category)
-    if (index >= keys.length - 1) return
-    const reordered = {}
-    keys.forEach((k, i) => {
-      if (i === index) reordered[keys[index + 1]] = newData.skillsCategories[keys[index + 1]]
-      else if (i === index + 1) reordered[category] = newData.skillsCategories[category]
-      else reordered[k] = newData.skillsCategories[k]
-    })
-    newData.skillsCategories = reordered
-    onUpdate(newData)
+  function moveSkillCategoryUp(index) {
+    moveSkillCategory(index, -1)
+  }
+
+  function moveSkillCategoryDown(index) {
+    moveSkillCategory(index, 1)
   }
 
   function addSkillCategory() {
     const newData = JSON.parse(JSON.stringify(resumeData))
-    if (!newData.skillsCategories) newData.skillsCategories = {}
-    newData.skillsCategories['New Category'] = []
+    newData.skillsCategories = skillCategoriesOf(newData)
+    newData.skillsCategories.push({ name: 'New Category', skills: [] })
     onUpdate(newData)
   }
 
   function flattenSkills() {
     const newData = JSON.parse(JSON.stringify(resumeData))
-    const allSkills = []
-    Object.values(newData.skillsCategories).forEach(skills => allSkills.push(...skills))
-    newData.skillsCategories = { "Skills": allSkills }
+    const allSkills = skillCategoriesOf(newData).flatMap(group => group.skills || [])
+    newData.skillsCategories = [{ name: 'Skills', skills: allSkills }]
+    onUpdate(newData)
+  }
+
+  function setSkillsForCategory(index, skills) {
+    const newData = JSON.parse(JSON.stringify(resumeData))
+    newData.skillsCategories = skillCategoriesOf(newData)
+    if (!newData.skillsCategories[index]) return
+    newData.skillsCategories[index].skills = skills
     onUpdate(newData)
   }
 
@@ -637,6 +647,10 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
     )}
     </>
   )
+
+  // Whatever shape the row is stored in, the editor reads it as one ordered
+  // list of categories.
+  const skillGroups = normalizeSkillCategories(resumeData)
 
   const sections = {
     experience: resumeData.experience?.length > 0 ? (() => {
@@ -1136,36 +1150,36 @@ export default function ResumeContent({ resumeData, onUpdate, isUndoingRef, form
       )
     })() : null,
 
-    skills: resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0 ? (
+    skills: skillGroups.length > 0 ? (
       <div className={`mb-6 p-2 rounded group ${!readOnly && 'hover:bg-purple-50'}`} key="skills">
         {sectionHeader('skills',
-          !readOnly && Object.keys(resumeData.skillsCategories).length > 1 ? (
+          !readOnly && skillGroups.length > 1 ? (
             <button onClick={flattenSkills} className="text-purple-600 hover:bg-purple-100 px-2 py-1 rounded text-xs ml-2 font-medium opacity-0 group-hover:opacity-100">Combine All Skills Into One List</button>
           ) : null
         )}
-        {Object.entries(resumeData.skillsCategories).map(([category, skills]) => {
-          const isSingleSkillsCategory = Object.keys(resumeData.skillsCategories).length === 1 && category === 'Skills'
+        {skillGroups.map(({ name: category, skills }, index) => {
+          const isSingleSkillsCategory = skillGroups.length === 1 && category === 'Skills'
           return (
-            <div key={category} className="mb-3 group/category">
+            <div key={`${category}-${index}`} className="mb-3 group/category">
               {!isSingleSkillsCategory && (
                 <div className="flex items-center gap-2 mb-1">
-                  <p className={`text-sm font-semibold ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => { if (isUndoingRef.current) return; const newName = e.currentTarget.textContent.trim(); if (newName && newName !== category) renameSkillCategory(category, newName) }}>{category}</p>
+                  <p className={`text-sm font-semibold ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => { if (isUndoingRef.current) return; const newName = e.currentTarget.textContent.trim(); if (newName && newName !== category) renameSkillCategory(index, newName) }}>{category}</p>
                   {!readOnly && (
                     <div className="flex items-center gap-1 opacity-0 group-hover/category:opacity-100">
-                      <button onClick={() => moveSkillCategoryUp(category)} disabled={Object.keys(resumeData.skillsCategories)[0] === category} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▲</button>
-                      <button onClick={() => moveSkillCategoryDown(category)} disabled={Object.keys(resumeData.skillsCategories)[Object.keys(resumeData.skillsCategories).length - 1] === category} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▼</button>
+                      <button onClick={() => moveSkillCategoryUp(index)} disabled={index === 0} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▲</button>
+                      <button onClick={() => moveSkillCategoryDown(index)} disabled={index === skillGroups.length - 1} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 px-1 rounded disabled:opacity-20 disabled:cursor-not-allowed text-xs">▼</button>
                     </div>
                   )}
-                  {!readOnly && (confirmingDelete === `category-${category}` ? (
+                  {!readOnly && (confirmingDelete === `category-${index}` ? (
                     <div className="flex items-center gap-1 text-xs">
                       <span className="text-gray-600">Delete?</span>
-                      <button onClick={() => { deleteSkillCategory(category); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
+                      <button onClick={() => { deleteSkillCategory(index); setConfirmingDelete(null) }} className="text-white bg-[#e57373] hover:bg-[#c62828] px-2 py-0.5 rounded">Yes</button>
                       <button onClick={() => setConfirmingDelete(null)} className="text-gray-600 hover:bg-gray-100 px-2 py-0.5 rounded">No</button>
                     </div>
-                  ) : <button onClick={() => setConfirmingDelete(`category-${category}`)} className="text-[#e57373] opacity-0 group-hover/category:opacity-100 text-xs px-1 hover:bg-red-50 rounded">🗑️</button>)}
+                  ) : <button onClick={() => setConfirmingDelete(`category-${index}`)} className="text-[#e57373] opacity-0 group-hover/category:opacity-100 text-xs px-1 hover:bg-red-50 rounded">🗑️</button>)}
                 </div>
               )}
-              <p className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => { if (isUndoingRef.current) return; const newData = JSON.parse(JSON.stringify(resumeData)); newData.skillsCategories[category] = e.currentTarget.textContent.trim().split(/[,•]/).map(s => s.trim()).filter(s => s.length > 0); onUpdate(newData) }}>{Array.isArray(skills) ? skills.join(' • ') : skills}</p>
+              <p className={`text-sm ${!readOnly && 'cursor-text hover:bg-purple-100 px-1 rounded'}`} style={ts.body || {}} contentEditable={!readOnly} suppressContentEditableWarning onBlur={(e) => { if (isUndoingRef.current) return; setSkillsForCategory(index, e.currentTarget.textContent.trim().split(/[,•]/).map(s => s.trim()).filter(s => s.length > 0)) }}>{Array.isArray(skills) ? skills.join(' • ') : skills}</p>
             </div>
           )
         })}

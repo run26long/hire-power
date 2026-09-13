@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 /**
  * BuilderGuide Component
@@ -58,9 +59,7 @@ export default function BuilderGuide({
       section: 'skills',
       mandatory: true,
       validate: () => {
-        const hasCategories = resumeData.skillsCategories && Object.keys(resumeData.skillsCategories).length > 0;
-        const hasSkills = resumeData.skills && resumeData.skills.length > 0;
-        return hasCategories || hasSkills;
+        return normalizeSkillCategories(resumeData).length > 0;
       }
     },
     { 

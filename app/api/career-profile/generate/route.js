@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -55,11 +56,11 @@ function convertResumeToText(data) {
     })
   }
 
-  if (data.skillsCategories && Object.keys(data.skillsCategories).length > 0) {
+  const skillGroups = normalizeSkillCategories(data)
+  if (skillGroups.length > 0) {
     text += 'SKILLS\n\n'
-    Object.entries(data.skillsCategories).forEach(([category, skills]) => {
-      const list = Array.isArray(skills) ? skills : [skills]
-      text += `${category}: ${list.join(', ')}\n`
+    skillGroups.forEach(({ name, skills }) => {
+      text += `${name}: ${skills.join(', ')}\n`
     })
     text += '\n'
   }
@@ -132,24 +133,25 @@ ${otherBlock}
 
 Return this exact structure:
 {
-  "headline": "A professional headline for this direction, 8 to 15 words",
-  "bio": "A third-person professional bio. Maximum 4 sentences. Concise, specific, no filler. Lead with what they do, follow with their strongest proof, close with their differentiator. No em dashes.",
+  "headline": "A professional headline for this direction, 8 to 15 words, as a pronoun-free professional fragment",
+  "bio": "A polished professional summary, pronoun-free. Maximum 4 sentences. Concise, specific, no filler. Lead with the discipline and the span of experience, follow with the strongest proof, close with the differentiator. No em dashes.",
   "proof_points": [
     {"num": "$10M+", "label": "Boeing engagement value"},
     {"num": "35%", "label": "defect rate reduction"},
     {"num": "90%+", "label": "account renewal rate"}
   ],
-  "ready_for_next": "1 to 2 sentences on what they are ready to do next in this direction",
+  "ready_for_next": "1 to 2 sentences on what comes next in this direction, pronoun-free, opening on a construction like \"Ready to\"",
   "ready_tags": ["VP Operations", "Manufacturing", "Process improvement"]
 }
 
 RULES:
+- VOICE, and this one governs everything else. Every field you return here is written WITHOUT PRONOUNS, in the register of a strong professional summary. Two things are therefore banned, not one. No first person: no "I", "me", "my" or "mine". And no outside narration: no "he", no "she", no singular "they", never their name as a narrator, and never "this executive", "this professional" or "the candidate". Write "Manufacturing operations leader with 30 years of experience turning underperforming production floors into accountable organizations. Achieved 100% on-time delivery within 50 days of joining Disruptor Manufacturing." That is the voice: complete sentences that simply do not need a subject pronoun, never truncated telegram style and never a sentence with the pronoun deleted out of it. The profile has exactly one section written in deliberate first person, In My Own Words, and you are not writing it. Nothing another person said is ever restated in this voice.
 - proof_points: exactly ${PROOF_POINT_COUNT}. Each must be a real, verifiable number from the knowledge base or the resume. Never invent a statistic. "num" is short: a number, a percentage, or a dollar figure. "label" says what it measures in under 8 words.
 - If the material does not support a numeric proof point for this direction, use qualitative proof instead, in the same shape: {"num": "10+ years", "label": "leading manufacturing teams"}. A true qualitative point always beats an invented metric.
-- bio: at most 4 sentences, written in the third person. Concise and specific, no filler. Lead with what they do, follow with their strongest proof, close with their differentiator. No bullet points, no lists. It tells this person's story through the ${lensName} lens.
+- bio: at most 4 sentences, pronoun-free, in professional summary voice. Concise and specific, no filler. Lead with the discipline and the span of experience, follow with the strongest proof, close with the differentiator. No bullet points, no lists. It tells this career through the ${lensName} lens.
 - bio: must not overlap significantly with the bios of their other directions above. Same person, different emphasis. Choose different evidence and a different through line.
 - headline: must differ from the headlines of their other directions above.
-- ready_for_next: forward looking, about what comes next, not a summary of what they have done.
+- ready_for_next: forward looking, about what comes next, not a summary of what has already been done. Pronoun-free like the rest: "Ready to take full operational ownership of a multi-department site", never "I am ready to" and never "they are ready to".
 - ready_tags: 3 to 5 short tags naming target roles, industries, or capabilities for this direction.
 - Everything must be traceable to the knowledge base or the resume. If you cannot support a claim from that material, leave it out.
 - Do not use em dashes anywhere. Use commas, periods, or semicolons instead.

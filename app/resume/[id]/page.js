@@ -17,6 +17,7 @@ import CoachReviseModal from '../../components/CoachReviseModal'
 import PDFViewer from '../../components/PDFViewer'
 import { parseCaptureTags, replayCaptures } from '../../utils/parseCaptureTags'
 import { track } from '../../utils/analytics'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const styles = `
   [contenteditable][data-placeholder]:empty:before {
@@ -4720,11 +4721,22 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
 
     const skillMatch = change.field.match(/^skillsCategories\.(.+)$/)
     if (skillMatch) {
+      // The coach still names the category, because that is what it can see.
+      // Categories are an ordered array now, so the name is resolved to a
+      // position here rather than used as a key.
+      const name = skillMatch[1]
+      let after
       try {
-        data.skillsCategories[skillMatch[1]] = JSON.parse(change.after)
+        after = JSON.parse(change.after)
       } catch {
-        data.skillsCategories[skillMatch[1]] = change.after.split('|').map(s => s.trim()).filter(Boolean)
+        after = change.after.split('|').map(s => s.trim()).filter(Boolean)
       }
+      if (!Array.isArray(data.skillsCategories)) {
+        data.skillsCategories = normalizeSkillCategories(data)
+      }
+      const index = data.skillsCategories.findIndex(group => group.name === name)
+      if (index === -1) data.skillsCategories.push({ name, skills: after })
+      else data.skillsCategories[index].skills = after
       return
     }
   }

@@ -238,13 +238,13 @@ export default function ResumePDFSignature({ resumeData, font = 'EB Garamond', f
           }
 
           const renderSkills = () => {
-            if (!Object.keys(skills).length) return null
+            if (!skills.length) return null
             return (
               <View style={{ marginTop: Math.round(16*sp) }}>
                 <SH title="Skills" />
-                {Object.entries(skills).map(([cat, items]) => (
+                {skills.map(({ name: cat, skills: items }) => (
                   <View key={cat} style={{ marginBottom: Math.round(4*sp) }}>
-                    {Object.keys(skills).length > 1
+                    {skills.length > 1
                       ? <Text style={{ fontFamily: f, fontSize: base }}><Text style={{ fontWeight: 'bold' }}>{cat + ': '}</Text><Text style={{ color: '#333333' }}>{items.join(' \u2022 ')}</Text></Text>
                       : <Text style={{ fontFamily: f, fontSize: base, color: '#333333' }}>{items.join(' \u2022 ')}</Text>
                     }

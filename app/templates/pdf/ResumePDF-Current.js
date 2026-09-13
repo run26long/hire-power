@@ -372,15 +372,15 @@ export default function ResumePDF({
             }
 
             case 'skills': {
-              if (!Object.keys(skills).length) return null
-              const skillEntries = Object.entries(skills)
+              if (!skills.length) return null
+              const skillEntries = skills.map(g => [g.name, g.skills])
               const [firstSkill, ...restSkills] = skillEntries
               return (
                 <View key="skills">
                   <View wrap={false}>
                     <SectionHeader title={resumeData.sectionTitles?.skills || 'SKILLS'} font={resolvedFont} base={base} sp={sp} />
                     <View style={{ marginBottom: Math.round(3 * sp) }}>
-                      {Object.keys(skills).length > 1
+                      {skills.length > 1
                         ? <Text style={{ fontFamily: resolvedFont, fontSize: base, lineHeight: 1.25 }}><Text style={{ fontWeight: 'bold' }}>{firstSkill[0] + ': '}</Text><Text style={{ color: '#333333' }}>{firstSkill[1].join(' \u2022 ')}</Text></Text>
                         : <Text style={{ fontFamily: resolvedFont, fontSize: base, color: '#333333', lineHeight: 1.25 }}>{firstSkill[1].join(' \u2022 ')}</Text>
                       }

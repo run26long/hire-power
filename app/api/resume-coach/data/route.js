@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import puppeteer from 'puppeteer';
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -68,14 +69,13 @@ function generateResumeHTML(resumeData) {
   
   // Format skills (handle both old and new format)
   let skillsHTML = '';
-  if (skillsCategories && Object.keys(skillsCategories).length > 0) {
-    skillsHTML = Object.entries(skillsCategories).map(([category, items]) => `
+  const skillGroups = normalizeSkillCategories(resumeData);
+  if (skillGroups.length > 0) {
+    skillsHTML = skillGroups.map(({ name, skills: items }) => `
       <div style="margin-bottom: 4px;">
-        <strong>${category}:</strong> ${items.join(' • ')}
+        <strong>${name}:</strong> ${items.join(' • ')}
       </div>
     `).join('');
-  } else if (skills && skills.length > 0) {
-    skillsHTML = `<div>${skills.join(' • ')}</div>`;
   }
   
   return `

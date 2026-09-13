@@ -148,12 +148,12 @@ export default function SharpTemplate({ resumeData, font, fontSize, spacing = 1,
       )}
 
       {/* Skills */}
-      {Object.keys(skills).length > 0 && (
+      {skills.length > 0 && (
         <div style={s.section}>
           <div style={s.sh}>Skills</div>
-          {Object.entries(skills).map(([cat, items]) => (
+          {skills.map(({ name: cat, skills: items }) => (
             <div key={cat} style={{ marginBottom: px(3) }}>
-              {Object.keys(skills).length > 1
+              {skills.length > 1
                 ? <><span style={{ fontFamily, fontWeight: heavyWeight, fontSize: `${base}pt` }}>{cat}: </span>
                     <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span></>
                 : <span style={{ fontFamily, fontSize: `${base}pt`, color: '#333' }}>{items.join(' • ')}</span>

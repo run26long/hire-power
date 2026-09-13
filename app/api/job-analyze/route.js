@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { apiError } from '@/lib/apiError';
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -52,16 +53,14 @@ function convertResumeToText(data) {
     });
   }
 
-  if (data.skillsCategories && Object.keys(data.skillsCategories).length > 0) {
+  const skillGroups = normalizeSkillCategories(data);
+  if (skillGroups.length > 0) {
     text += 'SKILLS\n\n';
-    Object.entries(data.skillsCategories).forEach(([cat, skills]) => {
-      const skillsArray = Array.isArray(skills) ? skills : [skills];
-      const isSingle = Object.keys(data.skillsCategories).length === 1 && cat === 'Skills';
-      if (!isSingle) text += `${cat}:\n`;
-      text += skillsArray.join(', ') + '\n\n';
+    skillGroups.forEach(({ name, skills }) => {
+      const isSingle = skillGroups.length === 1 && name === 'Skills';
+      if (!isSingle) text += `${name}:\n`;
+      text += skills.join(', ') + '\n\n';
     });
-  } else if (data.skills?.length) {
-    text += `SKILLS\n${data.skills.join(', ')}\n\n`;
   }
 
   if (data.projects?.length) {

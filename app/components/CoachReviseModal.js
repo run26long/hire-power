@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const isText = v => typeof v === 'string' && v.trim().length > 0
 
@@ -384,10 +385,15 @@ export default function CoachReviseModal({ state, onClose, resumeData, coachingM
       if (!isText(result.content)) { onClose(); return }
       newData.summary = result.content
     } else if (result.type === 'skill') {
-      if (!newData.skillsCategories) newData.skillsCategories = {}
+      // Categories are an ordered array; a named one is found rather than keyed,
+      // and a name that is not there yet joins the end.
+      if (!Array.isArray(newData.skillsCategories)) {
+        newData.skillsCategories = normalizeSkillCategories(newData)
+      }
       const cat = result.category || 'Skills'
-      if (!newData.skillsCategories[cat]) newData.skillsCategories[cat] = []
-      newData.skillsCategories[cat] = [...newData.skillsCategories[cat], ...result.skills]
+      const existing = newData.skillsCategories.find(group => group.name === cat)
+      if (existing) existing.skills = [...existing.skills, ...result.skills]
+      else newData.skillsCategories.push({ name: cat, skills: [...result.skills] })
     }
     onUpdate(newData)
     saveToDb(newData)

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { apiError } from '@/lib/apiError'
 import { waitUntil } from '@vercel/functions'
+import { normalizeSkillCategories } from '@/lib/resumeText'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -64,11 +65,11 @@ Return this exact JSON structure (use empty arrays/strings/null if sections don'
       "lines": ["GPA: 3.8", "Dean's List", "Relevant Coursework: Course 1, Course 2"]
     }
   ],
-  "skillsCategories": {
-    "Category Name A": ["skill1", "skill2"],
-    "Category Name B": ["skill3", "skill4"],
-    "Category Name C": ["skill5", "skill6"]
-  },
+  "skillsCategories": [
+    { "name": "Category Name A", "skills": ["skill1", "skill2"] },
+    { "name": "Category Name B", "skills": ["skill3", "skill4"] },
+    { "name": "Category Name C", "skills": ["skill5", "skill6"] }
+  ],
   "projects": [
     {
       "name": "",
@@ -130,6 +131,12 @@ CRITICAL INSTRUCTIONS:
 
     const extractedData = JSON.parse(cleanedResponse)
 
+    // The prompt asks for the array form. A model that regresses to the old
+    // object is repaired here rather than stored in a shape nothing writes.
+    if (extractedData.skillsCategories !== undefined) {
+      extractedData.skillsCategories = normalizeSkillCategories(extractedData)
+    }
+
     // Strip date duplicates from education.lines[] — safety net for when the model
     // ignores the prompt rule and drops a duplicate date string into lines[].
     if (Array.isArray(extractedData.education)) {
@@ -177,7 +184,7 @@ CRITICAL INSTRUCTIONS:
       const sections = []
       if (extractedData.experience?.length) sections.push('experience')
       if (extractedData.education?.length) sections.push('education')
-      if (extractedData.skillsCategories && Object.keys(extractedData.skillsCategories).length) sections.push('skills')
+      if (normalizeSkillCategories(extractedData).length) sections.push('skills')
       if (extractedData.projects?.length) sections.push('projects')
       if (extractedData.certifications?.length) sections.push('certifications')
       if (extractedData.volunteer?.length) sections.push('volunteer')
