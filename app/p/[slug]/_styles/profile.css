@@ -498,6 +498,10 @@
 
 .hp-act1-invite { width: 100%; }
 
+/* Two lines, held as two. The break is written into the copy, so it is drawn
+   by the markup rather than left to wherever the measure happens to run out. */
+.hp-invite-line { display: block; }
+
 .hp-invite-prompt {
   font-family: var(--profile-font-voice);
   font-size: 17px;
@@ -506,7 +510,8 @@
   letter-spacing: -0.005em;
   color: var(--profile-meta);
   margin: 0 0 18px;
-  max-width: 30ch;
+  /* Wide enough that neither written line has to wrap again. */
+  max-width: 34ch;
 }
 
 /* The rail and its step controls share a positioning context. The steps sit
@@ -1061,8 +1066,11 @@
     grid-column: 1 / 13;
     grid-row: 1;
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
-    column-gap: var(--profile-act-gap);
+    /* The copy keeps a third of the row and the tabs take the rest, with a
+       gutter of their own between them. Both are fractions, so the split
+       holds at every desktop width rather than at one. */
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    column-gap: calc(var(--profile-act-gap) + 28px);
     align-items: baseline;
   }
 

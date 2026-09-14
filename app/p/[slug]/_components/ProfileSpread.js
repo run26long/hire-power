@@ -49,7 +49,13 @@ export default function ProfileSpread({
   const detail = rest ? rest.split(/\n\s*\n/).filter(Boolean) : []
 
   return (
-    <section className="hp-frame">
+    <section className="hp-frame hp-about-section">
+      {/* Above the whole section, because it introduces both columns. The
+          eyebrows below introduce one column each. */}
+      <Reveal enabled={animate} className="hp-about-intro">
+        <h2 className="hp-about-headline">The short version.</h2>
+      </Reveal>
+
       <div
         className="hp-spread"
         data-voice={hasVoice ? 'true' : 'false'}

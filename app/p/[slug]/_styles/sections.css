@@ -25,10 +25,9 @@
 .hp-spread {
   display: grid;
   gap: 36px;
-  /* The whole handoff from Act I now lives here. The sticky bar no longer
-     reserves 68px of flow for a control that is not on screen yet, so this is
-     the space itself rather than a reduction applied on top of it. */
-  padding-block: 22px 24px;
+  /* The heading above now opens the section, so the top of this space belongs
+     to the gap under it rather than to the handoff from Act I. */
+  padding-block: 20px 24px;
 }
 
 /* ---- About ----
@@ -37,7 +36,13 @@
 
 .hp-spread .hp-eyebrow { color: rgb(var(--profile-accent-rgb) / 0.82); }
 
-/* The thesis. Confident, and deliberately well below an Act I headline. */
+/* The thesis, in the same soft lavender as the positioning line under the
+   name in the hero - .hp-act1-deck, which is --profile-body. The two lines
+   do the same job in two places, so they are the same colour by sharing the
+   token rather than by agreeing on a hex value.
+
+   Deliberately not the accent: that is the eyebrow purple, and a whole
+   paragraph set in a colour reserved for four-word labels shouts. */
 .hp-about-lead {
   margin: 20px 0 0;
   max-width: 660px;
@@ -45,10 +50,12 @@
   line-height: 1.38;
   font-weight: 400;
   letter-spacing: -0.014em;
-  color: var(--profile-text);
+  color: var(--profile-body);
 }
 
-/* The evidence under it, set quieter so the progression is visible. */
+/* The evidence under it, at full strength. It is the body of the section and
+   the thing most likely to be read closely, so it is not the quietest text
+   on the page. */
 .hp-about { margin-top: 18px; max-width: 660px; }
 
 .hp-about p {
@@ -56,7 +63,7 @@
   font-size: 16.5px;
   line-height: 1.62;
   font-weight: 400;
-  color: var(--profile-body);
+  color: var(--profile-text);
 }
 
 .hp-about p:last-child { margin-bottom: 0; }
@@ -305,13 +312,31 @@
    resolution also use. */
 .hp-impact + .hp-section { padding-top: 18px; }
 
+/* ---- Skills into Evidence ----
+   Both are .hp-section, so both were carrying a full section padding into the
+   same edge: 80px under the carousel and 80px over Evidence, 96 and 96 on a
+   wide screen. That is one gap of roughly 190px where every other junction on
+   the page is 70-95, and it was two paddings stacking rather than any stray
+   height - the two sections meet exactly, with nothing between them.
+
+   So both sides give the space back, in the same proportion, and the handoff
+   lands in the same rhythm as the rest of the page. Nothing is pulled up with
+   a negative margin and no height is capped: the carousel, its nav row and
+   the four-row cards are all untouched. */
+.hp-skills { padding-bottom: 34px; }
+.hp-skills + .hp-ev-section { padding-top: 34px; }
+
 @media (min-width: 768px) {
   .hp-section-exp { padding-top: 72px; padding-bottom: 38px; }
   .hp-impact + .hp-section { padding-top: 32px; }
+  .hp-skills { padding-bottom: 40px; }
+  .hp-skills + .hp-ev-section { padding-top: 40px; }
 }
 @media (min-width: 1200px) {
   .hp-section-exp { padding-top: 84px; padding-bottom: 42px; }
   .hp-impact + .hp-section { padding-top: 28px; }
+  .hp-skills { padding-bottom: 44px; }
+  .hp-skills + .hp-ev-section { padding-top: 44px; }
 }
 
 /* -------------------------------------------------- SELECTED EXPERIENCE -- */
@@ -639,7 +664,12 @@
    the section arrives. */
 
 .hp-impact-intro { margin-bottom: 26px; }
-.hp-impact-intro .hp-label { margin-bottom: 14px; }
+
+/* Inside the synthesis card, naming it the way Firsthand Accounts names the
+   column opposite. The display heading above owns the section; this owns only
+   what is on this surface, and the gap under it is what keeps the two from
+   reading as one run of text. */
+.hp-impact-eyebrow { margin-bottom: 16px; }
 
 .hp-impact-headline {
   display: block;
@@ -1072,19 +1102,22 @@
      card is declared here rather than assumed in JavaScript. */
   --card-pad: 16px;
   --card-min: 220px;
+  /* Only the measuring layer reads this now: it is the width a very long
+     label is allowed to wrap against while its natural size is taken. The
+     real card is sized by its plan. */
   --card-max: 520px;
   --mosaic-gap: 9px;
-  /* A category with at least this many skills is held to at least this many
-     mosaic rows, so a small card still reads as a whole one. */
-  --mosaic-min-rows: 4;
+  /* Four rows, everywhere, at every width. */
   --mosaic-max-rows: 4;
-  --mosaic-min-tile: 140px;
+  /* The height of one row of tiles. A tile is padding, a border and one line
+     of 14px text, none of which changes with the viewport, so this is a
+     constant and four of them can be reserved up front. */
+  --mosaic-row-h: 38px;
 
   /* The tone, cycled by the category's position in the payload. */
   --tone-rgb: var(--profile-tone-a-rgb);
 
   flex: 0 0 auto;
-  max-width: var(--card-max);
   padding: var(--card-pad);
   border: 1px solid rgb(var(--tone-rgb) / 0.16);
   border-radius: 14px;
@@ -1121,6 +1154,9 @@
 .hp-card-name {
   display: block;
   margin: 0;
+  /* calc rather than a magic number: two lines of this type, whatever this
+     type turns out to be. */
+  min-height: calc(11.5px * 1.35 * 2);
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.17em;
@@ -1140,6 +1176,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: var(--mosaic-gap);
+  min-height: calc(var(--mosaic-row-h) * 4 + var(--mosaic-gap) * 3);
 }
 
 .hp-mrow {
@@ -1553,7 +1590,7 @@
 @media (min-width: 768px) {
   .hp-skills-intro { margin-bottom: 34px; }
   .hp-field { gap: 22px; }
-  .hp-card { --card-pad: 18px; --card-max: 600px; --mosaic-gap: 10px; --mosaic-min-tile: 150px; }
+  .hp-card { --card-pad: 18px; --card-max: 600px; --mosaic-gap: 10px; }
   .hp-card .hp-tile, .hp-measure .hp-tile { font-size: 14.5px; padding: 7px 12px; }
 }
 
@@ -1562,7 +1599,7 @@
   .hp-skills-headline { font-size: clamp(38px, 3.4vw, 48px); letter-spacing: -0.034em; }
 
   .hp-field { gap: 26px; }
-  .hp-card { --card-pad: 20px; --card-max: 660px; --mosaic-gap: 10px; --mosaic-min-tile: 155px; border-radius: 16px; }
+  .hp-card { --card-pad: 20px; --card-max: 660px; --mosaic-gap: 10px; border-radius: 16px; }
   .hp-card-head { margin-bottom: 15px; padding-bottom: 12px; }
   .hp-card .hp-tile, .hp-measure .hp-tile { font-size: 15px; padding: 8px 13px; }
 
@@ -1570,14 +1607,14 @@
   .hp-field-nav { margin-top: 24px; padding-right: 24px; }
 }
 
-/* On a phone a card is held inside the viewport, with a gutter on the left and
-   enough of the next card showing on the right to say the track moves. */
+/* On a phone the track still shows the edge of the next card to say that it
+   moves. What a phone no longer does is let a category answer "too wide" by
+   growing downwards: four rows is four rows here too, and a wide category is
+   reached by scrolling the track, which is what the track is for. */
 @media (max-width: 767px) {
   .hp-card {
     --card-max: min(84vw, 380px);
     --card-min: 200px;
-    --mosaic-max-rows: 8;
-    --mosaic-min-tile: 132px;
   }
 }
 
@@ -1898,6 +1935,25 @@
 .hp-ev-intro { margin-bottom: 26px; }
 .hp-ev-intro .hp-label { margin-bottom: 14px; }
 
+/* ---- The About heading ----
+   The same display voice as Experience, Skills, Impact and Evidence, so the
+   page has one heading size rather than five. It sits above the whole spread:
+   it introduces the section, and the eyebrows inside introduce a column each.
+   That is the hierarchy, and it is structural - not two labels that happen to
+   have swapped their words. */
+.hp-about-intro { padding-block: 22px 0; }
+
+.hp-about-headline {
+  display: block;
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: clamp(32px, 9vw, 40px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.032em;
+  color: var(--profile-text);
+}
+
 .hp-ev-headline {
   display: block;
   margin: 0;
@@ -1917,31 +1973,51 @@
 .hp-ev-filter {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 16px 22px 4px;
+  /* Enough air that four of these read as four controls rather than a line
+     of words that happen to be clickable. */
+  gap: 10px;
+  padding: 18px 22px 16px;
   border-bottom: 1px solid var(--profile-line);
 }
 
-.hp-profile .hp-ev-chip {
+/* Real buttons carrying aria-pressed, so the selected one is selected to a
+   screen reader and not only to the eye. At rest each has its own edge and
+   surface; the active one is filled, not merely tinted, because "which of
+   these is on" should be answerable at a glance across the room. */
+.hp-ev-backdrop .hp-ev-chip {
   --ev-tone: var(--profile-accent-rgb);
-  padding: 7px 14px;
-  border: 1px solid rgb(var(--ev-tone) / 0.18);
+  padding: 8px 16px;
+  border: 1px solid rgb(var(--ev-tone) / 0.22);
   border-radius: 999px;
-  background: rgb(var(--ev-tone) / 0.05);
+  background: rgb(var(--ev-tone) / 0.06);
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.03em;
-  color: var(--profile-meta);
+  color: var(--profile-body);
   cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 
-.hp-profile .hp-ev-chip:hover { color: var(--profile-body); border-color: rgb(var(--ev-tone) / 0.32); }
-
-.hp-profile .hp-ev-chip[aria-pressed='true'] {
-  background: rgb(var(--ev-tone) / 0.14);
-  border-color: rgb(var(--ev-tone) / 0.42);
+.hp-ev-backdrop .hp-ev-chip:hover {
   color: var(--profile-text);
+  border-color: rgb(var(--ev-tone) / 0.42);
+  background: rgb(var(--ev-tone) / 0.13);
+}
+
+.hp-ev-backdrop .hp-ev-chip[aria-pressed='true'] {
+  background: var(--profile-action-lift);
+  border-color: var(--profile-action-lift);
+  color: #ffffff;
+}
+
+.hp-ev-backdrop .hp-ev-chip[aria-pressed='true']:hover {
+  background: var(--profile-action);
+  border-color: var(--profile-action);
+}
+
+.hp-ev-backdrop .hp-ev-chip:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 3px;
 }
 
 /* ---- The field ---- */
@@ -2112,9 +2188,9 @@
 @media (min-width: 768px) {
   .hp-ev-grid { grid-template-columns: repeat(6, 1fr); grid-auto-rows: minmax(152px, auto); }
   .hp-ev-tile { grid-column: span 3; }
-  .hp-ev-tile[data-role='lead'] { grid-column: span 3; grid-row: span 2; }
-  .hp-ev-grid[data-count='1'] .hp-ev-tile[data-role='lead'],
-  .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='lead'] { grid-column: span 6; grid-row: span 1; }
+  .hp-ev-lead-slot { grid-column: span 3; grid-row: span 2; }
+  .hp-ev-grid[data-count='1'] .hp-ev-lead-slot,
+  .hp-ev-grid[data-count='2'] .hp-ev-lead-slot { grid-column: span 6; grid-row: span 1; }
   .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='rest'] { grid-column: span 6; }
   .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 6; }
 }
@@ -2129,14 +2205,14 @@
      collection is in this grid to push them taller. That, plus the clamps
      above, is what fixes the lead opening a void under its own text. */
   .hp-ev-grid[data-count='5'] { grid-template-rows: repeat(2, minmax(200px, auto)); }
-  .hp-ev-tile[data-role='lead'] { grid-column: span 6; grid-row: span 2; }
+  .hp-ev-lead-slot { grid-column: span 6; grid-row: span 2; }
   .hp-ev-tile[data-role='rest'] { grid-column: span 3; }
 
   /* Alone, it is not a lead among others - it is the whole section. */
-  .hp-ev-grid[data-count='1'] .hp-ev-tile[data-role='lead'] { grid-column: span 12; grid-row: span 1; }
+  .hp-ev-grid[data-count='1'] .hp-ev-lead-slot { grid-column: span 12; grid-row: span 1; }
 
   /* Two read as a pair, weighted rather than split down the middle. */
-  .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='lead'] { grid-column: span 7; grid-row: span 1; }
+  .hp-ev-grid[data-count='2'] .hp-ev-lead-slot { grid-column: span 7; grid-row: span 1; }
   .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='rest'] { grid-column: span 5; }
 
   /* Three and four stack their followers full-width beside the lead, so two
@@ -2146,27 +2222,105 @@
   .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 12; }
 }
 
-/* ---- The way into the rest of it ---- */
-.hp-ev-more { margin-top: 18px; }
+/* ---- The way into the rest of it ----
+   Attached to the featured card, at its lower-right corner. The slot is the
+   grid cell: the card and the action are siblings inside it, never nested,
+   because a control inside a control is not a thing a keyboard or a screen
+   reader can make sense of. The card reserves the corner the action sits in,
+   so the action covers no title, no description and no date line. */
+.hp-ev-field { position: relative; }
 
-.hp-ev-backdrop .hp-ev-all,
+.hp-ev-lead-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hp-ev-lead-slot .hp-ev-tile[data-role='lead'] { flex: 1 1 auto; }
+
+/* A lit surface rather than a solid one. Filled purple made it the brightest
+   thing in the section and pulled the eye off the evidence it is there to
+   open; this is the same hue at a fraction of its strength, over the card
+   surface, with an accent edge and a single highlight along the top. It still
+   reads as the one action in the composition - it is the only filled shape in
+   it - without being the first thing seen. */
 .hp-profile .hp-ev-all {
-  padding: 12px 22px;
-  border: 1px solid rgb(var(--profile-accent-rgb) / 0.26);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 13px 24px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
   border-radius: 999px;
-  background: rgb(var(--profile-accent-rgb) / 0.05);
+  background:
+    linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.19), rgb(var(--profile-accent-rgb) / 0.09)),
+    var(--profile-surface-2);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 6px 18px rgb(var(--profile-void-rgb) / 0.4);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--profile-accent-soft);
   cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
-.hp-profile .hp-ev-all:hover {
-  background: rgb(var(--profile-accent-rgb) / 0.12);
-  border-color: rgb(var(--profile-accent-rgb) / 0.44);
+.hp-ev-all-arrow { font-size: 15px; line-height: 1; transition: transform 160ms ease; }
+
+/* Brighter on approach, which is where the extra strength belongs. */
+.hp-profile .hp-ev-all:hover,
+.hp-profile .hp-ev-all:focus-visible {
+  border-color: rgb(var(--profile-accent-rgb) / 0.58);
+  background:
+    linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.3), rgb(var(--profile-accent-rgb) / 0.16)),
+    var(--profile-surface-2);
   color: var(--profile-text);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 8px 22px rgb(var(--profile-void-rgb) / 0.5);
+}
+
+.hp-profile .hp-ev-all:hover .hp-ev-all-arrow { transform: translateX(3px); }
+
+.hp-profile .hp-ev-all:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 4px;
+}
+
+/* On a phone it sits straight under the featured card and above the rest of
+   the preview, full width: the slot is the first thing in the column, so
+   "after the lead card" and "before the others" are the same position. */
+@media (max-width: 767px) {
+  .hp-profile .hp-ev-all {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+}
+
+/* From tablet up it sits on the card's lower-right corner, overhanging the
+   edge just enough to read as attached to it rather than drawn on it. The
+   card pays for the space with its own padding. */
+@media (min-width: 768px) {
+  .hp-ev-lead-slot[data-more='true'] { padding-bottom: 26px; }
+
+  .hp-ev-lead-slot[data-more='true'] .hp-ev-tile[data-role='lead'] {
+    padding-bottom: 76px;
+  }
+
+  .hp-profile .hp-ev-all {
+    position: absolute;
+    right: 22px;
+    bottom: 0;
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-profile .hp-ev-all:hover .hp-ev-all-arrow { transform: none; }
 }
 
 /* ===========================================================================

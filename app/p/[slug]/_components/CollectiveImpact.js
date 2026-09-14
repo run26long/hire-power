@@ -116,11 +116,11 @@ export default function CollectiveImpact({
   return (
     <section className="hp-impact">
       <div className="hp-wrap">
-        {/* The eyebrow and the heading are one introduction, and they introduce
-            both sides of what follows rather than the left one only. */}
+        {/* One heading over both columns, because the synthesis on the left and
+            the accounts on the right are two readings of the same thing. What
+            each column is then says so inside the column itself. */}
         <Reveal enabled={animate} className="hp-impact-intro">
-          <span className="hp-label">What others see</span>
-          <h2 className="hp-impact-headline">Collective Impact</h2>
+          <h2 className="hp-impact-headline">What others see.</h2>
         </Reveal>
 
         {/* Which sides are actually there, so one missing side widens the
@@ -132,6 +132,11 @@ export default function CollectiveImpact({
         >
           {hasImpact && (
             <Reveal enabled={animate} className="hp-impact-synthesis">
+              {/* Names the card, the way Firsthand Accounts names the column
+                  opposite. It sits inside the surface rather than above it, so
+                  the display heading keeps the whole section and this keeps
+                  only the card. */}
+              <span className="hp-label hp-impact-eyebrow">Collective Impact</span>
               <p className="hp-impact-summary">{summary}</p>
 
               {/* The stored `label` is internal. It stays in the row so the

@@ -143,17 +143,31 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         </Reveal>
 
         <Reveal enabled={animate}>
-          <div className="hp-ev-grid" data-count={String(preview.length)}>
-            {preview.map((item, index) => tile(item, index === 0 ? 'lead' : 'rest'))}
-          </div>
+          {/* The featured card and the way into the rest of the collection are
+              one presentation, so they share a cell: the slot is what the grid
+              places, and the two sit inside it as siblings.
 
-          {hasMore && (
-            <div className="hp-ev-more">
-              <button type="button" className="hp-ev-all" onClick={openGallery} aria-haspopup="dialog">
-                View all evidence ({ordered.length})
-              </button>
+              Siblings, not parent and child. The card is a button and so is the
+              action; nesting them would be markup no keyboard and no screen
+              reader can resolve, whatever it looked like. */}
+          <div className="hp-ev-field">
+            <div className="hp-ev-grid" data-count={String(preview.length)}>
+              <div className="hp-ev-lead-slot" data-more={hasMore ? 'true' : 'false'}>
+                {lead && tile(lead, 'lead')}
+
+                {/* Straight after the card it belongs to, which is where the
+                    keyboard reaches it and where a phone shows it. */}
+                {hasMore && (
+                  <button type="button" className="hp-ev-all" onClick={openGallery} aria-haspopup="dialog">
+                    View all evidence ({ordered.length})
+                    <span className="hp-ev-all-arrow" aria-hidden="true">→</span>
+                  </button>
+                )}
+              </div>
+
+              {preview.slice(1).map(item => tile(item, 'rest'))}
             </div>
-          )}
+          </div>
         </Reveal>
       </div>
 

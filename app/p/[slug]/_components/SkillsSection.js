@@ -28,12 +28,12 @@ import Reveal from './Reveal'
 
 const ARROW_STEP = 0.8
 
-// The shape of a card's mosaic.
-const MOSAIC_MIN_ROWS = 2
+// The shape of a card's mosaic. Four rows is the ceiling and the only shape
+// constant left: the column count follows from it and the number of skills, and
+// the card's width follows from those. Nothing about it is negotiable any more,
+// which is the point - a card that could buy itself a fifth row when it ran out
+// of width is how a category became a list.
 const MOSAIC_MAX_ROWS = 4
-// The narrowest share of a row a piece may be given. It is what stops a narrow
-// card from taking three pieces across and squeezing every label in them.
-const MOSAIC_MIN_TILE = 140
 // How far a tile may be grown past its natural width to help close its row.
 // Two limits, and the tighter one wins: a ratio, so a long label is not doubled,
 // and an absolute, so a short one cannot become a banner. Past both, the row
@@ -103,14 +103,18 @@ function partitionRows(widths, rows, gap) {
   return groups
 }
 
-// Choose how many rows a category's skills should form, and how wide that makes
-// its card. Wanting two to four rows is a preference expressed as a cost, not a
-// rule, so a category with two skills still gets a sensible card. Overflowing
-// the widest a card may be costs far more than either, because a card clamped
-// narrower than its widest row makes every tile in that row give width back,
-// and a tile below its own label wraps.
+// Choose the shape of a category's mosaic: four rows at the outside, and as
+// many columns as it takes to hold the skills in them.
+//
+// The row count is not a preference any more. A card that is allowed to answer
+// "too wide" by taking a fifth and sixth row becomes a column of skills, and a
+// strip of those reads as three lists rather than three categories. So the
+// count of columns is derived from the count of skills - ceil(n / 4) - and the
+// card takes whatever width those columns need. The track it sits in already
+// scrolls; the page does not.
 function planMosaic(widths, gap, limits) {
-  const { maxContent, minContent, minRows, maxRows, minTile } = limits
+  const { minContent, maxRows } = limits
+  const n = widths.length
   const rowWidth = (group) => {
     const [i, j] = group
     let total = gap * (j - i)
@@ -118,46 +122,37 @@ function planMosaic(widths, gap, limits) {
     return total
   }
 
-  // A category with enough skills to fill the preferred shape is held to it, so
-  // a short category still reads as a whole card rather than a stub beside its
-  // taller neighbours. Below that count there is nothing to hold it to and the
-  // rows are simply the ones its skills need.
-  //
-  // Above the floor every count is still considered: staying inside the
-  // preferred range is a cost, and overflowing the card a much larger one, so a
-  // big category takes a fifth or sixth row rather than being clamped narrower
-  // than its own widest row and made to wrap every label in it.
-  const floorRows = widths.length >= minRows ? minRows : 1
+  if (n === 0) return null
 
-  let best = null
-  for (let rows = floorRows; rows <= widths.length; rows += 1) {
-    const groups = partitionRows(widths, rows, gap)
-    const spans = groups.map(rowWidth)
-    const content = Math.min(Math.max(...spans), maxContent)
-    const stretch = Math.max(...spans) / Math.max(1, Math.min(...spans))
+  // The whole calculation. Four skills or fewer make one column; every four
+  // after that add another.
+  const columns = Math.ceil(n / maxRows)
+  const rows = Math.ceil(n / columns)
 
-    // How many pieces this row width can carry and still be read. Sharing a
-    // row is only worth it while each piece keeps a usable share of it.
-    const perRow = Math.max(1, Math.floor((content + gap) / (minTile + gap)))
-    const crowded = groups.some(([i, j]) => j - i + 1 > perRow)
+  // Balanced by width first, because rows of roughly equal length are what
+  // makes the block read as a mosaic rather than a ragged list.
+  let groups = partitionRows(widths, rows, gap)
 
-    const score =
-      (rows < minRows || rows > maxRows ? 1.6 : 0) +
-      Math.max(0, stretch - 1) * 3 +
-      (crowded ? 6 : 0) +
-      (Math.max(...spans) > maxContent ? 4 + (Math.max(...spans) - maxContent) / 60 : 0)
-
-    if (!best || score < best.score) best = { rows: groups.length, groups, content, stretch, score }
+  // ...but the column count is the contract, and a row of narrow labels can
+  // beat the balance and take more than its share. Where that happens the
+  // even division wins. Either way the order is untouched: every group is a
+  // contiguous run, so a skill never moves past another one.
+  if (groups.some(([i, j]) => j - i + 1 > columns)) {
+    groups = []
+    for (let i = 0; i < n; i += columns) groups.push([i, Math.min(i + columns, n) - 1])
   }
 
-  if (!best) return null
   return {
-    rows: best.groups.map(([i, j]) => {
+    columns,
+    rows: groups.map(([i, j]) => {
       const row = []
       for (let k = i; k <= j; k += 1) row.push(k)
       return row
     }),
-    content: Math.max(minContent, Math.min(best.content, maxContent))
+    // No ceiling. A card clamped narrower than its widest row makes every tile
+    // in that row give width back and wrap its own label, which is the thing
+    // the brief calls shrinking text to fit a narrower card.
+    content: Math.max(minContent, Math.max(...groups.map(rowWidth)))
   }
 }
 
@@ -289,11 +284,8 @@ export default function SkillsSection({
     // that was written, so a viewport-relative one parses to nothing and the
     // plan plans a card far wider than the stylesheet will ever allow - which
     // the stylesheet then clamps, squeezing every tile in it.
-    const maxContent = (parseFloat(tokens.maxWidth) || 640) - frame
     const minContent = (parseFloat(tokens.getPropertyValue('--card-min')) || 240) - frame
-    const minRows = parseFloat(tokens.getPropertyValue('--mosaic-min-rows')) || MOSAIC_MIN_ROWS
     const maxRows = parseFloat(tokens.getPropertyValue('--mosaic-max-rows')) || MOSAIC_MAX_ROWS
-    const minTile = parseFloat(tokens.getPropertyValue('--mosaic-min-tile')) || MOSAIC_MIN_TILE
 
     const planned = []
     for (const [index, group] of groups.entries()) {
@@ -303,9 +295,14 @@ export default function SkillsSection({
         Math.ceil(tile.getBoundingClientRect().width)
       )
       if (widths.length === 0) continue
-      const plan = planMosaic(widths, gap, { maxContent, minContent, minRows, maxRows, minTile })
+      const plan = planMosaic(widths, gap, { minContent, maxRows })
       if (!plan) continue
-      planned.push({ rows: plan.rows, width: Math.round(plan.content + frame), natural: widths })
+      planned.push({
+        rows: plan.rows,
+        columns: plan.columns,
+        width: Math.round(plan.content + frame),
+        natural: widths
+      })
     }
 
     if (planned.length !== groups.length) return
@@ -694,6 +691,7 @@ export default function SkillsSection({
                   className="hp-card"
                   data-tone={index % TONES}
                   data-planned={plan ? 'true' : 'false'}
+                  data-columns={plan ? plan.columns : undefined}
                   style={plan ? { width: `${plan.width}px` } : undefined}
                   key={`c-${index}`}
                 >

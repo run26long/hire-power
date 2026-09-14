@@ -23,7 +23,15 @@ import { useEffect, useRef, useState } from 'react'
 // page, which is what keeps the refocus intact.
 // ============================================================================
 
-const PROMPT = 'Explore my experience from a different perspective.'
+// Two lines, and they are two lines because they are written as two - not one
+// string left to break wherever the column happens to end. The break is part
+// of the writing: the first line is the premise, the second is what to do
+// about it. Neither carries a pronoun, so the page is not speaking in a voice
+// the owner did not write.
+const PROMPT = [
+  'A career is bigger than one page.',
+  'Choose a chapter to begin the story.'
+]
 
 // A step control is 34px, and one has to sit clear of the longest name at each
 // end rather than on top of it. Below this much slack the rail does without
@@ -274,7 +282,11 @@ export function LensStage({ lenses, activeIndex, onSelect, reducedMotion }) {
 
   return (
     <div className="hp-invite">
-      <p className="hp-invite-prompt">{PROMPT}</p>
+      <p className="hp-invite-prompt">
+        {PROMPT.map(line => (
+          <span className="hp-invite-line" key={line}>{line}</span>
+        ))}
+      </p>
 
       <div className="hp-rail" data-steps={rail.overflows ? 'true' : 'false'}>
         <div className="hp-directions" role="group" aria-label="Career directions" ref={trackRef} {...rail.track}>
