@@ -1,54 +1,60 @@
 'use client'
 
 import Reveal from './Reveal'
-import ProfileActions from './ProfileActions'
+import { ProfileActionButtons } from './ProfileHeader'
 
 // ============================================================================
-// The resolution.
+// The resolution, and the page's footer.
 //
-// Practical information only: what this person is open to, where they are, and
-// the two actions. There is no narrative line here. `ready_for_next` is
-// deliberately not rendered anywhere on the Profile.
+// One closing composition under a single hairline: where this person is, what
+// they are open to, the two actions, and the quiet mark under all of it - the
+// three groups running along a single line, each label kept against the thing
+// it names. There is no narrative line here and no call-to-action block;
+// `ready_for_next` is deliberately not rendered anywhere on the Profile.
+//
+// The actions are the masthead's own component rather than a second pair with
+// the same copy, so the treatment, the titles and the disabled state are the
+// header's by definition and the two can never drift.
 //
 // Location appears only when the resume actually carries one, and there is no
-// remote-preference field in the data, so there is no remote line. The actions
-// are the same component the header uses, so the two can never drift.
+// remote-preference field in the data, so there is no remote line.
+//
+// This renders outside <main>, so it is the one part of the page that does not
+// dissolve and re-enter when the reader changes direction.
 // ============================================================================
 export default function ProfileResolution({ readyTags, location, resume, isOwner, animate }) {
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
   return (
-    <section className="hp-resolve">
+    <footer className="hp-foot">
       <div className="hp-wrap-tight">
         <Reveal enabled={animate}>
-          <div className="hp-resolve-inner">
-            <div className="hp-facts">
-              {hasTags && (
-                <div>
-                  <span className="hp-fact-label">Open to</span>
-                  <div className="hp-open">
-                    {readyTags.map((tag, index) => (
-                      <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="hp-foot-inner">
+            {hasTags && (
+              <p className="hp-foot-open">
+                <strong className="hp-foot-open-label">Open to</strong>
+                {readyTags.map((tag, index) => (
+                  <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>
+                ))}
+              </p>
+            )}
 
-              {hasLocation && (
-                <div>
-                  <span className="hp-fact-label">Based in</span>
-                  <span className="hp-fact-value">{location}</span>
-                </div>
-              )}
-            </div>
+            {hasLocation && (
+              <p className="hp-foot-where">
+                <span className="hp-status-dot" aria-hidden="true" />
+                {location}
+              </p>
+            )}
 
-            <div className="hp-resolve-actions">
-              <ProfileActions resume={resume} isOwner={isOwner} />
-            </div>
+            <span className="hp-foot-actions">
+              <ProfileActionButtons resume={resume} isOwner={isOwner} />
+            </span>
           </div>
         </Reveal>
+
+        <p className="hp-foot-mark">Powered by Hire Power</p>
       </div>
-    </section>
+    </footer>
   )
 }

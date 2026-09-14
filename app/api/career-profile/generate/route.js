@@ -158,11 +158,14 @@ function validateProof(parsed, { skills, evidence, testimonials, bullets }) {
   return rows
 }
 
-// Finds the proof for one direction's emphasised skills and stores it. Upserts
-// per skill, so a skill regenerated under a second direction updates the one
-// row that already describes it rather than adding a competing one.
-async function storeSkillProof({ supabase, profileId, userId, lensName, skills, resumeData, evidence, testimonials }) {
-  if (!profileId || !Array.isArray(skills) || skills.length === 0) return
+// Finds the proof for one direction's emphasised skills and stores it.
+//
+// Scoped to the direction, not just the skill. The same skill can be led with
+// under two directions and be best demonstrated by different material in each,
+// so the conflict target carries the lens: regenerating one direction touches
+// only its own rows and can never overwrite another direction's choice.
+async function storeSkillProof({ supabase, profileId, lensId, userId, lensName, skills, resumeData, evidence, testimonials }) {
+  if (!profileId || !lensId || !Array.isArray(skills) || skills.length === 0) return
 
   const bullets = bulletPool(resumeData)
   if (evidence.length === 0 && testimonials.length === 0 && bullets.length === 0) return
@@ -181,21 +184,38 @@ async function storeSkillProof({ supabase, profileId, userId, lensName, skills, 
     parseGenerated(message.content?.[0]?.text),
     { skills, evidence, testimonials, bullets }
   )
+  // A skill this direction no longer leads with, or no longer has proof for,
+  // must not keep the row it had last time. Clearing this direction's rows
+  // first is what makes a regeneration a replacement rather than a merge, and
+  // it is scoped to the lens so no other direction is touched.
+  const { error: clearError } = await supabase
+    .from('profile_skill_proofs')
+    .delete()
+    .eq('profile_id', profileId)
+    .eq('lens_id', lensId)
+  if (clearError) throw clearError
+
   if (rows.length === 0) return
 
   const now = new Date().toISOString()
+  // A plain insert, not an upsert. The delete above already made this a
+  // replacement, and the uniqueness constraint is a partial index — Postgres
+  // cannot infer a partial index for ON CONFLICT without its predicate, which
+  // PostgREST has no way to send. Clearing the direction first is both simpler
+  // and the behaviour that is actually wanted: a skill this direction has
+  // stopped grounding does not linger.
   const { error } = await supabase
     .from('profile_skill_proofs')
-    .upsert(
+    .insert(
       rows.map(row => ({
         profile_id: profileId,
+        lens_id: lensId,
         user_id: userId,
         skill_label: row.skill_label,
         proofs: row.proofs,
         generated_at: now,
         updated_at: now
-      })),
-      { onConflict: 'profile_id,skill_key' }
+      }))
     )
 
   if (error) throw error
@@ -686,6 +706,7 @@ export async function POST(request) {
       await storeSkillProof({
         supabase,
         profileId,
+        lensId: lens.id,
         userId,
         lensName: lens.name,
         skills: generated.skill_emphasis,

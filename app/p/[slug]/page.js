@@ -12,6 +12,7 @@ import { usePrefersReducedMotion } from './_lib/motion'
 import {
   BIO_COLLAPSE_AT,
   groupSkills,
+  orderTestimonials,
   resolveSkillProof,
   truncateAtSentence
 } from './_lib/profileData'
@@ -22,7 +23,7 @@ import { LensStage, LensBar } from './_components/LensNav'
 import ProfileSpread from './_components/ProfileSpread'
 import SelectedExperience from './_components/SelectedExperience'
 import SkillsSection from './_components/SkillsSection'
-import CredentialsSection from './_components/CredentialsSection'
+import EvidenceSection from './_components/EvidenceSection'
 import CollectiveImpact from './_components/CollectiveImpact'
 import ProfileResolution from './_components/ProfileResolution'
 
@@ -178,16 +179,15 @@ export default function CareerProfilePage() {
   // for a missing one.
   const location = data?.coreResume?.resume_data?.location || null
 
-  // Experience, certifications and education follow the direction the page is
-  // showing, and fall back to the priority core for one that has not been
-  // built yet. The route resolved both, so this is only the pick between them.
+  // Experience follows the direction the page is showing, and falls back to the
+  // priority core for one that has not been built yet. The route resolved both,
+  // so this is only the pick between them.
+  //
+  // The resume's certifications are still resolved by the route and still sit
+  // in the record; the page simply no longer reads them, because a credential
+  // reaches the public profile as curated evidence or not at all.
   const lensSections = data?.resumeSections?.byLens?.[selectedLens?.id] || data?.resumeSections?.fallback || null
   const experience = Array.isArray(lensSections?.experience) ? lensSections.experience : []
-
-  // Certifications have been written as bare strings as well as objects.
-  const certifications = (Array.isArray(lensSections?.certifications) ? lensSections.certifications : [])
-    .map(cert => (typeof cert === 'string' ? { name: cert } : cert))
-    .filter(cert => cert && (cert.name || cert.title))
 
   // A testimonial with no text and a piece of evidence with neither a title nor
   // a link are not content, so they do not get to keep their sections open.
@@ -196,15 +196,55 @@ export default function CareerProfilePage() {
   const evidence = (Array.isArray(data?.evidence) ? data.evidence : [])
     .filter(item => item && (item.title || item.url))
 
+  // What this direction puts in Evidence, and in what order.
+  //
+  // Placements are references, so the items themselves are read out of the one
+  // canonical list the route sent. A direction with no placements of its own
+  // falls back to the shared layer - it does not borrow another direction's,
+  // and the two are never merged: a reader would have no way to tell which of
+  // the things in front of them this direction had actually chosen.
+  const directionEvidence = useMemo(() => {
+    const places = data?.evidencePlacements?.[selectedLens?.id] ?? data?.evidenceShared ?? []
+    const byId = new Map(evidence.map(item => [item.id, item]))
+    return places
+      .map(place => {
+        const item = byId.get(place.evidence_id)
+        return item ? { ...item, featured: place.featured === true } : null
+      })
+      .filter(Boolean)
+  }, [data?.evidencePlacements, data?.evidenceShared, selectedLens?.id, evidence])
+
+  // Collective Impact is written per direction. A direction that has not been
+  // regenerated yet falls back to the shared synthesis, and a profile that
+  // never had one falls back to the priority direction's - so the section is
+  // never blank merely because this profile predates the direction scope.
+  const impact = useMemo(() => {
+    const byLens = data?.collectiveImpacts || {}
+    return byLens[selectedLens?.id] || data?.collectiveImpact || byLens[lenses[0]?.id] || null
+  }, [data?.collectiveImpacts, data?.collectiveImpact, selectedLens?.id, lenses])
+
+  // One shared, privacy-filtered collection, read in this direction's order.
+  // The canonical list is what proof resolves against, so reordering here
+  // changes what Firsthand shows first and nothing else.
+  const orderedTestimonials = useMemo(
+    () => orderTestimonials(testimonials, impact?.testimonialOrder),
+    [testimonials, impact]
+  )
+
   // References become renderable proof here, against the evidence and
   // testimonials this page was already given and the resume it is showing.
+  //
+  // Proof is direction-specific, so only the active direction's rows are ever
+  // read. Switching direction changes the key and rebuilds the map from
+  // nothing: there is no merge and no fallback, so a skill that two directions
+  // share never carries the other one's evidence.
   const skillProof = useMemo(
-    () => resolveSkillProof(data?.skillProofs, {
+    () => resolveSkillProof(data?.skillProofs?.[selectedLens?.id], {
       evidence,
       testimonials,
       resumeData: activeResume?.resume_data
     }),
-    [data?.skillProofs, evidence, testimonials, activeResume]
+    [data?.skillProofs, selectedLens?.id, evidence, testimonials, activeResume]
   )
 
   async function handleGenerate() {
@@ -330,8 +370,8 @@ export default function CareerProfilePage() {
         {/* Between the work and the skills: the synthesis of what the people
             around it said, beside the people themselves. */}
         <CollectiveImpact
-          impact={data?.collectiveImpact}
-          testimonials={testimonials}
+          impact={impact}
+          testimonials={orderedTestimonials}
           animate={animate}
           reducedMotion={reducedMotion}
           directionKey={contentIndex}
@@ -346,24 +386,35 @@ export default function CareerProfilePage() {
           directionKey={contentIndex}
         />
 
-        <CredentialsSection
-          certifications={certifications}
-          evidence={evidence}
+        {/* The things themselves, after the claims they stand behind.
+
+            Credentials used to have a section of their own below this one,
+            reading straight off the resume. It is gone: a certification is a
+            piece of evidence, and evidence belongs in one collection the
+            owner curates per direction, not in a second list that appears
+            because the resume happens to carry a line. Nothing was deleted -
+            the resume still holds what it held, and an owner-facing workflow
+            can promote any of it into real evidence with a real source. */}
+        <EvidenceSection
+          items={directionEvidence}
+          slug={slug}
+          lensId={selectedLens?.id}
           animate={animate}
+          directionKey={contentIndex}
         />
 
-        <ProfileResolution
-          readyTags={readyTags}
-          location={location}
-          resume={activeResume}
-          isOwner={data?.isOwner}
-          animate={animate}
-        />
       </main>
 
-      <footer className="hp-foot">
-        <span className="hp-foot-mark">Powered by Hire Power</span>
-      </footer>
+      {/* The close lives outside <main>: it is one composition under one
+          hairline, and the only part of the page that does not cross over
+          when the reader changes direction. */}
+      <ProfileResolution
+        readyTags={readyTags}
+        location={location}
+        resume={activeResume}
+        isOwner={data?.isOwner}
+        animate={animate}
+      />
     </div>
   )
 }

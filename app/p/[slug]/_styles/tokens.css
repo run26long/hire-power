@@ -11,9 +11,14 @@
    what components are allowed to use. Alpha compositions are built from the
    `-rgb` triplets so a palette swap carries through the washes and edges too,
    rather than leaving lavender residue behind in a green palette.
+   The evidence viewer is mounted on the body rather than inside .hp-profile,
+   so that a dialog is never stacked or clipped by the page it covers. It is
+   named here alongside the Profile for that reason and no other: it is the
+   same visual system, standing somewhere else in the document.
    =========================================================================== */
 
-.hp-profile {
+.hp-profile,
+.hp-ev-backdrop {
   /* ---- Signature default palette: the raw ramp ---- */
   --profile-void: #09060f;    /* the hero's own darker ground */
   --profile-ground: #0d0916;  /* the page ground */
@@ -26,6 +31,11 @@
   --profile-text: #ffffff;
   --profile-body: #cfc9dd;
   --profile-meta: #9a93ae;
+  /* Quoted testimimony, set a shade warmer than body prose. The rest of the
+     page is a cool lavender grey; a referee's own words carry a faint plum cast
+     instead, which is what separates someone speaking from the page speaking
+     without changing the size or the weight of anything. */
+  --profile-voice: #e0d7dc;
 
   --profile-accent: #a78bfa;
   --profile-accent-soft: #c4b5fd;
@@ -37,6 +47,7 @@
   --profile-ground-rgb: 13 9 22;
   --profile-accent-rgb: 167 139 250;
   --profile-action-rgb: 124 92 245;
+  --profile-status-rgb: 74 222 128;
 
   /* ---- Derived semantics: what components actually consume ---- */
   --profile-accent-wash: rgb(var(--profile-accent-rgb) / 0.07);
@@ -44,6 +55,17 @@
   --profile-accent-edge: rgb(var(--profile-accent-rgb) / 0.28);
   --profile-accent-halo: rgb(var(--profile-accent-rgb) / 0.38);
   --profile-notice: #f2a0a8;
+
+  /* ---- The category tones ----
+     Three neighbours in the same lavender world, not three unrelated hues, so
+     a set of category cards reads as one family with boundaries rather than as
+     a patchwork. Consumed by index, never by name, and declared here for the
+     same reason as the ramp above: a palette swap has to be able to move them.
+     Each is light enough on the section's grounds for its heading to clear
+     4.5:1 while the washes built from it stay faint. */
+  --profile-tone-a-rgb: 167 139 250;  /* lavender-violet: the accent itself */
+  --profile-tone-b-rgb: 186 140 186;  /* smoky plum */
+  --profile-tone-c-rgb: 142 160 226;  /* muted periwinkle */
 
   /* The primary action's two stops. Both are dark enough that white text on
      them clears 4.5:1 anywhere in the sweep (5.5:1 at the light end, 8.5:1 at

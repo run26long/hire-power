@@ -29,9 +29,23 @@
 
 .hp-profile *,
 .hp-profile *::before,
-.hp-profile *::after { box-sizing: border-box; }
+.hp-profile *::after,
+.hp-ev-backdrop,
+.hp-ev-backdrop *,
+.hp-ev-backdrop *::before,
+.hp-ev-backdrop *::after { box-sizing: border-box; }
 
-.hp-profile button {
+/* The evidence viewer is portalled onto the body, so the resets it relies on
+   have to name it too - it is outside .hp-profile in the document even though
+   it belongs to the Profile in every other sense. */
+.hp-ev-backdrop {
+  font-family: var(--profile-font-ui);
+  color: var(--profile-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.hp-profile button,
+.hp-ev-backdrop button {
   font: inherit;
   color: inherit;
   background: none;
@@ -40,9 +54,11 @@
   text-align: inherit;
 }
 
-.hp-profile a { color: inherit; text-decoration: none; }
+.hp-profile a,
+.hp-ev-backdrop a { color: inherit; text-decoration: none; }
 
-.hp-profile :focus-visible {
+.hp-profile :focus-visible,
+.hp-ev-backdrop :focus-visible {
   outline: 2px solid var(--profile-accent);
   outline-offset: 4px;
   border-radius: 2px;
@@ -235,14 +251,15 @@
 }
 
 /* ---- The two actions ----
-   Scoped to the header so the resolution at the foot of the Profile keeps the
-   treatment it already had. The descendant selector is also what settles the
-   long standing specificity problem: the button reset near the top of this
-   file is (0,1,1) and has been flattening padding and borders on every
-   control, while ".hp-header .hp-btn" is (0,2,0) and outranks it. Nothing
-   outside this header is affected. */
+   The masthead, the sticky bar and the close all render the same pair, so all
+   three are named here rather than any of them keeping a treatment of its own.
+   The descendant selector is also what settles the long standing specificity
+   problem: the button reset near the top of this file is (0,1,1) and flattens
+   padding and borders on every control, while ".hp-header .hp-btn" is (0,2,0)
+   and outranks it. Nothing outside these three places is affected. */
 .hp-header .hp-btn,
-.hp-bar .hp-btn {
+.hp-bar .hp-btn,
+.hp-foot .hp-btn {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
@@ -259,7 +276,8 @@
 
 /* Contact: the conversion. One restrained sweep, no halo. */
 .hp-header .hp-btn-primary,
-.hp-bar .hp-btn-primary {
+.hp-bar .hp-btn-primary,
+.hp-foot .hp-btn-primary {
   color: var(--profile-text);
   background: linear-gradient(158deg, var(--profile-action-lift) 0%, var(--profile-action-deep) 100%);
   border: 1px solid transparent;
@@ -268,31 +286,37 @@
 /* Download résumé: a real control, just a quieter one. Surface and border
    rather than fill, so it never competes with Contact. */
 .hp-header .hp-btn-secondary,
-.hp-bar .hp-btn-secondary {
+.hp-bar .hp-btn-secondary,
+.hp-foot .hp-btn-secondary {
   color: var(--profile-body);
   background: var(--profile-surface-2);
   border: 1px solid var(--profile-line-strong);
 }
 
 .hp-header .hp-btn:disabled,
-.hp-bar .hp-btn:disabled { cursor: not-allowed; }
+.hp-bar .hp-btn:disabled,
+.hp-foot .hp-btn:disabled { cursor: not-allowed; }
 
 .hp-header .hp-btn:focus-visible,
-.hp-bar .hp-btn:focus-visible {
+.hp-bar .hp-btn:focus-visible,
+.hp-foot .hp-btn:focus-visible {
   outline: 2px solid var(--profile-accent);
   outline-offset: 2px;
 }
 
 .hp-header .hp-btn:not(:disabled):active,
-.hp-bar .hp-btn:not(:disabled):active { transform: translateY(1px); }
+.hp-bar .hp-btn:not(:disabled):active,
+.hp-foot .hp-btn:not(:disabled):active { transform: translateY(1px); }
 
 @media (hover: hover) and (pointer: fine) {
   .hp-header .hp-btn-primary:not(:disabled):hover,
-  .hp-bar .hp-btn-primary:not(:disabled):hover {
+  .hp-bar .hp-btn-primary:not(:disabled):hover,
+  .hp-foot .hp-btn-primary:not(:disabled):hover {
     background: linear-gradient(158deg, var(--profile-accent) 0%, var(--profile-action) 100%);
   }
   .hp-header .hp-btn-secondary:not(:disabled):hover,
-  .hp-bar .hp-btn-secondary:not(:disabled):hover {
+  .hp-bar .hp-btn-secondary:not(:disabled):hover,
+  .hp-foot .hp-btn-secondary:not(:disabled):hover {
     color: var(--profile-text);
     border-color: var(--profile-accent-edge);
   }

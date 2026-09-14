@@ -97,135 +97,6 @@ export function groupSkills(resumeData) {
 }
 
 // ---------------------------------------------------------------------------
-// The capability field.
-//
-// Categories organise the skills; slides only paginate them. A slide is not a
-// category and never was meant to be one - it is four rows of a single running
-// field, and where one category ends mid-slide the next one picks up in the
-// space that is left. That is what stops a short category from buying a whole
-// card and leaving three rows of nothing on it.
-//
-// So: each category is broken into natural rows at the width a row actually
-// has, every row joins one ordered stream, and the stream is cut every four
-// rows. Consecutive rows of the same category are gathered back into a block so
-// the heading is written once, and a category carried across the cut repeats
-// its heading quietly on the far side.
-//
-// Widths come from the browser. The section measures the rendered tiles and
-// hands the real numbers in, so a row holds what genuinely fits in front of the
-// reader. `estimateTileWidth` covers the first paint and the server, where
-// there is no layout to measure; the first measurement replaces it.
-//
-// Nothing here knows what a category is called or what a skill says. Order is
-// whatever order it was handed.
-//
-// Pure, so the pagination can be checked without a browser.
-// ---------------------------------------------------------------------------
-const ROWS_PER_SLIDE = 4
-
-// Geist runs about 0.53em per character across these labels, and a tile adds
-// its padding, border and the gap to the next one. Only used before the first
-// measurement lands.
-const CHAR_EM = 0.53
-const TILE_CHROME = 24
-const FALLBACK_ROW_WIDTH = 660
-
-// Mirrors the component's own scale so the guess is made at the size the label
-// will actually be set in.
-const FONT_FOR = (label) => (label.length <= 14 ? 16 : label.length <= 30 ? 15 : 14)
-
-export function estimateTileWidth(label) {
-  const text = String(label || '')
-  return Math.round(text.length * CHAR_EM * FONT_FOR(text) + TILE_CHROME)
-}
-
-// Natural rows: take skills in order and start a new row when the next one no
-// longer fits. A label wider than the whole row takes a row of its own and
-// wraps inside its tile rather than being dropped or overflowing the field.
-function buildRows(skills, widthOf, rowWidth, gap) {
-  const rows = []
-  let row = []
-  let used = 0
-
-  for (const skill of skills) {
-    const width = widthOf(skill)
-    const next = used === 0 ? width : used + gap + width
-    if (row.length > 0 && next > rowWidth) {
-      rows.push(row)
-      row = [skill]
-      used = width
-    } else {
-      row.push(skill)
-      used = next
-    }
-  }
-  if (row.length > 0) rows.push(row)
-
-  return rows
-}
-
-export function skillSlides(clusters, options = {}) {
-  const {
-    rowWidth = FALLBACK_ROW_WIDTH,
-    gap = 9,
-    rows: rowsPerSlide = ROWS_PER_SLIDE,
-    widths = null
-  } = options
-
-  const widthOf = (skill) => (widths && widths.get(skill)) || estimateTileWidth(skill)
-
-  // ---- One ordered stream of rows, carrying where each came from ----
-  const stream = []
-  let group = 0
-
-  for (const cluster of Array.isArray(clusters) ? clusters : []) {
-    const skills = Array.isArray(cluster?.skills) ? cluster.skills.filter(Boolean) : []
-    if (skills.length === 0) continue
-
-    const name = cluster.name || null
-    buildRows(skills, widthOf, Math.max(1, rowWidth), gap).forEach((skillsInRow, i) => {
-      stream.push({ name, group, indexInGroup: i, skills: skillsInRow })
-    })
-    group += 1
-  }
-
-  if (stream.length === 0) return []
-
-  // ---- Cut every `rowsPerSlide` rows, then gather rows back into blocks ----
-  const slides = []
-
-  for (let start = 0; start < stream.length; start += rowsPerSlide) {
-    const chunk = stream.slice(start, start + rowsPerSlide)
-    const blocks = []
-
-    for (const row of chunk) {
-      const open = blocks[blocks.length - 1]
-      if (open && open.group === row.group) {
-        open.rows.push(row.skills)
-      } else {
-        blocks.push({
-          name: row.name,
-          group: row.group,
-          // This block does not start the category, so its heading is a
-          // reminder of what the reader is still looking at rather than an
-          // announcement of something new.
-          continued: row.indexInGroup > 0,
-          rows: [row.skills]
-        })
-      }
-    }
-
-    slides.push({
-      blocks,
-      rowCount: chunk.length,
-      skills: chunk.flatMap(row => row.skills)
-    })
-  }
-
-  return slides
-}
-
-// ---------------------------------------------------------------------------
 // Skill proof, resolved.
 //
 // What is stored against a skill is references, never copies, so this is where
@@ -289,11 +160,38 @@ export function resolveSkillProof(skillProofs, { evidence, testimonials, resumeD
 // Which testimonials a three-position wheel is showing, given how far it has
 // been turned. Pure, and here rather than in the section, so the wrap can be
 // checked on its own without a database or a browser.
-export function wheelWindow(total, offset, size = 3) {
-  if (total <= 0) return []
-  if (total <= size) return Array.from({ length: total }, (_, i) => i)
-  const start = ((offset % total) + total) % total
-  return Array.from({ length: size }, (_, i) => (start + i) % total)
+// ---------------------------------------------------------------------------
+// A direction's reading order for the shared testimonials.
+//
+// The testimonials are the canonical records and are never duplicated, so a
+// direction can only say which of them to read first. That claim is checked
+// rather than trusted: an id is kept only if it names one of the testimonials
+// actually handed to this page, which have already been filtered to the
+// profile's own published ones. An id that is unknown, withdrawn, unpublished
+// or from another profile therefore resolves to nothing and is dropped.
+//
+// Whatever the order does not mention keeps its existing stable order behind
+// the ranked ones, so a testimonial added since the direction was written
+// still appears - just not ahead of the ranking. No order at all means the
+// shared order, unchanged.
+// ---------------------------------------------------------------------------
+export function orderTestimonials(testimonials, order) {
+  const list = Array.isArray(testimonials) ? testimonials : []
+  const ranking = Array.isArray(order) ? order : []
+  if (list.length === 0 || ranking.length === 0) return list
+
+  const byId = new Map(list.map(item => [item?.id, item]))
+  const ranked = []
+  const placed = new Set()
+  for (const id of ranking) {
+    if (placed.has(id)) continue
+    const item = byId.get(id)
+    if (!item) continue
+    ranked.push(item)
+    placed.add(id)
+  }
+
+  return [...ranked, ...list.filter(item => !placed.has(item?.id))]
 }
 
 // The bio arrives as one block at one volume. Its first sentence is the thesis

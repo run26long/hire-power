@@ -33,6 +33,11 @@ const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, 
 const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
 const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis`
 
+// The only schemes that may reach a browser from this route. The column is
+// constrained to the same thing, so this is the second lock rather than the
+// first: a row written before that constraint existed still cannot get out.
+const SAFE_URL = /^https?:\/\//i
+
 export async function GET(request, { params }) {
   try {
     const { slug } = await params
@@ -77,7 +82,10 @@ export async function GET(request, { params }) {
     }
 
     // ---- EVERYTHING THE PAGE RENDERS ----
-    const [lensRes, personRes, contextRes, coreRes, testimonialRes, evidenceRes, impactRes, skillProofRes] = await Promise.all([
+    const [
+      lensRes, personRes, contextRes, coreRes, testimonialRes,
+      evidenceRes, placementRes, impactRes, skillProofRes
+    ] = await Promise.all([
       supabase
         .from('profile_lenses')
         .select(LENS_FULL)
@@ -116,30 +124,56 @@ export async function GET(request, { params }) {
         .eq('profile_id', profile.id)
         .eq('status', 'published')
         .order('created_at', { ascending: true }),
-      // Public evidence only. storage_path, thumbnail_path and user_id are
-      // left out for the same reason; url is the one link meant to be shared.
+      // Publicly eligible evidence only: public, published, not deleted. The
+      // three conditions are asked for together because any one of them alone
+      // is not eligibility - a published item can still be private, and a
+      // public one can still be a draft or withdrawn.
+      //
+      // storage_path, thumbnail_path and user_id are deliberately not named.
+      // A path into a private bucket is not a link holder's business: the
+      // viewer asks for a signed URL by evidence id instead, and the route
+      // that signs it checks eligibility again before it does.
       supabase
         .from('profile_evidence')
-        .select('id, kind, media_class, title, description, url, sort_order')
+        .select(
+          'id, family, evidence_type, kind, media_class, title, description, ' +
+          'organization, date_label, source_type, url, provider, embed_url, sort_order'
+        )
         .eq('profile_id', profile.id)
         .eq('privacy', 'public')
+        .eq('status', 'published')
+        .is('deleted_at', null)
         .order('sort_order', { ascending: true }),
-      // The stored synthesis. Read only: this page never generates it, and a
-      // profile that has never generated one simply has no row, which is a
+      // Where each direction puts them. References only - an id, a position
+      // and whether it leads - so nothing about an item travels twice.
+      supabase
+        .from('profile_evidence_placements')
+        .select('evidence_id, lens_id, sort_order, featured')
+        .eq('profile_id', profile.id)
+        .order('sort_order', { ascending: true }),
+      // The stored syntheses. Read only: this page never generates one, and a
+      // profile that has never generated any simply has no rows, which is a
       // normal profile rather than a failure. user_id and source_hash are
       // deliberately not named; neither is a link holder's business.
+      //
+      // One row per direction, plus at most one with no direction, which is
+      // the shared synthesis a direction without its own falls back to.
+      // testimonial_order carries ids and nothing else; the testimonials
+      // themselves are served once, below, as the shared collection they are.
       supabase
         .from('profile_collective_impacts')
-        .select('summary, themes, generated_at')
-        .eq('profile_id', profile.id)
-        .maybeSingle(),
-      // What backs a skill up. References only: they are resolved on the page
-      // against the evidence and testimonials above, so anything withdrawn
-      // since they were written is simply not there to resolve.
+        .select('lens_id, summary, themes, testimonial_order, generated_at')
+        .eq('profile_id', profile.id),
+      // What backs a skill up, per direction. References only: they are
+      // resolved on the page against the evidence and testimonials above, so
+      // anything withdrawn since they were written is simply not there to
+      // resolve. A row with no lens_id predates the direction scope and is
+      // deliberately not selected: proof belongs to one direction or to none.
       supabase
         .from('profile_skill_proofs')
-        .select('skill_label, proofs')
+        .select('lens_id, skill_label, proofs')
         .eq('profile_id', profile.id)
+        .not('lens_id', 'is', null)
     ])
 
     let lenses = lensRes.data
@@ -205,7 +239,73 @@ export async function GET(request, { params }) {
       console.error('[career-profile] Evidence lookup failed (non-fatal):', evidenceRes.error)
     }
     const testimonials = testimonialRes.error ? [] : (testimonialRes.data || [])
-    const evidence = evidenceRes.error ? [] : (evidenceRes.data || [])
+
+    // The canonical items, sent once. An item that needs a file carries no
+    // path, only the fact that there is one to ask for.
+    //
+    // Eligible, at this point, means only that the row itself is fit to be
+    // shown. Whether anything on this profile actually shows it is settled
+    // below, and an item nothing shows does not go in the payload.
+    const eligibleEvidence = (evidenceRes.error ? [] : (evidenceRes.data || [])).map(item => ({
+      id: item.id,
+      family: item.family,
+      evidence_type: item.evidence_type || item.kind || null,
+      media_class: item.media_class,
+      title: item.title,
+      description: item.description,
+      organization: item.organization,
+      date_label: item.date_label,
+      source_type: item.source_type,
+      // Only ever a safe external address. The column is constrained, and this
+      // is the second gate: a row written before that constraint existed is
+      // not going to be handed to a browser here.
+      url: SAFE_URL.test(String(item.url || '')) ? item.url : null,
+      provider: item.provider,
+      embed_url: SAFE_URL.test(String(item.embed_url || '')) ? item.embed_url : null,
+      has_file: item.source_type === 'upload',
+      sort_order: item.sort_order
+    }))
+
+    // A placement is only worth sending if it resolves: the item has to be one
+    // of the eligible ones above, and the direction has to be one this profile
+    // actually shows. Anything else is dropped rather than served and filtered
+    // on the page.
+    if (placementRes?.error && placementRes.error.code !== '42P01') {
+      console.error('[career-profile] Evidence placement lookup failed (non-fatal):', placementRes.error)
+    }
+    const evidencePlacements = {}
+    const evidenceShared = []
+    {
+      const eligibleIds = new Set(eligibleEvidence.map(item => item.id))
+      const shownLensIds = new Set(visibleLenses.map(lens => lens.id))
+      const rows = placementRes?.error ? [] : (placementRes?.data || [])
+      for (const row of rows) {
+        if (!eligibleIds.has(row.evidence_id)) continue
+        const place = {
+          evidence_id: row.evidence_id,
+          sort_order: row.sort_order ?? 0,
+          featured: row.featured === true
+        }
+        if (row.lens_id === null) { evidenceShared.push(place); continue }
+        if (!shownLensIds.has(row.lens_id)) continue
+        if (!evidencePlacements[row.lens_id]) evidencePlacements[row.lens_id] = []
+        evidencePlacements[row.lens_id].push(place)
+      }
+      const byOrder = (a, b) => a.sort_order - b.sort_order
+      evidenceShared.sort(byOrder)
+      for (const list of Object.values(evidencePlacements)) list.sort(byOrder)
+    }
+
+    // Only what something on this profile actually shows. An item that is
+    // public, published and undeleted but placed in no visible direction and
+    // not in the shared layer is a row the owner has not put anywhere - its
+    // title, its description and the fact that it exists are all still private,
+    // and none of it has any business in a payload anyone can read.
+    const placedEvidenceIds = new Set([
+      ...evidenceShared.map(place => place.evidence_id),
+      ...Object.values(evidencePlacements).flatMap(list => list.map(place => place.evidence_id))
+    ])
+    const evidence = eligibleEvidence.filter(item => placedEvidenceIds.has(item.id))
 
     // A missing table (42P01) reads the same as no row: the section is simply
     // not there yet. Worth naming, because this table is newer than the rest
@@ -213,14 +313,53 @@ export async function GET(request, { params }) {
     if (impactRes.error && impactRes.error.code !== '42P01') {
       console.error('[career-profile] Collective impact lookup failed (non-fatal):', impactRes.error)
     }
-    const collectiveImpact = impactRes.error ? null : (impactRes.data || null)
+
+    // Grouped by direction, the way skill proof is, so the page can only ever
+    // hand one direction's reading to the section. A row for a direction this
+    // profile does not show is dropped rather than shipped.
+    //
+    // The row with no direction stays separate as `collectiveImpact`: it is
+    // the shared synthesis, it is what every profile that predates the
+    // direction scope already has, and it is the first fallback for a
+    // direction that has not been regenerated yet.
+    const impactRows = impactRes.error ? [] : (impactRes.data || [])
+    const shape = (row) => row && ({
+      summary: row.summary,
+      themes: row.themes,
+      testimonialOrder: Array.isArray(row.testimonial_order) ? row.testimonial_order : [],
+      generated_at: row.generated_at
+    })
+
+    const collectiveImpact = shape(impactRows.find(row => !row.lens_id)) || null
+    const collectiveImpacts = {}
+    {
+      const shownLensIds = new Set(visibleLenses.map(lens => lens.id))
+      for (const row of impactRows) {
+        if (!row.lens_id || !shownLensIds.has(row.lens_id)) continue
+        collectiveImpacts[row.lens_id] = shape(row)
+      }
+    }
 
     // A profile that predates the table renders without proof, which is a
     // normal profile rather than a failure.
     if (skillProofRes.error && skillProofRes.error.code !== '42P01') {
       console.error('[career-profile] Skill proof lookup failed (non-fatal):', skillProofRes.error)
     }
-    const skillProofs = skillProofRes.error ? [] : (skillProofRes.data || [])
+    // Grouped by direction, so the page can only ever hand one direction's
+    // proof to the section. Nothing merges across directions and there is no
+    // fallback to another direction's rows: a direction with no proof gets an
+    // empty list, which renders every skill plain.
+    const skillProofs = {}
+    if (!skillProofRes.error) {
+      // Only the directions this profile actually shows. A lens the page will
+      // never render has no business shipping its proof to the visitor.
+      const visibleLensIds = new Set(visibleLenses.map(lens => lens.id))
+      for (const row of skillProofRes.data || []) {
+        if (!visibleLensIds.has(row.lens_id)) continue
+        if (!skillProofs[row.lens_id]) skillProofs[row.lens_id] = []
+        skillProofs[row.lens_id].push({ skill_label: row.skill_label, proofs: row.proofs })
+      }
+    }
 
     const coreResume = (coreRes.data || [])[0] || null
 
@@ -277,7 +416,10 @@ export async function GET(request, { params }) {
       resumeSections,
       testimonials,
       evidence,
+      evidencePlacements,
+      evidenceShared,
       collectiveImpact,
+      collectiveImpacts,
       skillProofs
     })
 

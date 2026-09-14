@@ -11,27 +11,53 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const MODEL = 'claude-haiku-4-5-20251001'
 const TEMPERATURE = 0.4
 
-// Two is the floor for a theme to be recurring rather than one opinion
-// restated. Below it there is no Collective Impact and Firsthand stands alone.
-const MIN_TESTIMONIALS = 2
+// One published testimonial is enough to have something to say. Below that
+// there is no Collective Impact and Firsthand stands alone.
+const MIN_TESTIMONIALS = 1
 
 // The contract. Everything here is checked before anything is stored.
 // The summary range is what two sentences of this register actually run to:
 // with no pronouns to carry a clause, the writing is compact, and a floor set
 // above that only buys padding.
-const SUMMARY_MIN_WORDS = 22
+//
+// The floor was 22, which was calibrated on a broad reading of a whole career.
+// A direction that reads narrowly - one subject, one kind of evidence - says
+// what it has to say in fewer words than that, and was being rejected for
+// being exactly as tight as it should be. 18 is the floor that still refuses a
+// one-line platitude without taxing a focused reading.
+const SUMMARY_MIN_WORDS = 18
 const SUMMARY_MAX_WORDS = 34
 const SUMMARY_MAX_SENTENCES = 2
 const STATEMENT_MIN_WORDS = 6
 const STATEMENT_MAX_WORDS = 12
+// Three themes where there is testimony enough to carry three. On a single
+// passage, as many as that passage genuinely makes - splitting one idea three
+// ways to reach a number is the failure this range exists to avoid.
 const THEME_COUNT = 3
-const MIN_SOURCES_PER_THEME = 2
+const THEME_MIN_SINGLE_SOURCE = 1
+
+// How many themes are owed, given how much testimony there is.
+const themeRangeFor = (sourceCount) => sourceCount <= 1
+  ? { min: THEME_MIN_SINGLE_SOURCE, max: THEME_COUNT }
+  : { min: THEME_COUNT, max: THEME_COUNT }
+// A theme has to stand on something that was actually written, and that is the
+// whole of the requirement. There is deliberately no floor on how many
+// different voices a set of themes draws on: asking for two was pulling a
+// reading off its own ground and back onto whatever another passage happened
+// to be about, which is the opposite of reading for a direction. Where one
+// passage carries the strongest relevant evidence, all three themes may cite
+// it.
+const MIN_SOURCES_PER_THEME = 1
 
 // The contract is strict on purpose, and a first pass misses it on length or on
 // a stray pronoun often enough that giving up immediately would throw away a
 // result one correction would have fixed. Each retry is told what went wrong,
 // so it is a correction rather than another guess.
-const MAX_ATTEMPTS = 3
+// Reading through a direction raises the miss rate: a passage about clients
+// invites "they", and the contract bars it even where it points at something
+// other than the person. The correction fixes it, but it takes more than three
+// tries often enough to be worth the ceiling.
+const MAX_ATTEMPTS = 5
 
 // Quoting the testimonials is the one thing this section is not allowed to do.
 const QUOTE_MARKS = /["“”]/
@@ -47,11 +73,43 @@ const QUOTE_MARKS = /["“”]/
 const PRONOUNS = /\b(he|him|his|she|her|hers|they|them|their|theirs|i|me|my|mine|we|our|ours|us)\b/i
 const STAND_INS = /\b(this (executive|professional|leader|candidate|individual)|the (candidate|individual))\b/i
 
+// Present tense, checked rather than asked for. The voice drops the subject,
+// so the first word of every sentence is the verb, and a third person present
+// verb ends in s: "Rebuilds", "Opens", "Develops". A lead ending in "ed", or
+// any lead that is not a present verb, is the section narrating a career
+// instead of naming a capability.
+const leadWords = (text) => text
+  .split(/(?<=[.!?])\s+/)
+  .map(part => (part.trim().match(/^[A-Za-z']+/) || [''])[0])
+  .filter(Boolean)
+
+// The opening claim of a summary, reduced to the few words that carry it.
+// Measured and logged, never enforced: two directions may honestly arrive at
+// the same lead, because the strongest reading of the same testimony is
+// sometimes the same reading. Rejecting on this made a direction fail for
+// resembling a sibling, which made regeneration depend on the order the
+// directions were written in and would have meant deleting a good row to let
+// another one through. Relevance decides; difference is earned or it is not
+// there to have.
+const LEAD_STOP = new Set([
+  'the', 'a', 'an', 'and', 'or', 'to', 'of', 'in', 'on', 'for', 'with', 'that',
+  'while', 'than', 'rather', 'through', 'by', 'into', 'before', 'after', 'so'
+])
+const LEAD_WORDS = 4
+
+function leadSignature(text) {
+  const first = String(text || '').split(/(?<=[.!?])\s/)[0] || ''
+  return (first.toLowerCase().match(/[a-z]+/g) || [])
+    .filter(word => !LEAD_STOP.has(word))
+    .slice(0, LEAD_WORDS)
+}
+
 const wordCount = (text) => text.split(/\s+/).filter(Boolean).length
 const sentenceCount = (text) => (text.match(/[.!?](?:\s|$)/g) || []).length
 
 // ============================================================================
 // POST /api/career-profile/collective-impact
+// Body: { lensId?: string }
 //
 // Synthesises the profile's published testimonials into one short editorial
 // summary and three supporting statements, and stores the result.
@@ -60,6 +118,19 @@ const sentenceCount = (text) => (text.match(/[.!?](?:\s|$)/g) || []).length
 // experience, no proof points. What it returns therefore cannot be grounded in
 // anything the referees did not actually say, which is the point of the
 // section.
+//
+// With a lensId in the body it writes for one direction instead of the
+// profile. The direction's name and positioning go in, but they are a vantage
+// point and never a source: they decide which of the recurring material leads
+// and how the testimonials are ranked, and nothing may be claimed that the
+// passages do not already say. The same testimonials read through a different
+// direction should come out as genuinely different writing, not the same
+// writing with a few nouns exchanged - but every claim in it is still one the
+// passages make.
+//
+// A direction also returns an order for the testimonials: ids only, most
+// relevant first. They are never copied, rewritten or summarised for a
+// direction; only the order they are read in changes.
 //
 // The testimonials are never written to. This route reads them and writes one
 // row of its own.
@@ -77,7 +148,7 @@ function sourceHashFor(testimonials) {
   return createHash('sha256').update(canonical).digest('hex')
 }
 
-function buildPrompt(testimonials, ownerName, correction) {
+function buildPrompt(testimonials, ownerName, correction, direction, themeRange) {
   const block = testimonials
     .map((t, i) => {
       const context = [t.recipient_title, t.relationship].filter(Boolean).join(', ')
@@ -89,10 +160,39 @@ function buildPrompt(testimonials, ownerName, correction) {
     })
     .join('\n\n')
 
+  // A vantage point, written into the prompt as one. Everything in it steers
+  // selection and emphasis; none of it is allowed to become a claim.
+  const directionBlock = direction
+    ? `
+THE DIRECTION YOU ARE READING FOR: ${direction.name}${direction.positioning ? `
+How this direction is positioned: ${direction.positioning}` : ''}
+
+This is a vantage point, not a source. It says which passages to read closely and what to lead with. It says nothing about the person, and not one word of it may appear as a claim. Where the direction suggests something the passages do not say, it does not go in: the passages win every time.
+
+Before drafting anything, do this and do it properly:
+
+1. Read each passage on its own against ${direction.name}. Ask what that passage is direct evidence of, in its own words.
+2. Name the strongest evidence in these passages for ${direction.name} specifically. Not the most impressive thing in them and not the largest number in them - the thing a reader who came here for ${direction.name} needs to know. The most striking passage in the set is very often not the most relevant one to this direction, and choosing it because it is striking is the commonest way this goes wrong.
+
+   Where one passage is clearly the best evidence for ${direction.name}, that passage is the spine of the whole reading: the summary and every statement come off it, and the others are used only where they genuinely add to that same story. Three statements resting on one passage is a correct outcome when that passage is where this direction's evidence lives. Reaching into an unrelated passage so that another name appears in the sources is not.
+3. Choose the story that evidence most strongly tells for ${direction.name} and commit to it. If the strongest honest reading for this direction is much the same as it would be for another, write it anyway: a reading is worth having because it is true and relevant, not because it differs from somebody else's.
+4. Draft the summary and all three statements from that evidence alone.
+
+The passages usually carry more than one kind of evidence: delivery and defect and output evidence is not the same evidence as opening markets, and neither is the same as teaching a person to do the work and promoting them. Lead with the kind that belongs to ${direction.name}, and stay on it - do not wander into another kind merely to bring in another name.
+
+What it cannot change: the facts, or the voice. The same passages are the only evidence whichever direction is reading. Writing for a direction is not a licence for a pronoun; the voice rules below govern every string exactly as they would otherwise.
+`
+    : ''
+
+  const orderField = direction
+    ? `,
+  "testimonial_order": ["every testimonial id above, most relevant to ${direction.name} first"]`
+    : ''
+
   return `You are reading what several people wrote about one person's work, and naming what recurs across them.
 
 These are the only testimonials, and they are all you have. No resume, no biography, no list of achievements. Everything you write comes from the passages below, and a point only counts if it genuinely appears in more than one of them.
-
+${directionBlock}
 TESTIMONIALS:
 
 ${block}
@@ -100,13 +200,13 @@ ${block}
 Return this exact structure:
 {
   "summary": "${SUMMARY_MIN_WORDS} to ${SUMMARY_MAX_WORDS} words, at most ${SUMMARY_MAX_SENTENCES} sentences.",
-  "themes": [
+  "themes": [   // ${themeRange.min === themeRange.max ? themeRange.max : `${themeRange.min} to ${themeRange.max}`} of these
     {
       "label": "2 to 5 words, used internally and never shown to anyone",
       "statement": "${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} words, shown on the profile.",
       "testimonial_ids": ["the ids of the testimonials this came from"]
     }
-  ]
+  ]${orderField}
 }
 
 THE VOICE, which governs every string you return:
@@ -119,16 +219,23 @@ THE VOICE, which governs every string you return:
 
 RULES:
 - Every string must be a natural English sentence, read back and checked as one. Dropping the subject pronoun is the only liberty taken with ordinary grammar; everything after the verb is written the way a person would actually write it. "Implements systems that surface problems before cascades start" is the failure this rule exists to prevent: a noun pressed into service as a verb phrase because it was shorter. "Implements systems that expose problems before escalation" is the same point in real English. Prefer the plain noun to the strained one, and never compress a phrase past the point where it still parses.
-- summary: ${SUMMARY_MIN_WORDS} to ${SUMMARY_MAX_WORDS} words, ${SUMMARY_MAX_SENTENCES} sentences at most. Count the words before returning: under ${SUMMARY_MIN_WORDS} is rejected, and two full sentences is usually what it takes to reach the range. Specific to what actually recurs in these passages. No generic praise, and no filler like "lasting improvements that persist".
-- themes: exactly ${THEME_COUNT}. Each statement is ${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} words and must add something the summary has not already said. Three restatements of one idea is the failure this rule exists to prevent.
-- Each statement must recur across at least ${MIN_SOURCES_PER_THEME} testimonials, and testimonial_ids must list the ids it came from, copied exactly from the ids above.
+- One relationship per statement, and it must land on the first reading. Name the thing that is done and what it achieves, then stop. A statement carrying two causal relations at once has no main point and stops meaning anything: where a sentence has both a "before X" clause and a separate "so that Y" or "stops Z" clause competing to be its conclusion, one of them is surplus. Keep the stronger and delete the other, or make them two statements. A worked repair: "Builds forecasting that flags shortages before stockouts halt production lines" carries two endings fighting each other; "Builds forecasting that flags shortages before they reach the line" is the same point with one. Read each statement back once at ordinary speed and ask what it says; if you have to return to the beginning to work that out, rewrite it before returning it.
+${direction ? `- The first sentence of the summary is the ${direction.name} story and nothing else: the most relevant thing these passages evidence for this direction.
+` : ''}- summary: ${SUMMARY_MIN_WORDS} to ${SUMMARY_MAX_WORDS} words, ${SUMMARY_MAX_SENTENCES} sentences at most. Count the words before returning: under ${SUMMARY_MIN_WORDS} is rejected, and two full sentences is usually what it takes to reach the range. Specific to what actually recurs in these passages. No generic praise, and no filler like "lasting improvements that persist".
+- themes: ${themeRange.min === themeRange.max ? `exactly ${themeRange.max}` : `${themeRange.min} to ${themeRange.max}, and only as many as the testimony genuinely carries - one well-supported point is better than three restatements of it`}. Each statement is ${STATEMENT_MIN_WORDS} to ${STATEMENT_MAX_WORDS} words and adds something the summary has not already said${direction ? `, drawn from the same body of ${direction.name} evidence rather than from a different subject` : ''}. Three restatements of one idea is one failure this rule exists to prevent; three statements about three unrelated subjects, only one of which this direction came for, is the other.
+- Each statement must be supported by at least ${MIN_SOURCES_PER_THEME} of the passages, and testimonial_ids must list the ids it came from, copied exactly from the ids above.
+- There is no requirement to spread the statements across different passages. Cite whichever passages actually support each statement, and where one passage holds the strongest evidence for this direction, let every statement cite that one. Never reach for a weaker, less relevant point merely so another name appears in the sources.
+- Present tense, every string. Name the capability the passages demonstrate, do not narrate the career. "Rebuilds production systems", "Opens complex markets", "Develops supervisors into leaders". Never "Rebuilt", "Reduced", "Implemented", "Developed", or any other past-tense lead. This holds for both sentences of the summary and for every statement, and it holds even though the passages themselves are written in the past: a referee recounting what happened is evidence of what this person does.
 - label is internal only. It is stored but never displayed, so do not write it as a heading for the statement beneath it.
 - Never invent a fact, a number, an outcome, a relationship, or a level of agreement. If the passages do not support a claim, it does not go in.
 - Do not quote the testimonials, and do not lightly reword a sentence from one.
 - Do not open with boilerplate. No "Reviewers agree", no "Across these testimonials", no "Colleagues consistently". Start on the substance.
 - Do not use em dashes. Use commas, periods, or semicolons instead.
-${correction ? `
+${direction ? `- testimonial_order: every id listed above, once each, ids only, copied exactly. Rank independently of the summary and statements you have just written: the order answers a different question, which is what this reader should read first, and it is not obliged to agree with what you chose to lead the synthesis on. Work it out passage by passage. For each one, say in a single phrase what that passage is direct evidence of, then ask how close that phrase sits to the subject of ${direction.name} itself. Rank by that closeness and by nothing else: a passage whose subject simply is the subject of ${direction.name} outranks a passage reporting a larger result in a neighbouring area. Judge each passage on its own rather than comparing them to each other. What decides it is how directly the passage evidences the behaviour at the centre of ${direction.name}. What does not decide it: the order the passages were given in, the size of the numbers in them, how dramatic the outcome sounds, or how senior the person writing is. A passage about coaching, judgement, teaching, influence, promoting someone, or building capability in other people is direct evidence for a leadership reading and ranks accordingly there, even where it carries no figures at all. Where nothing in the passages makes one more relevant than another, return them in the order they were given rather than inventing a ranking.
+` : ''}${correction ? `
 A previous attempt was rejected because ${correction}. Fix exactly that, leave the rest of the voice and the rules intact, and return the whole structure again.
+
+If the fault was a pronoun: the fix is not a synonym, it is a rewrite. Name the noun the pronoun was standing in for, or recast the clause so no subject is needed. "Systems that surface problems before they cascade" becomes "systems that surface problems before escalation". Read every string back once, word by word, and check each one against the barred list before returning.
 ` : ''}
 Respond with ONLY valid JSON, no markdown, no explanation.`
 }
@@ -139,6 +246,20 @@ function parseGenerated(rawText) {
     json = json.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   }
   return JSON.parse(json)
+}
+
+// What is wrong with a string's tense, phrased so it can be handed straight
+// back as a correction. Null when nothing is wrong.
+function tenseFault(text) {
+  for (const lead of leadWords(text)) {
+    if (/ed$/i.test(lead)) {
+      return `it opens a sentence with "${lead}", which is past tense`
+    }
+    if (!/s$/i.test(lead)) {
+      return `it opens a sentence with "${lead}" rather than a present-tense verb`
+    }
+  }
+  return null
 }
 
 // What is wrong with a string's voice, phrased so it can be handed straight
@@ -168,14 +289,14 @@ function voiceFault(text, ownerName) {
 // worse than none: it would half fill the section and look finished.
 //
 // Returns the validated result, or the reason it was rejected. Never both.
-function validateGenerated(parsed, allowedIds, ownerName) {
+function validateGenerated(parsed, allowedIds, ownerName, direction, themeRange) {
   const fail = (reason) => ({ value: null, reason })
 
   const summary = typeof parsed?.summary === 'string' ? parsed.summary.trim() : ''
   if (!summary) return fail('the summary was missing')
 
   const summaryFault = voiceFault(summary, ownerName)
-  if (summaryFault) return fail(`the summary broke the voice rules: ${summaryFault}`)
+  if (summaryFault) return fail(`the summary "${summary}" broke the voice rules: ${summaryFault}`)
 
   const words = wordCount(summary)
   if (words < SUMMARY_MIN_WORDS) {
@@ -184,13 +305,21 @@ function validateGenerated(parsed, allowedIds, ownerName) {
   if (words > SUMMARY_MAX_WORDS) {
     return fail(`the summary was ${words} words, over the ${SUMMARY_MAX_WORDS} word maximum`)
   }
+  const summaryTense = tenseFault(summary)
+  if (summaryTense) return fail(`the summary "${summary}" is not in the present tense: ${summaryTense}`)
+
   if (sentenceCount(summary) > SUMMARY_MAX_SENTENCES) {
     return fail(`the summary ran past ${SUMMARY_MAX_SENTENCES} sentences`)
   }
 
+
   const rawThemes = Array.isArray(parsed?.themes) ? parsed.themes : []
-  if (rawThemes.length !== THEME_COUNT) {
-    return fail(`there were ${rawThemes.length} themes instead of exactly ${THEME_COUNT}`)
+  if (rawThemes.length < themeRange.min || rawThemes.length > themeRange.max) {
+    return fail(
+      themeRange.min === themeRange.max
+        ? `there were ${rawThemes.length} themes instead of exactly ${themeRange.max}`
+        : `there were ${rawThemes.length} themes, outside the ${themeRange.min} to ${themeRange.max} allowed`
+    )
   }
 
   const themes = []
@@ -206,6 +335,11 @@ function validateGenerated(parsed, allowedIds, ownerName) {
       return fail(`the statement "${statement}" broke the voice rules: ${statementFault}`)
     }
 
+    const statementTense = tenseFault(statement)
+    if (statementTense) {
+      return fail(`the statement "${statement}" is not in the present tense: ${statementTense}`)
+    }
+
     const statementWords = wordCount(statement)
     if (statementWords < STATEMENT_MIN_WORDS || statementWords > STATEMENT_MAX_WORDS) {
       return fail(
@@ -217,7 +351,7 @@ function validateGenerated(parsed, allowedIds, ownerName) {
     const ids = Array.isArray(theme?.testimonial_ids)
       ? [...new Set(theme.testimonial_ids.filter(id => allowedIds.has(id)))]
       : []
-    // A point standing on one voice is not something several people noticed.
+    // A point has to rest on something that was actually written.
     if (ids.length < MIN_SOURCES_PER_THEME) {
       return fail(
         `the statement "${statement}" cited ${ids.length} valid testimonial ids, ` +
@@ -228,10 +362,21 @@ function validateGenerated(parsed, allowedIds, ownerName) {
     themes.push({ label, statement, testimonial_ids: ids })
   }
 
-  return { value: { summary, themes }, reason: null }
+
+  // Ids only, and only ids that were actually supplied, so an id the model
+  // invented can never reach the table. A short or missing order is not a
+  // failure: the reader appends whatever was left out in its own stable order.
+  const order = direction && Array.isArray(parsed?.testimonial_order)
+    ? [...new Set(parsed.testimonial_order.filter(id => allowedIds.has(id)))]
+    : []
+
+  return { value: { summary, themes, testimonial_order: order }, reason: null }
 }
 
-async function generate(eligible, allowedIds, ownerName) {
+async function generate(eligible, allowedIds, ownerName, direction) {
+  // One passage cannot honestly carry three separate points, so how many are
+  // owed follows the testimony rather than a constant.
+  const themeRange = themeRangeFor(allowedIds.size)
   let correction = null
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -239,7 +384,7 @@ async function generate(eligible, allowedIds, ownerName) {
       model: MODEL,
       max_tokens: 1200,
       temperature: TEMPERATURE,
-      messages: [{ role: 'user', content: buildPrompt(eligible, ownerName, correction) }]
+      messages: [{ role: 'user', content: buildPrompt(eligible, ownerName, correction, direction, themeRange) }]
     })
 
     let parsed
@@ -251,7 +396,7 @@ async function generate(eligible, allowedIds, ownerName) {
       continue
     }
 
-    const { value, reason } = validateGenerated(parsed, allowedIds, ownerName)
+    const { value, reason } = validateGenerated(parsed, allowedIds, ownerName, direction, themeRange)
     if (value) return value
 
     console.error(`[collective-impact] Attempt ${attempt} rejected: ${reason}`)
@@ -263,6 +408,16 @@ async function generate(eligible, allowedIds, ownerName) {
 
 export async function POST(request) {
   try {
+    // A body is optional: without one this writes the profile-wide synthesis,
+    // exactly as it always has.
+    let lensId = null
+    try {
+      const body = await request.json()
+      lensId = body?.lensId || null
+    } catch {
+      lensId = null
+    }
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
@@ -293,6 +448,29 @@ export async function POST(request) {
     if (!profile) return Response.json({ error: 'PROFILE_NOT_FOUND' }, { status: 404 })
     const ownerName = ownerRes.data?.display_name || ''
 
+    // ---- THE DIRECTION, IF THERE IS ONE ----
+    // Looked up under this profile's id rather than taken on trust, so a lens
+    // id belonging to someone else resolves to nothing.
+    let direction = null
+    if (lensId) {
+      const { data: lens, error: lensError } = await supabase
+        .from('profile_lenses')
+        .select('id, name, headline')
+        .eq('id', lensId)
+        .eq('profile_id', profile.id)
+        .maybeSingle()
+
+      if (lensError) {
+        console.error('[collective-impact] Direction lookup failed:', lensError)
+        return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
+      }
+      if (!lens) return Response.json({ error: 'LENS_NOT_FOUND' }, { status: 404 })
+
+      // The headline is how the direction is positioned. It steers what gets
+      // read closely; the prompt is explicit that it may not become a claim.
+      direction = { id: lens.id, name: lens.name, positioning: lens.headline || '' }
+    }
+
     // ---- THE ONLY INPUT ----
     const { data: testimonials, error: testimonialError } = await supabase
       .from('profile_testimonials')
@@ -315,33 +493,75 @@ export async function POST(request) {
     }
 
     const allowedIds = new Set(eligible.map(t => t.id))
-    const generated = await generate(eligible, allowedIds, ownerName)
+    const generated = await generate(eligible, allowedIds, ownerName, direction)
     if (!generated) return Response.json({ error: 'GENERATION_FAILED' }, { status: 502 })
 
     // ---- STORE ----
-    // One current result per profile, so this is an upsert on profile_id.
+    // One current result per profile per direction, plus one profile-wide row
+    // with no direction. Both are enforced by partial unique indexes, and
+    // ON CONFLICT cannot infer a partial index, so each is replaced by
+    // deleting its own row and inserting - scoped so that writing one
+    // direction can never touch another, or the shared row.
     const now = new Date().toISOString()
+    const row = {
+      profile_id: profile.id,
+      user_id: userId,
+      lens_id: direction ? direction.id : null,
+      summary: generated.summary,
+      themes: generated.themes,
+      testimonial_ids: eligible.map(t => t.id),
+      testimonial_order: generated.testimonial_order || [],
+      source_hash: sourceHashFor(eligible),
+      generated_at: now,
+      updated_at: now
+    }
+
+    const scoped = supabase
+      .from('profile_collective_impacts')
+      .delete()
+      .eq('profile_id', profile.id)
+    const { error: clearError } = direction
+      ? await scoped.eq('lens_id', direction.id)
+      : await scoped.is('lens_id', null)
+
+    if (clearError) {
+      console.error('[collective-impact] Clear failed:', clearError)
+      return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
+    }
+
     const { data: stored, error: writeError } = await supabase
       .from('profile_collective_impacts')
-      .upsert(
-        {
-          profile_id: profile.id,
-          user_id: userId,
-          summary: generated.summary,
-          themes: generated.themes,
-          testimonial_ids: eligible.map(t => t.id),
-          source_hash: sourceHashFor(eligible),
-          generated_at: now,
-          updated_at: now
-        },
-        { onConflict: 'profile_id' }
-      )
-      .select('id, summary, themes, testimonial_ids, source_hash, generated_at')
+      .insert(row)
+      .select('id, lens_id, summary, themes, testimonial_ids, testimonial_order, source_hash, generated_at')
       .maybeSingle()
 
     if (writeError) {
       console.error('[collective-impact] Write failed:', writeError)
       return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
+    }
+
+    // How close this reading landed to the profile's other directions.
+    // Reported, never enforced: two directions may honestly share a lead, and
+    // failing on the resemblance would make regeneration depend on the order
+    // the directions happened to be written in.
+    if (direction) {
+      const { data: others } = await supabase
+        .from('profile_collective_impacts')
+        .select('lens_id, summary')
+        .eq('profile_id', profile.id)
+        .not('lens_id', 'is', null)
+        .neq('lens_id', direction.id)
+      const mine = leadSignature(generated.summary)
+      for (const other of others || []) {
+        const theirs = new Set(leadSignature(other.summary))
+        const shared = mine.filter(word => theirs.has(word)).length
+        if (shared >= mine.length) {
+          console.info(
+            `[collective-impact] ${direction.name} opens on the same claim as ` +
+            `lens ${other.lens_id}. Allowed: the testimony reads that way for both.`
+          )
+        }
+      }
     }
 
     return Response.json({ collectiveImpact: stored })

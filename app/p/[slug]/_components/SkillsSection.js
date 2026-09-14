@@ -2,55 +2,163 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Reveal from './Reveal'
-import { skillSlides } from '../_lib/profileData'
 
 // ============================================================================
 // SKILLS IN THIS DIRECTION - the capabilities behind the results.
 //
-// Experience showed the work and Collective Impact showed what the people
-// around it felt. This is the toolkit underneath both, and it is the one place
-// on the page that moves sideways: the testimonials turn on a vertical wheel,
-// so the deck travels horizontally and is dragged by a horizontal slider. The
-// two controls never read as the same control.
+// One card per category, travelling sideways on a single track. A card owns its
+// heading and its own skills and nothing else: categories never share one, a
+// heading never appears among another category's skills, and no category's
+// skills continue into the next card.
 //
-// Nothing here is invented and nothing is named. The section renders whatever
-// ordered categories it is handed, in the order it is handed them, and knows
-// nothing about what any of them contain.
+// A card is sized by what is in it. Its skills are measured at their natural
+// width, dealt into balanced rows by a partition that minimises the widest row,
+// and the widest row becomes the card's content width. The rows beneath it then
+// grow into that width in proportion to what each tile already needed, so long
+// labels take more of the slack than short ones and the result reads as fitted
+// pieces rather than a grid. A small category therefore makes a small card, and
+// a card stops at its last row rather than being padded out to match a
+// neighbour.
 //
-// The rows are not left to flex-wrap. A wrapped field gives whatever number of
-// lines the labels happen to produce, and the desktop frame wants four, so the
-// section measures a rendered tile and hands the real widths to the packer. A
-// category splits only when its skills genuinely do not fit the card in front
-// of the reader, at the width they are actually being set at.
-//
-// Native scroll is the source of truth. The arrows and the slider scroll the
-// track, and the position reads the track back, so a swipe, a trackpad, a drag
-// and a button press all arrive at the same state and none of them can
-// disagree with what is on screen.
+// Proof is a floating object over the field, sized by its own content: the
+// resolved sources are laid out once in a hidden copy at the real width, its
+// height is read off that, and the surface opens at that height - clamped to a
+// floor, a ceiling, and the room between the sticky bar and the viewport edge.
 // ============================================================================
 
-const pad = (n) => String(n).padStart(2, '0')
+const ARROW_STEP = 0.8
 
-// What a slide actually holds, for a reader who cannot see it. Built from the
-// blocks that landed here, so a category carried over from the slide before is
-// announced as a continuation rather than as something new.
-function slideLabel(slide) {
-  const names = slide.blocks
-    .filter(block => block.name)
-    .map(block => (block.continued ? `${block.name}, continued` : block.name))
-  return names.length > 0 ? names.join('; ') : undefined
+// The shape of a card's mosaic.
+const MOSAIC_MIN_ROWS = 2
+const MOSAIC_MAX_ROWS = 4
+// The narrowest share of a row a piece may be given. It is what stops a narrow
+// card from taking three pieces across and squeezing every label in them.
+const MOSAIC_MIN_TILE = 140
+// How far a tile may be grown past its natural width to help close its row.
+// Two limits, and the tighter one wins: a ratio, so a long label is not doubled,
+// and an absolute, so a short one cannot become a banner. Past both, the row
+// simply ends short - the partition and the card width are what should change.
+const TILE_MAX_STRETCH = 2.2
+const TILE_MAX_GROWTH = 200
+
+// Three tones, cycled by a category's position in the payload.
+const TONES = 3
+
+// ---- The proof surface ----
+const PROOF_GUTTER = 16
+const PROOF_IDEAL_WIDTH = 512
+// A floor, so a single short source does not open as an awkward strip, and a
+// ceiling, past which the body scrolls inside a surface of fixed height.
+const PROOF_MIN_HEIGHT = 240
+const PROOF_MAX_HEIGHT = 520
+// How far the surface reaches beyond the tile on every side, so the tile's own
+// rectangle lands inside the body rather than against an edge.
+const PROOF_CONTAIN_PAD = 24
+
+// ---------------------------------------------------------------------------
+// Row balancing.
+//
+// Split an ordered list of widths into `rows` contiguous groups so that the
+// widest group is as narrow as it can be. Order is never disturbed - a row is
+// always a run of consecutive skills - so the payload's sequence survives.
+//
+// Pure and generic: it sees numbers.
+// ---------------------------------------------------------------------------
+function partitionRows(widths, rows, gap) {
+  const n = widths.length
+  if (rows >= n) return widths.map((_, i) => [i, i])
+
+  const prefix = [0]
+  for (let i = 0; i < n; i += 1) prefix.push(prefix[i] + widths[i])
+  const span = (i, j) => prefix[j + 1] - prefix[i] + gap * (j - i)
+
+  // widest[r][i]: the narrowest possible widest-row, covering items i..n-1 in
+  // r rows. Solved from the end back, so the walk forward reads the cuts off.
+  const widest = Array.from({ length: rows + 1 }, () => new Array(n + 1).fill(Infinity))
+  const cut = Array.from({ length: rows + 1 }, () => new Array(n + 1).fill(n - 1))
+  for (let r = 0; r <= rows; r += 1) widest[r][n] = 0
+
+  for (let r = 1; r <= rows; r += 1) {
+    for (let i = n - 1; i >= 0; i -= 1) {
+      for (let j = i; j < n; j += 1) {
+        const rest = widest[r - 1][j + 1]
+        if (rest === Infinity) continue
+        const value = Math.max(span(i, j), rest)
+        if (value < widest[r][i]) {
+          widest[r][i] = value
+          cut[r][i] = j
+        }
+      }
+    }
+  }
+
+  const groups = []
+  let i = 0
+  for (let r = rows; r > 0 && i < n; r -= 1) {
+    const j = cut[r][i]
+    groups.push([i, j])
+    i = j + 1
+  }
+  if (i < n) groups.push([i, n - 1])
+  return groups
 }
 
-// A field of identical tiles reads as output from a loop. Sizing each label to
-// its own length gives the composition its variation without touching what the
-// labels say or the order they arrive in. Size only: colour, weight and border
-// are the same on every tile, because a brighter tile would read as a skill
-// that does something, and none of them do yet.
-function tileScale(label) {
-  const length = String(label || '').length
-  if (length <= 14) return 'lg'
-  if (length <= 30) return 'md'
-  return 'sm'
+// Choose how many rows a category's skills should form, and how wide that makes
+// its card. Wanting two to four rows is a preference expressed as a cost, not a
+// rule, so a category with two skills still gets a sensible card. Overflowing
+// the widest a card may be costs far more than either, because a card clamped
+// narrower than its widest row makes every tile in that row give width back,
+// and a tile below its own label wraps.
+function planMosaic(widths, gap, limits) {
+  const { maxContent, minContent, minRows, maxRows, minTile } = limits
+  const rowWidth = (group) => {
+    const [i, j] = group
+    let total = gap * (j - i)
+    for (let k = i; k <= j; k += 1) total += widths[k]
+    return total
+  }
+
+  // A category with enough skills to fill the preferred shape is held to it, so
+  // a short category still reads as a whole card rather than a stub beside its
+  // taller neighbours. Below that count there is nothing to hold it to and the
+  // rows are simply the ones its skills need.
+  //
+  // Above the floor every count is still considered: staying inside the
+  // preferred range is a cost, and overflowing the card a much larger one, so a
+  // big category takes a fifth or sixth row rather than being clamped narrower
+  // than its own widest row and made to wrap every label in it.
+  const floorRows = widths.length >= minRows ? minRows : 1
+
+  let best = null
+  for (let rows = floorRows; rows <= widths.length; rows += 1) {
+    const groups = partitionRows(widths, rows, gap)
+    const spans = groups.map(rowWidth)
+    const content = Math.min(Math.max(...spans), maxContent)
+    const stretch = Math.max(...spans) / Math.max(1, Math.min(...spans))
+
+    // How many pieces this row width can carry and still be read. Sharing a
+    // row is only worth it while each piece keeps a usable share of it.
+    const perRow = Math.max(1, Math.floor((content + gap) / (minTile + gap)))
+    const crowded = groups.some(([i, j]) => j - i + 1 > perRow)
+
+    const score =
+      (rows < minRows || rows > maxRows ? 1.6 : 0) +
+      Math.max(0, stretch - 1) * 3 +
+      (crowded ? 6 : 0) +
+      (Math.max(...spans) > maxContent ? 4 + (Math.max(...spans) - maxContent) / 60 : 0)
+
+    if (!best || score < best.score) best = { rows: groups.length, groups, content, stretch, score }
+  }
+
+  if (!best) return null
+  return {
+    rows: best.groups.map(([i, j]) => {
+      const row = []
+      for (let k = i; k <= j; k += 1) row.push(k)
+      return row
+    }),
+    content: Math.max(minContent, Math.min(best.content, maxContent))
+  }
 }
 
 export default function SkillsSection({
@@ -61,32 +169,38 @@ export default function SkillsSection({
   reducedMotion = false,
   directionKey
 }) {
-  // Derived, not stored, for the same reason Reveal derives its own: with no
-  // observer or with motion turned down there is nothing to wait for, and the
-  // tiles must never be stranded mid-settle behind a feature that never runs.
   const canSettle = animate && !reducedMotion && typeof IntersectionObserver !== 'undefined'
 
-  // A float, because the slider drags the deck continuously and the thumb has
-  // to sit where the deck actually is rather than at the nearest slide.
-  const [position, setPosition] = useState(0)
-  const [metrics, setMetrics] = useState(null)
-  // One skill open at a time. A field of open panels is a wall of text, and the
-  // question a reader is asking is about one skill.
-  const [openSkill, setOpenSkill] = useState(null)
+  const [progress, setProgress] = useState(0)
+  const [atStart, setAtStart] = useState(true)
+  const [atEnd, setAtEnd] = useState(false)
   const [entered, setEntered] = useState(false)
+  const [open, setOpen] = useState(null)
   const [shownFor, setShownFor] = useState(directionKey)
+  const [frameWidth, setFrameWidth] = useState(null)
+  const [layout, setLayout] = useState(null)
 
   const settled = entered || !canSettle
 
-  const trackRef = useRef(null)
+  const fieldRef = useRef(null)
+  const measureRef = useRef(null)
+  const proofMeasureRef = useRef(null)
+  const popoverRef = useRef(null)
+  const proofBodyRef = useRef(null)
   const frame = useRef(0)
-  const dragging = useRef(false)
+  const trigger = useRef(null)
 
-  // The few skills this direction leads with. Matching is case-insensitive but
-  // otherwise exact, because the names were validated against these very
-  // strings when they were stored. A name that matches nothing simply does not
-  // emphasise anything, which is why a direction can carry emphasis written
-  // before its resume changed without the section ever rendering wrong.
+  const groups = useMemo(
+    () =>
+      (Array.isArray(clusters) ? clusters : [])
+        .map(cluster => ({
+          name: cluster?.name || null,
+          skills: Array.isArray(cluster?.skills) ? cluster.skills.filter(Boolean) : []
+        }))
+        .filter(group => group.skills.length > 0),
+    [clusters]
+  )
+
   const featured = useMemo(
     () => new Set(
       (Array.isArray(featuredSkills) ? featuredSkills : [])
@@ -96,100 +210,138 @@ export default function SkillsSection({
     [featuredSkills]
   )
 
-  // Proof arrives already resolved against what the page holds, so a skill is
-  // in this map only while its proof still stands up.
-  const proofFor = (skill) =>
-    (skillProof instanceof Map ? skillProof.get(String(skill).trim().toLowerCase()) : null) || null
-
-  // The first paint, on the server and before anything has been measured, uses
-  // the packer's own estimate. The first measurement replaces it.
-  const slides = useMemo(
-    () =>
-      skillSlides(
-        clusters,
-        metrics
-          ? {
-              rowWidth: metrics.rowWidth,
-              gap: metrics.gap,
-              widths: metrics.widths
-            }
-          : undefined
-      ),
-    [clusters, metrics]
+  const proofFor = useCallback(
+    (skill) =>
+      (skillProof instanceof Map ? skillProof.get(String(skill).trim().toLowerCase()) : null) || null,
+    [skillProof]
   )
 
-  const total = slides.length
-  const isDeck = total > 1
-  const index = Math.min(total - 1, Math.max(0, Math.round(position)))
+  // Every skill that has proof, in payload order. The hidden copies below are
+  // built from this, and a click looks its tile up here by index.
+  const proofSkills = useMemo(() => {
+    const seen = new Map()
+    for (const group of groups) {
+      for (const skill of group.skills) {
+        const key = String(skill).trim().toLowerCase()
+        if (seen.has(key)) continue
+        const proof = proofFor(skill)
+        if (proof) seen.set(key, { skill, proof })
+      }
+    }
+    return [...seen.values()]
+  }, [groups, proofFor])
 
-  // A new direction is different skills, so the deck starts again rather than
-  // leaving the reader on slide four of something they are no longer looking
-  // at. Adjusted during render, which settles before paint; the scroll itself
-  // is a DOM effect and happens below.
+  const proofIndex = useMemo(() => {
+    const index = new Map()
+    proofSkills.forEach((entry, i) => index.set(String(entry.skill).trim().toLowerCase(), i))
+    return index
+  }, [proofSkills])
+
   if (shownFor !== directionKey) {
     setShownFor(directionKey)
-    setPosition(0)
+    setOpen(null)
+    setProgress(0)
+    setAtStart(true)
+    setAtEnd(false)
     setEntered(false)
-    setOpenSkill(null)
   }
 
-  // ---- Measuring ----
-  // Everything the packer needs, read off the rendered deck: how wide a row
-  // actually is, what the gap between tiles actually is, and how wide each
-  // label actually sets. A tile is sized by its own content, so these widths do
-  // not depend on which row the tile ended up in - which is what stops the
-  // measurement from chasing its own result around.
-  //
-  // The work happens in the observer's callback rather than in the effect body,
-  // so this subscribes to the browser rather than kicking off a render pass of
-  // its own, and the guard below means a change in the deck's height cannot
-  // start a loop.
+  const panelId = 'hp-skill-proof'
+  const openProof = open ? proofFor(open.skill) : null
+
+  // ---- The frame the cards are planned against ----
+  // Subscribed to rather than read once, so a resize replans. The width is
+  // rounded and compared before it is stored, which is what stops an observer
+  // from re-firing on its own sub-pixel output.
   useEffect(() => {
-    const track = trackRef.current
-    if (!track || typeof ResizeObserver === 'undefined') return
-
+    const field = fieldRef.current
+    if (!field || typeof ResizeObserver === 'undefined') return
     const read = () => {
-      const field = track.querySelector('.hp-slide-field')
-      const row = track.querySelector('.hp-slide-row')
-      if (!field || !row) return
+      const width = Math.round(field.clientWidth)
+      if (width > 0) setFrameWidth(current => (current === width ? current : width))
+    }
+    const observer = new ResizeObserver(read)
+    observer.observe(field)
+    return () => observer.disconnect()
+  }, [])
 
-      const rowWidth = Math.floor(field.clientWidth)
-      if (rowWidth <= 0) return
+  // ---- Measure, then plan ----
+  // The hidden layer holds the same tiles under the same constraint, so the
+  // widths read back are the widths the browser would really produce - wrapping
+  // included, where a label is longer than a card may be.
+  useEffect(() => {
+    const node = measureRef.current
+    if (!node || !frameWidth) return
 
-      const styles = window.getComputedStyle(row)
-      const gap = parseFloat(styles.columnGap) || 0
+    // The tokens live on the card, so they are read from a real card. Reading
+    // them off the layer above silently returns nothing, and the plan is then
+    // built against numbers the stylesheet is not using.
+    const sample = node.querySelector('.hp-card')
+    if (!sample) return
+    const tokens = getComputedStyle(sample)
+    const gap = parseFloat(tokens.getPropertyValue('--mosaic-gap')) || 10
+    const pad = parseFloat(tokens.getPropertyValue('--card-pad')) || 18
+    // Border-box everywhere, so the card's frame is part of its stated width.
+    const frame = pad * 2 +
+      parseFloat(tokens.borderLeftWidth || '0') + parseFloat(tokens.borderRightWidth || '0')
+    // The widest a card may be is read from the resolved max-width, not from
+    // the custom property behind it: a custom property comes back as the text
+    // that was written, so a viewport-relative one parses to nothing and the
+    // plan plans a card far wider than the stylesheet will ever allow - which
+    // the stylesheet then clamps, squeezing every tile in it.
+    const maxContent = (parseFloat(tokens.maxWidth) || 640) - frame
+    const minContent = (parseFloat(tokens.getPropertyValue('--card-min')) || 240) - frame
+    const minRows = parseFloat(tokens.getPropertyValue('--mosaic-min-rows')) || MOSAIC_MIN_ROWS
+    const maxRows = parseFloat(tokens.getPropertyValue('--mosaic-max-rows')) || MOSAIC_MAX_ROWS
+    const minTile = parseFloat(tokens.getPropertyValue('--mosaic-min-tile')) || MOSAIC_MIN_TILE
 
-      const widths = new Map()
-      let sum = 0
-      for (const tile of track.querySelectorAll('.hp-tile')) {
-        const label = tile.dataset.skill
-        if (!label || widths.has(label)) continue
-        const width = tile.getBoundingClientRect().width
-        widths.set(label, width)
-        sum += width
-      }
-      if (widths.size === 0) return
-
-      // Only the width of things matters here. Re-packing changes the deck's
-      // height, which fires this again; a signature that ignores height means
-      // the second pass finds nothing new and stops.
-      const signature = `${rowWidth}:${gap}:${widths.size}:${Math.round(sum)}`
-      setMetrics(current => (current && current.signature === signature ? current : { rowWidth, gap, widths, signature }))
+    const planned = []
+    for (const [index, group] of groups.entries()) {
+      const card = node.querySelector(`[data-measure-card="${index}"]`)
+      if (!card) return
+      const widths = [...card.querySelectorAll('.hp-tile')].map(tile =>
+        Math.ceil(tile.getBoundingClientRect().width)
+      )
+      if (widths.length === 0) continue
+      const plan = planMosaic(widths, gap, { maxContent, minContent, minRows, maxRows, minTile })
+      if (!plan) continue
+      planned.push({ rows: plan.rows, width: Math.round(plan.content + frame), natural: widths })
     }
 
-    const observer = new ResizeObserver(read)
-    observer.observe(track)
-    return () => observer.disconnect()
-  }, [clusters])
+    if (planned.length !== groups.length) return
+    const signature = JSON.stringify(planned)
+    setLayout(current => (current && current.signature === signature ? current : { cards: planned, signature }))
+    // The states are part of the reading, so a change in emphasis or proof
+    // re-measures just as a change of category would.
+  }, [groups, frameWidth, featured, proofFor])
+
+  // ---- Reading the field back ----
+  const readPosition = useCallback(() => {
+    const field = fieldRef.current
+    if (!field) return
+    if (frame.current) cancelAnimationFrame(frame.current)
+    frame.current = requestAnimationFrame(() => {
+      const furthest = field.scrollWidth - field.clientWidth
+      const left = field.scrollLeft
+      setProgress(furthest > 0 ? Math.min(1, Math.max(0, left / furthest)) : 0)
+      setAtStart(left <= 1)
+      setAtEnd(furthest <= 0 || left >= furthest - 1)
+    })
+  }, [])
+
+  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current) }, [])
+
+  useEffect(() => {
+    const field = fieldRef.current
+    if (field) field.scrollLeft = 0
+    readPosition()
+  }, [directionKey, layout, readPosition])
 
   // ---- The settle ----
-  // One pass as the section arrives, and once more if the content is swapped
-  // underneath it. Never on scroll, never on a loop.
   useEffect(() => {
     if (!canSettle) return
-    const track = trackRef.current
-    if (!track) return
-
+    const field = fieldRef.current
+    if (!field) return
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -198,115 +350,297 @@ export default function SkillsSection({
           observer.disconnect()
         }
       },
-      { rootMargin: '0px 0px -10% 0px', threshold: 0.08 }
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.05 }
     )
-    observer.observe(track)
+    observer.observe(field)
     return () => observer.disconnect()
   }, [canSettle, directionKey])
 
-  // Back to the first slide when the direction changes. Instant rather than
-  // smooth: this is a content swap, not a move the reader asked for.
-  useEffect(() => {
-    const track = trackRef.current
-    if (track) track.scrollLeft = 0
-  }, [directionKey])
+  // ---- Proof ----
+  // Which edges still have content beyond them. Written straight onto the node:
+  // it is a presentational fact about scroll position, not state the render
+  // depends on.
+  const syncProofOverflow = useCallback(() => {
+    const node = proofBodyRef.current
+    if (!node) return
+    node.dataset.back = node.scrollTop > 2 ? 'true' : 'false'
+    node.dataset.more = node.scrollHeight - node.scrollTop - node.clientHeight > 2 ? 'true' : 'false'
+  }, [])
 
-  // Slide plus gap. Measured rather than assumed, so the breakpoints can change
-  // the widths without this needing to know about them.
-  const strideOf = (track) => {
-    const first = track.firstElementChild
-    if (!first) return 0
-    const second = first.nextElementSibling
-    return second
-      ? second.getBoundingClientRect().left - first.getBoundingClientRect().left
-      : first.getBoundingClientRect().width
+  const close = useCallback((returnFocus = false) => {
+    setOpen(null)
+    if (returnFocus && trigger.current) trigger.current.focus()
+    trigger.current = null
+  }, [])
+
+  // Over the tile rather than above or below it, and only as tall as it needs
+  // to be. The natural height is read from a hidden copy laid out at the real
+  // width before anything is shown, so there is nothing to see being resized.
+  const placeFor = (tile, skill) => {
+    const box = tile.getBoundingClientRect()
+    const viewW = window.innerWidth
+    const viewH = window.innerHeight
+
+    // The sticky direction bar is the one thing that must never be covered. Its
+    // own position is asked for rather than assumed.
+    const bar = document.querySelector('.hp-bar[data-stuck="true"]')
+    const ceiling = (bar ? bar.getBoundingClientRect().bottom : 0) + PROOF_GUTTER
+    const floor = viewH - PROOF_GUTTER
+
+    const roomX = Math.max(PROOF_IDEAL_WIDTH / 2, viewW - PROOF_GUTTER * 2)
+    const width = Math.min(roomX, Math.max(PROOF_IDEAL_WIDTH, box.width + PROOF_CONTAIN_PAD * 2))
+
+    // What the content actually comes to at that width.
+    let natural = PROOF_MAX_HEIGHT
+    const copy = proofMeasureRef.current?.querySelector(
+      `[data-proof-index="${proofIndex.get(String(skill).trim().toLowerCase())}"]`
+    )
+    if (copy) {
+      copy.style.width = `${width}px`
+      natural = Math.ceil(copy.getBoundingClientRect().height)
+    }
+
+    // The room between the bar and the foot of the viewport is the real
+    // ceiling; the constants only say what is comfortable within it.
+    const roomY = Math.max(box.height + PROOF_CONTAIN_PAD * 2, floor - ceiling)
+    const ceilingH = Math.min(PROOF_MAX_HEIGHT, roomY)
+    const floorH = Math.min(PROOF_MIN_HEIGHT, ceilingH)
+    const height = Math.max(floorH, Math.min(natural, ceilingH))
+
+    let left = box.left + box.width / 2 - width / 2
+    left = Math.max(PROOF_GUTTER, Math.min(left, viewW - width - PROOF_GUTTER))
+    if (left > box.left) left = box.left
+    if (left + width < box.right) left = box.right - width
+
+    let top = box.top + box.height / 2 - height / 2
+    top = Math.max(ceiling, Math.min(top, floor - height))
+    if (top > box.top) top = box.top
+    if (top + height < box.bottom) top = box.bottom - height
+
+    return {
+      left: Math.round(left),
+      top: Math.round(top),
+      width: Math.round(width),
+      height: Math.round(height),
+      natural,
+      tile: { left: box.left, top: box.top, width: box.width, height: box.height }
+    }
   }
 
-  // ---- Native scroll drives the thumb ----
-  const onScroll = useCallback(() => {
-    const track = trackRef.current
-    if (!track) return
-    if (frame.current) cancelAnimationFrame(frame.current)
-    frame.current = requestAnimationFrame(() => {
-      const stride = strideOf(track)
-      if (stride <= 0) return
-      // The last slide is usually shorter than a full stride, so the track runs
-      // out of room before scrollLeft reaches the last multiple of one. Read the
-      // end of the track as the last slide rather than as most of the way to it,
-      // or the thumb stops short of the end while the deck is already there.
-      const furthest = track.scrollWidth - track.clientWidth
-      const atEnd = furthest > 0 && furthest - track.scrollLeft <= 1
-      setPosition(atEnd ? total - 1 : Math.max(0, Math.min(total - 1, track.scrollLeft / stride)))
-    })
-  }, [total])
+  const toggle = (skill, event) => {
+    if (open && open.skill === skill) {
+      close()
+      return
+    }
+    const tile = event.currentTarget
+    trigger.current = tile
+    setOpen({ skill, place: placeFor(tile, skill) })
+  }
 
-  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current) }, [])
+  useEffect(() => {
+    if (!open) return
+    syncProofOverflow()
+  }, [open, syncProofOverflow])
 
-  const goTo = useCallback(
-    (next, smooth = true) => {
-      const track = trackRef.current
-      if (!track) return
-      const target = Math.max(0, Math.min(total - 1, next))
-      setPosition(target)
-      const stride = strideOf(track)
-      track.scrollTo({ left: target * stride, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' })
+  // The unfolding. The surface is laid out where it belongs, then played
+  // backwards from the tile's exact bounds, so the growth starts on the thing
+  // that was clicked rather than near it.
+  useEffect(() => {
+    if (!open || reducedMotion) return
+    const node = popoverRef.current
+    if (!node || typeof node.animate !== 'function') return
+
+    const surface = node.getBoundingClientRect()
+    const { tile } = open.place
+    if (surface.width === 0 || surface.height === 0) return
+
+    const scaleX = Math.max(0.05, tile.width / surface.width)
+    const scaleY = Math.max(0.05, tile.height / surface.height)
+    const shiftX = tile.left + tile.width / 2 - (surface.left + surface.width / 2)
+    const shiftY = tile.top + tile.height / 2 - (surface.top + surface.height / 2)
+
+    node.animate(
+      [
+        { transform: `translate(${shiftX}px, ${shiftY}px) scale(${scaleX}, ${scaleY})`, opacity: 0, borderRadius: '8px' },
+        { transform: 'none', opacity: 1, borderRadius: '20px' }
+      ],
+      { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+    )
+  }, [open, reducedMotion])
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event) => { if (event.key === 'Escape') close(true) }
+    const onDown = (event) => {
+      if (popoverRef.current?.contains(event.target)) return
+      if (trigger.current?.contains(event.target)) return
+      close()
+    }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onDown)
+    }
+  }, [open, close])
+
+  // Anchored to a tile it does not own: the moment that tile could have moved,
+  // the anchor is stale and the surface goes.
+  useEffect(() => {
+    if (!open) return
+    const field = fieldRef.current
+    const dismiss = () => close()
+    field?.addEventListener('scroll', dismiss, { passive: true })
+    window.addEventListener('scroll', dismiss, { passive: true })
+    window.addEventListener('resize', dismiss)
+    return () => {
+      field?.removeEventListener('scroll', dismiss)
+      window.removeEventListener('scroll', dismiss)
+      window.removeEventListener('resize', dismiss)
+    }
+  }, [open, close])
+
+  // ---- Moving the field ----
+  const scrollTo = useCallback(
+    (left, smooth = true) => {
+      const field = fieldRef.current
+      if (!field) return
+      field.scrollTo({ left, behavior: smooth && !reducedMotion ? 'smooth' : 'auto' })
     },
-    [total, reducedMotion]
+    [reducedMotion]
   )
 
-  // ---- Dragging ----
-  // While the thumb is held the deck follows it continuously, so the track's
-  // snapping is suspended for the length of the drag and the nearest slide is
-  // taken on release. The flag is written straight to the DOM as well as held
-  // in a ref: the first move can arrive before a re-render would have landed.
-  const startDrag = () => {
-    dragging.current = true
-    if (trackRef.current) trackRef.current.dataset.dragging = 'true'
-  }
-
-  const endDrag = () => {
-    if (!dragging.current) return
-    dragging.current = false
-    const track = trackRef.current
-    if (!track) return
-    delete track.dataset.dragging
-    const stride = strideOf(track)
-    if (stride > 0) goTo(Math.round(track.scrollLeft / stride))
-  }
+  const nudge = useCallback(
+    (direction) => {
+      const field = fieldRef.current
+      if (!field) return
+      scrollTo(field.scrollLeft + direction * field.clientWidth * ARROW_STEP)
+    },
+    [scrollTo]
+  )
 
   const onScrub = (event) => {
-    const track = trackRef.current
-    if (!track) return
-    const value = Number(event.target.value)
-    setPosition(value)
-    // Direct, not smooth: the deck is being dragged, not sent somewhere.
-    track.scrollLeft = value * strideOf(track)
+    const field = fieldRef.current
+    if (!field) return
+    const fraction = Number(event.target.value)
+    setProgress(fraction)
+    field.scrollLeft = fraction * (field.scrollWidth - field.clientWidth)
   }
 
-  // A continuous slider moves by hundredths under the arrow keys, which is no
-  // use to anyone. Keyboard moves by whole slides.
   const onSliderKey = (event) => {
-    const keys = {
-      ArrowLeft: index - 1,
-      ArrowDown: index - 1,
-      ArrowRight: index + 1,
-      ArrowUp: index + 1,
-      Home: 0,
-      End: total - 1,
-      PageDown: index - 1,
-      PageUp: index + 1
+    const field = fieldRef.current
+    if (!field) return
+    const furthest = field.scrollWidth - field.clientWidth
+    const moves = {
+      ArrowLeft: () => nudge(-1),
+      ArrowDown: () => nudge(-1),
+      ArrowRight: () => nudge(1),
+      ArrowUp: () => nudge(1),
+      PageDown: () => nudge(-1),
+      PageUp: () => nudge(1),
+      Home: () => scrollTo(0),
+      End: () => scrollTo(furthest)
     }
-    if (!(event.key in keys)) return
+    if (!(event.key in moves)) return
     event.preventDefault()
-    goTo(keys[event.key])
+    moves[event.key]()
   }
 
-  // No categories, or every category empty. The section does not appear at all
-  // rather than appearing as a heading over nothing.
-  if (total === 0) return null
+  if (groups.length === 0) return null
 
-  const atStart = index === 0
-  const atEnd = index === total - 1
+  // One running index across the whole field, so the settle follows reading
+  // order rather than position within a card.
+  let order = 0
+
+  const tileFor = (skill, key, grow) => {
+    const index = order++
+    const isFeatured = featured.has(String(skill).trim().toLowerCase())
+    const proof = proofFor(skill)
+    const isOpen = open?.skill === skill && Boolean(proof)
+    // A tile keeps at least the width its own label needed and may be grown to
+    // help close its row, in proportion to that width - so the slack lands on
+    // the long labels rather than being shared out evenly.
+    const style = grow
+      ? {
+          '--tile': index,
+          flexGrow: grow,
+          flexShrink: 1,
+          flexBasis: `${grow}px`,
+          maxWidth: `${Math.round(Math.min(grow * TILE_MAX_STRETCH, grow + TILE_MAX_GROWTH))}px`
+        }
+      : { '--tile': index }
+
+    if (!proof) {
+      return (
+        <span
+          className="hp-tile"
+          data-skill={skill}
+          data-featured={isFeatured ? 'true' : undefined}
+          style={style}
+          key={key}
+        >
+          <span className="hp-tile-label">{skill}</span>
+          <span className="hp-tile-mark" aria-hidden="true" />
+        </span>
+      )
+    }
+
+    return (
+      <button
+        type="button"
+        className="hp-tile"
+        data-skill={skill}
+        data-featured={isFeatured ? 'true' : undefined}
+        data-has-proof="true"
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        onClick={(event) => toggle(skill, event)}
+        style={style}
+        key={key}
+      >
+        <span className="hp-tile-label">{skill}</span>
+        <span className="hp-tile-mark" aria-hidden="true">{isOpen ? '−' : '+'}</span>
+      </button>
+    )
+  }
+
+  const proofBody = (items) => (
+    <ul className="hp-proof-list">
+      {items.map(item => (
+        <li className="hp-proof-item" data-source={item.source} key={`${item.source}-${item.id}`}>
+          {item.source === 'evidence' && (
+            <>
+              {item.kind && <span className="hp-proof-kind">{item.kind}</span>}
+              {item.title && <span className="hp-proof-title">{item.title}</span>}
+              {item.detail && <span className="hp-proof-detail">{item.detail}</span>}
+              {item.url && (
+                <a className="hp-proof-link" href={item.url} target="_blank" rel="noopener noreferrer">
+                  View
+                </a>
+              )}
+            </>
+          )}
+
+          {item.source === 'testimonial' && (
+            <>
+              {item.detail && <blockquote className="hp-proof-quote">{item.detail}</blockquote>}
+              {item.title && <span className="hp-proof-name">{item.title}</span>}
+              {item.role && <span className="hp-proof-role">{item.role}</span>}
+            </>
+          )}
+
+          {item.source === 'bullet' && (
+            <>
+              {item.title && <span className="hp-proof-kind">{item.title}</span>}
+              {item.detail && <span className="hp-proof-detail">{item.detail}</span>}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+
+  const place = open?.place
 
   return (
     <section className="hp-section hp-skills">
@@ -316,185 +650,156 @@ export default function SkillsSection({
           <h2 className="hp-skills-headline">The capabilities behind the results.</h2>
         </Reveal>
 
-        <div className="hp-deck" data-static={isDeck ? 'false' : 'true'}>
-          {/* One stage around the whole field. The slides inside it are not
-              cards: they are how far the field has been scrolled, so they carry
-              no frame of their own and the outline belongs to the viewport. */}
-          <div className="hp-deck-stage">
-            <div
-              className="hp-deck-track"
-              ref={trackRef}
-              onScroll={isDeck ? onScroll : undefined}
-              data-settled={settled ? 'true' : 'false'}
-              // A scrollable region is reachable and operable from the keyboard.
-              // The tiles inside it are not controls and are not focusable.
-              {...(isDeck
-                ? { tabIndex: 0, role: 'group', 'aria-label': 'Skills, scroll sideways to see more' }
-                : {})}
-            >
-              {slides.map((slide, slideIndex) => {
-                // One running count across the slide so the settle cascades
-                // through the whole field rather than restarting each block.
-                let tile = 0
-                return (
-                  <article
-                    className="hp-slide"
-                    key={`slide-${slideIndex}`}
-                    aria-label={slideLabel(slide)}
-                  >
-                    {slide.blocks.map((block, blockIndex) => (
-                      <div
-                        className="hp-block"
-                        data-continued={block.continued ? 'true' : 'false'}
-                        key={`block-${block.group}-${blockIndex}`}
+        <div className="hp-capability">
+          <div
+            className="hp-field"
+            ref={fieldRef}
+            onScroll={readPosition}
+            data-settled={settled ? 'true' : 'false'}
+            data-dimmed={open ? 'true' : 'false'}
+            tabIndex={0}
+            role="group"
+            aria-label="Skills by category, scroll sideways to see more"
+          >
+            {/* The measuring layer. The same tiles in the same states under
+                the same width constraint, hidden and out of flow, so what is
+                read back is what the browser would really produce. The states
+                matter to the reading: proof sets a heavier weight, and a tile
+                measured at the lighter one is rendered a little too narrow for
+                its own label and wraps. */}
+            <div className="hp-measure" ref={measureRef} aria-hidden="true">
+              {groups.map((group, index) => (
+                <div className="hp-card" data-measure-card={index} key={`m-${index}`}>
+                  <div className="hp-mosaic">
+                    {group.skills.map((skill, i) => (
+                      <span
+                        className="hp-tile"
+                        data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
+                        data-has-proof={proofFor(skill) ? 'true' : undefined}
+                        key={`mt-${i}`}
                       >
-                        {/* A heading never appears without rows under it: a
-                            block exists because rows landed here. */}
-                        {block.name && (
-                          <p className="hp-block-head">
-                            <span className="hp-slide-name">{block.name}</span>
-                          </p>
-                        )}
-
-                        <div className="hp-slide-field">
-                          {block.rows.map((row, rowIndex) => {
-                            // The panel belongs to the row, not to the tile.
-                            // A row is a wrapping flex line, so a panel placed
-                            // among the tiles would become one of them; placed
-                            // after the row it opens underneath the skill it
-                            // belongs to and pushes the rest of the card down.
-                            const openInRow = row.find(skill => skill === openSkill && proofFor(skill))
-                            const panelId = `proof-${slideIndex}-${blockIndex}-${rowIndex}`
-
-                            return (
-                              <div className="hp-slide-line" key={`row-${rowIndex}`}>
-                                <div className="hp-slide-row">
-                                  {row.map((skill, i) => {
-                                    const proof = proofFor(skill)
-                                    const isOpen = openSkill === skill && Boolean(proof)
-
-                                    // A skill with nothing behind it is not a
-                                    // control and never pretends to be one.
-                                    if (!proof) {
-                                      return (
-                                        <span
-                                          className="hp-tile"
-                                          data-skill={skill}
-                                          data-scale={tileScale(skill)}
-                                          // Absent rather than "false" on the
-                                          // rest, so [data-featured] is a clean
-                                          // hook.
-                                          data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
-                                          style={{ '--tile': tile++ }}
-                                          key={`${skill}-${i}`}
-                                        >
-                                          {skill}
-                                        </span>
-                                      )
-                                    }
-
-                                    return (
-                                      <button
-                                        type="button"
-                                        className="hp-tile"
-                                        data-skill={skill}
-                                        data-scale={tileScale(skill)}
-                                        data-featured={featured.has(String(skill).trim().toLowerCase()) ? 'true' : undefined}
-                                        data-has-proof="true"
-                                        aria-expanded={isOpen}
-                                        aria-controls={panelId}
-                                        onClick={() => setOpenSkill(current => (current === skill ? null : skill))}
-                                        style={{ '--tile': tile++ }}
-                                        key={`${skill}-${i}`}
-                                      >
-                                        {skill}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-
-                                {openInRow && (
-                                  <div className="hp-proof" id={panelId} data-skill={openInRow}>
-                                    <ul className="hp-proof-list">
-                                      {proofFor(openInRow).map(item => (
-                                        <li className="hp-proof-item" data-source={item.source} key={`${item.source}-${item.id}`}>
-                                          {item.title && <span className="hp-proof-title">{item.title}</span>}
-                                          {item.role && <span className="hp-proof-role">{item.role}</span>}
-                                          {item.detail && <span className="hp-proof-detail">{item.detail}</span>}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+                        <span className="hp-tile-label">{skill}</span>
+                        <span className="hp-tile-mark" aria-hidden="true">+</span>
+                      </span>
                     ))}
-                  </article>
-                )
-              })}
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {groups.map((group, index) => {
+              const plan = layout?.cards[index]
+              return (
+                <article
+                  className="hp-card"
+                  data-tone={index % TONES}
+                  data-planned={plan ? 'true' : 'false'}
+                  style={plan ? { width: `${plan.width}px` } : undefined}
+                  key={`c-${index}`}
+                >
+                  {group.name && (
+                    <header className="hp-card-head">
+                      <h3 className="hp-card-name">{group.name}</h3>
+                    </header>
+                  )}
+
+                  <div className="hp-mosaic">
+                    {plan
+                      ? plan.rows.map((row, rowIndex) => (
+                          <div className="hp-mrow" key={`r-${rowIndex}`}>
+                            {row.map(i => tileFor(group.skills[i], `${index}-${i}`, plan.natural[i]))}
+                          </div>
+                        ))
+                      : group.skills.map((skill, i) => tileFor(skill, `${index}-${i}`, 0))}
+                  </div>
+                </article>
+              )
+            })}
           </div>
 
-          {/* Previous at one end, next at the other, and one plain drag control
-              between them. Not a second set of buttons: it is held and pulled,
-              the deck follows it, and it lands on a slide when it is let go. */}
-          {isDeck && (
-            <div className="hp-deck-nav">
-              <button
-                type="button"
-                className="hp-deck-step"
-                data-step="prev"
-                aria-label="Previous skill group"
-                disabled={atStart}
-                onClick={() => goTo(index - 1)}
-              >
-                <span className="hp-deck-chevron" aria-hidden="true" />
-              </button>
+          <div className="hp-field-nav">
+            <button
+              type="button"
+              className="hp-field-step"
+              data-step="prev"
+              aria-label="Scroll skills left"
+              disabled={atStart}
+              onClick={() => nudge(-1)}
+            >
+              <span className="hp-field-chevron" aria-hidden="true" />
+            </button>
 
-              <div className="hp-deck-rail">
-                <input
-                  type="range"
-                  className="hp-deck-slider"
-                  min={0}
-                  max={total - 1}
-                  step="any"
-                  value={position}
-                  aria-label="Skill group"
-                  aria-valuetext={`Slide ${index + 1} of ${total}`}
-                  onChange={onScrub}
-                  onPointerDown={startDrag}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
-                  onLostPointerCapture={endDrag}
-                  onKeyDown={onSliderKey}
-                />
+            <input
+              type="range"
+              className="hp-field-slider"
+              min={0}
+              max={1}
+              step="any"
+              value={progress}
+              aria-label="Scroll through skills"
+              onChange={onScrub}
+              onKeyDown={onSliderKey}
+            />
 
-                {/* The slider already announces the position, so this is the
-                    readable copy of it and nothing more. */}
-                <span className="hp-deck-count" aria-hidden="true">
-                  {pad(index + 1)}
-                  <span className="hp-deck-of"> / </span>
-                  <span className="hp-deck-total">{pad(total)}</span>
-                </span>
-              </div>
-
-              <button
-                type="button"
-                className="hp-deck-step"
-                data-step="next"
-                aria-label="Next skill group"
-                disabled={atEnd}
-                onClick={() => goTo(index + 1)}
-              >
-                <span className="hp-deck-chevron" aria-hidden="true" />
-              </button>
-            </div>
-          )}
+            <button
+              type="button"
+              className="hp-field-step"
+              data-step="next"
+              aria-label="Scroll skills right"
+              disabled={atEnd}
+              onClick={() => nudge(1)}
+            >
+              <span className="hp-field-chevron" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Hidden copies of every resolvable proof, so the surface's height is
+          known before it is shown rather than corrected after. */}
+      <div className="hp-proof-measures" ref={proofMeasureRef} aria-hidden="true">
+        {proofSkills.map((entry, index) => (
+          <div className="hp-proof hp-proof-measure" data-proof-index={index} key={`pm-${index}`}>
+            <div className="hp-proof-head">
+              <span className="hp-proof-skill">{entry.skill}</span>
+              <span className="hp-proof-close"><span>×</span></span>
+            </div>
+            <div className="hp-proof-body">{proofBody(entry.proof)}</div>
+          </div>
+        ))}
+      </div>
+
+      {openProof && (
+        <div
+          className="hp-proof"
+          id={panelId}
+          ref={popoverRef}
+          role="group"
+          aria-label={`Proof for ${open.skill}`}
+          style={{
+            left: `${place.left}px`,
+            top: `${place.top}px`,
+            width: `${place.width}px`,
+            height: `${place.height}px`
+          }}
+        >
+          <div className="hp-proof-head">
+            <span className="hp-proof-skill">{open.skill}</span>
+            <button
+              type="button"
+              className="hp-proof-close"
+              aria-label="Close proof"
+              onClick={() => close(true)}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+
+          <div className="hp-proof-body" ref={proofBodyRef} onScroll={syncProofOverflow}>
+            {proofBody(openProof)}
+          </div>
+        </div>
+      )}
     </section>
   )
 }

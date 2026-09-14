@@ -615,56 +615,98 @@
   .hp-role-toggle { transition: none; }
 }
 
-/* ------------------------------------------ COLLECTIVE IMPACT + FIRSTHAND -- */
-/* The act after the work. The synthesis across everything the referees wrote
-   sits beside the referees themselves, so the reader meets the pattern and the
-   evidence for it at the same moment rather than one after the other.
+/* -------------------------------- COLLECTIVE IMPACT + FIRSTHAND ACCOUNTS -- */
+/* The act after the work: what everyone said, and then the people saying it.
 
-   Two columns on desktop, one continuous run on a phone. No cards on either
-   side: the statements are a numbered sequence stepping across the left column,
-   the quotes are separated by hairlines, and the section sizes to its content. */
+   One introduction across the top, and beneath it two sides that do not look
+   like the same kind of thing. The left is contained: a quiet surface holding
+   the conclusion drawn from all the testimony, set in the UI face, structured,
+   numbered. The right is open on the section's own ground, in the reading
+   face, italic, one voice after another.
 
-.hp-impact { padding-block: 24px 36px; }
+   That contrast is the whole device. There is no rule between the two, no
+   gutter ornament, no matching pair of cards.
 
-.hp-impact-grid { display: grid; gap: 44px; }
+   The accounts scroll inside their own height rather than lengthening the
+   section, and that height is the card's: the two share a grid row, the right
+   column stretches to it, and the list is the only thing inside that column
+   allowed to overflow. Nothing measures anything. */
 
-/* ---- Left: the synthesis ---- */
+.hp-impact { padding-block: 40px 36px; }
 
-.hp-impact-summary {
-  margin: 16px 0 0;
-  max-width: 34ch;
-  font-size: 21px;
-  line-height: 1.4;
-  font-weight: 400;
-  letter-spacing: -0.014em;
+/* ---- The introduction ----
+   Enough room above the eyebrow that the sticky bar is never sitting on it as
+   the section arrives. */
+
+.hp-impact-intro { margin-bottom: 26px; }
+.hp-impact-intro .hp-label { margin-bottom: 14px; }
+
+.hp-impact-headline {
+  display: block;
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: clamp(32px, 9vw, 40px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.032em;
   color: var(--profile-text);
 }
 
-/* ---- The three statements ----
-   A stepped sequence rather than three identical rows. The numeral is large and
-   nearly transparent, the statement sits beside it, and each step moves a
-   little further across the column so the eye travels rather than scans a list.
-   One hairline threads them together. No card, no pill, no icon. */
+.hp-impact-flow { display: grid; gap: 30px; }
+
+/* ---- Left: the synthesis, on its own surface ----
+   One surface for the conclusion and the themes together, because they are one
+   conclusion. Not the tile treatment Skills uses: a wash, a tonal edge, and the
+   profile's own radius. */
+
+.hp-impact-synthesis {
+  padding: 24px 20px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.16);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      158deg,
+      rgb(var(--profile-accent-rgb) / 0.08) 0%,
+      rgb(var(--profile-accent-rgb) / 0.03) 54%,
+      rgb(var(--profile-accent-rgb) / 0.012) 100%
+    ),
+    var(--profile-surface);
+}
+
+.hp-impact-summary {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.44;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  color: var(--profile-text);
+}
+
+/* ---- The numbered themes ----
+   The numeral is the device: large, set in the display face, and held well back
+   in violet so it carries the eye down the column without competing with the
+   statement beside it. Rows are tight, and one hairline separates each from the
+   last. */
 
 .hp-themes {
   list-style: none;
-  margin: 26px 0 0;
+  margin: 20px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 
 .hp-theme {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
   column-gap: 14px;
-  padding-top: 14px;
+  padding: 11px 0;
   border-top: 1px solid rgb(var(--profile-accent-rgb) / 0.14);
 }
 
-.hp-theme:first-child { border-top: 0; padding-top: 0; }
+.hp-theme:last-child { padding-bottom: 0; }
 
 .hp-theme-index {
   font-family: var(--profile-font-display);
@@ -674,7 +716,7 @@
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   color: var(--profile-accent);
-  opacity: 0.26;
+  opacity: 0.3;
 }
 
 .hp-theme-statement {
@@ -684,29 +726,129 @@
   color: var(--profile-body);
 }
 
-/* ---- Right: the voices ---- */
+/* ---- Right: the accounts, on the section's own ground ---- */
+
+.hp-impact-voices {
+  display: flex;
+  flex-direction: column;
+  /* So the list, and not the column, is what overflows. */
+  min-height: 0;
+}
+
+.hp-voices-head { flex: 0 0 auto; }
+
+.hp-voices-title {
+  display: block;
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--profile-text);
+}
+
+/* Interface copy, quieter than anything quoted beneath it, so the reader can
+   tell which is the page talking and which is a person. */
+.hp-voices-note {
+  margin: 7px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--profile-meta);
+}
+
+/* ---- The scroll region ----
+   Native scrolling and nothing else: the wheel, the trackpad, a finger and the
+   arrow keys all already do this. A thin thumb says there is more without
+   becoming something to look at. */
+
+.hp-voices-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* The gutter is held whether or not the bar is showing, so the text does not
+     shift by a few pixels the moment the list becomes scrollable. */
+  scrollbar-gutter: stable;
+}
+
+/* Styling the pseudo-elements is what gets a bar that is actually always there:
+   an overlay scrollbar appears only while the reader is already scrolling, and
+   a list that has more in it has to say so before anyone touches it. Setting
+   the standard scrollbar-* properties would make the engine ignore these, so
+   those are kept for the engines that have no pseudo-elements instead. */
+.hp-voices-scroll::-webkit-scrollbar { width: 8px; }
+.hp-voices-scroll::-webkit-scrollbar-track {
+  background: rgb(var(--profile-accent-rgb) / 0.06);
+  border-radius: 4px;
+}
+.hp-voices-scroll::-webkit-scrollbar-thumb {
+  background: rgb(var(--profile-accent-rgb) / 0.32);
+  border-radius: 4px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .hp-voices-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--profile-accent-rgb) / 0.34) rgb(var(--profile-accent-rgb) / 0.06);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-voices-scroll:hover::-webkit-scrollbar-thumb { background: rgb(var(--profile-accent-rgb) / 0.46); }
+}
+
+.hp-voices-scroll:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
 
 .hp-voices {
   list-style: none;
-  margin: 16px 0 0;
-  padding: 0;
+  margin: 0;
+  /* Clear of the thumb's lane. */
+  padding: 0 14px 0 0;
   display: flex;
   flex-direction: column;
 }
 
+/* ---- One account ----
+   A quote mark held well back in violet, the words in the reading face and
+   italic, and the attribution in the UI face so it stays crisp. */
+
 .hp-voice-item {
-  padding: 14px 0;
+  position: relative;
+  padding: 14px 0 14px 26px;
   border-top: 1px solid var(--profile-line);
 }
 
-.hp-voice-item:last-child { border-bottom: 1px solid var(--profile-line); }
+.hp-voice-item:first-child { border-top: 0; padding-top: 0; }
+.hp-voice-item:last-child { padding-bottom: 4px; }
+
+.hp-voice-item::before {
+  content: '\201C';
+  position: absolute;
+  left: -2px;
+  top: 10px;
+  font-family: var(--profile-font-voice);
+  font-size: 34px;
+  line-height: 1;
+  color: rgb(var(--profile-accent-rgb) / 0.3);
+  pointer-events: none;
+}
+
+.hp-voice-item:first-child::before { top: -4px; }
 
 .hp-voice-quote {
   margin: 0;
   font-family: var(--profile-font-voice);
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--profile-body);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.54;
+  color: var(--profile-voice);
 }
 
 /* A display cap only. The complete text is always in the DOM; this is what the
@@ -719,177 +861,163 @@
   overflow: hidden;
 }
 
-/* Set in the UI face rather than the quote’s, because it is the page
-   speaking and not the referee. A real underline, held off the baseline, so it
-   reads as the link it behaves like. The padding is touch target only: the
-   negative margin below it keeps that target from moving the attribution. */
+/* ---- The footer of one account ----
+   Who said it leads, and it keeps the left. The way back into the whole quote
+   sits off to the right of the same line, secondary to the name by size,
+   weight and strength. Narrow enough and the link wraps under the
+   attribution, still against the right edge - it never rides over the words
+   and never collides with a long title. */
+
+.hp-voice-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px 18px;
+  margin: 10px 0 0;
+}
+
+/* Set in the UI face rather than the quote's, because it is the page speaking
+   and not the referee - and set quietly, because it is a way back into the
+   text rather than the thing to read next. Italic and underlined so it still
+   reads as a control at that weight and that strength. The padding is touch
+   target only; the negative margin keeps that target from pushing the line
+   the attribution sits on. */
 .hp-voice-item .hp-voice-more {
-  margin-top: 3px;
-  margin-bottom: -6px;
-  padding: 6px 0;
+  flex: 0 0 auto;
+  margin: 0 0 -5px auto;
+  padding: 5px 0;
   background: none;
   border: 0;
   font-family: var(--profile-font-ui, inherit);
-  font-size: 13.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.4;
   letter-spacing: 0.005em;
-  color: var(--profile-accent);
+  color: var(--profile-meta);
+  opacity: 0.72;
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 3.5px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
   cursor: pointer;
-  transition: color var(--profile-move-ms) var(--profile-ease);
+  transition: color var(--profile-move-ms) var(--profile-ease),
+              opacity var(--profile-move-ms) var(--profile-ease);
 }
 
 .hp-voice-item .hp-voice-more:focus-visible {
   outline: 2px solid var(--profile-accent);
-  outline-offset: 3px;
-  border-radius: 3px;
+  outline-offset: 2px;
+  border-radius: 2px;
   color: var(--profile-accent-soft);
+  opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .hp-voice-item .hp-voice-more:hover { color: var(--profile-accent-soft); }
+  .hp-voice-item .hp-voice-more:hover {
+    color: var(--profile-accent-soft);
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hp-voice-item .hp-voice-more { transition: none; }
 }
 
-.hp-voice-face { display: flex; flex-direction: column; gap: 1px; margin: 9px 0 0; }
+.hp-voice-face { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; margin: 0; }
 .hp-voice-name { font-size: 13.5px; font-weight: 600; color: var(--profile-text); }
 .hp-voice-role { font-size: 12.5px; line-height: 1.4; color: var(--profile-meta); }
 .hp-voice-rel { font-size: 12px; line-height: 1.4; color: var(--profile-meta); opacity: 0.76; }
 
-/* ---- The wheel, only ever rendered past three ---- */
-
-/* The help button is fixed to the bottom right of the viewport, so wherever
-   this row happens to scroll to it can end up underneath. The row keeps its
-   shape and simply stops short of that lane: the counter holds the left, the
-   controls hold the right of what is left. */
-.hp-voices-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-top: 16px;
-  padding-right: 60px;
-}
-
-.hp-voices-count {
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  font-variant-numeric: tabular-nums;
-  color: var(--profile-accent);
-}
-
-.hp-voices-of,
-.hp-voices-total { color: var(--profile-meta); font-weight: 500; }
-
-.hp-voices-steps { display: flex; gap: 8px; }
-
-.hp-impact .hp-voices-step {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--profile-line-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--profile-accent);
-  cursor: pointer;
-  transition: border-color var(--profile-move-ms) var(--profile-ease),
-              color var(--profile-move-ms) var(--profile-ease);
-}
-
-.hp-impact .hp-voices-step:focus-visible {
-  outline: 2px solid var(--profile-accent);
-  outline-offset: 3px;
-}
-
-.hp-voices-chevron {
-  width: 9px;
-  height: 9px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-}
-
-.hp-voices-step[data-step="up"] .hp-voices-chevron { transform: translateY(2px) rotate(-45deg); }
-.hp-voices-step[data-step="down"] .hp-voices-chevron { transform: translateY(-2px) rotate(135deg); }
-
-@media (hover: hover) and (pointer: fine) {
-  .hp-impact .hp-voices-step:hover {
-    border-color: var(--profile-accent-edge);
-    color: var(--profile-accent-soft);
-  }
+/* On a phone the list is capped at roughly a screen rather than following the
+   card, so the section does not run on. The help button is fixed to the bottom
+   right of the viewport, so the list keeps its own clearance from that lane. */
+@media (max-width: 1199px) {
+  .hp-voices-scroll { max-height: 58vh; }
+  .hp-voices { padding-right: 16px; }
+  .hp-voice-item { padding-right: 56px; }
 }
 
 @media (min-width: 768px) {
-  .hp-impact { padding-block: 30px 38px; }
-  .hp-impact-grid { gap: 52px; }
-  .hp-impact-summary { font-size: 23px; max-width: 36ch; }
+  .hp-impact { padding-block: 46px 38px; }
+  .hp-impact-intro { margin-bottom: 30px; }
+  .hp-impact-flow { gap: 36px; }
+  .hp-impact-synthesis { padding: 28px 26px; }
+  .hp-impact-summary { font-size: 19px; }
+  .hp-theme { grid-template-columns: 52px minmax(0, 1fr); }
+  .hp-theme-index { font-size: 34px; }
 }
 
-/* ---- Desktop: five columns of synthesis, seven of voices ---- */
+/* ---- Desktop: the conclusion against the accounts ----
+   Five columns to seven, as before. Both sides stretch to one row, so the list
+   ends exactly where the card does. */
 
 @media (min-width: 1200px) {
-  .hp-impact { padding-block: 34px 44px; }
+  .hp-impact { padding-block: 52px 44px; }
+  .hp-impact-intro { margin-bottom: 34px; }
+  .hp-impact-headline { font-size: clamp(38px, 3.2vw, 44px); letter-spacing: -0.034em; }
 
-  .hp-impact-grid {
+  .hp-impact-flow {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     column-gap: 60px;
     row-gap: 0;
-    align-items: start;
+    align-items: stretch;
   }
 
-  .hp-impact-synthesis { grid-column: 1 / 6; }
-  .hp-impact-voices { grid-column: 6 / 13; }
+  .hp-impact-synthesis { grid-column: 1 / 6; padding: 30px 28px; }
+
+  /* The row is the card and only the card. A grid track grows to fit the
+     max-content of every item in it, so the accounts would otherwise push the
+     row taller the moment a reader opened one - the list would never scroll,
+     it would just make the section longer. Contributing no height and then
+     filling whatever the card settled on is what hands the overflow back to
+     the list. */
+  .hp-impact-voices { grid-column: 6 / 13; height: 0; min-height: 100%; }
 
   /* Either side alone takes a readable share of the frame rather than the whole
      of it, and never leaves a column standing empty beside it. */
-  .hp-impact-grid[data-voices="false"] .hp-impact-synthesis { grid-column: 1 / 9; }
-  .hp-impact-grid[data-synthesis="false"] .hp-impact-voices { grid-column: 1 / 8; }
+  .hp-impact-flow[data-voices="false"] .hp-impact-synthesis { grid-column: 1 / 9; }
+  .hp-impact-flow[data-synthesis="false"] .hp-impact-voices { grid-column: 1 / 8; }
 
-  .hp-impact-summary { font-size: 26px; line-height: 1.32; max-width: 30ch; }
+  .hp-impact-summary { font-size: 20px; line-height: 1.42; }
 
-  .hp-themes { margin-top: 48px; gap: 28px; }
-  .hp-theme { padding-top: 28px; column-gap: 18px; grid-template-columns: 58px minmax(0, 1fr); }
+  .hp-themes { margin-top: 22px; }
+  .hp-theme { grid-template-columns: 58px minmax(0, 1fr); column-gap: 16px; padding: 12px 0; }
   .hp-theme-index { font-size: 38px; }
   .hp-theme-statement { font-size: 15px; }
 
-  /* The grid gutter is already most of the clearance at this width. */
-  .hp-voices-foot { padding-right: 24px; }
+  /* One line shorter than a phone shows: the lines are far longer here, so the
+     same three of them were more preview than the list wanted. */
+  .hp-voice-quote[data-expanded="false"] {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
 
-  .hp-voice-item { padding: 16px 0; }
-  .hp-voice-quote { font-size: 15.5px; line-height: 1.52; }
+  .hp-voice-item { padding: 16px 0 16px 30px; }
+  .hp-voice-item:first-child { padding-top: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hp-impact .hp-voices-step { transition: none; }
-}
 
 /* ---------------------------------------------------------------- SKILLS -- */
-/* The working set, as a deck that travels sideways.
+/* One card per category, travelling sideways on a single track.
 
-   Everything above this point moves down the page and the testimonials turn on
-   a vertical wheel, so this one goes across: the direction of travel is what
-   tells a reader the two controls are not the same control.
+   A card owns its heading and its own skills. Categories never share one, a
+   heading never turns up among another category's skills, and nothing runs on
+   into the next card.
 
-   A slide is a stored category, or a run of a long one. The field inside it is
-   set as type, not as a bulleted list and not as a wall of identical pills: the
-   tiles take their width from their own labels and their size from their own
-   length, so the composition varies because the content does.
+   A card is sized by what is in it, so a small category makes a small card and
+   stops at its last row. The width comes from the widest row of a partition
+   computed in JavaScript from measured tile widths; the rows then grow into
+   that width in proportion to what each tile already needed, which is what
+   makes the pieces fit rather than line up. Every number below that the plan
+   depends on is declared as a token here and read back from a real card.
 
-   The track is a native scroller. Snap, momentum, trackpad and keyboard all
-   come from the browser; the buttons only scroll it, and the indicator only
-   reads it back. */
+   No CSS multi-column, no equal-width cards, no fixed card height. */
 
 .hp-skills-intro { margin-bottom: 26px; }
 .hp-skills-intro .hp-label { margin-bottom: 14px; }
 
-/* Consistent with Experience's opening, set a step below it: that headline is
-   the profile's assertion, this one is the inventory behind it. */
 .hp-skills-headline {
   display: block;
   margin: 0;
@@ -901,171 +1029,421 @@
   color: var(--profile-text);
 }
 
-/* ---- The stage ----
-   One outline, around the viewport rather than around each slide. What scrolls
-   inside it is a single field of capability; the slides are only how far it has
-   been pushed, so they carry no frame of their own. */
+/* ---- The track ---- */
 
-.hp-deck-stage {
-  border: 1px solid var(--profile-line);
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgb(var(--profile-accent-rgb) / 0.022);
-}
-
-.hp-deck-track {
+.hp-field {
   display: flex;
-  gap: 22px;
-  padding: 18px;
+  /* The cards share the height of the tallest, so the strip reads as one band
+     rather than a ragged row. Nothing is stretched to get there: the extra
+     falls into the gaps between mosaic rows, below. */
+  align-items: stretch;
+  gap: 18px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  /* Snapped slides land against the stage's own inset, not its border. */
-  scroll-padding-inline-start: 18px;
+  overflow-y: hidden;
+  /* Deliberately no scroll-snap: the track is continuous, and snapping would
+     reintroduce the page boundaries this section exists without. */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  padding: 4px 0 10px;
+  transition: opacity var(--profile-move-ms) var(--profile-ease);
 }
 
-.hp-deck-track::-webkit-scrollbar { display: none; }
+.hp-field::-webkit-scrollbar { display: none; }
 
-/* While the thumb is held the deck follows it continuously. Snapping would
-   fight that, so it stands down until the drag ends and the nearest slide is
-   taken deliberately. */
-.hp-deck-track[data-dragging="true"] { scroll-snap-type: none; scroll-behavior: auto; }
+/* The field steps back a little while proof is open, so the surface above it
+   reads as lifted rather than pasted on. */
+.hp-field[data-dimmed="true"] { opacity: 0.55; }
 
-.hp-deck-track:focus-visible {
+.hp-field:focus-visible {
   outline: 2px solid var(--profile-accent);
-  outline-offset: -2px;
-  border-radius: 12px;
+  outline-offset: 4px;
+  border-radius: 10px;
 }
 
-/* No border, no radius, no ground of its own. The gap and the peek are what
-   say the field moves sideways. */
-.hp-slide {
-  flex: 0 0 84%;
-  scroll-snap-align: start;
-  /* A flick moves the field one slide, not to the end of the track. */
-  scroll-snap-stop: always;
-  min-width: 0;
+/* ---- A category card ----
+   Height is always auto: a card ends where its mosaic ends, and the track takes
+   its own height from the tallest of them. Width is written on by the plan. */
+
+.hp-card {
   display: flex;
   flex-direction: column;
+
+  /* What the plan reads back. Everything it needs to know about the shape of a
+     card is declared here rather than assumed in JavaScript. */
+  --card-pad: 16px;
+  --card-min: 220px;
+  --card-max: 520px;
+  --mosaic-gap: 9px;
+  /* A category with at least this many skills is held to at least this many
+     mosaic rows, so a small card still reads as a whole one. */
+  --mosaic-min-rows: 4;
+  --mosaic-max-rows: 4;
+  --mosaic-min-tile: 140px;
+
+  /* The tone, cycled by the category's position in the payload. */
+  --tone-rgb: var(--profile-tone-a-rgb);
+
+  flex: 0 0 auto;
+  max-width: var(--card-max);
+  padding: var(--card-pad);
+  border: 1px solid rgb(var(--tone-rgb) / 0.16);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      168deg,
+      rgb(var(--tone-rgb) / 0.055) 0%,
+      rgb(var(--tone-rgb) / 0.018) 62%,
+      rgb(var(--tone-rgb) / 0) 100%
+    ),
+    var(--profile-surface);
 }
 
-.hp-deck[data-static="true"] .hp-slide { flex: 1 1 auto; }
+.hp-card[data-tone="1"] { --tone-rgb: var(--profile-tone-b-rgb); }
+.hp-card[data-tone="2"] { --tone-rgb: var(--profile-tone-c-rgb); }
 
-/* ---- Categories inside the field ---- */
+/* Until the plan lands the card has no width of its own, so its skills sit in
+   one wrapping run rather than jumping between two layouts. */
+.hp-card[data-planned="false"] .hp-mosaic { flex-flow: row wrap; }
 
-/* A hairline where one category gives way to the next, and nothing more. */
-.hp-block + .hp-block {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--profile-line);
+/* ---- The card header ----
+   A header band, not a tile: it spans the card, it is brighter than anything
+   under it, and a hairline in the tone separates the two. */
+
+.hp-card-head {
+  flex: 0 0 auto;
+  display: block;
+  width: 100%;
+  margin-bottom: 13px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgb(var(--tone-rgb) / 0.24);
 }
 
-.hp-block-head { margin: 0 0 12px; }
-
-.hp-slide-name {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+.hp-card-name {
+  display: block;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.17em;
   text-transform: uppercase;
-  color: var(--profile-meta);
+  line-height: 1.35;
+  color: rgb(var(--tone-rgb) / 0.94);
 }
 
-/* Carried over from the slide before: the heading is there so the reader knows
-   what they are still looking at, not to announce anything. */
-.hp-block[data-continued="true"] .hp-slide-name { opacity: 0.6; }
+/* ---- The mosaic ---- */
 
-/* ---- The field ---- */
-
-/* Four rows, dealt upstream. Each row wraps on its own on a narrow screen,
-   which is where readable wrapping matters more than the row geometry. */
-.hp-slide-field {
+/* Takes whatever height the card was given and spends the difference between
+   its rows, so a short card breathes instead of ending in a hole. The rows
+   themselves keep their own heights, so no tile is ever stretched. */
+.hp-mosaic {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  gap: var(--mosaic-gap);
 }
 
-.hp-slide-row {
+.hp-mrow {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 6px;
+  align-items: stretch;
+  gap: var(--mosaic-gap);
 }
 
-.hp-slide-row .hp-tile {
-  display: inline-block;
+/* ---- A skill ----
+   A piece of the mosaic. It keeps the width its own label needed and is grown
+   from there by the row, never squeezed below it. */
+
+.hp-card .hp-tile,
+.hp-measure .hp-tile {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 7px;
+  min-width: 0;
   max-width: 100%;
-  padding: 5px 9px;
-  border: 1px solid var(--profile-line);
-  border-radius: 7px;
-  background: rgb(var(--profile-accent-rgb) / 0.05);
+  padding: 7px 11px;
+  border: 1px solid rgb(var(--tone-rgb) / 0.15);
+  border-radius: 8px;
+  background: rgb(var(--tone-rgb) / 0.05);
+  font-family: inherit;
   font-size: 14px;
-  line-height: 1.32;
-  letter-spacing: -0.014em;
+  font-weight: 400;
+  line-height: 1.34;
+  letter-spacing: -0.012em;
+  text-align: left;
   color: var(--profile-body);
 }
 
-/* Length adjusts size for fit and nothing else. Colour, border and weight are
-   identical on every tile: a brighter tile would read as a skill that does
-   something, and none of them do yet. When skill proof arrives, emphasis is
-   what it gets to mean. */
-.hp-slide-row .hp-tile[data-scale="lg"] { font-size: 15px; }
+.hp-tile-label { display: inline-block; }
 
-.hp-slide-row .hp-tile[data-scale="sm"] { font-size: 13px; padding: 5px 8px; }
+/* Reserved on every tile, filled only where there is proof, so a span and a
+   button come to the same box and gaining an indicator never re-flows a row. */
+.hp-tile-mark {
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: 9px;
+  font-size: 13px;
+  line-height: 1;
+  text-align: center;
+  color: rgb(var(--tone-rgb) / 0.95);
+}
+
+/* ---- Featured: relevant to this direction ----
+   Brighter inside the category's own tone rather than a colour of its own. */
+
+.hp-card .hp-tile[data-featured="true"] {
+  border-color: rgb(var(--tone-rgb) / 0.42);
+  background: rgb(var(--tone-rgb) / 0.15);
+  color: var(--profile-text);
+}
+
+/* ---- With proof: openable ---- */
+
+.hp-card .hp-tile[data-has-proof="true"] {
+  color: var(--profile-text);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--profile-move-ms) var(--profile-ease),
+              background-color var(--profile-move-ms) var(--profile-ease);
+}
+
+/* The two states reinforce rather than argue: proof brightens the text and
+   holds the mark, feature tints the ground, and a skill that is both gets
+   both. */
+.hp-card .hp-tile[data-has-proof="true"][aria-expanded="true"] {
+  border-color: rgb(var(--tone-rgb) / 0.6);
+  background: rgb(var(--tone-rgb) / 0.2);
+}
+
+.hp-card .hp-tile[data-has-proof="true"]:focus-visible {
+  outline: 2px solid rgb(var(--tone-rgb) / 0.9);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-card .hp-tile[data-has-proof="true"]:hover {
+    border-color: rgb(var(--tone-rgb) / 0.5);
+    background: rgb(var(--tone-rgb) / 0.13);
+  }
+}
+
+/* ---- The measuring layer ----
+   Out of flow and invisible, at the same constraint a real tile has, so the
+   widths read back are the widths the browser would really produce - wrapping
+   included, where a label is longer than a card may be. */
+
+.hp-measure {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: auto;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The frame is read back off this card, so it keeps the real border and
+   padding and only gives up its paint. Zeroing the border here costs the plan
+   two pixels, and a widest row two pixels over its card shrinks every tile in
+   it just enough to wrap. */
+.hp-measure .hp-card { border-color: transparent; background: none; }
+.hp-measure .hp-mosaic { flex-flow: row wrap; max-width: var(--card-max); }
+
+.hp-measure .hp-card .hp-tile {
+  opacity: 1;
+  flex: 0 0 auto;
+  /* Far past any card, so this only ever catches a pathological label. */
+  max-width: 900px;
+}
 
 /* ---- The settle ----
-   One pass as the deck arrives: each tile starts a little out of place and
-   lands, in order, over about a third of a second. It runs once. */
+   Opacity only, and never on the measuring layer. */
 
-.hp-deck-track[data-settled="false"] .hp-tile {
-  opacity: 0;
-  transform: translateY(13px) rotate(-1.1deg);
-}
+.hp-field[data-settled="false"] .hp-card .hp-tile { opacity: 0; }
 
-.hp-deck-track[data-settled="true"] .hp-tile {
+.hp-field[data-settled="true"] .hp-card .hp-tile {
   opacity: 1;
-  transform: none;
-  transition: opacity 420ms var(--profile-ease), transform 420ms var(--profile-ease);
-  transition-delay: calc(var(--tile, 0) * 48ms);
+  transition: opacity 420ms var(--profile-ease);
+  transition-delay: calc(var(--tile, 0) * 26ms);
 }
 
-/* Even-numbered tiles come up rather than down, so the field settles instead of
-   sliding as one block. */
-.hp-deck-track[data-settled="false"] .hp-tile:nth-child(even) {
-  transform: translateY(-11px) rotate(1.2deg);
+
+/* ---- The proof surface ----
+   Suspended rather than anchored: translucent, blurred, rimmed in a single hair
+   of lavender and feathered outward rather than dropped onto the page. Fixed
+   and out of the document, so opening it cannot move a single thing. Its lower
+   edge bites into the tile it came from and the body runs upward. */
+
+.hp-proof {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 20px 22px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.38);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      165deg,
+      rgb(var(--profile-accent-rgb) / 0.16) 0%,
+      rgb(var(--profile-accent-rgb) / 0.07) 46%,
+      rgb(16 12 26 / 0.9) 100%
+    ),
+    rgb(14 11 22 / 0.82);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    0 26px 70px -18px rgb(var(--profile-accent-rgb) / 0.4),
+    0 10px 46px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
-/* ---- The rail ----
-   Previous at one end, next at the other, the whole run of the deck between
-   them. The slider is a real range input, so dragging, tapping, arrow keys,
-   Home and End all come from the browser and the accessible value comes with
-   them; the dots behind it are decoration that makes the stops visible. */
+/* The head stays put; only the body travels, so the title and the close never
+   leave. A line cut off by either edge would read as broken, so an edge with
+   content beyond it dissolves into the surface rather than slicing through. */
+.hp-proof-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+}
 
-.hp-deck-nav {
+.hp-proof-body[data-back="true"] { --fade-top: 26px; }
+.hp-proof-body[data-more="true"] { --fade-bottom: 34px; }
+
+.hp-proof-body[data-back="true"],
+.hp-proof-body[data-more="true"] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+}
+
+/* Minimised rather than native: a hairline thumb on no track. */
+.hp-proof-body { scrollbar-width: thin; scrollbar-color: rgb(var(--profile-accent-rgb) / 0.4) transparent; }
+.hp-proof-body::-webkit-scrollbar { width: 6px; }
+.hp-proof-body::-webkit-scrollbar-track { background: transparent; }
+.hp-proof-body::-webkit-scrollbar-thumb { background: rgb(var(--profile-accent-rgb) / 0.32); border-radius: 3px; }
+
+.hp-proof-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+}
+
+.hp-proof-skill {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--profile-text);
+}
+
+.hp-skills .hp-proof-close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color var(--profile-move-ms) var(--profile-ease);
+}
+
+.hp-skills .hp-proof-close:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-skills .hp-proof-close:hover { color: var(--profile-text); }
+}
+
+.hp-proof-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Fine translucent rules between sources. No card around any of them. */
+.hp-proof-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 14px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.hp-proof-item:first-child { padding-top: 0; border-top: 0; }
+
+.hp-proof-kind {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-proof-title { font-size: 14.5px; font-weight: 600; color: var(--profile-text); }
+.hp-proof-detail { font-size: 13.5px; line-height: 1.52; color: var(--profile-body); }
+
+.hp-proof-quote {
+  margin: 0;
+  font-family: var(--profile-font-voice);
+  font-size: 14.5px;
+  line-height: 1.54;
+  color: var(--profile-body);
+}
+
+.hp-proof-name { font-size: 12.5px; font-weight: 600; color: var(--profile-text); }
+.hp-proof-role { font-size: 12px; color: var(--profile-meta); }
+
+.hp-proof-link {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--profile-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---- The rail ---- */
+
+.hp-field-nav {
   display: flex;
   align-items: center;
   gap: 14px;
   margin-top: 18px;
   /* The help button is fixed to the bottom right of the viewport. Same reserved
-     lane as the testimonial wheel, for the same reason: the far right of this
-     row is the far right of the frame, not of the screen. */
+     lane the testimonial wheel keeps, for the same reason. */
   padding-right: 60px;
 }
 
-/* One continuous track and one thumb, the way a scrollbar reads. Not a row of
-   stops: nothing here is a target to be aimed at, it is a handle to be pulled,
-   and the deck moves with it rather than after it. */
-.hp-deck-rail {
+.hp-skills .hp-field-slider {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.hp-skills .hp-deck-slider {
-  width: 100%;
   height: 20px;
   margin: 0;
   padding: 0;
@@ -1077,64 +1455,33 @@
   touch-action: none;
 }
 
-.hp-skills .hp-deck-slider:active { cursor: grabbing; }
+.hp-skills .hp-field-slider:active { cursor: grabbing; }
 
-.hp-skills .hp-deck-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--profile-line-strong);
-  border: 0;
+.hp-skills .hp-field-slider::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px; background: var(--profile-line-strong); border: 0;
 }
 
-.hp-skills .hp-deck-slider::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--profile-line-strong);
-  border: 0;
+.hp-skills .hp-field-slider::-moz-range-track {
+  height: 4px; border-radius: 2px; background: var(--profile-line-strong); border: 0;
 }
 
-.hp-skills .hp-deck-slider::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 44px;
-  height: 10px;
-  margin-top: -3px;
-  border: 0;
-  border-radius: 5px;
-  background: var(--profile-accent);
+.hp-skills .hp-field-slider::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none;
+  width: 44px; height: 10px; margin-top: -3px;
+  border: 0; border-radius: 5px; background: var(--profile-accent);
 }
 
-.hp-skills .hp-deck-slider::-moz-range-thumb {
-  width: 44px;
-  height: 10px;
-  border: 0;
-  border-radius: 5px;
-  background: var(--profile-accent);
+.hp-skills .hp-field-slider::-moz-range-thumb {
+  width: 44px; height: 10px; border: 0; border-radius: 5px; background: var(--profile-accent);
 }
 
-.hp-skills .hp-deck-slider:focus-visible {
+.hp-skills .hp-field-slider:focus-visible {
   outline: 2px solid var(--profile-accent);
   outline-offset: 6px;
   border-radius: 10px;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .hp-skills .hp-deck-slider:hover::-webkit-slider-thumb { background: var(--profile-accent-soft); }
-  .hp-skills .hp-deck-slider:hover::-moz-range-thumb { background: var(--profile-accent-soft); }
-}
-
-.hp-deck-count {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  font-variant-numeric: tabular-nums;
-  color: var(--profile-accent);
-}
-
-.hp-deck-of,
-.hp-deck-total { color: var(--profile-meta); font-weight: 500; }
-
-.hp-skills .hp-deck-step {
+.hp-skills .hp-field-step {
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
@@ -1150,74 +1497,95 @@
               opacity var(--profile-move-ms) var(--profile-ease);
 }
 
-.hp-skills .hp-deck-step:disabled { opacity: 0.34; cursor: default; }
+.hp-skills .hp-field-step:disabled { opacity: 0.34; cursor: default; }
 
-.hp-skills .hp-deck-step:focus-visible {
+.hp-skills .hp-field-step:focus-visible {
   outline: 2px solid var(--profile-accent);
   outline-offset: 3px;
 }
 
-.hp-deck-chevron {
+.hp-field-chevron {
   width: 9px;
   height: 9px;
   border-top: 2px solid currentColor;
   border-right: 2px solid currentColor;
 }
 
-.hp-deck-step[data-step="prev"] .hp-deck-chevron { transform: translateX(2px) rotate(-135deg); }
-.hp-deck-step[data-step="next"] .hp-deck-chevron { transform: translateX(-2px) rotate(45deg); }
+.hp-field-step[data-step="prev"] .hp-field-chevron { transform: translateX(2px) rotate(-135deg); }
+.hp-field-step[data-step="next"] .hp-field-chevron { transform: translateX(-2px) rotate(45deg); }
 
 @media (hover: hover) and (pointer: fine) {
-  .hp-skills .hp-deck-step:not(:disabled):hover {
+  .hp-skills .hp-field-step:not(:disabled):hover {
     border-color: var(--profile-accent-edge);
     color: var(--profile-accent-soft);
   }
 }
 
+
+/* Hidden copies of each resolvable proof, laid out at the real width so the
+   surface's height is known before it is shown. Identical to the real thing in
+   everything that contributes to height, and out of flow in everything else. */
+
+.hp-proof-measures {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hp-proof-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* Replaced with the real width before every reading; this is only so the
+     first layout is near it rather than shrink-to-fit inside a zero box. */
+  width: 512px;
+  height: auto;
+  max-height: none;
+}
+
+.hp-proof-measure .hp-proof-body { overflow: visible; }
+
 @media (min-width: 768px) {
   .hp-skills-intro { margin-bottom: 34px; }
-  .hp-deck-track { gap: 26px; padding: 26px 28px; scroll-padding-inline-start: 28px; }
-  /* A floor only. The track is a flex row, so the slides already level up to
-     the tallest category; this stops a direction of small categories from
-     rendering as a row of thin strips. */
-  .hp-slide { flex-basis: 66%; }
-  .hp-block-head { margin-bottom: 14px; }
-  .hp-block + .hp-block { margin-top: 18px; padding-top: 18px; }
-  .hp-slide-field { gap: 9px; }
-  .hp-slide-row { gap: 9px 8px; }
-  .hp-slide-row .hp-tile { font-size: 14.5px; padding: 6px 11px; }
-  .hp-slide-row .hp-tile[data-scale="lg"] { font-size: 15.5px; }
-  .hp-slide-row .hp-tile[data-scale="sm"] { font-size: 13.5px; }
+  .hp-field { gap: 22px; }
+  .hp-card { --card-pad: 18px; --card-max: 600px; --mosaic-gap: 10px; --mosaic-min-tile: 150px; }
+  .hp-card .hp-tile, .hp-measure .hp-tile { font-size: 14.5px; padding: 7px 12px; }
 }
 
 @media (min-width: 1200px) {
   .hp-skills-intro { margin-bottom: 40px; }
-
-  .hp-deck-track { gap: 34px; padding: 34px 38px; scroll-padding-inline-start: 38px; }
-
-  /* One slide leads and the next is genuinely visible beside it, not a sliver
-     under a fade. */
   .hp-skills-headline { font-size: clamp(38px, 3.4vw, 48px); letter-spacing: -0.034em; }
 
-  .hp-slide { flex-basis: 70%; }
-  .hp-block-head { margin-bottom: 16px; }
-  .hp-block + .hp-block { margin-top: 22px; padding-top: 22px; }
-  .hp-slide-field { gap: 10px; }
-  .hp-slide-row { gap: 10px 9px; }
+  .hp-field { gap: 26px; }
+  .hp-card { --card-pad: 20px; --card-max: 660px; --mosaic-gap: 10px; --mosaic-min-tile: 155px; border-radius: 16px; }
+  .hp-card-head { margin-bottom: 15px; padding-bottom: 12px; }
+  .hp-card .hp-tile, .hp-measure .hp-tile { font-size: 15px; padding: 8px 13px; }
 
-  .hp-slide-row .hp-tile { font-size: 15px; padding: 7px 12px; }
-  .hp-slide-row .hp-tile[data-scale="lg"] { font-size: 16px; }
-  .hp-slide-row .hp-tile[data-scale="sm"] { font-size: 14px; }
+  .hp-proof { padding: 24px 26px; }
+  .hp-field-nav { margin-top: 24px; padding-right: 24px; }
+}
 
-  .hp-deck-nav { margin-top: 24px; padding-right: 24px; gap: 20px; }
+/* On a phone a card is held inside the viewport, with a gutter on the left and
+   enough of the next card showing on the right to say the track moves. */
+@media (max-width: 767px) {
+  .hp-card {
+    --card-max: min(84vw, 380px);
+    --card-min: 200px;
+    --mosaic-max-rows: 8;
+    --mosaic-min-tile: 132px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Everything is already where it belongs, and the buttons move the track
-     without animating it. */
-  .hp-deck-track { scroll-behavior: auto; }
-  .hp-deck-track .hp-tile { opacity: 1; transform: none; transition: none; transition-delay: 0ms; }
-  .hp-skills .hp-deck-step { transition: none; }
+  .hp-field { scroll-behavior: auto; transition: none; }
+  .hp-field .hp-tile { opacity: 1; transition: none; transition-delay: 0ms; }
+  .hp-skills .hp-field-step { transition: none; }
+  .hp-card .hp-tile[data-has-proof="true"] { transition: none; }
 }
 
 /* ------------------------------------------------------------ CREDENTIALS -- */
@@ -1404,81 +1772,736 @@
   .hp-quotes[data-single="true"] { grid-template-columns: minmax(0, 78fr) minmax(0, 22fr); }
 }
 
-/* ------------------------------------------------------------- RESOLUTION */
-/* The practical end of the Profile. What they are open to, where they are, and
-   the two actions. Nothing narrative, and no call-to-action block. */
+/* ------------------------------------------------------------- RESOLUTION -- */
+/* The close. One hairline, and then everything there is left to say: what this
+   person is open to, where they are, the two actions, and the quiet mark under
+   all of it.
 
-.hp-resolve {
+   The actions are the header's own component, so the pair at the foot of the
+   page and the pair in the masthead cannot drift apart.
+
+   This sits outside the direction crossfade - it is the one part of the page
+   that does not dissolve when the reader changes direction. */
+
+.hp-foot {
+  /* globals.css sets `footer { display: flex }` app wide, so this states its
+     own box rather than inheriting a row it was never written for. */
+  display: block;
   border-top: 1px solid var(--profile-line);
-  padding-block: 56px 44px;
+  padding-block: 30px 24px;
 }
 
-.hp-resolve-inner {
-  display: grid;
-  gap: 34px;
-}
-
-.hp-facts {
+/* One line, three groups: what they are open to, where they are, and the two
+   actions. Each label travels with what it names - "Open to" with the pills,
+   the dot with the location - so a wrap at a narrow width can only ever break
+   between groups, never between a label and its content. */
+.hp-foot-inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 28px 56px;
+  align-items: center;
+  gap: 14px 26px;
 }
 
-.hp-fact-label {
-  display: block;
-  font-size: 13px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--profile-meta);
-  margin-bottom: 12px;
+.hp-foot-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+  color: var(--profile-body);
 }
 
-.hp-fact-value {
-  display: block;
-  font-size: 16px;
+.hp-status-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--profile-status);
+  box-shadow:
+    0 0 0 3px rgb(var(--profile-status-rgb) / 0.13),
+    0 0 12px rgb(var(--profile-status-rgb) / 0.5);
+}
+
+/* The label sits in the run of pills rather than above it, so the pills may
+   wrap onto a second line while the label stays with the first of them. */
+.hp-foot-open {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.hp-foot-open-label {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
   color: var(--profile-text);
+  white-space: nowrap;
 }
-
-.hp-open { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .hp-open-tag {
   font-size: 14px;
   color: var(--profile-body);
   background: var(--profile-surface);
+  border: 1px solid var(--profile-line);
   border-radius: var(--profile-radius-pill);
   padding: 7px 16px;
 }
 
-.hp-resolve-actions {
-  display: flex;
-  flex-wrap: wrap;
+.hp-foot-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
   gap: 10px;
   align-items: center;
 }
 
-@media (min-width: 1024px) {
-  .hp-resolve-inner {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    column-gap: var(--profile-gutter);
-  }
-  .hp-resolve-actions { justify-content: flex-end; }
-}
-
-/* globals.css sets `footer { display: flex }` app wide, so this states its own
-   alignment instead of relying on text-align, which a flex container ignores. */
-.hp-foot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-block: 30px 38px;
-  border-top: 1px solid var(--profile-line);
-}
-
+/* The last line on the page, and the quietest - but still read at its token's
+   own strength rather than faded under it. */
 .hp-foot-mark {
+  display: block;
+  margin: 26px 0 0;
+  text-align: center;
   font-size: 13px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--profile-meta);
-  opacity: 0.65;
+}
+
+@media (min-width: 1024px) {
+  .hp-foot { padding-block: 44px 32px; }
+  .hp-foot-inner { flex-wrap: nowrap; gap: 32px; }
+  /* The slack falls in front of the location, so the location and the actions
+     travel to the right edge together and the pills keep the left. */
+  .hp-foot-where { margin-left: auto; }
+  .hp-foot-mark { margin-top: 34px; }
+}
+
+/* ===========================================================================
+   EVIDENCE
+   ---------------------------------------------------------------------------
+   The things themselves, under the claims they stand behind.
+
+   The field is editorial, not uniform: one item leads at a size that says so,
+   and the set arranges itself around it. Every count from one to many has its
+   own arrangement, because a grid built for six looks abandoned holding two.
+
+   Colour is carried by family, from the same three tones the Skills cards use.
+   A tile is a button, so every rule that touches its box has to out-specify
+   .hp-profile button - hence .hp-profile in front of each of them.
+   =========================================================================== */
+
+.hp-ev-intro { margin-bottom: 26px; }
+.hp-ev-intro .hp-label { margin-bottom: 14px; }
+
+.hp-ev-headline {
+  display: block;
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: clamp(32px, 9vw, 40px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.032em;
+  color: var(--profile-text);
+}
+
+
+/* ---- The family filter ----
+   Lives in the gallery only. The profile preview shows five things at most,
+   and a filter over five things is chrome over something already legible at
+   a glance. */
+.hp-ev-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 22px 4px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-profile .hp-ev-chip {
+  --ev-tone: var(--profile-accent-rgb);
+  padding: 7px 14px;
+  border: 1px solid rgb(var(--ev-tone) / 0.18);
+  border-radius: 999px;
+  background: rgb(var(--ev-tone) / 0.05);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hp-profile .hp-ev-chip:hover { color: var(--profile-body); border-color: rgb(var(--ev-tone) / 0.32); }
+
+.hp-profile .hp-ev-chip[aria-pressed='true'] {
+  background: rgb(var(--ev-tone) / 0.14);
+  border-color: rgb(var(--ev-tone) / 0.42);
+  color: var(--profile-text);
+}
+
+/* ---- The field ---- */
+.hp-ev-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+}
+
+/* ---- One tile ---- */
+.hp-profile .hp-ev-tile {
+  --ev-tone: var(--profile-accent-rgb);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-height: 152px;
+  padding: 20px;
+  border: 1px solid rgb(var(--ev-tone) / 0.16);
+  border-radius: 16px;
+  background:
+    linear-gradient(150deg, rgb(var(--ev-tone) / 0.07) 0%, rgb(var(--ev-tone) / 0) 58%),
+    var(--profile-surface);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.hp-ev-tile[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); }
+.hp-ev-tile[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); }
+.hp-ev-tile[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); }
+.hp-ev-chip[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); }
+.hp-ev-chip[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); }
+.hp-ev-chip[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); }
+
+.hp-profile .hp-ev-tile:hover {
+  border-color: rgb(var(--ev-tone) / 0.38);
+  transform: translateY(-2px);
+}
+
+.hp-ev-tile-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 16px;
+  border-radius: 11px;
+  background: rgb(var(--ev-tone) / 0.13);
+  color: rgb(var(--ev-tone));
+}
+
+.hp-ev-tile-type {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--ev-tone) / 0.92);
+}
+
+.hp-ev-tile-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 7px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.012em;
+  color: var(--profile-text);
+}
+
+.hp-ev-tile-blurb {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 10px;
+  max-width: 52ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--profile-meta);
+}
+
+/* The lead is the one given room to finish its thought. */
+.hp-ev-tile[data-role='lead'] .hp-ev-tile-blurb {
+  -webkit-line-clamp: 6;
+  font-size: 15px;
+  line-height: 1.66;
+  color: var(--profile-body);
+}
+
+.hp-ev-tile[data-role='lead'] .hp-ev-tile-title { -webkit-line-clamp: 3; }
+
+/* Only in the two-row showcase, where there is height to fill. Everywhere
+   else the lead is one row tall and already fits its own content. */
+@media (min-width: 1200px) {
+  .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark {
+    width: 100%;
+    height: auto;
+    /* takes whatever the text does not, so nothing is left over */
+    flex: 1 1 auto;
+    min-height: 110px;
+    margin-bottom: 22px;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 44%, rgb(var(--ev-tone) / 0.2), rgb(var(--ev-tone) / 0.04) 72%);
+    border: 1px solid rgb(var(--ev-tone) / 0.14);
+  }
+
+  .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-title {
+    font-size: clamp(22px, 2.4vw, 27px);
+  }
+
+  /* Held with the prose it belongs to rather than pinned to a floor that the
+     canvas above has already taken up. */
+  .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-meta {
+    margin-top: 14px;
+    padding-top: 0;
+  }
+}
+
+/* Pushed to the floor of the tile, so a row of tiles of different heights
+   still reads along one line at the bottom. */
+.hp-ev-tile-meta {
+  display: block;
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  color: var(--profile-meta);
+}
+
+/* The lead, wherever the arrangement puts it. */
+.hp-ev-tile[data-role='lead'] {
+  min-height: 220px;
+  padding: 26px;
+  background:
+    linear-gradient(150deg, rgb(var(--ev-tone) / 0.13) 0%, rgb(var(--ev-tone) / 0.02) 52%, rgb(var(--ev-tone) / 0) 78%),
+    var(--profile-surface-2);
+  border-color: rgb(var(--ev-tone) / 0.26);
+}
+
+.hp-ev-tile[data-role='lead'] .hp-ev-tile-mark { width: 44px; height: 44px; border-radius: 13px; }
+.hp-ev-tile[data-role='lead'] .hp-ev-tile-title {
+  font-size: clamp(21px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-profile .hp-ev-tile { transition: border-color 180ms ease; }
+  .hp-profile .hp-ev-tile:hover { transform: none; }
+}
+
+/* ---- The arrangements ----
+   Six columns from tablet, twelve from desktop. Each count gets the shape that
+   fills its row rather than the shape that happens to be left over. */
+@media (min-width: 768px) {
+  .hp-ev-grid { grid-template-columns: repeat(6, 1fr); grid-auto-rows: minmax(152px, auto); }
+  .hp-ev-tile { grid-column: span 3; }
+  .hp-ev-tile[data-role='lead'] { grid-column: span 3; grid-row: span 2; }
+  .hp-ev-grid[data-count='1'] .hp-ev-tile[data-role='lead'],
+  .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='lead'] { grid-column: span 6; grid-row: span 1; }
+  .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='rest'] { grid-column: span 6; }
+  .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 6; }
+}
+
+@media (min-width: 1200px) {
+  .hp-ev-grid { grid-template-columns: repeat(12, 1fr); }
+  .hp-ev-tile { grid-column: span 4; }
+
+  /* The showcase: a half-width lead standing two rows tall with four beside
+     it, two per row. The rows are declared, not accumulated - every tile in
+     the composition is one of these five, and nothing further down the
+     collection is in this grid to push them taller. That, plus the clamps
+     above, is what fixes the lead opening a void under its own text. */
+  .hp-ev-grid[data-count='5'] { grid-template-rows: repeat(2, minmax(200px, auto)); }
+  .hp-ev-tile[data-role='lead'] { grid-column: span 6; grid-row: span 2; }
+  .hp-ev-tile[data-role='rest'] { grid-column: span 3; }
+
+  /* Alone, it is not a lead among others - it is the whole section. */
+  .hp-ev-grid[data-count='1'] .hp-ev-tile[data-role='lead'] { grid-column: span 12; grid-row: span 1; }
+
+  /* Two read as a pair, weighted rather than split down the middle. */
+  .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='lead'] { grid-column: span 7; grid-row: span 1; }
+  .hp-ev-grid[data-count='2'] .hp-ev-tile[data-role='rest'] { grid-column: span 5; }
+
+  /* Three and four stack their followers full-width beside the lead, so two
+     small tiles never sit in a row built for four. */
+  .hp-ev-grid[data-count='3'] .hp-ev-tile[data-role='rest'],
+  .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest'] { grid-column: span 6; }
+  .hp-ev-grid[data-count='4'] .hp-ev-tile[data-role='rest']:nth-of-type(4) { grid-column: span 12; }
+}
+
+/* ---- The way into the rest of it ---- */
+.hp-ev-more { margin-top: 18px; }
+
+.hp-ev-backdrop .hp-ev-all,
+.hp-profile .hp-ev-all {
+  padding: 12px 22px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.26);
+  border-radius: 999px;
+  background: rgb(var(--profile-accent-rgb) / 0.05);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--profile-accent-soft);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.hp-profile .hp-ev-all:hover {
+  background: rgb(var(--profile-accent-rgb) / 0.12);
+  border-color: rgb(var(--profile-accent-rgb) / 0.44);
+  color: var(--profile-text);
+}
+
+/* ===========================================================================
+   THE EVIDENCE VIEWER
+   ---------------------------------------------------------------------------
+   Its own surface over the page, sharing the proof box's language and none of
+   its rules. Head and foot are pinned; only the stage in the middle moves.
+   =========================================================================== */
+
+.hp-ev-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 4vw, 40px);
+  background: rgb(var(--profile-void-rgb) / 0.82);
+  backdrop-filter: blur(8px);
+  animation: hp-ev-fade 160ms ease both;
+}
+
+@keyframes hp-ev-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.hp-ev-surface {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(100%, 960px);
+  max-height: min(88vh, 820px);
+  /* The gallery is head, filter, scroller: three rows rather than the
+     detail view's head, stage, foot. Declared per mode so neither has to
+     pretend to be shaped like the other. */
+  border: 1px solid var(--profile-line-strong);
+  border-radius: 18px;
+  background: var(--profile-surface);
+  box-shadow: 0 40px 90px rgb(var(--profile-void-rgb) / 0.7);
+  overflow: hidden;
+}
+
+.hp-ev-surface[data-mode='gallery'] {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: min(88vh, 820px);
+}
+
+.hp-ev-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-ev-heading { min-width: 0; }
+
+.hp-ev-family {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-ev-title {
+  margin: 8px 0 0;
+  font-size: clamp(19px, 3.4vw, 23px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  color: var(--profile-text);
+}
+
+.hp-ev-meta {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--profile-meta);
+}
+
+.hp-ev-backdrop .hp-ev-close {
+  flex: none;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--profile-line);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.03);
+  font-size: 19px;
+  line-height: 1;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hp-ev-backdrop .hp-ev-close:hover { color: var(--profile-text); border-color: var(--profile-line-strong); }
+
+.hp-ev-stage {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 22px;
+  overflow: auto;
+  background: var(--profile-void);
+}
+
+.hp-ev-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+.hp-ev-video { width: 100%; max-height: 100%; border-radius: 8px; background: #000; }
+
+.hp-ev-doc, .hp-ev-frame { width: 100%; height: 100%; min-height: 320px; }
+.hp-ev-object, .hp-ev-iframe { width: 100%; height: 100%; min-height: 320px; border: 0; border-radius: 8px; background: #000; }
+
+.hp-ev-audio {
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  width: min(100%, 460px);
+  padding: 26px 0;
+}
+
+/* Something for a recording to be, rather than a bare control bar adrift on a
+   dark field. */
+.hp-ev-audio-mark,
+.hp-ev-preview-mark {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border-radius: 26px;
+  color: var(--profile-accent-soft);
+  background:
+    radial-gradient(circle at 34% 28%, rgb(var(--profile-accent-rgb) / 0.34), rgb(var(--profile-accent-rgb) / 0.06) 68%),
+    var(--profile-surface-2);
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.26);
+}
+
+.hp-ev-audio-player { width: 100%; }
+
+.hp-ev-preview {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  padding: 34px 0;
+  text-align: center;
+}
+
+.hp-ev-preview-note,
+.hp-ev-note {
+  max-width: 42ch;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--profile-meta);
+  text-align: center;
+}
+
+.hp-ev-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 18px 22px;
+  border-top: 1px solid var(--profile-line);
+}
+
+.hp-ev-description {
+  flex: 1 1 320px;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--profile-body);
+}
+
+.hp-ev-backdrop .hp-ev-out {
+  flex: none;
+  margin-left: auto;
+  padding: 10px 18px;
+  border: 1px solid var(--profile-accent-edge);
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--profile-accent-soft);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.hp-ev-backdrop .hp-ev-out:hover {
+  background: var(--profile-accent-wash);
+  border-color: var(--profile-accent-halo);
+}
+
+@media (max-width: 640px) {
+  .hp-ev-surface { max-height: 92vh; border-radius: 14px; }
+  .hp-ev-head { padding: 18px 16px 14px; }
+  .hp-ev-stage { padding: 16px; }
+  .hp-ev-foot { padding: 16px; }
+  .hp-ev-backdrop .hp-ev-out { margin-left: 0; width: 100%; text-align: center; }
+}
+
+/* ---- The gallery: everything this direction carries ----
+   Uniform cards, because this is the complete list and a reader scanning it
+   wants one shape repeated, not an editorial composition. The profile above
+   is where the collection is staged; this is where it is read. */
+
+.hp-ev-count { font-weight: 500; color: var(--profile-meta); }
+
+.hp-ev-gallery {
+  min-height: 0;
+  padding: 20px 22px 24px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.hp-ev-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 12px;
+  /* The last row is as full as it happens to be. Stretching two cards across
+     a row built for four would announce a symmetry the collection does not
+     have. */
+  align-items: start;
+}
+
+.hp-ev-backdrop .hp-ev-card {
+  --ev-tone: var(--profile-accent-rgb);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 152px;
+  padding: 16px;
+  border: 1px solid rgb(var(--ev-tone) / 0.16);
+  border-radius: 13px;
+  background:
+    linear-gradient(150deg, rgb(var(--ev-tone) / 0.06) 0%, rgb(var(--ev-tone) / 0) 58%),
+    var(--profile-surface-2);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.hp-ev-card[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); }
+.hp-ev-card[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); }
+.hp-ev-card[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); }
+
+.hp-ev-backdrop .hp-ev-card:hover {
+  border-color: rgb(var(--ev-tone) / 0.4);
+  transform: translateY(-2px);
+}
+
+/* The lead is marked, not enlarged. A gallery is a list; the one the owner
+   put first should be recognisable without breaking the grid. */
+.hp-ev-card[data-lead='true'] { border-color: rgb(var(--ev-tone) / 0.42); }
+
+.hp-ev-card-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 12px;
+  border-radius: 9px;
+  background: rgb(var(--ev-tone) / 0.13);
+  color: rgb(var(--ev-tone));
+}
+
+.hp-ev-card-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgb(var(--ev-tone) / 0.92);
+}
+
+.hp-ev-card-lead {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(var(--ev-tone) / 0.16);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--profile-text);
+}
+
+.hp-ev-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  margin-top: 7px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--profile-text);
+}
+
+.hp-ev-card-meta {
+  display: block;
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 11.5px;
+  color: var(--profile-meta);
+}
+
+/* ---- Back out of an item, into the list it came from ---- */
+.hp-ev-backdrop .hp-ev-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 5px 12px 5px 9px;
+  border: 1px solid var(--profile-line);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.03);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hp-ev-backdrop .hp-ev-back:hover {
+  color: var(--profile-text);
+  border-color: var(--profile-line-strong);
+}
+
+.hp-ev-back-arrow { font-size: 13px; line-height: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-ev-backdrop .hp-ev-card { transition: border-color 160ms ease; }
+  .hp-ev-backdrop .hp-ev-card:hover { transform: none; }
+}
+
+@media (max-width: 640px) {
+  .hp-ev-surface[data-mode='gallery'] { height: 92vh; }
+  .hp-ev-filter { padding: 14px 16px 4px; }
+  .hp-ev-gallery { padding: 16px; }
+  .hp-ev-gallery-grid { grid-template-columns: 1fr; }
 }
