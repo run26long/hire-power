@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { isEntitledTier } from '../_lib/recruiterContext'
 
 // ============================================================================
 // GET /api/career-profile/[slug]
@@ -92,9 +93,13 @@ export async function GET(request, { params }) {
         .eq('profile_id', profile.id)
         .in('status', ['active', 'suggested'])
         .order('sort_order', { ascending: true }),
+      // The tier travels only as far as the boolean below. It is selected here
+      // because this query is already being made, and it is read once and
+      // dropped - what the profile is worth to its owner is between them and
+      // their billing, and is nobody else's business on a public page.
       supabase
         .from('profiles')
-        .select('display_name')
+        .select('display_name, subscription_tier')
         .eq('id', profile.user_id)
         .maybeSingle(),
       supabase
@@ -392,8 +397,14 @@ export async function GET(request, { params }) {
         }
       : null
 
+    // Whether this profile offers the recruiter tools. A boolean and nothing
+    // more: no tier name, no billing state, and in particular no "free" - a
+    // public page should not tell a visitor what its owner declined to buy.
+    const recruiterToolsEnabled = isEntitledTier(personRes.data?.subscription_tier)
+
     return Response.json({
       isOwner,
+      recruiterToolsEnabled,
       profile: {
         slug: profile.slug,
         template: profile.template ?? null,

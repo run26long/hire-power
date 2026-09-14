@@ -8,6 +8,7 @@ import {
   buildSources,
   claimUse,
   fence,
+  issueBriefToken,
   keepRealCitations,
   loadCandidate,
   logCall,
@@ -250,6 +251,7 @@ RULES
 4. Do not overstate. If the material shows adjacent rather than direct experience, say that it is adjacent, in the evidence field, plainly.
 5. gaps are requirements from the job description that candidate_material does not evidence. Write them about the requirement, not about the person, and do not speculate about whether the candidate could learn it. If there are none, return an empty array. Do not manufacture a gap for balance, and do not hide a real one.
 6. relevant_testimonials may only contain quotes present in candidate_material, quoted exactly.
+6a. role_title and company come from job_description and from nowhere else. candidate_material names this person's past employers, and none of them is the company hiring. Take each when the job description states it plainly - including where the employer appears in a phrase like "at <Company>", in a heading, or in an "About us" line. Return null only where it is genuinely absent, or abbreviated to something you would have to expand into a name. Never infer an employer from the industry, from the tone of the posting, or from the candidate's own history.
 7. match_summary is 2 to 3 sentences of plain prose. No markdown anywhere in the response.
 8. Keep it to at most 5 strengths, 4 gaps, 4 roles and 3 testimonials - the strongest ones, not every one that qualifies. Each evidence and why field is one or two sentences. A long answer is not a better one, and an answer cut off halfway is no answer at all.
 9. Quote at most two bullets per role.
@@ -258,6 +260,8 @@ RULES
 Return JSON and nothing else:
 
 {
+  "role_title": "the role being hired for, or null",
+  "company": "the hiring company, or null",
   "match_summary": "2-3 sentences",
   "strengths": [
     { "area": "what the role asks for", "evidence": "what the candidate has recorded that meets it", "citations": ["experience:0"] }
@@ -468,6 +472,12 @@ export async function POST(request) {
       })
       .filter(Boolean)
 
+    // Capped and trimmed like everything else, and null rather than an empty
+    // string when there was nothing to take: a brief prints a heading only
+    // where there is a heading to print.
+    const role_title = str(parsed?.role_title, 140) || null
+    const company = str(parsed?.company, 140) || null
+
     const match_summary = str(parsed?.match_summary, 800)
 
     if (!match_summary) {
@@ -477,12 +487,23 @@ export async function POST(request) {
       )
     }
 
-    return Response.json({
+    // Signed, so the PDF route can take this back without trusting it. The
+    // token carries exactly what is returned below and nothing the client adds
+    // later; see issueBriefToken for why this is a signature rather than a row
+    // in a table.
+    const evaluation = {
+      role_title,
+      company,
       match_summary,
       strengths,
       gaps,
       relevant_experience,
-      relevant_testimonials,
+      relevant_testimonials
+    }
+
+    return Response.json({
+      ...evaluation,
+      brief_token: issueBriefToken({ profile_id: profile.id, evaluation }),
       remaining: claim.remaining
     })
   } catch (error) {

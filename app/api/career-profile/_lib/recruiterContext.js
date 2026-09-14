@@ -27,6 +27,12 @@ export const LIMITS = { ask: ASK_LIMIT, evaluate: EVALUATE_LIMIT }
 // decision and it belongs in this list explicitly.
 const ENTITLED_TIERS = new Set(['pro'])
 
+// The public profile route asks the same question to decide whether to offer
+// the tools at all, and it asks it through here rather than writing the tier
+// name out a second time. Two places that both know what "entitled" means are
+// two places that can come to disagree about it.
+export const isEntitledTier = (tier) => ENTITLED_TIERS.has(tier)
+
 export const service = () =>
   createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -380,4 +386,79 @@ export function fence(label, text) {
   return `<${label}>
 ${clean}
 </${label}>`
+}
+
+// ---------------------------------------------------------------------------
+// The brief token
+//
+// An evaluation has to survive the round trip to the browser and come back to
+// the PDF route intact. The route cannot simply trust what returns: a recruiter
+// could otherwise post any text they liked and receive it back as a branded
+// document about a named candidate, which is a forgery with our name on it.
+//
+// So what goes out is signed. The token carries the evaluation this route
+// actually produced, and the PDF route recomputes the signature over the bytes
+// it receives: one altered character anywhere and the two no longer agree, and
+// the request is refused. The client holds the token but cannot author one,
+// because it does not hold the key.
+//
+// This is deliberately not storage. Nothing about a recruiter's search is kept,
+// and a download costs nothing precisely because there is no counter to touch -
+// the token is the whole record, it lives in the browser that asked for it, and
+// it expires on its own.
+// ---------------------------------------------------------------------------
+
+const BRIEF_TTL_MS = 24 * 60 * 60 * 1000
+
+const briefKey = () =>
+  process.env.RECRUITER_BRIEF_SECRET
+  || process.env.RECRUITER_HASH_SECRET
+  || process.env.SUPABASE_SERVICE_ROLE_KEY
+  || 'hire-power'
+
+const b64url = (buf) =>
+  Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+const unb64url = (text) =>
+  Buffer.from(String(text).replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+
+function sign(payloadB64) {
+  return b64url(crypto.createHmac('sha256', briefKey()).update(payloadB64).digest())
+}
+
+export function issueBriefToken(payload) {
+  const body = b64url(JSON.stringify({ ...payload, iat: Date.now() }))
+  return `${body}.${sign(body)}`
+}
+
+// Returns the payload, or null. Null covers every way this can go wrong -
+// malformed, tampered with, expired - because none of those is a distinction
+// the caller should act on differently, and saying which would tell someone
+// probing the endpoint how close they got.
+export function readBriefToken(token) {
+  if (typeof token !== 'string' || token.length > 200_000) return null
+
+  const dot = token.lastIndexOf('.')
+  if (dot <= 0) return null
+
+  const body = token.slice(0, dot)
+  const signature = token.slice(dot + 1)
+
+  // Constant time. A byte-by-byte comparison that returns early leaks how much
+  // of a guessed signature was right, which is enough to build one.
+  const expected = unb64url(sign(body))
+  const given = unb64url(signature)
+  if (expected.length !== given.length) return null
+  if (!crypto.timingSafeEqual(expected, given)) return null
+
+  let payload
+  try {
+    payload = JSON.parse(unb64url(body).toString('utf8'))
+  } catch {
+    return null
+  }
+
+  if (typeof payload?.iat !== 'number' || Date.now() - payload.iat > BRIEF_TTL_MS) return null
+
+  return payload
 }
