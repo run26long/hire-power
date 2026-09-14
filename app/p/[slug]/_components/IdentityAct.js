@@ -69,6 +69,7 @@ export default function IdentityAct({
   displayName,
   headline,
   proofPoints,
+  directionKey,
   chrome,
   directions,
   glowKey,
@@ -114,7 +115,21 @@ export default function IdentityAct({
 
           {hasProof && (
             <>
-              <div className="hp-proof-lead hp-refocus" data-resolve="positioning">
+              {/* Keyed on the direction so the entrance replays when the
+                  reader changes chapter: the node is a new node, so the CSS
+                  animation on it starts again. Restarting it by toggling a
+                  class would need the browser to be forced to reflow between
+                  the two states, which is a trick; this is just how keys work.
+
+                  The figures mount only after the swap, so what fades in is
+                  always the direction being arrived at - the one being left
+                  has already gone out with the rest of the refocus. */}
+              <div
+                className="hp-proof-lead hp-refocus hp-proof-enter"
+                data-resolve="positioning"
+                data-enter="0"
+                key={`lead-${directionKey}`}
+              >
                 <span className="hp-proof-caption">Selected proof</span>
                 <ProofValue className="hp-proof-lead-num" value={lead?.num} />
                 <span className="hp-proof-lead-label">{lead?.label}</span>
@@ -127,10 +142,11 @@ export default function IdentityAct({
                 <div className="hp-proof-subs">
                   {supporting.map((point, index) => (
                     <div
-                      className="hp-proof-sub hp-refocus"
+                      className="hp-proof-sub hp-refocus hp-proof-enter"
                       data-resolve="positioning"
                       data-sub={index}
-                      key={`${point?.num || 'point'}-${index}`}
+                      data-enter={index + 1}
+                      key={`sub-${index}-${directionKey}`}
                     >
                       <ProofValue className="hp-proof-num" value={point?.num} />
                       <span className="hp-proof-label">{point?.label}</span>

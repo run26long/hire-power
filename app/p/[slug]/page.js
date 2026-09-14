@@ -312,6 +312,7 @@ export default function CareerProfilePage() {
         displayName={displayName}
         headline={headline}
         proofPoints={proofPoints}
+        directionKey={contentIndex}
         glowKey={glowKey}
         animate={animate}
         chrome={

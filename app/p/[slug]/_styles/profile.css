@@ -449,6 +449,12 @@
   width: 100%;
 }
 
+/* The two supporting figures are ranked: the first carries the larger result,
+   so it is set about 12% above the second. Enough to order them, not enough to
+   read as a third size on the page. Only the numeral changes - both
+   descriptions stay exactly as they are. */
+.hp-proof-sub[data-sub="0"] .hp-proof-num { font-size: clamp(29px, 7.8vw, 34px); }
+
 .hp-proof-num {
   display: block;
   font-family: var(--profile-font-display);
@@ -846,6 +852,39 @@
   to { opacity: 1; }
 }
 
+/* ---- The proof entrance ----
+   The three figures arrive in the order they should be read, a beat apart,
+   and then stop. Opacity and transform only, so nothing in the hero moves
+   to accommodate them and the final height is the height it would have been
+   without any of this.
+
+   It runs on the first load as well as on every change of direction, which
+   is why it is a plain animation on the element rather than something hung
+   off the refocus phase: the phase only exists once a reader has changed
+   chapter, and the first arrival is the one that matters most.
+
+   The second selector is the same animation again, scoped tightly enough to
+   outrank the refocus rule that would otherwise take these elements over
+   during the in phase. Same keyframes, same timing - it is a specificity
+   statement, not a second behaviour. */
+.hp-proof-enter,
+.hp-profile[data-phase="in"] .hp-refocus.hp-proof-enter {
+  animation: hp-proof-in 520ms var(--profile-ease-in) both;
+  animation-delay: var(--proof-enter-delay, 0ms);
+}
+
+.hp-proof-enter[data-enter="1"] { --proof-enter-delay: 150ms; }
+.hp-proof-enter[data-enter="2"] { --proof-enter-delay: 300ms; }
+
+@keyframes hp-proof-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Left edge, so the 4% is felt as the figure settling rather than as the
+   whole block sliding in from the side. */
+.hp-proof-enter { transform-origin: 0 50%; }
+
 /* --------------------------------------------------------------- reveal -- */
 
 .hp-reveal {
@@ -1043,20 +1082,54 @@
      direction now produces the same block height and the same 22px. */
   .hp-proof-sub .hp-proof-label { min-height: 4.2em; }
 
-  /* -96px carries the same 75px the lead block takes from the top, applied to
-     a bottom aligned block so it reads as downward movement. The +/-11px
-     stagger between the two figures is untouched by either step. */
+  /* The lift. Both figures are bottom aligned, so a negative bottom margin
+     moves them up the field; --proof-lift is the whole of that movement and
+     the stagger is applied either side of it. Declared once here rather than
+     written into both rules, so the pair moves together and cannot drift.
+
+     They were sitting at the foot of the hero, nearer the bottom edge than
+     the figure they support. Raised, the three read as one group.
+
+     vh rather than px for the extra distance: a short viewport has less room
+     between the deck and the bottom edge, and the lift gives some of it back
+     instead of pushing the pair into the positioning statement. */
+  .hp-proof-sub[data-sub="0"],
+  .hp-proof-sub[data-sub="1"] {
+    /* The original downward offset, kept as its own name so the lift below
+       reads as the change it is. */
+    --proof-drop: 96px;
+    /* ...and the lift back up. Both figures carry it, so the pair moves as
+       one. vh rather than px: a short viewport has less room between the deck
+       and the bottom edge, and this gives some of it back rather than driving
+       the pair into the positioning statement.
+
+       Tuned down from a larger lift that closed the gap under the featured
+       figure to almost nothing. The pair still clears its old position by
+       about 68px, which is what brings the three into one group; the 40px
+       given back is the pause between the lead and the first of the two. */
+    --proof-lift: clamp(58px, 7.6vh, 78px);
+    --proof-stagger: 15px;
+  }
+
   .hp-proof-sub[data-sub="0"] {
     grid-column: 8 / 11;
-    margin-bottom: calc(clamp(0px, 1vh, 12px) + 11px - 96px);
+    margin-bottom:
+      calc(clamp(0px, 1vh, 12px) + var(--proof-stagger) - var(--proof-drop) + var(--proof-lift));
   }
 
   .hp-proof-sub[data-sub="1"] {
     grid-column: 11 / 13;
-    margin-bottom: calc(clamp(0px, 1vh, 12px) - 11px - 96px);
+    margin-bottom:
+      calc(clamp(0px, 1vh, 12px) - var(--proof-stagger) - var(--proof-drop) + var(--proof-lift));
   }
 
   .hp-proof-num { font-size: clamp(34px, 2.5vw, 40px); }
+
+  /* The bridging figure carries the larger of the two supporting results, so
+     it is set a little larger than the one after it - about 12%. Enough to
+     rank them, not enough to read as a third size on the page. The
+     descriptions stay where they are: only the numeral changes. */
+  .hp-proof-sub[data-sub="0"] .hp-proof-num { font-size: clamp(38px, 2.8vw, 45px); }
   .hp-proof-label { font-size: 15px; max-width: 24ch; }
 
   /* The index. The aside sits at the left and the three directions run out to
@@ -1296,6 +1369,15 @@
 
   .hp-spinner { animation: none; border-right-color: var(--profile-accent); }
   .hp-act1-beam { display: none; }
+
+  /* Where they end up, with nothing having travelled to get there. */
+  .hp-proof-enter,
+  .hp-profile[data-phase="in"] .hp-refocus.hp-proof-enter {
+    animation: none !important;
+    animation-delay: 0ms !important;
+    opacity: 1;
+    transform: none;
+  }
 
   .hp-refocus,
   .hp-refocus-soft { transition: opacity 180ms linear; }
