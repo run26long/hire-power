@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
+import mammoth from 'mammoth'
+import { extractText } from 'unpdf'
 
 import { apiError } from '@/lib/apiError'
 import {
@@ -41,6 +43,195 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const FEATURE = 'evaluate'
 const MIN_JD = 100
 const MAX_JD = 10000
+
+// The same ceiling the resume parser uses. It is a guard against someone
+// posting something enormous rather than a guess at how long a job
+// description runs - the character limit below is what actually decides
+// whether the text is usable.
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+
+// A PDF that extracts to almost nothing has text in it that is not text: a
+// scan, or a photograph of a page. There is no OCR here, and telling the
+// recruiter their file is "too short" when they can plainly see a full page
+// of writing on it is not an answer they can act on.
+const SCANNED_PDF_FLOOR = 50
+
+const TYPES = {
+  '.pdf': 'pdf',
+  '.docx': 'docx',
+  '.txt': 'txt'
+}
+
+// Extraction leaves ragged whitespace behind, particularly from PDFs, where
+// every line break in the layout arrives as a newline. The length check is
+// meant to measure the job description, not its line breaks, so this runs
+// first - while keeping the blank line between paragraphs, which is the one
+// piece of structure worth carrying into the prompt.
+function tidy(text) {
+  return String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t\u00a0]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+// ---------------------------------------------------------------------------
+// Reading the job description
+//
+// Two ways in: the JSON body this route has always taken, and a file. Which
+// one is decided by the content type rather than by looking for a field,
+// because reading the body settles it - request.json() and request.formData()
+// each consume it, so only one of them can ever be tried.
+//
+// The file is never stored. It exists as bytes in this function long enough
+// to have its text taken out of it, and goes out of scope with the request.
+//
+// Everything here happens before the rate limiter is asked for a slot, so a
+// file that cannot be read costs the recruiter nothing.
+// ---------------------------------------------------------------------------
+async function readJobDescription(request) {
+  const contentType = request.headers.get('content-type') || ''
+
+  if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return { error: { status: 400, code: 'BAD_REQUEST', message: 'Invalid request.' } }
+    }
+    return {
+      slug: typeof body?.slug === 'string' ? body.slug : null,
+      jd: typeof body?.job_description === 'string' ? body.job_description.trim() : ''
+    }
+  }
+
+  let form
+  try {
+    form = await request.formData()
+  } catch {
+    return { error: { status: 400, code: 'BAD_REQUEST', message: 'Invalid upload.' } }
+  }
+
+  const slug = typeof form.get('slug') === 'string' ? form.get('slug') : null
+  const file = form.get('file')
+
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    return {
+      slug,
+      error: { status: 400, code: 'NO_FILE', message: 'Attach a job description file, or paste the text instead.' }
+    }
+  }
+
+  // Asked of the file rather than of the bytes, so an oversized upload is
+  // refused before it is pulled into memory.
+  if (typeof file.size === 'number' && file.size > MAX_FILE_BYTES) {
+    return {
+      slug,
+      error: { status: 413, code: 'FILE_TOO_LARGE', message: "That file's too large. Please upload a file under 10MB." }
+    }
+  }
+
+  const name = typeof file.name === 'string' ? file.name : ''
+  const dot = name.lastIndexOf('.')
+  const extension = dot >= 0 ? name.slice(dot).toLowerCase() : ''
+  const kind = TYPES[extension]
+
+  // The extension decides which parser runs; whether the file really is what
+  // it claims is settled by whether that parser can read it. A .doc is not
+  // an older .docx but a different format altogether, and nothing here can
+  // read one - so it is named in the message rather than left to fail
+  // mysteriously.
+  if (!kind) {
+    return {
+      slug,
+      error: {
+        status: 400,
+        code: 'UNSUPPORTED_FILE_TYPE',
+        message: 'Upload a PDF, a Word .docx file, or a .txt file.'
+      }
+    }
+  }
+
+  const bytes = await file.arrayBuffer()
+  if (bytes.byteLength > MAX_FILE_BYTES) {
+    return {
+      slug,
+      error: { status: 413, code: 'FILE_TOO_LARGE', message: "That file's too large. Please upload a file under 10MB." }
+    }
+  }
+  if (bytes.byteLength === 0) {
+    return {
+      slug,
+      error: { status: 400, code: 'EMPTY_FILE', message: 'That file is empty.' }
+    }
+  }
+
+  if (kind === 'txt') {
+    return { slug, jd: tidy(new TextDecoder().decode(bytes)) }
+  }
+
+  if (kind === 'docx') {
+    // Both passes, as the resume parser does: the raw extraction misses
+    // headers and footers, and the HTML conversion picks them up. Whichever
+    // came back with more of the document wins.
+    try {
+      const buffer = Buffer.from(bytes)
+      const [raw, html] = await Promise.all([
+        mammoth.extractRawText({ buffer }),
+        mammoth.convertToHtml({ buffer, includeDefaultStyleMap: false, includeEmbeddedStyleMap: false })
+      ])
+      const fromHtml = String(html.value || '').replace(/<[^>]*>/g, ' ')
+      const best = fromHtml.length > String(raw.value || '').length ? fromHtml : raw.value
+      return { slug, jd: tidy(best) }
+    } catch (error) {
+      console.error('[recruiter] DOCX parse failed:', error)
+      return {
+        slug,
+        error: {
+          status: 422,
+          code: 'UNREADABLE_FILE',
+          message: "We couldn't read that Word doc. It may be corrupted or password-protected."
+        }
+      }
+    }
+  }
+
+  // PDF
+  let text = ''
+  let pages = 0
+  try {
+    const result = await extractText(bytes, { mergePages: true })
+    text = tidy(result.text)
+    pages = result.totalPages || 0
+  } catch (error) {
+    console.error('[recruiter] PDF parse failed:', error)
+    return {
+      slug,
+      error: {
+        status: 422,
+        code: 'UNREADABLE_FILE',
+        message: "We couldn't read that PDF. It may be corrupted or password-protected."
+      }
+    }
+  }
+
+  // Read successfully, and there was nothing in it to read. Its own error,
+  // because "too short" would send the recruiter looking for a longer job
+  // description when the problem is that the file is a picture.
+  if (pages > 0 && text.length < SCANNED_PDF_FLOOR) {
+    return {
+      slug,
+      error: {
+        status: 422,
+        code: 'SCANNED_PDF',
+        message: 'That PDF looks like a scan, so there is no text in it to read. Upload a text-based PDF, or paste the description instead.'
+      }
+    }
+  }
+
+  return { slug, jd: text }
+}
 
 function buildPrompt({ name, sourcesText, jd }) {
   return `You are assessing how ${name}'s recorded background maps against a job description, for a recruiter.
@@ -91,20 +282,28 @@ export async function POST(request) {
   let profile = null
 
   try {
-    let body
-    try {
-      body = await request.json()
-    } catch {
-      return Response.json({ error: 'Invalid request.', code: 'BAD_REQUEST' }, { status: 400 })
+    // Pasted or uploaded; from here the two are the same text.
+    const read = await readJobDescription(request)
+    if (read.error) {
+      return Response.json(
+        { error: read.error.message, code: read.error.code },
+        { status: read.error.status }
+      )
     }
 
-    const slug = typeof body?.slug === 'string' ? body.slug : null
-    const jd = typeof body?.job_description === 'string' ? body.job_description.trim() : ''
+    const slug = read.slug
+    const jd = read.jd || ''
 
+    // The same limits either way. An uploaded file that extracts to more than
+    // the maximum is refused rather than cut down to it: evaluating against
+    // two thirds of a job description, without saying so, would be a worse
+    // answer than none.
     if (jd.length < MIN_JD || jd.length > MAX_JD) {
       return Response.json(
         {
-          error: `Paste a job description between ${MIN_JD} and ${MAX_JD} characters.`,
+          error: jd.length > MAX_JD
+            ? `That job description is ${jd.length.toLocaleString()} characters. Shorten it to ${MAX_JD.toLocaleString()} or fewer.`
+            : `Use a job description between ${MIN_JD} and ${MAX_JD} characters.`,
           code: 'BAD_JOB_DESCRIPTION'
         },
         { status: 400 }
