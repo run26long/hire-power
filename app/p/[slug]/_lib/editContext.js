@@ -36,7 +36,9 @@ import { createContext, useContext, useMemo } from 'react'
 //   regenerate   (fields) => Promise, same
 //   busy         the field currently being written, or null
 //   error        the last failure, as a sentence, or null
-//   isPro        whether regeneration is offered at all
+//   isPro        the account's tier, which is one half of whether
+//                regeneration is offered; the other half is how many
+//                directions there are
 // ============================================================================
 
 const ProfileEditContext = createContext(null)
@@ -80,6 +82,11 @@ export function useFieldEditor(field) {
     // A failure belongs to the field that caused it, not to whichever editor
     // happens to be open when it is read.
     error: edit.busyField === field || edit.errorField === field ? edit.error : null,
-    canRegenerate: edit.isPro === true
+    // The same rule the generate route enforces, rather than a stricter guess
+    // at it: Pro, or a free account with only its one entitled direction. A
+    // free account with one direction can generate, so hiding the button from
+    // them was hiding a feature they have. The payload's lenses are already
+    // filtered to the statuses that route counts.
+    canRegenerate: edit.isPro === true || (edit.lenses?.length ?? 0) <= 1
   }
 }

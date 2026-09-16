@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useProfileEdit } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
+import { ACCEPT_ATTRIBUTE, MAX_UPLOAD_BYTES, humanSize, uploadTypeFor } from '@/lib/evidenceUploads'
 
 // ============================================================================
 // ADDING EVIDENCE
@@ -63,6 +64,13 @@ export default function AddEvidence() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
+  // The chosen file, and how far its upload has got. A file being set is what
+  // makes this an upload rather than a link: the form below is the same either
+  // way, and only the save differs.
+  const [file, setFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+
   if (!edit?.editing) return null
 
   const lenses = edit.lenses || []
@@ -76,6 +84,8 @@ export default function AddEvidence() {
     setPreview(null)
     setNote(null)
     setError(null)
+    setFile(null)
+    setProgress(0)
   }
 
   async function lookUp() {
@@ -107,20 +117,47 @@ export default function AddEvidence() {
     }
   }
 
+  // The file is chosen here and sent here, straight to storage. It does not
+  // pass through the app on the way in, which is what keeps a 50MB video out
+  // of a request body; the server's part is deciding where it may go and, once
+  // it is there, what the record says about it.
+  function chooseFile(picked) {
+    setError(null)
+    if (!picked) { setFile(null); return }
+    if (!uploadTypeFor(picked.type)) {
+      setFile(null)
+      setError('That kind of file cannot be added yet. Images, PDF, Word documents and video.')
+      return
+    }
+    if (picked.size > MAX_UPLOAD_BYTES) {
+      setFile(null)
+      setError(`That file is ${humanSize(picked.size)}. The limit is 50MB.`)
+      return
+    }
+    setFile(picked)
+    // A filename is the best guess at a title anybody has, and it is only a
+    // starting point: the extension goes, and the owner edits it like any
+    // other field.
+    setForm(f => ({ ...f, title: f.title || picked.name.replace(/\.[^.]+$/, '') }))
+    setStep('form')
+  }
+
   async function save() {
     if (saving) return
     setSaving(true)
     setError(null)
     try {
-      const created = await edit.onCreateEvidence({
-        url: form.url.trim(),
+      const details = {
         title: form.title.trim(),
         description: form.description.trim() || null,
         evidence_type: form.evidence_type,
         organization: form.organization.trim() || null,
         date_label: form.date_label.trim() || null,
         lens_ids: lensIds
-      })
+      }
+      const created = file
+        ? await edit.onUploadEvidence(file, details, { onProgress: setProgress, setUploading })
+        : await edit.onCreateEvidence({ ...details, url: form.url.trim() })
       // Not closed on success. A new item goes to the end of the collection,
       // and the section shows the first few - so on a profile with a dozen
       // pieces the tile is real, placed, and off the bottom of the preview.
@@ -135,11 +172,14 @@ export default function AddEvidence() {
       setLensIds([])
       setPreview(null)
       setNote(null)
+      setFile(null)
+      setProgress(0)
       setStep('done')
     } catch (err) {
       setError(err?.message || "We couldn't save that. Please try again.")
     } finally {
       setSaving(false)
+      setUploading(false)
     }
   }
 
@@ -155,7 +195,10 @@ export default function AddEvidence() {
   }
 
   const family = familyForType(form.evidence_type)
-  const canSave = Boolean(form.url.trim() && form.title.trim() && family) && !saving
+  // A link needs its address; an upload needs its file. Both need a title and
+  // a type, and the rest of the form is identical.
+  const hasSource = file ? true : Boolean(form.url.trim())
+  const canSave = Boolean(hasSource && form.title.trim() && family) && !saving
 
   return (
     <div className="hp-ed-editor hp-ed-add" role="group" aria-label="Add evidence">
@@ -169,17 +212,22 @@ export default function AddEvidence() {
                 An article, a case study, a video, anything with a web address.
               </span>
             </button>
-            <button
-              type="button"
-              className="hp-ed-add-choice"
-              disabled
-              title="Uploading arrives in the next pass"
-            >
+            {/* A label rather than a button, so the picker opens from the
+                same click the choice is made with instead of needing a second
+                one on a control that then has to be found. */}
+            <label className="hp-ed-add-choice" htmlFor="hp-ed-ev-file">
               <span className="hp-ed-add-choice-title">Upload a file</span>
               <span className="hp-ed-add-choice-note">
-                Documents, images and video from your own machine. Coming next.
+                Images, PDF, Word documents and video from your own machine. Up to 50MB.
               </span>
-            </button>
+              <input
+                id="hp-ed-ev-file"
+                type="file"
+                className="hp-ed-file-input"
+                accept={ACCEPT_ATTRIBUTE}
+                onChange={e => chooseFile(e.target.files?.[0] || null)}
+              />
+            </label>
           </div>
         </>
       )}
@@ -230,15 +278,44 @@ export default function AddEvidence() {
             </div>
           ) : null}
 
-          <label className="hp-ed-field-label" htmlFor="hp-ed-ev-url">Link</label>
-          <input
-            id="hp-ed-ev-url"
-            className="hp-ed-input hp-ed-block"
-            type="url"
-            value={form.url}
-            spellCheck="false"
-            onChange={e => set('url', e.target.value)}
-          />
+          {file ? (
+            <>
+              <p className="hp-ed-field-label">File</p>
+              <p className="hp-ed-file-chosen">
+                <span className="hp-ed-file-name">{file.name}</span>
+                <span className="hp-ed-file-meta">
+                  {uploadTypeFor(file.type)?.label}
+                  {humanSize(file.size) ? ` · ${humanSize(file.size)}` : ''}
+                </span>
+                <button
+                  type="button"
+                  className="hp-ed-tag-drop"
+                  onClick={() => { setFile(null); setStep('choose') }}
+                  aria-label="Choose a different file"
+                  disabled={saving}
+                >
+                  ×
+                </button>
+              </p>
+              {uploading ? (
+                <p className="hp-ed-proof-note" role="status">
+                  Uploading… {progress}%
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-url">Link</label>
+              <input
+                id="hp-ed-ev-url"
+                className="hp-ed-input hp-ed-block"
+                type="url"
+                value={form.url}
+                spellCheck="false"
+                onChange={e => set('url', e.target.value)}
+              />
+            </>
+          )}
 
           <label className="hp-ed-field-label" htmlFor="hp-ed-ev-title">Title</label>
           <input
@@ -373,14 +450,14 @@ export default function AddEvidence() {
             onClick={save}
             disabled={!canSave}
           >
-            {saving ? 'Saving…' : 'Add evidence'}
+            {uploading ? 'Uploading…' : saving ? 'Saving…' : 'Add evidence'}
           </button>
         ) : null}
         <button type="button" className="hp-ed-action" onClick={reset} disabled={saving}>
           {step === 'done' ? 'Done' : 'Cancel'}
         </button>
         {step === 'form' ? (
-          <button type="button" className="hp-ed-action" onClick={() => setStep('link')} disabled={saving}>
+          <button type="button" className="hp-ed-action" onClick={() => setStep(file ? 'choose' : 'link')} disabled={saving}>
             Back
           </button>
         ) : null}

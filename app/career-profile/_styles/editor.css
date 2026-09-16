@@ -1177,3 +1177,51 @@
 }
 
 .hp-ed-add-saved strong { font-weight: 600; }
+
+
+/* ---- Choosing a file ---------------------------------------------------
+   The picker is a real <input type="file"> inside the choice label, so the
+   click that picks "Upload a file" is the click that opens the dialog. It is
+   taken out of sight rather than set to display:none, because a hidden input
+   is not focusable and the keyboard would lose the control entirely. */
+
+.hp-ed-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hp-profile label.hp-ed-add-choice { cursor: pointer; position: relative; }
+
+.hp-profile label.hp-ed-add-choice:focus-within {
+  border-color: rgb(var(--profile-accent-rgb) / 0.6);
+  background: rgb(var(--profile-accent-rgb) / 0.08);
+}
+
+.hp-ed-file-chosen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.04);
+}
+
+.hp-ed-file-name {
+  font-size: 13.5px;
+  color: var(--profile-text);
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.hp-ed-file-meta {
+  font-size: 11.5px;
+  color: rgb(255 255 255 / 0.45);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

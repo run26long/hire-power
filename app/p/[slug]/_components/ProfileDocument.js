@@ -342,6 +342,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       lenses,
       onPreviewUrl: edit.onPreviewUrl,
       onCreateEvidence: edit.onCreateEvidence,
+      onUploadEvidence: edit.onUploadEvidence,
       openField,
       busy,
       busyField: busy,
@@ -353,7 +354,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       regenerate: (field) => runWrite(field, () => editRegenerate(editLensId, field))
     }
   }, [
-    edit?.editing, edit?.isPro, edit?.onPreviewUrl, edit?.onCreateEvidence,
+    edit?.editing, edit?.isPro, edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
     lenses, editLensId, openField, busy, writeError, errorField,
     runWrite, editSave, editRegenerate
   ])

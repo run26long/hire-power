@@ -202,6 +202,55 @@ export default function CareerProfileEditorPage() {
     setDocument(doc)
   }, [authHeaders, profile?.slug])
 
+  // Three steps, and the middle one does not come through this server.
+  //
+  // The route says where the file may go and issues a token for exactly that
+  // path; the browser sends the bytes straight to storage; the route is then
+  // told the upload landed and writes the record from what storage actually
+  // holds. A 50MB video never enters a request body here, and the browser
+  // never chooses a path.
+  //
+  // XMLHttpRequest rather than fetch, and only because fetch still cannot
+  // report upload progress. A minute of silence on a large file reads as a
+  // page that has stopped working.
+  const uploadEvidence = useCallback(async (file, details, { onProgress, setUploading } = {}) => {
+    const startRes = await fetch('/api/career-profile/evidence/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ content_type: file.type, size: file.size })
+    })
+    const start = await startRes.json().catch(() => ({}))
+    if (!startRes.ok) throw new Error(start?.error || "We couldn't start that upload.")
+
+    setUploading?.(true)
+    onProgress?.(0)
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', start.signed_url, true)
+      xhr.setRequestHeader('Content-Type', start.content_type)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+      }
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error('That upload did not finish. Please try again.')))
+      xhr.onerror = () => reject(new Error("We couldn't reach storage. Check your connection."))
+      xhr.onabort = () => reject(new Error('That upload was interrupted.'))
+      xhr.send(file)
+    })
+    setUploading?.(false)
+
+    const finishRes = await fetch('/api/career-profile/evidence/upload', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ ...details, path: start.path, ticket: start.ticket })
+    })
+    const payload = await finishRes.json().catch(() => ({}))
+    if (!finishRes.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await reloadDocument()
+    return payload
+  }, [authHeaders, reloadDocument])
+
   const createEvidence = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/evidence', {
       method: 'POST',
@@ -354,7 +403,8 @@ export default function CareerProfileEditorPage() {
           onSaveLens: saveLens,
           onRegenerateLens: regenerateLens,
           onPreviewUrl: previewUrl,
-          onCreateEvidence: createEvidence
+          onCreateEvidence: createEvidence,
+          onUploadEvidence: uploadEvidence
         } : null}
       />
 
