@@ -1,0 +1,1467 @@
+/* ===========================================================================
+   RECRUITER TOOLS
+
+   The page changes register here. Everything above is editorial - set copy,
+   fixed composition, nothing to operate. This is a workspace, and it should
+   feel like one the moment a reader reaches it: a layered translucent surface
+   rather than a section, controls rather than prose, and a field of fine lines
+   underneath that says the whole record is being read rather than the chapter
+   on screen.
+
+   Same palette, same type, same borders as the rest of the profile. The
+   difference is in the composition, not in a new colour - a solid purple slab
+   here would announce itself at the expense of everything the page has spent
+   six sections building.
+   =========================================================================== */
+
+/* The section takes the page's own rhythm. It had been reading as a separate
+   page dropped into the profile: a large panel, inside a large field, inside
+   full section padding. The padding comes off all three.
+
+   No divider and no special transition. It follows Evidence the way every
+   other section follows the one above it. */
+.hp-rt-section { padding-block: 56px; }
+
+.hp-rt-intro { margin-bottom: 20px; }
+.hp-rt-intro .hp-label { margin-bottom: 12px; }
+
+.hp-rt-headline {
+  display: block;
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: clamp(32px, 9vw, 40px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.032em;
+  color: var(--profile-text);
+}
+
+.hp-rt-sub {
+  max-width: 54ch;
+  margin: 12px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--profile-meta);
+}
+
+/* ---- The workspace surface ----
+   One panel that holds both states. The choices and the opened tool are views
+   of the same box, which is what lets opening one read as an expansion rather
+   than as a swap. */
+/* The field the rail sits on. Light from above, no hard edge of its own: the
+   cells carry the borders, so the section reads as a workspace rather than as
+   a box inside a box. */
+.hp-rt-field {
+  position: relative;
+  padding: 14px;
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 90% at 50% -20%, rgb(var(--profile-accent-rgb) / 0.1), transparent 62%),
+    linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.04), rgb(var(--profile-accent-rgb) / 0.012)),
+    var(--profile-surface);
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.14);
+}
+
+/* ---- The rail ----
+   Two cells, always both present. The columns are the whole of the state
+   change: even until a tool is chosen, then about four fifths to the one in
+   use. Nothing is mounted or unmounted to move between them, which is what
+   keeps a half-typed question and a finished brief intact across the change. */
+.hp-rt-rail {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+  transition: grid-template-columns 420ms var(--profile-ease);
+}
+
+.hp-rt-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid rgb(var(--tone) / 0.2);
+  border-radius: 14px;
+  background:
+    linear-gradient(150deg, rgb(var(--tone) / 0.1) 0%, rgb(var(--tone) / 0) 62%),
+    var(--profile-surface-2);
+  overflow: hidden;
+  transition: border-color 260ms ease, background-color 260ms ease;
+}
+
+/* Related, not identical: neighbouring tones from the family the Skills cards
+   use, so the two read as a pair with a boundary rather than as one thing
+   twice. */
+.hp-rt-cell { --tone: var(--profile-tone-a-rgb); }
+.hp-rt-cell[data-tool='role'] { --tone: var(--profile-tone-c-rgb); }
+
+.hp-rt-cell[data-state='expanded'] { border-color: rgb(var(--tone) / 0.42); }
+
+/* The face: the whole card when the pair is even, a narrow column when the
+   other tool has the floor. Either way it is one button and it always opens
+   its own tool. */
+.hp-profile .hp-rt-face {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1 1 auto;
+  min-height: 132px;
+  padding: 20px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hp-rt-cell-mark {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--tone) / 0.26);
+  background: rgb(var(--tone) / 0.12);
+  flex: none;
+}
+
+/* Tool-specific marks, drawn rather than imported: lines of a question, and
+   one shape meeting another. */
+.hp-rt-cell-mark::before,
+.hp-rt-cell-mark::after {
+  content: '';
+  position: absolute;
+  border-radius: 2px;
+  background: rgb(var(--tone) / 0.9);
+}
+
+.hp-rt-cell-mark[data-tool='ask']::before {
+  left: 12px; top: 11px; width: 16px; height: 2px;
+  box-shadow: 0 5px 0 rgb(var(--tone) / 0.9), 0 10px 0 rgb(var(--tone) / 0.55);
+}
+.hp-rt-cell-mark[data-tool='ask']::after { left: 12px; top: 26px; width: 7px; height: 2px; }
+
+.hp-rt-cell-mark[data-tool='role']::before {
+  left: 10px; top: 13px; width: 13px; height: 13px;
+  border-radius: 3px; background: none;
+  border: 2px solid rgb(var(--tone) / 0.9);
+}
+.hp-rt-cell-mark[data-tool='role']::after {
+  left: 18px; top: 19px; width: 13px; height: 13px;
+  border-radius: 3px; background: none;
+  border: 2px solid rgb(var(--tone) / 0.5);
+}
+
+.hp-rt-cell-title {
+  display: block;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  color: var(--profile-text);
+}
+
+.hp-rt-cell-blurb {
+  display: block;
+  margin: 8px 0 0;
+  max-width: 42ch;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--profile-body);
+}
+
+.hp-rt-cell-cta {
+  display: block;
+  margin-top: auto;
+  padding-top: 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--tone) / 0.95);
+}
+
+.hp-profile .hp-rt-face:hover .hp-rt-cell-cta { color: rgb(var(--tone)); }
+.hp-profile .hp-rt-face:hover { background: rgb(var(--tone) / 0.05); }
+
+/* The opened tool's header, and the way back to the pair. */
+.hp-rt-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 18px 0;
+}
+
+.hp-rt-head-text { min-width: 0; flex: 1 1 auto; }
+.hp-rt-head .hp-rt-cell-blurb { max-width: 60ch; }
+
+.hp-profile .hp-rt-collapse {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 18px 0 15px;
+  border: 1px solid var(--profile-line);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.02);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hp-profile .hp-rt-collapse:hover { color: var(--profile-text); border-color: var(--profile-line-strong); }
+.hp-rt-collapse-arrow { font-size: 13px; line-height: 1; }
+
+.hp-rt-body { padding: 16px 18px 18px; }
+.hp-rt-body[data-show='false'] { display: none; }
+
+/* ---- Shared controls ---- */
+.hp-rt-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  color: var(--profile-meta);
+}
+
+.hp-profile .hp-rt-input {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.2);
+  border-radius: 12px;
+  background: rgb(var(--profile-void-rgb) / 0.5);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--profile-text);
+  resize: vertical;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.hp-profile .hp-rt-input::placeholder { color: var(--profile-meta); }
+.hp-profile .hp-rt-input:focus {
+  outline: none;
+  border-color: rgb(var(--profile-accent-rgb) / 0.52);
+  background: rgb(var(--profile-void-rgb) / 0.72);
+}
+.hp-profile .hp-rt-input:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 2px; }
+
+.hp-rt-ask-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.hp-rt-ask-foot[data-align='end'] { justify-content: flex-end; }
+
+.hp-rt-chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 320px; }
+
+.hp-profile .hp-rt-chip {
+  padding: 7px 13px;
+  border: 1px solid var(--profile-line);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.02);
+  font-size: 12.5px;
+  line-height: 1.3;
+  text-align: left;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hp-profile .hp-rt-chip:hover { color: var(--profile-text); border-color: var(--profile-line-strong); }
+.hp-profile .hp-rt-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.hp-profile .hp-rt-go {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.2), rgb(var(--profile-accent-rgb) / 0.1)),
+    var(--profile-surface-2);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--profile-accent-soft);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.hp-profile .hp-rt-go:hover:not(:disabled) {
+  border-color: rgb(var(--profile-accent-rgb) / 0.58);
+  color: var(--profile-text);
+}
+
+.hp-profile .hp-rt-go:disabled { opacity: 0.42; cursor: not-allowed; }
+
+.hp-profile .hp-rt-again,
+.hp-rt-backdrop .hp-rt-again,
+.hp-profile .hp-rt-open,
+.hp-profile .hp-rt-browse,
+.hp-profile .hp-rt-or-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--profile-line);
+  border-radius: 999px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hp-profile .hp-rt-again:hover,
+.hp-rt-backdrop .hp-rt-again:hover,
+.hp-profile .hp-rt-open:hover,
+.hp-profile .hp-rt-browse:hover,
+.hp-profile .hp-rt-or-toggle:hover { color: var(--profile-text); border-color: var(--profile-line-strong); }
+.hp-profile .hp-rt-again:disabled { opacity: 0.42; cursor: not-allowed; }
+
+/* Opening a brief is the row's own action, so it carries a little more
+   weight than the secondary pills without becoming the page's loudest
+   control. */
+.hp-profile .hp-rt-open {
+  flex: none;
+  border-color: rgb(var(--profile-accent-rgb) / 0.3);
+  color: var(--profile-accent-soft);
+}
+
+.hp-profile .hp-rt-open:hover { border-color: rgb(var(--profile-accent-rgb) / 0.55); }
+
+/* The way back to a finished list, from a role somebody started and then
+   thought better of. */
+.hp-profile .hp-rt-backlist {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.hp-profile .hp-rt-backlist:hover { color: var(--profile-text); }
+
+.hp-rt-hint { margin: 8px 0 0; font-size: 12.5px; color: var(--profile-meta); }
+
+.hp-rt-error {
+  margin: 14px 0 0;
+  padding: 11px 14px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.26);
+  border-radius: 10px;
+  background: rgb(var(--profile-accent-rgb) / 0.06);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--profile-body);
+}
+
+.hp-rt-remaining {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--profile-meta);
+  opacity: 0.8;
+}
+
+/* Announcements for screen readers only. */
+.hp-rt-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Ask: the wait ----
+   Three lines settling. It says the tool is working and claims nothing about
+   how far through it is. */
+.hp-rt-thinking { display: grid; gap: 9px; margin-top: 22px; }
+
+.hp-rt-thinking-line {
+  height: 9px;
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--profile-accent-rgb) / 0.07),
+    rgb(var(--profile-accent-rgb) / 0.2),
+    rgb(var(--profile-accent-rgb) / 0.07)
+  );
+  background-size: 220% 100%;
+  animation: hp-rt-sweep 1.9s ease-in-out infinite;
+}
+
+.hp-rt-thinking-line:nth-child(2) { width: 88%; animation-delay: 0.14s; }
+.hp-rt-thinking-line:nth-child(3) { width: 62%; animation-delay: 0.28s; }
+
+@keyframes hp-rt-sweep {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+/* ---- Ask: the answer ---- */
+.hp-rt-answer {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--profile-line);
+  animation: hp-rt-rise 420ms var(--profile-ease) both;
+}
+
+@keyframes hp-rt-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hp-rt-answer-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.62;
+  color: var(--profile-text);
+}
+
+.hp-rt-answer-sources { margin-top: 20px; }
+
+.hp-rt-answer-sources-h {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+/* The honest refusal. Quieter than an answer, and nothing about it is red. */
+.hp-rt-noinfo {
+  padding: 18px 20px;
+  border: 1px solid var(--profile-line);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.02);
+}
+
+.hp-rt-noinfo-text { margin: 0; font-size: 16px; color: var(--profile-body); }
+.hp-rt-noinfo-note {
+  margin: 10px 0 0;
+  max-width: 58ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--profile-meta);
+}
+
+/* ---- Citations ---- */
+.hp-rt-cites { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+.hp-rt-cite {
+  --tone: var(--profile-accent-rgb);
+  padding: 12px 14px;
+  border: 1px solid rgb(var(--tone) / 0.16);
+  border-left-width: 2px;
+  border-radius: 10px;
+  background: rgb(var(--tone) / 0.04);
+}
+
+.hp-rt-cite[data-kind='experience'] { --tone: var(--profile-tone-a-rgb); }
+.hp-rt-cite[data-kind='testimonial'] { --tone: var(--profile-tone-b-rgb); }
+.hp-rt-cite[data-kind='evidence'] { --tone: var(--profile-tone-c-rgb); }
+
+.hp-rt-cite-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+
+.hp-rt-cite-kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--tone) / 0.95);
+}
+
+.hp-rt-cite-label { font-size: 13.5px; font-weight: 600; color: var(--profile-text); }
+
+.hp-rt-cite-snippet {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--profile-meta);
+}
+
+.hp-rt-cite-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+
+.hp-profile .hp-rt-cite-more,
+.hp-profile .hp-rt-cite-visit,
+.hp-rt-backdrop .hp-rt-cite-more,
+.hp-rt-backdrop .hp-rt-cite-visit {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--profile-accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---- Role: the uploader ---- */
+.hp-rt-drop {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 38px 22px;
+  border: 1px dashed rgb(var(--profile-accent-rgb) / 0.3);
+  border-radius: 14px;
+  background: rgb(var(--profile-void-rgb) / 0.4);
+  text-align: center;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.hp-rt-drop[data-dragging='true'] {
+  border-color: rgb(var(--profile-accent-rgb) / 0.7);
+  border-style: solid;
+  background: rgb(var(--profile-accent-rgb) / 0.09);
+}
+
+.hp-rt-file { display: none; }
+
+.hp-rt-drop-title { margin: 0; font-size: 17px; font-weight: 600; color: var(--profile-text); }
+.hp-rt-drop-formats { margin: 0; font-size: 12.5px; letter-spacing: 0.04em; color: var(--profile-meta); }
+
+.hp-rt-chipfile {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
+  border-radius: 999px;
+  background: rgb(var(--profile-accent-rgb) / 0.08);
+  max-width: 100%;
+}
+
+.hp-rt-chipfile-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--profile-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hp-rt-chipfile-size { font-size: 11.5px; color: var(--profile-meta); flex: none; }
+
+.hp-profile .hp-rt-chipfile-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  border: 1px solid var(--profile-line);
+  border-radius: 50%;
+  background: none;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--profile-meta);
+  cursor: pointer;
+}
+
+.hp-profile .hp-rt-chipfile-x:hover { color: var(--profile-text); border-color: var(--profile-line-strong); }
+
+.hp-rt-or { margin-top: 16px; }
+.hp-rt-paste { margin-top: 14px; }
+
+/* Deep enough to read a paragraph of the role back, and no deeper. A
+   field that grows to fill the workspace pushes the button that uses it
+   off the bottom of the screen; the rest of the description scrolls
+   inside, on the same slim bar the report uses.
+
+   Measured in lines rather than pixels. The field is a little taller on a
+   phone than on a desktop because the text is, and a height fixed in pixels
+   would cut the last line through the middle at one width or the other.
+   The px value is the fallback for anything that does not know lh. */
+.hp-profile .hp-rt-paste .hp-rt-input {
+  height: 146px;
+  height: calc(5lh + 30px);
+  min-height: 0;
+  overflow-y: auto;
+  resize: none;
+}
+
+
+/* ---- Role: the intelligence map ----
+   Four named sources and a centre, joined by fine lines that light in turn. It
+   is a picture of what is being read, not a progress bar: nothing here moves
+   in response to the backend, because the backend reports no stages. */
+.hp-rt-map { display: grid; justify-items: center; gap: 18px; padding: 26px 0 6px; }
+
+.hp-rt-map-field {
+  position: relative;
+  width: min(100%, 340px);
+  aspect-ratio: 16 / 9;
+}
+
+.hp-rt-map-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+.hp-rt-line {
+  stroke: rgb(var(--profile-accent-rgb) / 0.22);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  animation: hp-rt-trace 3.4s linear infinite;
+}
+
+.hp-rt-line:nth-child(2) { animation-delay: 0.85s; }
+.hp-rt-line:nth-child(3) { animation-delay: 1.7s; }
+.hp-rt-line:nth-child(4) { animation-delay: 2.55s; }
+
+@keyframes hp-rt-trace {
+  0% { stroke-dashoffset: 0; opacity: 0.28; }
+  50% { opacity: 0.85; }
+  100% { stroke-dashoffset: -32; opacity: 0.28; }
+}
+
+.hp-rt-map-core {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 46px; height: 46px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--profile-accent-rgb) / 0.4), rgb(var(--profile-accent-rgb) / 0.04) 70%);
+  animation: hp-rt-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes hp-rt-breathe {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.94); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+.hp-rt-map-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--profile-meta);
+}
+
+.hp-rt-map-node[data-node='0'] { left: 0; top: 10%; }
+.hp-rt-map-node[data-node='1'] { right: 0; top: 10%; flex-direction: row-reverse; }
+.hp-rt-map-node[data-node='2'] { left: 0; bottom: 10%; }
+.hp-rt-map-node[data-node='3'] { right: 0; bottom: 10%; flex-direction: row-reverse; }
+
+.hp-rt-map-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--profile-accent-rgb) / 0.75);
+  animation: hp-rt-glow 3.4s ease-in-out infinite;
+}
+
+.hp-rt-map-node[data-node='1'] .hp-rt-map-dot { animation-delay: 0.85s; }
+.hp-rt-map-node[data-node='2'] .hp-rt-map-dot { animation-delay: 1.7s; }
+.hp-rt-map-node[data-node='3'] .hp-rt-map-dot { animation-delay: 2.55s; }
+
+@keyframes hp-rt-glow {
+  0%, 100% { opacity: 0.4; box-shadow: 0 0 0 0 rgb(var(--profile-accent-rgb) / 0); }
+  50% { opacity: 1; box-shadow: 0 0 10px 2px rgb(var(--profile-accent-rgb) / 0.4); }
+}
+
+.hp-rt-map-stage { margin: 0; font-size: 14.5px; color: var(--profile-body); }
+.hp-rt-map-note { margin: 0; font-size: 12.5px; color: var(--profile-meta); }
+
+/* Asked for less motion: the map is still a map, and nothing on it moves. */
+.hp-rt-map[data-still='true'] .hp-rt-line,
+.hp-rt-map[data-still='true'] .hp-rt-map-core,
+.hp-rt-map[data-still='true'] .hp-rt-map-dot { animation: none; }
+.hp-rt-map[data-still='true'] .hp-rt-map-dot { opacity: 0.8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-rt-line, .hp-rt-map-core, .hp-rt-map-dot, .hp-rt-thinking-line { animation: none; }
+  .hp-rt-answer { animation: none; }
+  .hp-rt-rail { transition: none; }
+  .hp-profile .hp-rt-choice:hover { transform: none; }
+
+  /* The tooltip still appears, it just stops sliding to get there. */
+  .hp-rt-pill-tip { transition: none; transform: translate(-50%, 0); }
+}
+
+/* ===========================================================================
+   THE HIRING BRIEF
+   Its own surface over the page, portalled onto the body so the sticky
+   direction bar cannot stack above it.
+   =========================================================================== */
+
+.hp-rt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  padding: clamp(0px, 3vw, 36px);
+  background: rgb(var(--profile-void-rgb) / 0.84);
+  backdrop-filter: blur(10px);
+  animation: hp-rt-fade 180ms ease both;
+}
+
+@keyframes hp-rt-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.hp-rt-surface {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(100%, 1040px);
+  height: min(92vh, 940px);
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(90% 60% at 50% -10%, rgb(var(--profile-accent-rgb) / 0.16), transparent 64%),
+    var(--profile-surface);
+  box-shadow: 0 50px 110px rgb(var(--profile-void-rgb) / 0.75);
+  overflow: hidden;
+}
+
+.hp-rt-brief-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-rt-brief-heading { min-width: 0; flex: 1 1 auto; }
+
+.hp-rt-brief-eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-rt-brief-title {
+  margin: 8px 0 0;
+  font-family: var(--profile-font-display);
+  font-size: clamp(22px, 3.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.026em;
+  color: var(--profile-text);
+}
+
+.hp-rt-brief-sub { margin: 7px 0 0; font-size: 14px; color: var(--profile-meta); }
+
+.hp-rt-brief-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+
+.hp-rt-backdrop .hp-rt-download {
+  padding: 10px 18px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.2), rgb(var(--profile-accent-rgb) / 0.1)),
+    var(--profile-surface-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--profile-accent-soft);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.hp-rt-backdrop .hp-rt-download:hover:not(:disabled) {
+  border-color: rgb(var(--profile-accent-rgb) / 0.6);
+  color: var(--profile-text);
+}
+.hp-rt-backdrop .hp-rt-download:disabled { opacity: 0.55; cursor: progress; }
+
+.hp-rt-backdrop .hp-rt-close {
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  border: 1px solid var(--profile-line);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.03);
+  font-size: 19px;
+  line-height: 1;
+  color: var(--profile-meta);
+  cursor: pointer;
+}
+
+.hp-rt-backdrop .hp-rt-close:hover { color: var(--profile-text); border-color: var(--profile-line-strong); }
+
+.hp-rt-brief-error {
+  margin: 0;
+  padding: 10px 26px;
+  border-bottom: 1px solid var(--profile-line);
+  background: rgb(var(--profile-accent-rgb) / 0.07);
+  font-size: 13px;
+  color: var(--profile-body);
+}
+
+.hp-rt-brief-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 26px 34px;
+  scrollbar-gutter: stable;
+}
+
+.hp-rt-brief-section { margin-bottom: 30px; }
+
+.hp-rt-brief-h {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-rt-summary {
+  margin: 0;
+  max-width: 76ch;
+  font-size: 17px;
+  line-height: 1.62;
+  color: var(--profile-text);
+}
+
+.hp-rt-note {
+  margin: -6px 0 14px;
+  max-width: 70ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--profile-meta);
+}
+
+.hp-rt-block {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--profile-line);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.015);
+}
+
+/* Gaps are not failures. Quieter, never red. */
+.hp-rt-block[data-tone='quiet'] { background: none; border-style: dashed; }
+
+.hp-rt-block-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--profile-text); }
+.hp-rt-block-meta { margin: 4px 0 0; font-size: 12.5px; color: var(--profile-meta); }
+.hp-rt-block-body { margin: 8px 0 0; max-width: 76ch; font-size: 14.5px; line-height: 1.62; color: var(--profile-body); }
+
+.hp-rt-bullets { margin: 10px 0 0; padding-left: 18px; }
+.hp-rt-bullets li { font-size: 14px; line-height: 1.6; color: var(--profile-body); margin-bottom: 4px; }
+
+.hp-rt-block .hp-rt-cites { margin-top: 12px; }
+
+.hp-rt-quote {
+  margin: 0 0 16px;
+  padding-left: 16px;
+  border-left: 2px solid rgb(var(--profile-tone-b-rgb) / 0.5);
+}
+
+.hp-rt-quote-text {
+  margin: 0;
+  font-family: var(--profile-font-voice);
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--profile-voice);
+}
+
+.hp-rt-quote-by { margin-top: 8px; font-size: 12.5px; color: var(--profile-meta); }
+
+.hp-rt-brief-foot {
+  margin: 8px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--profile-line);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--profile-meta);
+}
+
+/* ---- Wider ---- */
+@media (min-width: 768px) {
+  .hp-rt-section { padding-block: 64px; }
+  .hp-rt-field { padding: 16px; }
+  .hp-rt-rail { grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* The split. Four fifths to the tool in use and the rest to the one
+     waiting - enough for the waiting one to stay a readable, clickable card
+     rather than becoming a sliver nobody would aim at. */
+  .hp-rt-rail[data-expanded='ask'] { grid-template-columns: 78fr 22fr; }
+  .hp-rt-rail[data-expanded='role'] { grid-template-columns: 22fr 78fr; }
+
+  /* Narrowed, the face keeps its title and its call to action and gives up
+     the description, which is the part that cannot survive the width. */
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-blurb { display: none; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-face { padding: 20px 16px; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-pills { padding: 0 16px 18px; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-title { font-size: 16px; }
+
+  /* Grouped near the top rather than spread over the whole height of the
+     tool beside it: a tall column with a word at each end reads as a card
+     that failed to load. */
+  .hp-rt-cell[data-state='narrow'] .hp-rt-face { justify-content: flex-start; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-cta { margin-top: 14px; padding-top: 0; }
+}
+
+@media (min-width: 1200px) {
+  .hp-rt-section { padding-block: 72px; }
+  .hp-rt-field { padding: 18px; }
+  .hp-rt-rail { gap: 16px; }
+  .hp-profile .hp-rt-face { min-height: 150px; padding: 24px; }
+  .hp-rt-pills[data-variant='card'] { padding: 0 24px 20px; }
+  /* The workspaces keep their room. Only the chrome around them shrank. */
+  .hp-rt-head { padding: 22px 24px 0; }
+  .hp-rt-body { padding: 18px 24px 24px; }
+  .hp-rt-brief-body { padding: 28px 34px 40px; }
+  .hp-rt-brief-head { padding: 26px 34px 20px; }
+  .hp-rt-brief-error { padding: 10px 34px; }
+}
+
+/* ---- Phone ---- */
+@media (max-width: 767px) {
+  .hp-rt-field { padding: 14px; border-radius: 14px; }
+
+  /* Stacked, and the tool not in use rides above the one that is, so the
+     pair reads as tabs over a workspace rather than as a control stranded
+     below it. */
+  .hp-rt-cell[data-state='narrow'] { order: -1; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-face {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-height: 0;
+    padding: 14px 16px;
+  }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-mark { margin-bottom: 0; width: 30px; height: 30px; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-blurb { display: none; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-title { font-size: 15px; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-cell-cta { margin: 0 0 0 auto; padding: 0; font-size: 11px; }
+
+  .hp-rt-head { flex-direction: column; gap: 12px; padding: 18px 16px 0; }
+  .hp-rt-collapse { align-self: flex-start; }
+  .hp-rt-body { padding: 16px; }
+  .hp-rt-surface { width: 100%; height: 100%; border-radius: 0; border: 0; }
+  .hp-rt-backdrop { padding: 0; }
+  .hp-rt-brief-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 18px 16px 14px;
+    background: var(--profile-surface);
+  }
+  .hp-rt-brief-actions { flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
+  .hp-rt-brief-body { padding: 18px 16px 40px; }
+  .hp-rt-brief-error { padding: 10px 16px; }
+  .hp-rt-ask-foot { flex-direction: column; align-items: stretch; }
+  .hp-profile .hp-rt-go { width: 100%; }
+  .hp-profile .hp-rt-again { flex: 1 1 auto; }
+
+  /* The row keeps its shape at this width: the role on one line, the
+     company under it, and the action full width beneath both. */
+  .hp-rt-result { padding: 14px 0; }
+  .hp-profile .hp-rt-open { width: 100%; }
+  .hp-rt-results-foot { flex-direction: column; align-items: stretch; }
+  .hp-rt-results-count { order: 2; }
+
+  /* Beside the face rather than under it, so history on the narrow card
+     costs no height at all. */
+  .hp-rt-cell[data-state='narrow'] { flex-direction: row; align-items: center; }
+  .hp-rt-cell[data-state='narrow'] .hp-rt-face { flex: 1 1 auto; }
+  /* Stacked, the cards are one above the other and sized to their own copy,
+     so there is no line for an empty row to hold. It only takes up space. */
+  .hp-rt-pills[data-variant='card'][data-empty='true'] { display: none; }
+
+  .hp-rt-pills[data-variant='card'] { margin: 0; padding: 0 14px 0 0; }
+  .hp-rt-pills[data-variant='card'] .hp-rt-pills-list { flex-wrap: nowrap; }
+
+  /* A tooltip anchored to a pill near the right edge would hang off the
+     screen at this width. */
+  .hp-rt-pill-tip { max-width: 190px; }
+  .hp-rt-answer-foot { padding: 14px 16px; }
+
+  /* Shorter again at this height. The point of shortening the field was to
+     keep the button that uses it on screen, and on a phone the header above
+     it has already spent most of the room. */
+  .hp-profile .hp-rt-paste .hp-rt-input {
+    height: 105px;
+    height: calc(3lh + 30px);
+  }
+  .hp-rt-paste { margin-top: 8px; }
+  .hp-rt-paste .hp-rt-hint { margin-top: 6px; }
+  .hp-rt-ask-foot { margin-top: 10px; }
+}
+
+/* The glyphs, recentred for the smaller mark. */
+.hp-rt-cell-mark[data-tool='ask']::before { left: 10px; top: 9px; width: 14px; }
+.hp-rt-cell-mark[data-tool='ask']::after { left: 10px; top: 22px; width: 6px; }
+.hp-rt-cell-mark[data-tool='role']::before { left: 8px; top: 11px; width: 12px; height: 12px; }
+.hp-rt-cell-mark[data-tool='role']::after { left: 15px; top: 16px; width: 12px; height: 12px; }
+
+.hp-rt-cell-cta { padding-top: 14px; }
+
+/* ---- One input at a time ----
+   A dropzone stacked over a textarea asks the reader which one the page
+   wants. This asks which one they have. */
+.hp-rt-modes {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid var(--profile-line);
+  border-radius: 999px;
+  background: rgb(var(--profile-void-rgb) / 0.4);
+}
+
+.hp-profile .hp-rt-mode {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.hp-profile .hp-rt-mode:hover { color: var(--profile-body); }
+
+.hp-profile .hp-rt-mode[aria-pressed='true'] {
+  background: rgb(var(--profile-accent-rgb) / 0.18);
+  color: var(--profile-text);
+}
+
+/* ---- The finished briefs ----
+   A list, not a carousel. Three roles against one candidate is a
+   comparison, and a comparison wants all of it on screen: an arrow and a
+   counter would hide two thirds of the answer and ask the reader to hold
+   the rest in their head. One row each, divided by a hairline, sized by
+   what is in them. */
+.hp-rt-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--profile-line);
+}
+
+.hp-rt-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-rt-result-text { min-width: 0; flex: 1 1 240px; }
+
+.hp-rt-result-role {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--profile-text);
+}
+
+.hp-rt-result-co { margin: 3px 0 0; font-size: 13px; color: var(--profile-meta); }
+
+.hp-rt-results-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.hp-rt-results-count { margin: 0; font-size: 12.5px; color: var(--profile-meta); }
+
+.hp-rt-limit {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--profile-meta);
+}
+
+/* ---- The answers, as a row of numbers ----
+   Five questions are five full sentences, and five of those stacked is a
+   transcript. Numbered, they are a row; the question itself is the
+   button's accessible name, and is shown on hover and on focus. */
+.hp-rt-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--profile-line);
+}
+
+.hp-rt-history .hp-rt-remaining { margin: 0; }
+
+/* The right-hand end of that row: what is left today, and the way to spend
+   it. Kept together so the row reads left to right as history, then count,
+   then action. */
+.hp-rt-history-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.hp-rt-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hp-rt-pills-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--profile-meta);
+}
+
+.hp-rt-pills-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hp-rt-pill-item { position: relative; display: flex; }
+
+.hp-profile .hp-rt-pill,
+.hp-rt-backdrop .hp-rt-pill {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--profile-line);
+  border-radius: 50%;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--profile-meta);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.hp-profile .hp-rt-pill:hover,
+.hp-rt-backdrop .hp-rt-pill:hover {
+  color: var(--profile-text);
+  border-color: rgb(var(--profile-accent-rgb) / 0.5);
+}
+
+/* The one on screen, or the one that just arrived. */
+.hp-profile .hp-rt-pill[data-active='true'],
+.hp-rt-backdrop .hp-rt-pill[data-active='true'] {
+  border-color: rgb(var(--profile-accent-rgb) / 0.55);
+  background:
+    linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.26), rgb(var(--profile-accent-rgb) / 0.12)),
+    var(--profile-surface-2);
+  color: var(--profile-text);
+}
+
+/* The question, folded up. Shown on hover and on keyboard focus; hidden
+   from assistive technology because the button's own name already says
+   it, and saying it twice is worse than not saying it. */
+.hp-rt-pill-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 4;
+  width: max-content;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid var(--profile-line-strong);
+  border-radius: 8px;
+  background: var(--profile-surface-2);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.45);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  color: var(--profile-body);
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.hp-rt-pill:hover .hp-rt-pill-tip,
+.hp-rt-pill:focus-visible .hp-rt-pill-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* On a card there is no room for a label beside the numbers, and the row
+   sits at the foot of the space the face already claimed. */
+.hp-rt-pills[data-variant='card'] {
+  margin-top: auto;
+  padding: 0 20px 18px;
+}
+
+.hp-rt-pills[data-variant='card'] .hp-rt-pills-label { display: none; }
+
+.hp-rt-pills[data-variant='card'] .hp-rt-pill { width: 26px; height: 26px; font-size: 11.5px; }
+
+/* The empty row on the card that has produced nothing yet. It holds one
+   pill's worth of height and nothing else, which is what keeps the two calls
+   to action on the same line while only one tool has been used. */
+.hp-rt-pills[data-variant='card'] .hp-rt-pills-list { min-height: 26px; }
+
+/* Each card's numbers take that card's own tone, so a row of them reads as
+   belonging to the tool above it rather than as a second Q&A history. */
+.hp-rt-cell[data-tool='role'] .hp-rt-pill[data-active='true'] {
+  border-color: rgb(var(--tone) / 0.6);
+  background:
+    linear-gradient(180deg, rgb(var(--tone) / 0.26), rgb(var(--tone) / 0.12)),
+    var(--profile-surface-2);
+}
+
+.hp-profile .hp-rt-cell[data-tool='role'] .hp-rt-pill:hover {
+  border-color: rgb(var(--tone) / 0.55);
+}
+
+/* ---- The answer, on its own surface ----
+   The skill proof box's language, stated again rather than borrowed: that
+   component is approved and is not touched by this one. Suspended and
+   blurred, rimmed in a single hair of lavender, feathered outward rather
+   than dropped onto the page. It grows with what it holds and then the body
+   scrolls, so the surface never runs off the screen. */
+.hp-rt-answer-surface {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 680px);
+  max-height: min(84vh, 760px);
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.38);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      165deg,
+      rgb(var(--profile-accent-rgb) / 0.16) 0%,
+      rgb(var(--profile-accent-rgb) / 0.07) 46%,
+      rgb(16 12 26 / 0.9) 100%
+    ),
+    rgb(14 11 22 / 0.82);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    0 26px 70px -18px rgb(var(--profile-accent-rgb) / 0.4),
+    0 10px 46px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+.hp-rt-answer-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 22px 14px;
+}
+
+.hp-rt-answer-heading { min-width: 0; flex: 1 1 auto; }
+
+.hp-rt-answer-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-rt-answer-q {
+  margin: 7px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--profile-text);
+}
+
+/* Outside the scrolling body, so five numbers and the way onward are still
+   there at the bottom of a long answer. */
+.hp-rt-answer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--profile-line);
+}
+
+.hp-rt-answer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 22px 22px;
+}
+
+/* ---- Citations ----
+   Secondary to the answer and colour-coded by what they are. The colour is
+   carried by the kind label and a single edge, never by the body text: a
+   paragraph set in a bright hue is harder to read, and there is nothing
+   about a source that needs shouting. */
+.hp-rt-cite {
+  padding: 9px 11px;
+  border-radius: 8px;
+}
+
+.hp-rt-cite[data-kind='knowledge'] { --tone: var(--profile-accent-rgb); }
+.hp-rt-cite[data-kind='direction'],
+.hp-rt-cite[data-kind='lens'] { --tone: var(--profile-action-rgb); }
+.hp-rt-cite[data-kind='profile'] { --tone: var(--profile-status-rgb); }
+
+.hp-rt-cite-kind { font-size: 9px; letter-spacing: 0.14em; }
+.hp-rt-cite-label { font-size: 12px; font-weight: 600; color: var(--profile-body); }
+.hp-rt-cite-snippet { margin-top: 6px; font-size: 11.5px; line-height: 1.5; }
+.hp-rt-cite-actions { margin-top: 6px; }
+
+.hp-rt-backdrop .hp-rt-cite-more,
+.hp-rt-backdrop .hp-rt-cite-visit { font-size: 11px; }
+
+/* ---- Branding ----
+   Authorship and an invitation. Under the report, quiet enough that it never
+   competes with the download. */
+.hp-rt-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--profile-line);
+  /* Stated on the block as well as on the two spans inside it, so nothing
+     above this can lend it a weight. */
+  font-weight: 400;
+}
+
+.hp-rt-brand-mark { width: 84px; height: auto; opacity: 0.72; flex: none; }
+
+.hp-rt-brand-text {
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--profile-meta);
+}
+
+/* The weight here was already regular; what read as bold was the underline,
+   which at 11.5px against a muted sentence is the heaviest thing in the line.
+   Colour alone carries it, and the underline comes back on hover, where it is
+   an affordance rather than emphasis. */
+/* One declaration, and it is the colour. Everything else - family, size,
+   weight, letter-spacing, smoothing - is inherited from the sentence this
+   clause belongs to, so the two cannot drift apart by restating anything.
+
+   At rest it takes that sentence's own grey, so the closing line reads as one
+   quiet clause rather than as a link with a sentence in front of it. The
+   lavender arrives on hover and on keyboard focus, where it answers the
+   reader rather than competing with the report above it. */
+.hp-rt-backdrop .hp-rt-brand-link { color: var(--profile-meta); }
+
+.hp-rt-backdrop .hp-rt-brand-link:hover,
+.hp-rt-backdrop .hp-rt-brand-link:focus-visible {
+  color: var(--profile-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- Scrollbars ----
+   The report and the answer both scroll inside themselves, and the platform
+   bar is a wide white column that belongs to a different piece of software.
+   Thin, dark, lavender, and still visible: hiding it entirely would take away
+   the only sign that there is more to read. */
+.hp-rt-brief-body,
+.hp-rt-answer-body,
+.hp-profile .hp-rt-input {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--profile-accent-rgb) / 0.42) transparent;
+}
+
+.hp-rt-brief-body::-webkit-scrollbar,
+.hp-rt-answer-body::-webkit-scrollbar,
+.hp-profile .hp-rt-input::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hp-rt-brief-body::-webkit-scrollbar-track,
+.hp-rt-answer-body::-webkit-scrollbar-track,
+.hp-profile .hp-rt-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hp-rt-brief-body::-webkit-scrollbar-thumb,
+.hp-rt-answer-body::-webkit-scrollbar-thumb,
+.hp-profile .hp-rt-input::-webkit-scrollbar-thumb {
+  background: rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 3px;
+}
+
+.hp-rt-brief-body::-webkit-scrollbar-thumb:hover,
+.hp-rt-answer-body::-webkit-scrollbar-thumb:hover,
+.hp-profile .hp-rt-input::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--profile-accent-rgb) / 0.6);
+}
+
+/* No arrow buttons at either end, and no white gutter behind the bar. */
+.hp-rt-brief-body::-webkit-scrollbar-button,
+.hp-rt-answer-body::-webkit-scrollbar-button,
+.hp-profile .hp-rt-input::-webkit-scrollbar-button { display: none; height: 0; }
+
+.hp-rt-brief-body::-webkit-scrollbar-corner,
+.hp-rt-answer-body::-webkit-scrollbar-corner { background: transparent; }
+
+/* ---- The report head, restated as a hierarchy ---- */
+.hp-rt-brief-name {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--profile-text);
+}
+
+.hp-rt-brief-sub { margin: 3px 0 0; font-size: 13.5px; color: var(--profile-meta); }
+
+@media (max-width: 767px) {
+  .hp-rt-answer-surface { width: 100%; max-height: 92vh; border-radius: 16px; }
+  .hp-rt-backdrop[data-variant="answer"] { padding: 12px; }
+  .hp-rt-done { min-height: 0; }
+  .hp-rt-done-top { flex-wrap: wrap; }
+  .hp-rt-modes { display: flex; width: 100%; }
+  .hp-profile .hp-rt-mode { flex: 1 1 auto; text-align: center; }
+  .hp-rt-brand { flex-wrap: wrap; gap: 10px; }
+}
+
+/* ---- Stillness, restated ----
+   The tooltip is defined after the reduced-motion block above it, so at equal
+   specificity the later rule wins and the transition survives. This is that
+   block again, in the one place where it is last. */
+@media (prefers-reduced-motion: reduce) {
+  .hp-rt-pill-tip { transition: none; transform: translate(-50%, 0); }
+}

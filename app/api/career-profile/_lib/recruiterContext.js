@@ -251,7 +251,7 @@ export function buildSources(candidate) {
   candidate.knowledge.forEach((row, i) => {
     const id = `knowledge:${i}`
     const where = [row.source_job_title, row.source_job_company].filter(Boolean).join(', ')
-    const label = `Career knowledge (${row.knowledge_type})${where ? ` — ${where}` : ''}`
+    const label = `Career knowledge (${row.knowledge_type})${where ? ` · ${where}` : ''}`
     add(id, 'knowledge', label, row.content)
     blocks.push(`[${id}] ${label}\n${row.content}`)
   })
@@ -290,6 +290,58 @@ export function buildSources(candidate) {
   return { sources, text: blocks.join('\n\n') }
 }
 
+// ---------------------------------------------------------------------------
+// The no-em-dash rule, at runtime
+//
+// Our own copy is written without them. Model prose and the candidate's own
+// recorded text are not ours to write, so they are corrected on the way out
+// instead - once, here, before anything is signed, rendered, or printed.
+//
+// The substitution is punctuation only: a numeric range becomes "to", and a
+// parenthetical dash becomes the comma it stands in for. Nothing is reworded.
+// ---------------------------------------------------------------------------
+const EM_DASH = '—'
+
+export function noEmDash(text) {
+  if (typeof text !== 'string' || !text.includes(EM_DASH)) return text
+  return text
+    .replace(/(\d)\s*—\s*(\d)/g, '$1 to $2')
+    .replace(/\s*—\s*/g, ', ')
+    .replace(/,\s*,/g, ',')
+    .replace(/\s+,/g, ',')
+    .replace(/,\s*$/, '')
+    .trim()
+}
+
+// Source ids are how the model points at its material, and they belong in the
+// citations array, which is where the reader meets them as a named source.
+// Asked to cite, the model also tends to leave the raw id inline in the prose,
+// where it reads as plumbing: "...quality control standards [experience:0]."
+// Those are stripped, with the punctuation closed back up behind them.
+export function stripSourceIds(text) {
+  if (typeof text !== 'string' || !text.includes('[')) return text
+  return text
+    .replace(/\s*\[[a-z_]+:\d+\](\s*,\s*\[[a-z_]+:\d+\])*/gi, '')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\(\s*\)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
+// Applied to a whole parsed reply: the model puts prose in a dozen different
+// fields and a rule that only covered the ones we remembered would not be a
+// rule at all.
+function deepNoEmDash(value) {
+  if (typeof value === 'string') return noEmDash(value)
+  if (Array.isArray(value)) return value.map(deepNoEmDash)
+  if (value && typeof value === 'object') {
+    const out = {}
+    for (const [k, v] of Object.entries(value)) out[k] = deepNoEmDash(v)
+    return out
+  }
+  return value
+}
+
 // A citation list the model returned, reduced to the ones that name something
 // it was actually given. Anything else was invented and is dropped.
 export function keepRealCitations(claimed, sources) {
@@ -301,7 +353,12 @@ export function keepRealCitations(claimed, sources) {
     if (!id || seen.has(id) || !sources.has(id)) continue
     seen.add(id)
     const s = sources.get(id)
-    kept.push({ id: s.id, kind: s.kind, label: s.label, snippet: (s.snippet || '').slice(0, 240) })
+    kept.push({
+      id: s.id,
+      kind: s.kind,
+      label: noEmDash(s.label),
+      snippet: noEmDash((s.snippet || '').slice(0, 240))
+    })
   }
   return kept
 }
@@ -313,13 +370,13 @@ export function parseJson(text) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)
   const body = (fenced ? fenced[1] : text).trim()
   try {
-    return JSON.parse(body)
+    return deepNoEmDash(JSON.parse(body))
   } catch {
     const start = body.indexOf('{')
     const end = body.lastIndexOf('}')
     if (start < 0 || end <= start) return null
     try {
-      return JSON.parse(body.slice(start, end + 1))
+      return deepNoEmDash(JSON.parse(body.slice(start, end + 1)))
     } catch {
       return null
     }
@@ -382,7 +439,7 @@ export function fence(label, text) {
     .replace(closing, '')
     // Control characters. They serve no purpose in a typed question or a pasted
     // job description, and are a cheap way to confuse something downstream.
-    .replace(/[ --]/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
   return `<${label}>
 ${clean}
 </${label}>`

@@ -18,7 +18,8 @@
    =========================================================================== */
 
 .hp-profile,
-.hp-ev-backdrop {
+.hp-ev-backdrop,
+.hp-rt-backdrop {
   /* ---- Signature default palette: the raw ramp ---- */
   --profile-void: #09060f;    /* the hero's own darker ground */
   --profile-ground: #0d0916;  /* the page ground */

@@ -62,7 +62,7 @@ function bulletPool(resumeData) {
 
 function buildProofPrompt({ lensName, skills, evidence, testimonials, bullets }) {
   const evidenceBlock = evidence.length
-    ? evidence.map(e => `[evidence:${e.id}] ${e.title}${e.description ? ` — ${e.description}` : ''}`).join('\n')
+    ? evidence.map(e => `[evidence:${e.id}] ${e.title}${e.description ? ` · ${e.description}` : ''}`).join('\n')
     : '(none)'
 
   const testimonialBlock = testimonials.length
@@ -199,7 +199,7 @@ async function storeSkillProof({ supabase, profileId, lensId, userId, lensName, 
 
   const now = new Date().toISOString()
   // A plain insert, not an upsert. The delete above already made this a
-  // replacement, and the uniqueness constraint is a partial index — Postgres
+  // replacement, and the uniqueness constraint is a partial index. Postgres
   // cannot infer a partial index for ON CONFLICT without its predicate, which
   // PostgREST has no way to send. Clearing the direction first is both simpler
   // and the behaviour that is actually wanted: a skill this direction has

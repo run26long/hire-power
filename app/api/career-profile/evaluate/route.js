@@ -12,9 +12,11 @@ import {
   keepRealCitations,
   loadCandidate,
   logCall,
+  noEmDash,
   openGate,
   parseJson,
   service,
+  stripSourceIds,
   viewerHash
 } from '../_lib/recruiterContext'
 
@@ -256,6 +258,8 @@ RULES
 8. Keep it to at most 5 strengths, 4 gaps, 4 roles and 3 testimonials - the strongest ones, not every one that qualifies. Each evidence and why field is one or two sentences. A long answer is not a better one, and an answer cut off halfway is no answer at all.
 9. Quote at most two bullets per role.
 10. If candidate_material is too thin to assess against this role, say so in match_summary and return empty arrays rather than filling them.
+11. Never use an em dash. Use a comma, a colon, or a second sentence instead.
+12. Put source ids in the citations arrays only. Never write a source id into match_summary, evidence, note, or why. The recruiter is shown the sources separately, so an id in the prose is noise.
 
 Return JSON and nothing else:
 
@@ -278,7 +282,8 @@ Return JSON and nothing else:
 }`
 }
 
-const str = (value, cap) => (typeof value === 'string' ? value.trim().slice(0, cap) : '')
+const str = (value, cap) =>
+  (typeof value === 'string' ? stripSourceIds(value).trim().slice(0, cap) : '')
 
 export async function POST(request) {
   const started = Date.now()
@@ -439,13 +444,15 @@ export async function POST(request) {
           .map(b => (typeof b === 'string' ? b.trim() : ''))
           .filter(b => known.some(k => k.trim() === b))
 
+        // Matched against the record above, then corrected for house style on
+        // the way out. The comparison stays exact because it happens first.
         return {
           source_id: id,
-          title: role?.title || role?.jobTitle || '',
-          company: role?.company || role?.employer || '',
+          title: noEmDash(role?.title || role?.jobTitle || ''),
+          company: noEmDash(role?.company || role?.employer || ''),
           dates: [role?.startDate, role?.endDate].filter(Boolean).join(' – '),
           why: str(row?.why, 300),
-          bullets
+          bullets: bullets.map(noEmDash)
         }
       })
       .filter(Boolean)
@@ -465,8 +472,8 @@ export async function POST(request) {
         return {
           source_id: id,
           id: quote.id,
-          quote: quote.polished_text,
-          attribution: [quote.recipient_name, quote.recipient_title].filter(Boolean).join(', '),
+          quote: noEmDash(quote.polished_text),
+          attribution: noEmDash([quote.recipient_name, quote.recipient_title].filter(Boolean).join(', ')),
           why: str(row?.why, 300)
         }
       })

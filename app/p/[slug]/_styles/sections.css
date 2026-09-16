@@ -326,17 +326,31 @@
 .hp-skills { padding-bottom: 34px; }
 .hp-skills + .hp-ev-section { padding-top: 34px; }
 
+/* Evidence to Recruiter Tools had the same fault and takes the same cure:
+   Evidence kept the full section padding at the bottom while Recruiter Tools
+   added its own at the top, and the two stacked into 168px where every other
+   junction on the page is 70 to 88. Both sides give it back in the same
+   proportion, scoped to the pair, so Recruiter Tools keeps its own padding
+   wherever Evidence is not above it. The section's own bottom padding is
+   untouched, so its distance from the footer is exactly what it was. */
+.hp-ev-section { padding-bottom: 34px; }
+.hp-ev-section + .hp-rt-section { padding-top: 34px; }
+
 @media (min-width: 768px) {
   .hp-section-exp { padding-top: 72px; padding-bottom: 38px; }
   .hp-impact + .hp-section { padding-top: 32px; }
   .hp-skills { padding-bottom: 40px; }
   .hp-skills + .hp-ev-section { padding-top: 40px; }
+  .hp-ev-section { padding-bottom: 40px; }
+  .hp-ev-section + .hp-rt-section { padding-top: 40px; }
 }
 @media (min-width: 1200px) {
   .hp-section-exp { padding-top: 84px; padding-bottom: 42px; }
   .hp-impact + .hp-section { padding-top: 28px; }
   .hp-skills { padding-bottom: 44px; }
   .hp-skills + .hp-ev-section { padding-top: 44px; }
+  .hp-ev-section { padding-bottom: 44px; }
+  .hp-ev-section + .hp-rt-section { padding-top: 44px; }
 }
 
 /* -------------------------------------------------- SELECTED EXPERIENCE -- */
@@ -1900,13 +1914,29 @@
 /* The last line on the page, and the quietest - but still read at its token's
    own strength rather than faded under it. */
 .hp-foot-mark {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin: 26px 0 0;
   text-align: center;
   font-size: 13px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--profile-meta);
+}
+
+/* The mark sits at the type's own scale and at the type's own quietness, so
+   the line reads as one thing rather than as a logo dropped beside a label.
+   Height is what is set, not width: the line's height is the thing that must
+   not change, and the image finds its own width from that. */
+.hp-foot-mark-logo {
+  height: 16px;
+  width: auto;
+  opacity: 0.72;
+  /* The wordmark carries its own letter-spacing; the label's must not be
+     inherited into the gap after it. */
+  margin-left: -2px;
 }
 
 @media (min-width: 1024px) {
@@ -2323,6 +2353,310 @@
   .hp-profile .hp-ev-all:hover .hp-ev-all-arrow { transform: none; }
 }
 
+/* ---- The featured item, lit from behind ----
+   The v10 composition exactly: same proportions, same icon area, same order
+   of type, title, description and source, same corner for the action. What
+   changes is what the card is made of.
+
+   It was an opaque slab the same colour as every other panel on the page.
+   Now it is glass over a light: a lamp painted behind it on the slot, a
+   translucent lavender surface that the lamp reads through, and a fine
+   luminous edge around the whole thing.
+
+   The order matters. The glow is on the slot rather than the tile because
+   the tile clips its own overflow, and a light that cannot leave the box it
+   is inside is not a light. The tile's backdrop-filter then blurs whatever
+   is behind it - which is that glow - so the card is genuinely lit through
+   rather than painted to look it. */
+.hp-ev-lead-slot { position: relative; isolation: isolate; }
+
+/* The lamp. Centred on the artifact area near the top of the card, reaching
+   past the card on every side and a little further to the right, so the haze
+   carries toward the contact sheet instead of stopping at an edge. It is
+   drawn behind everything in the slot and catches no pointer. */
+.hp-ev-lead-slot::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: -70px;
+  bottom: -60px;
+  left: -70px;
+  right: -130px;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      52% 38% at 46% 30%,
+      rgb(var(--profile-accent-rgb) / 0.17) 0%,
+      rgb(var(--profile-accent-rgb) / 0.08) 38%,
+      rgb(var(--profile-accent-rgb) / 0.025) 64%,
+      rgb(var(--profile-accent-rgb) / 0) 82%
+    );
+}
+
+.hp-ev-lead-slot .hp-ev-tile[data-role='lead'] { position: relative; z-index: 1; }
+
+/* Raised, not repositioned. The action is absolute on its card corner from
+   tablet up and in normal flow below that, and stating a position here would
+   have taken that corner away from it. */
+.hp-ev-lead-slot .hp-ev-all { z-index: 1; }
+
+/* The glass. The dark is translucent rather than solid, so the lamp behind
+   it comes through as light rather than as a painted highlight, and the
+   lavender gradient over it is shallow enough that the type keeps the same
+   contrast it had on the opaque card. */
+.hp-profile .hp-ev-tile[data-role='lead'] {
+  background:
+    linear-gradient(
+      158deg,
+      rgb(var(--ev-tone) / 0.15) 0%,
+      rgb(var(--ev-tone) / 0.05) 52%,
+      rgb(var(--ev-tone) / 0.09) 100%
+    ),
+    rgb(var(--profile-void-rgb) / 0.46);
+  border-color: rgb(var(--ev-tone) / 0.38);
+  -webkit-backdrop-filter: blur(16px) saturate(118%);
+  backdrop-filter: blur(16px) saturate(118%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 0 40px rgb(var(--ev-tone) / 0.05),
+    0 0 0 1px rgb(var(--ev-tone) / 0.07),
+    0 30px 70px rgb(var(--profile-void-rgb) / 0.5);
+}
+
+/* The edge brightens rather than the card lifting: a pane of glass does not
+   hop when you point at it. The translate stays, because it is v10's. */
+.hp-profile .hp-ev-tile[data-role='lead']:hover {
+  border-color: rgb(var(--ev-tone) / 0.55);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    inset 0 0 40px rgb(var(--ev-tone) / 0.08),
+    0 0 0 1px rgb(var(--ev-tone) / 0.12),
+    0 30px 70px rgb(var(--profile-void-rgb) / 0.5);
+}
+
+/* The artifact area is where the lamp is brightest, so the canvas inside the
+   card carries a little more of it and its own hairline reads as lit. */
+@media (min-width: 1200px) {
+  .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark {
+    border-color: rgb(var(--ev-tone) / 0.26);
+    background:
+      radial-gradient(
+        circle at 50% 42%,
+        rgb(var(--ev-tone) / 0.26) 0%,
+        rgb(var(--ev-tone) / 0.09) 52%,
+        rgb(var(--ev-tone) / 0.02) 78%
+      );
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+}
+
+/* On a phone the same glass, with the lamp pulled in close. A halo sized for
+   a half-width card would reach most of the screen at this width, which is
+   atmosphere turning into fog. */
+@media (max-width: 767px) {
+  .hp-ev-lead-slot::before {
+    top: -34px;
+    bottom: -30px;
+    left: -30px;
+    right: -30px;
+    background:
+      radial-gradient(
+        58% 34% at 50% 27%,
+        rgb(var(--profile-accent-rgb) / 0.15) 0%,
+        rgb(var(--profile-accent-rgb) / 0.06) 42%,
+        rgb(var(--profile-accent-rgb) / 0) 78%
+      );
+  }
+
+  .hp-profile .hp-ev-tile[data-role='lead'] {
+    -webkit-backdrop-filter: blur(12px) saturate(114%);
+    backdrop-filter: blur(12px) saturate(114%);
+  }
+}
+
+/* ---- Squared off, and closed with one line ----
+   The glass stays exactly as it is. What changes is the geometry around it:
+   the card and the artifact frame inside it take the same 3px the contact
+   sheet's plates already use, so the whole section is cut to one corner
+   radius instead of two.
+
+   The action comes down off the card corner and becomes the compact
+   rectangle again, on the left under the card where it reads as the next
+   line rather than as an object pinned to the artwork.
+
+   And the arrangement gets a floor. One hairline under the grid itself runs
+   the full measure - the featured item's left edge to the supporting items'
+   right - because the grid is the one element that spans both. Put on the
+   pieces instead it would have been five lines pretending to be one. */
+.hp-profile .hp-ev-tile[data-role='lead'] { border-radius: 3px; }
+
+.hp-profile .hp-ev-grid[data-count] .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark {
+  border-radius: 3px;
+}
+
+/* ---- The way into the rest of it ----
+   Compact, rectangular and in the flow. The card no longer reserves a corner
+   for it, because there is no longer a corner being covered. */
+.hp-profile .hp-ev-all {
+  position: static;
+  align-self: flex-start;
+  width: auto;
+  margin: 18px 0 0;
+  padding: 9px 15px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 3px;
+  background: none;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.hp-profile .hp-ev-all:hover {
+  border-color: rgb(var(--profile-accent-rgb) / 0.62);
+  background: rgb(var(--profile-accent-rgb) / 0.07);
+  color: var(--profile-accent-soft);
+  transform: none;
+  box-shadow: none;
+}
+
+.hp-ev-all-arrow { font-size: 13px; }
+
+.hp-ev-lead-slot[data-more='true'],
+.hp-ev-lead-slot[data-more='true'] .hp-ev-tile[data-role='lead'] { padding-bottom: 0; }
+
+/* The floor. One rule, on the grid, under everything in it - the source
+   lines included, because they are inside the tiles the grid is measuring.
+   Stacked at phone width the same rule falls after the last supporting item,
+   which is where it belongs there too. */
+.hp-ev-grid {
+  /* The same gap the top rules leave above the cards, so the arrangement is
+     bracketed evenly. Measured to the lowest thing actually on screen, which
+     at desktop is the action hanging off the card's corner rather than the
+     card itself. */
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+}
+
+/* A pixel more at phone width, because the supporting frames float with a
+   2px top margin there and their own opening gap is 15px rather than 14. */
+@media (max-width: 767px) {
+  .hp-ev-grid { padding-bottom: 15px; }
+}
+
+/* ---- The supporting four, as a contact sheet ----
+   The featured artifact keeps its card. It is the one thing in this section
+   asking to be looked at rather than scanned, and the card is what says so.
+
+   The four beside it were that same card four more times, which gave five
+   things equal weight when only one has it and made the row read as a
+   dashboard. So they give up the fill, the deep radius and the box, and take
+   the shape a contact sheet has: a flat frame for the artifact, a hairline
+   above it, and the label set underneath.
+
+   Nothing is taken out of any of them. The type, the title, the description
+   and the source are all still here; they are set as a caption rather than as
+   card copy. The frame holds the same icon the tile always used - there is no
+   image here that the owner did not put there. */
+.hp-profile .hp-ev-tile[data-role='rest'] {
+  min-height: 0;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+  transition: border-color 180ms ease;
+}
+
+/* Flat, so it stays a frame rather than becoming a card again. */
+.hp-profile .hp-ev-tile[data-role='rest']:hover {
+  transform: none;
+  border-top-color: rgb(var(--profile-accent-rgb) / 0.5);
+}
+
+.hp-ev-tile[data-role='rest'] .hp-ev-tile-mark {
+  width: 100%;
+  height: 84px;
+  margin-bottom: 14px;
+  border: 1px solid rgb(var(--ev-tone) / 0.18);
+  border-radius: 3px;
+  background: rgb(var(--ev-tone) / 0.05);
+  color: rgb(var(--ev-tone) / 0.85);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.hp-profile .hp-ev-tile[data-role='rest']:hover .hp-ev-tile-mark {
+  border-color: rgb(var(--ev-tone) / 0.45);
+  background: rgb(var(--ev-tone) / 0.1);
+}
+
+/* ---- The caption ----
+   Gallery labels: the kind of thing it is, what it is called, and where it
+   came from. Smaller and quieter than the card copy they replace, because on
+   a sheet the artifacts carry the row and the words name them. */
+.hp-ev-tile[data-role='rest'] .hp-ev-tile-type {
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: rgb(var(--ev-tone) / 0.85);
+}
+
+.hp-ev-tile[data-role='rest'] .hp-ev-tile-title {
+  margin-top: 7px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.34;
+  letter-spacing: -0.006em;
+}
+
+.hp-ev-tile[data-role='rest'] .hp-ev-tile-blurb {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.hp-ev-tile[data-role='rest'] .hp-ev-tile-meta {
+  padding-top: 10px;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+
+/* ---- The sheet on a phone ----
+   Beside rather than beneath. Stacked full width, four tall frames would turn
+   the section into a scroll; a small frame with its label alongside keeps the
+   row scannable and the featured artifact above it still the first thing. */
+@media (max-width: 767px) {
+  /* The frame is floated rather than placed in a grid column. A caption is
+     whatever the record happens to carry - some items have a description and
+     a source, some have neither - and a float lets however many lines there
+     are wrap beside one frame without the layout having to be told in advance
+     how many there will be. */
+  .hp-profile .hp-ev-tile[data-role='rest'] {
+    display: block;
+    padding-top: 13px;
+  }
+
+  .hp-profile .hp-ev-tile[data-role='rest']::after {
+    content: '';
+    display: block;
+    clear: both;
+  }
+
+  .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark {
+    float: left;
+    width: 62px;
+    height: 62px;
+    margin: 2px 14px 0 0;
+  }
+
+  .hp-ev-tile[data-role='rest'] .hp-ev-tile-title { margin-top: 5px; }
+  .hp-ev-tile[data-role='rest'] .hp-ev-tile-blurb { -webkit-line-clamp: 2; }
+  .hp-ev-tile[data-role='rest'] .hp-ev-tile-meta { margin-top: 6px; padding-top: 0; }
+}
+
 /* ===========================================================================
    THE EVIDENCE VIEWER
    ---------------------------------------------------------------------------
@@ -2529,8 +2863,42 @@
   min-height: 0;
   padding: 20px 22px 24px;
   overflow-y: auto;
-  scrollbar-gutter: stable;
 }
+
+/* ---- The bar, matched to the Hiring Brief's ----
+   The platform bar is a wide white column belonging to a different piece of
+   software, and `scrollbar-gutter: stable` reserved a lane for it whether or
+   not it was there. Thin, dark and lavender instead, overlaying the padding
+   rather than taking a column out of it. Nothing about the overlay's size or
+   its scrolling changes: this is the bar's appearance only. */
+.hp-ev-gallery,
+.hp-ev-stage {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--profile-accent-rgb) / 0.34) transparent;
+}
+
+.hp-ev-gallery::-webkit-scrollbar,
+.hp-ev-stage::-webkit-scrollbar { width: 6px; height: 6px; }
+
+.hp-ev-gallery::-webkit-scrollbar-track,
+.hp-ev-stage::-webkit-scrollbar-track { background: transparent; }
+
+.hp-ev-gallery::-webkit-scrollbar-thumb,
+.hp-ev-stage::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgb(var(--profile-accent-rgb) / 0.34);
+}
+
+.hp-ev-gallery::-webkit-scrollbar-thumb:hover,
+.hp-ev-stage::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--profile-accent-rgb) / 0.5);
+}
+
+.hp-ev-gallery::-webkit-scrollbar-button,
+.hp-ev-stage::-webkit-scrollbar-button { display: none; height: 0; }
+
+.hp-ev-gallery::-webkit-scrollbar-corner,
+.hp-ev-stage::-webkit-scrollbar-corner { background: transparent; }
 
 .hp-ev-gallery-grid {
   display: grid;
@@ -2658,4 +3026,91 @@
   .hp-ev-filter { padding: 14px 16px 4px; }
   .hp-ev-gallery { padding: 16px; }
   .hp-ev-gallery-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- The featured column, brought onto the same line ----
+   The supporting columns each open with a hairline and then 14px before their
+   artifact frame begins. The featured column opened with nothing and started
+   its card immediately, so its top edge sat 15px above the frames beside it
+   and the row read as two different beginnings.
+
+   The same rule and the same 14px, on the slot: the line lands on the row's
+   own top edge like the others, and the card starts exactly where the frames
+   opposite it do. Scoped from tablet up, because below that there is no row
+   to line up with and nothing to the right to match. */
+@media (min-width: 768px) {
+  .hp-ev-lead-slot {
+    border-top: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+    padding-top: 14px;
+  }
+
+  /* Back on the card's lower-right corner, half in and half out, the way it
+     read before - at the compact rectangle's own size rather than the pill's,
+     so the card reserves proportionally less of itself for it. */
+  .hp-ev-lead-slot[data-more='true'] { padding-bottom: 19px; }
+  .hp-ev-lead-slot[data-more='true'] .hp-ev-tile[data-role='lead'] { padding-bottom: 50px; }
+
+  .hp-profile .hp-ev-all {
+    position: absolute;
+    right: 22px;
+    bottom: 0;
+    margin: 0;
+  }
+}
+
+/* ---- The action, given a ground ----
+   It straddles the card's bottom edge, so with no fill of its own the card's
+   glass showed through its upper half and the page through its lower one, and
+   the same control read as two different tones. An opaque ground settles it.
+
+   The deepest muted surface the palette has, carried toward eggplant by a
+   shallow lavender tint over it. The tint is a gradient layer rather than a
+   new colour so the ground stays the token's own, and the whole thing stays
+   opaque because the layer beneath it is. Composited it lands near #29223e:
+   deep, desaturated, and nowhere near the accent's brightness.
+
+   Size, position, typography, border, radius and spacing are all untouched. */
+.hp-profile .hp-ev-all {
+  background:
+    linear-gradient(
+      0deg,
+      rgb(var(--profile-accent-rgb) / 0.1),
+      rgb(var(--profile-accent-rgb) / 0.1)
+    ),
+    var(--profile-surface-2);
+}
+
+/* Hover is a lightening of that same ground and nothing else: the border and
+   the label hold still. */
+.hp-profile .hp-ev-all:hover {
+  background:
+    linear-gradient(
+      0deg,
+      rgb(var(--profile-accent-rgb) / 0.17),
+      rgb(var(--profile-accent-rgb) / 0.17)
+    ),
+    var(--profile-surface-2);
+  border-color: rgb(var(--profile-accent-rgb) / 0.34);
+  color: var(--profile-accent);
+}
+
+/* ---- The Evidence headline, on Selected Experience's scale ----
+   The two open their sections the same way and were set two steps apart: this
+   one ran 32/40 against 36/46 and climbed no further, while the other stepped
+   up twice. It now carries the same three sizes at the same breakpoints and
+   the same line height.
+
+   Size and leading only. Weight, tracking, family, colour, margin and measure
+   are its own and stay untouched. */
+.hp-ev-headline {
+  font-size: clamp(36px, 10vw, 46px);
+  line-height: 1.04;
+}
+
+@media (min-width: 768px) {
+  .hp-ev-headline { font-size: clamp(44px, 5.2vw, 52px); }
+}
+
+@media (min-width: 1200px) {
+  .hp-ev-headline { font-size: clamp(48px, 4.5vw, 68px); }
 }

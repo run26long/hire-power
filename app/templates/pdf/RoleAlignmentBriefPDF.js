@@ -1,9 +1,9 @@
 import React from 'react'
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, Image, Link, StyleSheet, Font } from '@react-pdf/renderer'
 import path from 'path'
 
 // ============================================================================
-// THE ROLE ALIGNMENT BRIEF
+// THE HIRING BRIEF
 //
 // What a recruiter takes away from an evaluation: the candidate's background
 // mapped against one role, on paper, in the same house style as every other PDF
@@ -21,6 +21,10 @@ import path from 'path'
 // ============================================================================
 
 const fontsDir = path.join(process.cwd(), 'public', 'fonts')
+
+// The full-colour mark, because this page is white. The white variant the
+// profile header uses would be invisible here.
+const logoPath = path.join(process.cwd(), 'public', 'images', 'HirePower_logo.png')
 
 Font.register({
   family: 'Lato',
@@ -62,6 +66,25 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: 700, marginBottom: 2 },
   role: { fontSize: 11, color: MUTED, marginBottom: 2 },
+
+  // The closing mark. Small, and below everything: this is a note about
+  // where the document came from, not a banner across it.
+  //
+  // Stacked and hard against the left content margin. Set as a row, the mark
+  // pushed the sentence 86pt in from the margin every other line on the page
+  // starts at, and a paragraph that begins nowhere in particular reads as
+  // floating rather than as signed.
+  brand: {
+    marginTop: 26,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: RULE,
+    flexDirection: "column",
+    alignItems: "flex-start"
+  },
+  brandMark: { width: 74, marginBottom: 7 },
+  brandText: { fontSize: 7.5, fontWeight: 400, color: MUTED, lineHeight: 1.45 },
+  brandLink: { fontSize: 7.5, fontWeight: 400, color: ACCENT, textDecoration: "none" },
   issued: { fontSize: 8.5, color: MUTED, marginBottom: 18 },
   headRule: { borderBottomWidth: 1, borderBottomColor: RULE, marginBottom: 20 },
 
@@ -133,7 +156,11 @@ export default function RoleAlignmentBriefPDF({
   // The line under the title. Either part may be missing - the evaluation
   // returns null rather than guessing - so the line is assembled from what is
   // actually there and omitted entirely when neither is.
-  const roleLine = [roleTitle, company].filter(Boolean).join(' · ')
+  // The same wording as the screen, and for the same reason: a role printed
+  // straight under a name reads as the job that person already holds.
+  const roleLine = roleTitle
+    ? (company ? `Candidate for ${roleTitle} at ${company}` : `Candidate for ${roleTitle}`)
+    : null
 
   // Every source named anywhere in the brief, listed once at the end so a
   // reader can see the whole basis for it in one place.
@@ -144,15 +171,15 @@ export default function RoleAlignmentBriefPDF({
 
   return (
     <Document
-      title={`Role Alignment Brief — ${candidateName}`}
+      title={`Hiring Brief: ${candidateName}`}
       author="Hire Power"
-      subject={roleLine || 'Role alignment brief'}
+      subject={roleLine || 'Hiring brief'}
     >
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.wordmark}>Hire Power</Text>
         <Text style={styles.title}>{candidateName}</Text>
         {roleLine ? <Text style={styles.role}>{roleLine}</Text> : null}
-        <Text style={styles.issued}>Role Alignment Brief · {issuedOn}</Text>
+        <Text style={styles.issued}>Hiring Brief · {issuedOn}</Text>
         <View style={styles.headRule} />
 
         {summary ? (
@@ -211,7 +238,7 @@ export default function RoleAlignmentBriefPDF({
               <View key={i} style={styles.entry} wrap={false}>
                 <Text style={styles.quote}>“{t.quote}”</Text>
                 <Text style={styles.quoteBy}>
-                  {t.attribution}{t.why ? ` — ${t.why}` : ''}
+                  {t.attribution}{t.why ? ` · ${t.why}` : ''}
                 </Text>
               </View>
             ))}
@@ -225,6 +252,21 @@ export default function RoleAlignmentBriefPDF({
             ))}
           </Section>
         ) : null}
+
+        {/* The closing mark, after the report rather than on every page: it
+            is a signature, and a signature goes at the end. */}
+        <View style={styles.brand} wrap={false}>
+          {/* react-pdf's Image is not an HTML img and takes no alt; the rule
+              cannot tell the difference. */}
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image style={styles.brandMark} src={logoPath} />
+          <Text style={styles.brandText}>
+            Take your career beyond the page.{'\n'}
+            <Link style={styles.brandLink} src="https://HirePowerAI.com">
+              Create your Career Profile at HirePowerAI.com
+            </Link>
+          </Text>
+        </View>
 
         {/* Fixed, so it is on every page of a brief that runs long. It says
             where this came from and what it is not: an assessment drawn from

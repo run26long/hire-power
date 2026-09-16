@@ -9,7 +9,7 @@ import { openGate, readBriefToken, service } from '../_lib/recruiterContext'
 // POST /api/career-profile/brief
 // Body: { slug, brief_token }
 //
-// Turns a completed evaluation into a Role Alignment Brief PDF.
+// Turns a completed evaluation into a Hiring Brief PDF.
 //
 // WHAT IT WILL NOT DO
 // It will not print what it is handed. The evaluation arrives as a token this
@@ -39,15 +39,16 @@ const MAX_TOKEN = 200_000
 // store it.
 const NAME_CAP = 70
 
-// ASCII, lowercase, hyphenated. Accents are folded rather than dropped so a
-// name does not lose letters, and anything left that is not a letter or a digit
-// becomes a separator.
-function safeSlug(text, fallback) {
+// ASCII and hyphenated, with the capitals kept: this becomes a filename a
+// recruiter sees in a downloads folder beside other candidates, so it should
+// read as a name rather than as a slug. Accents are folded rather than dropped
+// so a name does not lose letters, and anything left that is not a letter or a
+// digit becomes a separator.
+function safeName(text, fallback) {
   const slug = String(text || '')
     .normalize('NFKD')
     .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, NAME_CAP)
     .replace(/-+$/g, '')
@@ -152,11 +153,7 @@ export async function POST(request) {
       })
     )
 
-    const fileName = [
-      safeSlug(candidateName, 'candidate'),
-      safeSlug(evaluation.role_title, ''),
-      'role-alignment-brief'
-    ].filter(Boolean).join('-') + '.pdf'
+    const fileName = `${safeName(candidateName, 'Candidate')}-Hiring-Brief.pdf`
 
     return new Response(pdf, {
       headers: {
@@ -164,7 +161,7 @@ export async function POST(request) {
         // Both forms: the ASCII one for anything that cannot read the other,
         // and the encoded one so a name with an accent in it survives.
         'Content-Disposition':
-          `attachment; filename="role-alignment-brief.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+          `attachment; filename="Hiring-Brief.pdf"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
         // A brief is about one named person and is not a shared cache's
         // business, at any hop.
         'Cache-Control': 'private, no-store'

@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import './_styles/tokens.css'
 import './_styles/profile.css'
 import './_styles/sections.css'
+import './_styles/recruiter.css'
 
 import { usePrefersReducedMotion } from './_lib/motion'
 import {
@@ -24,11 +25,12 @@ import ProfileSpread from './_components/ProfileSpread'
 import SelectedExperience from './_components/SelectedExperience'
 import SkillsSection from './_components/SkillsSection'
 import EvidenceSection from './_components/EvidenceSection'
+import RecruiterTools from './_components/RecruiterTools'
 import CollectiveImpact from './_components/CollectiveImpact'
 import ProfileResolution from './_components/ProfileResolution'
 
 // ============================================================================
-// /p/[slug] — the public Career Profile.
+// /p/[slug]: the public Career Profile.
 //
 // TEMPLATE: Signature   MODE: dark   PALETTE: Signature default
 //
@@ -402,6 +404,21 @@ export default function CareerProfilePage() {
           lensId={selectedLens?.id}
           animate={animate}
           directionKey={contentIndex}
+        />
+
+        {/* The last section, and the only one the reader operates. It is
+            deliberately not given directionKey: both tools read the whole
+            career, and a result somebody is part way through reading is not
+            something a change of chapter should take away from them.
+
+            It renders nothing at all when the profile does not carry the
+            tools - no teaser, no lock, no badge. */}
+        <RecruiterTools
+          enabled={data?.recruiterToolsEnabled === true}
+          slug={slug}
+          candidateName={displayName}
+          animate={animate}
+          reducedMotion={reducedMotion}
         />
 
       </main>

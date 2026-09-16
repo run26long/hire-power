@@ -12,6 +12,7 @@ import {
   openGate,
   parseJson,
   service,
+  stripSourceIds,
   viewerHash
 } from '../_lib/recruiterContext'
 
@@ -63,6 +64,8 @@ RULES
 5. A partial answer is allowed when the material genuinely covers part of the question. Answer the part you can, cite it, and say plainly which part the material does not cover.
 6. Write to the recruiter in plain prose, 1 to 4 sentences. No headings, no bullet lists, no markdown.
 7. Never invent a source id. Only ids that appear in candidate_material are valid.
+8. Never use an em dash. Use a comma, a colon, or a second sentence instead.
+9. Put source ids in the citations array only. Never write a source id into the answer itself. The recruiter is shown the sources separately, so an id in the prose is noise.
 
 Return JSON and nothing else:
 
@@ -179,7 +182,9 @@ export async function POST(request) {
       )
     }
 
-    const answer = typeof parsed?.answer === 'string' ? parsed.answer.trim() : ''
+    // The ids go out in citations, where each one arrives as a named source the
+    // recruiter can open. Left inline as well, they read as machinery.
+    const answer = typeof parsed?.answer === 'string' ? stripSourceIds(parsed.answer).trim() : ''
     const citations = keepRealCitations(parsed?.citations, sources)
 
     // An answer with nothing real behind it is not served. This covers the

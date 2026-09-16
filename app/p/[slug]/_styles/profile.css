@@ -33,19 +33,25 @@
 .hp-ev-backdrop,
 .hp-ev-backdrop *,
 .hp-ev-backdrop *::before,
-.hp-ev-backdrop *::after { box-sizing: border-box; }
+.hp-ev-backdrop *::after,
+.hp-rt-backdrop,
+.hp-rt-backdrop *,
+.hp-rt-backdrop *::before,
+.hp-rt-backdrop *::after { box-sizing: border-box; }
 
 /* The evidence viewer is portalled onto the body, so the resets it relies on
    have to name it too - it is outside .hp-profile in the document even though
    it belongs to the Profile in every other sense. */
-.hp-ev-backdrop {
+.hp-ev-backdrop,
+.hp-rt-backdrop {
   font-family: var(--profile-font-ui);
   color: var(--profile-body);
   -webkit-font-smoothing: antialiased;
 }
 
 .hp-profile button,
-.hp-ev-backdrop button {
+.hp-ev-backdrop button,
+.hp-rt-backdrop button {
   font: inherit;
   color: inherit;
   background: none;
@@ -55,10 +61,12 @@
 }
 
 .hp-profile a,
-.hp-ev-backdrop a { color: inherit; text-decoration: none; }
+.hp-ev-backdrop a,
+.hp-rt-backdrop a { color: inherit; text-decoration: none; }
 
 .hp-profile :focus-visible,
-.hp-ev-backdrop :focus-visible {
+.hp-ev-backdrop :focus-visible,
+.hp-rt-backdrop :focus-visible {
   outline: 2px solid var(--profile-accent);
   outline-offset: 4px;
   border-radius: 2px;

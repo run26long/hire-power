@@ -53,7 +53,14 @@ export default function ProfileResolution({ readyTags, location, resume, isOwner
           </div>
         </Reveal>
 
-        <p className="hp-foot-mark">Powered by Hire Power</p>
+        {/* The words stay words and the name becomes the mark. One line, the
+            same height it was: the logo is set to the cap height of the type
+            beside it rather than to its own idea of a size. */}
+        <p className="hp-foot-mark">
+          <span className="hp-foot-mark-by">Powered by</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="hp-foot-mark-logo" src="/images/hire-power-logo-white-v2.png" alt="Hire Power" />
+        </p>
       </div>
     </footer>
   )
