@@ -86,7 +86,10 @@ export async function GET(request, { params }) {
       console.error('[evidence-media] Profile lookup failed:', profileError)
       return Response.json({ error: 'LOOKUP_FAILED' }, { status: 500 })
     }
-    if (!profile || profile.is_published === false) return notFound()
+    // `!== true`, not `=== false`: a flag that is null or absent read as
+    // published here, which was the one place in the profile's routes where
+    // anything but an explicit no let a caller through.
+    if (!profile || profile.is_published !== true) return notFound()
 
     // Scoped to this profile in the query itself, so another profile's evidence
     // is not something this route can be talked into reading.
