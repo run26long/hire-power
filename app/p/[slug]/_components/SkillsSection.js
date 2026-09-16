@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Reveal from './Reveal'
+import { EditPencil, EditElsewhere, useEditSlot } from './EditAffordance'
 
 // ============================================================================
 // SKILLS IN THIS DIRECTION - the capabilities behind the results.
@@ -164,6 +165,7 @@ export default function SkillsSection({
   reducedMotion = false,
   directionKey
 }) {
+  const slot = useEditSlot()
   const canSettle = animate && !reducedMotion && typeof IntersectionObserver !== 'undefined'
 
   const [progress, setProgress] = useState(0)
@@ -642,7 +644,11 @@ export default function SkillsSection({
   return (
     <section className="hp-section hp-skills">
       <div className="hp-wrap">
-        <Reveal enabled={animate} className="hp-skills-intro">
+        {/* The clusters come off the resume; what this direction chooses to
+            emphasise is the profile's own. So the pencil is for the emphasis
+            and the route out is for the skills themselves. */}
+        <Reveal enabled={animate} className={`hp-skills-intro${slot}`}>
+          <EditElsewhere href="/resume-coach">Edit in Resume Coach</EditElsewhere>
           <span className="hp-label">Skills in this direction</span>
           <h2 className="hp-skills-headline">The capabilities behind the results.</h2>
         </Reveal>

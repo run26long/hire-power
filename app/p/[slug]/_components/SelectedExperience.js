@@ -2,6 +2,7 @@
 
 import Reveal from './Reveal'
 import ExperienceStory from './ExperienceStory'
+import { EditElsewhere, useEditSlot } from './EditAffordance'
 
 // ============================================================================
 // SELECTED EXPERIENCE
@@ -17,12 +18,17 @@ import ExperienceStory from './ExperienceStory'
 // panel: there is no lead, no stagger, and nothing is promoted.
 // ============================================================================
 export default function SelectedExperience({ experience, expandedRole, onToggleRole, animate }) {
+  const slot = useEditSlot()
   if (experience.length === 0) return null
 
   return (
     <section className="hp-section hp-section-exp">
       <div className="hp-wrap">
-        <Reveal enabled={animate} className="hp-exp-intro">
+        {/* No pencil here on purpose. These roles are read straight off the
+            resume, so the place to change them is the resume. A control that
+            let somebody type over them here would be writing into a copy. */}
+        <Reveal enabled={animate} className={`hp-exp-intro${slot}`}>
+          <EditElsewhere href="/resume-coach">Edit in Resume Coach</EditElsewhere>
           <span className="hp-label">Selected experience</span>
           <h2 className="hp-exp-headline">Proof, not just claims.</h2>
         </Reveal>

@@ -1,6 +1,7 @@
 'use client'
 
 import Reveal from './Reveal'
+import { EditPencil, useEditSlot } from './EditAffordance'
 
 // ============================================================================
 // The resolution, and the page's footer.
@@ -27,6 +28,7 @@ import Reveal from './Reveal'
 // dissolve and re-enter when the reader changes direction.
 // ============================================================================
 export default function ProfileResolution({ readyTags, location, actions, animate }) {
+  const slot = useEditSlot()
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
@@ -36,7 +38,8 @@ export default function ProfileResolution({ readyTags, location, actions, animat
         <Reveal enabled={animate}>
           <div className="hp-foot-inner">
             {hasTags && (
-              <p className="hp-foot-open">
+              <p className={`hp-foot-open${slot}`}>
+                <EditPencil label="the Open To tags" />
                 <strong className="hp-foot-open-label">Open to</strong>
                 {readyTags.map((tag, index) => (
                   <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>

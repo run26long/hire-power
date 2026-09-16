@@ -1,0 +1,551 @@
+/* ===========================================================================
+   THE EDITOR CHROME
+
+   Everything the owner sees that a recruiter does not: the mode bar, the
+   introduction, the settings drawer, and the affordances laid over the
+   document itself.
+
+   Two visual systems meet on this page and neither is allowed to reach into
+   the other. The document below is the Profile's own dark system, scoped to
+   .hp-profile and keyed off --profile-* tokens. Everything here is scoped to
+   .hp-ed- and carries its own values. The one thing that crosses the line is
+   --profile-chrome-top, which this file sets on the document so the Profile's
+   sticky direction bar takes hold below this chrome instead of under it.
+
+   Stacking, from the page up:
+     MainNav                 z 50   (the app's own)
+     .hp-ed-bar              z 45   under the nav, above the document
+     .hp-ed-drawer           z 55   over the nav, because it is a drawer
+     .hp-proof               z 60   the document's skill popover
+     .hp-ev-backdrop         z 120  the document's evidence overlay
+     .hp-rt-backdrop         z 140  the document's recruiter tools
+   The document's own overlays stay on top on purpose: a modal that opened
+   underneath the chrome that launched it would be a trap.
+   =========================================================================== */
+
+.hp-ed {
+  --ed-ink: #1a1a1a;
+  --ed-muted: #6b6b76;
+  --ed-line: #e5e5ec;
+  --ed-accent: #7c3aed;
+  --ed-accent-soft: #f5f3ff;
+  --ed-surface: #ffffff;
+
+  /* MainNav's own height. The document is told to hold its sticky bar below
+     the nav and this bar together. */
+  --ed-nav-h: 49px;
+  --ed-bar-h: 52px;
+
+  background: #0d0916;
+  min-height: 100vh;
+}
+
+/* The one value handed down into the Profile's system. */
+.hp-ed .hp-profile {
+  --profile-chrome-top: calc(var(--ed-nav-h) + var(--ed-bar-h));
+}
+
+
+/* ---- The mode bar -------------------------------------------------------
+   Sticky directly beneath MainNav. Light, because it belongs to the product
+   rather than to the document, and the seam between the two is the point:
+   everything above this line is chrome, everything below it is the page a
+   recruiter will see. */
+
+.hp-ed-bar {
+  position: sticky;
+  top: var(--ed-nav-h);
+  z-index: 45;
+  height: var(--ed-bar-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  background: var(--ed-surface);
+  border-bottom: 1px solid var(--ed-line);
+}
+
+.hp-ed-modes {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: #f1f1f5;
+  flex-shrink: 0;
+}
+
+.hp-ed-mode {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ed-muted);
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.hp-ed-mode:hover { color: var(--ed-ink); }
+
+.hp-ed-mode[aria-pressed="true"] {
+  background: var(--ed-surface);
+  color: var(--ed-accent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.hp-ed-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.hp-ed-state[data-published="true"] { background: #ecfdf5; color: #047857; }
+.hp-ed-state[data-published="false"] { background: #fffbeb; color: #b45309; }
+
+.hp-ed-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Takes the slack so the actions sit hard right. */
+.hp-ed-bar-gap { flex: 1 1 auto; min-width: 0; }
+
+.hp-ed-link {
+  font-size: 12px;
+  color: var(--ed-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.hp-ed-action {
+  appearance: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--ed-line);
+  background: var(--ed-surface);
+  color: var(--ed-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.hp-ed-action:hover { border-color: #c4b5fd; background: var(--ed-accent-soft); }
+
+.hp-ed-action[data-primary="true"] {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+  color: #fff;
+}
+
+.hp-ed-action[data-primary="true"]:hover { background: #6d28d9; border-color: #6d28d9; }
+
+@media (max-width: 860px) {
+  .hp-ed-link { display: none; }
+}
+
+@media (max-width: 560px) {
+  .hp-ed-bar { gap: 8px; padding: 0 10px; }
+  .hp-ed-state { display: none; }
+}
+
+
+/* ---- The introduction ---------------------------------------------------
+   Said once, on the document's own ground rather than in the light chrome,
+   because it is about the thing below it. Dismissable, and the dismissal is
+   remembered: a sentence that explains the page is useful the first time and
+   furniture every time after. */
+
+.hp-ed-intro {
+  position: relative;
+  padding: 26px 24px 24px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.07);
+  background: linear-gradient(180deg, rgb(124 58 237 / 0.10) 0%, rgb(124 58 237 / 0) 100%);
+}
+
+.hp-ed-intro-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-right: 34px;
+}
+
+.hp-ed-intro-lead {
+  margin: 0 0 8px;
+  font-size: 19px;
+  line-height: 1.32;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #f4f2f8;
+}
+
+.hp-ed-intro-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgb(244 242 248 / 0.66);
+}
+
+.hp-ed-intro-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(244 242 248 / 0.7);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.hp-ed-intro-close:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+
+@media (max-width: 560px) {
+  .hp-ed-intro { padding: 20px 16px 18px; }
+  .hp-ed-intro-lead { font-size: 17px; }
+  .hp-ed-intro-body { font-size: 13px; }
+}
+
+
+/* ---- The settings drawer ------------------------------------------------ */
+
+.hp-ed-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 54;
+  background: rgb(9 6 15 / 0.5);
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+.hp-ed-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 55;
+  width: min(400px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--ed-surface);
+  border-left: 1px solid var(--ed-line);
+  box-shadow: -12px 0 40px rgb(9 6 15 / 0.24);
+}
+
+.hp-ed-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--ed-line);
+  flex-shrink: 0;
+}
+
+.hp-ed-drawer-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-ink);
+}
+
+.hp-ed-drawer-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.hp-ed-group { margin-bottom: 22px; }
+.hp-ed-group:last-child { margin-bottom: 0; }
+
+.hp-ed-label {
+  margin: 0 0 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9b9baa;
+}
+
+.hp-ed-value {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ed-ink);
+  overflow-wrap: anywhere;
+}
+
+.hp-ed-value[data-empty="true"] { color: #a5a5b4; font-style: italic; }
+
+.hp-ed-swatch {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1px solid var(--ed-line);
+  vertical-align: -2px;
+  margin-right: 7px;
+}
+
+/* A control that is visibly not ready yet. It is disabled rather than absent
+   so the drawer shows its real shape, and it says why rather than going quiet
+   under a click. */
+.hp-ed-soon {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: #a5a5b4;
+}
+
+
+/* ---- Affordances over the document --------------------------------------
+   Drawn only in edit mode. They sit on the Profile's dark ground, so they are
+   lavender-on-dark rather than anything from the chrome's palette.
+
+   Inert in this pass: every one of them is disabled and says so on hover. They
+   are here to prove placement against the real layout before any of them can
+   change a record. */
+
+.hp-profile .hp-ed-pencil {
+  appearance: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  background: rgb(var(--profile-void-rgb) / 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgb(var(--profile-accent-rgb) / 0.92);
+  cursor: not-allowed;
+  opacity: 0;
+  transition: opacity 160ms ease, border-color 160ms ease;
+}
+
+.hp-ed-slot { position: relative; }
+.hp-profile .hp-ed-slot:hover > .hp-ed-pencil,
+.hp-ed-pencil:focus-visible { opacity: 1; }
+
+/* Touch has no hover, so the affordance has to be standing. */
+@media (hover: none) {
+  .hp-ed-pencil { opacity: 0.85; }
+}
+
+.hp-ed-pencil svg { width: 14px; height: 14px; }
+
+/* The dashed outline that says "this region is a thing you can edit". Drawn
+   with an inset shadow rather than a border so it costs no layout - a border
+   here would move every section it is applied to. */
+.hp-ed-slot::after {
+  content: '';
+  position: absolute;
+  inset: -8px -10px;
+  border-radius: 10px;
+  pointer-events: none;
+  outline: 1px dashed rgb(var(--profile-accent-rgb) / 0.3);
+  outline-offset: 0;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.hp-ed-slot:hover::after { opacity: 1; }
+
+/* An empty section, which the public page never renders at all. */
+.hp-profile .hp-ed-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 30px 22px;
+  border-radius: 12px;
+  border: 1px dashed rgb(var(--profile-accent-rgb) / 0.34);
+  background: rgb(var(--profile-accent-rgb) / 0.045);
+  text-align: center;
+  cursor: not-allowed;
+  width: 100%;
+  appearance: none;
+  font: inherit;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.hp-profile .hp-ed-empty:hover {
+  border-color: rgb(var(--profile-accent-rgb) / 0.5);
+  background: rgb(var(--profile-accent-rgb) / 0.075);
+}
+
+.hp-profile .hp-ed-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(var(--profile-accent-rgb) / 0.95);
+}
+
+.hp-profile .hp-ed-empty-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--profile-muted, rgb(255 255 255 / 0.5));
+  max-width: 44ch;
+}
+
+
+/* ---- Placing the empty states in the document's own grids ---------------
+   Each of these regions is a track in a 12-column grid that the Profile
+   places by class or by attribute. An empty state dropped into one of them
+   auto-places into a single column and comes out 73px wide, so each is given
+   the span the real content in that region has.
+
+   The spread needs nothing here: it places by [data-resolve], and the stand-in
+   columns carry the same attribute, so they land in the same tracks the bio
+   and the voice would have. */
+
+/* Act I. With no figures the stage is in its data-proof="false" layout, where
+   the identity widens and there is no proof column to sit beside. So this goes
+   below the identity as its own band rather than trying to occupy a region
+   that is not there. */
+.hp-act1-stage > .hp-ed-empty {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  max-width: 560px;
+  margin-top: clamp(28px, 4vh, 52px);
+}
+
+/* Firsthand Accounts. The column is `height: 0; min-height: 100%`, which takes
+   its height from the synthesis beside it - and on a profile with neither,
+   that resolves to nothing and the section collapses through the one below it.
+   With only the stand-in inside, it sizes to its own content instead. */
+.hp-impact-voices.hp-ed-voices-empty {
+  height: auto;
+  min-height: 0;
+}
+
+/* Evidence spans the full width of its wrap, which is wider than this ever
+   needs to be. */
+.hp-ev-section .hp-ed-empty {
+  max-width: 620px;
+  margin-inline: auto;
+}
+
+/* The handle on a reorderable tile. Same inert treatment. */
+.hp-profile .hp-ed-grip {
+  appearance: none;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
+  background: rgb(var(--profile-void-rgb) / 0.74);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgb(var(--profile-accent-rgb) / 0.88);
+  cursor: not-allowed;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.hp-ed-grip svg { width: 13px; height: 13px; }
+
+.hp-profile .hp-ed-slot:hover > .hp-ed-grip,
+.hp-ed-grip:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+  .hp-ed-grip { opacity: 0.85; }
+}
+
+/* A section the owner cannot type into here, because its content is somebody
+   else's record - the resume, or a generator. It gets a route out rather than
+   a pencil that would lie about what it does. */
+.hp-profile .hp-ed-elsewhere {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
+  background: rgb(var(--profile-void-rgb) / 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgb(var(--profile-accent-rgb) / 0.9);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  white-space: nowrap;
+}
+
+.hp-profile .hp-ed-slot:hover > .hp-ed-elsewhere,
+.hp-ed-elsewhere:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+  .hp-ed-elsewhere { opacity: 0.85; }
+}
+
+/* The state before the record arrives, on the editor's own ground. */
+.hp-ed-state-screen {
+  min-height: calc(100vh - 49px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.hp-ed-state-card {
+  max-width: 420px;
+  text-align: center;
+  background: var(--ed-surface);
+  border: 1px solid var(--ed-line);
+  border-radius: 12px;
+  padding: 32px 28px;
+}
+
+.hp-ed-state-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ed-ink);
+}
+
+.hp-ed-state-body {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ed-muted);
+}

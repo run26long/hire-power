@@ -25,6 +25,11 @@ import HelpPanel from './HelpPanel'
 
 const PROFILE_ROUTE = '/p/'
 
+// The owner's editor renders the same document, on the same dark ground, and
+// the widgets sit on top of it as two light-mode controls belonging to a
+// different visual system. The editor has its own chrome for the same jobs.
+const EDITOR_ROUTE = '/career-profile'
+
 export default function GlobalWidgets() {
   const pathname = usePathname()
 
@@ -32,6 +37,7 @@ export default function GlobalWidgets() {
   // owner's own screens and keep both widgets, which is why this tests for the
   // trailing slash rather than for the prefix alone.
   if (pathname === '/p' || pathname?.startsWith(PROFILE_ROUTE)) return null
+  if (pathname === EDITOR_ROUTE || pathname?.startsWith(`${EDITOR_ROUTE}/`)) return null
 
   return (
     <>

@@ -2,6 +2,8 @@
 
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
+import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
+import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
 // ABOUT + IN MY OWN WORDS.
@@ -43,7 +45,13 @@ export default function ProfileSpread({
 }) {
   const hasBio = Boolean(bio)
   const hasVoice = Boolean(imowText)
-  if (!hasBio && !hasVoice) return null
+  const canShowEmpty = useCanShowEmpty()
+  const slot = useEditSlot()
+
+  // The public rule stands: with nothing to say, this section does not exist.
+  // Edit mode is the one exception, because an owner cannot write a bio into
+  // a section that refuses to appear until they already have.
+  if (!hasBio && !hasVoice && !canShowEmpty) return null
 
   const { lead, rest } = splitLeadSentence(bioToShow)
   const detail = rest ? rest.split(/\n\s*\n/).filter(Boolean) : []
@@ -58,11 +66,12 @@ export default function ProfileSpread({
 
       <div
         className="hp-spread"
-        data-voice={hasVoice ? 'true' : 'false'}
-        data-about={hasBio ? 'true' : 'false'}
+        data-voice={hasVoice || canShowEmpty ? 'true' : 'false'}
+        data-about={hasBio || canShowEmpty ? 'true' : 'false'}
       >
         {hasBio && (
-          <div className="hp-refocus" data-resolve="about">
+          <div className={`hp-refocus${slot}`} data-resolve="about">
+            <EditPencil label="the bio for this direction" />
             <Reveal enabled={animate}>
               <span className="hp-eyebrow">About</span>
               {lead && <p className="hp-about-lead">{lead}</p>}
@@ -95,8 +104,19 @@ export default function ProfileSpread({
           </div>
         )}
 
+        {!hasBio && canShowEmpty && (
+          <div data-resolve="about">
+            <span className="hp-eyebrow">About</span>
+            <EditEmpty
+              title="Write the bio for this direction"
+              note="A few sentences on what this direction is and why it is yours. Coach can draft one from your sessions."
+            />
+          </div>
+        )}
+
         {hasVoice && (
-          <figure className="hp-voice hp-refocus" data-resolve="voice">
+          <figure className={`hp-voice hp-refocus${slot}`} data-resolve="voice">
+            <EditPencil label="In My Own Words" />
             {/* Atmosphere, not punctuation. These sit behind the words, are
                 never part of the stored string, and are hidden from assistive
                 technology so the statement is not announced as a quotation
@@ -110,6 +130,16 @@ export default function ProfileSpread({
 
             <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
           </figure>
+        )}
+
+        {!hasVoice && canShowEmpty && (
+          <div data-resolve="voice">
+            <span className="hp-eyebrow">In my own words</span>
+            <EditEmpty
+              title="Say it in your own words"
+              note="Write it, or record a short video. This is the one part of the page in your voice rather than a summary of you."
+            />
+          </div>
         )}
       </div>
     </section>

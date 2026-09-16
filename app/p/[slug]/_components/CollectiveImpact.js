@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
+import { EditElsewhere, EditEmpty, useEditSlot } from './EditAffordance'
+import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
 // COLLECTIVE IMPACT + FIRSTHAND ACCOUNTS
@@ -34,6 +36,8 @@ export default function CollectiveImpact({
   reducedMotion = false,
   directionKey
 }) {
+  const canShowEmpty = useCanShowEmpty()
+  const slot = useEditSlot()
   const [expanded, setExpanded] = useState(() => new Set())
   const [overflowing, setOverflowing] = useState(() => new Set())
   const [shownFor, setShownFor] = useState(directionKey)
@@ -111,7 +115,9 @@ export default function CollectiveImpact({
   // deleted by this - the row is still there for the day new testimony
   // arrives. `quotes` is the collection the page was handed, already filtered
   // to what may be served publicly.
-  if (!hasQuotes) return null
+  // Empty on the public page means gone. For the owner it means a section
+  // with a way to ask somebody for the first one.
+  if (!hasQuotes && !canShowEmpty) return null
 
   return (
     <section className="hp-impact">
@@ -119,7 +125,8 @@ export default function CollectiveImpact({
         {/* One heading over both columns, because the synthesis on the left and
             the accounts on the right are two readings of the same thing. What
             each column is then says so inside the column itself. */}
-        <Reveal enabled={animate} className="hp-impact-intro">
+        <Reveal enabled={animate} className={`hp-impact-intro${slot}`}>
+          <EditElsewhere>Written by others, and not editable here</EditElsewhere>
           <h2 className="hp-impact-headline">What others see.</h2>
         </Reveal>
 
@@ -128,7 +135,7 @@ export default function CollectiveImpact({
         <div
           className="hp-impact-flow"
           data-synthesis={hasImpact ? 'true' : 'false'}
-          data-voices={hasQuotes ? 'true' : 'false'}
+          data-voices={hasQuotes || canShowEmpty ? 'true' : 'false'}
         >
           {hasImpact && (
             <Reveal enabled={animate} className="hp-impact-synthesis">
@@ -154,6 +161,19 @@ export default function CollectiveImpact({
                 </ol>
               )}
             </Reveal>
+          )}
+
+          {!hasQuotes && canShowEmpty && (
+            <div className="hp-impact-voices hp-ed-voices-empty">
+              <div className="hp-voices-head">
+                <h3 className="hp-voices-title">Firsthand Accounts</h3>
+                <p className="hp-voices-note">In the words of people who saw the work up close.</p>
+              </div>
+              <EditEmpty
+                title="Request a testimonial"
+                note="Ask someone you worked with. They write it in their own words, and nothing appears here until you publish it."
+              />
+            </div>
           )}
 
           {hasQuotes && (

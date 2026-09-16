@@ -6,6 +6,8 @@ import Reveal from './Reveal'
 import StrokeIcon from './StrokeIcon'
 import EvidenceOverlay from './EvidenceOverlay'
 import { glyphFor } from './EvidenceViewer'
+import { EditPencil, EditGrip, EditEmpty, useEditSlot } from './EditAffordance'
+import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
 // EVIDENCE
@@ -97,10 +99,14 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
   // ...and these two move around inside one.
   const fromGallery = useCallback((item) => setOverlay({ mode: 'detail', item, fromGallery: true }), [])
+  const canShowEmpty = useCanShowEmpty()
+  const slot = useEditSlot()
   const backToGallery = useCallback(() => setOverlay({ mode: 'gallery' }), [])
   const close = useCallback(() => setOverlay(null), [])
 
-  if (items.length === 0) return null
+  // Empty, this section is not on the public page at all. The owner has to
+  // see it to put anything in it.
+  if (items.length === 0 && !canShowEmpty) return null
 
   const limit = narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP
   const preview = ordered.slice(0, limit)
@@ -111,13 +117,15 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
     <button
       type="button"
       key={item.id}
-      className="hp-ev-tile"
+      className={`hp-ev-tile${slot}`}
       data-family={item.family}
       data-media={item.media_class}
       data-role={role}
       onClick={() => openDetail(item)}
       aria-haspopup="dialog"
     >
+      <EditGrip />
+
       <span className="hp-ev-tile-mark" aria-hidden="true">
         <StrokeIcon paths={glyphFor(item.media_class)} size={role === 'lead' ? 22 : 18} />
       </span>
@@ -142,6 +150,12 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           <h2 className="hp-ev-headline">See the work for yourself.</h2>
         </Reveal>
 
+        {items.length === 0 ? (
+          <EditEmpty
+            title="Add evidence of your work"
+            note="Upload a document, image, video or audio file, or paste a link. Each piece can appear under any of your directions."
+          />
+        ) : (
         <Reveal enabled={animate}>
           {/* The featured card and the way into the rest of the collection are
               one presentation, so they share a cell: the slot is what the grid
@@ -169,6 +183,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
             </div>
           </div>
         </Reveal>
+        )}
       </div>
 
       <EvidenceOverlay

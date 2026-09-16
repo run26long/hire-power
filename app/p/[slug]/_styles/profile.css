@@ -713,8 +713,14 @@
               visibility var(--profile-move-ms) var(--profile-ease-in);
 }
 
+/* `top` is a variable with a zero fallback, so the public page is unchanged:
+   nothing sets it there and the bar takes the top edge as it always has. The
+   owner's management page renders this same document under its own chrome and
+   sets the variable to that chrome's height, so the bar takes hold below it
+   rather than sliding underneath it. */
 .hp-bar[data-stuck="true"] {
   position: fixed;
+  top: var(--profile-chrome-top, 0px);
   left: 0;
   right: 0;
   height: 68px;

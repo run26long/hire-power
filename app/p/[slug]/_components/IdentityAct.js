@@ -1,5 +1,7 @@
 'use client'
 
+import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
+
 // ============================================================================
 // ACT I - the cover.
 //
@@ -77,6 +79,7 @@ export default function IdentityAct({
 }) {
   const hasProof = proofPoints.length > 0
   const [lead, ...supporting] = proofPoints
+  const slot = useEditSlot()
 
   return (
     <section className="hp-act1">
@@ -98,7 +101,8 @@ export default function IdentityAct({
               reverse asks the reader to re-read what they have just taken in. */}
           <div className="hp-act1-invite">{directions}</div>
 
-          <div className="hp-act1-identity">
+          <div className={`hp-act1-identity${slot}`}>
+            <EditPencil label="the headline for this direction" />
             <span className="hp-act1-eyebrow">Career Profile</span>
 
             {/* The stop is part of the setting, not part of the name. */}
@@ -155,6 +159,16 @@ export default function IdentityAct({
                 </div>
               )}
             </>
+          )}
+
+          {/* The public page closes this region when a direction has no
+              figures. In edit mode it stays open, because an absence the
+              owner cannot see is an absence they cannot fill. */}
+          {!hasProof && (
+            <EditEmpty
+              title="Add proof points"
+              note="Two or three numbers that stand behind this direction. They lead the cover."
+            />
           )}
         </div>
       </div>
