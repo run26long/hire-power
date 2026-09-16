@@ -82,6 +82,24 @@ export async function GET(request, { params }) {
       isOwner = Boolean(user && user.id === profile.user_id)
     }
 
+    // ---- PUBLISHED? ----
+    // The slug is the whole authorization boundary for a reader, and until now
+    // that boundary had a hole in it: a profile that had never been published
+    // answered anybody who guessed or was given its slug, in full.
+    //
+    // `!== true` rather than `=== false`, so a row whose flag is null or
+    // missing reads as unpublished. Anything that is not an explicit yes is a
+    // no, which is the direction this should fail in.
+    //
+    // The owner is the exception, and has to be: this is where they see their
+    // own draft, and the controls for writing a direction and setting the
+    // contact address are on the page itself. Everyone else gets the same
+    // answer they would get for a slug that does not exist, so this cannot be
+    // used to find out which slugs are taken.
+    if (profile.is_published !== true && !isOwner) {
+      return Response.json({ error: 'NOT_FOUND' }, { status: 404 })
+    }
+
     // ---- EVERYTHING THE PAGE RENDERS ----
     const [
       lensRes, personRes, contextRes, coreRes, testimonialRes,
