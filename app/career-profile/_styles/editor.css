@@ -1225,3 +1225,142 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+
+/* ---- Managing what is already there ------------------------------------
+   A list under the composition rather than controls on the tiles: the section
+   previews a handful and the collection can be dozens, so tile controls would
+   reach only what happens to be on screen. */
+
+.hp-ed-manager {
+  max-width: 860px;
+  margin: 30px auto 0;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(var(--profile-void-rgb) / 0.5);
+}
+
+.hp-ed-manager-group {
+  margin: 16px 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(255 255 255 / 0.4);
+}
+
+.hp-profile .hp-ed-mrows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hp-ed-mrow {
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  background: rgb(255 255 255 / 0.03);
+}
+
+.hp-ed-mrow[data-open="true"] {
+  border-color: rgb(var(--profile-accent-rgb) / 0.42);
+  background: rgb(var(--profile-accent-rgb) / 0.06);
+}
+
+.hp-ed-mrow-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hp-ed-mrow-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--profile-text);
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hp-ed-mrow-badges { display: inline-flex; gap: 5px; flex-wrap: wrap; }
+
+.hp-ed-mrow-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.07);
+  color: rgb(255 255 255 / 0.62);
+  white-space: nowrap;
+}
+
+.hp-ed-mrow-badge[data-tone="warn"] { background: rgb(180 83 9 / 0.26); color: #fcd9a5; }
+.hp-ed-mrow-badge[data-tone="quiet"] { background: rgb(var(--profile-accent-rgb) / 0.16); color: rgb(var(--profile-accent-rgb) / 0.95); }
+
+/* The star. Two states, one of which is already true for something else in
+   this direction, so it reads as a switch rather than an action. */
+.hp-profile .hp-ed-star {
+  appearance: none;
+  border: 0;
+  background: none;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: rgb(255 255 255 / 0.22);
+  transition: color 140ms ease;
+}
+
+.hp-profile .hp-ed-star[data-on="true"] { color: #f4c152; }
+.hp-profile .hp-ed-star:hover:not(:disabled) { color: #f4c152; }
+.hp-profile .hp-ed-star:disabled { cursor: default; opacity: 0.5; }
+
+.hp-ed-star-gap { display: inline-block; width: 23px; }
+
+.hp-ed-mrow-lenses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.hp-profile .hp-ed-lens-chip {
+  appearance: none;
+  font: inherit;
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed rgb(255 255 255 / 0.18);
+  background: transparent;
+  color: rgb(255 255 255 / 0.5);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.hp-profile .hp-ed-lens-chip[aria-pressed="true"] {
+  border-style: solid;
+  border-color: rgb(var(--profile-accent-rgb) / 0.5);
+  background: rgb(var(--profile-accent-rgb) / 0.16);
+  color: var(--profile-text);
+}
+
+.hp-profile .hp-ed-lens-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.hp-ed-mrow-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.hp-profile .hp-ed-action.hp-ed-danger { color: #fca5a5; }
+.hp-profile .hp-ed-action.hp-ed-danger:hover:not(:disabled) {
+  background: rgb(185 28 28 / 0.18);
+  border-color: rgb(185 28 28 / 0.5);
+}
+
+.hp-ed-mrow-edit {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(255 255 255 / 0.09);
+}

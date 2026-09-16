@@ -8,6 +8,7 @@ import EvidenceOverlay from './EvidenceOverlay'
 import { glyphFor } from './EvidenceViewer'
 import { EditPencil, EditGrip, EditEmpty, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
+import EvidenceManager from './EvidenceManager'
 import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
@@ -188,6 +189,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
         {/* Under the collection rather than over it: the section is about the
             work, and the way to add more belongs after what is already there. */}
+        <EvidenceManager />
         <AddEvidence />
       </div>
 

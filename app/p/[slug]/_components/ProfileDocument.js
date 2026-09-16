@@ -343,6 +343,13 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onPreviewUrl: edit.onPreviewUrl,
       onCreateEvidence: edit.onCreateEvidence,
       onUploadEvidence: edit.onUploadEvidence,
+      allEvidence: edit.allEvidence,
+      allPlacements: edit.allPlacements,
+      onAssignEvidence: edit.onAssignEvidence,
+      onFeatureEvidence: edit.onFeatureEvidence,
+      onReorderEvidence: edit.onReorderEvidence,
+      onEditEvidence: edit.onEditEvidence,
+      onDeleteEvidence: edit.onDeleteEvidence,
       openField,
       busy,
       busyField: busy,
@@ -355,6 +362,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     }
   }, [
     edit?.editing, edit?.isPro, edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
+    edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
+    edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     lenses, editLensId, openField, busy, writeError, errorField,
     runWrite, editSave, editRegenerate
   ])

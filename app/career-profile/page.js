@@ -251,6 +251,71 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [authHeaders, reloadDocument])
 
+  // The management record, re-read the way the document is. It carries the
+  // private and draft items the public payload cannot, so the manager's list
+  // comes from here while the tiles above come from there.
+  const reloadManage = useCallback(async () => {
+    const managed = await fetchJSON('/api/career-profile/manage', { headers: authHeaders })
+    setManage(managed)
+  }, [authHeaders])
+
+  // Every management write lands the same way: do it, then re-read both
+  // records. Two requests rather than one, and worth it - the document decides
+  // eligibility and ordering server-side, and the manager needs rows the
+  // document is not allowed to carry. Reconstructing either here would be a
+  // second implementation that could disagree with the first.
+  const afterEvidenceChange = useCallback(async () => {
+    await Promise.all([reloadDocument(), reloadManage()])
+  }, [reloadDocument, reloadManage])
+
+  const placementOp = useCallback(async (body) => {
+    const res = await fetch('/api/career-profile/evidence/placements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(body)
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await afterEvidenceChange()
+    return payload
+  }, [authHeaders, afterEvidenceChange])
+
+  const assignEvidence = useCallback(
+    (evidenceId, lensId, on) => placementOp({ op: 'assign', evidence_id: evidenceId, lens_id: lensId, on }),
+    [placementOp]
+  )
+  const featureEvidence = useCallback(
+    (evidenceId, lensId) => placementOp({ op: 'feature', evidence_id: evidenceId, lens_id: lensId }),
+    [placementOp]
+  )
+  const reorderEvidence = useCallback(
+    (evidenceId, lensId, by) => placementOp({ op: 'reorder', evidence_id: evidenceId, lens_id: lensId, by }),
+    [placementOp]
+  )
+
+  const editEvidence = useCallback(async (evidenceId, values) => {
+    const res = await fetch(`/api/career-profile/evidence/${encodeURIComponent(evidenceId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(values)
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await afterEvidenceChange()
+    return payload
+  }, [authHeaders, afterEvidenceChange])
+
+  const deleteEvidence = useCallback(async (evidenceId) => {
+    const res = await fetch(`/api/career-profile/evidence/${encodeURIComponent(evidenceId)}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders }
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
+    await afterEvidenceChange()
+    return payload
+  }, [authHeaders, afterEvidenceChange])
+
   const createEvidence = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/evidence', {
       method: 'POST',
@@ -404,7 +469,16 @@ export default function CareerProfileEditorPage() {
           onRegenerateLens: regenerateLens,
           onPreviewUrl: previewUrl,
           onCreateEvidence: createEvidence,
-          onUploadEvidence: uploadEvidence
+          onUploadEvidence: uploadEvidence,
+          // The manager works from the management record, not the document:
+          // a private item has no tile above and still has to be managed.
+          allEvidence: manage?.evidence || [],
+          allPlacements: manage?.placements || [],
+          onAssignEvidence: assignEvidence,
+          onFeatureEvidence: featureEvidence,
+          onReorderEvidence: reorderEvidence,
+          onEditEvidence: editEvidence,
+          onDeleteEvidence: deleteEvidence
         } : null}
       />
 
