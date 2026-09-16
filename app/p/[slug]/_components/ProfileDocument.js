@@ -308,6 +308,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // name a direction the reader is not currently reading.
   const editLensId = selectedLens?.id || null
   const editSave = edit?.onSaveLens
+  const editSaveImow = edit?.onSaveImow
   const editRegenerate = edit?.onRegenerateLens
 
   const runWrite = useCallback(async (field, work) => {
@@ -350,6 +351,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onReorderEvidence: edit.onReorderEvidence,
       onEditEvidence: edit.onEditEvidence,
       onDeleteEvidence: edit.onDeleteEvidence,
+      onGenerateImow: edit.onGenerateImow,
       openField,
       busy,
       busyField: busy,
@@ -357,7 +359,13 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       errorField,
       open: (field) => { setWriteError(null); setErrorField(null); setOpenField(field) },
       close: () => { setWriteError(null); setErrorField(null); setOpenField(null) },
-      save: (values, field) => runWrite(field, () => editSave(editLensId, values)),
+      // In My Own Words belongs to the profile, not to a direction, so it is
+      // the one field whose save does not go to the lens route. Dispatched
+      // here rather than in the editor, so every field still opens, closes,
+      // reports busy and reports failure through the same path.
+      save: (values, field) => runWrite(field, () => (field === 'imow'
+        ? editSaveImow(values.imow_text)
+        : editSave(editLensId, values))),
       regenerate: (field) => runWrite(field, () => editRegenerate(editLensId, field))
     }
   }, [
@@ -365,7 +373,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     lenses, editLensId, openField, busy, writeError, errorField,
-    runWrite, editSave, editRegenerate
+    runWrite, editSave, editSaveImow, editRegenerate, edit?.onGenerateImow
   ])
 
   const actionButtons = (

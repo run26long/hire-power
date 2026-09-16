@@ -316,6 +316,39 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [authHeaders, afterEvidenceChange])
 
+  // ---- IN MY OWN WORDS ----
+  //
+  // The save writes; the draft does not. They are separate on purpose and the
+  // route behind the second one has no write in it at all.
+  const saveImow = useCallback(async (imowText) => {
+    const res = await fetch('/api/career-profile/imow', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ imow_text: imowText })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await reloadDocument()
+    return payload
+  }, [authHeaders, reloadDocument])
+
+  const generateImow = useCallback(async () => {
+    const res = await fetch('/api/career-profile/imow/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders }
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        payload?.error === 'PRO_REQUIRED'
+          ? 'Writing a draft is a Pro feature.'
+          : payload?.error || "We couldn't write a draft just now. Please try again."
+      )
+    }
+    // Nothing is reloaded here, because nothing was written.
+    return payload
+  }, [authHeaders])
+
   const createEvidence = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/evidence', {
       method: 'POST',
@@ -478,7 +511,9 @@ export default function CareerProfileEditorPage() {
           onFeatureEvidence: featureEvidence,
           onReorderEvidence: reorderEvidence,
           onEditEvidence: editEvidence,
-          onDeleteEvidence: deleteEvidence
+          onDeleteEvidence: deleteEvidence,
+          onSaveImow: saveImow,
+          onGenerateImow: generateImow
         } : null}
       />
 

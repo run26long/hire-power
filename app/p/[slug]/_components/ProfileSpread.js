@@ -4,6 +4,7 @@ import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
 import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
 import { ProseEditor } from './EditFields'
+import ImowEditor from './ImowEditor'
 import { useFieldEditor } from '../_lib/editContext'
 import { useCanShowEmpty } from '../_lib/editContext'
 
@@ -50,6 +51,7 @@ export default function ProfileSpread({
   const canShowEmpty = useCanShowEmpty()
   const slot = useEditSlot()
   const bioEditor = useFieldEditor('bio')
+  const imowEditor = useFieldEditor('imow')
 
   // The public rule stands: with nothing to say, this section does not exist.
   // Edit mode is the one exception, because an owner cannot write a bio into
@@ -128,9 +130,16 @@ export default function ProfileSpread({
           </div>
         )}
 
-        {hasVoice && (
+        {imowEditor?.isOpen ? (
+          <div data-resolve="voice">
+            <span className="hp-eyebrow">In my own words</span>
+            <ImowEditor value={imowText} />
+          </div>
+        ) : null}
+
+        {hasVoice && !imowEditor?.isOpen && (
           <figure className={`hp-voice hp-refocus${slot}`} data-resolve="voice">
-            <EditPencil label="In My Own Words" />
+            <EditPencil field="imow" label="In My Own Words" />
             {/* Atmosphere, not punctuation. These sit behind the words, are
                 never part of the stored string, and are hidden from assistive
                 technology so the statement is not announced as a quotation
@@ -146,10 +155,11 @@ export default function ProfileSpread({
           </figure>
         )}
 
-        {!hasVoice && canShowEmpty && (
+        {!hasVoice && canShowEmpty && !imowEditor?.isOpen && (
           <div data-resolve="voice">
             <span className="hp-eyebrow">In my own words</span>
             <EditEmpty
+              field="imow"
               title="Say it in your own words"
               note="Write it, or record a short video. This is the one part of the page in your voice rather than a summary of you."
             />

@@ -1364,3 +1364,40 @@
   padding-top: 10px;
   border-top: 1px solid rgb(255 255 255 / 0.09);
 }
+
+
+/* ---- In My Own Words ---------------------------------------------------
+   The video half, which does not exist yet. Disabled and saying which of the
+   two reasons applies: a control that vanishes for a free account never tells
+   them there is something to upgrade for, and one that is present and silent
+   for a Pro account never tells them it is not ready. */
+
+.hp-ed-imow-video {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.hp-ed-imow-video .hp-ed-add-choice { width: 100%; }
+
+.hp-ed-pro-tag,
+.hp-ed-soon-tag {
+  margin-left: 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+
+.hp-ed-pro-tag {
+  background: rgb(var(--profile-accent-rgb) / 0.9);
+  color: #fff;
+}
+
+.hp-ed-soon-tag {
+  background: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.55);
+}
