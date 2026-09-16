@@ -134,12 +134,38 @@ export default function TestimonialManager() {
                     {t.recipient_title ? <span className="hp-ed-tm-role"> · {t.recipient_title}</span> : null}
                   </span>
                   <span className="hp-ed-mrow-badges">
-                    {t.relationship_type ? <span className="hp-ed-mrow-badge">{t.relationship_type}</span> : null}
                     <span className="hp-ed-mrow-badge" data-tone={published ? 'live' : 'quiet'}>
                       {STATUS_LABEL[t.status] || t.status}
                     </span>
                     {t.reference_consent ? <span className="hp-ed-mrow-badge" data-tone="quiet">Reference</span> : null}
                   </span>
+                </div>
+
+                {/* A control rather than a badge, because the four testimonials
+                    that predate this column have no category and would
+                    otherwise never count toward the tag with no way to say what
+                    they were. Saves on change: there is one value, the list is
+                    five long, and a Save button next to a select nobody opened
+                    by accident is a step for its own sake. */}
+                <div className="hp-ed-tm-rel">
+                  <label className="hp-ed-field-label" htmlFor={`rel-${t.id}`}>
+                    How you worked together
+                  </label>
+                  <select
+                    id={`rel-${t.id}`}
+                    className="hp-ed-input"
+                    value={t.relationship_type || ''}
+                    disabled={Boolean(busy)}
+                    onChange={e => run(`rel:${t.id}`,
+                      () => edit.onCategoriseTestimonial(t.id, e.target.value || null))}
+                  >
+                    <option value="">Not said</option>
+                    {RELATIONSHIP_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  {busy === `rel:${t.id}` ? <span className="hp-ed-hint">Saving…</span> : null}
+                  {published && !t.relationship_type ? (
+                    <span className="hp-ed-hint">Counts toward the 360 view once you say.</span>
+                  ) : null}
                 </div>
 
                 {ready ? (

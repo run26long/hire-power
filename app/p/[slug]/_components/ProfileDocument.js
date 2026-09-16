@@ -357,6 +357,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onRequestTestimonial: edit.onRequestTestimonial,
       onPublishTestimonial: edit.onPublishTestimonial,
       onDeleteTestimonial: edit.onDeleteTestimonial,
+      onCategoriseTestimonial: edit.onCategoriseTestimonial,
       onDownloadReferenceSheet: edit.onDownloadReferenceSheet,
       openField,
       busy,
@@ -381,7 +382,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     lenses, editLensId, openField, busy, writeError, errorField,
     runWrite, editSave, editSaveImow, editRegenerate, edit?.onGenerateImow,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
-    edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet
+    edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet,
+    edit?.onCategoriseTestimonial
   ])
 
   const actionButtons = (

@@ -380,6 +380,21 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [authHeaders, reloadDocument, reloadManage])
 
+  // The category the 360 count reads. Both records are re-read because the
+  // badge is derived in the manage route, so the number on screen comes from
+  // the same place the tag itself will.
+  const categoriseTestimonial = useCallback(async (id, relationshipType) => {
+    const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ relationship_type: relationshipType })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await reloadManage()
+    return payload
+  }, [authHeaders, reloadManage])
+
   const deleteTestimonial = useCallback(async (id) => {
     const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -585,6 +600,7 @@ export default function CareerProfileEditorPage() {
           onRequestTestimonial: requestTestimonial,
           onPublishTestimonial: publishTestimonial,
           onDeleteTestimonial: deleteTestimonial,
+          onCategoriseTestimonial: categoriseTestimonial,
           onDownloadReferenceSheet: downloadReferenceSheet
         } : null}
       />

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { RELATIONSHIP_TYPES } from '@/lib/testimonialTypes'
 
 // ============================================================================
 // PATCH  /api/career-profile/testimonials/[testimonialId]  - publish, or not
@@ -19,11 +20,20 @@ import { createClient } from '@supabase/supabase-js'
 // references is a profile whose references mean nothing. The candidate's
 // choices are publish, do not publish, and remove.
 //
-// The one exception is `relationship`, the prose line printed under the quote,
-// which is the candidate's account of how they worked together rather than
-// part of what the referee said. relationship_type is not editable: it is what
-// EARNED 360 counts, and a profile that could retype its own denominator could
-// award itself the tag.
+// The exceptions are the two relationship fields, which are the candidate's
+// account of how they worked together rather than part of what the referee
+// said: `relationship`, the prose line printed under the quote, and
+// `relationship_type`, the category EARNED 360 counts.
+//
+// I refused the category here first, on the reasoning that a profile able to
+// retype its own denominator could award itself the tag. That was wrong in a
+// way worth naming. The owner already chooses the category when they send the
+// request, so refusing it afterwards did not withhold anything - it only meant
+// the four testimonials that predate the column could never count toward the
+// tag at all, with no way to say what they were. And the CHECK constraint
+// limits the value to five categories, so the worst somebody can do is call a
+// colleague a client, which is a lie about their own references rather than a
+// hole in the system.
 // ============================================================================
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -103,6 +113,29 @@ export async function PATCH(request, { params }) {
         )
       }
       patch.relationship = text || null
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'relationship_type')) {
+      // Null clears it, which is a real choice: "I do not want to say" should
+      // be reachable, and an uncategorised row simply does not count.
+      if (body.relationship_type === null || body.relationship_type === '') {
+        patch.relationship_type = null
+      } else {
+        // Matched case-insensitively against the list and stored in its
+        // canonical spelling, so "manager" and "Manager" cannot become two
+        // kinds of relationship in a count that only means anything if they
+        // are one.
+        const matched = typeof body.relationship_type === 'string'
+          ? RELATIONSHIP_TYPES.find(t => t.toLowerCase() === body.relationship_type.trim().toLowerCase())
+          : null
+        if (!matched) {
+          return Response.json(
+            { error: 'Choose how you worked together.', code: 'INVALID', field: 'relationship_type' },
+            { status: 400 }
+          )
+        }
+        patch.relationship_type = matched
+      }
     }
 
     if (Object.keys(patch).length === 0) {

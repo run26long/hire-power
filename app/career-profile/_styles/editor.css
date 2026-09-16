@@ -1468,3 +1468,23 @@
   color: rgb(255 255 255 / 0.55);
   flex: 1 1 240px;
 }
+
+
+/* The category control on a testimonial row. Inline with its label rather
+   than stacked, because it is one short choice sitting among several rows and
+   a stacked field per row turns the list into a form. */
+.hp-ed-tm-rel {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.hp-ed-tm-rel .hp-ed-field-label { margin: 0; }
+
+.hp-profile .hp-ed-tm-rel select.hp-ed-input {
+  font-size: 12.5px;
+  padding: 5px 28px 5px 9px;
+  background-position: calc(100% - 13px) 50%, calc(100% - 8px) 50%;
+}
