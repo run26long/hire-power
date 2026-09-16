@@ -1,37 +1,52 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ============================================================================
 // SETTINGS
 //
 // The things that belong to the profile as a whole rather than to any one
-// direction: the link, the address behind the Contact button, the switch that
-// makes the page readable, and how it is set to look.
+// direction: the switch that makes it readable, the address it lives at, and
+// the address a reader answers to.
 //
 // A drawer rather than a sidebar, because none of this is part of the page.
 // The profile is the page; this is the handful of decisions standing behind
 // it, and it should be reachable in one click and gone again in one.
 //
-// READ-ONLY IN THIS PASS
-// Every control shows its real value and is disabled. They are drawn now so
-// the drawer has its true shape before anything can write, and each says what
-// it is waiting for rather than going quiet under a click.
+// EACH CONTROL SAVES ITSELF
+// There is no Save button over the whole drawer. Publication is a switch and
+// takes effect when it is thrown; the two text fields save on their own and
+// say so. A single Save would make three unrelated decisions one transaction,
+// and a failure in any of them would leave the other two in an unclear state.
+//
+// THE OWNER IS TOLD BEFORE THE IRREVERSIBLE PART
+// Changing the address breaks every link already shared, and there is no
+// redirect from the old one. The field says that before it saves rather than
+// after, and it asks again if the current profile is published - which is the
+// only case where links are actually out in the world.
+//
+// The three routes it talks to each derive the row from the caller's token.
+// Nothing here sends a profile id, and there is nothing it could send: the
+// drawer has never been given one.
 // ============================================================================
 
 const HEX = /^#[0-9a-f]{3,8}$/i
+
+// Long enough that somebody typing is not interrupted, short enough that the
+// answer arrives before they have finished deciding.
+const CHECK_DEBOUNCE_MS = 450
 
 function humanize(value) {
   if (!value || typeof value !== 'string') return null
   return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-function Group({ label, children, soon }) {
+function Group({ label, children, note }) {
   return (
     <div className="hp-ed-group">
       <p className="hp-ed-label">{label}</p>
       {children}
-      {soon ? <p className="hp-ed-soon">{soon}</p> : null}
+      {note ? <p className="hp-ed-soon">{note}</p> : null}
     </div>
   )
 }
@@ -41,11 +56,51 @@ function Value({ children, empty }) {
   return <p className="hp-ed-value">{children}</p>
 }
 
-export default function SettingsDrawer({ open, onClose, profile, publicUrl }) {
+export default function SettingsDrawer({
+  open,
+  onClose,
+  profile,
+  publicUrl,
+  authHeaders,
+  onProfileChanged
+}) {
   const closeRef = useRef(null)
 
-  // Escape closes it, and focus moves into the drawer when it opens so a
-  // keyboard is not left behind the scrim with nothing to act on.
+  const published = profile?.is_published === true
+  const currentSlug = profile?.slug || ''
+  const currentEmail = profile?.contact_email || ''
+
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState(null)
+
+  const [slug, setSlug] = useState(currentSlug)
+  const [slugCheck, setSlugCheck] = useState(null)   // { available, reason, current }
+  const [slugChecking, setSlugChecking] = useState(false)
+  const [slugSaving, setSlugSaving] = useState(false)
+  const [slugError, setSlugError] = useState(null)
+  const [slugSaved, setSlugSaved] = useState(false)
+
+  const [email, setEmail] = useState(currentEmail)
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [emailError, setEmailError] = useState(null)
+  const [emailSaved, setEmailSaved] = useState(false)
+
+  // Reopening shows what is actually stored, not what was half-typed and
+  // abandoned last time.
+  useEffect(() => {
+    if (!open) return
+    setSlug(currentSlug)
+    setEmail(currentEmail)
+    setSlugCheck(null)
+    setSlugError(null)
+    setSlugSaved(false)
+    setEmailError(null)
+    setEmailSaved(false)
+    setPublishError(null)
+  }, [open, currentSlug, currentEmail])
+
+  // Escape closes, and focus moves into the drawer so a keyboard is not left
+  // behind the scrim with nothing to act on.
   useEffect(() => {
     if (!open) return
     closeRef.current?.focus()
@@ -56,60 +111,239 @@ export default function SettingsDrawer({ open, onClose, profile, publicUrl }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  // Availability, asked of the route that will do the saving, so the answer
+  // here and the answer there cannot disagree.
+  const candidate = slug.trim().toLowerCase()
+  useEffect(() => {
+    if (!open) return
+    if (!candidate || candidate === currentSlug) { setSlugCheck(null); return }
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      setSlugChecking(true)
+      try {
+        const res = await fetch('/api/career-profile/slug', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ slug: candidate })
+        })
+        const payload = await res.json().catch(() => ({}))
+        if (cancelled) return
+        setSlugCheck(res.ok ? payload : { available: false, reason: payload?.error || 'Could not check that.' })
+      } catch {
+        if (!cancelled) setSlugCheck({ available: false, reason: "We couldn't check that just now." })
+      } finally {
+        if (!cancelled) setSlugChecking(false)
+      }
+    }, CHECK_DEBOUNCE_MS)
+
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [candidate, currentSlug, open, authHeaders])
+
+  const togglePublish = useCallback(async () => {
+    if (publishing) return
+    setPublishing(true)
+    setPublishError(null)
+    try {
+      const res = await fetch('/api/career-profile/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ is_published: !published })
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+      onProfileChanged({ is_published: payload.is_published === true })
+    } catch (err) {
+      setPublishError(err.message || "We couldn't save that.")
+    } finally {
+      setPublishing(false)
+    }
+  }, [publishing, published, authHeaders, onProfileChanged])
+
+  async function saveSlug() {
+    if (slugSaving || !candidate || candidate === currentSlug) return
+
+    // Asked once, before anything is written, and only when there are links to
+    // break. An unpublished profile has never been readable by anyone, so
+    // there is nothing to warn about.
+    if (published) {
+      const ok = window.confirm(
+        `Change your link to /p/${candidate}?\n\n` +
+        'Every link you have already shared will stop working. There is no redirect from the old address.'
+      )
+      if (!ok) return
+    }
+
+    setSlugSaving(true)
+    setSlugError(null)
+    setSlugSaved(false)
+    try {
+      const res = await fetch('/api/career-profile/slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ slug: candidate })
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+      onProfileChanged({ slug: payload.slug })
+      setSlug(payload.slug)
+      setSlugCheck(null)
+      setSlugSaved(true)
+    } catch (err) {
+      setSlugError(err.message || "We couldn't save that.")
+    } finally {
+      setSlugSaving(false)
+    }
+  }
+
+  async function saveEmail() {
+    if (emailSaving) return
+    setEmailSaving(true)
+    setEmailError(null)
+    setEmailSaved(false)
+    try {
+      const res = await fetch('/api/career-profile/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ contact_email: email })
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+      onProfileChanged({ contact_email: payload.contact_email ?? null })
+      setEmail(payload.contact_email ?? '')
+      setEmailSaved(true)
+    } catch (err) {
+      setEmailError(err.message || "We couldn't save that.")
+    } finally {
+      setEmailSaving(false)
+    }
+  }
+
   if (!open) return null
 
-  const published = profile?.is_published === true
   const accent = profile?.accent || null
+  const slugDirty = candidate !== currentSlug && candidate.length > 0
+  const slugUsable = slugDirty && slugCheck?.available === true && !slugChecking
+  const emailDirty = email.trim() !== currentEmail
 
   return (
     <>
-      <button
-        type="button"
-        className="hp-ed-scrim"
-        aria-label="Close settings"
-        onClick={onClose}
-      />
+      <button type="button" className="hp-ed-scrim" aria-label="Close settings" onClick={onClose} />
+
       <aside className="hp-ed-drawer" role="dialog" aria-modal="true" aria-label="Career Profile settings">
         <div className="hp-ed-drawer-head">
           <p className="hp-ed-drawer-title">Settings</p>
-          <button
-            type="button"
-            ref={closeRef}
-            className="hp-ed-action"
-            onClick={onClose}
-          >
-            Done
-          </button>
+          <button type="button" ref={closeRef} className="hp-ed-action" onClick={onClose}>Done</button>
         </div>
 
         <div className="hp-ed-drawer-body">
-          <Group
-            label="Publication"
-            soon="The publish switch arrives with the settings write route."
-          >
-            <Value>
+
+          {/* ---- Publication ---- */}
+          <Group label="Publication">
+            <div className="hp-ed-switch-row">
+              <button
+                type="button"
+                className="hp-ed-switch"
+                role="switch"
+                aria-checked={published}
+                aria-label="Publish this profile"
+                onClick={togglePublish}
+                disabled={publishing}
+                data-on={published ? 'true' : 'false'}
+              >
+                <span className="hp-ed-switch-knob" aria-hidden="true" />
+              </button>
+              <span className="hp-ed-switch-label">
+                {publishing ? 'Saving…' : published ? 'Published' : 'Draft'}
+              </span>
+            </div>
+            <p className="hp-ed-soon">
               {published
-                ? 'Published. Anyone with the link can read this profile.'
-                : 'Draft. Only you can open this profile.'}
-            </Value>
+                ? 'Anyone with your link can read this profile.'
+                : 'Only you can open this profile. The link returns nothing for everybody else.'}
+            </p>
+            {publishError ? <p className="hp-ed-error">{publishError}</p> : null}
           </Group>
 
-          <Group label="Link" soon="Choosing your own slug arrives in the same pass.">
-            {publicUrl
-              ? <Value>{publicUrl}</Value>
-              : <Value empty="No link yet." />}
+          {/* ---- Link ---- */}
+          <Group label="Link">
+            <div className="hp-ed-field">
+              <span className="hp-ed-prefix">/p/</span>
+              <input
+                id="hp-ed-slug"
+                className="hp-ed-input"
+                type="text"
+                value={slug}
+                spellCheck="false"
+                autoComplete="off"
+                onChange={e => { setSlug(e.target.value); setSlugSaved(false); setSlugError(null) }}
+                aria-label="Your profile link"
+                aria-describedby="hp-ed-slug-note"
+              />
+            </div>
+
+            <div className="hp-ed-row">
+              <button
+                type="button"
+                className="hp-ed-action"
+                data-primary="true"
+                onClick={saveSlug}
+                disabled={!slugUsable || slugSaving}
+              >
+                {slugSaving ? 'Saving…' : 'Save link'}
+              </button>
+              {slugDirty && slugChecking ? <span className="hp-ed-hint">Checking…</span> : null}
+              {slugDirty && !slugChecking && slugCheck?.available === true
+                ? <span className="hp-ed-hint" data-ok="true">Available</span> : null}
+              {slugDirty && !slugChecking && slugCheck?.available === false
+                ? <span className="hp-ed-hint" data-bad="true">{slugCheck.reason}</span> : null}
+              {!slugDirty && slugSaved ? <span className="hp-ed-hint" data-ok="true">Saved</span> : null}
+            </div>
+
+            <p className="hp-ed-soon" id="hp-ed-slug-note">
+              {publicUrl ? <span className="hp-ed-url">{publicUrl}</span> : null}
+              {published
+                ? 'Changing this breaks every link you have already shared.'
+                : 'Lowercase letters, numbers and hyphens.'}
+            </p>
+            {slugError ? <p className="hp-ed-error">{slugError}</p> : null}
           </Group>
 
-          <Group
-            label="Contact address"
-            soon="The Contact button appears on your profile once an address is set."
-          >
-            {profile?.contact_email
-              ? <Value>{profile.contact_email}</Value>
-              : <Value empty="No address set, so the Contact button does not appear." />}
+          {/* ---- Contact ---- */}
+          <Group label="Contact address">
+            <input
+              id="hp-ed-email"
+              className="hp-ed-input"
+              type="email"
+              value={email}
+              spellCheck="false"
+              autoComplete="off"
+              placeholder="you@example.com"
+              onChange={e => { setEmail(e.target.value); setEmailSaved(false); setEmailError(null) }}
+              aria-label="Contact address"
+              aria-describedby="hp-ed-email-note"
+            />
+            <div className="hp-ed-row">
+              <button
+                type="button"
+                className="hp-ed-action"
+                data-primary="true"
+                onClick={saveEmail}
+                disabled={!emailDirty || emailSaving}
+              >
+                {emailSaving ? 'Saving…' : 'Save address'}
+              </button>
+              {emailSaved ? <span className="hp-ed-hint" data-ok="true">Saved</span> : null}
+            </div>
+            <p className="hp-ed-soon" id="hp-ed-email-note">
+              Opens the Contact button on your profile. Leave it empty and the button
+              does not appear at all.
+            </p>
+            {emailError ? <p className="hp-ed-error">{emailError}</p> : null}
           </Group>
 
-          <Group label="Template" soon="Template and colour choices arrive with appearance settings.">
+          {/* ---- Appearance: still read-only ---- */}
+          <Group label="Template" note="Template and colour choices arrive with appearance settings.">
             {humanize(profile?.template)
               ? <Value>{humanize(profile.template)}</Value>
               : <Value empty="Default." />}

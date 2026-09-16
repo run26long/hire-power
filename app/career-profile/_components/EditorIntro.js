@@ -71,6 +71,20 @@ export default function EditorIntro() {
     listeners.forEach(listener => listener())
   }
 
+  // The way in, as opposed to the way out.
+  //
+  // It moves to the top of the document rather than dismissing, because these
+  // are two different intentions and the × already covers the other one:
+  // somebody who wants to get started is not necessarily somebody who never
+  // wants to read this again. With no document to move to - which should not
+  // happen, but the button must do something - it closes instead.
+  function begin() {
+    const doc = typeof window !== 'undefined' && window.document.querySelector('.hp-profile')
+    if (!doc) { dismiss(); return }
+    const wantsStill = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    doc.scrollIntoView({ behavior: wantsStill ? 'auto' : 'smooth', block: 'start' })
+  }
+
   if (dismissed) return null
 
   return (
@@ -78,10 +92,18 @@ export default function EditorIntro() {
       <div className="hp-ed-intro-inner">
         <p className="hp-ed-intro-lead">Your career was never meant to fit on one page.</p>
         <p className="hp-ed-intro-body">
-          Everything below was built from your coaching sessions. Edit anything, add
-          evidence of your work, and request testimonials. When you&apos;re ready, publish
-          and share the link.
+          Everything below was built from your coaching sessions. Your bio, headline,
+          proof points, and skills were generated from what you told your coach. Edit
+          anything, add evidence of your work, and request testimonials from people
+          who&apos;ve seen it firsthand. When you&apos;re ready, publish it and share the
+          link. Recruiters can ask questions, evaluate you for a role, and download a
+          brief for their hiring team.
         </p>
+
+        <button type="button" className="hp-ed-intro-cta" onClick={begin}>
+          Take your career beyond the page
+          <span className="hp-ed-intro-cta-arrow" aria-hidden="true">↓</span>
+        </button>
       </div>
       <button
         type="button"

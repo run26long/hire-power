@@ -40,9 +40,12 @@
   min-height: 100vh;
 }
 
-/* The one value handed down into the Profile's system. */
+/* The one value handed down into the Profile's system, plus the offset the
+   introduction's action scrolls to: without it the chrome covers the first
+   101px of whatever it lands on. */
 .hp-ed .hp-profile {
   --profile-chrome-top: calc(var(--ed-nav-h) + var(--ed-bar-h));
+  scroll-margin-top: calc(var(--ed-nav-h) + var(--ed-bar-h));
 }
 
 
@@ -204,6 +207,37 @@
   color: rgb(244 242 248 / 0.66);
 }
 
+/* The way in. Lavender on the document's own ground rather than the chrome's
+   purple: it belongs to the page it points at. */
+.hp-ed-intro-cta {
+  appearance: none;
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px solid rgb(124 58 237 / 0.45);
+  background: rgb(124 58 237 / 0.18);
+  color: #e9e5f5;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.hp-ed-intro-cta:hover {
+  background: rgb(124 58 237 / 0.3);
+  border-color: rgb(124 58 237 / 0.7);
+}
+
+.hp-ed-intro-cta-arrow {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.75;
+}
+
 .hp-ed-intro-close {
   position: absolute;
   top: 18px;
@@ -313,13 +347,169 @@
   margin-right: 7px;
 }
 
-/* A control that is visibly not ready yet. It is disabled rather than absent
-   so the drawer shows its real shape, and it says why rather than going quiet
-   under a click. */
+/* The line under a control: what it does, or what it is still waiting for. */
 .hp-ed-soon {
   margin: 6px 0 0;
   font-size: 11.5px;
+  line-height: 1.5;
   color: #a5a5b4;
+}
+
+/* The address gets its own line. Set inline it runs straight into the sentence
+   after it and the two read as one string. */
+.hp-ed-url {
+  display: block;
+  margin-bottom: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #8b8b9a;
+  overflow-wrap: anywhere;
+}
+
+
+/* ---- The controls that actually write ---------------------------------- */
+
+.hp-ed-input {
+  width: 100%;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--ed-line);
+  background: var(--ed-surface);
+  color: var(--ed-ink);
+  min-width: 0;
+}
+
+.hp-ed-input:focus-visible {
+  outline: 2px solid var(--ed-accent);
+  outline-offset: -1px;
+  border-color: var(--ed-accent);
+}
+
+/* The address, shown as the address it will be. The prefix is part of the
+   control rather than a label above it, because /p/ is not something the
+   owner is choosing and should not look editable. */
+.hp-ed-field {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--ed-line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--ed-surface);
+}
+
+.hp-ed-field:focus-within {
+  border-color: var(--ed-accent);
+  outline: 2px solid var(--ed-accent);
+  outline-offset: -1px;
+}
+
+.hp-ed-prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px 0 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: #a5a5b4;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.hp-ed-field .hp-ed-input {
+  border: 0;
+  border-radius: 0;
+  padding-left: 0;
+}
+
+.hp-ed-field .hp-ed-input:focus-visible {
+  outline: 0;
+}
+
+.hp-ed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.hp-ed-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hp-ed-action:disabled:hover {
+  border-color: var(--ed-line);
+  background: var(--ed-surface);
+}
+
+.hp-ed-action[data-primary="true"]:disabled:hover {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+}
+
+.hp-ed-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #a5a5b4;
+}
+
+.hp-ed-hint[data-ok="true"] { color: #047857; font-weight: 600; }
+.hp-ed-hint[data-bad="true"] { color: #b45309; }
+
+.hp-ed-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #b91c1c;
+}
+
+/* The publish switch. The one control here whose two states have genuinely
+   different consequences, so it looks like a switch rather than a checkbox. */
+.hp-ed-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hp-ed-switch {
+  appearance: none;
+  width: 40px;
+  height: 23px;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--ed-line);
+  background: #e9e9f0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.hp-ed-switch[data-on="true"] {
+  background: #059669;
+  border-color: #059669;
+}
+
+.hp-ed-switch:disabled { opacity: 0.55; cursor: wait; }
+
+.hp-ed-switch-knob {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 160ms ease;
+}
+
+.hp-ed-switch[data-on="true"] .hp-ed-switch-knob { transform: translateX(17px); }
+
+.hp-ed-switch-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ed-ink);
 }
 
 

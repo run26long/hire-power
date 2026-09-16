@@ -38,10 +38,15 @@ import './_styles/editor.css'
 // viewport, and the two come apart. Nothing here introduces an overflow
 // container; the document scrolls the document.
 //
-// WHAT IT CANNOT DO YET
-// Write anything. Every affordance on this page is disabled and says so. This
-// pass exists to prove auth, the shared-document extraction, the layout and
-// the stacking order before a single write route is built.
+// WHAT WRITES AND WHAT DOES NOT
+// The settings drawer writes: publication, the public address, and the contact
+// address, each through its own route and each deriving the row from the
+// caller's token rather than from anything this page sends.
+//
+// Everything laid over the document itself is still inert. Those affordances
+// are drawn so their placement can be judged against the real layout, and each
+// one is disabled and says what it is waiting for. They become real one
+// section at a time, after this.
 // ============================================================================
 
 const MODES = { EDIT: 'edit', PREVIEW: 'preview' }
@@ -56,6 +61,7 @@ export default function CareerProfileEditorPage() {
   const [document_, setDocument] = useState(null)
   const [mode, setMode] = useState(MODES.EDIT)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [authHeaders, setAuthHeaders] = useState(null)
   const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
@@ -66,6 +72,7 @@ export default function CareerProfileEditorPage() {
       if (!session) { router.push('/dashboard'); return }
 
       const headers = { Authorization: `Bearer ${session.access_token}` }
+      setAuthHeaders(headers)
 
       // The management record first: it is the only thing that knows which
       // profile belongs to this session, and the slug comes out of it rather
@@ -118,6 +125,15 @@ export default function CareerProfileEditorPage() {
       setCopied(false)
     }
   }
+
+  // A settings write has landed. The management record is patched in place
+  // rather than refetched: the route returned the stored value, so what is
+  // on screen is what is in the database, and a round trip would only add a
+  // flicker. A changed slug also changes the public address, so the link in
+  // the bar and the drawer follow from the same state.
+  const handleProfileChanged = useCallback((patch) => {
+    setManage(prev => prev ? { ...prev, profile: { ...prev.profile, ...patch } } : prev)
+  }, [])
 
   function handleLensUpdated(lens) {
     setDocument(prev => prev ? {
@@ -261,6 +277,8 @@ export default function CareerProfileEditorPage() {
         onClose={() => setDrawerOpen(false)}
         profile={profile}
         publicUrl={publicUrl}
+        authHeaders={authHeaders}
+        onProfileChanged={handleProfileChanged}
       />
     </div>
   )
