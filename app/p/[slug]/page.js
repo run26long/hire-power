@@ -74,6 +74,8 @@ export default function CareerProfilePage() {
   const [glowKey, setGlowKey] = useState(0)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState(null)
+  const [downloadingResume, setDownloadingResume] = useState(false)
+  const [resumeError, setResumeError] = useState(null)
   const [bioExpanded, setBioExpanded] = useState(false)
   const [expandedRole, setExpandedRole] = useState(null)
 
@@ -278,6 +280,61 @@ export default function CareerProfilePage() {
     }
   }
 
+  // The resume the button hands over is the one the reader is looking at: the
+  // direction's own where it has built one, the priority core otherwise. Which
+  // is not decided here - the direction id is sent and the server resolves it,
+  // because a resume id from this side would be a resume id anybody could send.
+  async function handleDownloadResume() {
+    if (!activeResume || downloadingResume) return
+    setDownloadingResume(true)
+    setResumeError(null)
+    try {
+      const res = await fetch('/api/career-profile/download-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, lens_id: selectedLens?.id || null })
+      })
+
+      if (!res.ok) {
+        let payload = {}
+        try { payload = await res.json() } catch { /* status is enough */ }
+        setResumeError(payload?.error || "That didn't download. Please try again.")
+        return
+      }
+
+      // The server names the file; it knows whose resume this is and has
+      // already made the name safe for a header.
+      const disposition = res.headers.get('content-disposition') || ''
+      const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+      const plain = disposition.match(/filename="([^"]+)"/i)
+      const name = encoded ? decodeURIComponent(encoded[1]) : (plain ? plain[1] : 'Resume.pdf')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = name
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 4000)
+    } catch {
+      setResumeError("That didn't reach us. Check your connection and try again.")
+    } finally {
+      setDownloadingResume(false)
+    }
+  }
+
+  const actionButtons = (
+    <ProfileActionButtons
+      resume={activeResume}
+      contactEmail={data?.profile?.contact_email || null}
+      downloading={downloadingResume}
+      downloadError={resumeError}
+      onDownload={handleDownloadResume}
+    />
+  )
+
   // ---- LOADING / ERROR ----
   if (loadState === 'loading') {
     return (
@@ -319,8 +376,7 @@ export default function CareerProfilePage() {
         animate={animate}
         chrome={
           <ProfileHeader
-            resume={activeResume}
-            isOwner={data?.isOwner}
+            actions={actionButtons}
             showGenerate={showGenerate}
             lensName={selectedLens?.name}
             generating={generating}
@@ -345,7 +401,7 @@ export default function CareerProfilePage() {
         activeIndex={activeIndex}
         onSelect={selectLens}
         reducedMotion={reducedMotion}
-        actions={<ProfileActionButtons resume={activeResume} isOwner={data?.isOwner} />}
+        actions={actionButtons}
       />
 
       <ProfileSpread
@@ -429,8 +485,12 @@ export default function CareerProfilePage() {
       <ProfileResolution
         readyTags={readyTags}
         location={location}
-        resume={activeResume}
+        actions={actionButtons}
         isOwner={data?.isOwner}
+        contactEmail={data?.profile?.contact_email || null}
+        onContactSaved={(value) => setData(prev => prev
+          ? { ...prev, profile: { ...prev.profile, contact_email: value } }
+          : prev)}
         animate={animate}
       />
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import Reveal from './Reveal'
-import { ProfileActionButtons } from './ProfileHeader'
+import ContactEmailField from './ContactEmailField'
 
 // ============================================================================
 // The resolution, and the page's footer.
@@ -12,9 +12,13 @@ import { ProfileActionButtons } from './ProfileHeader'
 // it names. There is no narrative line here and no call-to-action block;
 // `ready_for_next` is deliberately not rendered anywhere on the Profile.
 //
-// The actions are the masthead's own component rather than a second pair with
-// the same copy, so the treatment, the titles and the disabled state are the
-// header's by definition and the two can never drift.
+// The actions are the masthead's own pair, handed down rather than rebuilt, so
+// the treatment, the copy and the busy state are the header's by definition
+// and the two placements can never drift.
+//
+// The owner, and only the owner, also gets the one field behind the Contact
+// button here. There is no settings screen for a Career Profile anywhere in
+// the app, and this is where the button it belongs to already sits.
 //
 // Location appears only when the resume actually carries one, and there is no
 // remote-preference field in the data, so there is no remote line.
@@ -22,7 +26,15 @@ import { ProfileActionButtons } from './ProfileHeader'
 // This renders outside <main>, so it is the one part of the page that does not
 // dissolve and re-enter when the reader changes direction.
 // ============================================================================
-export default function ProfileResolution({ readyTags, location, resume, isOwner, animate }) {
+export default function ProfileResolution({
+  readyTags,
+  location,
+  actions,
+  isOwner,
+  contactEmail,
+  onContactSaved,
+  animate
+}) {
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
@@ -47,10 +59,14 @@ export default function ProfileResolution({ readyTags, location, resume, isOwner
               </p>
             )}
 
-            <span className="hp-foot-actions">
-              <ProfileActionButtons resume={resume} isOwner={isOwner} />
-            </span>
+            <span className="hp-foot-actions">{actions}</span>
           </div>
+
+          {/* Owner only, and never rendered for anybody else - a visitor has
+              no business seeing the field, only its result. */}
+          {isOwner ? (
+            <ContactEmailField value={contactEmail} onSaved={onContactSaved} />
+          ) : null}
         </Reveal>
 
         {/* The words stay words and the name becomes the mark. One line, the

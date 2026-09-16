@@ -139,8 +139,15 @@ export async function POST(request) {
       year: 'numeric', month: 'long', day: 'numeric'
     })
 
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
-    const profileUrl = origin ? `${origin.replace(/\/+$/, '')}/p/${slug}` : ''
+    // The site's own address, not the caller's. Origin is a request header and
+    // therefore whatever the client chose to send, which would have let anyone
+    // print a URL of their choosing into the footer of a document the
+    // candidate then forwards to an employer. NEXT_PUBLIC_SITE_URL is the same
+    // value the rest of the app builds absolute links from, and it is set per
+    // environment, so this reads as production in production and localhost on
+    // a developer's machine without either being able to tell the other.
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const profileUrl = `${site.replace(/\/+$/, '')}/p/${slug}`
 
     const pdf = await renderToBuffer(
       React.createElement(RoleAlignmentBriefPDF, {

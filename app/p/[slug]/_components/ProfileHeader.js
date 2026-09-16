@@ -12,59 +12,76 @@
 // Download résumé is a real secondary button beside it, quieter but
 // unmistakably a control.
 //
-// Neither action has a backend yet. Both keep the disabled state and the
-// explanation they have always carried; the hover, pressed and focus-visible
-// states are written against `:not(:disabled)` so they are already correct the
-// day the routes land.
+// Both actions are live now. Download builds the PDF on the server from the
+// direction being read; Contact is a mailto: to the address the owner set.
 //
-// The generate button is the exception: it is the one working write this page
-// has, it is owner-only, and it only appears for a direction that has not been
-// written yet.
+// Contact does not render at all when no address is set. A disabled button
+// would tell a recruiter that there is a way to reach this person and that it
+// is closed, which is worse than the page simply not offering one - the same
+// rule the recruiter tools follow when a profile does not carry them.
+//
+// The generate button is the exception: it is owner-only, and it only appears
+// for a direction that has not been written yet.
 // ============================================================================
 
 const DOWNLOAD_LABEL = 'Download résumé'
 const CONTACT_LABEL = 'Contact'
 
-function downloadTitleFor(resume, isOwner) {
-  return isOwner
-    ? 'Public resume download is not wired up yet'
-    : resume
-    ? 'Resume download is coming soon'
-    : 'No resume published yet'
+function downloadTitleFor(resume, downloading) {
+  if (downloading) return 'Building the PDF'
+  return resume ? 'Download this résumé as a PDF' : 'No resume published yet'
 }
 
-export function ProfileActionButtons({ resume, isOwner }) {
+export function ProfileActionButtons({
+  resume,
+  contactEmail,
+  downloading,
+  downloadError,
+  onDownload
+}) {
   return (
     <>
       <button
         type="button"
         className="hp-btn hp-btn-secondary"
-        disabled
+        disabled={!resume || downloading}
         aria-label={DOWNLOAD_LABEL}
-        title={downloadTitleFor(resume, isOwner)}
+        aria-busy={downloading ? 'true' : undefined}
+        title={downloadTitleFor(resume, downloading)}
+        onClick={onDownload}
       >
         {/* The accessible name is on the button, so the visible text can
             shorten in the sticky bar on a phone without the control losing
             what it is called. */}
-        <span className="hp-btn-full">{DOWNLOAD_LABEL}</span>
-        <span className="hp-btn-short" aria-hidden="true">Résumé</span>
+        <span className="hp-btn-full">{downloading ? 'Building…' : DOWNLOAD_LABEL}</span>
+        <span className="hp-btn-short" aria-hidden="true">
+          {downloading ? '…' : 'Résumé'}
+        </span>
       </button>
 
-      <button
-        type="button"
-        className="hp-btn hp-btn-primary"
-        disabled
-        title="Contact is not wired up yet"
-      >
-        {CONTACT_LABEL}
-      </button>
+      {/* An anchor rather than a button, because it goes somewhere: it should
+          be openable in the way every other link is, and a mail client is a
+          destination even though it is not a page. */}
+      {/* encodeURI, not encodeURIComponent: the component form percent-encodes
+          the @, and a mailto whose separator is %40 is mishandled by enough
+          mail clients to matter. This escapes what is genuinely unsafe in a URL
+          and leaves the address's own punctuation alone. The stored value has
+          already been checked for shape and refused any whitespace. */}
+      {contactEmail ? (
+        <a className="hp-btn hp-btn-primary" href={`mailto:${encodeURI(contactEmail)}`}>
+          {CONTACT_LABEL}
+        </a>
+      ) : null}
+
+      {downloadError ? (
+        <span className="hp-btn-error" role="alert">{downloadError}</span>
+      ) : null}
     </>
   )
 }
 
 export default function ProfileHeader({
-  resume,
-  isOwner,
+  actions,
   showGenerate,
   lensName,
   generating,
@@ -90,7 +107,10 @@ export default function ProfileHeader({
           </button>
         )}
 
-        <ProfileActionButtons resume={resume} isOwner={isOwner} />
+        {/* Built once by the page and handed to all three placements, so the
+            masthead, the sticky bar and the footer share one busy state and
+            one error rather than three copies that can disagree. */}
+        {actions}
       </div>
     </div>
   )

@@ -28,8 +28,8 @@ function isMissingColumnError(error) {
 // card uses.
 const LENS_DISPLAY_LIMIT = 3
 
-const PROFILE_BASE = 'id, user_id, slug'
-const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type`
+const PROFILE_BASE = 'id, user_id, slug, is_published'
+const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, contact_email`
 
 const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
 const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis`
@@ -411,7 +411,17 @@ export async function GET(request, { params }) {
         color_mode: profile.color_mode ?? null,
         accent: profile.accent ?? null,
         imow_text: profile.imow_text ?? null,
-        imow_type: profile.imow_type ?? null
+        imow_type: profile.imow_type ?? null,
+        // The one field on this table that is somebody's address rather than a
+        // styling choice, so it is the one field with a condition on it. Sent
+        // only for a published profile, and only to its owner otherwise: a
+        // draft profile shared by link is not a decision to publish an email.
+        // On the reduced select above the column is absent, which reads as
+        // undefined and withholds it, which is the right way for this to fail.
+        contact_email:
+          (profile.is_published === true || isOwner) && profile.contact_email
+            ? profile.contact_email
+            : null
       },
       person: {
         displayName: personRes.data?.display_name || coreResume?.resume_data?.fullName || null

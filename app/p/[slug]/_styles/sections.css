@@ -3114,3 +3114,92 @@
 @media (min-width: 1200px) {
   .hp-ev-headline { font-size: clamp(48px, 4.5vw, 68px); }
 }
+
+/* ---- The owner's one field ----
+   Under the actions, owner only, and quiet: it is a setting on somebody's own
+   page rather than part of the composition a reader is shown. It borrows the
+   page's own input treatment rather than introducing a second one. */
+.hp-foot-contact {
+  display: block;
+  max-width: 420px;
+  margin: 26px 0 0;
+}
+
+.hp-foot-contact-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--profile-meta);
+}
+
+.hp-foot-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hp-profile .hp-foot-contact-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 13px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.2);
+  border-radius: 3px;
+  background: rgb(var(--profile-void-rgb) / 0.5);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--profile-text);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.hp-profile .hp-foot-contact-input::placeholder { color: var(--profile-meta); }
+
+.hp-profile .hp-foot-contact-input:focus {
+  outline: none;
+  border-color: rgb(var(--profile-accent-rgb) / 0.52);
+  background: rgb(var(--profile-void-rgb) / 0.72);
+}
+
+.hp-profile .hp-foot-contact-input:disabled { opacity: 0.6; }
+
+.hp-profile .hp-foot-contact-save {
+  flex: none;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 3px;
+  background: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.hp-profile .hp-foot-contact-save:hover:not(:disabled) {
+  border-color: rgb(var(--profile-accent-rgb) / 0.62);
+  background: rgb(var(--profile-accent-rgb) / 0.07);
+  color: var(--profile-accent-soft);
+}
+
+.hp-profile .hp-foot-contact-save:disabled { opacity: 0.42; cursor: not-allowed; }
+
+.hp-foot-contact-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--profile-meta);
+}
+
+/* Said beside the control that failed, not in place of it, so the button the
+   reader was aiming at is still there to try again. */
+.hp-btn-error {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--profile-notice);
+}
