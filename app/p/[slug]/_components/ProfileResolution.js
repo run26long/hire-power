@@ -1,7 +1,6 @@
 'use client'
 
 import Reveal from './Reveal'
-import ContactEmailField from './ContactEmailField'
 
 // ============================================================================
 // The resolution, and the page's footer.
@@ -16,9 +15,10 @@ import ContactEmailField from './ContactEmailField'
 // the treatment, the copy and the busy state are the header's by definition
 // and the two placements can never drift.
 //
-// The owner, and only the owner, also gets the one field behind the Contact
-// button here. There is no settings screen for a Career Profile anywhere in
-// the app, and this is where the button it belongs to already sits.
+// Nothing here is editable, by anybody. The address behind the Contact button
+// is set on the Career Profile management page: a published profile is a thing
+// to be read, and a control for changing it does not belong on it even when
+// the person reading it happens to own it.
 //
 // Location appears only when the resume actually carries one, and there is no
 // remote-preference field in the data, so there is no remote line.
@@ -26,15 +26,7 @@ import ContactEmailField from './ContactEmailField'
 // This renders outside <main>, so it is the one part of the page that does not
 // dissolve and re-enter when the reader changes direction.
 // ============================================================================
-export default function ProfileResolution({
-  readyTags,
-  location,
-  actions,
-  isOwner,
-  contactEmail,
-  onContactSaved,
-  animate
-}) {
+export default function ProfileResolution({ readyTags, location, actions, animate }) {
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
@@ -61,12 +53,6 @@ export default function ProfileResolution({
 
             <span className="hp-foot-actions">{actions}</span>
           </div>
-
-          {/* Owner only, and never rendered for anybody else - a visitor has
-              no business seeing the field, only its result. */}
-          {isOwner ? (
-            <ContactEmailField value={contactEmail} onSaved={onContactSaved} />
-          ) : null}
         </Reveal>
 
         {/* The words stay words and the name becomes the mark. One line, the

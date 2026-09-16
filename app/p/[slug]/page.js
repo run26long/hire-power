@@ -486,11 +486,6 @@ export default function CareerProfilePage() {
         readyTags={readyTags}
         location={location}
         actions={actionButtons}
-        isOwner={data?.isOwner}
-        contactEmail={data?.profile?.contact_email || null}
-        onContactSaved={(value) => setData(prev => prev
-          ? { ...prev, profile: { ...prev.profile, contact_email: value } }
-          : prev)}
         animate={animate}
       />
     </div>
