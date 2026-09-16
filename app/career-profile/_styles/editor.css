@@ -646,6 +646,269 @@
   margin-inline: auto;
 }
 
+
+/* ---- The field editors --------------------------------------------------
+   These render in the place the content they are editing normally occupies,
+   so the owner types where the words will be. Everything here is scoped under
+   .hp-profile for the same reason the affordances are: the document's own
+   `button`, `input` and `a` resets outrank a single class, and without the
+   extra specificity a textarea would come out with no border and no padding.
+
+   The palette is the document's, not the chrome's. A white form dropped into
+   the middle of a dark page would read as a different application. */
+
+.hp-profile .hp-ed-editor {
+  position: relative;
+  z-index: 4;
+  display: block;
+  margin: 10px 0 0;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  background: rgb(var(--profile-void-rgb) / 0.62);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-align: left;
+}
+
+.hp-profile .hp-ed-textarea {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: var(--profile-text);
+  background: rgb(0 0 0 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* The headline is edited at headline size, because somebody writing one needs
+   to see where it breaks. */
+.hp-profile .hp-ed-textarea[data-size="deck"] {
+  font-family: var(--profile-font-display, inherit);
+  font-size: clamp(19px, 2.1vw, 27px);
+  line-height: 1.24;
+  letter-spacing: -0.012em;
+}
+
+.hp-profile .hp-ed-textarea[data-size="body"] {
+  font-size: 14.5px;
+}
+
+.hp-profile .hp-ed-textarea:focus-visible {
+  outline: 2px solid rgb(var(--profile-accent-rgb) / 0.75);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.hp-profile .hp-ed-input {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--profile-text);
+  background: rgb(0 0 0 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-width: 0;
+}
+
+.hp-profile .hp-ed-input::placeholder { color: rgb(255 255 255 / 0.3); }
+
+.hp-profile .hp-ed-input:focus-visible {
+  outline: 2px solid rgb(var(--profile-accent-rgb) / 0.75);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.hp-profile .hp-ed-editor-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.hp-ed-editor-gap { flex: 1 1 auto; min-width: 0; }
+
+.hp-ed-editor-esc {
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.34);
+  white-space: nowrap;
+}
+
+/* The chrome's action button, restated on the document's ground. */
+.hp-profile .hp-ed-action {
+  appearance: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 7px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.05);
+  color: var(--profile-text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.hp-profile .hp-ed-action:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.26);
+}
+
+.hp-profile .hp-ed-action[data-primary="true"] {
+  background: rgb(var(--profile-accent-rgb) / 0.9);
+  border-color: transparent;
+  color: #fff;
+}
+
+.hp-profile .hp-ed-action[data-primary="true"]:hover:not(:disabled) {
+  background: rgb(var(--profile-accent-rgb) / 1);
+}
+
+.hp-profile .hp-ed-action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.hp-ed-editor-error {
+  margin: 9px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #fca5a5;
+}
+
+
+/* ---- Open To ---- */
+
+.hp-profile .hp-ed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.hp-profile .hp-ed-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 6px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.05);
+}
+
+.hp-ed-tag-text {
+  font-size: 12.5px;
+  color: var(--profile-text);
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.hp-profile .hp-ed-tag-move,
+.hp-profile .hp-ed-tag-drop {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: rgb(255 255 255 / 0.5);
+  cursor: pointer;
+  padding: 0;
+}
+
+.hp-profile .hp-ed-tag-move:hover:not(:disabled),
+.hp-profile .hp-ed-tag-drop:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: var(--profile-text);
+}
+
+.hp-profile .hp-ed-tag-move:disabled { opacity: 0.25; cursor: default; }
+.hp-profile .hp-ed-tag-drop { color: rgb(252 165 165 / 0.75); }
+
+.hp-ed-tags-none {
+  font-size: 12.5px;
+  font-style: italic;
+  color: rgb(255 255 255 / 0.4);
+}
+
+.hp-ed-tag-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hp-ed-tag-add .hp-ed-input { flex: 1 1 auto; }
+
+
+/* ---- Proof points ---- */
+
+/* The cover is a twelve column grid and this is a panel, not a figure, so it
+   takes the whole width below the identity rather than trying to sit in one
+   of the three cells the figures use. */
+.hp-act1-stage > .hp-ed-editor {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin-top: clamp(24px, 3.5vh, 44px);
+  max-width: 720px;
+}
+
+.hp-profile .hp-ed-proofs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hp-profile .hp-ed-proof {
+  display: grid;
+  grid-template-columns: 46px 96px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.hp-ed-proof-rank {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgb(var(--profile-accent-rgb) / 0.8);
+}
+
+.hp-ed-proof-moves { display: inline-flex; gap: 2px; }
+
+.hp-ed-proof-note {
+  margin: 9px 0 0;
+  font-size: 11.5px;
+  color: rgb(255 255 255 / 0.4);
+}
+
+@media (max-width: 640px) {
+  .hp-profile .hp-ed-proof {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank moves"
+      "num  num"
+      "label label";
+    row-gap: 6px;
+  }
+  .hp-ed-proof-rank { grid-area: rank; }
+  .hp-ed-proof-moves { grid-area: moves; justify-self: end; }
+  .hp-profile .hp-ed-proof-num { grid-area: num; }
+  .hp-profile .hp-ed-proof-label { grid-area: label; }
+}
+
 /* The handle on a reorderable tile. Same inert treatment. */
 .hp-profile .hp-ed-grip {
   appearance: none;

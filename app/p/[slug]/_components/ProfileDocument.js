@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
 import '../_styles/tokens.css'
@@ -80,6 +80,15 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const [bioExpanded, setBioExpanded] = useState(false)
   const [expandedRole, setExpandedRole] = useState(null)
 
+  // Which field has its editor open, and what the last write did. Held here
+  // rather than by the route, because it belongs to the document being shown:
+  // changing direction has to close whatever was open, and this is the only
+  // place that knows a direction changed.
+  const [openField, setOpenField] = useState(null)
+  const [busy, setBusy] = useState(null)
+  const [writeError, setWriteError] = useState(null)
+  const [errorField, setErrorField] = useState(null)
+
   const lenses = useMemo(() => data?.lenses || [], [data])
 
   // The chosen direction brightens immediately; the Profile beneath it
@@ -93,6 +102,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       setContentIndex(activeIndex)
       setBioExpanded(false)
       setExpandedRole(null)
+      // An editor open on the direction being left would be writing the new
+      // direction's field with the old one's text.
+      setOpenField(null)
+      setWriteError(null)
       setPhase('in')
     }, OUT_MS)
     return () => clearTimeout(swap)
@@ -287,6 +300,55 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     }
   }
 
+  // ---- WHAT THE EDITORS ARE GIVEN ----
+  //
+  // The route supplies the credentials and the way to fold a result back into
+  // the record; this supplies the direction that is actually on screen. A
+  // section never has to know which lens it is looking at, and no editor can
+  // name a direction the reader is not currently reading.
+  const editLensId = selectedLens?.id || null
+  const editSave = edit?.onSaveLens
+  const editRegenerate = edit?.onRegenerateLens
+
+  const runWrite = useCallback(async (field, work) => {
+    if (!work || !editLensId) return false
+    setBusy(field)
+    setWriteError(null)
+    setErrorField(null)
+    try {
+      const lens = await work()
+      if (lens) onLensUpdated?.(lens)
+      setOpenField(null)
+      return true
+    } catch (err) {
+      // The editor stays open with what was typed still in it. Losing the
+      // text because the save failed would be the worse failure.
+      setWriteError(err?.message || "We couldn't save that. Please try again.")
+      setErrorField(field)
+      return false
+    } finally {
+      setBusy(null)
+    }
+  }, [editLensId, onLensUpdated])
+
+  const editValue = useMemo(() => {
+    if (!edit?.editing) return null
+    return {
+      editing: true,
+      lensId: editLensId,
+      isPro: edit.isPro === true,
+      openField,
+      busy,
+      busyField: busy,
+      error: writeError,
+      errorField,
+      open: (field) => { setWriteError(null); setErrorField(null); setOpenField(field) },
+      close: () => { setWriteError(null); setErrorField(null); setOpenField(null) },
+      save: (values, field) => runWrite(field, () => editSave(editLensId, values)),
+      regenerate: (field) => runWrite(field, () => editRegenerate(editLensId, field))
+    }
+  }, [edit?.editing, edit?.isPro, editLensId, openField, busy, writeError, errorField, runWrite, editSave, editRegenerate])
+
   const actionButtons = (
     <ProfileActionButtons
       resume={activeResume}
@@ -302,8 +364,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const showGenerate = Boolean(data?.isOwner && selectedLens && !selectedLens.bio)
 
   return (
-    <ProfileEditProvider value={edit}>
-    <div className="hp-profile" data-phase={phase} data-mode={edit?.editing ? 'edit' : undefined}>
+    <ProfileEditProvider value={editValue}>
+    <div className="hp-profile" data-phase={phase} data-mode={editValue ? 'edit' : undefined}>
       {/* Act I: header, identity, proof and the direction invitation are one
           composition, so the header and the selector are passed into it rather
           than stacked around it. */}

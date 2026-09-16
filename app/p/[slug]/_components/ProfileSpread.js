@@ -3,6 +3,8 @@
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
 import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
+import { ProseEditor } from './EditFields'
+import { useFieldEditor } from '../_lib/editContext'
 import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
@@ -47,6 +49,7 @@ export default function ProfileSpread({
   const hasVoice = Boolean(imowText)
   const canShowEmpty = useCanShowEmpty()
   const slot = useEditSlot()
+  const bioEditor = useFieldEditor('bio')
 
   // The public rule stands: with nothing to say, this section does not exist.
   // Edit mode is the one exception, because an owner cannot write a bio into
@@ -69,9 +72,19 @@ export default function ProfileSpread({
         data-voice={hasVoice || canShowEmpty ? 'true' : 'false'}
         data-about={hasBio || canShowEmpty ? 'true' : 'false'}
       >
-        {hasBio && (
+        {bioEditor?.isOpen ? (
+          <div data-resolve="about">
+            <span className="hp-eyebrow">About</span>
+            {/* The whole stored string. The page splits it into a lead
+                sentence and the detail under it for display only; editing the
+                halves would mean writing back something nobody typed. */}
+            <ProseEditor field="bio" label="Bio" value={bio} rows={12} />
+          </div>
+        ) : null}
+
+        {hasBio && !bioEditor?.isOpen && (
           <div className={`hp-refocus${slot}`} data-resolve="about">
-            <EditPencil label="the bio for this direction" />
+            <EditPencil field="bio" label="the bio for this direction" />
             <Reveal enabled={animate}>
               <span className="hp-eyebrow">About</span>
               {lead && <p className="hp-about-lead">{lead}</p>}
@@ -104,10 +117,11 @@ export default function ProfileSpread({
           </div>
         )}
 
-        {!hasBio && canShowEmpty && (
+        {!hasBio && canShowEmpty && !bioEditor?.isOpen && (
           <div data-resolve="about">
             <span className="hp-eyebrow">About</span>
             <EditEmpty
+              field="bio"
               title="Write the bio for this direction"
               note="A few sentences on what this direction is and why it is yours. Coach can draft one from your sessions."
             />

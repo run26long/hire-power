@@ -11,6 +11,20 @@ const MODEL = 'claude-haiku-4-5-20251001'
 const TEMPERATURE = 0.4
 const PROOF_POINT_COUNT = 3
 
+// The columns a caller may name in `fields`. skill_emphasis is in here because
+// the Skills section reads it, even though nothing hand-edits it yet.
+const WRITABLE_FIELDS = new Set([
+  'headline', 'bio', 'proof_points', 'ready_for_next', 'ready_tags', 'skill_emphasis'
+])
+
+// What goes back to the browser. This used to be select('*'), which returned
+// user_id along with everything else; nothing rendered it, which is exactly
+// why it went unnoticed. Named columns instead, so a column added to this
+// table later is not published by a route that never knew about it.
+const RETURNED_LENS =
+  'id, name, slug, status, sort_order, headline, bio, proof_points, ' +
+  'ready_for_next, ready_tags, skill_emphasis, updated_at'
+
 // Few enough that emphasising them still means something. A direction that
 // leads with a dozen skills is not leading with anything.
 const SKILL_EMPHASIS_MIN = 3
@@ -228,7 +242,22 @@ async function storeSkillProof({ supabase, profileId, lensId, userId, lensName, 
 // the user's knowledge base and resume, never invented.
 //
 // Pro, or a free account with only its one entitled direction.
-// Request body: { lensId: string }
+//
+// Request body: { lensId: string, fields?: string[] }
+//
+// WHAT `fields` DOES, AND WHAT IT DELIBERATELY DOES NOT
+// It narrows what is WRITTEN, never what is generated. The prompt is one
+// prompt and the validator still demands the whole shape, so a run that comes
+// back missing a bio is still a failed run even when only the headline was
+// asked for. That is the point: a partial generation is worse than a failed
+// one, and the field that does get stored was written alongside the others
+// from the same reading of the same knowledge base, so it still belongs with
+// them.
+//
+// Without it, a Regenerate button beside the bio would also overwrite the
+// headline, the proof points and the tags somebody had just typed by hand.
+// Omit it and everything is written, which is what the button on the profile
+// has always done.
 // ============================================================================
 
 // The resume reaches the prompt as text rather than JSON so the model reads it
@@ -475,8 +504,17 @@ export async function POST(request) {
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     const userId = user.id
 
-    const { lensId } = await request.json()
+    const body = await request.json()
+    const lensId = body?.lensId
     if (!lensId) return Response.json({ error: 'lensId is required' }, { status: 400 })
+
+    // Unknown names are dropped rather than refused, and an empty or absent
+    // list means all of them - so an older caller that sends no fields keeps
+    // the behaviour it has always had.
+    const requested = Array.isArray(body?.fields)
+      ? body.fields.filter(f => WRITABLE_FIELDS.has(f))
+      : []
+    const fields = requested.length > 0 ? new Set(requested) : new Set(WRITABLE_FIELDS)
 
     // ---- TIER ----
     const { data: profile, error: profileError } = await supabase
@@ -672,20 +710,18 @@ export async function POST(request) {
     }
 
     // ---- STORE ----
+    // Everything was generated; only what was asked for is stored.
+    const patch = { updated_at: new Date().toISOString() }
+    for (const field of WRITABLE_FIELDS) {
+      if (fields.has(field)) patch[field] = generated[field]
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from('profile_lenses')
-      .update({
-        headline: generated.headline,
-        bio: generated.bio,
-        proof_points: generated.proof_points,
-        ready_for_next: generated.ready_for_next,
-        ready_tags: generated.ready_tags,
-        skill_emphasis: generated.skill_emphasis,
-        updated_at: new Date().toISOString()
-      })
+      .update(patch)
       .eq('id', lens.id)
       .eq('user_id', userId)
-      .select('*')
+      .select(RETURNED_LENS)
       .single()
 
     if (updateError || !updated) {
@@ -702,8 +738,11 @@ export async function POST(request) {
     // is deliberately allowed to fail on its own: a direction with no proof
     // renders exactly as it did before proof existed, where a direction with no
     // headline would render as a gap.
+    // Proof is derived from skill_emphasis, so regenerating it when that
+    // column was not rewritten would replace the stored proof with proof for
+    // skills the lens no longer claims.
     try {
-      await storeSkillProof({
+      if (fields.has('skill_emphasis')) await storeSkillProof({
         supabase,
         profileId,
         lensId: lens.id,

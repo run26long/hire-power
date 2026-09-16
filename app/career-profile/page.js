@@ -135,6 +135,44 @@ export default function CareerProfileEditorPage() {
     setManage(prev => prev ? { ...prev, profile: { ...prev.profile, ...patch } } : prev)
   }, [])
 
+  // ---- WRITING A DIRECTION ----
+  //
+  // Both of these throw on failure rather than returning a flag, because the
+  // document has one place that catches and one place that decides what to do
+  // about it. The lens that comes back is the stored row, so what the page
+  // shows next is what the database holds rather than what was typed.
+  const saveLens = useCallback(async (lensId, values) => {
+    const res = await fetch(`/api/career-profile/lens/${encodeURIComponent(lensId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(values)
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    return payload.lens
+  }, [authHeaders])
+
+  // One field at a time. The generator writes the whole direction from one
+  // prompt and always has; `fields` narrows only what it stores, so a
+  // Regenerate beside the bio cannot overwrite a headline somebody has just
+  // finished typing.
+  const regenerateLens = useCallback(async (lensId, field) => {
+    const res = await fetch('/api/career-profile/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ lensId, fields: [field] })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        payload?.error === 'PRO_REQUIRED'
+          ? 'Regenerating a direction is a Pro feature.'
+          : "We couldn't rewrite that just now. Please try again."
+      )
+    }
+    return payload.lens
+  }, [authHeaders])
+
   function handleLensUpdated(lens) {
     setDocument(prev => prev ? {
       ...prev,
@@ -269,7 +307,7 @@ export default function CareerProfileEditorPage() {
         data={document_}
         slug={profile?.slug}
         onLensUpdated={handleLensUpdated}
-        edit={editing ? { editing: true } : null}
+        edit={editing ? { editing: true, isPro: manage?.isPro === true, onSaveLens: saveLens, onRegenerateLens: regenerateLens } : null}
       />
 
       <SettingsDrawer

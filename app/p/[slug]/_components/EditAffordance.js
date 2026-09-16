@@ -1,6 +1,6 @@
 'use client'
 
-import { useProfileEdit } from '../_lib/editContext'
+import { useProfileEdit, useFieldEditor } from '../_lib/editContext'
 
 // ============================================================================
 // EDIT AFFORDANCES
@@ -13,10 +13,10 @@ import { useProfileEdit } from '../_lib/editContext'
 // no `isOwner &&` to get backwards, and no way for one of these to reach a
 // recruiter.
 //
-// They are inert in this pass. Each is rendered disabled and says so, because
-// the point of drawing them before the write routes exist is to prove their
-// placement against the real layout rather than against a mockup. A control
-// that looked live and did nothing would be the worse lie.
+// Some of these write and some do not yet. The ones that do are the ones that
+// name a field the document knows how to edit; the rest stay drawn, disabled,
+// and saying what they are waiting for, because a section that quietly lost
+// its affordance would look finished.
 // ============================================================================
 
 const PencilIcon = () => (
@@ -47,16 +47,41 @@ export function useEditSlot() {
   return edit?.editing ? ' hp-ed-slot' : ''
 }
 
-export function EditPencil({ label }) {
+// Live where it names a field this document knows how to edit, and inert
+// where it does not - the sections that still have no editor keep the pencil
+// they were drawn with, disabled and saying so, rather than losing it and
+// looking finished.
+export function EditPencil({ field, label }) {
   const edit = useProfileEdit()
+  const editor = useFieldEditor(field)
   if (!edit?.editing) return null
+
+  if (!field || !editor) {
+    return (
+      <button
+        type="button"
+        className="hp-ed-pencil"
+        disabled
+        aria-label={`Edit ${label} — not available yet`}
+        title={`Editing ${label} is coming in a later pass`}
+      >
+        <PencilIcon />
+      </button>
+    )
+  }
+
+  // While an editor is open the field it belongs to is being edited, so its
+  // own pencil has nothing left to offer.
+  if (editor.isOpen) return null
+
   return (
     <button
       type="button"
       className="hp-ed-pencil"
-      disabled
-      aria-label={`Edit ${label} — not available yet`}
-      title={`Editing ${label} is coming in the next pass`}
+      data-live="true"
+      onClick={editor.open}
+      aria-label={`Edit ${label}`}
+      title={`Edit ${label}`}
     >
       <PencilIcon />
     </button>
@@ -95,11 +120,25 @@ export function EditElsewhere({ children, href }) {
 // The one thing the public page will not do: show a section that has nothing
 // in it. This renders only in edit mode - never in preview - which is what
 // keeps preview an honest preview.
-export function EditEmpty({ title, note }) {
+export function EditEmpty({ title, note, field }) {
   const edit = useProfileEdit()
+  const editor = useFieldEditor(field)
   if (!edit?.editing) return null
+
+  // An empty section whose field has an editor is the way into it. One that
+  // does not is still drawn, so the absence is visible, and still says so.
+  const live = Boolean(field && editor)
+  if (live && editor.isOpen) return null
+
   return (
-    <button type="button" className="hp-ed-empty" disabled title="Coming in the next pass">
+    <button
+      type="button"
+      className="hp-ed-empty"
+      data-live={live ? 'true' : undefined}
+      disabled={!live}
+      onClick={live ? editor.open : undefined}
+      title={live ? title : 'Coming in a later pass'}
+    >
       <span className="hp-ed-empty-title">{title}</span>
       {note ? <span className="hp-ed-empty-note">{note}</span> : null}
     </button>

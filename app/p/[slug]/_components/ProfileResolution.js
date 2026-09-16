@@ -2,6 +2,8 @@
 
 import Reveal from './Reveal'
 import { EditPencil, useEditSlot } from './EditAffordance'
+import { TagsEditor } from './EditFields'
+import { useFieldEditor } from '../_lib/editContext'
 
 // ============================================================================
 // The resolution, and the page's footer.
@@ -29,6 +31,7 @@ import { EditPencil, useEditSlot } from './EditAffordance'
 // ============================================================================
 export default function ProfileResolution({ readyTags, location, actions, animate }) {
   const slot = useEditSlot()
+  const tagsEditor = useFieldEditor('ready_tags')
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
@@ -37,9 +40,11 @@ export default function ProfileResolution({ readyTags, location, actions, animat
       <div className="hp-wrap-tight">
         <Reveal enabled={animate}>
           <div className="hp-foot-inner">
-            {hasTags && (
+            {tagsEditor?.isOpen ? <TagsEditor value={readyTags} /> : null}
+
+            {hasTags && !tagsEditor?.isOpen && (
               <p className={`hp-foot-open${slot}`}>
-                <EditPencil label="the Open To tags" />
+                <EditPencil field="ready_tags" label="the Open To tags" />
                 <strong className="hp-foot-open-label">Open to</strong>
                 {readyTags.map((tag, index) => (
                   <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>

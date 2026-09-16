@@ -1,6 +1,8 @@
 'use client'
 
 import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
+import { ProseEditor, ProofPointsEditor } from './EditFields'
+import { useFieldEditor } from '../_lib/editContext'
 
 // ============================================================================
 // ACT I - the cover.
@@ -80,6 +82,8 @@ export default function IdentityAct({
   const hasProof = proofPoints.length > 0
   const [lead, ...supporting] = proofPoints
   const slot = useEditSlot()
+  const headlineEditor = useFieldEditor('headline')
+  const proofEditor = useFieldEditor('proof_points')
 
   return (
     <section className="hp-act1">
@@ -102,7 +106,7 @@ export default function IdentityAct({
           <div className="hp-act1-invite">{directions}</div>
 
           <div className={`hp-act1-identity${slot}`}>
-            <EditPencil label="the headline for this direction" />
+            <EditPencil field="headline" label="the headline for this direction" />
             <span className="hp-act1-eyebrow">Career Profile</span>
 
             {/* The stop is part of the setting, not part of the name. */}
@@ -110,14 +114,18 @@ export default function IdentityAct({
 
             {/* The deck. It belongs to the chosen direction, so it refocuses
                 with the rest and leads the ordered groups. */}
-            {headline && (
+            {headlineEditor?.isOpen ? (
+              <ProseEditor field="headline" label="Headline" value={headline} size="deck" rows={3} />
+            ) : headline ? (
               <p className="hp-act1-deck hp-refocus" data-resolve="positioning">
                 {headline}
               </p>
-            )}
+            ) : null}
           </div>
 
-          {hasProof && (
+          {proofEditor?.isOpen ? <ProofPointsEditor value={proofPoints} /> : null}
+
+          {hasProof && !proofEditor?.isOpen && (
             <>
               {/* Keyed on the direction so the entrance replays when the
                   reader changes chapter: the node is a new node, so the CSS
@@ -134,6 +142,7 @@ export default function IdentityAct({
                 data-enter="0"
                 key={`lead-${directionKey}`}
               >
+                <EditPencil field="proof_points" label="the proof points" />
                 <span className="hp-proof-caption">Selected proof</span>
                 <ProofValue className="hp-proof-lead-num" value={lead?.num} />
                 <span className="hp-proof-lead-label">{lead?.label}</span>
@@ -164,8 +173,9 @@ export default function IdentityAct({
           {/* The public page closes this region when a direction has no
               figures. In edit mode it stays open, because an absence the
               owner cannot see is an absence they cannot fill. */}
-          {!hasProof && (
+          {!hasProof && !proofEditor?.isOpen && (
             <EditEmpty
+              field="proof_points"
               title="Add proof points"
               note="Two or three numbers that stand behind this direction. They lead the cover."
             />
