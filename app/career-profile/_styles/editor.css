@@ -1401,3 +1401,70 @@
   background: rgb(255 255 255 / 0.1);
   color: rgb(255 255 255 / 0.55);
 }
+
+
+/* ---- Testimonials ------------------------------------------------------ */
+
+.hp-ed-tm { max-width: 760px; }
+
+.hp-ed-tm-role { font-weight: 400; color: rgb(255 255 255 / 0.5); }
+
+.hp-ed-tm-quote {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-left: 2px solid rgb(var(--profile-accent-rgb) / 0.5);
+  font-family: var(--profile-font-display, Georgia, serif);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--profile-text);
+  background: rgb(255 255 255 / 0.03);
+  border-radius: 0 7px 7px 0;
+}
+
+.hp-ed-tm-raw {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgb(255 255 255 / 0.62);
+  white-space: pre-wrap;
+}
+
+.hp-ed-mrow-badge[data-tone="live"] { background: rgb(5 150 105 / 0.26); color: #86efac; }
+
+/* The tag, and what it would take to earn it. Shown either way: one more kind
+   of person is more useful to somebody than silence. */
+.hp-ed-360 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.03);
+}
+
+.hp-ed-360[data-earned="true"] {
+  border-color: rgb(var(--profile-accent-rgb) / 0.45);
+  background: rgb(var(--profile-accent-rgb) / 0.1);
+}
+
+.hp-ed-360-mark {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.45);
+  white-space: nowrap;
+}
+
+.hp-ed-360[data-earned="true"] .hp-ed-360-mark { color: rgb(var(--profile-accent-rgb) / 1); }
+
+.hp-ed-360-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.55);
+  flex: 1 1 240px;
+}

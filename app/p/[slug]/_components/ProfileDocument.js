@@ -352,6 +352,12 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onEditEvidence: edit.onEditEvidence,
       onDeleteEvidence: edit.onDeleteEvidence,
       onGenerateImow: edit.onGenerateImow,
+      testimonials: edit.testimonials,
+      earned360: edit.earned360,
+      onRequestTestimonial: edit.onRequestTestimonial,
+      onPublishTestimonial: edit.onPublishTestimonial,
+      onDeleteTestimonial: edit.onDeleteTestimonial,
+      onDownloadReferenceSheet: edit.onDownloadReferenceSheet,
       openField,
       busy,
       busyField: busy,
@@ -373,7 +379,9 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     lenses, editLensId, openField, busy, writeError, errorField,
-    runWrite, editSave, editSaveImow, editRegenerate, edit?.onGenerateImow
+    runWrite, editSave, editSaveImow, editRegenerate, edit?.onGenerateImow,
+    edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
+    edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet
   ])
 
   const actionButtons = (

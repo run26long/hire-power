@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import { EditElsewhere, EditEmpty, useEditSlot } from './EditAffordance'
+import TestimonialManager from './TestimonialManager'
 import { useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
@@ -162,6 +163,10 @@ export default function CollectiveImpact({
               )}
             </Reveal>
           )}
+
+          {/* Asking, and deciding. Under the accounts rather than over them:
+              the section is what people said, and managing it comes after. */}
+          {canShowEmpty ? <TestimonialManager /> : null}
 
           {!hasQuotes && canShowEmpty && (
             <div className="hp-impact-voices hp-ed-voices-empty">

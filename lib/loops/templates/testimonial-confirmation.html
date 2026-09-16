@@ -1,0 +1,77 @@
+<!-- ===========================================================================
+     TESTIMONIAL CONFIRMATION  ->  the referee, after polishing
+     Loops transactional id: cmu4heoff03wi0jyjnchn76bt
+
+     Source for a Loops template. See testimonial-request.html for why this
+     lives in the repository rather than only in their editor.
+
+     Variables:
+       {{candidateName}}   whose profile this is about
+       {{refereeName}}     the person being written to
+       {{polishedText}}    the polished testimonial
+       {{testimonialUrl}}  the referee page, if they want to change it
+
+     No action is required of the recipient. This exists so somebody who wrote
+     something about a colleague has a record of what it became, and a way back
+     if it is not right.
+     =========================================================================== -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thank you, {{refereeName}}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f3f8;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3f8;padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:560px;max-width:100%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(26,26,46,0.08);">
+
+  <tr><td style="background:#6f5ae0;background-image:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:26px 32px;">
+    <span style="font-family:Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#ffffff;letter-spacing:-0.01em;">Hire Power</span>
+    <span style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.72);padding-left:10px;">The operating system for your career</span>
+  </td></tr>
+
+  <tr><td style="padding:30px 32px 6px;">
+    <p style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.3;color:#1a1a2e;">Thank you. Here is what you said.</p>
+    <p style="margin:0 0 20px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.62;color:#3d3b52;">Hi {{refereeName}}, this is the version of your testimonial for {{candidateName}}. Nothing is needed from you.</p>
+  </td></tr>
+
+  <!-- Their words, set apart by a rule on the left rather than by quotation
+       marks: a curly quote glyph renders differently in every client and half
+       of them get the pairing wrong. -->
+  <tr><td style="padding:0 32px 24px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf9fd;border-left:3px solid #764ba2;border-radius:0 8px 8px 0;">
+      <tr><td style="padding:17px 19px;">
+        <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:15.5px;line-height:1.62;color:#2c2a40;font-style:italic;">{{polishedText}}</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <tr><td style="padding:0 32px 28px;">
+    <p style="margin:0 0 16px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#3d3b52;">Want to change something? You can rewrite it any time.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#ffffff;border:1px solid #d8d4ea;border-radius:9px;">
+      <a href="{{testimonialUrl}}" style="display:inline-block;padding:12px 24px;font-family:Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#5b4fcf;text-decoration:none;">Change my testimonial</a>
+    </td></tr></table>
+  </td></tr>
+
+  <tr><td style="padding:0 32px;"><div style="height:1px;background:#e8e6f0;"></div></td></tr>
+
+  <!-- The referral. Below the rule, after the thing they actually came for,
+       and never above it. -->
+  <tr><td style="padding:22px 32px 4px;">
+    <p style="margin:0 0 7px;font-family:Georgia,'Times New Roman',serif;font-size:16.5px;line-height:1.4;color:#1a1a2e;">Your career is bigger than one page too.</p>
+    <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#3d3b52;">Build yours at <a href="https://hirepowerai.com" style="color:#6f5ae0;font-weight:700;text-decoration:none;">hirepowerai.com</a></p>
+  </td></tr>
+
+  <tr><td style="padding:18px 32px 26px;">
+    <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:11.5px;line-height:1.5;color:#9a97ab;">
+      Sent by Hire Power because you wrote a testimonial for {{candidateName}}.
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

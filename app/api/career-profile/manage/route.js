@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { isEntitledTier } from '../_lib/recruiterContext'
+import { earned360 } from '@/lib/testimonialTypes'
 
 // ============================================================================
 // GET /api/career-profile/manage
@@ -61,9 +62,15 @@ const EVIDENCE_COLS =
 
 const PLACEMENT_COLS = 'id, evidence_id, lens_id, sort_order, featured'
 
+// raw_text is here as well as polished_text: the owner deciding whether to
+// publish should be able to see what the person actually wrote, not only what
+// we made of it. request_token is still absent - it is the credential that
+// lets somebody write on this profile, and nothing on the management page
+// needs it.
 const TESTIMONIAL_COLS =
   'id, recipient_name, recipient_email, recipient_title, relationship, ' +
-  'status, polished_text, lens_ids, created_at'
+  'relationship_type, status, raw_text, polished_text, reference_consent, ' +
+  'reference_phone, submitted_at, lens_ids, created_at'
 
 export async function GET(request) {
   try {
@@ -172,6 +179,8 @@ export async function GET(request) {
 
     const { imow_video_path, ...profileRest } = profile
 
+    const testimonials = testimonialRes.data || []
+
     return Response.json({
       userProfile,
       isPro: isEntitledTier(userProfile.subscription_tier),
@@ -179,7 +188,10 @@ export async function GET(request) {
       lenses: lensRes.data || [],
       evidence,
       placements: placementRes.data || [],
-      testimonials: testimonialRes.data || []
+      testimonials,
+      // Counted here rather than stored, so it cannot drift: a stored tag
+      // survives the unpublish that should have taken it away.
+      earned360: earned360({ testimonials })
     })
   } catch (error) {
     console.error('[career-profile/manage] Route failed:', error)

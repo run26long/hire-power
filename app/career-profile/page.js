@@ -349,6 +349,72 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [authHeaders])
 
+  // ---- TESTIMONIALS ----
+  //
+  // Asking sends an email, so a failure here is loud: the route deletes the row
+  // it just made rather than leave one saying "waiting on them" about somebody
+  // who was never written to.
+  const requestTestimonial = useCallback(async (values) => {
+    const res = await fetch('/api/career-profile/testimonials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(values)
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't send that request.")
+    await reloadManage()
+    return payload
+  }, [authHeaders, reloadManage])
+
+  // Publishing changes what the public document holds, so both records are
+  // re-read; the manager's list and the Firsthand section have to agree.
+  const publishTestimonial = useCallback(async (id, status) => {
+    const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ status })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [authHeaders, reloadDocument, reloadManage])
+
+  const deleteTestimonial = useCallback(async (id) => {
+    const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders }
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [authHeaders, reloadDocument, reloadManage])
+
+  // A page of other people's phone numbers, so it is fetched with the session
+  // rather than linked, and the blob is released straight after.
+  const downloadReferenceSheet = useCallback(async () => {
+    const res = await fetch('/api/career-profile/reference-sheet', { headers: { ...authHeaders } })
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}))
+      throw new Error(payload?.error || "We couldn't build that just now.")
+    }
+    const disposition = res.headers.get('content-disposition') || ''
+    const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+    const plain = disposition.match(/filename="([^"]+)"/i)
+    const name = encoded ? decodeURIComponent(encoded[1]) : (plain ? plain[1] : 'References.pdf')
+
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = window.document.createElement('a')
+    a.href = url
+    a.download = name
+    window.document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 4000)
+  }, [authHeaders])
+
   const createEvidence = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/evidence', {
       method: 'POST',
@@ -513,7 +579,13 @@ export default function CareerProfileEditorPage() {
           onEditEvidence: editEvidence,
           onDeleteEvidence: deleteEvidence,
           onSaveImow: saveImow,
-          onGenerateImow: generateImow
+          onGenerateImow: generateImow,
+          testimonials: manage?.testimonials || [],
+          earned360: manage?.earned360 || null,
+          onRequestTestimonial: requestTestimonial,
+          onPublishTestimonial: publishTestimonial,
+          onDeleteTestimonial: deleteTestimonial,
+          onDownloadReferenceSheet: downloadReferenceSheet
         } : null}
       />
 

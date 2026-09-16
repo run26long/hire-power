@@ -1,0 +1,303 @@
+/* ===========================================================================
+   THE REFEREE PAGE
+
+   A page for somebody who has never used this product and will probably never
+   use it again. They arrived from an email, they are doing a favour for a
+   colleague, and they should be able to do it without meeting the application.
+
+   So: no nav, no sidebar, no account, no upsell above the thing they came for.
+   One card on a light ground, the product's own gradient at the top so the
+   page is recognisably from the same place as the email that sent them.
+
+   Every selector is .hp-tm- prefixed and this file is imported only by this
+   route, so nothing here can reach the app or the dark Profile system.
+   =========================================================================== */
+
+.hp-tm {
+  --tm-ink: #1a1a2e;
+  --tm-body: #3d3b52;
+  --tm-muted: #8d8aa0;
+  --tm-line: #e8e6f0;
+  --tm-accent: #6f5ae0;
+  --tm-surface: #ffffff;
+
+  min-height: 100vh;
+  background: #f4f3f8;
+  padding: 32px 16px 64px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: var(--tm-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.hp-tm-card {
+  max-width: 620px;
+  margin: 0 auto;
+  background: var(--tm-surface);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 18px rgb(26 26 46 / 0.08);
+}
+
+/* The same gradient the email carried, so the page reads as the other half of
+   the thing they just clicked. */
+.hp-tm-head {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 22px 28px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hp-tm-mark {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.hp-tm-tag {
+  font-size: 11.5px;
+  color: rgb(255 255 255 / 0.72);
+}
+
+.hp-tm-body { padding: 30px 28px 32px; }
+
+.hp-tm-lead {
+  margin: 0 0 8px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(21px, 4.4vw, 26px);
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  color: var(--tm-ink);
+}
+
+.hp-tm-sub {
+  margin: 0 0 22px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--tm-body);
+}
+
+.hp-tm-label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tm-muted);
+}
+
+.hp-tm-textarea {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--tm-ink);
+  padding: 13px 14px;
+  border: 1px solid #d8d4ea;
+  border-radius: 10px;
+  background: #fff;
+  resize: vertical;
+  min-height: 190px;
+}
+
+.hp-tm-textarea:focus-visible {
+  outline: 2px solid var(--tm-accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.hp-tm-count {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: var(--tm-muted);
+}
+
+/* The reference offer. A second, separate thing being asked, so it is boxed
+   rather than run on from the textarea - somebody should not agree to be
+   phoned by a stranger because they did not notice a checkbox. */
+.hp-tm-consent {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--tm-line);
+  border-radius: 10px;
+  background: #faf9fd;
+}
+
+.hp-tm-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tm-ink);
+}
+
+.hp-tm-check input {
+  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--tm-accent);
+  flex-shrink: 0;
+}
+
+.hp-tm-phone {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  font: inherit;
+  font-size: 14.5px;
+  padding: 10px 12px;
+  border: 1px solid #d8d4ea;
+  border-radius: 8px;
+  color: var(--tm-ink);
+}
+
+.hp-tm-phone:focus-visible {
+  outline: 2px solid var(--tm-accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.hp-tm-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tm-muted);
+}
+
+.hp-tm-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.hp-tm-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px 26px;
+  border-radius: 9px;
+  border: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 140ms ease;
+}
+
+.hp-tm-btn:hover:not(:disabled) { filter: brightness(1.07); }
+.hp-tm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.hp-tm-btn[data-quiet="true"] {
+  background: #fff;
+  border: 1px solid #d8d4ea;
+  color: #5b4fcf;
+}
+
+.hp-tm-error {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #b91c1c;
+}
+
+/* ---- The result they see straight away ---- */
+
+.hp-tm-quote {
+  margin: 0 0 20px;
+  padding: 18px 20px;
+  background: #faf9fd;
+  border-left: 3px solid #764ba2;
+  border-radius: 0 10px 10px 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1.62;
+  font-style: italic;
+  color: #2c2a40;
+}
+
+.hp-tm-note {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tm-body);
+}
+
+.hp-tm-foot {
+  max-width: 620px;
+  margin: 18px auto 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--tm-muted);
+}
+
+.hp-tm-foot a { color: #6f5ae0; font-weight: 600; text-decoration: none; }
+
+/* The referral, and only on the thank-you screen: asking somebody to sign up
+   before they have done the favour they came to do is the wrong order. */
+.hp-tm-plug {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tm-line);
+}
+
+.hp-tm-plug-lead {
+  margin: 0 0 5px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--tm-ink);
+}
+
+.hp-tm-plug-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tm-body);
+}
+
+.hp-tm-plug-body a { color: #6f5ae0; font-weight: 700; text-decoration: none; }
+
+.hp-tm-state {
+  max-width: 620px;
+  margin: 0 auto;
+  background: var(--tm-surface);
+  border-radius: 14px;
+  padding: 44px 28px;
+  text-align: center;
+  box-shadow: 0 2px 18px rgb(26 26 46 / 0.08);
+}
+
+.hp-tm-spinner {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+  border: 3px solid #e4e0f2;
+  border-top-color: var(--tm-accent);
+  border-radius: 50%;
+  animation: hp-tm-spin 0.8s linear infinite;
+}
+
+@keyframes hp-tm-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-tm-spinner { animation-duration: 3s; }
+}
+
+@media (max-width: 520px) {
+  .hp-tm { padding: 16px 12px 48px; }
+  .hp-tm-body { padding: 24px 20px 26px; }
+  .hp-tm-head { padding: 18px 20px; }
+}
