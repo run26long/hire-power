@@ -337,6 +337,11 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       editing: true,
       lensId: editLensId,
       isPro: edit.isPro === true,
+      // Every direction, not just the one on screen: adding a piece of
+      // evidence is where an owner decides which chapters it belongs to.
+      lenses,
+      onPreviewUrl: edit.onPreviewUrl,
+      onCreateEvidence: edit.onCreateEvidence,
       openField,
       busy,
       busyField: busy,
@@ -347,7 +352,11 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       save: (values, field) => runWrite(field, () => editSave(editLensId, values)),
       regenerate: (field) => runWrite(field, () => editRegenerate(editLensId, field))
     }
-  }, [edit?.editing, edit?.isPro, editLensId, openField, busy, writeError, errorField, runWrite, editSave, editRegenerate])
+  }, [
+    edit?.editing, edit?.isPro, edit?.onPreviewUrl, edit?.onCreateEvidence,
+    lenses, editLensId, openField, busy, writeError, errorField,
+    runWrite, editSave, editRegenerate
+  ])
 
   const actionButtons = (
     <ProfileActionButtons

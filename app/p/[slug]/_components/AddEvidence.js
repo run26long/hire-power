@@ -1,0 +1,392 @@
+'use client'
+
+import { useState } from 'react'
+import { useProfileEdit } from '../_lib/editContext'
+import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
+
+// ============================================================================
+// ADDING EVIDENCE
+//
+// Two ways in, three steps, and the whole thing renders inside the Evidence
+// section so the owner is adding the work where the work will appear.
+//
+// WHY THE LOOKUP IS OPTIONAL AND NEVER BLOCKING
+// A pasted link is read server-side for the title and description the page
+// advertises about itself, which saves retyping. But plenty of pages carry no
+// OG tags, some refuse to be read at all, and none of that should stop
+// somebody adding their own work. So a failed lookup moves straight on to the
+// form with the fields empty and says what happened, rather than standing in
+// the way with an error.
+//
+// EVERYTHING IT FINDS IS A SUGGESTION
+// The values arrive in fields the owner can see and change before anything is
+// stored. Text from a stranger's page is not a fact about this person's
+// career, and a preview that wrote itself in would let somebody else's server
+// author a line on somebody's profile.
+//
+// THE IMAGE IS SHOWN AND NOT KEPT
+// og:image is rendered as a small preview so the owner can tell they pasted
+// the right link. It is not stored and not referenced after saving: a remote
+// image on a public profile is a hotlink to a server that can swap it for
+// anything later. Stored images come with the upload path.
+// ============================================================================
+
+const EMPTY = {
+  url: '',
+  title: '',
+  description: '',
+  evidence_type: '',
+  organization: '',
+  date_label: ''
+}
+
+// Grouped the way the list is ordered, so the dropdown reads as three kinds of
+// thing rather than thirteen options.
+const GROUPED = Object.entries(
+  EVIDENCE_TYPES.reduce((acc, item) => {
+    ;(acc[item.family] ||= []).push(item.type)
+    return acc
+  }, {})
+)
+
+export default function AddEvidence() {
+  const edit = useProfileEdit()
+
+  // 'closed' | 'choose' | 'link' | 'form' | 'done'
+  const [step, setStep] = useState('closed')
+  const [saved, setSaved] = useState(null)
+  const [form, setForm] = useState(EMPTY)
+  const [lensIds, setLensIds] = useState([])
+  const [preview, setPreview] = useState(null)
+  const [looking, setLooking] = useState(false)
+  const [note, setNote] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  if (!edit?.editing) return null
+
+  const lenses = edit.lenses || []
+  const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
+
+  function reset() {
+    setStep('closed')
+    setSaved(null)
+    setForm(EMPTY)
+    setLensIds([])
+    setPreview(null)
+    setNote(null)
+    setError(null)
+  }
+
+  async function lookUp() {
+    const url = form.url.trim()
+    if (!url || looking) return
+    setLooking(true)
+    setNote(null)
+    setError(null)
+    try {
+      const result = await edit.onPreviewUrl(url)
+      if (result?.ok && result.preview) {
+        setPreview(result.preview)
+        setForm(f => ({
+          ...f,
+          // The URL the fetch actually ended on, so a shortener stores its
+          // destination rather than a redirect that may stop redirecting.
+          url: result.preview.url || f.url,
+          title: f.title || result.preview.title || '',
+          description: f.description || result.preview.description || ''
+        }))
+      } else {
+        setNote(result?.reason || "We couldn't read that page. Fill in the details yourself.")
+      }
+    } catch {
+      setNote("We couldn't read that page. Fill in the details yourself.")
+    } finally {
+      setLooking(false)
+      setStep('form')
+    }
+  }
+
+  async function save() {
+    if (saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const created = await edit.onCreateEvidence({
+        url: form.url.trim(),
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        evidence_type: form.evidence_type,
+        organization: form.organization.trim() || null,
+        date_label: form.date_label.trim() || null,
+        lens_ids: lensIds
+      })
+      // Not closed on success. A new item goes to the end of the collection,
+      // and the section shows the first few - so on a profile with a dozen
+      // pieces the tile is real, placed, and off the bottom of the preview.
+      // Saying so is better than a panel that closes onto a page that looks
+      // unchanged.
+      setSaved({
+        title: form.title.trim(),
+        warning: created?.warning || null,
+        where: lenses.filter(l => lensIds.includes(l.id)).map(l => l.name)
+      })
+      setForm(EMPTY)
+      setLensIds([])
+      setPreview(null)
+      setNote(null)
+      setStep('done')
+    } catch (err) {
+      setError(err?.message || "We couldn't save that. Please try again.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ---- the way in ----
+  if (step === 'closed') {
+    return (
+      <div className="hp-ed-add-row">
+        <button type="button" className="hp-ed-action" data-primary="true" onClick={() => setStep('choose')}>
+          + Add evidence
+        </button>
+      </div>
+    )
+  }
+
+  const family = familyForType(form.evidence_type)
+  const canSave = Boolean(form.url.trim() && form.title.trim() && family) && !saving
+
+  return (
+    <div className="hp-ed-editor hp-ed-add" role="group" aria-label="Add evidence">
+      {step === 'choose' && (
+        <>
+          <p className="hp-ed-add-title">What are you adding?</p>
+          <div className="hp-ed-add-choices">
+            <button type="button" className="hp-ed-add-choice" onClick={() => setStep('link')}>
+              <span className="hp-ed-add-choice-title">Add a link</span>
+              <span className="hp-ed-add-choice-note">
+                An article, a case study, a video, anything with a web address.
+              </span>
+            </button>
+            <button
+              type="button"
+              className="hp-ed-add-choice"
+              disabled
+              title="Uploading arrives in the next pass"
+            >
+              <span className="hp-ed-add-choice-title">Upload a file</span>
+              <span className="hp-ed-add-choice-note">
+                Documents, images and video from your own machine. Coming next.
+              </span>
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 'link' && (
+        <>
+          <p className="hp-ed-add-title">Paste the link</p>
+          <div className="hp-ed-tag-add">
+            <input
+              className="hp-ed-input"
+              type="url"
+              value={form.url}
+              placeholder="https://"
+              autoFocus
+              spellCheck="false"
+              onChange={e => set('url', e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookUp() } }}
+              aria-label="The link to add"
+            />
+            <button
+              type="button"
+              className="hp-ed-action"
+              data-primary="true"
+              onClick={lookUp}
+              disabled={!form.url.trim() || looking}
+            >
+              {looking ? 'Reading…' : 'Continue'}
+            </button>
+          </div>
+          <p className="hp-ed-proof-note">
+            We&apos;ll read the title and description off the page if it publishes them.
+            You can change anything before it is saved.
+          </p>
+        </>
+      )}
+
+      {step === 'form' && (
+        <>
+          {note ? <p className="hp-ed-add-note">{note}</p> : null}
+
+          {preview?.image ? (
+            <div className="hp-ed-add-preview">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview.image} alt="" className="hp-ed-add-preview-img" />
+              <span className="hp-ed-add-preview-note">
+                The page&apos;s own image, shown so you can check the link. It is not saved.
+              </span>
+            </div>
+          ) : null}
+
+          <label className="hp-ed-field-label" htmlFor="hp-ed-ev-url">Link</label>
+          <input
+            id="hp-ed-ev-url"
+            className="hp-ed-input hp-ed-block"
+            type="url"
+            value={form.url}
+            spellCheck="false"
+            onChange={e => set('url', e.target.value)}
+          />
+
+          <label className="hp-ed-field-label" htmlFor="hp-ed-ev-title">Title</label>
+          <input
+            id="hp-ed-ev-title"
+            className="hp-ed-input hp-ed-block"
+            type="text"
+            value={form.title}
+            placeholder="What is this?"
+            onChange={e => set('title', e.target.value)}
+          />
+
+          <label className="hp-ed-field-label" htmlFor="hp-ed-ev-desc">Description</label>
+          <textarea
+            id="hp-ed-ev-desc"
+            className="hp-ed-textarea"
+            data-size="body"
+            rows={3}
+            value={form.description}
+            placeholder="A sentence on what it shows."
+            onChange={e => set('description', e.target.value)}
+          />
+
+          <div className="hp-ed-add-grid">
+            <div>
+              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-type">Type</label>
+              <select
+                id="hp-ed-ev-type"
+                className="hp-ed-input hp-ed-block"
+                value={form.evidence_type}
+                onChange={e => set('evidence_type', e.target.value)}
+              >
+                <option value="">Choose one…</option>
+                {GROUPED.map(([familyKey, types]) => (
+                  <optgroup key={familyKey} label={FAMILY_LABELS[familyKey]}>
+                    {types.map(t => <option key={t} value={t}>{t}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              {/* Said rather than asked. The family follows from the type, and
+                  making somebody choose both is making them guess at our
+                  filing system. */}
+              <p className="hp-ed-proof-note">
+                {family ? `Filed under ${FAMILY_LABELS[family]}.` : 'Choose a type to file this.'}
+              </p>
+            </div>
+
+            <div>
+              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-org">Organisation</label>
+              <input
+                id="hp-ed-ev-org"
+                className="hp-ed-input hp-ed-block"
+                type="text"
+                value={form.organization}
+                placeholder="Optional"
+                onChange={e => set('organization', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-date">Date</label>
+              <input
+                id="hp-ed-ev-date"
+                className="hp-ed-input hp-ed-block"
+                type="text"
+                value={form.date_label}
+                placeholder="Optional, e.g. 2023"
+                onChange={e => set('date_label', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {lenses.length > 0 && (
+            <>
+              <p className="hp-ed-field-label">Show it in</p>
+              <ul className="hp-ed-lens-picks">
+                {lenses.map(lens => (
+                  <li key={lens.id}>
+                    <label className="hp-ed-lens-pick">
+                      <input
+                        type="checkbox"
+                        checked={lensIds.includes(lens.id)}
+                        onChange={e => setLensIds(ids =>
+                          e.target.checked ? [...ids, lens.id] : ids.filter(id => id !== lens.id)
+                        )}
+                      />
+                      <span>{lens.name}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              {lensIds.length === 0 ? (
+                <p className="hp-ed-proof-note">
+                  Pick none and it is saved but shown nowhere. You can place it later.
+                </p>
+              ) : null}
+            </>
+          )}
+        </>
+      )}
+
+      {step === 'done' && saved && (
+        <>
+          <p className="hp-ed-add-title">Added.</p>
+          <p className="hp-ed-add-saved">
+            <strong>{saved.title}</strong>
+            {saved.where.length > 0
+              ? ` is now in ${saved.where.join(' and ')}.`
+              : ' is saved but not shown in any direction yet.'}
+          </p>
+          {/* Where it went, and why it may not be on screen. The collection
+              is shown a few at a time and a new piece joins the end of it. */}
+          <p className="hp-ed-proof-note">
+            New evidence joins the end of the collection, so it may sit behind
+            {' '}<em>View all evidence</em> rather than in the preview above.
+            Ordering and featuring arrive in the next pass.
+          </p>
+          {saved.warning ? <p className="hp-ed-add-note">{saved.warning}</p> : null}
+        </>
+      )}
+
+      <div className="hp-ed-editor-bar">
+        {step === 'done' ? (
+          <button type="button" className="hp-ed-action" data-primary="true" onClick={() => { setSaved(null); setStep('choose') }}>
+            Add another
+          </button>
+        ) : null}
+        {step === 'form' ? (
+          <button
+            type="button"
+            className="hp-ed-action"
+            data-primary="true"
+            onClick={save}
+            disabled={!canSave}
+          >
+            {saving ? 'Saving…' : 'Add evidence'}
+          </button>
+        ) : null}
+        <button type="button" className="hp-ed-action" onClick={reset} disabled={saving}>
+          {step === 'done' ? 'Done' : 'Cancel'}
+        </button>
+        {step === 'form' ? (
+          <button type="button" className="hp-ed-action" onClick={() => setStep('link')} disabled={saving}>
+            Back
+          </button>
+        ) : null}
+      </div>
+
+      {error ? <p className="hp-ed-editor-error">{error}</p> : null}
+    </div>
+  )
+}

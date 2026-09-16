@@ -173,6 +173,47 @@ export default function CareerProfileEditorPage() {
     return payload.lens
   }, [authHeaders])
 
+  // ---- EVIDENCE ----
+  //
+  // The preview is a read and is allowed to fail softly: a page that will not
+  // be read is not a reason somebody cannot add their own work, so this hands
+  // back whatever the route said and the form carries on either way.
+  const previewUrl = useCallback(async (url) => {
+    const res = await fetch('/api/career-profile/preview-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ url })
+    })
+    return res.json().catch(() => ({ ok: false }))
+  }, [authHeaders])
+
+  // The document is re-read rather than patched. The payload it renders is
+  // assembled by the public route - eligibility filtered, placements grouped,
+  // order applied - and rebuilding that here would be a second implementation
+  // of it that could disagree. One request, and the tile appears; the page is
+  // never reloaded and nothing else on screen moves.
+  const reloadDocument = useCallback(async () => {
+    const slug = profile?.slug
+    if (!slug) return
+    const doc = await fetchJSON(
+      `/api/career-profile/${encodeURIComponent(slug)}`,
+      { headers: authHeaders }
+    )
+    setDocument(doc)
+  }, [authHeaders, profile?.slug])
+
+  const createEvidence = useCallback(async (values) => {
+    const res = await fetch('/api/career-profile/evidence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify(values)
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await reloadDocument()
+    return payload
+  }, [authHeaders, reloadDocument])
+
   function handleLensUpdated(lens) {
     setDocument(prev => prev ? {
       ...prev,
@@ -307,7 +348,14 @@ export default function CareerProfileEditorPage() {
         data={document_}
         slug={profile?.slug}
         onLensUpdated={handleLensUpdated}
-        edit={editing ? { editing: true, isPro: manage?.isPro === true, onSaveLens: saveLens, onRegenerateLens: regenerateLens } : null}
+        edit={editing ? {
+          editing: true,
+          isPro: manage?.isPro === true,
+          onSaveLens: saveLens,
+          onRegenerateLens: regenerateLens,
+          onPreviewUrl: previewUrl,
+          onCreateEvidence: createEvidence
+        } : null}
       />
 
       <SettingsDrawer
