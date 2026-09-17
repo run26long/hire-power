@@ -6,10 +6,10 @@ import Reveal from './Reveal'
 import StrokeIcon from './StrokeIcon'
 import EvidenceOverlay from './EvidenceOverlay'
 import { glyphFor } from './EvidenceViewer'
-import { EditPencil, EditGrip, EditEmpty, useEditSlot } from './EditAffordance'
+import { EditPencil, EditGrip, EditEmpty, UpgradeNote, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
 import EvidenceManager from './EvidenceManager'
-import { useCanShowEmpty } from '../_lib/editContext'
+import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
 
 // ============================================================================
 // EVIDENCE
@@ -102,6 +102,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   // ...and these two move around inside one.
   const fromGallery = useCallback((item) => setOverlay({ mode: 'detail', item, fromGallery: true }), [])
   const canShowEmpty = useCanShowEmpty()
+  const canEdit = useCanEdit()
   const slot = useEditSlot()
   const backToGallery = useCallback(() => setOverlay({ mode: 'gallery' }), [])
   const close = useCallback(() => setOverlay(null), [])
@@ -154,6 +155,7 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
 
         {items.length === 0 ? (
           <EditEmpty
+            feature="evidence"
             title="Add evidence of your work"
             note="Upload a document, image, video or audio file, or paste a link. Each piece can appear under any of your directions."
           />
@@ -190,7 +192,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         {/* Under the collection rather than over it: the section is about the
             work, and the way to add more belongs after what is already there. */}
         <EvidenceManager />
-        <AddEvidence />
+        {canEdit
+          ? <AddEvidence />
+          : items.length > 0 ? <UpgradeNote feature="evidence" /> : null}
       </div>
 
       <EvidenceOverlay

@@ -1,3 +1,4 @@
+import { requireCustomise } from '../_lib/requireCustomise'
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../_lib/recruiterContext'
@@ -83,6 +84,11 @@ export async function POST(request) {
       .eq('user_id', user.id)
       .maybeSingle()
     if (!profile) return Response.json({ error: 'No profile to ask for.' }, { status: 404 })
+
+    // Putting new content on a profile is the paid half. Reading it, and
+    // taking something down, are not.
+    const gate = await requireCustomise(user.id, supabase)
+    if (gate) return gate
 
     const { data: account } = await supabase
       .from('profiles')

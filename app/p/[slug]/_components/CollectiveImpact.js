@@ -175,6 +175,7 @@ export default function CollectiveImpact({
                 <p className="hp-voices-note">In the words of people who saw the work up close.</p>
               </div>
               <EditEmpty
+                feature="testimonial"
                 title="Request a testimonial"
                 note="Ask someone you worked with. They write it in their own words, and nothing appears here until you publish it."
               />

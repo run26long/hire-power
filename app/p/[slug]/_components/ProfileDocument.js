@@ -354,6 +354,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       editing: true,
       lensId: editLensId,
       isPro: edit.isPro === true,
+      // Whether this account may put its own words and files in at all. A
+      // different question from isPro, and the gates read this one.
+      canCustomise: edit.canCustomise === true,
+      notify: edit.notify,
       // Every direction, not just the one on screen: adding a piece of
       // evidence is where an owner decides which chapters it belongs to.
       lenses,
@@ -397,7 +401,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       regenerate: (field) => runWrite(field, () => editRegenerate(editLensId, field))
     }
   }, [
-    edit?.editing, edit?.isPro, edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
+    edit?.editing, edit?.isPro, edit?.canCustomise, edit?.notify,
+    edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     lenses, editLensId, openField, busy, writeError, errorField,

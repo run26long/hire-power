@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
-import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
+import { EditPencil, EditEmpty, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
 import ImowVideo from './ImowVideo'
@@ -116,6 +116,7 @@ export default function ProfileSpread({
         {hasBio && !bioEditor?.isOpen && (
           <div className={`hp-refocus${slot}`} data-resolve="about">
             <EditPencil field="bio" label="the bio for this direction" />
+            <UpgradeNote feature="bio" />
             <Reveal enabled={animate}>
               <span className="hp-eyebrow">About</span>
               {lead && <p className="hp-about-lead">{lead}</p>}
@@ -173,6 +174,7 @@ export default function ProfileSpread({
             data-video={hasVideo ? 'true' : undefined}
           >
             <EditPencil field="imow" label="In My Own Words" />
+            <UpgradeNote feature="imow" />
 
             {/* The quotation marks are for a quotation. Behind a video frame
                 they are either invisible or peeking out from under it, and a

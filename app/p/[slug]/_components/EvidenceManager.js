@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useProfileEdit } from '../_lib/editContext'
+import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 
 // ============================================================================
@@ -43,11 +43,11 @@ function Badge({ children, tone }) {
 
 export default function EvidenceManager() {
   const edit = useProfileEdit()
+  const notify = useNotify()
 
   const [openId, setOpenId] = useState(null)
   const [draft, setDraft] = useState(null)
   const [busy, setBusy] = useState(null)
-  const [error, setError] = useState(null)
 
   if (!edit?.editing) return null
 
@@ -70,11 +70,10 @@ export default function EvidenceManager() {
   async function run(key, work) {
     if (busy) return
     setBusy(key)
-    setError(null)
     try {
       await work()
     } catch (err) {
-      setError(err?.message || "We couldn't save that. Please try again.")
+      notify({ type: 'error', message: err?.message || "We couldn't save that. Please try again." })
     } finally {
       setBusy(null)
     }
@@ -82,7 +81,6 @@ export default function EvidenceManager() {
 
   function startEdit(item) {
     setOpenId(item.id)
-    setError(null)
     setDraft({
       title: item.title || '',
       description: item.description || '',
@@ -340,8 +338,6 @@ export default function EvidenceManager() {
           <ul className="hp-ed-mrows">{elsewhere.map(item => row(item, -1, false))}</ul>
         </>
       ) : null}
-
-      {error ? <p className="hp-ed-editor-error">{error}</p> : null}
     </div>
   )
 }

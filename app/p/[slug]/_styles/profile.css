@@ -415,6 +415,12 @@
 /* ----------------------------------------------------------------- proof -- */
 /* An artifact found inside the portrait, not a column of statistics. */
 
+/* The two tiers are already in normal flow at these widths, one after the
+   other, so the band grows no box and changes nothing. It becomes a real
+   grid item only at desktop, where the two tiers would otherwise be placed
+   independently in the same row. */
+.hp-proof-band { display: contents; }
+
 .hp-proof-lead { margin-top: 26px; }
 
 .hp-proof-caption {
@@ -1014,19 +1020,46 @@
      and the empty quarter above the deck is inhabited rather than decorated.
      The deck's 630px measure is what keeps the numeral clear of any text while
      still overlapping the identity's field. */
-  .hp-proof-lead {
-    grid-column: 8 / 13;
+  /* The band is the proof composition's own box: the featured figure on its
+     first row, the supporting tier on its second, and one row gap between
+     them. The gap is therefore measured from the bottom of the featured
+     block, whatever that block turned out to be - a description that wraps to
+     two lines moves the tier below it down rather than eating the space.
+
+     It has to be a box of its own because the stage row it sits in is shared
+     with the identity, and the identity is the taller of the two. Anything
+     anchored to that row's edges takes its position from the name and deck
+     rather than from the figure it belongs to, which is what let the gap vary
+     from 40px to less than nothing across directions.
+
+     The six columns are the stage's own: twelve equal columns with one gap
+     between each means a six column slice has identical track widths, so the
+     figures keep the columns they have always sat in. */
+  .hp-proof-band {
+    display: grid;
+    grid-column: 7 / 13;
     grid-row: 2;
     align-self: start;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    column-gap: var(--profile-act-gap);
+    /* The distance between the featured block and the tier under it. Set from
+       what the one line case already measured, and in vh like the rest of the
+       composition's vertical rhythm, so a short viewport tightens it the same
+       way it tightens everything else here. Every direction gets this exact
+       distance; that is the whole point of it. */
+    row-gap: clamp(32px, 4.2vh, 44px);
+    /* The whole composition's drop below the name's opening line, so the two
+       stop reading as a matched pair. It lives on the band rather than on the
+       featured figure, because the band is what moves as one piece. */
+    margin-top: calc(clamp(104px, 14vh, 172px) + 75px);
+  }
+
+  .hp-proof-lead {
+    grid-column: 2 / 7;
+    grid-row: 1;
+    align-self: start;
     position: relative;
-    /* The lead's own description is one line for some directions and two for
-       others, so the block grows downward toward the supporting tier. This
-       offset carries enough clearance for the two line case at the tightest
-       desktop width; the figure still enters inside the name's first line. */
-    /* The +27px drops the whole proof composition below the name's opening
-       line so the two stop reading as a matched pair. The supporting tier
-       carries the same 27px below, so the composition moves as one piece. */
-    margin: calc(clamp(104px, 14vh, 172px) + 75px) 0 0 clamp(-56px, -3vw, -24px);
+    margin: 0 0 0 clamp(-56px, -3vw, -24px);
     padding-left: 54px;
   }
 
@@ -1056,11 +1089,12 @@
   .hp-proof-lead-num { font-size: clamp(94px, 7.8vw, 122px); line-height: 0.82; }
   .hp-proof-lead-label { font-size: 17px; margin-top: 16px; max-width: 30ch; }
 
-  /* One supporting tier, formed by lifting the second figure up to the first
-     rather than by dropping the first down to it. Both sit in the identity's
-     own row, bottom aligned against it, which is the position the bridging
-     figure has held since the rebalance: at the foot of the identity field,
-     tied to the lead proof above rather than stranded under the composition.
+  /* One supporting tier, on the band's second row. It used to be bottom
+     aligned against the stage row it shared with the identity and pulled back
+     up by a negative margin, which meant its position was set by the height of
+     the name and deck beside it and not by the figure it supports. It now sits
+     under the featured block at the band's row gap, so the three read as one
+     group for the same reason they always did, but the distance holds.
 
      Both selectors carry the shared properties on purpose. The tablet rules
      above target [data-sub] and are (0,2,0); a bare .hp-proof-sub here would
@@ -1068,74 +1102,47 @@
   .hp-proof-sub[data-sub="0"],
   .hp-proof-sub[data-sub="1"] {
     grid-row: 2;
+    /* The two are bottom aligned to each other, which is what the stagger
+       below is expressed against. The row is theirs alone now, so this ties
+       them to one another rather than to the identity. */
     align-self: end;
     margin-top: 0;
-    margin-bottom: clamp(0px, 1vh, 12px);
-  }
-
-  /* The bridging figure keeps the column it starts in, which is what holds its
-     horizontal position: column 8 while the deck's measure still reaches
-     across the middle of the frame, column 7 once there is room to its left.
-     Its right edge comes in by one column to open the lane the second figure
-     needs; the label is capped at 24ch regardless, so nothing rewraps. */
-  /* The stagger. Both figures are bottom aligned, so adding to one margin and
-     taking the same amount off the other splits them evenly around the
-     baseline they shared: the first lifts 11px, the second drops 11px, and the
-     midpoint of the pair does not move. 22px apart is enough to read as set by
-     hand and too little to read as a descent. Nothing else about either figure
-     changes. */
-  /* The figures are bottom aligned, so their numerals only sit on one line
-     while their blocks are the same height, and a block's height is its
-     label's line count. Descriptions in this data run to one, two or three
-     lines depending on the direction, which is what made the stagger collapse
-     the moment a direction with a longer description was chosen.
-
-     So the description reserves three lines of space whatever it holds, and
-     the shared offset gives that one reserved line back. A two line
-     description therefore lands exactly where it always did, and every
-     direction now produces the same block height and the same 22px. */
-  .hp-proof-sub .hp-proof-label { min-height: 4.2em; }
-
-  /* The lift. Both figures are bottom aligned, so a negative bottom margin
-     moves them up the field; --proof-lift is the whole of that movement and
-     the stagger is applied either side of it. Declared once here rather than
-     written into both rules, so the pair moves together and cannot drift.
-
-     They were sitting at the foot of the hero, nearer the bottom edge than
-     the figure they support. Raised, the three read as one group.
-
-     vh rather than px for the extra distance: a short viewport has less room
-     between the deck and the bottom edge, and the lift gives some of it back
-     instead of pushing the pair into the positioning statement. */
-  .hp-proof-sub[data-sub="0"],
-  .hp-proof-sub[data-sub="1"] {
-    /* The original downward offset, kept as its own name so the lift below
-       reads as the change it is. */
-    --proof-drop: 96px;
-    /* ...and the lift back up. Both figures carry it, so the pair moves as
-       one. vh rather than px: a short viewport has less room between the deck
-       and the bottom edge, and this gives some of it back rather than driving
-       the pair into the positioning statement.
-
-       Tuned down from a larger lift that closed the gap under the featured
-       figure to almost nothing. The pair still clears its old position by
-       about 68px, which is what brings the three into one group; the 40px
-       given back is the pause between the lead and the first of the two. */
-    --proof-lift: clamp(58px, 7.6vh, 78px);
+    /* The stagger. Both figures are bottom aligned, so adding to one margin
+       and taking the same off the other splits them evenly either side of the
+       baseline they share: the first lifts, the second drops, and the midpoint
+       of the pair does not move. Far enough apart to read as set by hand and
+       not so far as to read as a descent. It is the only thing either margin
+       carries now. */
     --proof-stagger: 15px;
   }
 
+  /* The bridging figure keeps the column it starts in, which is what holds its
+     horizontal position: column 8 (band column 2) while the deck's measure
+     still reaches across the middle of the frame, column 7 once there is room
+     to its left. Its right edge comes in by one column to open the lane the
+     second figure needs; the label is capped at 24ch regardless, so nothing
+     rewraps. */
   .hp-proof-sub[data-sub="0"] {
-    grid-column: 8 / 11;
-    margin-bottom:
-      calc(clamp(0px, 1vh, 12px) + var(--proof-stagger) - var(--proof-drop) + var(--proof-lift));
+    grid-column: 2 / 5;
+    margin-bottom: var(--proof-stagger);
   }
 
   .hp-proof-sub[data-sub="1"] {
-    grid-column: 11 / 13;
-    margin-bottom:
-      calc(clamp(0px, 1vh, 12px) - var(--proof-stagger) - var(--proof-drop) + var(--proof-lift));
+    grid-column: 5 / 7;
+    margin-bottom: calc(var(--proof-stagger) * -1);
   }
+
+  /* The two are bottom aligned to each other, so their numerals sit on one
+     line only while their blocks are the same height, and a block's height is
+     its label's line count. Descriptions in this data run to one, two or three
+     lines depending on the direction, which is what used to collapse the
+     stagger the moment a direction with a longer description was chosen.
+
+     So each supporting description reserves the same space whatever it holds,
+     and the pair produces the same stagger in every direction. This is the
+     supporting tier only: the featured description above is free to be as tall
+     as it needs, which is what the band's row gap is for. */
+  .hp-proof-sub .hp-proof-label { min-height: 4.2em; }
 
   .hp-proof-num { font-size: clamp(34px, 2.5vw, 40px); }
 
@@ -1188,7 +1195,7 @@
 /* Wide enough for the bridging figure to move in off the right and take the
    middle of the field, clear of the deck's measure. */
 @media (min-width: 1440px) {
-  .hp-proof-sub[data-sub="0"] { grid-column: 7 / 11; }
+  .hp-proof-sub[data-sub="0"] { grid-column: 1 / 5; }
 }
 
 
@@ -1203,11 +1210,13 @@
   .hp-act1,
   .hp-act1-frame { min-height: 0; }
 
-  /* 56px of tail, plus the 27px the proof composition was lowered by: the
-     supporting tier is bottom aligned and moves on a negative margin, which
-     shifts it visually without growing the box it sits in, so the reserve has
-     to absorb that shift for the handoff to stay where it was set. */
-  .hp-act1-frame { padding-bottom: 110px; }
+  /* The tail under the composition, plus the 27px it was lowered by. The
+     supporting tier used to hang a long way below the box it sat in on a
+     negative margin, and this reserve had to absorb all of it. Now the band
+     grows with the composition and only the lower figure's stagger falls
+     outside it, so the reserve gives back what it no longer has to cover and
+     the clearance under the lowest figure is the same as it was. */
+  .hp-act1-frame { padding-bottom: 96px; }
 }
 
 /* ---- 1440 and up ----

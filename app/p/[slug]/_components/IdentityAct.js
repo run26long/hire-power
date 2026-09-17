@@ -1,6 +1,6 @@
 'use client'
 
-import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
+import { EditPencil, EditEmpty, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor, ProofPointsEditor } from './EditFields'
 import { useFieldEditor } from '../_lib/editContext'
 
@@ -126,7 +126,15 @@ export default function IdentityAct({
           {proofEditor?.isOpen ? <ProofPointsEditor value={proofPoints} /> : null}
 
           {hasProof && !proofEditor?.isOpen && (
-            <>
+            /* The featured figure and the two beneath it are one block. The
+               band is what makes them one: below 1200 it is `display:
+               contents` and both tiers are handed to the stage grid exactly as
+               they were, and at desktop it becomes the grid item they share,
+               so the space between the tiers is a row gap measured from the
+               bottom of the featured block rather than whatever the row had
+               left over. A description that runs to two lines therefore pushes
+               the tier below it down instead of closing the gap. */
+            <div className="hp-proof-band">
               {/* Keyed on the direction so the entrance replays when the
                   reader changes chapter: the node is a new node, so the CSS
                   animation on it starts again. Restarting it by toggling a
@@ -167,12 +175,14 @@ export default function IdentityAct({
                   ))}
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* The public page closes this region when a direction has no
               figures. In edit mode it stays open, because an absence the
               owner cannot see is an absence they cannot fill. */}
+          <UpgradeNote feature="identity" />
+
           {!hasProof && !proofEditor?.isOpen && (
             <EditEmpty
               field="proof_points"

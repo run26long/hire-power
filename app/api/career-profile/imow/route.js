@@ -1,3 +1,4 @@
+import { requireCustomise } from '../_lib/requireCustomise'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../_lib/recruiterContext'
 
@@ -60,6 +61,11 @@ export async function PATCH(request) {
     const { data: { user }, error: authError } =
       await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // In My Own Words is owner-authored text, so it is behind the same gate
+    // as the rest of it. Clearing the field is not: see requireCustomise.
+    const gate = await requireCustomise(user.id, supabase)
+    if (gate) return gate
 
     let body
     try {

@@ -1,5 +1,6 @@
 'use client'
 
+import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ============================================================================
@@ -62,7 +63,9 @@ export default function SettingsDrawer({
   profile,
   publicUrl,
   authHeaders,
-  onProfileChanged
+  onProfileChanged,
+  canCustomise,
+  notify
 }) {
   const closeRef = useRef(null)
 
@@ -71,7 +74,6 @@ export default function SettingsDrawer({
   const currentEmail = profile?.contact_email || ''
 
   const [publishing, setPublishing] = useState(false)
-  const [publishError, setPublishError] = useState(null)
 
   const [slug, setSlug] = useState(currentSlug)
   const [slugCheck, setSlugCheck] = useState(null)   // { available, reason, current }
@@ -96,7 +98,6 @@ export default function SettingsDrawer({
     setSlugSaved(false)
     setEmailError(null)
     setEmailSaved(false)
-    setPublishError(null)
   }, [open, currentSlug, currentEmail])
 
   // Escape closes, and focus moves into the drawer so a keyboard is not left
@@ -143,7 +144,7 @@ export default function SettingsDrawer({
   const togglePublish = useCallback(async () => {
     if (publishing) return
     setPublishing(true)
-    setPublishError(null)
+
     try {
       const res = await fetch('/api/career-profile/publish', {
         method: 'POST',
@@ -154,11 +155,11 @@ export default function SettingsDrawer({
       if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
       onProfileChanged({ is_published: payload.is_published === true })
     } catch (err) {
-      setPublishError(err.message || "We couldn't save that.")
+      notify?.({ type: 'error', message: err.message || "We couldn't save that." })
     } finally {
       setPublishing(false)
     }
-  }, [publishing, published, authHeaders, onProfileChanged])
+  }, [publishing, published, authHeaders, onProfileChanged, notify])
 
   async function saveSlug() {
     if (slugSaving || !candidate || candidate === currentSlug) return
@@ -262,7 +263,6 @@ export default function SettingsDrawer({
                 ? 'Anyone with your link can read this profile.'
                 : 'Only you can open this profile. The link returns nothing for everybody else.'}
             </p>
-            {publishError ? <p className="hp-ed-error">{publishError}</p> : null}
           </Group>
 
           {/* ---- Link ---- */}
@@ -309,7 +309,19 @@ export default function SettingsDrawer({
             {slugError ? <p className="hp-ed-error">{slugError}</p> : null}
           </Group>
 
-          {/* ---- Contact ---- */}
+          {/* ---- Contact ----
+              The whole group goes on a plan that cannot set one. Publication
+              and the link above stay: a free account still publishes, still
+              has an address, and still shares it. What it does not get is a
+              second way for somebody to reach it. */}
+          {!canCustomise ? (
+            <Group label="Contact address">
+              <p className="hp-ed-upsell">
+                <span className="hp-ed-upsell-text">{upgradeCopyFor('contact')}</span>
+                <a className="hp-ed-upsell-link" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+              </p>
+            </Group>
+          ) : (
           <Group label="Contact address">
             <input
               id="hp-ed-email"
@@ -341,6 +353,7 @@ export default function SettingsDrawer({
             </p>
             {emailError ? <p className="hp-ed-error">{emailError}</p> : null}
           </Group>
+          )}
 
           {/* ---- Appearance: still read-only ---- */}
           <Group label="Template" note="Template and colour choices arrive with appearance settings.">

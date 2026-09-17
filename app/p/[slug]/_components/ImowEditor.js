@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useProfileEdit, useFieldEditor } from '../_lib/editContext'
+import { useProfileEdit, useFieldEditor, useCanEdit } from '../_lib/editContext'
 import ImowVideoField from './ImowVideoField'
 
 // ============================================================================
@@ -32,6 +32,7 @@ const ROWS = 9
 export default function ImowEditor({ value }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor('imow')
+  const canEdit = useCanEdit()
 
   const [draft, setDraft] = useState(value || '')
   const [generating, setGenerating] = useState(false)
@@ -57,7 +58,10 @@ export default function ImowEditor({ value }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, editor])
 
-  if (!editor || !isOpen) return null
+  // Nothing on a locked plan can open this, because the pencil and the
+  // empty state are both gone. Guarded here too, so the editor cannot be
+  // reached by any future path that forgets.
+  if (!editor || !isOpen || !canEdit) return null
 
   const trimmed = draft.trim()
   const busy = editor.busy || generating

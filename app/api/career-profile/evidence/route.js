@@ -1,3 +1,4 @@
+import { requireCustomise } from '../_lib/requireCustomise'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../_lib/recruiterContext'
 import { canonicalType, familyForType, providerForUrl } from '@/lib/evidenceTypes'
@@ -123,6 +124,11 @@ export async function POST(request) {
       .eq('user_id', user.id)
       .maybeSingle()
     if (!profile) return Response.json({ error: 'No profile to add to.' }, { status: 404 })
+
+    // Putting new content on a profile is the paid half. Reading it, and
+    // taking something down, are not.
+    const gate = await requireCustomise(user.id, supabase)
+    if (gate) return gate
 
     // ---- THE FIELDS ----
     const url = webUrl(body.url)

@@ -1,6 +1,7 @@
 'use client'
 
-import { useProfileEdit, useFieldEditor } from '../_lib/editContext'
+import { useProfileEdit, useFieldEditor, useCanEdit, useShowUpgrade } from '../_lib/editContext'
+import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 
 // ============================================================================
 // EDIT AFFORDANCES
@@ -51,10 +52,35 @@ export function useEditSlot() {
 // where it does not - the sections that still have no editor keep the pencil
 // they were drawn with, disabled and saying so, rather than losing it and
 // looking finished.
+// A line where a control would have been, saying what the plan would add and
+// linking somewhere it can be added. Deliberately a sentence and a link rather
+// than a dialog: the management page is the profile itself with controls over
+// it, and throwing a modal over a document somebody is reading to tell them
+// about a feature is an interruption, not an offer.
+//
+// It renders only in edit mode, so the public page and preview never see it.
+export function UpgradeNote({ feature }) {
+  const show = useShowUpgrade()
+  if (!show) return null
+  return (
+    <p className="hp-ed-upsell">
+      <span className="hp-ed-upsell-text">{upgradeCopyFor(feature)}</span>
+      <a className="hp-ed-upsell-link" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+    </p>
+  )
+}
+
 export function EditPencil({ field, label }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor(field)
+  const canEdit = useCanEdit()
   if (!edit?.editing) return null
+
+  // A free account keeps everything the coaching wrote and loses the pencil
+  // over it. No disabled control in its place: a pencil that cannot be pressed
+  // still says "this is yours to change", and the whole point is that on this
+  // plan it is not. The section carries the line that says why.
+  if (!canEdit) return null
 
   if (!field || !editor) {
     return (
@@ -120,10 +146,16 @@ export function EditElsewhere({ children, href }) {
 // The one thing the public page will not do: show a section that has nothing
 // in it. This renders only in edit mode - never in preview - which is what
 // keeps preview an honest preview.
-export function EditEmpty({ title, note, field }) {
+export function EditEmpty({ title, note, field, feature }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor(field)
+  const canEdit = useCanEdit()
   if (!edit?.editing) return null
+
+  // An empty section on a plan that cannot fill it. The prompt stands in for
+  // the invitation rather than sitting under a dead one: "Add evidence of your
+  // work" that does nothing when pressed is worse than not offering.
+  if (!canEdit) return <UpgradeNote feature={feature || field} />
 
   // An empty section whose field has an editor is the way into it. One that
   // does not is still drawn, so the absence is visible, and still says so.

@@ -6,6 +6,8 @@ import { createClient } from '@/utils/supabase/client'
 import { fetchJSON } from '@/lib/fetchJSON'
 
 import MainNav from '../components/MainNav'
+import ErrorToast from '../components/ErrorToast'
+import SuccessToast from '../components/SuccessToast'
 import ProfileDocument from '../p/[slug]/_components/ProfileDocument'
 import EditorIntro from './_components/EditorIntro'
 import SettingsDrawer from './_components/SettingsDrawer'
@@ -61,6 +63,26 @@ export default function CareerProfileEditorPage() {
   const [document_, setDocument] = useState(null)
   const [mode, setMode] = useState(MODES.EDIT)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  // One notification channel for the whole page.
+  //
+  // Everything under here is the profile document with controls over it, and
+  // the controls are scattered through six sections the owner scrolls between.
+  // A failure reported next to the control that caused it is a line somebody
+  // has already scrolled past by the time it appears; a toast is in the same
+  // place every time and does not move the document to make room for itself.
+  //
+  // Two pieces of state rather than one object, because the two toasts are
+  // separate components with their own timers, and a success arriving while an
+  // error is still up should not cut the error short.
+  const [toastError, setToastError] = useState(null)
+  const [toastSuccess, setToastSuccess] = useState(null)
+
+  const notify = useCallback(({ type, message }) => {
+    if (!message) return
+    if (type === 'success') setToastSuccess(String(message))
+    else setToastError(String(message))
+  }, [])
   const [authHeaders, setAuthHeaders] = useState(null)
   const [copied, setCopied] = useState(false)
 
@@ -671,6 +693,11 @@ export default function CareerProfileEditorPage() {
         edit={editing ? {
           editing: true,
           isPro: manage?.isPro === true,
+          // A second entitlement question, not a rename of the first. isPro
+          // governs the Pro tools; this governs whether the owner may put
+          // their own words and files into the profile at all, and Vault can.
+          canCustomise: manage?.canCustomise === true,
+          notify,
           onSaveLens: saveLens,
           onRegenerateLens: regenerateLens,
           onPreviewUrl: previewUrl,
@@ -709,7 +736,14 @@ export default function CareerProfileEditorPage() {
         publicUrl={publicUrl}
         authHeaders={authHeaders}
         onProfileChanged={handleProfileChanged}
+        canCustomise={manage?.canCustomise === true}
+        notify={notify}
       />
+
+      {/* Last in the tree and fixed to the viewport, so nothing above has to
+          leave room for them and neither can push the document around. */}
+      <ErrorToast message={toastError} onClose={() => setToastError(null)} />
+      <SuccessToast message={toastSuccess} onClose={() => setToastSuccess(null)} />
     </div>
   )
 }

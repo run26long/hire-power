@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useProfileEdit } from '../_lib/editContext'
+import { useProfileEdit, useCanEdit, useNotify } from '../_lib/editContext'
+import { UpgradeNote } from './EditAffordance'
 import { RELATIONSHIP_TYPES, EARNED_360_THRESHOLD } from '@/lib/testimonialTypes'
 
 // ============================================================================
@@ -28,7 +29,7 @@ import { RELATIONSHIP_TYPES, EARNED_360_THRESHOLD } from '@/lib/testimonialTypes
 // ============================================================================
 
 const STATUS_LABEL = {
-  requested: 'Waiting on them',
+  requested: 'Awaiting response',
   submitted: 'Received',
   polished: 'Ready to review',
   published: 'On your profile'
@@ -43,12 +44,13 @@ const EMPTY = {
 
 export default function TestimonialManager() {
   const edit = useProfileEdit()
+  const canEdit = useCanEdit()
+  const notify = useNotify()
 
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(null)
-  const [error, setError] = useState(null)
   const [busy, setBusy] = useState(null)
   const [expanded, setExpanded] = useState(null)
 
@@ -59,19 +61,21 @@ export default function TestimonialManager() {
   const consenting = items.filter(t => t.reference_consent).length
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
 
+  // Every row operation reports the same way. A failure here is about the
+  // thing that was pressed, not about the form, so it goes to the page's one
+  // notification channel rather than to a line at the bottom of this panel
+  // that the owner may well have scrolled past.
   async function run(key, work) {
     if (busy) return
     setBusy(key)
-    setError(null)
     try { await work() } catch (err) {
-      setError(err?.message || "We couldn't do that. Please try again.")
+      notify({ type: 'error', message: err?.message || "We couldn't do that. Please try again." })
     } finally { setBusy(null) }
   }
 
   async function send() {
     if (sending) return
     setSending(true)
-    setError(null)
     try {
       await edit.onRequestTestimonial({
         recipient_name: form.recipient_name.trim(),
@@ -83,7 +87,7 @@ export default function TestimonialManager() {
       setForm(EMPTY)
       setOpen(false)
     } catch (err) {
-      setError(err?.message || "We couldn't send that request.")
+      notify({ type: 'error', message: err?.message || "We couldn't send that request." })
     } finally {
       setSending(false)
     }
@@ -112,9 +116,12 @@ export default function TestimonialManager() {
         </span>
       </div>
 
+      {/* A success, so it is toned as one. The class is shared with the
+          notes that report a failed link lookup, which stay amber; this is
+          the one place that reads as confirmation rather than caution. */}
       {sent ? (
-        <p className="hp-ed-add-note">
-          Asked {sent}. They will get an email with a link, and you will hear when they reply.
+        <p className="hp-ed-add-note" data-tone="done">
+          Request sent to {sent}. We’ll let you know when a response is ready to review.
         </p>
       ) : null}
 
@@ -173,7 +180,7 @@ export default function TestimonialManager() {
                 ) : (
                   <p className="hp-ed-proof-note">
                     {t.status === 'requested'
-                      ? 'No reply yet. The link in their email still works.'
+                      ? 'No response yet. The request link is still active.'
                       : 'Received, but we could not shorten it. Their own words are below.'}
                   </p>
                 )}
@@ -214,7 +221,19 @@ export default function TestimonialManager() {
                         `Remove the testimonial from ${t.recipient_name}?\n\n` +
                         'Their link stops working and what they wrote is deleted. This cannot be undone.'
                       )
-                      if (ok) run(`del:${t.id}`, () => edit.onDeleteTestimonial(t.id))
+                      if (!ok) return
+                      run(`del:${t.id}`, async () => {
+                        await edit.onDeleteTestimonial(t.id)
+                        // The confirmation above names a request. Once any
+                        // request has been withdrawn it is describing a state
+                        // that may no longer exist, and a banner saying a
+                        // request is out when it has just been taken back is
+                        // worse than no banner. Nothing else clears it - not a
+                        // timer, not a reload of the list - so this is the
+                        // only place it can go.
+                        setSent(null)
+                        notify({ type: 'success', message: `Removed the request to ${t.recipient_name}.` })
+                      })
                     }}
                   >
                     Remove
@@ -233,8 +252,13 @@ export default function TestimonialManager() {
         </ul>
       )}
 
+      {/* Asking somebody for a testimonial is the one thing in this section
+          that writes. The list above stays readable on every plan, because a
+          testimonial somebody already gave is theirs to read. */}
+      {!canEdit ? <UpgradeNote feature="testimonial" /> : null}
+
       <div className="hp-ed-mrow-actions" style={{ marginTop: 14 }}>
-        {!open ? (
+        {canEdit && !open ? (
           <button type="button" className="hp-ed-action" data-primary="true" onClick={() => { setOpen(true); setSent(null) }}>
             + Request a testimonial
           </button>
@@ -252,7 +276,7 @@ export default function TestimonialManager() {
         ) : null}
       </div>
 
-      {open ? (
+      {canEdit && open ? (
         <div className="hp-ed-editor" role="group" aria-label="Request a testimonial">
           <p className="hp-ed-add-title">Who should we ask?</p>
 
@@ -299,14 +323,12 @@ export default function TestimonialManager() {
             <button type="button" className="hp-ed-action" data-primary="true" onClick={send} disabled={!canSend}>
               {sending ? 'Sending…' : 'Send the request'}
             </button>
-            <button type="button" className="hp-ed-action" onClick={() => { setOpen(false); setError(null) }} disabled={sending}>
+            <button type="button" className="hp-ed-action" onClick={() => setOpen(false)} disabled={sending}>
               Cancel
             </button>
           </div>
         </div>
       ) : null}
-
-      {error ? <p className="hp-ed-editor-error">{error}</p> : null}
     </div>
   )
 }

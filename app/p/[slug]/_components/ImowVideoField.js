@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useProfileEdit } from '../_lib/editContext'
+import { useProfileEdit, useNotify } from '../_lib/editContext'
 
 // ============================================================================
 // THE VIDEO HALF OF IN MY OWN WORDS, IN THE EDITOR
@@ -66,10 +66,10 @@ function inspect(file) {
 
 export default function ImowVideoField() {
   const edit = useProfileEdit()
+  const notify = useNotify()
 
   const [busy, setBusy] = useState(null)      // 'upload' | 'remove' | null
   const [progress, setProgress] = useState(0)
-  const [error, setError] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const inputRef = useRef(null)
 
@@ -101,28 +101,25 @@ export default function ImowVideoField() {
   if (!edit?.editing) return null
 
   async function choose(file) {
-    setError(null)
     if (!file) return
 
     if (!/^video\/(mp4|webm)$/.test(file.type)) {
-      setError('Upload an MP4 or WebM video.')
+      notify({ type: 'error', message: 'Upload an MP4 or WebM video.' })
       return
     }
     if (file.size > MAX_BYTES) {
-      setError(`That video is ${humanSize(file.size)}. The limit is 50MB.`)
+      notify({ type: 'error', message: `That video is ${humanSize(file.size)}. The limit is 50MB.` })
       return
     }
 
     const meta = await inspect(file)
     if (!meta || !meta.width || !meta.height) {
-      setError("We couldn't read that video. Try exporting it as MP4.")
+      notify({ type: 'error', message: "We couldn't read that video. Try exporting it as MP4." })
       return
     }
     if (meta.width / meta.height < MIN_RATIO) {
-      setError(
-        `That video is ${meta.width} by ${meta.height}, which is portrait or square. ` +
-        'Record or export it landscape, sixteen by nine.'
-      )
+      notify({ type: 'error', message: `That video is ${meta.width} by ${meta.height}, which is portrait or square. ` +
+        'Record or export it landscape, sixteen by nine.' })
       return
     }
 
@@ -133,7 +130,7 @@ export default function ImowVideoField() {
       await loadPreview()
       if (inputRef.current) inputRef.current.value = ''
     } catch (err) {
-      setError(err?.message || "We couldn't upload that. Please try again.")
+      notify({ type: 'error', message: err?.message || "We couldn't upload that. Please try again." })
     } finally {
       setBusy(null)
       setProgress(0)
@@ -147,12 +144,11 @@ export default function ImowVideoField() {
     )
     if (!ok) return
     setBusy('remove')
-    setError(null)
     try {
       await edit.onRemoveImowVideo()
       setPreviewUrl(null)
     } catch (err) {
-      setError(err?.message || "We couldn't remove that. Please try again.")
+      notify({ type: 'error', message: err?.message || "We couldn't remove that. Please try again." })
     } finally {
       setBusy(null)
     }
@@ -199,8 +195,6 @@ export default function ImowVideoField() {
         MP4 or WebM, landscape sixteen by nine, up to 50MB. It plays on your profile above the
         text, and a reader can still read the words if they would rather not watch.
       </p>
-
-      {error ? <p className="hp-ed-editor-error">{error}</p> : null}
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { requireCustomise } from '../../_lib/requireCustomise'
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
@@ -235,6 +236,9 @@ export async function POST(request) {
     if (ctx.error) return ctx.error
     const { supabase, user, profile } = ctx
 
+    const gate = await requireCustomise(user.id, supabase)
+    if (gate) return gate
+
     let body
     try {
       body = await request.json()
@@ -425,6 +429,9 @@ export async function PUT(request) {
     const ctx = await owner(request)
     if (ctx.error) return ctx.error
     const { supabase, user, profile } = ctx
+
+    const gate = await requireCustomise(user.id, supabase)
+    if (gate) return gate
 
     let body
     try {

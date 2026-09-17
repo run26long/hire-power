@@ -6,8 +6,8 @@ import Reveal from './Reveal'
 import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
 import PortfolioLightbox from './PortfolioLightbox'
 import AddEvidence from './AddEvidence'
-import { EditGrip, EditEmpty, useEditSlot } from './EditAffordance'
-import { useCanShowEmpty } from '../_lib/editContext'
+import { EditGrip, EditEmpty, UpgradeNote, useEditSlot } from './EditAffordance'
+import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
 import { PORTFOLIO_PREVIEW_DESKTOP, formatDuration } from '@/lib/portfolio'
 
 // ============================================================================
@@ -53,6 +53,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   }
 
   const canShowEmpty = useCanShowEmpty()
+  const canEdit = useCanEdit()
   const slot = useEditSlot()
 
   // Placement order, with whatever this direction marked pulled to the front.
@@ -90,6 +91,7 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
 
         {ordered.length === 0 ? (
           <EditEmpty
+            feature="portfolio"
             title="Add your visual work"
             note="Photographs and video of what you have built or run. They appear as a gallery a reader can open, and each one can sit under any of your directions."
           />
@@ -120,7 +122,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           </Reveal>
         )}
 
-        <AddEvidence only="visual" />
+        {canEdit
+          ? <AddEvidence only="visual" />
+          : ordered.length > 0 ? <UpgradeNote feature="portfolio" /> : null}
       </div>
 
       <PortfolioLightbox

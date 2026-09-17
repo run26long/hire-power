@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { isEntitledTier } from '../_lib/recruiterContext'
+import { canCustomiseProfile } from '@/lib/profileTier'
 import { earned360 } from '@/lib/testimonialTypes'
 
 // ============================================================================
@@ -119,6 +120,7 @@ export async function GET(request) {
       return Response.json({
         userProfile,
         isPro: isEntitledTier(userProfile.subscription_tier),
+        canCustomise: canCustomiseProfile(userProfile.subscription_tier),
         profile: null,
         lenses: [],
         evidence: [],
@@ -184,6 +186,7 @@ export async function GET(request) {
     return Response.json({
       userProfile,
       isPro: isEntitledTier(userProfile.subscription_tier),
+      canCustomise: canCustomiseProfile(userProfile.subscription_tier),
       profile: { ...profileRest, imow_has_video: Boolean(imow_video_path) },
       lenses: lensRes.data || [],
       evidence,

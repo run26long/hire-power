@@ -974,6 +974,8 @@
 }
 
 /* Said once, above the form, when the page would not give up its own title. */
+/* The default is amber, because most of these notes report that something
+   did not go to plan: a link that would not read, a save that half worked. */
 .hp-ed-add-note {
   margin: 0 0 12px;
   padding: 8px 10px;
@@ -983,6 +985,21 @@
   color: #fcd9a5;
   background: rgb(180 83 9 / 0.16);
   border: 1px solid rgb(180 83 9 / 0.3);
+}
+
+/* ...and this is the one that reports something went right. Amber on a
+   confirmation reads as a warning about the thing that just succeeded, so it
+   takes the page's own lavender instead: the accent wash for the ground, the
+   accent edge for the rule, and the soft accent for the words. All three are
+   existing tokens, so this stays in step with the rest of the profile rather
+   than introducing a fourth colour nobody else uses.
+
+   The soft accent on the wash is 8.4:1 against the surface underneath, which
+   clears AAA for text at this size. */
+.hp-ed-add-note[data-tone="done"] {
+  color: var(--profile-accent-soft);
+  background: var(--profile-accent-wash-strong);
+  border-color: var(--profile-accent-edge);
 }
 
 .hp-ed-field-label {
@@ -1597,3 +1614,71 @@
     gap: 6px;
   }
 }
+
+
+/* ============================================================================
+   THE UPGRADE LINE
+   What stands where a control would have been, on a plan that does not include
+   it. A sentence and a link, sized and coloured like the notes around it, so
+   it reads as part of the page rather than as an advertisement inside it.
+
+   Quieter than the confirmation note deliberately: that one reports something
+   the owner just did, this one reports something they have not bought. A
+   feature they do not have should not be the loudest thing in the section.
+   ============================================================================ */
+
+.hp-ed-upsell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--profile-body);
+  background: var(--profile-accent-wash);
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.18);
+}
+
+.hp-ed-upsell-text { flex: 1 1 auto; min-width: 0; }
+
+/* The only part that is accented. The sentence explains, the link is the
+   thing to press, and only one of those needs the colour. */
+.hp-ed-upsell-link {
+  flex: none;
+  color: var(--profile-accent-soft);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgb(var(--profile-accent-rgb) / 0.4);
+  padding-bottom: 1px;
+  white-space: nowrap;
+}
+
+.hp-ed-upsell-link:hover,
+.hp-ed-upsell-link:focus-visible {
+  color: var(--profile-text);
+  border-bottom-color: var(--profile-accent-soft);
+}
+
+/* In the settings drawer it is the whole of a group, so it sits flush rather
+   than hanging below something. */
+.hp-ed-group .hp-ed-upsell { margin-top: 0; }
+
+
+/* Act I is a twelve column grid, so an upgrade line dropped into it is
+   auto-placed into a single track and arrives seventy pixels wide. It is given
+   the full width and a row of its own under the composition, the same way this
+   section's empty states had to be placed rather than left to the grid. */
+.hp-act1-stage > .hp-ed-upsell {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin-top: 18px;
+  max-width: 560px;
+}
+
+/* The two column sections place their children by attribute, so a line with
+   no placement lands wherever the auto flow puts it. Both columns are named
+   the same way the content in them is. */
+.hp-spread > .hp-ed-upsell { max-width: 560px; }

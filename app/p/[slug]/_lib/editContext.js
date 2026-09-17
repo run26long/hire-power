@@ -66,6 +66,41 @@ export function useCanShowEmpty() {
   return useContext(ProfileEditContext)?.editing === true
 }
 
+// May this account put its own words and files into the profile?
+//
+// Two questions live here, and they are deliberately separate. `editing` is
+// "is this the management page" - false on the public page and in preview, so
+// no gate below has to remember to check it. `canCustomise` is "does this
+// account's plan include changing what the coaching produced".
+//
+// A free account still sees everything its sessions generated, and still
+// reaches preview, the public link and the resume. What it loses is the
+// controls that would write something new, and in their place it gets a line
+// saying what the plan would add. Returns null when there is no provider at
+// all, so a missing context can never be read as permission.
+export function useCanEdit() {
+  const edit = useContext(ProfileEditContext)
+  if (!edit || edit.editing !== true) return false
+  return edit.canCustomise === true
+}
+
+// True only where an upgrade prompt belongs: the management page, on an
+// account that cannot use the control it stands in for. The public page and
+// preview get neither the control nor the prompt.
+export function useShowUpgrade() {
+  const edit = useContext(ProfileEditContext)
+  return Boolean(edit?.editing === true && edit.canCustomise !== true)
+}
+
+// How anything on this page reports that something failed. One channel, so a
+// failure looks the same wherever it happened, and so no component has to own
+// a corner of the screen to say so. A missing provider is a no-op rather than
+// a crash: reporting an error must never be the thing that throws.
+export function useNotify() {
+  const edit = useContext(ProfileEditContext)
+  return edit?.notify || (() => {})
+}
+
 // Everything one field's editor needs, without each of them reaching into the
 // context and reimplementing the same four checks. Returns null when there is
 // no editor, so a section can call it unconditionally and render nothing.

@@ -1,7 +1,7 @@
 'use client'
 
 import Reveal from './Reveal'
-import { EditPencil, useEditSlot } from './EditAffordance'
+import { EditPencil, useEditSlot, UpgradeNote } from './EditAffordance'
 import { TagsEditor } from './EditFields'
 import { useFieldEditor } from '../_lib/editContext'
 
@@ -51,6 +51,11 @@ export default function ProfileResolution({ readyTags, location, actions, animat
                 ))}
               </p>
             )}
+
+            {/* Beside the tags rather than inside them: the line is a
+                paragraph and so is the row of tags, and a paragraph cannot
+                contain one. */}
+            {!tagsEditor?.isOpen ? <UpgradeNote feature="ready_tags" /> : null}
 
             {hasLocation && (
               <p className="hp-foot-where">

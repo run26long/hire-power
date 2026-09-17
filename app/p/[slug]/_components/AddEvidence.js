@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
-import { useProfileEdit } from '../_lib/editContext'
+import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
 import {
   ACCEPT_ATTRIBUTE, VISUAL_ACCEPT_ATTRIBUTE, MAX_UPLOAD_BYTES, humanSize, uploadTypeFor
@@ -61,6 +61,7 @@ const GROUPED = Object.entries(
 export default function AddEvidence({ only = null }) {
   const visualOnly = only === 'visual'
   const edit = useProfileEdit()
+  const notify = useNotify()
 
   // 'closed' | 'choose' | 'link' | 'form' | 'done'
   const [step, setStep] = useState('closed')
@@ -70,9 +71,7 @@ export default function AddEvidence({ only = null }) {
   const [preview, setPreview] = useState(null)
   const [looking, setLooking] = useState(false)
   const [note, setNote] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-
+  const [saving, setSaving] = useState(false)
   // The chosen file, and how far its upload has got. A file being set is what
   // makes this an upload rather than a link: the form below is the same either
   // way, and only the save differs.
@@ -100,9 +99,7 @@ export default function AddEvidence({ only = null }) {
     setForm(EMPTY)
     setLensIds([])
     setPreview(null)
-    setNote(null)
-    setError(null)
-    setFile(null)
+    setNote(null)    setFile(null)
     setProgress(0)
     poster.current = null
     duration.current = null
@@ -112,9 +109,7 @@ export default function AddEvidence({ only = null }) {
     const url = form.url.trim()
     if (!url || looking) return
     setLooking(true)
-    setNote(null)
-    setError(null)
-    try {
+    setNote(null)    try {
       const result = await edit.onPreviewUrl(url)
       if (result?.ok && result.preview) {
         setPreview(result.preview)
@@ -141,9 +136,7 @@ export default function AddEvidence({ only = null }) {
   // pass through the app on the way in, which is what keeps a 50MB video out
   // of a request body; the server's part is deciding where it may go and, once
   // it is there, what the record says about it.
-  function chooseFile(picked) {
-    setError(null)
-    // A new file means the frame and the duration belonging to the last one
+  function chooseFile(picked) {    // A new file means the frame and the duration belonging to the last one
     // are gone, whether or not the new one produces its own.
     poster.current = null
     duration.current = null
@@ -151,7 +144,7 @@ export default function AddEvidence({ only = null }) {
     const kind = uploadTypeFor(picked.type)
     if (!kind) {
       setFile(null)
-      setError('That kind of file cannot be added yet. Images, PDF, Word documents and video.')
+      notify({ type: 'error', message: 'That kind of file cannot be added yet. Images, PDF, Word documents and video.' })
       return
     }
     // The picker's accept attribute already says this, and an accept attribute
@@ -159,12 +152,12 @@ export default function AddEvidence({ only = null }) {
     // ignores it.
     if (visualOnly && kind.media_class !== 'image' && kind.media_class !== 'video') {
       setFile(null)
-      setError('The portfolio shows images and video. Other files belong in Evidence.')
+      notify({ type: 'error', message: 'The portfolio shows images and video. Other files belong in Evidence.' })
       return
     }
     if (picked.size > MAX_UPLOAD_BYTES) {
       setFile(null)
-      setError(`That file is ${humanSize(picked.size)}. The limit is 50MB.`)
+      notify({ type: 'error', message: `That file is ${humanSize(picked.size)}. The limit is 50MB.` })
       return
     }
     setFile(picked)
@@ -177,9 +170,7 @@ export default function AddEvidence({ only = null }) {
 
   async function save() {
     if (saving) return
-    setSaving(true)
-    setError(null)
-    try {
+    setSaving(true)    try {
       const details = {
         title: form.title.trim(),
         description: form.description.trim() || null,
@@ -217,7 +208,7 @@ export default function AddEvidence({ only = null }) {
       setProgress(0)
       setStep('done')
     } catch (err) {
-      setError(err?.message || "We couldn't save that. Please try again.")
+      notify({ type: 'error', message: err?.message || "We couldn't save that. Please try again." })
     } finally {
       setSaving(false)
       setUploading(false)
@@ -522,8 +513,6 @@ export default function AddEvidence({ only = null }) {
           </button>
         ) : null}
       </div>
-
-      {error ? <p className="hp-ed-editor-error">{error}</p> : null}
     </div>
   )
 }
