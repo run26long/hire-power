@@ -3176,3 +3176,418 @@
 @media (min-width: 768px) {
   .hp-voice[data-video="true"] .hp-voice-text { font-size: 16px; }
 }
+
+
+/* ============================================================================
+   PORTFOLIO
+   The visual work, as a grid of square mats with the pictures contained
+   inside them, and a lightbox that shows each one at the shape it really is.
+
+   Every rule that touches a mat's box carries .hp-profile in front of it: a
+   mat is a button, and `.hp-profile button` is (0,1,1) - a bare class here
+   would lose to it and the mat would come back with the button reset's
+   padding and border. The same trap the Evidence tiles document above.
+   ============================================================================ */
+
+/* The handoff either side. Portfolio sits between Skills and Evidence, so it
+   takes both halves of the tuning those two already had for each other:
+   Skills gives the same space above it that it gave Evidence, and Portfolio
+   gives the same below. When a profile has no visual work the section renders
+   nothing at all, no element is in the DOM, and `.hp-skills + .hp-ev-section`
+   goes on matching exactly as it did. */
+.hp-skills + .hp-pf-section { padding-top: 34px; }
+.hp-pf-section { padding-bottom: 34px; }
+.hp-pf-section + .hp-ev-section { padding-top: 34px; }
+.hp-pf-section + .hp-rt-section { padding-top: 34px; }
+
+.hp-pf-intro { margin-bottom: 26px; }
+.hp-pf-intro .hp-label { margin-bottom: 14px; }
+
+.hp-pf-headline {
+  display: block;
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: clamp(32px, 9vw, 40px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.032em;
+  color: var(--profile-text);
+}
+
+/* ---- The grid ----
+   Two across on a phone, three from tablet up. A list rather than a row of
+   divs, because it is one: the reader is being shown a collection. */
+.hp-pf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hp-pf-cell { display: flex; }
+
+/* ---- One mat ---- */
+.hp-profile .hp-pf-mat {
+  --pf-tone: var(--profile-accent-rgb);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  border: 1px solid rgb(var(--pf-tone) / 0.16);
+  border-radius: 14px;
+  background: var(--profile-surface);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.hp-profile .hp-pf-mat:hover,
+.hp-profile .hp-pf-mat:focus-visible {
+  border-color: rgb(var(--pf-tone) / 0.42);
+  transform: translateY(-2px);
+}
+
+/* The mat itself. Square whatever it holds, so the grid reads as a grid; the
+   picture inside is contained rather than cropped, so a portrait photograph
+   and a widescreen still both arrive whole. Cropping somebody's work to fit a
+   shape this page chose is an edit nobody asked for. */
+.hp-pf-mat-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 100%;
+  overflow: hidden;
+  background:
+    linear-gradient(150deg, rgb(var(--pf-tone) / 0.10) 0%, rgb(var(--pf-tone) / 0) 62%),
+    rgb(0 0 0 / 0.22);
+}
+
+.hp-pf-mat-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* What a mat shows before its picture arrives, and instead of one where there
+   is none. It says what the thing is rather than standing in as a blank
+   square, which is the difference between a preview and a missing image. */
+.hp-pf-mat-mark {
+  display: inline-flex;
+  color: rgb(var(--pf-tone) / 0.55);
+}
+
+/* ---- The play mark ----
+   On the picture, not beside it. Under a still it would read as a caption,
+   and a reader has to be told this one moves. */
+.hp-pf-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  background: rgb(0 0 0 / 0.42);
+  pointer-events: none;
+}
+
+.hp-pf-play-tri {
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid rgb(255 255 255 / 0.92);
+}
+
+.hp-pf-time {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.62);
+  color: rgb(255 255 255 / 0.92);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.hp-pf-mat-title {
+  display: block;
+  padding: 10px 12px 12px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--profile-text);
+  overflow-wrap: anywhere;
+}
+
+/* ---- The way into the rest ---- */
+.hp-pf-more { margin-top: 18px; }
+
+.hp-profile .hp-pf-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--profile-text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.hp-profile .hp-pf-all:hover,
+.hp-profile .hp-pf-all:focus-visible {
+  border-color: rgb(var(--profile-accent-rgb) / 0.6);
+  background: rgb(var(--profile-accent-rgb) / 0.08);
+}
+
+.hp-pf-all-arrow { transition: transform 180ms ease; }
+.hp-profile .hp-pf-all:hover .hp-pf-all-arrow { transform: translateX(3px); }
+
+@media (min-width: 768px) {
+  .hp-pf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .hp-skills + .hp-pf-section { padding-top: 40px; }
+  .hp-pf-section { padding-bottom: 40px; }
+  .hp-pf-section + .hp-ev-section { padding-top: 40px; }
+  .hp-pf-section + .hp-rt-section { padding-top: 40px; }
+}
+
+@media (min-width: 1200px) {
+  .hp-pf-grid { gap: 18px; }
+  .hp-skills + .hp-pf-section { padding-top: 44px; }
+  .hp-pf-section { padding-bottom: 44px; }
+  .hp-pf-section + .hp-ev-section { padding-top: 44px; }
+  .hp-pf-section + .hp-rt-section { padding-top: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-profile .hp-pf-mat,
+  .hp-profile .hp-pf-all,
+  .hp-pf-all-arrow { transition: none; }
+  .hp-profile .hp-pf-mat:hover,
+  .hp-profile .hp-pf-mat:focus-visible { transform: none; }
+}
+
+/* ============================================================================
+   THE LIGHTBOX
+   One piece of work at its own shape, over everything. The grid squares
+   things so it reads as a grid; here the work is the only thing on screen, so
+   it is shown as it was made.
+   ============================================================================ */
+
+.hp-pf-box {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  /* The same wash the evidence overlay uses, blur included. The blur is what
+     makes the page behind unreadable rather than merely dimmer: over a page
+     this dark, opacity alone still leaves a headline legible through it, and
+     a legible page behind a lightbox is two things competing to be read. */
+  background: rgb(var(--profile-void-rgb) / 0.82);
+  backdrop-filter: blur(8px);
+  animation: hp-ev-fade 160ms ease both;
+  overscroll-behavior: contain;
+}
+
+/* A definite height, not a maximum. The picture below is bounded by a
+   percentage of the stage, and a percentage of a flex item that was only ever
+   given a maximum resolves against nothing - which is how a 900px tall
+   photograph ended up overflowing its own bar and caption instead of scaling
+   to fit between them. The box supplies the padding, so 100% here is the
+   viewport less that padding. */
+.hp-pf-box-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 1180px);
+  height: 100%;
+}
+
+.hp-pf-box-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hp-pf-box-count {
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+.hp-pf-box .hp-pf-box-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.26);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(255 255 255 / 0.92);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hp-pf-box .hp-pf-box-close:hover,
+.hp-pf-box .hp-pf-box-close:focus-visible {
+  border-color: rgb(255 255 255 / 0.55);
+  background: rgb(255 255 255 / 0.12);
+}
+
+/* The stage takes what the bar and the foot leave, and the picture is bounded
+   by it rather than by a fixed height: that is what keeps a tall photograph
+   inside the viewport without cropping it. */
+.hp-pf-box-stage {
+  position: relative;
+  flex: 1 1 auto;
+  /* Without this a flex item refuses to shrink below its content, and the
+     content here is a full-size photograph. */
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* A photograph knows its own size the moment it decodes, so it is left at its
+   own dimensions and merely bounded: a small picture is not blown up to fill
+   the screen. */
+.hp-pf-box-img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.4);
+}
+
+/* A video does not. Until its metadata arrives a <video> is 300 by 150, and
+   `width: auto` on an element with no intrinsic size yet means the player
+   opens as a postage stamp and then jumps. So it is given the stage and
+   contains itself inside it, which is also how the In My Own Words player is
+   sized. */
+.hp-pf-box-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.hp-pf-box-wait,
+.hp-pf-box-gone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(420px, 80vw);
+  aspect-ratio: 4 / 3;
+  max-width: 100%;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(255 255 255 / 0.6);
+}
+
+.hp-pf-box-gone-mark { color: rgb(255 255 255 / 0.5); }
+.hp-pf-box-gone-note { margin: 0; font-size: 14px; }
+
+/* ---- Moving through ----
+   Buttons as well as a swipe: a pointer has no gesture, and a keyboard has
+   the arrow keys the dialog already listens for. */
+.hp-pf-box .hp-pf-step {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.24);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.5);
+  color: rgb(255 255 255 / 0.92);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hp-pf-box .hp-pf-step[data-step="prev"] { left: 4px; }
+.hp-pf-box .hp-pf-step[data-step="next"] { right: 4px; }
+
+.hp-pf-box .hp-pf-step:hover,
+.hp-pf-box .hp-pf-step:focus-visible {
+  border-color: rgb(255 255 255 / 0.55);
+  background: rgb(0 0 0 / 0.72);
+}
+
+.hp-pf-box-foot {
+  flex: none;
+  color: rgb(255 255 255 / 0.86);
+}
+
+.hp-pf-box-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hp-pf-box-note {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.68);
+}
+
+.hp-pf-box-meta {
+  margin: 6px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.5);
+}
+
+@media (min-width: 768px) {
+  .hp-pf-box { padding: 28px; }
+  .hp-pf-box-surface { gap: 14px; }
+  .hp-pf-box .hp-pf-step[data-step="prev"] { left: -8px; }
+  .hp-pf-box .hp-pf-step[data-step="next"] { right: -8px; }
+}

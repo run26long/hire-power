@@ -1,8 +1,9 @@
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
-import { noEmDash } from '../../_lib/recruiterContext'
+import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
 import { canonicalType, familyForType } from '@/lib/evidenceTypes'
 import { MAX_UPLOAD_BYTES, uploadTypeFor } from '@/lib/evidenceUploads'
+import { FREE_VISUAL_UPLOADS } from '@/lib/portfolio'
 
 // ============================================================================
 // POST /api/career-profile/evidence/upload   - ask for somewhere to put a file
@@ -45,9 +46,16 @@ import { MAX_UPLOAD_BYTES, uploadTypeFor } from '@/lib/evidenceUploads'
 // object, made once, rather than a query parameter on a public URL that would
 // have to exist for anyone holding it.
 //
-// Only images get one. The profile already draws an icon per media_class for
-// everything else, so a PDF and a video are not missing a picture - they have
-// the picture they are supposed to have.
+// Images make their own. A video cannot: there is no ffmpeg here and sharp
+// does not open video containers, so the only thing that can read a frame out
+// of an MP4 is a browser that is already decoding it. So the browser picks the
+// frame and uploads it as a second object, and this route treats that object
+// as untrusted input - it is re-encoded through the same sharp pipeline an
+// uploaded photograph goes through, then thrown away. What lands in
+// thumbnail_path is a webp this server made, whatever the browser sent.
+//
+// Everything else keeps its icon. A PDF is not missing a picture; it has the
+// picture it is supposed to have.
 // ============================================================================
 
 const service = () =>
@@ -66,6 +74,59 @@ const THUMB_QUALITY = 78
 const MAX_DECODED_PIXELS = 80_000_000
 
 const LIMITS = { title: 200, description: 1000, organization: 120, date_label: 40 }
+
+// What a browser may hand over as a captured video frame. Narrow on purpose:
+// this is not a file somebody chose, it is a canvas export, so there is no
+// reason to accept anything but the two things a canvas produces.
+const POSTER_TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' }
+
+// A frame is a still of something already capped at 50MB. Well above any real
+// canvas export, and low enough that the poster slot cannot be used to park a
+// large file that never becomes a row.
+const MAX_POSTER_BYTES = 8 * 1024 * 1024
+
+// Longer than any plausible piece of evidence, and the point is only to refuse
+// a number that is obviously not a duration.
+const MAX_DURATION_SECONDS = 24 * 60 * 60
+
+// ---------------------------------------------------------------------------
+// The visual quota
+//
+// The first upload limit in the product. Counted here and nowhere else: the
+// form reports what it was told, and a form cannot be the thing that enforces
+// a limit. Only visual uploads count toward it and only a visual upload is
+// refused by it, so a free account's documents and links are unaffected.
+// ---------------------------------------------------------------------------
+async function isEntitled(supabase, userId) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('subscription_tier')
+    .eq('id', userId)
+    .maybeSingle()
+  return isEntitledTier(data?.subscription_tier)
+}
+
+async function visualUploadCount(supabase, profileId) {
+  const { count, error } = await supabase
+    .from('profile_evidence')
+    .select('id', { count: 'exact', head: true })
+    .eq('profile_id', profileId)
+    .eq('source_type', 'upload')
+    .in('media_class', ['image', 'video'])
+    .is('deleted_at', null)
+  // A count that could not be read is not a licence to skip the limit.
+  if (error) throw new Error('COUNT_FAILED')
+  return count ?? 0
+}
+
+const overQuota = () => Response.json(
+  {
+    error: `A free account can show ${FREE_VISUAL_UPLOADS} pieces of visual work. `
+      + 'Upgrade to add more, or remove one to make room.',
+    code: 'PRO_REQUIRED'
+  },
+  { status: 403 }
+)
 
 const CONTROL = new RegExp(
   '[' +
@@ -89,7 +150,7 @@ function text(value, max, label, { required = false } = {}) {
 const RETURNED =
   'id, family, evidence_type, kind, media_class, title, description, ' +
   'organization, date_label, source_type, url, provider, embed_url, ' +
-  'mime_type, file_size, privacy, status, sort_order, created_at, updated_at'
+  'mime_type, file_size, duration_seconds, privacy, status, sort_order, created_at, updated_at'
 
 // ---------------------------------------------------------------------------
 // The upload ticket.
@@ -201,6 +262,20 @@ export async function POST(request) {
       )
     }
 
+    // Refused here as well as at the finish, so a free account that is already
+    // full does not spend an upload to be told. The finish is the one that
+    // decides; this only saves the bytes.
+    const isVisual = kind.media_class === 'image' || kind.media_class === 'video'
+    if (isVisual && !(await isEntitled(supabase, user.id))) {
+      let used
+      try {
+        used = await visualUploadCount(supabase, profile.id)
+      } catch {
+        return Response.json({ error: "We couldn't start that upload." }, { status: 500 })
+      }
+      if (used >= FREE_VISUAL_UPLOADS) return overQuota()
+    }
+
     // Two random segments and nothing else. This string ends up inside every
     // signed URL a reader is given, so it must say nothing about whose file it
     // is.
@@ -212,13 +287,37 @@ export async function POST(request) {
       return Response.json({ error: "We couldn't start that upload." }, { status: 500 })
     }
 
-    return Response.json({
+    const response = {
       path,
       ticket: issueTicket(path, user.id),
       token: data.token,
       signed_url: data.signedUrl,
       content_type: kind.mime
-    })
+    }
+
+    // A video gets somewhere to put the frame the owner chose. Its own object
+    // with its own ticket, beside the video rather than inside its path, so
+    // neither one can be finalised by anybody who did not start it.
+    const posterType = POSTER_TYPES[String(body?.poster_content_type || '').toLowerCase()]
+    if (kind.media_class === 'video' && posterType) {
+      const posterPath = `${path.replace(/\.[^.]+$/, '')}-frame.${posterType}`
+      const { data: posterUpload, error: posterError } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUploadUrl(posterPath)
+      // Never fatal. A video with no poster is a video with the play mark on a
+      // plain mat, which is what every video had before this existed.
+      if (posterError || !posterUpload) {
+        console.error('[career-profile] Poster upload URL failed (non-fatal):', posterError)
+      } else {
+        response.poster_path = posterPath
+        response.poster_ticket = issueTicket(posterPath, user.id)
+        response.poster_signed_url = posterUpload.signedUrl
+        response.poster_content_type = Object.keys(POSTER_TYPES)
+          .find(mime => POSTER_TYPES[mime] === posterType)
+      }
+    }
+
+    return Response.json(response)
   } catch (error) {
     console.error('[career-profile] Upload start failed:', error)
     return Response.json({ error: "We couldn't start that upload." }, { status: 500 })
@@ -233,9 +332,14 @@ export async function POST(request) {
 // item because its preview failed would throw away the upload to fix the
 // picture of it.
 // ---------------------------------------------------------------------------
-async function makeThumbnail(supabase, path) {
+// `source` is the object to read pixels from and `namedFor` is the object the
+// thumbnail belongs to. For a photograph they are the same file. For a video
+// they are not: the pixels come from the frame the browser captured, and the
+// thumbnail is named after the video so the two live together and are removed
+// together.
+async function makeThumbnail(supabase, source, namedFor = source) {
   try {
-    const { data: blob, error } = await supabase.storage.from(BUCKET).download(path)
+    const { data: blob, error } = await supabase.storage.from(BUCKET).download(source)
     if (error || !blob) return null
 
     const input = Buffer.from(await blob.arrayBuffer())
@@ -256,7 +360,7 @@ async function makeThumbnail(supabase, path) {
       .webp({ quality: THUMB_QUALITY })
       .toBuffer()
 
-    const thumbPath = `${path.replace(/\.[^.]+$/, '')}-thumb.webp`
+    const thumbPath = `${namedFor.replace(/\.[^.]+$/, '')}-thumb.webp`
     const { error: upErr } = await supabase.storage
       .from(BUCKET)
       .upload(thumbPath, output, { contentType: 'image/webp', upsert: true })
@@ -268,6 +372,48 @@ async function makeThumbnail(supabase, path) {
   } catch (error) {
     console.error('[career-profile] Thumbnail generation failed (non-fatal):', error)
     return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The frame a browser chose, turned into a thumbnail this server made.
+//
+// Never fatal, for the same reason image thumbnails are not: a video with no
+// preview is still the video the owner uploaded, and refusing the whole item
+// because its poster failed would throw away a 50MB upload to fix a picture.
+//
+// The poster object is temporary in every case. It is read once, re-encoded,
+// and removed - whether that worked or not - so the bucket never accumulates
+// raw canvas exports, and nothing but the server's own webp is ever signed.
+// ---------------------------------------------------------------------------
+async function posterThumbnail(supabase, body, userId, videoPath) {
+  const posterPath = typeof body?.poster_path === 'string' ? body.poster_path : ''
+  if (!posterPath) return null
+
+  // The same gate the video itself passes. Without it, a caller could name any
+  // object in the bucket and have its pixels published as their thumbnail.
+  if (!ticketValid(body?.poster_ticket, posterPath, userId)) {
+    console.error('[career-profile] Poster ticket rejected')
+    return null
+  }
+
+  try {
+    const { data: info } = await supabase.storage.from(BUCKET).info(posterPath)
+    // What storage holds, not what was claimed: it has to be an image, and it
+    // has to be small enough to be a still rather than a second payload.
+    const type = String(info?.contentType || '').split(';')[0].trim().toLowerCase()
+    if (!info || !POSTER_TYPES[type] || Number(info.size) > MAX_POSTER_BYTES) {
+      await supabase.storage.from(BUCKET).remove([posterPath])
+      return null
+    }
+    // Named for the video, so the pair is removed together when the item is.
+    return await makeThumbnail(supabase, posterPath, videoPath)
+  } catch (error) {
+    console.error('[career-profile] Poster handling failed (non-fatal):', error)
+    return null
+  } finally {
+    // The export itself is never kept. makeThumbnail has already read it.
+    await supabase.storage.from(BUCKET).remove([posterPath]).catch(() => {})
   }
 }
 
@@ -389,8 +535,49 @@ export async function PUT(request) {
       }
     }
 
+    // ---- THE QUOTA, decided here ----
+    // The POST refused early to save the bytes; this is the one that counts.
+    // A caller who skipped the first step, or who filled the last slot from
+    // another tab in between, is refused now - and the object goes with the
+    // refusal, because a file with no row is a file nothing can ever find.
+    const isVisual = kind.media_class === 'image' || kind.media_class === 'video'
+    if (isVisual && !(await isEntitled(supabase, user.id))) {
+      let used
+      try {
+        used = await visualUploadCount(supabase, profile.id)
+      } catch {
+        await supabase.storage.from(BUCKET).remove([path])
+        return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
+      }
+      if (used >= FREE_VISUAL_UPLOADS) {
+        await supabase.storage.from(BUCKET).remove([path])
+        return overQuota()
+      }
+    }
+
+    // ---- HOW LONG IT RUNS ----
+    // The browser's reading, because nothing here can open a video container.
+    // Taken only for a video, bounded, and rounded to whole seconds: it labels
+    // a mat and nothing depends on it, so a value that is not a plausible
+    // duration is dropped rather than argued with.
+    let durationSeconds = null
+    if (kind.media_class === 'video') {
+      const given = Number(body?.duration_seconds)
+      if (Number.isFinite(given) && given > 0 && given <= MAX_DURATION_SECONDS) {
+        durationSeconds = Math.round(given)
+      }
+    }
+
     // ---- THE PREVIEW ----
-    const thumbnailPath = kind.media_class === 'image' ? await makeThumbnail(supabase, path) : null
+    // A photograph is its own preview. A video's preview is the frame the
+    // owner picked, which arrived as a second object and is re-encoded through
+    // the same pipeline before anything points at it.
+    let thumbnailPath = null
+    if (kind.media_class === 'image') {
+      thumbnailPath = await makeThumbnail(supabase, path)
+    } else if (kind.media_class === 'video') {
+      thumbnailPath = await posterThumbnail(supabase, body, user.id, path)
+    }
 
     // ---- THE ROW ----
     const { data: lastItem } = await supabase
@@ -420,6 +607,7 @@ export async function PUT(request) {
         thumbnail_path: thumbnailPath,
         mime_type: kind.mime,
         file_size: Number.isFinite(size) ? size : null,
+        duration_seconds: durationSeconds,
         privacy: 'public',
         status: 'published',
         sort_order: (lastItem?.sort_order ?? -1) + 1

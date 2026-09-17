@@ -17,6 +17,7 @@ import {
   resolveSkillProof,
   truncateAtSentence
 } from '../_lib/profileData'
+import { splitCollection } from '@/lib/portfolio'
 
 import ProfileHeader, { ProfileActionButtons } from './ProfileHeader'
 import IdentityAct from './IdentityAct'
@@ -24,6 +25,7 @@ import { LensStage, LensBar } from './LensNav'
 import ProfileSpread from './ProfileSpread'
 import SelectedExperience from './SelectedExperience'
 import SkillsSection from './SkillsSection'
+import PortfolioSection from './PortfolioSection'
 import EvidenceSection from './EvidenceSection'
 import RecruiterTools from './RecruiterTools'
 import CollectiveImpact from './CollectiveImpact'
@@ -199,6 +201,16 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       })
       .filter(Boolean)
   }, [data?.evidencePlacements, data?.evidenceShared, selectedLens?.id, evidence])
+
+  // One collection, two sections. The rule lives in lib/portfolio and is
+  // applied once, here, so Evidence is exactly what Portfolio did not take -
+  // never a second list of conditions that could drift into showing an item
+  // twice or losing it between them. Both halves keep the direction's own
+  // placement order, because both were sorted before they were split.
+  const { portfolio: directionPortfolio, evidence: directionDocuments } = useMemo(
+    () => splitCollection(directionEvidence),
+    [directionEvidence]
+  )
 
   // Collective Impact is written per direction. A direction that has not been
   // regenerated yet falls back to the shared synthesis, and a profile that
@@ -507,8 +519,21 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
             because the resume happens to carry a line. Nothing was deleted -
             the resume still holds what it held, and an owner-facing workflow
             can promote any of it into real evidence with a real source. */}
+        {/* The visual work, immediately before the collection it was taken
+            out of. The page is built claims first and artefacts after, and
+            these two are the same move - what the work looks like, then what
+            backs it up. A gallery any earlier would be showing a reader
+            pictures before they know what they are looking at. */}
+        <PortfolioSection
+          items={directionPortfolio}
+          slug={slug}
+          lensId={selectedLens?.id}
+          animate={animate}
+          directionKey={contentIndex}
+        />
+
         <EvidenceSection
-          items={directionEvidence}
+          items={directionDocuments}
           slug={slug}
           lensId={selectedLens?.id}
           animate={animate}

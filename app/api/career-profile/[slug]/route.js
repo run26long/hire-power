@@ -160,7 +160,11 @@ export async function GET(request, { params }) {
         .from('profile_evidence')
         .select(
           'id, family, evidence_type, kind, media_class, title, description, ' +
-          'organization, date_label, source_type, url, provider, embed_url, sort_order'
+          'organization, date_label, source_type, url, provider, embed_url, sort_order, ' +
+          // Read to be turned into a boolean below, never to be sent. The
+          // Portfolio needs to know a preview exists so it can ask for one; it
+          // has no business knowing where it is.
+          'thumbnail_path, duration_seconds'
         )
         .eq('profile_id', profile.id)
         .eq('privacy', 'public')
@@ -286,6 +290,15 @@ export async function GET(request, { params }) {
       provider: item.provider,
       embed_url: SAFE_URL.test(String(item.embed_url || '')) ? item.embed_url : null,
       has_file: item.source_type === 'upload',
+      // The same shape as the file itself: the fact of it, never the path.
+      // The Portfolio asks the evidence media route for a signed thumbnail by
+      // id, and that route decides for itself whether this direction may show
+      // it before it signs anything.
+      has_thumbnail: Boolean(item.thumbnail_path),
+      // Written by the browser at upload and stored as a whole number of
+      // seconds. Only ever used to label a video mat; a row without one gets
+      // no badge rather than a badge reading zero.
+      duration_seconds: Number.isFinite(item.duration_seconds) ? item.duration_seconds : null,
       sort_order: item.sort_order
     }))
 

@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useProfileEdit } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
-import { ACCEPT_ATTRIBUTE, MAX_UPLOAD_BYTES, humanSize, uploadTypeFor } from '@/lib/evidenceUploads'
+import {
+  ACCEPT_ATTRIBUTE, VISUAL_ACCEPT_ATTRIBUTE, MAX_UPLOAD_BYTES, humanSize, uploadTypeFor
+} from '@/lib/evidenceUploads'
+import VideoFramePicker from './VideoFramePicker'
 
 // ============================================================================
 // ADDING EVIDENCE
@@ -50,7 +53,13 @@ const GROUPED = Object.entries(
   }, {})
 )
 
-export default function AddEvidence() {
+// `only="visual"` is the Portfolio's copy of this form: the same three steps
+// and the same save, with the picker narrowed to images and video and the link
+// route absent, because a link is not a portfolio piece. One component rather
+// than two, so a change to how evidence is added cannot reach one section and
+// miss the other.
+export default function AddEvidence({ only = null }) {
+  const visualOnly = only === 'visual'
   const edit = useProfileEdit()
 
   // 'closed' | 'choose' | 'link' | 'form' | 'done'
@@ -71,6 +80,15 @@ export default function AddEvidence() {
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
 
+  // The chosen video frame and how long the video runs. Both are produced by
+  // the browser because nothing on the server can read either one, and both
+  // are held in refs: they change while the owner scrubs, and re-rendering the
+  // whole form on every seek would fight the player they are scrubbing.
+  const poster = useRef(null)
+  const duration = useRef(null)
+  const onFrame = useCallback((frame) => { poster.current = frame }, [])
+  const onDuration = useCallback((seconds) => { duration.current = seconds }, [])
+
   if (!edit?.editing) return null
 
   const lenses = edit.lenses || []
@@ -86,6 +104,8 @@ export default function AddEvidence() {
     setError(null)
     setFile(null)
     setProgress(0)
+    poster.current = null
+    duration.current = null
   }
 
   async function lookUp() {
@@ -123,10 +143,23 @@ export default function AddEvidence() {
   // it is there, what the record says about it.
   function chooseFile(picked) {
     setError(null)
+    // A new file means the frame and the duration belonging to the last one
+    // are gone, whether or not the new one produces its own.
+    poster.current = null
+    duration.current = null
     if (!picked) { setFile(null); return }
-    if (!uploadTypeFor(picked.type)) {
+    const kind = uploadTypeFor(picked.type)
+    if (!kind) {
       setFile(null)
       setError('That kind of file cannot be added yet. Images, PDF, Word documents and video.')
+      return
+    }
+    // The picker's accept attribute already says this, and an accept attribute
+    // is a suggestion: a file can still arrive by drag or by a picker that
+    // ignores it.
+    if (visualOnly && kind.media_class !== 'image' && kind.media_class !== 'video') {
+      setFile(null)
+      setError('The portfolio shows images and video. Other files belong in Evidence.')
       return
     }
     if (picked.size > MAX_UPLOAD_BYTES) {
@@ -156,7 +189,15 @@ export default function AddEvidence() {
         lens_ids: lensIds
       }
       const created = file
-        ? await edit.onUploadEvidence(file, details, { onProgress: setProgress, setUploading })
+        ? await edit.onUploadEvidence(file, details, {
+            onProgress: setProgress,
+            setUploading,
+            // Both null for anything that is not a video, and both optional
+            // for one: a video whose frame could not be captured still saves,
+            // and shows the play mark the way every video did before.
+            poster: poster.current,
+            durationSeconds: duration.current
+          })
         : await edit.onCreateEvidence({ ...details, url: form.url.trim() })
       // Not closed on success. A new item goes to the end of the collection,
       // and the section shows the first few - so on a profile with a dozen
@@ -188,7 +229,7 @@ export default function AddEvidence() {
     return (
       <div className="hp-ed-add-row">
         <button type="button" className="hp-ed-action" data-primary="true" onClick={() => setStep('choose')}>
-          + Add evidence
+          {visualOnly ? '+ Add to portfolio' : '+ Add evidence'}
         </button>
       </div>
     )
@@ -204,27 +245,38 @@ export default function AddEvidence() {
     <div className="hp-ed-editor hp-ed-add" role="group" aria-label="Add evidence">
       {step === 'choose' && (
         <>
-          <p className="hp-ed-add-title">What are you adding?</p>
+          <p className="hp-ed-add-title">
+            {visualOnly ? 'Add a photo or a video' : 'What are you adding?'}
+          </p>
           <div className="hp-ed-add-choices">
-            <button type="button" className="hp-ed-add-choice" onClick={() => setStep('link')}>
-              <span className="hp-ed-add-choice-title">Add a link</span>
-              <span className="hp-ed-add-choice-note">
-                An article, a case study, a video, anything with a web address.
-              </span>
-            </button>
+            {/* No link route in the portfolio. A link to a picture on somebody
+                else's site is not something this page can put in a mat, and
+                offering it would promise a tile that never appears. */}
+            {!visualOnly && (
+              <button type="button" className="hp-ed-add-choice" onClick={() => setStep('link')}>
+                <span className="hp-ed-add-choice-title">Add a link</span>
+                <span className="hp-ed-add-choice-note">
+                  An article, a case study, a video, anything with a web address.
+                </span>
+              </button>
+            )}
             {/* A label rather than a button, so the picker opens from the
                 same click the choice is made with instead of needing a second
                 one on a control that then has to be found. */}
-            <label className="hp-ed-add-choice" htmlFor="hp-ed-ev-file">
-              <span className="hp-ed-add-choice-title">Upload a file</span>
+            <label className="hp-ed-add-choice" htmlFor={`hp-ed-ev-file${visualOnly ? '-visual' : ''}`}>
+              <span className="hp-ed-add-choice-title">
+                {visualOnly ? 'Choose a file' : 'Upload a file'}
+              </span>
               <span className="hp-ed-add-choice-note">
-                Images, PDF, Word documents and video from your own machine. Up to 50MB.
+                {visualOnly
+                  ? 'Photos and video from your own machine. Up to 50MB.'
+                  : 'Images, PDF, Word documents and video from your own machine. Up to 50MB.'}
               </span>
               <input
-                id="hp-ed-ev-file"
+                id={`hp-ed-ev-file${visualOnly ? '-visual' : ''}`}
                 type="file"
                 className="hp-ed-file-input"
-                accept={ACCEPT_ATTRIBUTE}
+                accept={visualOnly ? VISUAL_ACCEPT_ATTRIBUTE : ACCEPT_ATTRIBUTE}
                 onChange={e => chooseFile(e.target.files?.[0] || null)}
               />
             </label>
@@ -297,6 +349,14 @@ export default function AddEvidence() {
                   ×
                 </button>
               </p>
+              {/* A video needs a picture and there is nothing on the server
+                  that can make one, so the frame is chosen here. It captures
+                  one on its own as soon as the file is readable; scrubbing and
+                  pressing the button replaces it. */}
+              {uploadTypeFor(file.type)?.media_class === 'video' ? (
+                <VideoFramePicker file={file} onFrame={onFrame} onDuration={onDuration} />
+              ) : null}
+
               {uploading ? (
                 <p className="hp-ed-proof-note" role="status">
                   Uploading… {progress}%

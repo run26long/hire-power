@@ -213,11 +213,22 @@ export default function CareerProfileEditorPage() {
   // XMLHttpRequest rather than fetch, and only because fetch still cannot
   // report upload progress. A minute of silence on a large file reads as a
   // page that has stopped working.
-  const uploadEvidence = useCallback(async (file, details, { onProgress, setUploading } = {}) => {
+  const uploadEvidence = useCallback(async (
+    file,
+    details,
+    { onProgress, setUploading, poster = null, durationSeconds = null } = {}
+  ) => {
     const startRes = await fetch('/api/career-profile/evidence/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ content_type: file.type, size: file.size })
+      body: JSON.stringify({
+        content_type: file.type,
+        size: file.size,
+        // Asking for somewhere to put the chosen frame at the same time as the
+        // video, so both objects exist before either is finalised and the row
+        // is written once, with its picture already in place.
+        poster_content_type: poster?.contentType || null
+      })
     })
     const start = await startRes.json().catch(() => ({}))
     if (!startRes.ok) throw new Error(start?.error || "We couldn't start that upload.")
@@ -238,12 +249,40 @@ export default function CareerProfileEditorPage() {
       xhr.onabort = () => reject(new Error('That upload was interrupted.'))
       xhr.send(file)
     })
+
+    // The frame, after the video and before the row. It is small, so it gets
+    // no progress of its own; the bar has already reached a hundred on the
+    // thing that took the time.
+    //
+    // A frame that will not upload is not worth losing the video over: the
+    // path is simply not claimed at the finish, and the item saves with the
+    // play mark instead. That is the same outcome a video with no readable
+    // frame already has.
+    let posterClaim = null
+    if (poster?.blob && start.poster_signed_url && start.poster_path) {
+      try {
+        const res = await fetch(start.poster_signed_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': start.poster_content_type || poster.contentType },
+          body: poster.blob
+        })
+        if (res.ok) posterClaim = { poster_path: start.poster_path, poster_ticket: start.poster_ticket }
+      } catch {
+        posterClaim = null
+      }
+    }
     setUploading?.(false)
 
     const finishRes = await fetch('/api/career-profile/evidence/upload', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ ...details, path: start.path, ticket: start.ticket })
+      body: JSON.stringify({
+        ...details,
+        path: start.path,
+        ticket: start.ticket,
+        ...(posterClaim || {}),
+        duration_seconds: Number.isFinite(durationSeconds) ? durationSeconds : null
+      })
     })
     const payload = await finishRes.json().catch(() => ({}))
     if (!finishRes.ok) throw new Error(payload?.error || "We couldn't save that.")
