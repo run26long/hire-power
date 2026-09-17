@@ -6,170 +6,226 @@
    colleague, and they should be able to do it without meeting the application.
 
    So: no nav, no sidebar, no account, no upsell above the thing they came for.
-   One card on a light ground, the product's own gradient at the top so the
-   page is recognisably from the same place as the email that sent them.
+
+   WHY IT IS DARK
+   It used to be a white card on a light ground, which made it the only light
+   surface in a journey that is dark at both ends: the email that sends people
+   here is dark, and the Career Profile their words end up on is dark. The page
+   in the middle now belongs to the same world as the two either side of it.
+
+   IT READS THE PROFILE'S TOKENS, IT DOES NOT COPY THEM
+   Every colour here comes from tokens.css, which names .hp-tm alongside
+   .hp-profile for exactly this reason. There is no second palette to keep in
+   step, and a palette swap carries through here without anybody remembering.
+
+   NOT A DASHBOARD CARD
+   No panel, no box, no shadow around the whole thing. The page itself is the
+   surface and the content sits on it with air around it, because this is one
+   person writing a few sentences rather than an application showing them a
+   module. The only bounded surfaces are the two that are genuinely separate
+   objects: the box they type into, and the reference offer.
 
    Every selector is .hp-tm- prefixed and this file is imported only by this
-   route, so nothing here can reach the app or the dark Profile system.
+   route, so nothing here can reach the app or the Profile itself.
    =========================================================================== */
 
+/* The corner radius for this page. Three pixels: enough that nothing reads as
+   a hard-cut rectangle, far too little to read as a card. Named once so the
+   whole page can never drift into rounded panels. */
 .hp-tm {
-  --tm-ink: #1a1a2e;
-  --tm-body: #3d3b52;
-  --tm-muted: #8d8aa0;
-  --tm-line: #e8e6f0;
-  --tm-accent: #6f5ae0;
-  --tm-surface: #ffffff;
+  --tm-radius: 3px;
+  --tm-measure: 920px;
+
+  /* Native controls follow the page rather than the operating system. Without
+     this the checkbox renders as a white square on a dark ground, which is the
+     one bright rectangle on the page and lands on the one control somebody
+     should read carefully before agreeing to. Scrollbars and the phone field's
+     spinners follow the same declaration. */
+  color-scheme: dark;
 
   min-height: 100vh;
-  background: #f4f3f8;
-  padding: 32px 16px 64px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  color: var(--tm-body);
-  -webkit-font-smoothing: antialiased;
-}
-
-.hp-tm-card {
-  max-width: 620px;
-  margin: 0 auto;
-  background: var(--tm-surface);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 2px 18px rgb(26 26 46 / 0.08);
-}
-
-/* The same gradient the email carried, so the page reads as the other half of
-   the thing they just clicked. */
-.hp-tm-head {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 22px 28px;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.hp-tm-mark {
+  background: var(--profile-ground);
+  padding: 0 0 72px;
+  font-family: var(--font-geist-sans), 'Inter Tight', Inter, system-ui, sans-serif;
   font-size: 16px;
+  color: var(--profile-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- The mark ----
+   The logo and nothing else. No gradient band, no tagline bar: a header that
+   announces a product is a header that makes somebody doing a favour feel
+   they have arrived at a sales page. */
+.hp-tm-head {
+  max-width: var(--tm-measure);
+  margin: 0 auto;
+  padding: 26px 24px 0;
+}
+
+.hp-tm-logo {
+  display: block;
+  height: 24px;
+  width: auto;
+}
+
+.hp-tm-main {
+  max-width: var(--tm-measure);
+  margin: 0 auto;
+  padding: 30px 24px 0;
+}
+
+/* ---- The opening ---- */
+
+.hp-tm-eyebrow {
+  display: block;
+  margin: 0 0 12px;
+  font-size: 12px;
   font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
 }
 
-.hp-tm-tag {
-  font-size: 11.5px;
-  color: rgb(255 255 255 / 0.72);
-}
-
-.hp-tm-body { padding: 30px 28px 32px; }
-
+/* The Profile's display voice. Geist at a heading size with the same negative
+   tracking the section headings carry, so the sentence reads as the same
+   typeface doing the same job. */
 .hp-tm-lead {
-  margin: 0 0 8px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(21px, 4.4vw, 26px);
-  line-height: 1.28;
-  letter-spacing: -0.01em;
-  color: var(--tm-ink);
+  margin: 0 0 12px;
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.028em;
+  color: var(--profile-text);
+  text-wrap: balance;
 }
 
 .hp-tm-sub {
   margin: 0 0 22px;
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: var(--tm-body);
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: var(--profile-body);
 }
+
+/* ---- What they type ---- */
 
 .hp-tm-label {
   display: block;
-  margin: 0 0 6px;
-  font-size: 10.5px;
+  margin: 0 0 8px;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--tm-muted);
+  color: var(--profile-meta);
 }
 
 .hp-tm-textarea {
   display: block;
   width: 100%;
   font: inherit;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--tm-ink);
-  padding: 13px 14px;
-  border: 1px solid #d8d4ea;
-  border-radius: 10px;
-  background: #fff;
+  font-size: 16px;
+  line-height: 1.66;
+  color: var(--profile-text);
+  padding: 16px 17px;
+  border: 1px solid var(--profile-line-strong);
+  border-radius: var(--tm-radius);
+  background: var(--profile-surface);
   resize: vertical;
-  min-height: 190px;
+  min-height: 172px;
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
-.hp-tm-textarea:focus-visible {
-  outline: 2px solid var(--tm-accent);
-  outline-offset: -1px;
-  border-color: transparent;
+.hp-tm-textarea::placeholder { color: var(--profile-meta); opacity: 1; }
+
+.hp-tm-textarea:hover { border-color: var(--profile-accent-edge); }
+
+/* Focus is a ring outside the box rather than a recoloured border: the border
+   is carrying the hover state, and a control that signals two things with one
+   property can only ever show one of them. */
+.hp-tm-textarea:focus-visible,
+.hp-tm-phone:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+  border-color: var(--profile-accent-edge);
+  background: var(--profile-surface-2);
 }
 
 .hp-tm-count {
-  margin: 7px 0 0;
-  font-size: 12px;
-  color: var(--tm-muted);
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--profile-meta);
+  font-variant-numeric: tabular-nums;
 }
 
-/* The reference offer. A second, separate thing being asked, so it is boxed
-   rather than run on from the textarea - somebody should not agree to be
-   phoned by a stranger because they did not notice a checkbox. */
+/* Still short. Not an error, because nothing has gone wrong yet: it is the
+   page saying how much further there is to go. */
+.hp-tm-count[data-short="true"] { color: var(--profile-accent-soft); }
+
+/* ---- The reference offer ----
+   A second, separate thing being asked, so it is bounded rather than run on
+   from the box above it. Nobody should agree to be telephoned by a stranger
+   because they did not notice a checkbox. */
 .hp-tm-consent {
-  margin: 20px 0 0;
-  padding: 14px 16px;
-  border: 1px solid var(--tm-line);
-  border-radius: 10px;
-  background: #faf9fd;
+  margin: 18px 0 0;
+  padding: 15px 17px;
+  border: 1px solid var(--profile-line);
+  border-radius: var(--tm-radius);
+  background: var(--profile-accent-wash);
 }
 
 .hp-tm-check {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--tm-ink);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--profile-text);
 }
 
 .hp-tm-check input {
   margin: 2px 0 0;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--tm-accent);
+  width: 17px;
+  height: 17px;
+  accent-color: var(--profile-action);
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.hp-tm-check input:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
 }
 
 .hp-tm-phone {
   display: block;
   width: 100%;
-  margin-top: 12px;
+  margin-top: 14px;
   font: inherit;
-  font-size: 14.5px;
-  padding: 10px 12px;
-  border: 1px solid #d8d4ea;
-  border-radius: 8px;
-  color: var(--tm-ink);
+  font-size: 15px;
+  padding: 11px 13px;
+  border: 1px solid var(--profile-line-strong);
+  border-radius: var(--tm-radius);
+  background: var(--profile-surface);
+  color: var(--profile-text);
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
-.hp-tm-phone:focus-visible {
-  outline: 2px solid var(--tm-accent);
-  outline-offset: -1px;
-  border-color: transparent;
-}
+.hp-tm-phone::placeholder { color: var(--profile-meta); opacity: 1; }
+.hp-tm-phone:hover { border-color: var(--profile-accent-edge); }
 
 .hp-tm-hint {
-  margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--tm-muted);
+  margin: 11px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--profile-meta);
 }
 
+/* ---- The controls ----
+   The primary is the Profile's own conversion treatment: one restrained sweep
+   between the two action stops, both dark enough that white on them clears
+   4.5:1 anywhere in the gradient. */
 .hp-tm-actions {
   display: flex;
   align-items: center;
@@ -181,123 +237,259 @@
 .hp-tm-btn {
   appearance: none;
   font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 13px 26px;
-  border-radius: 9px;
-  border: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  padding: 13px 24px;
+  border-radius: var(--tm-radius);
+  border: 1px solid transparent;
+  background: linear-gradient(158deg, var(--profile-action-lift) 0%, var(--profile-action-deep) 100%);
+  color: var(--profile-text);
   cursor: pointer;
-  transition: filter 140ms ease;
+  transition: filter 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
-.hp-tm-btn:hover:not(:disabled) { filter: brightness(1.07); }
-.hp-tm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.hp-tm-btn:hover:not(:disabled) { filter: brightness(1.1); }
 
+.hp-tm-btn:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+}
+
+.hp-tm-btn:disabled {
+  cursor: not-allowed;
+  filter: none;
+  background: var(--profile-surface-2);
+  border-color: var(--profile-line);
+  color: var(--profile-meta);
+}
+
+/* The way back. A real control and a quieter one, so it never competes with
+   the action the page is actually asking for. */
 .hp-tm-btn[data-quiet="true"] {
-  background: #fff;
-  border: 1px solid #d8d4ea;
-  color: #5b4fcf;
+  background: var(--profile-surface-2);
+  border-color: var(--profile-line-strong);
+  color: var(--profile-body);
 }
 
+.hp-tm-btn[data-quiet="true"]:hover:not(:disabled) {
+  filter: none;
+  border-color: var(--profile-accent-edge);
+  color: var(--profile-text);
+}
+
+/* ---- When something is wrong ----
+   The notice tone from the palette rather than a red of its own, and a rule
+   down the edge rather than a filled alert box: this page has no other filled
+   boxes and an error should not be the first one. */
 .hp-tm-error {
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: #b91c1c;
+  margin: 18px 0 0;
+  padding: 12px 0 12px 15px;
+  border-left: 2px solid var(--profile-notice);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--profile-notice);
 }
 
-/* ---- The result they see straight away ---- */
-
+/* ---- What came back ----
+   Their own words, set in the Profile's quoting voice: the serif face, the
+   warmer ink, and a rule down the left. Exactly how the same sentence will
+   look on the profile it is headed for. */
 .hp-tm-quote {
-  margin: 0 0 20px;
-  padding: 18px 20px;
-  background: #faf9fd;
-  border-left: 3px solid #764ba2;
-  border-radius: 0 10px 10px 0;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
-  line-height: 1.62;
-  font-style: italic;
-  color: #2c2a40;
+  margin: 0 0 24px;
+  padding: 4px 0 4px 22px;
+  border-left: 2px solid var(--profile-accent-edge);
+  font-family: var(--profile-font-voice);
+  font-size: clamp(18px, 2.4vw, 21px);
+  line-height: 1.58;
+  color: var(--profile-voice);
 }
 
 .hp-tm-note {
-  margin: 0 0 20px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--tm-body);
+  margin: 0 0 24px;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--profile-body);
 }
 
-.hp-tm-foot {
-  max-width: 620px;
-  margin: 18px auto 0;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--tm-muted);
-}
-
-.hp-tm-foot a { color: #6f5ae0; font-weight: 600; text-decoration: none; }
-
-/* The referral, and only on the thank-you screen: asking somebody to sign up
-   before they have done the favour they came to do is the wrong order. */
-.hp-tm-plug {
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid var(--tm-line);
-}
-
-.hp-tm-plug-lead {
-  margin: 0 0 5px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 17px;
-  line-height: 1.4;
-  color: var(--tm-ink);
-}
-
-.hp-tm-plug-body {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--tm-body);
-}
-
-.hp-tm-plug-body a { color: #6f5ae0; font-weight: 700; text-decoration: none; }
-
+/* ---- The states that are not the form ----
+   Centred, because there is nothing to do on them but read one line. No
+   surface: the page is the surface here too. */
 .hp-tm-state {
-  max-width: 620px;
+  max-width: var(--tm-measure);
   margin: 0 auto;
-  background: var(--tm-surface);
-  border-radius: 14px;
-  padding: 44px 28px;
+  padding: 90px 24px 0;
   text-align: center;
-  box-shadow: 0 2px 18px rgb(26 26 46 / 0.08);
 }
+
+.hp-tm-state .hp-tm-lead { margin-bottom: 14px; }
+
+.hp-tm-state .hp-tm-sub {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hp-tm-state .hp-tm-actions { justify-content: center; }
 
 .hp-tm-spinner {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   margin: 0 auto;
-  border: 3px solid #e4e0f2;
-  border-top-color: var(--tm-accent);
+  border: 2px solid var(--profile-line-strong);
+  border-top-color: var(--profile-accent);
   border-radius: 50%;
   animation: hp-tm-spin 0.8s linear infinite;
 }
 
 @keyframes hp-tm-spin { to { transform: rotate(360deg); } }
 
-@media (prefers-reduced-motion: reduce) {
-  .hp-tm-spinner { animation-duration: 3s; }
+/* The referral, and only on the thank-you screen: asking somebody to sign up
+   before they have done the favour they came to do is the wrong order. */
+.hp-tm-plug {
+  margin-top: 40px;
+  padding-top: 26px;
+  border-top: 1px solid var(--profile-line);
 }
 
-@media (max-width: 520px) {
-  .hp-tm { padding: 16px 12px 48px; }
-  .hp-tm-body { padding: 24px 20px 26px; }
-  .hp-tm-head { padding: 18px 20px; }
+.hp-tm-plug-lead {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.018em;
+  color: var(--profile-text);
+}
+
+.hp-tm-plug-body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--profile-body);
+}
+
+.hp-tm-plug-body a {
+  color: var(--profile-accent-soft);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hp-tm-plug-body a:hover { color: var(--profile-text); }
+
+.hp-tm-plug-body a:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+  border-radius: var(--tm-radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-tm-spinner { animation-duration: 3s; }
+  .hp-tm-textarea,
+  .hp-tm-phone,
+  .hp-tm-btn { transition: none; }
+}
+
+/* ---- Phone ----
+   The measure is already narrow, so this is only the gutters and the vertical
+   rhythm closing up. Nothing reflows and nothing is hidden. */
+@media (max-width: 560px) {
+  .hp-tm { padding-bottom: 52px; }
+  .hp-tm-head { padding: 24px 18px 0; }
+  .hp-tm-main { padding: 32px 18px 0; }
+  .hp-tm-state { padding: 64px 18px 0; }
+  .hp-tm-sub { margin-bottom: 28px; }
+  .hp-tm-textarea { min-height: 184px; }
+
+  /* Full width, because a thumb reaching a 24px-padded button at the left of a
+     390px screen is a thumb crossing the whole screen to do it. */
+  .hp-tm-actions { gap: 10px; }
+  .hp-tm-actions .hp-tm-btn { flex: 1 1 100%; text-align: center; }
+  .hp-tm-state .hp-tm-actions .hp-tm-btn { flex: 0 1 auto; }
+}
+
+
+/* ---- Which version to send ----
+   Two choices, one of them on screen. A segmented control rather than two
+   stacked drafts: showing both at once asks somebody to compare two paragraphs
+   word by word, and the decision is not that fine. It is a radiogroup, so the
+   arrow keys move between the options and a screen reader says which is
+   chosen, which two plain buttons would not.
+
+   It sits above the quotation it governs and is sized like a control rather
+   than like a heading, so the eye lands on the words underneath it. */
+/* The 6px on top takes the gap above this from 22 to 28, one step up the
+   scale this file already uses. It buys the control a little air after the
+   paragraph without loosening the 16px underneath, so the selector stays
+   attached to the quotation it governs rather than floating between the two. */
+.hp-tm-seg {
+  display: inline-flex;
+  gap: 2px;
+  margin: 6px 0 16px;
+  padding: 2px;
+  border: 1px solid var(--profile-line);
+  border-radius: var(--tm-radius);
+  background: var(--profile-surface);
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.hp-tm-seg-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding: 8px 15px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--profile-meta);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.hp-tm-seg-btn:hover:not([data-on]) { color: var(--profile-body); }
+
+/* The chosen one. Lifted on the accent wash rather than filled with the action
+   colour: the send button is the only thing on this screen that should read as
+   the action, and a solid violet segment would compete with it. */
+.hp-tm-seg-btn[data-on="true"] {
+  background: var(--profile-accent-wash-strong);
+  color: var(--profile-text);
+}
+
+.hp-tm-seg-btn:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 1px;
+}
+
+.hp-tm-seg-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ---- Measures at the wider layout ----
+   Body copy and explanatory text now run the full width of whatever holds
+   them, so a paragraph lines up with the field under it instead of stopping
+   short of it. The gutters come from the container, which is what keeps every
+   left edge on the page in one line.
+
+   The quotation keeps a measure. It is not body copy: it is the thing being
+   read and decided on, set in the serif at a larger size, and it is the one
+   block on the page where a long line genuinely costs comprehension. */
+.hp-tm-quote { max-width: 62ch; }
+
+/* The review screen's quotation only, which is the one the segmented control
+   switches and the only one with a decision underneath it. `data-version` is
+   on that blockquote and on no other, so this cannot reach the same element on
+   the sent screen.
+
+   24 to 28, one step, putting a little more room between the words being
+   judged and the buttons that act on them. The margin below still collapses
+   against .hp-tm-actions rather than adding to it, so the gap is 28 and not
+   28 plus 22. */
+.hp-tm-quote[data-version] { margin-bottom: 28px; }
+
+@media (max-width: 560px) {
+  .hp-tm-seg { display: flex; width: 100%; }
+  .hp-tm-seg-btn { flex: 1 1 0; text-align: center; padding: 9px 8px; }
 }

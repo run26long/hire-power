@@ -1,3 +1,4 @@
+import { firstNameOf, firstWordOf } from '@/lib/firstName'
 import { requireCustomise } from '../_lib/requireCustomise'
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
@@ -92,7 +93,7 @@ export async function POST(request) {
 
     const { data: account } = await supabase
       .from('profiles')
-      .select('display_name')
+      .select('display_name, first_name')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -176,7 +177,10 @@ export async function POST(request) {
       email: email.value,
       dataVariables: {
         candidateName,
+        candidateFirstName: firstNameOf(account, candidateName),
         refereeName: name.value,
+        // A referee has no account, so there is no stored first name to prefer.
+        refereeFirstName: firstWordOf(name.value),
         testimonialUrl: `${site}/testimonial/${token}`,
         profileUrl: `${site}/career-profile`
       }

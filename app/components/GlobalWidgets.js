@@ -30,6 +30,13 @@ const PROFILE_ROUTE = '/p/'
 // different visual system. The editor has its own chrome for the same jobs.
 const EDITOR_ROUTE = '/career-profile'
 
+// The referee page. Somebody who has never used this product, arriving from an
+// email to do a favour, on the same dark ground as the profile their words are
+// headed for. Offering them in-app help and a feedback form is offering the
+// application to the one person on it who has no account and no interest in
+// one, and at 390 the two controls sit on top of the reference question.
+const REFEREE_ROUTE = '/testimonial/'
+
 export default function GlobalWidgets() {
   const pathname = usePathname()
 
@@ -38,6 +45,7 @@ export default function GlobalWidgets() {
   // trailing slash rather than for the prefix alone.
   if (pathname === '/p' || pathname?.startsWith(PROFILE_ROUTE)) return null
   if (pathname === EDITOR_ROUTE || pathname?.startsWith(`${EDITOR_ROUTE}/`)) return null
+  if (pathname?.startsWith(REFEREE_ROUTE)) return null
 
   return (
     <>

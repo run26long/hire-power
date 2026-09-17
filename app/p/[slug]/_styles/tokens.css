@@ -15,11 +15,18 @@
    so that a dialog is never stacked or clipped by the page it covers. It is
    named here alongside the Profile for that reason and no other: it is the
    same visual system, standing somewhere else in the document.
+
+   .hp-tm is the referee page at /testimonial/[token]. It is a different route
+   with no profile on it, and it is named here for the same reason: somebody
+   arriving from a dark testimonial email should land somewhere that looks like
+   the page their words will end up on. It reads these tokens rather than
+   holding a second copy of the values, so a palette change reaches it too.
    =========================================================================== */
 
 .hp-profile,
 .hp-ev-backdrop,
-.hp-rt-backdrop {
+.hp-rt-backdrop,
+.hp-tm {
   /* ---- Signature default palette: the raw ramp ---- */
   --profile-void: #09060f;    /* the hero's own darker ground */
   --profile-ground: #0d0916;  /* the page ground */
