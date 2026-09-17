@@ -712,7 +712,7 @@ const supabase = createClient();
                   <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
                 </div>
                 <div>
-                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,color:'white'}}>Resume Coach</div>
+                  <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'11px',fontWeight:700,color:'white'}}>Resume Writer</div>
                   <div style={{fontSize:'9px',color:'rgba(255,255,255,0.65)'}}>Core Resume | Coaching step</div>
                 </div>
               </div>
@@ -749,7 +749,7 @@ const supabase = createClient();
               <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'8px 10px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'3px'}}>
                   <span style={{fontSize:'10px'}}>🎓</span>
-                  <span style={{fontSize:'8.5px',fontWeight:600,color:'#7c3aed'}}>Resume Coach</span>
+                  <span style={{fontSize:'8.5px',fontWeight:600,color:'#7c3aed'}}>Resume Writer</span>
                 </div>
                 <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>When inventory counts were off, who usually figured out why?</p>
               </div>
@@ -765,7 +765,7 @@ const supabase = createClient();
               <div style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'8px 10px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'3px'}}>
                   <span style={{fontSize:'10px'}}>🎓</span>
-                  <span style={{fontSize:'8.5px',fontWeight:600,color:'#7c3aed'}}>Resume Coach</span>
+                  <span style={{fontSize:'8.5px',fontWeight:600,color:'#7c3aed'}}>Resume Writer</span>
                 </div>
                 <p style={{fontSize:'11.5px',color:'#1f2937',lineHeight:1.5,margin:0}}>Did that ever actually catch something?</p>
               </div>
@@ -888,7 +888,7 @@ const supabase = createClient();
                     <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M8 2L3 8h4.5L5.5 12l5.5-6H6.5L8 2z" fill="white"/></svg>
                   </div>
                   <div>
-                    <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'10px',fontWeight:700,color:'white'}}>Resume Coach</div>
+                    <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'10px',fontWeight:700,color:'white'}}>Resume Writer</div>
                     <div style={{fontSize:'8px',color:'rgba(255,255,255,0.65)'}}>Robert&apos;s Core Resume | Coaching step</div>
                   </div>
                 </div>
@@ -935,7 +935,7 @@ const supabase = createClient();
                   <div key={i} style={{background:'#f5f3ff',border:'1px solid #e9d5ff',borderRadius:'3px 9px 9px 9px',padding:'6px 10px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'2px'}}>
                       <span style={{fontSize:'9px'}}>🎓</span>
-                      <span style={{fontSize:'8px',fontWeight:600,color:'#7c3aed'}}>Resume Coach</span>
+                      <span style={{fontSize:'8px',fontWeight:600,color:'#7c3aed'}}>Resume Writer</span>
                     </div>
                     <p style={{fontSize:'11px',color:'#1f2937',lineHeight:1.45,margin:0}}>{msg.text}</p>
                   </div>
@@ -1005,7 +1005,7 @@ const supabase = createClient();
       {/* INTERVIEW MOMENT */}
       <section className="interview-moment">
         <div className="interview-moment-inner">
-          <div className="interview-moment-eyebrow">Interview Coach</div>
+          <div className="interview-moment-eyebrow">Interview Practice</div>
           <p>Interviewer asks: &quot;Tell me about your project management experience.&quot; You don&apos;t think you have any. <em>Hire Power already found three examples in your resume you didn&apos;t know counted.</em></p>
         </div>
       </section>
@@ -1019,14 +1019,14 @@ const supabase = createClient();
           <h2 className="section-title">Three tools.<br/> One complete picture.</h2>
           {/* HIDDEN: Career Coach - restore when feature is re-enabled */}
           {/* <p className="section-sub">Career Coach, Resume Coach, and Interview Coach share context and build on each other, so nothing falls through the cracks.</p> */}
-          <p className="section-sub">Resume Coach and Interview Coach share context and build on each other, so nothing falls through the cracks.</p>
+          <p className="section-sub">Resume Writer and Interview Practice share context and build on each other, so nothing falls through the cracks.</p>
           <div className="how-grid" style={{marginTop: '36px'}}>
             <div className="how-steps" style={{gap: '4px', paddingTop: '0px'}}>
               {[
                 // HIDDEN: Career Coach - restore when feature is re-enabled
                 // {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. The best five-minute investment in your career."},
-                {n:'1',title:'Resume Coach extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
-                {n:'2',title:'Interview Coach prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps. Then you research the company, review prep questions, and practice with AI-spoken questions that simulate a real interview."},
+                {n:'1',title:'Resume Writer extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
+                {n:'2',title:'Interview Practice prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps. Then you research the company, review prep questions, and practice with AI-spoken questions that simulate a real interview."},
                 {n:'3',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(
                 <div key={step.n} className="how-step" style={{marginBottom: '8px'}}>
@@ -1040,7 +1040,7 @@ const supabase = createClient();
             </div>
             <div className="how-visual">
               <div className="coaches-row">
-                {[/* HIDDEN: Career Coach - restore when feature is re-enabled */ /* {icon:'🧭',name:'Career Coach',desc:'Direction & goals'}, */{icon:'📄',name:'Resume Coach',desc:'Your full story'},{icon:'🎯',name:'Interview Coach',desc:'Practice & power'},{icon:'🏦',name:'Career Vault',desc:'Your career archive'}].map(c=>(
+                {[/* HIDDEN: Career Coach - restore when feature is re-enabled */ /* {icon:'🧭',name:'Career Coach',desc:'Direction & goals'}, */{icon:'📄',name:'Resume Writer',desc:'Your full story'},{icon:'🎯',name:'Interview Practice',desc:'Practice & power'},{icon:'🏦',name:'Career Vault',desc:'Your career archive'}].map(c=>(
                   <div key={c.name} className="coach-pill">
                     <div className="coach-pill-icon">{c.icon}</div>
                     <h5>{c.name}</h5>
@@ -1230,7 +1230,7 @@ const supabase = createClient();
               <ul className="tier-features">
                 {/* HIDDEN: Career Coach - restore when feature is re-enabled */}
                 {/* <li><span className="check">✓</span> Career Coach - one session</li> */}
-                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Coach</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Resume Writer</li>
                 <li><span className="check">✓</span> Core resume with full AI coaching</li>
                 <li><span className="check">✓</span> Resume Power Score</li>
                 <li><span className="check">✓</span> Improvements applied automatically</li>
@@ -1240,7 +1240,7 @@ const supabase = createClient();
                 <li><span className="check">✓</span> 3 job match scores</li>
                 <li><span className="check">✓</span> 3 custom cover letters</li>
                 <li><span className="check">✓</span> Job application tracking</li>
-                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Coach</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Practice</li>
                 <li><span className="check">✓</span> 1 Power Analysis, Research and Prep, 3 practice sessions</li>
               </ul>
               <div className="tier-cta">
@@ -1257,12 +1257,12 @@ const supabase = createClient();
               <p className="tier-desc">The complete Career OS. Every coach, every conversation, fully unlocked.</p>
               <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
-                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Coach</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Writer</li>
                 <li><span className="check">✓</span> Unlimited job-specific resumes</li>
                 <li><span className="check">✓</span> Unlimited reword, fix, and add edits</li>
                 <li><span className="check">✓</span> Unlimited cover letters and job match scores</li>
                 <li><span className="check">✓</span> Career Vault: log wins between searches</li>
-                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Coach</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Practice</li>
                 <li><span className="check">✓</span> Power Analysis and full prep for every job</li>
                 <li><span className="check">✓</span> Unlimited interview practice</li>
                 <li><span className="check">✓</span> Post-practice performance feedback</li>
@@ -1324,7 +1324,7 @@ const supabase = createClient();
                   '3 job match scores',
                   '3 custom cover letters',
                   'Job application tracking',
-                  'Interview Coach: 1 Power Analysis, Research and Prep, 3 practice sessions',
+                  'Interview Practice: 1 Power Analysis, Research and Prep, 3 practice sessions',
                 ]
               },
               {

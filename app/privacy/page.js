@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
       <h2 style={{fontSize:'22px',fontWeight:700,marginBottom:'12px',marginTop:'40px'}}>What We Collect</h2>
       <p style={{marginBottom:'12px'}}><strong>Account information.</strong> When you create an account, we collect your email address, a hashed password, and any name or profile information you choose to provide.</p>
       <p style={{marginBottom:'12px'}}><strong>Resume and career data.</strong> We store the resume content, career history, achievements, performance review notes, coaching conversations, job descriptions, job tracker entries, cover letters, and any other career-related information you create or upload while using the platform.</p>
-      <p style={{marginBottom:'12px'}}><strong>Voice and biometric information (Interview Coach only).</strong> If you choose to use voice-based interview practice, we process audio recordings of your spoken responses. We describe this in detail in the Voice and Biometric Information section below.</p>
+      <p style={{marginBottom:'12px'}}><strong>Voice and biometric information (Interview Practice only).</strong> If you choose to use voice-based interview practice, we process audio recordings of your spoken responses. We describe this in detail in the Voice and Biometric Information section below.</p>
       <p style={{marginBottom:'12px'}}><strong>Payment information.</strong> Subscriptions are processed by Stripe directly through their secure checkout. We do not store credit card numbers, billing addresses, or payment details. We receive only your subscription status from Stripe (active, cancelled, payment failed).</p>
       <p style={{marginBottom:'12px'}}><strong>Usage data.</strong> We collect information about how you interact with the platform, including features used, session activity, error events, and aggregate engagement patterns, to improve the product and identify problems. This is processed through PostHog, our analytics provider.</p>
       <p style={{marginBottom:'12px'}}><strong>Communications.</strong> When you contact support or interact with our email system, we keep a record of those communications so we can serve you better.</p>
@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
       <p style={{marginBottom:'32px'}}><strong>Communications with support.</strong> Retained for two years from the date of last contact.</p>
 
       <h2 style={{fontSize:'22px',fontWeight:700,marginBottom:'12px',marginTop:'40px'}}>Voice and Biometric Information</h2>
-      <p style={{marginBottom:'16px'}}>This section applies only if you use voice-based interview practice in Interview Coach. If you do not use voice features, none of this applies to you, and no voice data is ever processed.</p>
+      <p style={{marginBottom:'16px'}}>This section applies only if you use voice-based interview practice in Interview Practice. If you do not use voice features, none of this applies to you, and no voice data is ever processed.</p>
       <p style={{marginBottom:'24px'}}>Voice recordings are biometric information and are treated as a sensitive category of data. We process voice carefully, transparently, and only for the purposes described below.</p>
 
       <h3 style={{fontSize:'18px',fontWeight:700,marginBottom:'12px',marginTop:'24px'}}>The three voice modes</h3>
@@ -93,7 +93,7 @@ export default function PrivacyPolicy() {
         <li>We do not use your voice to identify or authenticate you</li>
         <li>We do not create voiceprints</li>
         <li>We do not use your voice data to train AI models, ours or anyone else&apos;s</li>
-        <li>We do not sell, share, or otherwise transfer your voice data for any purpose beyond delivering the Interview Coach service</li>
+        <li>We do not sell, share, or otherwise transfer your voice data for any purpose beyond delivering the Interview Practice service</li>
       </ul>
 
       <h3 style={{fontSize:'18px',fontWeight:700,marginBottom:'12px',marginTop:'24px'}}>Who we share it with</h3>
@@ -117,15 +117,15 @@ export default function PrivacyPolicy() {
       </ul>
 
       <h3 style={{fontSize:'18px',fontWeight:700,marginBottom:'12px',marginTop:'24px'}}>Your right to decline</h3>
-      <p style={{marginBottom:'12px'}}>You are never required to use voice features. All Interview Coach functionality is available in text-only mode. Declining voice does not limit any other part of the Hire Power platform, change your pricing, or affect your account in any way.</p>
+      <p style={{marginBottom:'12px'}}>You are never required to use voice features. All Interview Practice functionality is available in text-only mode. Declining voice does not limit any other part of the Hire Power platform, change your pricing, or affect your account in any way.</p>
       <p style={{marginBottom:'32px'}}>If you live in a jurisdiction with specific biometric privacy laws (for example, Illinois), the consent screen presented before you enable Modes 1 or 2 contains additional disclosures specific to those laws, including explicit information about what is collected, the purpose, the retention period, and your right to decline.</p>
 
-      <h2 style={{fontSize:'22px',fontWeight:700,marginBottom:'12px',marginTop:'40px'}}>Interview Coach Data</h2>
-      <p style={{marginBottom:'12px'}}>In addition to voice processing described above, Interview Coach generates and stores several types of data tied to your account and your job applications.</p>
+      <h2 style={{fontSize:'22px',fontWeight:700,marginBottom:'12px',marginTop:'40px'}}>Interview Practice Data</h2>
+      <p style={{marginBottom:'12px'}}>In addition to voice processing described above, Interview Practice generates and stores several types of data tied to your account and your job applications.</p>
       <p style={{marginBottom:'12px'}}><strong>Power Analysis.</strong> When you connect a resume to a job description, we generate an analysis of your strengths, transferable skills, and gaps relative to that role. This analysis is stored on the corresponding job card and persists for the life of the job card unless you delete the job card or your account.</p>
       <p style={{marginBottom:'12px'}}><strong>Interview practice sessions.</strong> Questions asked, your answers (as transcripts in voice modes or text in Mode 3), and your performance scores are stored as part of your practice history. This data is tied to job cards and your career data archive, and is retained while your account is active. It is deleted immediately when you delete the related job card or your account.</p>
       <p style={{marginBottom:'12px'}}><strong>Skill mastery and Interview Readiness Score.</strong> We track your practice performance across skills and job cards to generate mastery indicators and a Readiness Score. This is derived data based on your practice sessions, used only to personalize your experience and surface areas to focus on.</p>
-      <p style={{marginBottom:'32px'}}><strong>Company research.</strong> Interview Coach generates company research summaries pulled from public web sources. To keep this efficient and cost-effective, research is cached and may be shared across users who interview at the same company. When we generate or refresh company research, no information identifying you personally is sent to web search providers. Cached research is refreshed approximately every 90 days.</p>
+      <p style={{marginBottom:'32px'}}><strong>Company research.</strong> Interview Practice generates company research summaries pulled from public web sources. To keep this efficient and cost-effective, research is cached and may be shared across users who interview at the same company. When we generate or refresh company research, no information identifying you personally is sent to web search providers. Cached research is refreshed approximately every 90 days.</p>
 
       <h2 style={{fontSize:'22px',fontWeight:700,marginBottom:'12px',marginTop:'40px'}}>Your Rights</h2>
       <p style={{marginBottom:'12px'}}>You have the right to:</p>

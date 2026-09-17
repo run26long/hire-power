@@ -126,7 +126,7 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
               { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
               { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite bullets. Pro does it for you in under a minute.' },
               { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific resumes and cover letters, optimized for each role.' },
-              { icon: '🎤', title: 'Interview Coach included', desc: 'Power Analysis + spoken practice using your resume and target job.' },
+              { icon: '🎤', title: 'Interview Practice included', desc: 'Power Analysis + spoken practice using your resume and target job.' },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">
                 <span className="text-xl flex-shrink-0">{item.icon}</span>

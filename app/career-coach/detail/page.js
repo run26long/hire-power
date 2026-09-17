@@ -1,5 +1,6 @@
 'use client';
 
+import { signalsHandoff } from '@/lib/careerCoachHandoff'
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
@@ -169,7 +170,7 @@ const handleResumeUpdate = async (updatedData) => {
           const lastAssistant = [...resume.career_coaching_conversation]
             .reverse()
             .find(m => m.role === 'assistant');
-          if (lastAssistant?.content?.toLowerCase().includes('continue to resume coach')) {
+          if (signalsHandoff(lastAssistant?.content)) {
             setIsConversationComplete(true);
           }
         } else {
@@ -475,7 +476,7 @@ const handleResumeUpdate = async (updatedData) => {
                     className="text-white py-2 px-8 rounded-lg transition-opacity hover:opacity-90 font-semibold text-sm md:text-xs"
                     style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                   >
-                    Continue to Resume Coach →
+                    Continue to Resume Writer →
                   </button>
                 </div>
               ) : (

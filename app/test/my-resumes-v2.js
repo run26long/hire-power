@@ -105,7 +105,7 @@ export default function MyResumesPage() {
             <>
               {/* Minimal Page Header */}
               <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Resume Coach</h1>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">Resume Writer</h1>
                 <p className="text-sm text-gray-600">Your guided journey to a bulletproof resume</p>
               </div>
 

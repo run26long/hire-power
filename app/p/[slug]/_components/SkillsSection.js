@@ -648,7 +648,7 @@ export default function SkillsSection({
             emphasise is the profile's own. So the pencil is for the emphasis
             and the route out is for the skills themselves. */}
         <Reveal enabled={animate} className={`hp-skills-intro${slot}`}>
-          <EditElsewhere href="/resume-coach">Edit in Resume Coach</EditElsewhere>
+          <EditElsewhere href="/resume-coach">Edit in Resume Writer</EditElsewhere>
           <span className="hp-label">Skills in this direction</span>
           <h2 className="hp-skills-headline">The capabilities behind the results.</h2>
         </Reveal>

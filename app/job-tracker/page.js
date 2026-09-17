@@ -901,7 +901,7 @@ export default function JobTrackerPage() {
               Need a card manually?
             </p>
             <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4, marginBottom: 0 }}>
-              Use <span style={{ fontWeight: 800 }}>+ Add Job</span> to create one anytime. But letting Resume Coach create them keeps everything linked automatically.
+              Use <span style={{ fontWeight: 800 }}>+ Add Job</span> to create one anytime. But letting Resume Writer create them keeps everything linked automatically.
             </p>
           </div>
 

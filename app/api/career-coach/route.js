@@ -1,3 +1,4 @@
+import { signalsHandoff } from '@/lib/careerCoachHandoff'
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
@@ -189,13 +190,13 @@ Once you have covered all 4 steps, provide:
    - Timeline (e.g., "Building through internships, targeting full-time after graduation")
    - Key strength you'll emphasize (1 sentence)
 
-2. **Transition to Resume Coach:**
-   "This gives me everything I need to help you build a resume that reflects where you want to go - not just where you've been. Next step is Resume Coach!
+2. **Transition to Resume Writer:**
+   "This gives me everything I need to help you build a resume that reflects where you want to go - not just where you've been. Next step is Resume Writer!
    
    [Button will appear below to continue]"
 
 3. **Signal completion** by including this EXACT phrase in your response:
-   "Click the Continue to Resume Coach button below."
+   "Click the Continue to Resume Writer button below."
 
 This phrase triggers the UI to show the completion button.
 
@@ -228,7 +229,7 @@ Now have a genuine career conversation. Make them feel heard, supported, and exc
     const assistantMessage = response.content[0].text;
 
     // Check if conversation is complete (coach said the magic phrase)
-    const isComplete = assistantMessage.toLowerCase().includes('continue to resume coach');
+    const isComplete = signalsHandoff(assistantMessage);
 
     // If complete, extract career context and save to database
     if (isComplete && userId) {

@@ -439,7 +439,7 @@ export default function InterviewDetailPage() {
           return;
         }
         if (data.error === 'NO_RESUME_AVAILABLE') {
-          setPaError({ type: 'no_resume', message: "You need a resume on file before we can analyze this job. Head to Resume Coach to upload or build one." });
+          setPaError({ type: 'no_resume', message: "You need a resume on file before we can analyze this job. Head to Resume Writer to upload or build one." });
           return;
         }
         if (data.error === 'JOB_CARD_INCOMPLETE') {
@@ -561,7 +561,7 @@ export default function InterviewDetailPage() {
   const jobLabel = (job) => (job.company ? `${job.title} at ${job.company}` : job.title);
 
   const breadcrumbItems = [
-    { label: 'Interview Coach', path: '/interview-coach' },
+    { label: 'Interview Practice', path: '/interview-coach' },
     {
       label: jobLabel(jobCard),
       options: siblingJobs
@@ -739,7 +739,7 @@ export default function InterviewDetailPage() {
                       <p className="text-sm md:text-xs text-red-800 leading-snug mb-3">{paError.message}</p>
                       <div className="flex flex-wrap gap-2">
                         {paError.type === 'mismatch' && (
-                          <button onClick={() => router.push('/resume-coach')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Go to Resume Coach →</button>
+                          <button onClick={() => router.push('/resume-coach')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Go to Resume Writer →</button>
                         )}
                         {paError.type === 'no_resume' && (
                           <button onClick={() => router.push('/resume-coach')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Build a Resume →</button>
@@ -1849,10 +1849,10 @@ function InterviewHeaderStrip({
         {currentStep === 'practice' && 'Interview Practice'}
       </h2>
       <p className="text-xs text-gray-400 leading-snug">
-        {currentStep === 'analyze' && 'Interview Coach: Step 1 of 4'}
-        {currentStep === 'research' && 'Interview Coach: Step 2 of 4'}
-        {currentStep === 'prepare' && 'Interview Coach: Step 3 of 4'}
-        {currentStep === 'practice' && 'Interview Coach: Step 4 of 4'}
+        {currentStep === 'analyze' && 'Interview Practice: Step 1 of 4'}
+        {currentStep === 'research' && 'Interview Practice: Step 2 of 4'}
+        {currentStep === 'prepare' && 'Interview Practice: Step 3 of 4'}
+        {currentStep === 'practice' && 'Interview Practice: Step 4 of 4'}
       </p>
     </div>
   );

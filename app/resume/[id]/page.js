@@ -1317,7 +1317,7 @@ if (data.ai_analysis) {
             onClick={() => safeNavigate('/resume-coach')}
             className="mt-4 text-purple-600 hover:text-purple-700"
           >
-            ← Back to Resume Coach
+            ← Back to Resume Writer
           </button>
         </div>
       </div>
@@ -1357,7 +1357,7 @@ if (data.ai_analysis) {
         <Breadcrumb items={
           resume.resume_type === 'job_specific'
             ? [
-                { label: 'Resume Coach', path: '/resume-coach' },
+                { label: 'Resume Writer', path: '/resume-coach' },
                 {
                   label: resume.display_name || resume.job_title || 'Job Specific Resume',
                   options: siblingResumes
@@ -1375,7 +1375,7 @@ if (data.ai_analysis) {
                 }
               ]
             : [
-                { label: 'Resume Coach', path: '/resume-coach' },
+                { label: 'Resume Writer', path: '/resume-coach' },
                 {
                   label: resume.display_name || 'Core Resume',
                   // One core is the ordinary case and stays a plain label. The menu
@@ -2655,7 +2655,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
               onClick={() => window.location.href = '/resume-coach'}
               className="text-gray-400 text-sm md:text-xs hover:text-gray-600"
             >
-              ← Back to Resume Coach
+              ← Back to Resume Writer
             </button>
           </div>
         </div>
@@ -3908,7 +3908,7 @@ const getMessageText = (msg) => {
                   {msg.role === 'assistant' && (
                     <div className="flex items-center gap-1 mb-1">
                       <span className="text-sm">🎓</span>
-                      <span className="text-xs md:text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                      <span className="text-xs md:text-[10px] font-semibold text-gray-500">Resume Writer</span>
                     </div>
                   )}
                   {msg.role === 'user' && (
@@ -4027,7 +4027,7 @@ const getMessageText = (msg) => {
                 {msg.role === 'assistant' ? (
                   <div className="flex items-center gap-1 mb-1">
                     <span className="text-sm">🎓</span>
-                    <span className="text-xs md:text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                    <span className="text-xs md:text-[10px] font-semibold text-gray-500">Resume Writer</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 mb-1">
@@ -5440,7 +5440,7 @@ function TargetedRecoachStep({ resumeData, rewrittenResume, remainingGaps, detec
                 {msg.role === 'assistant' && (
                   <div className="flex items-center gap-1 mb-1">
                     <span className="text-sm">🎓</span>
-                    <span className="text-[10px] font-semibold text-gray-500">Resume Coach</span>
+                    <span className="text-[10px] font-semibold text-gray-500">Resume Writer</span>
                   </div>
                 )}
                 <div className="text-gray-800" dangerouslySetInnerHTML={{
@@ -5710,7 +5710,7 @@ function SaveStep({ resumeName, userName, params, isJobSpecific, userTier, handl
             onClick={() => window.location.href = '/resume-coach'}
             className="text-gray-400 text-sm md:text-xs hover:text-gray-600 mt-1"
           >
-            ← Back to Resume Coach
+            ← Back to Resume Writer
           </button>
         </div>
       </div>

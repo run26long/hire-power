@@ -713,7 +713,7 @@ export default function MyInterviewsPage() {
       {/* Left Sidebar */}
       
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
-          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Interview Coach</h1>
+          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Interview Practice</h1>
           <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
             Job hunting is small talk.
           </p>
@@ -813,7 +813,7 @@ export default function MyInterviewsPage() {
                 <div data-tour="interview-prep" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 flex flex-col">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold text-gray-900">Interview Prep</h2>
-                    <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Coach</span>
+                    <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Interview Practice</span>
                   </div>
                   <p className="text-sm text-gray-500 mb-2">
                     47% of candidates fail interviews because they didn&apos;t prepare. Hire Power makes sure you&apos;re not one of them.

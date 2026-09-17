@@ -608,7 +608,7 @@ export default function CareerProfileEditorPage() {
           <div className="hp-ed-state-card">
             <p className="hp-ed-state-title">You don&apos;t have a Career Profile yet</p>
             <p className="hp-ed-state-body">
-              A Career Profile is built from your Core Resume. Start one in Resume Coach
+              A Career Profile is built from your Core Resume. Start one in Resume Writer
               and it will appear here.
             </p>
             <button
@@ -617,7 +617,7 @@ export default function CareerProfileEditorPage() {
               data-primary="true"
               onClick={() => router.push('/resume-coach')}
             >
-              Go to Resume Coach
+              Go to Resume Writer
             </button>
           </div>
         </div>

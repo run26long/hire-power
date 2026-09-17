@@ -28,7 +28,7 @@ export default function SelectedExperience({ experience, expandedRole, onToggleR
             resume, so the place to change them is the resume. A control that
             let somebody type over them here would be writing into a copy. */}
         <Reveal enabled={animate} className={`hp-exp-intro${slot}`}>
-          <EditElsewhere href="/resume-coach">Edit in Resume Coach</EditElsewhere>
+          <EditElsewhere href="/resume-coach">Edit in Resume Writer</EditElsewhere>
           <span className="hp-label">Selected experience</span>
           <h2 className="hp-exp-headline">Proof, not just claims.</h2>
         </Reveal>

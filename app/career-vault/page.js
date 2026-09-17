@@ -920,7 +920,7 @@ export default function CareerVaultPage() {
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-base md:text-sm">📄</span>
                         <div className="flex-1">
-                          <p className="text-base md:text-xs font-semibold text-gray-800">Resume Coach</p>
+                          <p className="text-base md:text-xs font-semibold text-gray-800">Resume Writer</p>
                           <p className="text-sm md:text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
                         </div>
                         <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
@@ -1993,7 +1993,7 @@ export default function CareerVaultPage() {
 
             <div className="px-6 py-5 space-y-4">
               <p className="text-sm text-gray-700 leading-relaxed">
-                Your Resume Coach will walk you through incorporating everything you've logged: your wins, skills, and the role you landed, all building a stronger starting point for your next search.
+                Your Resume Writer will walk you through incorporating everything you've logged: your wins, skills, and the role you landed, all building a stronger starting point for your next search.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2">
@@ -2016,7 +2016,7 @@ export default function CareerVaultPage() {
                   onClick={() => { setShowNewSearchModal(false); router.push('/resume-coach'); }}
                   className="text-xs text-purple-600 hover:text-purple-700 font-medium bg-transparent border-none cursor-pointer p-0 text-center block w-full"
                 >
-                  Just want to view or download your resume? <br/>Go to Resume Coach →
+                  Just want to view or download your resume? <br/>Go to Resume Writer →
                 </button>
               </div>
 

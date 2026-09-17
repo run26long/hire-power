@@ -402,7 +402,7 @@ export default function MyCareerPage() {
                       </div>
                       <p className="text-sm text-gray-700 leading-snug">
                         {hasContext
-                          ? 'Your career direction is set. Resume Coach and Interview Coach will use this to tailor everything to your goals.'
+                          ? 'Your career direction is set. Resume Writer and Interview Practice will use this to tailor everything to your goals.'
                           : "Tell us where you're headed so we can help you get there. The best 5-minute investment in your career."
                         }
                       </p>
@@ -440,7 +440,7 @@ export default function MyCareerPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Resume Coach</p>
+                          <p className="text-sm font-semibold text-gray-900">Resume Writer</p>
                           <p className="text-sm text-gray-500 leading-snug">Your target roles and career direction shape which achievements we extract and how we frame your experience.</p>
                         </div>
                       </div>
@@ -451,7 +451,7 @@ export default function MyCareerPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Interview Coach</p>
+                          <p className="text-sm font-semibold text-gray-900">Interview Practice</p>
                           <p className="text-sm text-gray-500 leading-snug">Your goals and hidden skills inform your Power Analysis and the gaps we help you address before you walk in.</p>
                         </div>
                       </div>
@@ -507,7 +507,7 @@ export default function MyCareerPage() {
                       </div>
                       <div>
                         <p className="text-base md:text-sm font-medium text-gray-400">Interview Ready</p>
-                        <p className="text-sm text-gray-400">Interview Coach prep complete</p>
+                        <p className="text-sm text-gray-400">Interview Practice prep complete</p>
                       </div>
                     </div>
                   </div>

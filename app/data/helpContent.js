@@ -8,7 +8,7 @@ const helpContent = [
       },
       {
         question: "What's the difference between Free and Pro?",
-        answer: 'Free includes core resume analysis, templates, unlimited downloads, job tracking, 3 Job Match Scores, and 3 custom cover letters. Pro costs $29.99 per month and adds full Resume Coach access and automatic improvements, unlimited job-specific resumes, Job Match Scores and cover letters, Career Vault, and Pro Interview Coach features as they become available.'
+        answer: 'Free includes core resume analysis, templates, unlimited downloads, job tracking, 3 Job Match Scores, and 3 custom cover letters. Pro costs $29.99 per month and adds full Resume Writer access and automatic improvements, unlimited job-specific resumes, Job Match Scores and cover letters, Career Vault, and Pro Interview Practice features as they become available.'
       },
       {
         question: 'How do I upgrade to Pro?',
@@ -21,11 +21,11 @@ const helpContent = [
     ]
   },
   {
-    title: 'Resume Coach',
+    title: 'Resume Writer',
     questions: [
       {
         question: 'How does the coaching conversation work?',
-        answer: "Resume Coach asks focused questions about your work and goals, one at a time, to uncover achievements, results, and skills that may be missing from the page. Give the full story in paragraphs rather than trying to write polished bullets; Hire Power uses the details to strengthen your resume, and you should review every change for accuracy."
+        answer: "Resume Writer asks focused questions about your work and goals, one at a time, to uncover achievements, results, and skills that may be missing from the page. Give the full story in paragraphs rather than trying to write polished bullets; Hire Power uses the details to strengthen your resume, and you should review every change for accuracy."
       },
       {
         question: 'How long does the coaching conversation take?',
@@ -33,7 +33,7 @@ const helpContent = [
       },
       {
         question: 'Can I redo the coaching conversation?',
-        answer: "You can return to Resume Coach to continue an unfinished conversation, and your progress is saved automatically. Once a coaching conversation is finished, you can't redo it, but you can open Format and select More to add to include new details."
+        answer: "You can return to Resume Writer to continue an unfinished conversation, and your progress is saved automatically. Once a coaching conversation is finished, you can't redo it, but you can open Format and select More to add to include new details."
       },
       {
         question: 'Can I go back and view my coaching conversation after it\'s finished?',
@@ -176,7 +176,7 @@ const helpContent = [
       },
       {
         question: 'How does the Vault help with my next resume?',
-        answer: "When you're ready for your next move, Resume Coach can use the job description and wins you saved to update your resume. That means you don't have to remember everything or start from scratch."
+        answer: "When you're ready for your next move, Resume Writer can use the job description and wins you saved to update your resume. That means you don't have to remember everything or start from scratch."
       },
       {
         question: 'What happens to my Vault if I downgrade from Pro?',
@@ -185,11 +185,11 @@ const helpContent = [
     ]
   },
   {
-    title: 'Interview Coach',
+    title: 'Interview Practice',
     questions: [
       {
-        question: 'How does Interview Coach work?',
-        answer: 'Interview Coach walks you through four steps for a specific job. Power Analysis reads your resume against the job description and sorts what it finds into your core strengths, your hidden strengths, and your gaps. Company Research gathers a brief on the company. Interview Prep gives you questions to ask your interviewer and a toolkit you can print. Practice runs a mock interview by voice or text and scores every answer on clarity and content. More FAQs will be added as additional features become available.'
+        question: 'How does Interview Practice work?',
+        answer: 'Interview Practice walks you through four steps for a specific job. Power Analysis reads your resume against the job description and sorts what it finds into your core strengths, your hidden strengths, and your gaps. Company Research gathers a brief on the company. Interview Prep gives you questions to ask your interviewer and a toolkit you can print. Practice runs a mock interview by voice or text and scores every answer on clarity and content. More FAQs will be added as additional features become available.'
       }
     ]
   },

@@ -471,7 +471,7 @@ const resumeCoachSidebar = (
   <>
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
-          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Resume Coach</h1>
+          <h1 className="text-[28px] font-bold mb-1.5 whitespace-nowrap tracking-tight">Resume Writer</h1>
           <p className="text-sm text-white text-opacity-95 leading-tight tracking-tight mb-0.5">
             Job hunting is small talk.
           </p>
@@ -1682,7 +1682,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 ${hasLensCard ? 'md:py-3' : 'md:py-4'}`}>
                    <div className="flex items-center justify-between mb-1">
                       <h2 className="text-lg font-semibold text-gray-900">{selectedCore?.display_name || 'Core Resume'}</h2>
-                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Coach</span>
+                      <span className="md:hidden text-sm font-semibold px-3 py-1 rounded-md" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Resume Writer</span>
                     </div>
                     {!hasLensCard && (
                       <p className="text-sm text-gray-500 mb-3">Complete resume you can use for any job in your field</p>
@@ -3061,7 +3061,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this resume?</h3>
-            <p className="text-sm text-gray-600 mb-5">Deletes this resume from Resume Coach. Job-specific resumes remain stored on the corresponding job card.</p>
+            <p className="text-sm text-gray-600 mb-5">Deletes this resume from Resume Writer. Job-specific resumes remain stored on the corresponding job card.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
@@ -3345,7 +3345,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
             onClick={e => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900 mb-2">Delete this cover letter?</h3>
-            <p className="text-sm text-gray-600 mb-5">Deletes this cover letter from Resume Coach. Cover letters remain stored on the corresponding job card.</p>
+            <p className="text-sm text-gray-600 mb-5">Deletes this cover letter from Resume Writer. Cover letters remain stored on the corresponding job card.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDeleteCLId(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
                 Cancel

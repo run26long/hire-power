@@ -41,11 +41,11 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
   const navItems = [
     { id: 'dashboard',       label: 'Dashboard',       path: '/dashboard' },
     // { id: 'career-coach',    label: 'Career Coach',    path: '/career-coach' },  // HIDDEN — restore to re-enable
-    { id: 'resume-coach',    label: 'Resume Coach',    path: '/resume-coach' },
+    { id: 'resume-coach',    label: 'Resume Writer',    path: '/resume-coach' },
     // Sits next to Resume Coach because that is where it comes from: a Career
     // Profile is built from the Core Resume, and the two are read together.
     { id: 'career-profile',  label: 'Career Profile',  path: '/career-profile' },
-    { id: 'interview-coach', label: 'Interview Coach', path: '/interview-coach' },
+    { id: 'interview-coach', label: 'Interview Practice', path: '/interview-coach' },
     isVaultTier
       ? { id: 'career-vault', label: 'Career Vault', path: '/career-vault' }
       : { id: 'job-tracker',  label: 'Job Tracker',  path: '/job-tracker' },

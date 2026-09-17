@@ -633,7 +633,7 @@ export default function CoverLetterPage() {
             onClick={() => router.push('/resume-coach')}
             className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
           >
-            Back to Resume Coach
+            Back to Resume Writer
           </button>
         </div>
       </div>
@@ -650,7 +650,7 @@ export default function CoverLetterPage() {
         onBeforeNavigate={(path) => { if (hasUnsavedChanges) { setUnsavedNavTarget(path); return true } return false }}
       />
       <Breadcrumb items={[
-        { label: 'Resume Coach', path: '/resume-coach' },
+        { label: 'Resume Writer', path: '/resume-coach' },
         {
           label: coverLetterLabel(coverLetter),
           options: siblingCoverLetters
@@ -1153,7 +1153,7 @@ export default function CoverLetterPage() {
                       onClick={() => safeNavigate('/resume-coach')}
                       className="flex-1 bg-white text-purple-600 border border-purple-300 rounded-lg py-2 px-3 text-xs font-semibold hover:bg-purple-50 transition-colors"
                     >
-                      ← Resume Coach
+                      ← Resume Writer
                     </button>
                     <button
                       onClick={() => safeNavigate('/job-tracker')}
