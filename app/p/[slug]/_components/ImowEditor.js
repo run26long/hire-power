@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useProfileEdit, useFieldEditor } from '../_lib/editContext'
+import ImowVideoField from './ImowVideoField'
 
 // ============================================================================
 // IN MY OWN WORDS, EDITED
@@ -141,28 +142,21 @@ export default function ImowEditor({ value }) {
 
       {editor.error ? <p className="hp-ed-editor-error">{editor.error}</p> : null}
 
-      {/* The other half of this section, which does not exist yet.
-          Disabled and saying which of the two reasons applies, because a
-          control that vanishes for a free account does not tell them there is
-          something to upgrade for, and one that is present and silent for a
-          Pro account does not tell them it is not ready. */}
+      {/* The other half of this section. Free accounts see it disabled with the
+          reason rather than not at all: a control that vanishes never tells
+          anybody there is something to upgrade for. */}
       <div className="hp-ed-imow-video">
-        <button
-          type="button"
-          className="hp-ed-add-choice"
-          disabled
-          title={edit.isPro ? 'Video is coming soon' : 'Video is a Pro feature'}
-        >
-          <span className="hp-ed-add-choice-title">
-            Record or upload video
-            {edit.isPro
-              ? <span className="hp-ed-soon-tag">Coming soon</span>
-              : <span className="hp-ed-pro-tag">Pro</span>}
-          </span>
-          <span className="hp-ed-add-choice-note">
-            Say it to camera instead. Sixteen by nine, on the same page, in place of the text.
-          </span>
-        </button>
+        {edit.isPro ? <ImowVideoField /> : (
+          <button type="button" className="hp-ed-add-choice" disabled title="Video is a Pro feature">
+            <span className="hp-ed-add-choice-title">
+              Record or upload video
+              <span className="hp-ed-pro-tag">Pro</span>
+            </span>
+            <span className="hp-ed-add-choice-note">
+              Say it to camera instead. Sixteen by nine, up to 50MB, on the same page as the text.
+            </span>
+          </button>
+        )}
       </div>
     </div>
   )

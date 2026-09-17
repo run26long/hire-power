@@ -430,6 +430,59 @@ export default function CareerProfileEditorPage() {
     window.setTimeout(() => URL.revokeObjectURL(url), 4000)
   }, [authHeaders])
 
+  // ---- IN MY OWN WORDS, TO CAMERA ----
+  //
+  // The same three steps as an evidence upload, for the same reason: the file
+  // goes straight to storage and never through a request body here.
+  const uploadImowVideo = useCallback(async (file, { onProgress } = {}) => {
+    const startRes = await fetch('/api/career-profile/imow/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ content_type: file.type, size: file.size })
+    })
+    const start = await startRes.json().catch(() => ({}))
+    if (!startRes.ok) throw new Error(start?.error || "We couldn't start that upload.")
+
+    onProgress?.(0)
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', start.signed_url, true)
+      xhr.setRequestHeader('Content-Type', start.content_type)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+      }
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error('That upload did not finish. Please try again.')))
+      xhr.onerror = () => reject(new Error("We couldn't reach storage. Check your connection."))
+      xhr.onabort = () => reject(new Error('That upload was interrupted.'))
+      xhr.send(file)
+    })
+
+    const finishRes = await fetch('/api/career-profile/imow/video', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ path: start.path, ticket: start.ticket })
+    })
+    const payload = await finishRes.json().catch(() => ({}))
+    if (!finishRes.ok) throw new Error(payload?.error || "We couldn't save that.")
+    // Both: the document decides what renders, the management record decides
+    // what the editor shows.
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [authHeaders, reloadDocument, reloadManage])
+
+  const removeImowVideo = useCallback(async () => {
+    const res = await fetch('/api/career-profile/imow/video', {
+      method: 'DELETE',
+      headers: { ...authHeaders }
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [authHeaders, reloadDocument, reloadManage])
+
   const createEvidence = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/evidence', {
       method: 'POST',
@@ -601,6 +654,11 @@ export default function CareerProfileEditorPage() {
           onPublishTestimonial: publishTestimonial,
           onDeleteTestimonial: deleteTestimonial,
           onCategoriseTestimonial: categoriseTestimonial,
+          // So the owner's own preview can sign a video on a profile nobody
+          // else can see yet.
+          authHeaders,
+          onUploadImowVideo: uploadImowVideo,
+          onRemoveImowVideo: removeImowVideo,
           onDownloadReferenceSheet: downloadReferenceSheet
         } : null}
       />

@@ -29,7 +29,7 @@ function isMissingColumnError(error) {
 const LENS_DISPLAY_LIMIT = 3
 
 const PROFILE_BASE = 'id, user_id, slug, is_published'
-const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, contact_email`
+const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, imow_video_path, contact_email`
 
 const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
 const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis`
@@ -430,6 +430,11 @@ export async function GET(request, { params }) {
         accent: profile.accent ?? null,
         imow_text: profile.imow_text ?? null,
         imow_type: profile.imow_type ?? null,
+        // Whether there is a video, never where it is. The path is a location
+        // in a private bucket and is not a link holder's business; the player
+        // asks the signing route for a URL by slug, and that route checks
+        // publication again before it signs anything.
+        imow_has_video: Boolean(profile.imow_video_path),
         // The one field on this table that is somebody's address rather than a
         // styling choice, so it is the one field with a condition on it. Sent
         // only for a published profile, and only to its owner otherwise: a

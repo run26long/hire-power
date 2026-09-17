@@ -1488,3 +1488,33 @@
   padding: 5px 28px 5px 9px;
   background-position: calc(100% - 13px) 50%, calc(100% - 8px) 50%;
 }
+
+
+/* ---- The video control in the editor ---------------------------------- */
+
+.hp-ed-vid { margin-top: 4px; }
+
+.hp-ed-vid-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #000;
+  border-radius: 9px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  margin-bottom: 10px;
+}
+
+.hp-ed-vid-preview[data-waiting="true"] { background: rgb(255 255 255 / 0.04); }
+
+/* The picker is a label wrapping a real file input, so the click that says
+   "upload" is the click that opens the dialog. Taken out of sight rather than
+   display:none, because a hidden input is not focusable. */
+.hp-profile label.hp-ed-action {
+  position: relative;
+  cursor: pointer;
+}
+
+.hp-profile label.hp-ed-action:focus-within {
+  border-color: rgb(var(--profile-accent-rgb) / 0.6);
+}

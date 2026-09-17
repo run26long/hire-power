@@ -1,10 +1,12 @@
 'use client'
 
+import { useCallback, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
 import { EditPencil, EditEmpty, useEditSlot } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
+import ImowVideo from './ImowVideo'
 import { useFieldEditor } from '../_lib/editContext'
 import { useCanShowEmpty } from '../_lib/editContext'
 
@@ -29,9 +31,19 @@ import { useCanShowEmpty } from '../_lib/editContext'
 // the rest of the page uses, which already renders everything visible when
 // there is no observer and when the visitor has asked for reduced motion.
 //
-// `imow_type` can say video, but there is no media URL anywhere in the API
-// contract for this page, so no player is faked here and nothing invites an
-// upload. Text is the only branch that exists to render.
+// IN MY OWN WORDS HAS TWO FORMS
+// Written, or said to camera. The video branch renders when the profile says
+// video AND actually carries a file, never on the strength of either alone -
+// the type column takes any string and nothing guarantees the two agree.
+//
+// No URL reaches this component. The payload carries a boolean, and the player
+// asks the signing route for a link when it is about to play: a signed URL has
+// a life, and one sitting in a payload the page may hold for an hour would be
+// dead by the time anybody pressed play.
+//
+// Where there is both a video and text, the video leads and the text sits under
+// it. The point of this section is hearing somebody say it; the text is what a
+// reader has when they will not play a video on a train.
 // ============================================================================
 
 // Short enough to read as one move rather than three separate arrivals.
@@ -44,10 +56,27 @@ export default function ProfileSpread({
   bioExpanded,
   onToggleBio,
   imowText,
+  imowType,
+  imowHasVideo,
+  slug,
+  authHeaders,
   animate = true
 }) {
   const hasBio = Boolean(bio)
-  const hasVoice = Boolean(imowText)
+
+  // Both, never either. imow_type takes any string - it accepts 'banana' -
+  // and nothing guarantees a profile claiming video has a file behind it. A
+  // row that says one without the other is not a video, and rendering a frame
+  // for it would be rendering an empty box on somebody's profile.
+  //
+  // videoGone is what the player reports when the link will not sign or will
+  // not play. The section then behaves as though there were no video at all,
+  // which for a profile with text means the text, and for one without means
+  // the section closes - the same rule every other empty section follows.
+  const [videoGone, setVideoGone] = useState(false)
+  const onVideoGone = useCallback(() => setVideoGone(true), [])
+  const hasVideo = imowType === 'video' && imowHasVideo === true && !videoGone
+  const hasVoice = Boolean(imowText) || hasVideo
   const canShowEmpty = useCanShowEmpty()
   const slot = useEditSlot()
   const bioEditor = useFieldEditor('bio')
@@ -138,20 +167,38 @@ export default function ProfileSpread({
         ) : null}
 
         {hasVoice && !imowEditor?.isOpen && (
-          <figure className={`hp-voice hp-refocus${slot}`} data-resolve="voice">
+          <figure
+            className={`hp-voice hp-refocus${slot}`}
+            data-resolve="voice"
+            data-video={hasVideo ? 'true' : undefined}
+          >
             <EditPencil field="imow" label="In My Own Words" />
-            {/* Atmosphere, not punctuation. These sit behind the words, are
-                never part of the stored string, and are hidden from assistive
-                technology so the statement is not announced as a quotation
-                twice over. */}
-            <span className="hp-voice-mark hp-voice-mark-open" aria-hidden="true">&#8220;</span>
+
+            {/* The quotation marks are for a quotation. Behind a video frame
+                they are either invisible or peeking out from under it, and a
+                pull-quote glyph over somebody's face is not atmosphere, so the
+                video branch does without them. Everything else about the card
+                stays: the wash, the rule down the edge, the eyebrow. */}
+            {!hasVideo && (
+              <span className="hp-voice-mark hp-voice-mark-open" aria-hidden="true">&#8220;</span>
+            )}
 
             <Reveal enabled={animate} delay={BEAT_MS * 2}>
               <span className="hp-eyebrow">In my own words</span>
-              <blockquote className="hp-voice-text">{imowText}</blockquote>
+
+              {hasVideo && (
+                <ImowVideo slug={slug} authHeaders={authHeaders} onUnavailable={onVideoGone} />
+              )}
+
+              {/* Video first, then the words, when there are both: the point
+                  of this section is hearing them say it, and the text is what
+                  somebody reads when they will not play a video on a train. */}
+              {imowText && <blockquote className="hp-voice-text">{imowText}</blockquote>}
             </Reveal>
 
-            <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
+            {!hasVideo && (
+              <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
+            )}
           </figure>
         )}
 

@@ -3122,3 +3122,57 @@
   line-height: 1.4;
   color: var(--profile-notice);
 }
+
+
+/* ---- In My Own Words, to camera ----------------------------------------
+   A sixteen by nine frame inside the same column the written version uses.
+
+   aspect-ratio holds the shape whatever the file turns out to be, and
+   object-fit: contain letterboxes anything that is not sixteen by nine rather
+   than cropping somebody out of their own video or stretching the column. The
+   ratio is checked in the browser before upload; this is what happens when
+   something gets past that check, and the answer is a black band, not a
+   broken page.
+
+   The card drops its quotation marks in this branch - that is done in the
+   component, because a mark that is present and hidden is still a mark a
+   screen reader can find. */
+
+.hp-voice-video {
+  position: relative;
+  z-index: 2;
+  margin: 14px 0 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgb(0 0 0 / 0.42);
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+}
+
+.hp-voice-video-el,
+.hp-voice-video-wait {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+}
+
+.hp-voice-video-el {
+  object-fit: contain;
+  background: #000;
+}
+
+/* Holds the shape while the signed link is fetched, so the column does not
+   jump when it arrives. */
+.hp-voice-video-wait { background: rgb(255 255 255 / 0.03); }
+
+/* With a video above it the passage is a caption rather than the subject, so
+   it steps down and the display scale comes off. */
+.hp-voice[data-video="true"] .hp-voice-text {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  .hp-voice[data-video="true"] .hp-voice-text { font-size: 16px; }
+}

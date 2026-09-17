@@ -155,6 +155,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const bioToShow = collapsedBio && !bioExpanded ? collapsedBio : fullBio
 
   const imowText = data?.profile?.imow_text || null
+  const imowType = data?.profile?.imow_type || null
+  // Whether a video exists, never where it is. The path stays server-side and
+  // the player asks the signing route for a link when it is about to play.
+  const imowHasVideo = data?.profile?.imow_has_video === true
 
   // Where the resume actually carries one. There is no location and no remote
   // field in the API contract, so nothing is inferred and nothing stands in
@@ -358,6 +362,11 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onPublishTestimonial: edit.onPublishTestimonial,
       onDeleteTestimonial: edit.onDeleteTestimonial,
       onCategoriseTestimonial: edit.onCategoriseTestimonial,
+      authHeaders: edit.authHeaders,
+      slug,
+      imowHasVideo,
+      onUploadImowVideo: edit.onUploadImowVideo,
+      onRemoveImowVideo: edit.onRemoveImowVideo,
       onDownloadReferenceSheet: edit.onDownloadReferenceSheet,
       openField,
       busy,
@@ -383,7 +392,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     runWrite, editSave, editSaveImow, editRegenerate, edit?.onGenerateImow,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
     edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet,
-    edit?.onCategoriseTestimonial
+    edit?.onCategoriseTestimonial, edit?.authHeaders, slug, imowHasVideo,
+    edit?.onUploadImowVideo, edit?.onRemoveImowVideo
   ])
 
   const actionButtons = (
@@ -450,6 +460,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         bioExpanded={bioExpanded}
         onToggleBio={() => setBioExpanded(value => !value)}
         imowText={imowText}
+        imowType={imowType}
+        imowHasVideo={imowHasVideo}
+        slug={slug}
+        authHeaders={edit?.authHeaders || null}
         animate={animate}
       />
 
