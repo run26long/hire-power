@@ -1025,7 +1025,7 @@ const supabase = createClient();
               {[
                 // HIDDEN: Career Coach - restore when feature is re-enabled
                 // {n:'1',title:'Career Coach sets the direction',body:"Before we touch your resume, we talk about where you're going. Same field, career change, or figuring it out. It only takes five minutes, and your answer shapes everything that comes next. The best five-minute investment in your career."},
-                {n:'1',title:'Resume Writer extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
+                {n:'1',title:'Hire Power extracts what\'s real',body:"We ask the questions a $500 resume writer would ask. You discover achievements you'd forgotten, skills you didn't realize counted, and numbers you actually have. No fabrication. No guessing. Your resume should be fact, not fiction."},
                 {n:'2',title:'Interview Practice prepares you to explain it',body:"For each job, we identify your Core Power, Hidden Power, and Power Gaps. Then you research the company, review prep questions, and practice with AI-spoken questions that simulate a real interview."},
                 {n:'3',title:'Career Vault keeps it running',body:"When the job search is over, Hire Power runs in the background, like the operating system for your career. Log wins as they happen, so you never have to start from scratch again. We'll be building your next resume while you're building your career."},
               ].map(step=>(

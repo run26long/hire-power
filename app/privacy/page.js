@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
       <p style={{marginBottom:'32px'}}><strong>Communications with support.</strong> Retained for two years from the date of last contact.</p>
 
       <h2 style={{fontSize:'22px',fontWeight:700,marginBottom:'12px',marginTop:'40px'}}>Voice and Biometric Information</h2>
-      <p style={{marginBottom:'16px'}}>This section applies only if you use voice-based interview practice in Interview Practice. If you do not use voice features, none of this applies to you, and no voice data is ever processed.</p>
+      <p style={{marginBottom:'16px'}}>This section applies only if you use voice features in Interview Practice. If you do not use voice features, none of this applies to you, and no voice data is ever processed.</p>
       <p style={{marginBottom:'24px'}}>Voice recordings are biometric information and are treated as a sensitive category of data. We process voice carefully, transparently, and only for the purposes described below.</p>
 
       <h3 style={{fontSize:'18px',fontWeight:700,marginBottom:'12px',marginTop:'24px'}}>The three voice modes</h3>
