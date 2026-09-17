@@ -580,7 +580,7 @@ export default function Profile() {
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex-shrink-0">
-          <h1 className="text-[28px] font-bold mb-1.5 tracking-tight">Profile</h1>
+          <h1 className="text-[28px] font-bold mb-1.5 tracking-tight">Account</h1>
           <div className="mt-4 border-b border-gray-400 border-opacity-10"></div>
         </div>
 
@@ -588,7 +588,7 @@ export default function Profile() {
         <div className="px-6 pt-3 pb-2 flex-shrink-0">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
             {photoUrl ? (
-              <img src={photoUrl} alt="Profile" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.4)' }} />
+              <img src={photoUrl} alt="Account" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.4)' }} />
             ) : (
               <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '3px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, color: '#fff' }}>
                 {initials}
@@ -647,7 +647,7 @@ export default function Profile() {
         <MainNav currentPage="profile" userProfile={profile} />
         {/* Mobile top bar */}
         <div className="hp-mobile-top" style={{ padding: '14px 20px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'white' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0D0D0D', letterSpacing: '-0.5px', marginBottom: 2 }}>Profile</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0D0D0D', letterSpacing: '-0.5px', marginBottom: 2 }}>Account</h1>
           <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.4 }}>Update your account settings, personal info, and billing.</p>
         </div>
 
@@ -670,7 +670,7 @@ export default function Profile() {
                       {/* Photo */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         {photoUrl ? (
-                          <img src={photoUrl} alt="Profile" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9d5ff' }} />
+                          <img src={photoUrl} alt="Account" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #e9d5ff' }} />
                         ) : (
                           <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#9333ea,#6b21a8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: '#fff' }}>
                             {initials}
@@ -1356,7 +1356,7 @@ export default function Profile() {
             </div>
             <div className="px-6 py-5">
               <ul className="text-sm text-gray-600 pl-5 mb-4 space-y-1.5 list-disc">
-                <li>Profile and account information</li>
+                <li>Account and personal information</li>
                 <li>Career context and coaching history</li>
                 <li>All resumes and resume data</li>
               </ul>

@@ -232,7 +232,7 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                   onClick={() => handleNavClick('/profile')}
                   className="w-full flex items-center justify-between px-5 py-3.5 border-b border-gray-100 text-left"
                 >
-                  <span className="text-sm font-medium text-gray-600">My Profile</span>
+                  <span className="text-sm font-medium text-gray-600">My Account</span>
                   {userProfile?.display_name && (
                     <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">
                       {userProfile.display_name.charAt(0).toUpperCase()}
