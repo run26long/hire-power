@@ -134,7 +134,7 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                   </span>
                 )}
                 {userProfile?.photo_url ? (
-                  <img src={userProfile.photo_url} alt="Profile" className="w-8 h-8 rounded-full" />
+                  <img src={userProfile.photo_url} alt="Account" className="w-8 h-8 rounded-full" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm">
                     {userProfile?.display_name?.charAt(0).toUpperCase() || 'U'}
