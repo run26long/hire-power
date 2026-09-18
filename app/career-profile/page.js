@@ -83,8 +83,28 @@ export default function CareerProfileEditorPage() {
     if (type === 'success') setToastSuccess(String(message))
     else setToastError(String(message))
   }, [])
-  const [authHeaders, setAuthHeaders] = useState(null)
   const [copied, setCopied] = useState(false)
+
+  // ---- THE SESSION, READ AT THE MOMENT OF THE CALL ----
+  //
+  // This used to be one captured object: `load` read the session once and
+  // every write for the rest of the visit sent that same token. An access
+  // token is good for about an hour and this is a page people leave open, so
+  // a long editing session eventually reached the point where every write
+  // failed at once with nothing on screen having changed to explain it.
+  //
+  // `getSession` hands back the cached token while it is still good and
+  // refreshes it when it is not, so this is a local read in the ordinary case
+  // and a refresh exactly when one is needed.
+  const getAuthHeaders = useCallback(async () => {
+    const { data } = await supabase.auth.getSession()
+    const token = data?.session?.access_token
+    if (!token) {
+      router.push('/dashboard')
+      throw new Error('Your session has ended. Please sign in again.')
+    }
+    return { Authorization: `Bearer ${token}` }
+  }, [supabase, router])
 
   const load = useCallback(async () => {
     try {
@@ -94,7 +114,6 @@ export default function CareerProfileEditorPage() {
       if (!session) { router.push('/dashboard'); return }
 
       const headers = { Authorization: `Bearer ${session.access_token}` }
-      setAuthHeaders(headers)
 
       // The management record first: it is the only thing that knows which
       // profile belongs to this session, and the slug comes out of it rather
@@ -159,6 +178,41 @@ export default function CareerProfileEditorPage() {
         // height is worth recording.
         if (h > 8) shell.style.setProperty('--ed-lens-h', `${h}px`)
       }
+
+      // ---- Where the hero identity card has to stop ----
+      //
+      // Act I places the identity and the proof on one grid and lets their
+      // boxes cross, so the identity runs on underneath the figures. The
+      // editing surface must not: it stops 32px short of the vertical
+      // SELECTED PROOF label.
+      //
+      // Measured rather than expressed as a percentage, because no single
+      // percentage holds. Across 1200 to 1920 the inset that lands on 32px
+      // ranges from 18.8 to 19.8 percent of the identity, so any fixed value
+      // is either short of 32 at one end or well past it at the other.
+      //
+      // Below 1200 the proof sits underneath the identity rather than beside
+      // it, so there is nothing to clear and the card keeps its normal 12px
+      // overhang.
+      const identity = document.querySelector('.hp-profile .hp-act1-identity')
+      const caption = document.querySelector('.hp-profile .hp-proof-caption')
+      if (identity) {
+        const ir = identity.getBoundingClientRect()
+        const cr = caption?.getBoundingClientRect()
+        // Beside means beside: the label has to share vertical space with the
+        // identity and sit to its right. Testing only horizontal position was
+        // wrong between 768 and 1100, where the proof stacks underneath and
+        // the label is still further right than the identity's left edge.
+        const beside = Boolean(
+          cr && cr.width > 0 &&
+          cr.top < ir.bottom - 8 && cr.bottom > ir.top + 8 &&
+          cr.left > ir.left
+        )
+        identity.style.setProperty(
+          '--ed-card-right',
+          beside ? `${Math.round(ir.right - (cr.left - 32))}px` : '-12px'
+        )
+      }
     }
 
     apply()
@@ -166,8 +220,10 @@ export default function CareerProfileEditorPage() {
     const observer = new ResizeObserver(apply)
     const bar = document.querySelector('.hp-ed-bar')
     const lens = document.querySelector('.hp-profile .hp-bar')
+    const stage = document.querySelector('.hp-profile .hp-act1-stage')
     if (bar) observer.observe(bar)
     if (lens) observer.observe(lens)
+    if (stage) observer.observe(stage)
     return () => observer.disconnect()
   }, [loadState, mode])
 
@@ -208,23 +264,26 @@ export default function CareerProfileEditorPage() {
   const saveLens = useCallback(async (lensId, values) => {
     const res = await fetch(`/api/career-profile/lens/${encodeURIComponent(lensId)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(values)
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     return payload.lens
-  }, [authHeaders])
+  }, [getAuthHeaders])
 
-  // One field at a time. The generator writes the whole direction from one
-  // prompt and always has; `fields` narrows only what it stores, so a
-  // Regenerate beside the bio cannot overwrite a headline somebody has just
-  // finished typing.
+  // One field at a time, and nothing is written.
+  //
+  // The generator writes the whole direction from one prompt and always has;
+  // `fields` narrows what comes back, so a Regenerate beside the bio cannot
+  // return a headline over one somebody has just finished typing. `preview`
+  // is what keeps it out of the database: the new wording arrives in the open
+  // editor as a draft, and Save is the only thing that stores it.
   const regenerateLens = useCallback(async (lensId, field) => {
     const res = await fetch('/api/career-profile/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ lensId, fields: [field] })
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ lensId, fields: [field], preview: true })
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -234,8 +293,8 @@ export default function CareerProfileEditorPage() {
           : "We couldn't rewrite that just now. Please try again."
       )
     }
-    return payload.lens
-  }, [authHeaders])
+    return payload?.draft?.[field] ?? null
+  }, [getAuthHeaders])
 
   // ---- EVIDENCE ----
   //
@@ -245,11 +304,11 @@ export default function CareerProfileEditorPage() {
   const previewUrl = useCallback(async (url) => {
     const res = await fetch('/api/career-profile/preview-url', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ url })
     })
     return res.json().catch(() => ({ ok: false }))
-  }, [authHeaders])
+  }, [getAuthHeaders])
 
   // The document is re-read rather than patched. The payload it renders is
   // assembled by the public route - eligibility filtered, placements grouped,
@@ -261,10 +320,10 @@ export default function CareerProfileEditorPage() {
     if (!slug) return
     const doc = await fetchJSON(
       `/api/career-profile/${encodeURIComponent(slug)}`,
-      { headers: authHeaders }
+      { headers: await getAuthHeaders() }
     )
     setDocument(doc)
-  }, [authHeaders, profile?.slug])
+  }, [getAuthHeaders, profile?.slug])
 
   // Three steps, and the middle one does not come through this server.
   //
@@ -284,7 +343,7 @@ export default function CareerProfileEditorPage() {
   ) => {
     const startRes = await fetch('/api/career-profile/evidence/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({
         content_type: file.type,
         size: file.size,
@@ -339,7 +398,7 @@ export default function CareerProfileEditorPage() {
 
     const finishRes = await fetch('/api/career-profile/evidence/upload', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({
         ...details,
         path: start.path,
@@ -352,15 +411,15 @@ export default function CareerProfileEditorPage() {
     if (!finishRes.ok) throw new Error(payload?.error || "We couldn't save that.")
     await reloadDocument()
     return payload
-  }, [authHeaders, reloadDocument])
+  }, [getAuthHeaders, reloadDocument])
 
   // The management record, re-read the way the document is. It carries the
   // private and draft items the public payload cannot, so the manager's list
   // comes from here while the tiles above come from there.
   const reloadManage = useCallback(async () => {
-    const managed = await fetchJSON('/api/career-profile/manage', { headers: authHeaders })
+    const managed = await fetchJSON('/api/career-profile/manage', { headers: await getAuthHeaders() })
     setManage(managed)
-  }, [authHeaders])
+  }, [getAuthHeaders])
 
   // Every management write lands the same way: do it, then re-read both
   // records. Two requests rather than one, and worth it - the document decides
@@ -374,14 +433,14 @@ export default function CareerProfileEditorPage() {
   const placementOp = useCallback(async (body) => {
     const res = await fetch('/api/career-profile/evidence/placements', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(body)
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await afterEvidenceChange()
     return payload
-  }, [authHeaders, afterEvidenceChange])
+  }, [getAuthHeaders, afterEvidenceChange])
 
   const assignEvidence = useCallback(
     (evidenceId, lensId, on) => placementOp({ op: 'assign', evidence_id: evidenceId, lens_id: lensId, on }),
@@ -399,25 +458,25 @@ export default function CareerProfileEditorPage() {
   const editEvidence = useCallback(async (evidenceId, values) => {
     const res = await fetch(`/api/career-profile/evidence/${encodeURIComponent(evidenceId)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(values)
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await afterEvidenceChange()
     return payload
-  }, [authHeaders, afterEvidenceChange])
+  }, [getAuthHeaders, afterEvidenceChange])
 
   const deleteEvidence = useCallback(async (evidenceId) => {
     const res = await fetch(`/api/career-profile/evidence/${encodeURIComponent(evidenceId)}`, {
       method: 'DELETE',
-      headers: { ...authHeaders }
+      headers: await getAuthHeaders()
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
     await afterEvidenceChange()
     return payload
-  }, [authHeaders, afterEvidenceChange])
+  }, [getAuthHeaders, afterEvidenceChange])
 
   // ---- IN MY OWN WORDS ----
   //
@@ -426,19 +485,19 @@ export default function CareerProfileEditorPage() {
   const saveImow = useCallback(async (imowText) => {
     const res = await fetch('/api/career-profile/imow', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ imow_text: imowText })
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await reloadDocument()
     return payload
-  }, [authHeaders, reloadDocument])
+  }, [getAuthHeaders, reloadDocument])
 
   const generateImow = useCallback(async () => {
     const res = await fetch('/api/career-profile/imow/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders }
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) }
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -450,7 +509,27 @@ export default function CareerProfileEditorPage() {
     }
     // Nothing is reloaded here, because nothing was written.
     return payload
-  }, [authHeaders])
+  }, [getAuthHeaders])
+
+  // The other half of the same bargain: ./generate has material and no text,
+  // this has text and no material. It writes nothing either, and what it
+  // returns is shown beside the original rather than instead of it.
+  const strengthenImow = useCallback(async (imowText) => {
+    const res = await fetch('/api/career-profile/imow/strengthen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ imow_text: imowText })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        payload?.error === 'PRO_REQUIRED'
+          ? 'Strengthening a draft is a Pro feature.'
+          : payload?.error || "We couldn't do that just now. Please try again."
+      )
+    }
+    return payload
+  }, [getAuthHeaders])
 
   // ---- TESTIMONIALS ----
   //
@@ -460,28 +539,28 @@ export default function CareerProfileEditorPage() {
   const requestTestimonial = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/testimonials', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(values)
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't send that request.")
     await reloadManage()
     return payload
-  }, [authHeaders, reloadManage])
+  }, [getAuthHeaders, reloadManage])
 
   // Publishing changes what the public document holds, so both records are
   // re-read; the manager's list and the Firsthand section have to agree.
   const publishTestimonial = useCallback(async (id, status) => {
     const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ status })
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await Promise.all([reloadDocument(), reloadManage()])
     return payload
-  }, [authHeaders, reloadDocument, reloadManage])
+  }, [getAuthHeaders, reloadDocument, reloadManage])
 
   // The category the 360 count reads. Both records are re-read because the
   // badge is derived in the manage route, so the number on screen comes from
@@ -489,30 +568,30 @@ export default function CareerProfileEditorPage() {
   const categoriseTestimonial = useCallback(async (id, relationshipType) => {
     const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ relationship_type: relationshipType })
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await reloadManage()
     return payload
-  }, [authHeaders, reloadManage])
+  }, [getAuthHeaders, reloadManage])
 
   const deleteTestimonial = useCallback(async (id) => {
     const res = await fetch(`/api/career-profile/testimonials/${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: { ...authHeaders }
+      headers: await getAuthHeaders()
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
     await Promise.all([reloadDocument(), reloadManage()])
     return payload
-  }, [authHeaders, reloadDocument, reloadManage])
+  }, [getAuthHeaders, reloadDocument, reloadManage])
 
   // A page of other people's phone numbers, so it is fetched with the session
   // rather than linked, and the blob is released straight after.
   const downloadReferenceSheet = useCallback(async () => {
-    const res = await fetch('/api/career-profile/reference-sheet', { headers: { ...authHeaders } })
+    const res = await fetch('/api/career-profile/reference-sheet', { headers: await getAuthHeaders() })
     if (!res.ok) {
       const payload = await res.json().catch(() => ({}))
       throw new Error(payload?.error || "We couldn't build that just now.")
@@ -531,7 +610,7 @@ export default function CareerProfileEditorPage() {
     a.click()
     a.remove()
     window.setTimeout(() => URL.revokeObjectURL(url), 4000)
-  }, [authHeaders])
+  }, [getAuthHeaders])
 
   // ---- IN MY OWN WORDS, TO CAMERA ----
   //
@@ -540,7 +619,7 @@ export default function CareerProfileEditorPage() {
   const uploadImowVideo = useCallback(async (file, { onProgress } = {}) => {
     const startRes = await fetch('/api/career-profile/imow/video', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ content_type: file.type, size: file.size })
     })
     const start = await startRes.json().catch(() => ({}))
@@ -564,7 +643,7 @@ export default function CareerProfileEditorPage() {
 
     const finishRes = await fetch('/api/career-profile/imow/video', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ path: start.path, ticket: start.ticket })
     })
     const payload = await finishRes.json().catch(() => ({}))
@@ -573,30 +652,30 @@ export default function CareerProfileEditorPage() {
     // what the editor shows.
     await Promise.all([reloadDocument(), reloadManage()])
     return payload
-  }, [authHeaders, reloadDocument, reloadManage])
+  }, [getAuthHeaders, reloadDocument, reloadManage])
 
   const removeImowVideo = useCallback(async () => {
     const res = await fetch('/api/career-profile/imow/video', {
       method: 'DELETE',
-      headers: { ...authHeaders }
+      headers: await getAuthHeaders()
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't remove that.")
     await Promise.all([reloadDocument(), reloadManage()])
     return payload
-  }, [authHeaders, reloadDocument, reloadManage])
+  }, [getAuthHeaders, reloadDocument, reloadManage])
 
   const createEvidence = useCallback(async (values) => {
     const res = await fetch('/api/career-profile/evidence', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(values)
     })
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
     await reloadDocument()
     return payload
-  }, [authHeaders, reloadDocument])
+  }, [getAuthHeaders, reloadDocument])
 
   function handleLensUpdated(lens) {
     setDocument(prev => prev ? {
@@ -708,18 +787,30 @@ export default function CareerProfileEditorPage() {
 
           <span className="hp-ed-bar-gap" />
 
-          {publicUrl ? <span className="hp-ed-link">{publicUrl}</span> : null}
+          {/* A draft has an address but not a working one, and offering to copy
+              or open it is offering a link that answers nobody. So the address
+              stays - it is what the owner is about to publish at, and seeing it
+              is the point - but it goes quiet and says what would make it real.
+              The actions come back with publication, and Open is named for what
+              it does once there is something live to open. */}
+          {publicUrl ? (
+            <span className="hp-ed-link" data-live={String(published)}>{publicUrl}</span>
+          ) : null}
+
+          {publicUrl && !published ? (
+            <span className="hp-ed-link-note">Publish to share</span>
+          ) : null}
 
           <div className="hp-ed-does">
-            {publicUrl ? (
+            {published && publicUrl ? (
               <button type="button" className="hp-ed-action" onClick={copyLink}>
                 {copied ? 'Copied' : 'Copy link'}
               </button>
             ) : null}
 
-            {publicPath ? (
+            {published && publicPath ? (
               <a className="hp-ed-action" href={publicPath} target="_blank" rel="noopener noreferrer">
-                Open
+                View live
               </a>
             ) : null}
 
@@ -770,6 +861,7 @@ export default function CareerProfileEditorPage() {
           onDeleteEvidence: deleteEvidence,
           onSaveImow: saveImow,
           onGenerateImow: generateImow,
+          onStrengthenImow: strengthenImow,
           testimonials: manage?.testimonials || [],
           earned360: manage?.earned360 || null,
           onRequestTestimonial: requestTestimonial,
@@ -778,7 +870,7 @@ export default function CareerProfileEditorPage() {
           onCategoriseTestimonial: categoriseTestimonial,
           // So the owner's own preview can sign a video on a profile nobody
           // else can see yet.
-          authHeaders,
+          getAuthHeaders,
           onUploadImowVideo: uploadImowVideo,
           onRemoveImowVideo: removeImowVideo,
           onDownloadReferenceSheet: downloadReferenceSheet
@@ -790,7 +882,8 @@ export default function CareerProfileEditorPage() {
         onClose={() => setDrawerOpen(false)}
         profile={profile}
         publicUrl={publicUrl}
-        authHeaders={authHeaders}
+        accountEmail={manage?.accountEmail || null}
+        getAuthHeaders={getAuthHeaders}
         onProfileChanged={handleProfileChanged}
         canCustomise={manage?.canCustomise === true}
         notify={notify}

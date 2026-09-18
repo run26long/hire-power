@@ -33,7 +33,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 // does not mention a video.
 // ============================================================================
 
-export default function ImowVideo({ slug, authHeaders, onUnavailable }) {
+export default function ImowVideo({ slug, getAuthHeaders, onUnavailable }) {
   const [url, setUrl] = useState(null)
   const [state, setState] = useState('loading')   // loading | ready | gone
   const retried = useRef(false)
@@ -44,7 +44,7 @@ export default function ImowVideo({ slug, authHeaders, onUnavailable }) {
     try {
       const res = await fetch(
         `/api/career-profile/${encodeURIComponent(slug)}/imow-video`,
-        { headers: authHeaders || {} }
+        { headers: getAuthHeaders ? await getAuthHeaders() : {} }
       )
       if (!res.ok) { setState('gone'); return null }
       const payload = await res.json()
@@ -56,7 +56,7 @@ export default function ImowVideo({ slug, authHeaders, onUnavailable }) {
       setState('gone')
       return null
     }
-  }, [slug, authHeaders])
+  }, [slug, getAuthHeaders])
 
   useEffect(() => {
     let cancelled = false

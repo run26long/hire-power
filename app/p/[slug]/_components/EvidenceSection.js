@@ -183,7 +183,8 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           <div className="hp-ev-field">
             <div className="hp-ev-grid" data-count={String(narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP)}>
               <div className="hp-ev-lead-slot" data-more="false">
-                <span className="hp-ev-tile hp-ed-guide-tile" data-role="lead">
+                <span className="hp-ev-tile hp-ed-guide-tile hp-ed-incomplete" data-role="lead">
+                  <span className="hp-ed-pill">Add your proof</span>
                   <SlotGuide
                     index="01"
                     heading="Back up the story."
@@ -191,8 +192,10 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
                     feature="evidence"
                     onAction={() => setOpenAdd(n => n + 1)}
                   >
-                    Add credentials, recognition, reports, presentations, or other
-                    documents that make the work tangible.
+                    A résumé asks recruiters to take your word for it. Your Career
+                    Profile lets you show them the proof. Add credentials,
+                    recognition, reports, presentations, or other documents that
+                    demonstrate you’ve done the work.
                   </SlotGuide>
                 </span>
               </div>

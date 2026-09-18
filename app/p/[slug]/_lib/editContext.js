@@ -33,7 +33,10 @@ import { createContext, useContext, useMemo } from 'react'
 //                the stored record says, and the second save wins silently
 //   open/close   to change that
 //   save         (fields) => Promise, resolving false when it failed
-//   regenerate   (fields) => Promise, same
+//   regenerate   () => Promise, resolving to newly written text for the field
+//                or null when it failed. It writes nothing: the editor stays
+//                open and the text arrives as a draft the owner can keep,
+//                change, or walk away from
 //   busy         the field currently being written, or null
 //   error        the last failure, as a sentence, or null
 //   isPro        the account's tier, which is one half of whether

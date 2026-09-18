@@ -270,6 +270,14 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     }
   }
 
+  // Where a download failure is said. In the editor it goes to the page's one
+  // toast, which is where every other owner-facing failure already goes; on the
+  // public page there is no toast host, so the line under the button stands.
+  function reportResumeError(message) {
+    if (editNotify) editNotify({ type: 'error', message })
+    else setResumeError(message)
+  }
+
   // The resume the button hands over is the one the reader is looking at: the
   // direction's own where it has built one, the priority core otherwise. Which
   // is not decided here - the direction id is sent and the server resolves it,
@@ -279,16 +287,21 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     setDownloadingResume(true)
     setResumeError(null)
     try {
+      // A reader sends nothing and gets the published profile's resume. The
+      // owner sends their session, which is the only thing that lets the route
+      // hand back a draft profile's - the same component renders both, and on
+      // the public page there is no session to send.
+      const auth = edit?.getAuthHeaders ? await edit.getAuthHeaders() : {}
       const res = await fetch('/api/career-profile/download-resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify({ slug, lens_id: selectedLens?.id || null })
       })
 
       if (!res.ok) {
         let payload = {}
         try { payload = await res.json() } catch { /* status is enough */ }
-        setResumeError(payload?.error || "That didn't download. Please try again.")
+        reportResumeError(payload?.error || "That didn't download. Please try again.")
         return
       }
 
@@ -308,8 +321,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       a.click()
       a.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 4000)
-    } catch {
-      setResumeError("That didn't reach us. Check your connection and try again.")
+    } catch (err) {
+      reportResumeError(err?.message || "That didn't reach us. Check your connection and try again.")
     } finally {
       setDownloadingResume(false)
     }
@@ -325,6 +338,9 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const editSave = edit?.onSaveLens
   const editSaveImow = edit?.onSaveImow
   const editRegenerate = edit?.onRegenerateLens
+  // Read off the context once for the same reason the handlers above are:
+  // depending on `edit` itself would rebuild these on every keystroke.
+  const editNotify = edit?.notify
 
   const runWrite = useCallback(async (field, work) => {
     if (!work || !editLensId) return false
@@ -346,6 +362,32 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       setBusy(null)
     }
   }, [editLensId, onLensUpdated])
+
+  // ---- ASKING FOR WORDS, WHICH IS NOT SAVING THEM ----
+  //
+  // The sibling of runWrite, and the difference is the whole point of it:
+  // nothing is stored, nothing is folded back into the record, and the editor
+  // does not close. What comes back is handed to the field that asked for it,
+  // which puts it in its own draft where the owner can read it, change it, or
+  // walk away from it. Failures go to the page's toast, which is where the
+  // rest of this editor's failures already go, rather than to the inline line
+  // - the editor is still open and still holds the text it had.
+  const runDraft = useCallback(async (field, work) => {
+    if (!work || !editLensId) return null
+    setBusy(field)
+    setWriteError(null)
+    setErrorField(null)
+    try {
+      return await work()
+    } catch (err) {
+      const message = err?.message || "We couldn't rewrite that just now. Please try again."
+      if (editNotify) editNotify({ type: 'error', message })
+      else { setWriteError(message); setErrorField(field) }
+      return null
+    } finally {
+      setBusy(null)
+    }
+  }, [editLensId, editNotify])
 
   const editValue = useMemo(() => {
     if (!edit?.editing) return null
@@ -371,13 +413,14 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onEditEvidence: edit.onEditEvidence,
       onDeleteEvidence: edit.onDeleteEvidence,
       onGenerateImow: edit.onGenerateImow,
+      onStrengthenImow: edit.onStrengthenImow,
       testimonials: edit.testimonials,
       earned360: edit.earned360,
       onRequestTestimonial: edit.onRequestTestimonial,
       onPublishTestimonial: edit.onPublishTestimonial,
       onDeleteTestimonial: edit.onDeleteTestimonial,
       onCategoriseTestimonial: edit.onCategoriseTestimonial,
-      authHeaders: edit.authHeaders,
+      getAuthHeaders: edit.getAuthHeaders,
       slug,
       imowHasVideo,
       onUploadImowVideo: edit.onUploadImowVideo,
@@ -397,7 +440,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       save: (values, field) => runWrite(field, () => (field === 'imow'
         ? editSaveImow(values.imow_text)
         : editSave(editLensId, values))),
-      regenerate: (field) => runWrite(field, () => editRegenerate(editLensId, field))
+      regenerate: (field) => runDraft(field, () => editRegenerate(editLensId, field))
     }
   }, [
     edit?.editing, edit?.isPro, edit?.canCustomise, edit?.notify,
@@ -405,10 +448,11 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
     lenses, editLensId, openField, busy, writeError, errorField,
-    runWrite, editSave, editSaveImow, editRegenerate, edit?.onGenerateImow,
+    runWrite, runDraft, editSave, editSaveImow, editRegenerate,
+    edit?.onGenerateImow, edit?.onStrengthenImow,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
     edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet,
-    edit?.onCategoriseTestimonial, edit?.authHeaders, slug, imowHasVideo,
+    edit?.onCategoriseTestimonial, edit?.getAuthHeaders, slug, imowHasVideo,
     edit?.onUploadImowVideo, edit?.onRemoveImowVideo
   ])
 
@@ -479,7 +523,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         imowType={imowType}
         imowHasVideo={imowHasVideo}
         slug={slug}
-        authHeaders={edit?.authHeaders || null}
+        getAuthHeaders={edit?.getAuthHeaders || null}
         animate={animate}
       />
 

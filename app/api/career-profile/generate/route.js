@@ -516,6 +516,21 @@ export async function POST(request) {
       : []
     const fields = requested.length > 0 ? new Set(requested) : new Set(WRITABLE_FIELDS)
 
+    // ---- WRITE, OR JUST SHOW ----
+    //
+    // Regenerate used to be a write. The owner pressed it, this route replaced
+    // the column, and the editor closed on text nobody had read yet - the old
+    // wording was already gone and there was no Cancel that could bring it
+    // back. That is the wrong shape for a button whose whole purpose is to
+    // offer an alternative.
+    //
+    // In preview the generation runs exactly as it does otherwise and nothing
+    // is stored: the text goes back to the open editor as a draft, and the
+    // owner's Save is still the only thing in this feature that writes. The
+    // skill-proof pass below is skipped for the same reason - it is derived
+    // from a stored skill_emphasis, and there is no stored anything here.
+    const preview = body?.preview === true
+
     // ---- TIER ----
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -707,6 +722,17 @@ export async function POST(request) {
     if (!generated) {
       console.error('[career-profile] Generation unusable after retry:', lastFailure)
       return Response.json({ error: 'GENERATION_FAILED' }, { status: 500 })
+    }
+
+    // ---- SHOW, WITHOUT STORING ----
+    // The fields that were asked for, and nothing else: a caller who asked to
+    // see a new bio gets a bio, not a whole lens it might mistake for saved.
+    if (preview) {
+      const draft = {}
+      for (const field of WRITABLE_FIELDS) {
+        if (fields.has(field)) draft[field] = generated[field]
+      }
+      return Response.json({ draft })
     }
 
     // ---- STORE ----

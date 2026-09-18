@@ -30,15 +30,29 @@ export default function EditorGuide() {
     <section className="hp-ed-guide-intro" aria-label="About your Career Profile">
       <div className="hp-ed-guide-inner">
         <div className="hp-ed-guide-say">
-          <span className="hp-ed-guide-eyebrow">Your Career Profile</span>
+          {/* The pairing now carries itself: what a résumé does, said quietly
+              above what this does. */}
+          <span className="hp-ed-guide-eyebrow">
+            Your r&eacute;sum&eacute; tells people where you worked.
+          </span>
+
           <h2 className="hp-ed-guide-headline">
-            Your résumé tells people where you worked. This shows them why it mattered.
+            Your Career Profile shows them why it mattered.
           </h2>
+
           <p className="hp-ed-guide-lede">
-            Hire Power has already turned your résumé and coaching conversations
-            into a living profile of your work, results, and reputation. The
-            foundation is here. We&rsquo;ll guide you through the few pieces only
-            you and the people who worked with you can add.
+            Your career is bigger than one page. A r&eacute;sum&eacute; captures
+            one version of you for one opportunity. Your Career Profile brings the
+            fuller picture together: the work, results, evidence, and voices that
+            show what you can do across every dimension of your career.
+          </p>
+
+          <p className="hp-ed-guide-lede">
+            Hire Power has already built the foundation, and it will keep growing
+            with you. Every role you pursue and every interview you prepare for
+            adds to the picture. Below, you and the people who have worked with
+            you can illustrate your impact so your profile tells the strongest
+            version of your career story and shows what you are capable of next.
           </p>
         </div>
 
@@ -46,8 +60,13 @@ export default function EditorGuide() {
           {STEPS.map(([n, title, note]) => (
             <li className="hp-ed-guide-step" key={n}>
               <span className="hp-ed-guide-step-index" aria-hidden="true">{n}</span>
-              <span className="hp-ed-guide-step-title">{title}</span>
-              <span className="hp-ed-guide-step-note">{note}</span>
+              {/* One stack, not two grid rows. As separate rows the numeral's
+                  height set the row heights and the spare space opened a gap
+                  between the heading and its description. */}
+              <span className="hp-ed-guide-step-text">
+                <span className="hp-ed-guide-step-title">{title}</span>
+                <span className="hp-ed-guide-step-note">{note}</span>
+              </span>
             </li>
           ))}
         </ol>

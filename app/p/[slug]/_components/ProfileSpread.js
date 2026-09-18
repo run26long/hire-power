@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
-import { EditPencil, SlotGuide, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, SlotGuide, GuideAction, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
 import ImowVideo from './ImowVideo'
@@ -59,7 +59,7 @@ export default function ProfileSpread({
   imowType,
   imowHasVideo,
   slug,
-  authHeaders,
+  getAuthHeaders,
   animate = true
 }) {
   const hasBio = Boolean(bio)
@@ -150,7 +150,8 @@ export default function ProfileSpread({
         )}
 
         {!hasBio && canShowEmpty && !bioEditor?.isOpen && (
-          <div data-resolve="about">
+          <div className="hp-ed-incomplete" data-resolve="about">
+            <span className="hp-ed-pill">Add your intro</span>
             <span className="hp-eyebrow">About</span>
             {/* The guidance takes the lead paragraph's own position and its own
                 measure, so it sits where the story will sit rather than under
@@ -199,7 +200,7 @@ export default function ProfileSpread({
               <span className="hp-eyebrow">In my own words</span>
 
               {hasVideo && (
-                <ImowVideo slug={slug} authHeaders={authHeaders} onUnavailable={onVideoGone} />
+                <ImowVideo slug={slug} getAuthHeaders={getAuthHeaders} onUnavailable={onVideoGone} />
               )}
 
               {/* Video first, then the words, when there are both: the point
@@ -224,21 +225,29 @@ export default function ProfileSpread({
                 Same figure, same wash, same rule down its edge, same quotation
                 marks and same eyebrow, so this side of the spread keeps the
                 weight it will have. */}
-            <figure className="hp-voice hp-ed-guide-voice">
+            {/* The public card, with the invitation as its content. Same
+                figure, same rule, same quote marks, same wash, and the lead
+                line set in .hp-voice-text so it carries the card's own serif
+                exactly as a real statement would. */}
+            <figure className="hp-voice hp-ed-guide-voice hp-ed-incomplete">
+              <span className="hp-ed-pill">Tell your story</span>
               <span className="hp-voice-mark hp-voice-mark-open" aria-hidden="true">&#8220;</span>
               <span className="hp-eyebrow">In my own words</span>
-              <div className="hp-voice-text hp-ed-guide-prose">
-                <SlotGuide
-                  heading="The part only you can tell."
-                  action="Add your perspective"
-                  feature="imow"
-                  onAction={() => imowEditor?.open()}
-                >
-                  Add the part only you can tell: what drives you, how you work,
-                  and what you want people to understand about your career. Write
-                  it in your own words or upload a video.
-                </SlotGuide>
-              </div>
+
+              <p className="hp-voice-text">
+                A r&eacute;sum&eacute; can&rsquo;t speak directly to an employer.
+                Your Career Profile can.
+              </p>
+
+              <p className="hp-ed-voice-note">
+                This is your chance to make an impression and show a potential
+                employer what sets you apart from other candidates. Use Hire
+                Power&rsquo;s suggestion as written, write your own version and let
+                us polish it, or upload a video and let them hear from you.
+              </p>
+
+              <GuideAction label="Tell your story" feature="imow" onAction={() => imowEditor?.open()} />
+
               <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
             </figure>
           </div>

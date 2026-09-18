@@ -75,6 +75,11 @@ export default function ImowVideoField() {
 
   const hasVideo = edit?.imowHasVideo === true
 
+  // Read off the context once rather than called through it, so this callback
+  // depends on the function and not on the whole edit object - which changes
+  // on every keystroke anywhere in the editor.
+  const authFor = edit?.getAuthHeaders
+
   // The same link a reader gets. Fetched here rather than held, so what the
   // owner is checking is what will actually play.
   const loadPreview = useCallback(async () => {
@@ -82,7 +87,7 @@ export default function ImowVideoField() {
     try {
       const res = await fetch(
         `/api/career-profile/${encodeURIComponent(edit.slug)}/imow-video`,
-        { headers: edit.authHeaders || {} }
+        { headers: authFor ? await authFor() : {} }
       )
       if (!res.ok) { setPreviewUrl(null); return }
       const payload = await res.json()
@@ -90,7 +95,7 @@ export default function ImowVideoField() {
     } catch {
       setPreviewUrl(null)
     }
-  }, [hasVideo, edit?.slug, edit?.authHeaders])
+  }, [hasVideo, edit?.slug, authFor])
 
   useEffect(() => {
     let cancelled = false

@@ -62,7 +62,8 @@ export default function SettingsDrawer({
   onClose,
   profile,
   publicUrl,
-  authHeaders,
+  accountEmail,
+  getAuthHeaders,
   onProfileChanged,
   canCustomise,
   notify
@@ -71,7 +72,16 @@ export default function SettingsDrawer({
 
   const published = profile?.is_published === true
   const currentSlug = profile?.slug || ''
-  const currentEmail = profile?.contact_email || ''
+
+  // The field shows the address the Contact button will actually open, which
+  // when nothing has been set is the account address. Showing a blank box
+  // there would have been a lie in both directions: it would suggest no button
+  // exists, and it would leave no way to say "not this one" - you cannot clear
+  // a field that is already empty, and clearing is how the button is switched
+  // off. A stored '' is a cleared field and stays blank.
+  const currentEmail = profile?.contact_email == null
+    ? (accountEmail || '')
+    : profile.contact_email
 
   const [publishing, setPublishing] = useState(false)
 
@@ -125,7 +135,7 @@ export default function SettingsDrawer({
       try {
         const res = await fetch('/api/career-profile/slug', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
           body: JSON.stringify({ slug: candidate })
         })
         const payload = await res.json().catch(() => ({}))
@@ -139,7 +149,7 @@ export default function SettingsDrawer({
     }, CHECK_DEBOUNCE_MS)
 
     return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [candidate, currentSlug, open, authHeaders])
+  }, [candidate, currentSlug, open, getAuthHeaders])
 
   const togglePublish = useCallback(async () => {
     if (publishing) return
@@ -148,7 +158,7 @@ export default function SettingsDrawer({
     try {
       const res = await fetch('/api/career-profile/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({ is_published: !published })
       })
       const payload = await res.json().catch(() => ({}))
@@ -159,7 +169,7 @@ export default function SettingsDrawer({
     } finally {
       setPublishing(false)
     }
-  }, [publishing, published, authHeaders, onProfileChanged, notify])
+  }, [publishing, published, getAuthHeaders, onProfileChanged, notify])
 
   async function saveSlug() {
     if (slugSaving || !candidate || candidate === currentSlug) return
@@ -181,7 +191,7 @@ export default function SettingsDrawer({
     try {
       const res = await fetch('/api/career-profile/slug', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({ slug: candidate })
       })
       const payload = await res.json().catch(() => ({}))
@@ -205,7 +215,7 @@ export default function SettingsDrawer({
     try {
       const res = await fetch('/api/career-profile/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({ contact_email: email })
       })
       const payload = await res.json().catch(() => ({}))
@@ -247,7 +257,7 @@ export default function SettingsDrawer({
                 className="hp-ed-switch"
                 role="switch"
                 aria-checked={published}
-                aria-label="Publish this profile"
+                aria-label="Publish this Career Profile"
                 onClick={togglePublish}
                 disabled={publishing}
                 data-on={published ? 'true' : 'false'}
@@ -260,8 +270,8 @@ export default function SettingsDrawer({
             </div>
             <p className="hp-ed-soon">
               {published
-                ? 'Anyone with your link can read this profile.'
-                : 'Only you can open this profile. The link returns nothing for everybody else.'}
+                ? 'Anyone with your link can read this Career Profile.'
+                : 'Only you can open this Career Profile. The link returns nothing for everybody else.'}
             </p>
           </Group>
 
@@ -277,7 +287,7 @@ export default function SettingsDrawer({
                 spellCheck="false"
                 autoComplete="off"
                 onChange={e => { setSlug(e.target.value); setSlugSaved(false); setSlugError(null) }}
-                aria-label="Your profile link"
+                aria-label="Your Career Profile link"
                 aria-describedby="hp-ed-slug-note"
               />
             </div>
@@ -348,8 +358,8 @@ export default function SettingsDrawer({
               {emailSaved ? <span className="hp-ed-hint" data-ok="true">Saved</span> : null}
             </div>
             <p className="hp-ed-soon" id="hp-ed-email-note">
-              Opens the Contact button on your profile. Leave it empty and the button
-              does not appear at all.
+              Opens the Contact button on your Career Profile. Defaults to your account
+              email. Set a different address here, or leave it empty to hide the button.
             </p>
             {emailError ? <p className="hp-ed-error">{emailError}</p> : null}
           </Group>

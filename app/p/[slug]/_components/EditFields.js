@@ -51,7 +51,12 @@ function EditorShell({ editor, label, onSave, canSave, children, onRegenerate })
 
         {/* Offered only where it exists. A free account with more than one
             direction cannot generate at all, and a button that always
-            answered PRO_REQUIRED would be worse than no button. */}
+            answered PRO_REQUIRED would be worse than no button.
+
+            It takes several seconds and says so while it does. Without the
+            mark the only sign anything was happening was the button going
+            flat, which reads as a control that refused rather than one that
+            is working. */}
         {editor.canRegenerate && onRegenerate ? (
           <button
             type="button"
@@ -60,12 +65,12 @@ function EditorShell({ editor, label, onSave, canSave, children, onRegenerate })
             disabled={editor.busy}
             title="Rewrite this from your coaching sessions"
           >
-            Regenerate
+            {editor.busy ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+            {editor.busy ? 'Rewriting…' : 'Regenerate'}
           </button>
         ) : null}
 
         <span className="hp-ed-editor-gap" />
-        <span className="hp-ed-editor-esc">Esc to cancel</span>
       </div>
 
       {editor.error ? <p className="hp-ed-editor-error">{editor.error}</p> : null}
@@ -116,6 +121,15 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
 
   if (!editor || !isOpen) return null
 
+  // Regenerate hands its result to the draft rather than to the database. The
+  // editor stays where it is with the new wording in it, unsaved and dirty, so
+  // it can be read, changed, or abandoned with Cancel - which is what a button
+  // offering an alternative should do. Nothing is lost by pressing it.
+  async function regenerate() {
+    const next = await editor.regenerate()
+    if (typeof next === 'string') setDraft(next)
+  }
+
   const trimmed = draft.trim()
 
   return (
@@ -124,7 +138,7 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
       label={label}
       canSave={Boolean(trimmed) && trimmed !== (value || '').trim()}
       onSave={() => editor.save({ [field]: trimmed })}
-      onRegenerate={editor.regenerate}
+      onRegenerate={regenerate}
     >
       <textarea
         ref={ref}
@@ -182,13 +196,19 @@ export function TagsEditor({ field = 'ready_tags', label = 'Open To tags', value
 
   const changed = JSON.stringify(tags) !== JSON.stringify(Array.isArray(value) ? value : [])
 
+  // Into the editor, not into the record. See ProseEditor.
+  async function regenerate() {
+    const next = await editor.regenerate()
+    if (Array.isArray(next)) setTags(next.filter(t => typeof t === 'string'))
+  }
+
   return (
     <EditorShell
       editor={editor}
       label={label}
       canSave={tags.length > 0 && changed}
       onSave={() => editor.save({ [field]: tags })}
-      onRegenerate={editor.regenerate}
+      onRegenerate={regenerate}
     >
       <ul className="hp-ed-tags">
         {tags.map((tag, index) => (
@@ -296,6 +316,18 @@ export function ProofPointsEditor({ field = 'proof_points', label = 'proof point
   const changed = JSON.stringify(points.map(p => ({ num: p.num.trim(), label: p.label.trim() })))
     !== JSON.stringify((Array.isArray(value) ? value : []).map(p => ({ num: String(p?.num || ''), label: String(p?.label || '') })))
 
+  // Into the editor, not into the record. See ProseEditor. Padded back to
+  // three rows the same way the initial state is, because the layout has three
+  // cells whatever the generator returns.
+  async function regenerate() {
+    const next = await editor.regenerate()
+    if (!Array.isArray(next)) return
+    setPoints(Array.from({ length: PROOF_POINT_COUNT }, (_, i) => ({
+      num: typeof next[i]?.num === 'string' ? next[i].num : '',
+      label: typeof next[i]?.label === 'string' ? next[i].label : ''
+    })))
+  }
+
   return (
     <EditorShell
       editor={editor}
@@ -304,7 +336,7 @@ export function ProofPointsEditor({ field = 'proof_points', label = 'proof point
       onSave={() => editor.save({
         [field]: points.map(p => ({ num: p.num.trim(), label: p.label.trim() }))
       })}
-      onRegenerate={editor.regenerate}
+      onRegenerate={regenerate}
     >
       <ol className="hp-ed-proofs">
         {points.map((point, index) => (

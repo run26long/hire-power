@@ -191,10 +191,30 @@ export function EditElsewhere({ children, href }) {
 // telling you what goes there.
 // ---------------------------------------------------------------------------
 
-// What goes in the slot that is next to be filled.
-export function SlotGuide({ index, heading, children, action, onAction, feature }) {
+// The one control a guided slot offers: the action on a plan that can use it,
+// and the line saying why not on one that cannot. Shared so every guided slot
+// makes the same offer and the primary style is declared in a single place.
+export function GuideAction({ label, feature, onAction }) {
   const canEdit = useCanEdit()
 
+  if (!canEdit) {
+    return (
+      <span className="hp-ed-guide-locked">
+        <span className="hp-ed-locked-mark"><LockIcon /></span>
+        <a className="hp-ed-locked-link" href={UPGRADE_HREF}>{upgradeCopyFor(feature)}</a>
+      </span>
+    )
+  }
+
+  return (
+    <button type="button" className="hp-ed-action" data-primary="true" onClick={onAction}>
+      {label}
+    </button>
+  )
+}
+
+// What goes in the slot that is next to be filled.
+export function SlotGuide({ index, heading, children, action, onAction, feature }) {
   return (
     <span className="hp-ed-guide">
       {index ? <span className="hp-ed-guide-index" aria-hidden="true">{index}</span> : null}
@@ -202,19 +222,8 @@ export function SlotGuide({ index, heading, children, action, onAction, feature 
       <span className="hp-ed-guide-body">{children}</span>
 
       {/* A free account sees the same composition and the same explanation.
-          What changes is the one control: an action it cannot use would be a
-          button that does nothing, so the slot carries the line that says why
-          instead. Said once, here, rather than repeated beside it. */}
-      {canEdit ? (
-        <button type="button" className="hp-ed-action" data-primary="true" onClick={onAction}>
-          {action}
-        </button>
-      ) : (
-        <span className="hp-ed-guide-locked">
-          <span className="hp-ed-locked-mark"><LockIcon /></span>
-          <a className="hp-ed-locked-link" href={UPGRADE_HREF}>{upgradeCopyFor(feature)}</a>
-        </span>
-      )}
+          What changes is the one control, which GuideAction decides. */}
+      <GuideAction label={action} feature={feature} onAction={onAction} />
     </span>
   )
 }

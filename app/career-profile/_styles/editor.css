@@ -221,6 +221,24 @@ html:has(.hp-ed) {
   text-align: right;
 }
 
+/* A draft's address is real but not yet answerable, so it reads one step
+   further back than a published one and carries the single fact that would
+   change that. Opacity rather than a dimmer colour, because --ed-muted is
+   already the quietest ink this bar has and there is no token below it. */
+.hp-ed-link[data-live="false"] { opacity: 0.55; }
+
+/* A sibling of the address rather than a child: that element is an rtl,
+   single-line, ellipsis box and anything nested in it inherits all three. */
+
+.hp-ed-link-note {
+  margin-left: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ed-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .hp-ed-does {
   display: inline-flex;
   align-items: center;
@@ -292,8 +310,10 @@ html:has(.hp-ed) {
   .hp-ed-does { flex: 1 1 100%; justify-content: flex-start; }
   /* The raw address is the one thing here that cannot be made to fit without
      either scrolling the page sideways or shrinking to nothing. Copy link and
-     Open both remain, and both do more than reading it would. */
-  .hp-ed-link { display: none; }
+     View live both remain, and both do more than reading it would. The note
+     goes with it: on a draft the status pill beside the mode switch already
+     says Draft, so a second line saying the same is noise at this width. */
+  .hp-ed-link, .hp-ed-link-note { display: none; }
   .hp-ed-action { flex: 0 1 auto; }
 }
 
@@ -725,30 +745,47 @@ html:has(.hp-ed) {
 .hp-ed-slot:hover::after,
 .hp-ed-slot:focus-within::after { opacity: 1; }
 
-/* ---- The hero's editable region stops at the middle ---------------------
-   Act I places the identity and the proof on one twelve column grid and lets
-   them cross: the identity's own box runs to about 66 percent of the stage
-   while the lead figure begins at about 56 percent, which is how the figure
-   comes to sit inside the band the name and deck make. That crossing is the
-   approved public composition and is not changed here.
+/* ---- The hero identity card -------------------------------------------
+   The card's own edges, named once so the surface, its clipping boundary and
+   the pencil on it can never drift apart. They are offsets from
+   `.hp-act1-identity`, which is also the pencil's containing block:
+   `.hp-ed-slot` already gives that element `position: relative`.
 
-   What is changed is the editor's own wash. Drawn over the identity's full
-   box it reached across the proof figures, which made the hero look boxed and
-   divided by an editor artefact. It is clipped to the stage's midpoint
-   instead, so the surface the owner edits is the left half and the figures
-   beside it are never under it. A percentage rather than a pixel, because
-   both boxes are grid fractions and the ratio holds at every width in this
-   layout. */
-@media (min-width: 768px) {
-  .hp-act1-identity.hp-ed-slot::after { right: 24.4%; }
+   The right edge used to be clipped to 24.4 percent, which put it at the
+   stage's midpoint so the surface could not reach the proof figures Act I
+   lets it cross. It cut the card through its own contents instead: at 1280
+   the name overran the edge by 33px and at 768 by 75px, so the owner was
+   offered a card with their own name hanging out of it.
+
+   So the card now runs to the full right edge of the identity area, the same
+   12px overhang it already had on the other three sides. It is a background
+   wash with no pointer events and it changes nothing about the public
+   composition, the grid, the type or the figures themselves. */
+.hp-profile .hp-act1-identity {
+  --ed-card-top: -10px;
+  /* Replaced at runtime with the measured distance that lands 32px short of
+     the SELECTED PROOF label; this is the stacked-layout fallback. */
+  --ed-card-right: -12px;
 }
 
-/* 3. The hero pencil belongs to the left editable field rather than to the
-   hero. `.hp-ed-slot` already makes that field the containing block, so this
-   only insets it, and it cannot reach the statistics half. */
+/* The name and the headline live inside the card, so they wrap at its edge
+   rather than running under the figures or being cut off by it. Padding on the
+   identity narrows the text without moving the element's box, so the grid, the
+   figures and the public composition are all untouched. Edit mode only. */
+.hp-profile[data-mode="edit"] .hp-act1-identity {
+  padding-right: max(0px, var(--ed-card-right));
+}
+
+.hp-act1-identity.hp-ed-slot::after {
+  top: var(--ed-card-top);
+  right: var(--ed-card-right);
+}
+
+/* The pencil edits this card, so it sits 18px inside the card's own top and
+   right corner and moves with it. */
 .hp-profile .hp-act1-identity > .hp-ed-pencil {
-  top: 18px;
-  right: 18px;
+  top: calc(var(--ed-card-top) + 18px);
+  right: calc(var(--ed-card-right) + 18px);
 }
 
 /* The rejected empty-state components from the previous pass stood here: a
@@ -869,10 +906,27 @@ html:has(.hp-ed) {
 
 .hp-ed-editor-gap { flex: 1 1 auto; min-width: 0; }
 
-.hp-ed-editor-esc {
-  font-size: 11px;
-  color: rgb(255 255 255 / 0.34);
-  white-space: nowrap;
+/* Inside a button whose label changes at the same time, so it is a mark that
+   the label is live rather than the only sign anything is happening. Sized in
+   em so it tracks whatever type the button it lands in is set in, and it is
+   used by every long-running control on this page. */
+.hp-ed-spin {
+  width: 0.85em;
+  height: 0.85em;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.8;
+  animation: hp-ed-spin 700ms linear infinite;
+}
+
+@keyframes hp-ed-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-ed-spin { animation-duration: 2200ms; }
 }
 
 /* The chrome's action button, restated on the document's ground. */
@@ -896,14 +950,18 @@ html:has(.hp-ed) {
   border-color: rgb(255 255 255 / 0.26);
 }
 
+/* The same declaration the Settings button carries, not a second purple.
+   This rule used to set a flat accent wash, so every primary action inside the
+   document - Request a new testimonial, Tell your story, Add to portfolio, Add
+   evidence, Save - came out lighter and flatter than the one in the toolbar. */
 .hp-profile .hp-ed-action[data-primary="true"] {
-  background: rgb(var(--profile-accent-rgb) / 0.9);
+  background: linear-gradient(135deg, var(--profile-action) 0%, var(--profile-action-deep) 100%);
   border-color: transparent;
   color: #fff;
 }
 
 .hp-profile .hp-ed-action[data-primary="true"]:hover:not(:disabled) {
-  background: rgb(var(--profile-accent-rgb) / 1);
+  background: linear-gradient(135deg, var(--profile-action-lift) 0%, var(--profile-action) 100%);
 }
 
 .hp-profile .hp-ed-action:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -1137,6 +1195,84 @@ html:has(.hp-ed) {
   color: var(--profile-accent-soft);
   background: var(--profile-accent-wash-strong);
   border-color: var(--profile-accent-edge);
+}
+
+/* ---- Two readings of the same passage ---------------------------------- */
+/*
+   Where Strengthen puts its answer. It stands in for the textarea rather than
+   sitting above it, because the question on screen is which of these two the
+   owner wants, and leaving an editable copy of one of them beside the choice
+   would be asking two questions at once.
+
+   Both sides are the same card. The suggestion is marked by its edge and its
+   button, not by being prettier: this is a comparison, and a version that
+   looks better before it has been read is an argument rather than an offer.
+*/
+/* A container query and not a media query. This editor opens inside the
+   right-hand column of the spread, which is about a third of the window, so
+   asking the viewport how much room there is gives the wrong answer at every
+   width: at 1440 the columns went side by side in 510px and read as two
+   gutters. The panel measures itself instead. */
+.hp-profile .hp-ed-compare {
+  margin-bottom: 12px;
+  container-type: inline-size;
+}
+
+.hp-profile .hp-ed-compare-lede {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--profile-meta);
+}
+
+.hp-profile .hp-ed-compare-pair {
+  display: grid;
+  gap: 12px;
+}
+
+@container (min-width: 660px) {
+  .hp-profile .hp-ed-compare-pair { grid-template-columns: 1fr 1fr; }
+}
+
+.hp-profile .hp-ed-compare-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(0 0 0 / 0.22);
+}
+
+.hp-profile .hp-ed-compare-side[data-suggested="true"] {
+  border-color: var(--profile-accent-edge);
+  background: var(--profile-accent-wash);
+}
+
+.hp-profile .hp-ed-compare-title {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--profile-meta);
+}
+
+.hp-profile .hp-ed-compare-side[data-suggested="true"] .hp-ed-compare-title {
+  color: var(--profile-accent-soft);
+}
+
+/* The passages are the point, so they are set at reading size and keep the
+   line breaks the person typed. `flex: 1` on the text is what keeps the two
+   buttons level when one version is a line shorter than the other. */
+.hp-profile .hp-ed-compare-text {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--profile-body);
+  white-space: pre-wrap;
 }
 
 .hp-ed-field-label {
@@ -2195,28 +2331,25 @@ html:has(.hp-ed) {
    its explanation by hiding the thing it explains.
    =========================================================================== */
 
+/* A raised eggplant band on the Profile's own surface token, closed by a
+   hairline so the profile itself visibly starts below it. No new purple: the
+   ground and the rule are both existing palette values. */
 .hp-ed-guide-intro {
-  border-bottom: 1px solid var(--profile-line);
-  background:
-    linear-gradient(
-      170deg,
-      rgb(var(--profile-accent-rgb) / 0.07) 0%,
-      rgb(var(--profile-accent-rgb) / 0.02) 60%,
-      rgb(var(--profile-accent-rgb) / 0) 100%
-    );
+  background: var(--profile-surface);
+  border-bottom: 1px solid var(--profile-line-strong);
 }
 
 .hp-ed-guide-inner {
   max-width: var(--ed-frame);
   margin-inline: auto;
-  padding: 30px var(--ed-pad) 28px;
+  padding: 24px var(--ed-pad);
   display: grid;
-  gap: 26px;
+  gap: 24px;
 }
 
 .hp-ed-guide-eyebrow {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -2225,60 +2358,75 @@ html:has(.hp-ed) {
 }
 
 /* The left column takes the width it is given: no measure cap on either the
-   headline or the body, so the copy fills the 2fr track. */
+   headline or the body, so the copy fills the 58 percent track. */
 .hp-ed-guide-headline {
   margin: 0 0 12px;
   font-family: var(--profile-font-display);
-  font-size: clamp(23px, 2.4vw, 31px);
+  font-size: clamp(21px, 1.9vw, 26px);
   font-weight: 700;
-  line-height: 1.16;
-  letter-spacing: -0.024em;
+  line-height: 1.2;
+  letter-spacing: -0.022em;
   color: var(--profile-text);
 }
 
 .hp-ed-guide-lede {
   margin: 0;
-  font-size: 14.5px;
+  font-size: 13.5px;
   line-height: 1.6;
   color: var(--profile-body);
 }
+
+.hp-ed-guide-lede + .hp-ed-guide-lede { margin-top: 10px; }
 
 /* The three steps as one card on the Profile's own raised surface. */
 .hp-ed-guide-steps {
   display: grid;
   gap: 0;
   margin: 0;
-  padding: 24px;
+  padding: 22px;
   list-style: none;
-  align-content: start;
+  align-content: center;
   border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
   border-radius: 14px;
   background: var(--profile-surface-2);
 }
 
+/* `auto` rather than a fixed track, so the numerals take exactly what they
+   need and every remaining pixel goes to the description, which has to stay on
+   one line at desktop. */
+/* Numeral beside one text stack, both centred against each other. */
 .hp-ed-guide-step {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  column-gap: 16px;
-  row-gap: 4px;
-  padding-block: 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  padding-block: 12px;
   border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-ed-guide-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .hp-ed-guide-step:first-child { padding-top: 0; }
 .hp-ed-guide-step:last-child { border-bottom: 0; padding-bottom: 0; }
 
 .hp-ed-guide-step-index {
-  grid-row: span 2;
+  align-self: center;
   font-size: 40px;
   font-weight: 700;
   line-height: 1;
+  letter-spacing: -0.03em;
   color: rgb(var(--profile-accent-rgb) / 0.7);
   font-variant-numeric: tabular-nums;
 }
 
 .hp-ed-guide-step-title {
-  font-size: 11.5px;
+  margin: 0;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2286,21 +2434,25 @@ html:has(.hp-ed) {
 }
 
 .hp-ed-guide-step-note {
-  font-size: 13px;
-  line-height: 1.5;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--profile-meta);
 }
 
 @media (min-width: 900px) {
   .hp-ed-guide-inner {
-    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-    gap: clamp(32px, 4vw, 64px);
+    grid-template-columns: 58fr 42fr;
+    gap: clamp(28px, 3vw, 48px);
     align-items: center;
   }
 
-  .hp-ed-guide-steps { padding: 32px; }
-  .hp-ed-guide-step-index { font-size: 56px; }
+  .hp-ed-guide-steps { padding: 24px 22px; }
+  .hp-ed-guide-step-index { font-size: 52px; }
+  /* Each description stays on one line at desktop. */
+  .hp-ed-guide-step-note { white-space: nowrap; }
 }
+
 
 
 
@@ -2318,7 +2470,7 @@ html:has(.hp-ed) {
 /* 6. The Firsthand Accounts explanation and its two actions, both at the
    column's full width. No testimonial measure cap on the explanation. */
 .hp-profile .hp-ed-voices-say {
-  margin: 0 0 14px;
+  margin: 8px 0 14px;
   font-size: 14px;
   line-height: 1.6;
   color: var(--profile-body);
@@ -2329,7 +2481,9 @@ html:has(.hp-ed) {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 22px;
+  /* 16 here, not 32: the ghost list contributes its own 16px above the first
+     row, and the two together are the 32px gap that was asked for. */
+  margin-bottom: 16px;
 }
 
 /* 7. Tile 01 uses the square confidently: number, heading, body, and the
@@ -2364,8 +2518,10 @@ html:has(.hp-ed) {
   max-width: none;
 }
 
+/* In flow, immediately after the copy, at the spacing Add evidence uses.
+   Pinning it to the bottom left a long drop of empty square between the two. */
 .hp-profile .hp-ed-guide-mat .hp-ed-guide .hp-ed-action,
-.hp-profile .hp-ed-guide-mat .hp-ed-guide-locked { margin-top: auto; }
+.hp-profile .hp-ed-guide-mat .hp-ed-guide-locked { margin-top: 44px; }
 
 /* 7. Tiles 02 to 06: the same numeral treatment as 01, at the same inset. */
 .hp-profile .hp-ed-ghost-mat .hp-pf-mat-frame { padding: 0; }
@@ -2422,3 +2578,212 @@ html:has(.hp-ed) {
   line-height: 1;
   letter-spacing: -0.02em;
 }
+
+
+/* ===========================================================================
+   INCOMPLETE AREAS
+
+   One treatment for every user-input area that is still empty: a restrained
+   lavender glow on the area itself and a small pill naming what goes there.
+   Both are rendered only by the empty branches, so an area that has content
+   loses them by not asking for them - there is no "completed" state to
+   maintain, and a completed field keeps only its existing hover outline and
+   pencil.
+   =========================================================================== */
+
+.hp-profile .hp-ed-incomplete {
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgb(var(--profile-accent-rgb) / 0.28),
+    0 0 28px -6px rgb(var(--profile-accent-rgb) / 0.3);
+}
+
+.hp-profile .hp-ed-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  background: rgb(var(--profile-void-rgb) / 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgb(var(--profile-accent-rgb) / 0.95);
+  pointer-events: none;
+}
+
+/* Where a pencil already sits in that corner, the pill steps to the left of it
+   rather than under it. */
+.hp-profile .hp-ed-slot > .hp-ed-pill { right: 56px; }
+
+
+/* ---- The empty In My Own Words card ------------------------------------
+   The public card, with the invitation as its content. The figure, the rule
+   down its edge, the quote marks, the wash and the serif setting all come from
+   .hp-voice and .hp-voice-text in the public stylesheet; only the supporting
+   line and the action are added here. */
+.hp-profile .hp-ed-voice-note {
+  position: relative;
+  z-index: 2;
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--profile-meta);
+}
+
+.hp-profile .hp-ed-guide-voice .hp-ed-action {
+  position: relative;
+  z-index: 2;
+  margin-top: 18px;
+}
+
+
+/* ---- The empty What Others See act -------------------------------------
+   The public composition is compact: at 1440 the flow is 458px and both
+   columns end on the same baseline. The empty editor version had grown to
+   532px, which made the act read as the tallest thing on the page while
+   holding the least.
+
+   The synthesis column is what sets the row height, because the accounts
+   column is `height: 0; min-height: 100%` and takes whatever the row settles
+   on. So the card is held to the public height and its three rows are
+   distributed through it rather than stacked from the top. */
+.hp-profile .hp-ed-ghost-panel {
+  display: flex;
+  flex-direction: column;
+  height: 458px;
+  max-height: 458px;
+}
+
+.hp-profile .hp-ed-ghost-panel .hp-themes {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+
+/* Rows carry their three lines without the padding that was pushing the card
+   past its height; the even distribution above supplies the rhythm instead. */
+.hp-profile .hp-ed-ghost-theme { padding-block: 0; }
+.hp-profile .hp-ed-ghost-theme .hp-ed-ghost-line { margin: 0.34em 0; }
+
+/* The accounts column fills the same height: head, copy and actions take what
+   they need and the ghost rows spread through the rest, so the two columns end
+   together instead of one trailing whitespace. */
+.hp-profile .hp-ed-voices-empty {
+  display: flex;
+  flex-direction: column;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voices {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+@media (max-width: 1199px) {
+  /* Stacked, so there is no shared row to match and a fixed height would only
+     crop the card. */
+  .hp-profile .hp-ed-ghost-panel { height: auto; max-height: none; }
+  .hp-profile .hp-ed-ghost-panel .hp-themes { gap: 16px; }
+}
+
+/* The accounts column's copy runs the full width of the column, so an
+   absolutely placed pill sat on top of its first line. Here the pill shares
+   the heading row instead, which is still the area's top right and collides
+   with nothing. */
+.hp-profile .hp-ed-voices-empty > .hp-ed-pill {
+  position: static;
+  align-self: flex-end;
+}
+
+/* 20px from the bottom of the pill to the heading, 8px from the heading to the
+   copy. The head carries no spacing of its own so those two are the only
+   numbers in the stack. */
+.hp-profile .hp-ed-voices-empty .hp-voices-head {
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-voices-title { margin: 0; }
+
+/* 3. In My Own Words and Firsthand Accounts drop the incomplete perimeter.
+   Both already carry an edge from the public design - the lavender rail down
+   the voice card, and the column beside the synthesis - so a glow around them
+   added a second boundary and made each section read as boxed.
+
+   Only the box-shadow goes. .hp-ed-incomplete adds nothing else, so there is
+   no background or border to reset here, and resetting either would strip the
+   voice card of the public wash it is drawn with. The pills stay. */
+.hp-profile .hp-ed-guide-voice.hp-ed-incomplete,
+.hp-profile .hp-ed-voices-empty.hp-ed-incomplete {
+  box-shadow: none;
+}
+
+/* ---- Accounts column: heading level with the left card's label ----------
+   The pill leaves the flow so the heading can start where the synthesis
+   eyebrow starts. The offset is the synthesis card's own padding-top, so the
+   two labels sit on one line across the act. */
+.hp-profile .hp-ed-voices-empty { position: relative; }
+
+.hp-profile .hp-ed-voices-empty > .hp-ed-pill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  align-self: auto;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-voices-head { margin-top: 25px; }
+
+@media (min-width: 1200px) {
+  .hp-profile .hp-ed-voices-empty .hp-voices-head { margin-top: 31px; }
+}
+
+/* Two rows of equal height filling what is left, rather than one pinned to
+   each end with a hole between them. Each keeps the same inner alignment and
+   the same rule above it. */
+.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voices {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 14px;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item:first-child {
+  padding-top: 0;
+  border-top: 1px solid transparent;
+}
+
+.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item:last-child {
+  padding-bottom: 0;
+  border-top: 1px solid var(--profile-line);
+}
+
+/* ---- Evidence tile 01: composition 32px higher, 24px under the copy ----- */
+.hp-profile .hp-ed-guide-tile .hp-ed-guide { padding-top: 4px; }
+
+.hp-profile .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
+.hp-profile .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: 24px; }

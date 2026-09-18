@@ -113,7 +113,8 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           // here re-states it.
           <ul className="hp-pf-grid" data-count="6">
             <li className="hp-pf-cell">
-              <span className="hp-pf-mat hp-ed-guide-mat">
+              <span className="hp-pf-mat hp-ed-guide-mat hp-ed-incomplete">
+                <span className="hp-ed-pill">Show your work</span>
                 <span className="hp-pf-mat-frame">
                   <SlotGuide
                     index="01"
@@ -122,7 +123,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
                     feature="portfolio"
                     onAction={() => setOpenAdd(n => n + 1)}
                   >
-                    Add photos or video of what you built, led, improved, or delivered.
+                    A résumé can only describe the work. Your Career Profile lets
+                    people see it. Add photos or video of what you built, led,
+                    improved, or delivered.
                   </SlotGuide>
                 </span>
               </span>

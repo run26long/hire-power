@@ -90,7 +90,7 @@ export async function GET(request) {
     // The account, for the nav and for what the page is allowed to offer.
     const { data: person } = await supabase
       .from('profiles')
-      .select('display_name, photo_url, subscription_tier, search_status')
+      .select('display_name, photo_url, subscription_tier, search_status, email')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -100,6 +100,13 @@ export async function GET(request) {
       subscription_tier: person?.subscription_tier ?? null,
       search_status: person?.search_status ?? null
     }
+
+    // Kept out of userProfile, which is the nav's object. This is here for one
+    // control: the contact field shows the address the Contact button will
+    // actually open, and when the owner has never set one that is this. The
+    // owner is the only person this route ever answers, so it is their own
+    // address being shown back to them.
+    const accountEmail = person?.email || user.email || null
 
     // ---- THE PROFILE ----
     const { data: profile, error: profileError } = await supabase
@@ -119,6 +126,7 @@ export async function GET(request) {
     if (!profile) {
       return Response.json({
         userProfile,
+        accountEmail,
         isPro: isEntitledTier(userProfile.subscription_tier),
         canCustomise: canCustomiseProfile(userProfile.subscription_tier),
         profile: null,
@@ -185,6 +193,7 @@ export async function GET(request) {
 
     return Response.json({
       userProfile,
+      accountEmail,
       isPro: isEntitledTier(userProfile.subscription_tier),
       canCustomise: canCustomiseProfile(userProfile.subscription_tier),
       profile: { ...profileRest, imow_has_video: Boolean(imow_video_path) },

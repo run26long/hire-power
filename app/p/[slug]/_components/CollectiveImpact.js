@@ -138,9 +138,11 @@ export default function CollectiveImpact({
           <h2 className="hp-impact-headline">What others see.</h2>
         </Reveal>
 
-        {/* One compact control beside the headline, secondary to it, and
-            nothing else added to this act's chrome. */}
-        {canShowEmpty ? (
+        {/* One compact control beside the headline, and only where the column
+            below carries none of its own. The empty state has its own Request
+            and Manage buttons directly under its copy, so a third control up
+            here would be a second way to say the same thing. */}
+        {canShowEmpty && hasQuotes ? (
           <div className="hp-ed-manage-row">
             <button
               type="button"
@@ -225,16 +227,21 @@ export default function CollectiveImpact({
               heading at full width, and the rows below carry no words, because
               inventing a testimonial would be inventing a person. */}
           {!hasQuotes && canShowEmpty && (
-            <div className="hp-impact-voices hp-ed-voices-empty">
+            <div className="hp-impact-voices hp-ed-voices-empty hp-ed-incomplete">
+              {/* The pill has its own row at the top right, with the heading
+                  under it. Kept in flow rather than positioned, so the copy
+                  below still runs the column's full width without anything
+                  sitting on its first line. */}
+              <span className="hp-ed-pill">Invite testimonials</span>
               <div className="hp-voices-head">
                 <h3 className="hp-voices-title">Firsthand Accounts</h3>
-                <p className="hp-voices-note">In the words of people who saw the work up close.</p>
               </div>
 
               <p className="hp-ed-voices-say">
-                Testimonials show what your work looks like from the other side.
-                Ask people who have seen it up close. They write a few sentences,
-                review the polished version, and you decide whether it appears here.
+                You can say you’re great at what you do. It means more when
+                someone else says it. Invite people who have seen your work up
+                close to share a few sentences. They review the polished version,
+                and you decide whether it appears here.
               </p>
 
               <div className="hp-ed-voices-actions">
@@ -250,7 +257,8 @@ export default function CollectiveImpact({
                   type="button"
                   className="hp-ed-action"
                   disabled={recordCount === 0}
-                  onClick={() => setManageOpen(true)}
+                  aria-expanded={manageOpen}
+                  onClick={() => setManageOpen(v => !v)}
                 >
                   Manage existing testimonials
                 </button>
@@ -258,7 +266,7 @@ export default function CollectiveImpact({
 
               <div className="hp-voices-scroll hp-ed-ghost-voices">
                 <ul className="hp-voices">
-                  {[0, 1, 2].map(i => (
+                  {[0, 1].map(i => (
                     <li className="hp-voice-item" key={i} aria-hidden="true">
                       <blockquote className="hp-voice-quote" data-expanded="false">
                         <GhostText lines={3} />

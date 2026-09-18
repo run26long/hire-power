@@ -36,6 +36,15 @@ import ResumePDFVibe from '../../../templates/pdf/ResumePDF-Vibe'
 // openGate, which additionally requires Pro: that gate belongs to the
 // recruiter tools, which are a paid feature. Downloading the resume is not -
 // it is what the page is for, on every published profile.
+//
+// EXCEPT FOR THE OWNER
+// The one caller allowed past an unpublished profile is the person it belongs
+// to, and only when they send their own token. The editor renders the same
+// document component the public page does, so an owner pressing Download on a
+// draft was reaching this route as a stranger and being told their own profile
+// did not exist. An Authorization header is therefore read if one is sent and
+// ignored if it is not: the anonymous path is unchanged, still published-only,
+// and an unpublished slug is still indistinguishable from one nobody has taken.
 // ============================================================================
 
 const supabase = createClient(
@@ -162,7 +171,7 @@ export async function POST(request) {
       return Response.json({ error: 'Profile not found.', code: 'NOT_FOUND' }, { status: 404 })
     }
 
-    // ---- The gate: published, and nothing else ----
+    // ---- The gate: published, or the owner ----
     const { data: profile, error: profileError } = await supabase
       .from('career_profiles')
       .select('id, user_id, is_published')
@@ -173,10 +182,23 @@ export async function POST(request) {
       console.error('[download-resume] Profile lookup failed:', profileError)
       return Response.json({ error: 'Something went wrong.', code: 'LOOKUP_FAILED' }, { status: 500 })
     }
+
+    // Asked only when a token was sent, and only to widen what that one caller
+    // may read. A bad token is not an error here - it leaves isOwner false and
+    // the published-only rule applies, exactly as it does to somebody who sent
+    // nothing at all.
+    let isOwner = false
+    const authHeader = request.headers.get('authorization')
+    if (profile && authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user } } = await supabase.auth.getUser(token)
+      isOwner = Boolean(user && user.id === profile.user_id)
+    }
+
     // An unpublished profile is indistinguishable from one that does not
     // exist, which is what stops this being a way to test whether a slug is
     // taken.
-    if (!profile || profile.is_published !== true) {
+    if (!profile || (profile.is_published !== true && !isOwner)) {
       return Response.json({ error: 'Profile not found.', code: 'NOT_FOUND' }, { status: 404 })
     }
 

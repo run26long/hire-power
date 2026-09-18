@@ -117,7 +117,7 @@ export async function GET(request, { params }) {
       // their billing, and is nobody else's business on a public page.
       supabase
         .from('profiles')
-        .select('display_name, subscription_tier')
+        .select('display_name, subscription_tier, email')
         .eq('id', profile.user_id)
         .maybeSingle(),
       supabase
@@ -433,6 +433,27 @@ export async function GET(request, { params }) {
     // public page should not tell a visitor what its owner declined to buy.
     const recruiterToolsEnabled = isEntitledTier(personRes.data?.subscription_tier)
 
+    // ---- WHICH ADDRESS THE CONTACT BUTTON OPENS ----
+    //
+    // Three states on one column, and the difference between two of them is
+    // the whole behaviour:
+    //
+    //   null        never set. The account address stands in, so a profile
+    //               somebody has just published can be answered without their
+    //               having found a settings drawer first.
+    //   ''          cleared on purpose. No button. This is the only way to
+    //               switch it off, and it is something the owner has to do.
+    //   an address  the owner's own choice, which wins over both.
+    //
+    // A missing column is a fourth case and is not one of the three: it means
+    // the reduced select above ran and this column was never read, so there is
+    // nothing to fall back from and the button is withheld. Testing for null
+    // rather than for falsiness is what keeps that apart from a cleared field.
+    const storedContact = profile.contact_email
+    const contactEmail = storedContact === null
+      ? (personRes.data?.email || null)
+      : (storedContact || null)
+
     return Response.json({
       isOwner,
       recruiterToolsEnabled,
@@ -455,9 +476,7 @@ export async function GET(request, { params }) {
         // On the reduced select above the column is absent, which reads as
         // undefined and withholds it, which is the right way for this to fail.
         contact_email:
-          (profile.is_published === true || isOwner) && profile.contact_email
-            ? profile.contact_email
-            : null
+          (profile.is_published === true || isOwner) ? contactEmail : null
       },
       person: {
         displayName: personRes.data?.display_name || coreResume?.resume_data?.fullName || null
