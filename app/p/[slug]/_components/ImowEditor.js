@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useProfileEdit, useFieldEditor, useCanEdit } from '../_lib/editContext'
+import useAutoGrow from '../_lib/useAutoGrow'
 import ImowVideoField from './ImowVideoField'
+import ProfileModal from './ProfileModal'
+import { LIMITS } from '@/lib/textLimits'
 
 // ============================================================================
 // IN MY OWN WORDS, EDITED
@@ -18,23 +21,91 @@ import ImowVideoField from './ImowVideoField'
 // whose whole purpose is sounding like the person should never have reached
 // their profile without them reading it first.
 //
-// WHICH IS ALSO WHY REPLACING ASKS
-// A draft overwrites whatever is in the editor. What is stored is untouched
-// either way, and the question says so, because "will this destroy my saved
-// text" is the thing somebody is actually worried about when they click it.
+// ONE AI CONTROL, THREE THINGS TO OFFER
+// There were two buttons here and they were the wrong shape for the decision.
+// Whether you want a draft written or your own words tightened is not a choice
+// anybody makes - it follows entirely from whether there is anything in the
+// box, and from where what is in it came from. So there is one button, and it
+// says which of the three it currently is:
 //
-// STRENGTHEN DOES NOT ASK, BECAUSE IT DOES NOT REPLACE
-// It puts the two versions side by side and waits. Generate writes from the
-// coaching sessions and has to overwrite to do anything at all; this takes
-// what is already in the editor and offers a tighter reading of it, and the
-// only sensible way to offer that is with the original still on screen to
-// compare it against. Keep what I wrote is a real button, not a cancel.
+//   nothing written yet     Generate a draft
+//   the owner's own words   Polish my words
+//   words we just wrote     Show me another version
+//
+// The third is not a fourth behaviour. It repeats whichever of the first two
+// produced the standing text: another draft after a draft, another polish
+// after a polish - and a second polish goes back to what the owner actually
+// wrote rather than polishing our polish, which would drift a little further
+// from them every time it was pressed.
+//
+// TYPING TAKES IT BACK
+// The moment the owner edits an AI version it stops being ours and becomes
+// theirs: the button returns to Polish my words, and their edited text is what
+// the next polish starts from. Nothing here should claim authorship of a
+// sentence somebody has been through by hand.
+//
+// POLISH SHOWS ITS WORK, GENERATE REPLACES
+// A generated draft has nothing to compare against, so it goes straight into
+// the textarea. A polish has the original sitting right there, so it puts the
+// two side by side and waits: Keep what I wrote is a real button, not a
+// cancel. What is stored is untouched by either until Save.
+// THE WRITING CONTROLS BELONG TO THE WRITING
+// They were in the dialog's pinned footer, which said something untrue about
+// them: pinned to the whole surface, they read as the dialog's actions, and
+// the dialog holds two alternatives. Polish my words has nothing to do with
+// the video, and a Save sitting under the upload looks like it saves the
+// upload. They sit inside Write it now, under its own count, above the rule
+// that separates the two halves - and they scroll with it, so a long passage
+// can never push them over the video option or hide it behind them.
+//
+// ON ITS OWN SURFACE, NOT IN THE MIDDLE OF THE PAGE
+// This is the longest editing session on the profile - a paragraph, two AI
+// routes, a comparison and a video upload - and it used to open inline, which
+// made the page several hundred pixels taller the moment a pencil was pressed
+// and pushed the whole of the rest of the profile down. Somebody asking to
+// write two sentences should not move the document. It opens on the shared
+// dialog instead, and the page behind it does not move at all.
 // ============================================================================
 
-const MAX = 2000
+const MAX = LIMITS.imow
 
-// Long enough to hold five sentences without the textarea becoming the page.
-const ROWS = 9
+// The box grows with what is in it and then scrolls, like the headline and the
+// bio - but this one is in a dialog that has to fit on the screen whole, and
+// it shares that screen with the video option below it. So it is shorter than
+// the bio, and it is the part of the dialog that gives way: everything else
+// here is a line or a control and cannot usefully be smaller, while a box of
+// text can lose a couple of rows and scroll instead.
+const MIN_ROWS = 5
+const MAX_ROWS = 9
+
+const PLACEHOLDER =
+  'What should an employer know about you that your r\u00e9sum\u00e9 can\u2019t show? ' +
+  'What sets you apart when the work gets real?'
+
+// One control, three jobs. Keyed by intent for the resting label and by the
+// job actually running for the working one, because "again" runs two different
+// things and both should say so.
+const AI_LABEL = {
+  generate: 'Generate a draft',
+  polish: 'Polish my words',
+  again: 'Show me another version'
+}
+
+const AI_BUSY = {
+  generate: 'Generating\u2026',
+  polish: 'Polishing\u2026',
+  again: 'Creating another version\u2026'
+}
+
+const AI_TITLE = {
+  generate: 'Write a first draft from your coaching sessions',
+  polish: 'Tighten what you have written without changing what it says',
+  again: 'Try this again and see a different version'
+}
+
+// The height before the box has measured itself. useAutoGrow replaces it in
+// the same frame; this is only what the first paint gets.
+const ROWS = MIN_ROWS
 
 export default function ImowEditor({ value }) {
   const edit = useProfileEdit()
@@ -42,8 +113,15 @@ export default function ImowEditor({ value }) {
   const canEdit = useCanEdit()
 
   const [draft, setDraft] = useState(value || '')
-  const [generating, setGenerating] = useState(false)
-  const [strengthening, setStrengthening] = useState(false)
+  // Which AI job is in flight, or null. One at a time by construction: the
+  // button that starts them is the same button for all three.
+  const [running, setRunning] = useState(null)
+  // Where the standing text came from. null means the owner's own - typed,
+  // pasted, stored, or an AI version they have since edited by hand.
+  const [origin, setOrigin] = useState(null)
+  // What a polish was made from, kept so that asking for another one goes back
+  // to the owner's words rather than polishing the last polish.
+  const [polishSource, setPolishSource] = useState(null)
   // The polished version, held beside the draft rather than over it. Non-null
   // is the whole compare state: the textarea stands down and the two readings
   // are shown until one of them is chosen.
@@ -53,6 +131,8 @@ export default function ImowEditor({ value }) {
 
   const isOpen = editor?.isOpen === true
 
+  useAutoGrow(ref, draft, MIN_ROWS, MAX_ROWS, isOpen && !polished, true)
+
   // Also the way back from the compare view: the textarea is unmounted while
   // the two versions are up, so nothing can focus it until React has put it
   // back, and calling focus() from the button handler would reach a ref that
@@ -61,18 +141,12 @@ export default function ImowEditor({ value }) {
     if (!isOpen || polished) return
     const node = ref.current
     if (!node) return
-    node.focus()
+    // preventScroll, because this also runs on the way back from the compare
+    // view and after every AI action, and none of those is a reason to move
+    // the page. The editor is already where the owner is looking.
+    node.focus({ preventScroll: true })
     node.setSelectionRange(node.value.length, node.value.length)
   }, [isOpen, polished])
-
-  useEffect(() => {
-    if (!isOpen) return
-    function onKey(event) {
-      if (event.key === 'Escape') { event.stopPropagation(); editor.close() }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [isOpen, editor])
 
   // Nothing on a locked plan can open this, because the pencil and the
   // empty state are both gone. Guarded here too, so the editor cannot be
@@ -80,35 +154,18 @@ export default function ImowEditor({ value }) {
   if (!editor || !isOpen || !canEdit) return null
 
   const trimmed = draft.trim()
-  const busy = editor.busy || generating || strengthening
+  const busy = Boolean(editor.busy || running)
   // A decision is on screen and has not been made. Nothing that would change
   // the draft underneath it should be reachable while it is.
   const choosing = Boolean(polished)
 
-  async function generate() {
-    if (busy) return
-    // Asked only when there is something to lose, and worded so the answer to
-    // "does this touch what I saved" is in the question.
-    if (trimmed) {
-      const ok = window.confirm(
-        'Replace what is in the editor with a new draft?\n\n' +
-        'Your saved version is not affected until you press Save.'
-      )
-      if (!ok) return
-    }
-    setGenerating(true)
-    setNote(null)
-    try {
-      const result = await edit.onGenerateImow()
-      setDraft(result?.imow_text || '')
-      setNote('A draft, written from your coaching sessions. Read it, change anything, then save.')
-      ref.current?.focus()
-    } catch (err) {
-      notifyFailure(err?.message || "We couldn't write a draft just now. Please try again.")
-    } finally {
-      setGenerating(false)
-    }
-  }
+  // What the one AI control is for at this moment. Derived rather than held,
+  // so it cannot fall out of step with the text it describes.
+  const intent = !trimmed ? 'generate' : (origin ? 'again' : 'polish')
+
+  // Both routes, and an account entitled to use them. Either one missing and
+  // the control would be able to reach a state it cannot carry out.
+  const aiOffered = Boolean(edit.onGenerateImow && edit.onStrengthenImow && editor.canRegenerate)
 
   // The page's toast rather than the note under the textarea. That note is
   // where this editor says what just happened to the draft; a failure is not
@@ -118,40 +175,141 @@ export default function ImowEditor({ value }) {
     else setNote(message)
   }
 
-  async function strengthen() {
-    if (busy || !trimmed) return
-    setStrengthening(true)
+  // Typing makes it theirs again. Which is not only a label change: the next
+  // polish starts from what they have just written rather than from whatever
+  // we handed them before they changed it.
+  function onType(next) {
+    setDraft(next)
+    if (origin) { setOrigin(null); setPolishSource(null) }
+    setNote(null)
+  }
+
+  async function generate(as) {
+    setRunning(as)
     setNote(null)
     try {
-      const result = await edit.onStrengthenImow(trimmed)
+      const result = await edit.onGenerateImow()
+      const next = result?.imow_text || ''
+      if (!next) { notifyFailure("We couldn't write a draft just now. Please try again."); return }
+      setDraft(next)
+      setOrigin('generated')
+      setPolishSource(null)
+      setNote('A draft, written from your coaching sessions. Read it, change anything, then save.')
+    } catch (err) {
+      notifyFailure(err?.message || "We couldn't write a draft just now. Please try again.")
+    } finally {
+      setRunning(null)
+    }
+  }
+
+  // `source` is what gets polished, and it is not always what is on screen:
+  // asking for another version of a polish goes back to the owner's own words.
+  async function polish(source, as) {
+    const from = String(source || '').trim()
+    if (!from) return
+    setRunning(as)
+    setNote(null)
+    try {
+      const result = await edit.onStrengthenImow(from)
       const next = result?.imow_text || ''
       // A polish that comes back identical is a real answer - the passage was
       // already tight - and two identical columns would be a worse way of
       // saying so than a sentence.
-      if (!next || next === trimmed) {
+      if (!next || next === from) {
         setNote('This already reads well. Nothing worth changing.')
         return
       }
+      setPolishSource(from)
       setPolished(next)
     } catch (err) {
       notifyFailure(err?.message || "We couldn't do that just now. Please try again.")
     } finally {
-      setStrengthening(false)
+      setRunning(null)
     }
+  }
+
+  // One handler, because there is one button. Which of the three it is doing
+  // is `intent`, and "again" repeats whichever of the other two produced the
+  // words now on screen.
+  function runAi() {
+    if (busy || choosing) return
+    if (intent === 'generate') return generate('generate')
+    if (intent === 'polish') return polish(trimmed, 'polish')
+    if (origin === 'generated') return generate('again')
+    return polish(polishSource || trimmed, 'again')
   }
 
   function keepPolished() {
     setDraft(polished)
     setPolished(null)
+    setOrigin('polished')
     setNote('Using the tightened version. Change anything, then save.')
   }
 
+  // The draft is untouched, so where it came from is untouched with it: a
+  // polish they declined leaves a generated draft generated, and their own
+  // words their own.
   function keepOriginal() {
     setPolished(null)
   }
 
+  // Unchanged in order and in treatment. Only where it lives has changed.
+  const writeActions = (
+    <div className="hp-ed-editor-bar hp-ed-write-bar">
+      {/* One control, leading the bar and carrying the page's primary
+          treatment: it is the only thing here that does any work, and Save
+          and Cancel are found by people already looking for them. */}
+      {aiOffered ? (
+        <button
+          type="button"
+          className="hp-ed-action"
+          data-primary="true"
+          onClick={runAi}
+          disabled={busy || choosing}
+          data-working={running ? 'true' : undefined}
+          title={AI_TITLE[intent]}
+        >
+          {running ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+          {running ? AI_BUSY[running] : AI_LABEL[intent]}
+        </button>
+      ) : null}
+
+      <button
+        type="button"
+        className="hp-ed-action"
+        onClick={() => editor.save({ imow_text: trimmed })}
+        disabled={!trimmed || trimmed === (value || '').trim() || busy || choosing}
+      >
+        {editor.saving ? 'Saving…' : 'Save'}
+      </button>
+
+      <button type="button" className="hp-ed-action" onClick={editor.close} disabled={busy}>
+        Cancel
+      </button>
+    </div>
+  )
+
   return (
-    <div className="hp-ed-editor" role="group" aria-label="Editing In My Own Words">
+    <ProfileModal
+      open
+      size="fit"
+      title="Tell your story"
+      titleId="hp-ed-modal-imow"
+      portalClass="hp-ed-portal"
+      onClose={editor.close}
+    >
+      {/* Two ways to do the same thing, and until this line was here they read
+          as two unrelated fields stacked on one another: a box to fill in, and
+          an upload underneath it. They are alternatives. The labels on each
+          half say so again at the moment somebody is looking at that half. */}
+      <p className="hp-ed-editor-lede">
+        Some things are better said in your own voice. Write a short
+        note about what sets you apart, or upload a video and speak to potential employers
+        directly.
+      </p>
+
+      <p className="hp-ed-field-label" data-accent="true">Write it</p>
+
       {polished ? (
         <div className="hp-ed-compare">
           <p className="hp-ed-compare-lede">
@@ -162,7 +320,7 @@ export default function ImowEditor({ value }) {
           <div className="hp-ed-compare-pair">
             <section className="hp-ed-compare-side">
               <h4 className="hp-ed-compare-title">What you wrote</h4>
-              <p className="hp-ed-compare-text">{draft}</p>
+              <p className="hp-ed-compare-text">{polishSource || draft}</p>
               <button type="button" className="hp-ed-action" onClick={keepOriginal}>
                 Keep what I wrote
               </button>
@@ -190,66 +348,26 @@ export default function ImowEditor({ value }) {
           rows={ROWS}
           value={draft}
           maxLength={MAX}
-          onChange={e => setDraft(e.target.value)}
+          onChange={e => onType(e.target.value)}
           aria-label="In My Own Words"
-          placeholder="What drives you, what you believe about the work, and what the numbers do not show."
+          placeholder={PLACEHOLDER}
           spellCheck="true"
         />
       )}
 
+      {/* What the section is for comes first, because somebody looking at an
+          empty box needs the reason before the ceiling. The count is last and
+          is the only part of the line that moves. */}
       <p className="hp-ed-proof-note">
-        {trimmed.length} of {MAX} characters.
-        {' '}This is the one part of the profile in your own voice.
+        Give employers the part of the story only you can tell.
+        {' '}{trimmed.length.toLocaleString('en-US')} of {MAX.toLocaleString('en-US')} characters.
       </p>
 
-      {note ? <p className="hp-ed-add-note">{note}</p> : null}
+      {writeActions}
 
-      <div className="hp-ed-editor-bar">
-        <button
-          type="button"
-          className="hp-ed-action"
-          data-primary="true"
-          onClick={() => editor.save({ imow_text: trimmed })}
-          disabled={!trimmed || trimmed === (value || '').trim() || busy || choosing}
-        >
-          {editor.busy ? 'Saving…' : 'Save'}
-        </button>
-
-        <button type="button" className="hp-ed-action" onClick={editor.close} disabled={busy}>
-          Cancel
-        </button>
-
-        {edit.onGenerateImow && editor.canRegenerate ? (
-          <button
-            type="button"
-            className="hp-ed-action"
-            onClick={generate}
-            disabled={busy || choosing}
-            title="Write a first draft from your coaching sessions"
-          >
-            {generating ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
-            {generating ? 'Writing…' : 'Generate draft'}
-          </button>
-        ) : null}
-
-        {/* Only once there is something to strengthen. On an empty editor
-            there is nothing for it to act on, and Generate draft is the
-            button that belongs there instead. */}
-        {edit.onStrengthenImow && editor.canRegenerate && trimmed ? (
-          <button
-            type="button"
-            className="hp-ed-action"
-            onClick={strengthen}
-            disabled={busy || choosing}
-            title="Tighten what you have written without changing what it says"
-          >
-            {strengthening ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
-            {strengthening ? 'Reading…' : 'Strengthen my draft'}
-          </button>
-        ) : null}
-
-        <span className="hp-ed-editor-gap" />
-      </div>
+      {/* Under the controls rather than over them, so the row stays where the
+          count puts it and a message arriving does not move it. */}
+      {note ? <p className="hp-ed-add-note" data-tone="done">{note}</p> : null}
 
       {editor.error ? <p className="hp-ed-editor-error">{editor.error}</p> : null}
 
@@ -257,6 +375,8 @@ export default function ImowEditor({ value }) {
           reason rather than not at all: a control that vanishes never tells
           anybody there is something to upgrade for. */}
       <div className="hp-ed-imow-video">
+        <p className="hp-ed-field-label" data-accent="true">Or record it</p>
+
         {edit.isPro ? <ImowVideoField /> : (
           <button type="button" className="hp-ed-add-choice" disabled title="Video is a Pro feature">
             <span className="hp-ed-add-choice-title">
@@ -264,11 +384,12 @@ export default function ImowEditor({ value }) {
               <span className="hp-ed-pro-tag">Pro</span>
             </span>
             <span className="hp-ed-add-choice-note">
-              Say it to camera instead. Sixteen by nine, up to 50MB, on the same page as the text.
+              Prefer to speak directly to an employer? Upload a short video and let them
+              hear what sets you apart. MP4 or WebM, landscape 16:9, up to 50MB.
             </span>
           </button>
         )}
       </div>
-    </div>
+    </ProfileModal>
   )
 }

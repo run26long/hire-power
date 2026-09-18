@@ -37,7 +37,9 @@ import { createContext, useContext, useMemo } from 'react'
 //                or null when it failed. It writes nothing: the editor stays
 //                open and the text arrives as a draft the owner can keep,
 //                change, or walk away from
-//   busy         the field currently being written, or null
+//   busy         the field currently doing work, or null
+//   busyKind     what that work is: 'save' or 'draft'. The two look the same
+//                to the field and read very differently on a button
 //   error        the last failure, as a sentence, or null
 //   isPro        the account's tier, which is one half of whether
 //                regeneration is offered; the other half is how many
@@ -117,6 +119,11 @@ export function useFieldEditor(field) {
     save: (values) => edit.save(values, field),
     regenerate: () => edit.regenerate(field),
     busy: edit.busy === field,
+    // The two halves of busy, so a control can say what is actually happening
+    // rather than that something is. Save calling itself "Saving…" because a
+    // regeneration was running was a button lying about a database write.
+    saving: edit.busy === field && edit.busyKind === 'save',
+    working: edit.busy === field && edit.busyKind === 'draft',
     // A failure belongs to the field that caused it, not to whichever editor
     // happens to be open when it is read.
     error: edit.busyField === field || edit.errorField === field ? edit.error : null,

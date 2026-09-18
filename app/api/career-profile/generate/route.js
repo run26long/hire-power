@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
 import { normalizeSkillCategories } from '@/lib/resumeText'
+import { LIMITS, clampToLimit } from '@/lib/textLimits'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -10,6 +11,13 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const MODEL = 'claude-haiku-4-5-20251001'
 const TEMPERATURE = 0.4
 const PROOF_POINT_COUNT = 3
+
+// The same ceilings the fields themselves enforce, imported rather than
+// restated. A bio this route returns over the limit is one the owner's own
+// editor will refuse to save, which is a worse outcome than a shorter bio:
+// the button that produced it would be handing them something broken.
+const BIO_MAX = LIMITS.bio
+const HEADLINE_MAX = LIMITS.headline
 
 // The columns a caller may name in `fields`. skill_emphasis is in here because
 // the Skills section reads it, even though nothing hand-edits it yet.
@@ -372,8 +380,8 @@ ${otherBlock}
 
 Return this exact structure:
 {
-  "headline": "A professional headline for this direction, 8 to 15 words, as a pronoun-free professional fragment",
-  "bio": "A polished professional summary, pronoun-free. Maximum 4 sentences. Concise, specific, no filler. Lead with the discipline and the span of experience, follow with the strongest proof, close with the differentiator. No em dashes.",
+  "headline": "A professional headline for this direction, 8 to 15 words and at most ${HEADLINE_MAX} characters, as a pronoun-free professional fragment",
+  "bio": "A polished professional summary, pronoun-free. Maximum 4 sentences and at most ${BIO_MAX} characters. Concise, specific, no filler. Lead with the discipline and the span of experience, follow with the strongest proof, close with the differentiator. No em dashes.",
   "proof_points": [
     {"num": "$10M+", "label": "Boeing engagement value"},
     {"num": "35%", "label": "defect rate reduction"},
@@ -388,6 +396,8 @@ RULES:
 - VOICE, and this one governs everything else. Every field you return here is written WITHOUT PRONOUNS, in the register of a strong professional summary. Two things are therefore banned, not one. No first person: no "I", "me", "my" or "mine". And no outside narration: no "he", no "she", no singular "they", never their name as a narrator, and never "this executive", "this professional" or "the candidate". Write "Manufacturing operations leader with 30 years of experience turning underperforming production floors into accountable organizations. Achieved 100% on-time delivery within 50 days of joining Disruptor Manufacturing." That is the voice: complete sentences that simply do not need a subject pronoun, never truncated telegram style and never a sentence with the pronoun deleted out of it. The profile has exactly one section written in deliberate first person, In My Own Words, and you are not writing it. Nothing another person said is ever restated in this voice.
 - proof_points: exactly ${PROOF_POINT_COUNT}. Each must be a real, verifiable number from the knowledge base or the resume. Never invent a statistic. "num" is short: a number, a percentage, or a dollar figure. "label" says what it measures in under 8 words.
 - If the material does not support a numeric proof point for this direction, use qualitative proof instead, in the same shape: {"num": "10+ years", "label": "leading manufacturing teams"}. A true qualitative point always beats an invented metric.
+- bio: HARD LIMIT. At most ${BIO_MAX} characters, counting spaces and punctuation. This is a ceiling, not a target: the field it goes into will not accept a character over it. Count before answering, and if you are close, cut a clause rather than a sentence so what you return still ends properly.
+- headline: at most ${HEADLINE_MAX} characters, counting spaces, for the same reason.
 - bio: at most 4 sentences, pronoun-free, in professional summary voice. Concise and specific, no filler. Lead with the discipline and the span of experience, follow with the strongest proof, close with the differentiator. No bullet points, no lists. It tells this career through the ${lensName} lens.
 - bio: must not overlap significantly with the bios of their other directions above. Same person, different emphasis. Choose different evidence and a different through line.
 - headline: must differ from the headlines of their other directions above.
@@ -460,6 +470,21 @@ function validateGenerated(parsed, allowedSkills) {
     ready_tags: readyTags,
     skill_emphasis: skillEmphasis
   }
+}
+
+// Which of the two written fields is over its ceiling, as a sentence for the
+// log, or null when both fit. Separate from validateGenerated because the two
+// answer different questions: that one asks whether this is a profile at all,
+// this one asks whether it is one the owner's own fields will accept.
+function overLength(generated) {
+  const problems = []
+  if (generated.headline.length > HEADLINE_MAX) {
+    problems.push('headline ' + generated.headline.length + ' over ' + HEADLINE_MAX)
+  }
+  if (generated.bio.length > BIO_MAX) {
+    problems.push('bio ' + generated.bio.length + ' over ' + BIO_MAX)
+  }
+  return problems.length ? problems.join('; ') : null
 }
 
 // Every skill the profile could render for this direction, keyed for matching
@@ -685,6 +710,9 @@ export async function POST(request) {
 
     // ---- GENERATE ----
     let generated = null
+    // The best of the answers rejected only for being too long, kept so a
+    // second over-long answer does not have to become a failed generation.
+    let overLong = null
     let lastFailure = null
 
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -710,12 +738,37 @@ export async function POST(request) {
       try {
         const validated = validateGenerated(parseGenerated(message.content[0].text), allowedSkills)
         if (validated) {
-          generated = validated
-          break
+          // ---- THE LENGTH THE FIELD WILL ACTUALLY TAKE ----
+          //
+          // Told to the model above, and checked here because being told is
+          // not the same as complying. An over-long answer is not a failed
+          // one - it is a good answer that has to be asked for again, so it
+          // is kept as the fallback and the loop goes round.
+          const over = overLength(validated)
+          if (!over) {
+            generated = validated
+            break
+          }
+          overLong = validated
+          lastFailure = over
+        } else {
+          lastFailure = 'Generated content did not match the expected shape'
         }
-        lastFailure = 'Generated content did not match the expected shape'
       } catch (e) {
         lastFailure = e
+      }
+    }
+
+    // Every attempt came back too long. Rather than fail a generation that is
+    // otherwise good, it is tightened here at the last sentence that fits, so
+    // what reaches the owner ends rather than stops. This is the floor under
+    // the mechanism, not the mechanism: the prompt and the retry above are.
+    if (!generated && overLong) {
+      console.warn('[career-profile] Tightened an over-long generation:', lastFailure)
+      generated = {
+        ...overLong,
+        headline: clampToLimit(overLong.headline, HEADLINE_MAX),
+        bio: clampToLimit(overLong.bio, BIO_MAX)
       }
     }
 

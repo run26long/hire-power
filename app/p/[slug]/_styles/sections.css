@@ -191,9 +191,13 @@
 
 /* Below the label, level with the first line it introduces. Sitting above the
    label made it read as quoting the heading. */
+/* Clear of the lavender rule rather than across it. At -4px the glyph began
+   outside the plane and its stem crossed the 2px rule at the left edge, so
+   the one line that defines this passage appeared to have a mark stuck to
+   it. Eighteen to the right and the two stop touching at every width. */
 .hp-voice-mark-open {
   top: 70px;
-  left: -4px;
+  left: 14px;
   font-size: 100px;
   opacity: 0.16;
 }
@@ -293,7 +297,7 @@
 @media (min-width: 1440px) {
   .hp-voice { padding: 46px 44px 50px 48px; }
   .hp-voice-text { font-size: 24px; }
-  .hp-voice-mark-open { font-size: 132px; top: 80px; left: -6px; }
+  .hp-voice-mark-open { font-size: 132px; top: 80px; left: 12px; }
   .hp-voice-mark-close { font-size: 104px; bottom: -54px; }
 }
 

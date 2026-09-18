@@ -126,7 +126,7 @@ export default function IdentityAct({
             {/* The deck. It belongs to the chosen direction, so it refocuses
                 with the rest and leads the ordered groups. */}
             {headlineEditor?.isOpen ? (
-              <ProseEditor field="headline" label="Headline" value={headline} size="deck" rows={3} />
+              <ProseEditor field="headline" label="Headline" value={headline} size="deck" rows={2} />
             ) : headline ? (
               <p className="hp-act1-deck hp-refocus" data-resolve="positioning">
                 {headline}

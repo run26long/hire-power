@@ -161,8 +161,6 @@ export default function ImowVideoField() {
 
   return (
     <div className="hp-ed-vid">
-      <p className="hp-ed-field-label">Video</p>
-
       {hasVideo && previewUrl ? (
         <video className="hp-ed-vid-preview" src={previewUrl} controls preload="metadata" playsInline />
       ) : hasVideo ? (
@@ -197,8 +195,8 @@ export default function ImowVideoField() {
       </div>
 
       <p className="hp-ed-proof-note">
-        MP4 or WebM, landscape sixteen by nine, up to 50MB. It plays on your profile above the
-        text, and a reader can still read the words if they would rather not watch.
+        Prefer to speak directly to an employer? Upload a short video and let them hear
+        what sets you apart. MP4 or WebM, landscape 16:9, up to 50MB.
       </p>
     </div>
   )

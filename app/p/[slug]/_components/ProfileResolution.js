@@ -3,7 +3,7 @@
 import Reveal from './Reveal'
 import { EditPencil, useEditSlot, UpgradeNote } from './EditAffordance'
 import { TagsEditor } from './EditFields'
-import { useFieldEditor } from '../_lib/editContext'
+import { useFieldEditor, useCanEdit } from '../_lib/editContext'
 
 // ============================================================================
 // The resolution, and the page's footer.
@@ -32,6 +32,7 @@ import { useFieldEditor } from '../_lib/editContext'
 export default function ProfileResolution({ readyTags, location, actions, animate }) {
   const slot = useEditSlot()
   const tagsEditor = useFieldEditor('ready_tags')
+  const canEdit = useCanEdit()
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
@@ -40,11 +41,29 @@ export default function ProfileResolution({ readyTags, location, actions, animat
       <div className="hp-wrap-tight">
         <Reveal enabled={animate}>
           <div className="hp-foot-inner">
-            {tagsEditor?.isOpen ? <TagsEditor value={readyTags} /> : null}
+            {/* Rendered unconditionally and null until it is open. As a dialog
+                it puts nothing in the footer, so the closing line of the page
+                does not rearrange itself the moment somebody presses a
+                pencil. */}
+            <TagsEditor value={readyTags} />
 
-            {hasTags && !tagsEditor?.isOpen && (
+            {hasTags && (
               <p className={`hp-foot-open${slot}`}>
-                <EditPencil field="ready_tags" label="the Open To tags" />
+                {/* Said rather than only implied. The pencil is a hover
+                    affordance on a row of plain text, and on a line that looks
+                    like a statement about the person nobody goes looking for
+                    one. The pill is always there in Edit, names the thing it
+                    opens, and opens the same dialog the pencil does. */}
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="hp-ed-pill hp-ed-pill-action"
+                    onClick={() => tagsEditor?.open()}
+                  >
+                    Edit career focus
+                  </button>
+                )}
+                <EditPencil field="ready_tags" label="the Open To tags" persists />
                 <strong className="hp-foot-open-label">Open to</strong>
                 {readyTags.map((tag, index) => (
                   <span className="hp-open-tag" key={`${tag}-${index}`}>{tag}</span>
@@ -55,7 +74,7 @@ export default function ProfileResolution({ readyTags, location, actions, animat
             {/* Beside the tags rather than inside them: the line is a
                 paragraph and so is the row of tags, and a paragraph cannot
                 contain one. */}
-            {!tagsEditor?.isOpen ? <UpgradeNote feature="ready_tags" /> : null}
+            <UpgradeNote feature="ready_tags" />
 
             {hasLocation && (
               <p className="hp-foot-where">

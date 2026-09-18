@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useRef, useState } from 'react'
 
 import AnswerPills from './AnswerPills'
+import ProfileModal from './ProfileModal'
 
 // ============================================================================
 // THE ANSWER
@@ -17,77 +17,27 @@ import AnswerPills from './AnswerPills'
 // It grows with what it holds and stops at the viewport, after which the body
 // scrolls quietly rather than the surface running off the screen.
 //
+// The surface and everything a dialog has to do - the portal, the focus trap,
+// Escape, the backdrop, the scroll lock, where focus goes afterwards - are
+// ProfileModal's, and this file is what stands in it. That split arrived when
+// the owner's own add-work flows needed the same dialog: two copies of six
+// pieces of behaviour is six chances for one copy to be subtly wrong.
+//
 // The numbered row at the foot is the same one on the card behind this, so
 // moving between answers never means closing anything. Beside it is the way
 // onward: asking again puts the reader back in the form with everything they
 // have already been told still here.
 // ============================================================================
 
-const FOCUSABLE = [
-  'a[href]', 'button:not([disabled])', '[tabindex]:not([tabindex="-1"])'
-].join(',')
-
 export default function AnswerOverlay({
   open, entry, pills, index, remaining, limitReached, onSelect, onAskAnother, onClose
 }) {
-  const surfaceRef = useRef(null)
-  const closeRef = useRef(null)
-  const returnTo = useRef(null)
   const bodyRef = useRef(null)
   const [openSources, setOpenSources] = useState(() => new Set())
-
-  useEffect(() => {
-    if (!open) return
-    returnTo.current = document.activeElement
-    const timer = window.setTimeout(() => closeRef.current?.focus(), 20)
-    return () => {
-      window.clearTimeout(timer)
-      const back = returnTo.current
-      returnTo.current = null
-      if (back && document.contains(back) && typeof back.focus === 'function') back.focus()
-    }
-  }, [open])
 
   // The body scrolls; a new answer starts at its own beginning rather than
   // wherever the reader had scrolled the previous one to.
   useEffect(() => { bodyRef.current?.scrollTo?.(0, 0) }, [index])
-
-  useEffect(() => {
-    if (!open) return
-    const { body, documentElement } = document
-    const gap = window.innerWidth - documentElement.clientWidth
-    const overflow = body.style.overflow
-    const padding = body.style.paddingRight
-    body.style.overflow = 'hidden'
-    if (gap > 0) body.style.paddingRight = `${gap}px`
-    return () => {
-      body.style.overflow = overflow
-      body.style.paddingRight = padding
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (event) => {
-      if (event.key === 'Escape') { event.stopPropagation(); onClose(); return }
-      if (event.key !== 'Tab') return
-      const surface = surfaceRef.current
-      if (!surface) return
-      const stops = [...surface.querySelectorAll(FOCUSABLE)]
-        .filter(el => el.offsetParent !== null || el === closeRef.current)
-      if (!stops.length) return
-      const first = stops[0]
-      const last = stops[stops.length - 1]
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-    }
-    document.addEventListener('keydown', onKey, true)
-    return () => document.removeEventListener('keydown', onKey, true)
-  }, [open, onClose])
-
-  const onBackdrop = useCallback((event) => {
-    if (event.target === event.currentTarget) onClose()
-  }, [onClose])
 
   if (!open || !entry) return null
 
@@ -104,27 +54,37 @@ export default function AnswerOverlay({
     return next
   })
 
-  return createPortal(
-    <div className="hp-rt-backdrop" data-variant="answer" onMouseDown={onBackdrop}>
-      <div
-        className="hp-rt-answer-surface"
-        ref={surfaceRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-      >
-        <header className="hp-rt-answer-head">
-          <div className="hp-rt-answer-heading">
-            <span className="hp-rt-answer-eyebrow">Career Q&amp;A</span>
-            <h2 className="hp-rt-answer-q" id={titleId}>{question}</h2>
-          </div>
-          <button type="button" className="hp-rt-close" ref={closeRef} aria-label="Close" onClick={onClose}>
-            <span aria-hidden="true">×</span>
-          </button>
-        </header>
+  return (
+    <ProfileModal
+      open={open}
+      eyebrow="Career Q&A"
+      title={question}
+      titleId={titleId}
+      onClose={onClose}
+      bodyRef={bodyRef}
+      foot={
+        /* Everything asked so far, and the way to ask one more. Outside the
+           scrolling body so a long answer never pushes it off the surface. */
+        <>
+          <AnswerPills items={pills} index={index} onSelect={onSelect} variant="overlay" />
 
-        <div className="hp-rt-answer-body" ref={bodyRef}>
-          {result.answered ? (
+          {/* At the limit the box behind this is closed for the day, so the
+              way onward would lead nowhere. Every answer already given is
+              still one number away. */}
+          {limitReached ? (
+            <p className="hp-rt-limit">
+              That&apos;s today&apos;s questions. Every answer stays here for this visit.
+            </p>
+          ) : (
+            <button type="button" className="hp-rt-again" onClick={onAskAnother}>
+              Ask another question
+            </button>
+          )}
+        </>
+      }
+    >
+      <>
+        {result.answered ? (
             <>
               <p className="hp-rt-answer-text">{result.answer}</p>
 
@@ -176,33 +136,12 @@ export default function AnswerOverlay({
             </div>
           )}
 
-          {typeof remaining === 'number' ? (
-            <p className="hp-rt-remaining">
-              {remaining} question{remaining === 1 ? '' : 's'} left today
-            </p>
-          ) : null}
-        </div>
-
-        {/* Everything asked so far, and the way to ask one more. Outside the
-            scrolling body so a long answer never pushes it off the surface. */}
-        <footer className="hp-rt-answer-foot">
-          <AnswerPills items={pills} index={index} onSelect={onSelect} variant="overlay" />
-
-          {/* At the limit the box behind this is closed for the day, so the
-              way onward would lead nowhere. Every answer already given is
-              still one number away. */}
-          {limitReached ? (
-            <p className="hp-rt-limit">
-              That&apos;s today&apos;s questions. Every answer stays here for this visit.
-            </p>
-          ) : (
-            <button type="button" className="hp-rt-again" onClick={onAskAnother}>
-              Ask another question
-            </button>
-          )}
-        </footer>
-      </div>
-    </div>,
-    document.body
+        {typeof remaining === 'number' ? (
+          <p className="hp-rt-remaining">
+            {remaining} question{remaining === 1 ? '' : 's'} left today
+          </p>
+        ) : null}
+      </>
+    </ProfileModal>
   )
 }

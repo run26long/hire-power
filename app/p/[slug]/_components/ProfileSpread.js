@@ -109,7 +109,7 @@ export default function ProfileSpread({
             {/* The whole stored string. The page splits it into a lead
                 sentence and the detail under it for display only; editing the
                 halves would mean writing back something nobody typed. */}
-            <ProseEditor field="bio" label="Bio" value={bio} rows={12} />
+            <ProseEditor field="bio" label="Bio" value={bio} rows={6} />
           </div>
         ) : null}
 
@@ -164,27 +164,25 @@ export default function ProfileSpread({
                 onAction={() => bioEditor?.open()}
               >
                 This is the career story someone can understand in under a
-                minute. Hire Power has started it from your résumé and coaching.
+                minute. We have started it from your résumé and coaching.
                 Review it, sharpen it, and make sure it sounds like you.
               </SlotGuide>
             </div>
           </div>
         )}
 
-        {imowEditor?.isOpen ? (
-          <div data-resolve="voice">
-            <span className="hp-eyebrow">In my own words</span>
-            <ImowEditor value={imowText} />
-          </div>
-        ) : null}
+        {/* Rendered unconditionally and null until it is open. It is a dialog
+            now, so it inserts nothing into the document and the card below
+            stays exactly where it was while somebody is writing. */}
+        <ImowEditor value={imowText} />
 
-        {hasVoice && !imowEditor?.isOpen && (
+        {hasVoice && (
           <figure
             className={`hp-voice hp-refocus${slot}`}
             data-resolve="voice"
             data-video={hasVideo ? 'true' : undefined}
           >
-            <EditPencil field="imow" label="In My Own Words" />
+            <EditPencil field="imow" label="In My Own Words" persists />
             <UpgradeNote feature="imow" />
 
             {/* The quotation marks are for a quotation. Behind a video frame
@@ -219,7 +217,7 @@ export default function ProfileSpread({
             same rule down its edge, the same quotation marks and the same
             eyebrow the populated card carries, so this side of the spread
             keeps the weight it will have rather than becoming a rectangle. */}
-        {!hasVoice && canShowEmpty && !imowEditor?.isOpen && (
+        {!hasVoice && canShowEmpty && (
           <div data-resolve="voice">
             {/* The real voice card, with the invitation where the words go.
                 Same figure, same wash, same rule down its edge, same quotation
@@ -241,9 +239,9 @@ export default function ProfileSpread({
 
               <p className="hp-ed-voice-note">
                 This is your chance to make an impression and show a potential
-                employer what sets you apart from other candidates. Use Hire
-                Power&rsquo;s suggestion as written, write your own version and let
-                us polish it, or upload a video and let them hear from you.
+                employer what sets you apart from other candidates. Use our
+                suggestion as written, write your own version and let us polish
+                it, or upload a video and let them hear from you.
               </p>
 
               <GuideAction label="Tell your story" feature="imow" onAction={() => imowEditor?.open()} />

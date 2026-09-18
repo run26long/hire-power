@@ -34,6 +34,37 @@
    meeting with the seam showing, and it is most of why this page read as a
    dashboard with a profile pasted underneath. */
 .hp-ed {
+  /* ---- Status, in the platform's own colours --------------------------
+     Not new values and not this page's own: these are the four the rest of
+     Hire Power already uses. #e57373 and #81c784 are what ErrorToast and
+     SuccessToast are built from, #ffc870 is DOT_AMBER from the interview
+     score bands, and #c4b5fd is the Profile's own soft accent.
+
+     The Career Profile had grown five reds of its own - #fca5a5, #b91c1c,
+     #dc2626, two rgb() variants - plus a #047857 green and a #f4c152 gold
+     that existed nowhere else in the product. An owner could see two
+     different reds at once: the toast's and the message that produced it.
+
+     Each state is an ink, a ground and an edge from the same colour, so a
+     box and a bare line of text are recognisably the same state. Contrast
+     on this page's surfaces: error 6.3:1, warning 12.2:1, success 9.3:1,
+     informational 10.1:1 - all clear AA for normal text. */
+  --ed-error-ink: #e57373;
+  --ed-error-ground: rgb(229 115 115 / 0.12);
+  --ed-error-edge: rgb(229 115 115 / 0.34);
+
+  --ed-warn-ink: #ffc870;
+  --ed-warn-ground: rgb(255 200 112 / 0.12);
+  --ed-warn-edge: rgb(255 200 112 / 0.32);
+
+  --ed-ok-ink: #81c784;
+  --ed-ok-ground: rgb(129 199 132 / 0.12);
+  --ed-ok-edge: rgb(129 199 132 / 0.32);
+
+  --ed-info-ink: #c4b5fd;
+  --ed-info-ground: rgb(196 181 253 / 0.12);
+  --ed-info-edge: rgb(196 181 253 / 0.3);
+
   --ed-ink: var(--profile-text);
   --ed-body: var(--profile-body);
   --ed-muted: var(--profile-meta);
@@ -601,7 +632,11 @@ html:has(.hp-ed) {
 
 .hp-ed-action:disabled {
   opacity: 0.45;
-  cursor: not-allowed;
+  /* Not not-allowed. Nearly everything disabled on this page is disabled for a
+     second while something finishes, or because a field is still empty - both
+     of which are "not yet", and neither of which is "you may not". The dimmed
+     control already says it cannot be pressed. */
+  cursor: default;
 }
 
 .hp-ed-action:disabled:hover {
@@ -620,14 +655,19 @@ html:has(.hp-ed) {
   color: #a5a5b4;
 }
 
-.hp-ed-hint[data-ok="true"] { color: #047857; font-weight: 600; }
-.hp-ed-hint[data-bad="true"] { color: #b45309; }
+/* #047857 was green-800 on a dark drawer: 3.4:1, under AA. The platform's
+   own success green reads at 9.3:1 here. */
+.hp-ed-hint[data-ok="true"] { color: var(--ed-ok-ink); font-weight: 600; }
+/* Amber-700 on a dark drawer, which was both off-palette and barely legible.
+   A slug that cannot be used is invalid, not a caution. */
+.hp-ed-hint[data-bad="true"] { color: var(--ed-error-ink); }
 
+/* red-700 on a near-black drawer was 2.9:1 and effectively unreadable. */
 .hp-ed-error {
   margin: 8px 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: #b91c1c;
+  color: var(--ed-error-ink);
 }
 
 /* The publish switch. The one control here whose two states have genuinely
@@ -686,7 +726,7 @@ html:has(.hp-ed) {
    are here to prove placement against the real layout before any of them can
    change a record. */
 
-.hp-profile .hp-ed-pencil {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-pencil {
   appearance: none;
   position: absolute;
   top: 0;
@@ -703,13 +743,22 @@ html:has(.hp-ed) {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: rgb(var(--profile-accent-rgb) / 0.92);
-  cursor: not-allowed;
+  /* This said not-allowed, from when every affordance here was a drawing of a
+     control rather than one. A live pencil that shows the prohibition cursor
+     tells the owner the thing they are about to click is refused, and they
+     believe it: the cursor is the only part of a button that answers before
+     the click. */
+  cursor: pointer;
   opacity: 0;
   transition: opacity 160ms ease, border-color 160ms ease;
 }
 
+/* A pencil that genuinely cannot act - a field whose editor has not been built
+   - says so by doing nothing, not by shouting. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-pencil:disabled { cursor: default; }
+
 .hp-ed-slot { position: relative; }
-.hp-profile .hp-ed-slot:hover > .hp-ed-pencil,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-slot:hover > .hp-ed-pencil,
 .hp-ed-pencil:focus-visible { opacity: 1; }
 
 /* Touch has no hover, so the affordance has to be standing. */
@@ -831,7 +880,7 @@ html:has(.hp-ed) {
    The palette is the document's, not the chrome's. A white form dropped into
    the middle of a dark page would read as a different application. */
 
-.hp-profile .hp-ed-editor {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor {
   position: relative;
   z-index: 4;
   display: block;
@@ -845,7 +894,83 @@ html:has(.hp-ed) {
   text-align: left;
 }
 
-.hp-profile .hp-ed-textarea {
+/* The boxes that size themselves hide their bar until there is something to
+   scroll; the height itself is written by the component, because nothing in a
+   stylesheet can measure text. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-textarea[data-grow="true"] {
+  overflow-y: hidden;
+}
+
+/* ---- Scrollbars, on everything of the owner's that scrolls -------------
+   A field that scrolls inside itself gets the platform's bar by default, and
+   the platform's bar is a wide light column that belongs to a different piece
+   of software. This is the treatment the recruiter tools already established -
+   thin, dark, lavender, and still visible, because hiding it entirely takes
+   away the only sign that there is more to read.
+
+   Scoped to the management shell and to the dialog, and to elements inside
+   them. The window's own scrollbar is the browser's and is left alone, and so
+   is every one of these selectors on the public page. */
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-compare-text,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-manager,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-mrows,
+:is(.hp-ed, .hp-ed-portal) select.hp-ed-input,
+.hp-ed-portal .hp-rt-answer-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--profile-accent-rgb) / 0.42) transparent;
+}
+
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea::-webkit-scrollbar,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-compare-text::-webkit-scrollbar,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-manager::-webkit-scrollbar,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-mrows::-webkit-scrollbar,
+:is(.hp-ed, .hp-ed-portal) select.hp-ed-input::-webkit-scrollbar,
+.hp-ed-portal .hp-rt-answer-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea::-webkit-scrollbar-track,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-compare-text::-webkit-scrollbar-track,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-manager::-webkit-scrollbar-track,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-mrows::-webkit-scrollbar-track,
+:is(.hp-ed, .hp-ed-portal) select.hp-ed-input::-webkit-scrollbar-track,
+.hp-ed-portal .hp-rt-answer-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea::-webkit-scrollbar-thumb,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-compare-text::-webkit-scrollbar-thumb,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-manager::-webkit-scrollbar-thumb,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-mrows::-webkit-scrollbar-thumb,
+:is(.hp-ed, .hp-ed-portal) select.hp-ed-input::-webkit-scrollbar-thumb,
+.hp-ed-portal .hp-rt-answer-body::-webkit-scrollbar-thumb {
+  background: rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 3px;
+}
+
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea::-webkit-scrollbar-thumb:hover,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-compare-text::-webkit-scrollbar-thumb:hover,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-manager::-webkit-scrollbar-thumb:hover,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-mrows::-webkit-scrollbar-thumb:hover,
+:is(.hp-ed, .hp-ed-portal) select.hp-ed-input::-webkit-scrollbar-thumb:hover,
+.hp-ed-portal .hp-rt-answer-body::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--profile-accent-rgb) / 0.6);
+}
+
+/* No arrow buttons at either end, and no light gutter in the corner. */
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea::-webkit-scrollbar-button,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-compare-text::-webkit-scrollbar-button,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-manager::-webkit-scrollbar-button,
+:is(.hp-ed, .hp-ed-portal) .hp-ed-mrows::-webkit-scrollbar-button,
+:is(.hp-ed, .hp-ed-portal) select.hp-ed-input::-webkit-scrollbar-button,
+.hp-ed-portal .hp-rt-answer-body::-webkit-scrollbar-button { display: none; height: 0; }
+
+:is(.hp-ed, .hp-ed-portal) .hp-ed-textarea::-webkit-scrollbar-corner,
+.hp-ed-portal .hp-rt-answer-body::-webkit-scrollbar-corner { background: transparent; }
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-textarea {
   display: block;
   width: 100%;
   font: inherit;
@@ -854,30 +979,35 @@ html:has(.hp-ed) {
   border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: 8px;
   padding: 10px 12px;
-  resize: vertical;
+  /* No drag handle on any of the owner's fields. Every one of them is either
+     sized to its own content or given a deliberate height, and both are
+     answers the box already has; a handle only offers a way to make it
+     wrong. Declared here rather than in a rule of its own further up, where
+     it lost to this one on document order at equal specificity. */
+  resize: none;
   line-height: 1.5;
 }
 
 /* The headline is edited at headline size, because somebody writing one needs
    to see where it breaks. */
-.hp-profile .hp-ed-textarea[data-size="deck"] {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-textarea[data-size="deck"] {
   font-family: var(--profile-font-display, inherit);
   font-size: clamp(19px, 2.1vw, 27px);
   line-height: 1.24;
   letter-spacing: -0.012em;
 }
 
-.hp-profile .hp-ed-textarea[data-size="body"] {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-textarea[data-size="body"] {
   font-size: 14.5px;
 }
 
-.hp-profile .hp-ed-textarea:focus-visible {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-textarea:focus-visible {
   outline: 2px solid rgb(var(--profile-accent-rgb) / 0.75);
   outline-offset: 1px;
   border-color: transparent;
 }
 
-.hp-profile .hp-ed-input {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-input {
   font: inherit;
   font-size: 13.5px;
   color: var(--profile-text);
@@ -888,15 +1018,15 @@ html:has(.hp-ed) {
   min-width: 0;
 }
 
-.hp-profile .hp-ed-input::placeholder { color: rgb(255 255 255 / 0.3); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-input::placeholder { color: rgb(255 255 255 / 0.3); }
 
-.hp-profile .hp-ed-input:focus-visible {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-input:focus-visible {
   outline: 2px solid rgb(var(--profile-accent-rgb) / 0.75);
   outline-offset: 1px;
   border-color: transparent;
 }
 
-.hp-profile .hp-ed-editor-bar {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-bar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -930,7 +1060,7 @@ html:has(.hp-ed) {
 }
 
 /* The chrome's action button, restated on the document's ground. */
-.hp-profile .hp-ed-action {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action {
   appearance: none;
   font: inherit;
   font-size: 12.5px;
@@ -945,7 +1075,16 @@ html:has(.hp-ed) {
   transition: background 140ms ease, border-color 140ms ease;
 }
 
-.hp-profile .hp-ed-action:hover:not(:disabled) {
+/* A control in the middle of doing something. It keeps its full strength
+   rather than dimming to the ordinary disabled weight, because it is not
+   unavailable - it is the thing currently happening. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-working="true"],
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-working="true"]:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action:hover:not(:disabled) {
   background: rgb(255 255 255 / 0.1);
   border-color: rgb(255 255 255 / 0.26);
 }
@@ -954,29 +1093,102 @@ html:has(.hp-ed) {
    This rule used to set a flat accent wash, so every primary action inside the
    document - Request a new testimonial, Tell your story, Add to portfolio, Add
    evidence, Save - came out lighter and flatter than the one in the toolbar. */
-.hp-profile .hp-ed-action[data-primary="true"] {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"] {
   background: linear-gradient(135deg, var(--profile-action) 0%, var(--profile-action-deep) 100%);
   border-color: transparent;
   color: #fff;
 }
 
-.hp-profile .hp-ed-action[data-primary="true"]:hover:not(:disabled) {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"]:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--profile-action-lift) 0%, var(--profile-action) 100%);
 }
 
-.hp-profile .hp-ed-action:disabled { opacity: 0.4; cursor: not-allowed; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action:disabled { opacity: 0.4; cursor: default; }
 
 .hp-ed-editor-error {
   margin: 9px 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: #fca5a5;
+  color: var(--ed-error-ink);
+}
+
+/* The row under a field: what you may do with what is in it, and how much of
+   the room it is using. One line at any width that can hold one, two stacked
+   lines where it cannot, and the count never above the sentence - it is the
+   smaller fact. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-helper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 16px;
+  margin: 8px 0 0;
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--profile-meta);
+}
+
+/* Said under the field when what is stored is longer than what may be saved.
+
+   This was amber, on the reasoning that nothing had failed. Amber is not in
+   this page's vocabulary: the only two coloured states the management UI
+   has are the lavender it uses for everything of its own and the rose its
+   error toast already uses, and a third colour arriving for one sentence
+   read as a browser warning pasted onto the Profile. It takes the toast
+   treatment instead - the same plum ground, the same rose edge - so the
+   page says "there is something to do here" in one voice. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-note {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ed-error-ink);
+  background: var(--ed-error-ground);
+  border: 1px solid var(--ed-error-edge);
+}
+
+/* The count when the field is over. The same line, saying the same true
+   number, in the colour of the note underneath it. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-count[data-over="true"] {
+  color: var(--ed-error-ink);
+  font-weight: 600;
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-count {
+  margin: 0;
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--profile-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-editor-helper { gap: 4px; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-editor-hint,
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-editor-count { flex: 1 1 100%; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-editor-count { margin-left: 0; }
+}
+
+/* The lede over the two halves of In My Own Words. A sentence, so it is set at
+   reading size rather than at the size of the remarks under the fields. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-editor-lede {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--profile-body);
 }
 
 
 /* ---- Open To ---- */
 
-.hp-profile .hp-ed-tags {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -985,7 +1197,7 @@ html:has(.hp-ed) {
   list-style: none;
 }
 
-.hp-profile .hp-ed-tag {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -1002,8 +1214,8 @@ html:has(.hp-ed) {
   white-space: nowrap;
 }
 
-.hp-profile .hp-ed-tag-move,
-.hp-profile .hp-ed-tag-drop {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-move,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-drop {
   appearance: none;
   border: 0;
   background: none;
@@ -1021,14 +1233,14 @@ html:has(.hp-ed) {
   padding: 0;
 }
 
-.hp-profile .hp-ed-tag-move:hover:not(:disabled),
-.hp-profile .hp-ed-tag-drop:hover {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-move:hover:not(:disabled),
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-drop:hover {
   background: rgb(255 255 255 / 0.1);
   color: var(--profile-text);
 }
 
-.hp-profile .hp-ed-tag-move:disabled { opacity: 0.25; cursor: default; }
-.hp-profile .hp-ed-tag-drop { color: rgb(252 165 165 / 0.75); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-move:disabled { opacity: 0.25; cursor: default; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-drop { color: rgb(252 165 165 / 0.75); }
 
 .hp-ed-tags-none {
   font-size: 12.5px;
@@ -1057,7 +1269,7 @@ html:has(.hp-ed) {
   max-width: 720px;
 }
 
-.hp-profile .hp-ed-proofs {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-proofs {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1066,7 +1278,7 @@ html:has(.hp-ed) {
   gap: 8px;
 }
 
-.hp-profile .hp-ed-proof {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-proof {
   display: grid;
   grid-template-columns: 46px 96px minmax(0, 1fr) auto;
   align-items: center;
@@ -1090,7 +1302,7 @@ html:has(.hp-ed) {
 }
 
 @media (max-width: 640px) {
-  .hp-profile .hp-ed-proof {
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-proof {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "rank moves"
@@ -1100,8 +1312,8 @@ html:has(.hp-ed) {
   }
   .hp-ed-proof-rank { grid-area: rank; }
   .hp-ed-proof-moves { grid-area: moves; justify-self: end; }
-  .hp-profile .hp-ed-proof-num { grid-area: num; }
-  .hp-profile .hp-ed-proof-label { grid-area: label; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-proof-num { grid-area: num; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-proof-label { grid-area: label; }
 }
 
 
@@ -1109,13 +1321,191 @@ html:has(.hp-ed) {
    Under the collection rather than over it. The section is about the work,
    and the way to add more belongs after what is already there. */
 
+/* The dialog renders onto document.body, outside .hp-ed, so the tokens it
+   uses have to be declared on it as well as on the shell. */
+.hp-ed-portal {
+  --ed-error-ink: #e57373;
+  --ed-error-ground: rgb(229 115 115 / 0.12);
+  --ed-error-edge: rgb(229 115 115 / 0.34);
+
+  --ed-warn-ink: #ffc870;
+  --ed-warn-ground: rgb(255 200 112 / 0.12);
+  --ed-warn-edge: rgb(255 200 112 / 0.32);
+
+  --ed-ok-ink: #81c784;
+  --ed-ok-ground: rgb(129 199 132 / 0.12);
+  --ed-ok-edge: rgb(129 199 132 / 0.32);
+
+  --ed-info-ink: #c4b5fd;
+  --ed-info-ground: rgb(196 181 253 / 0.12);
+  --ed-info-edge: rgb(196 181 253 / 0.3);
+}
+
+/* ---- No prohibition cursors anywhere on this page --------------------- */
+/*
+   The document this page renders is the public Profile, and the public
+   stylesheets still put not-allowed on their own disabled controls: the two
+   header actions, the footer's resume button, the owner's section controls and
+   the three recruiter-tool buttons. Every one of those is disabled for a
+   reason that is "not yet" rather than "you may not" - nothing chosen, nothing
+   to download, a request still in flight.
+
+   Overridden here rather than at source, because those rules are the approved
+   public Profile's and this stylesheet is loaded by the management page alone.
+   The public page keeps exactly the behaviour it was signed off with; the
+   owner's copy of it stops telling them they are forbidden from their own
+   controls. .hp-ed is the management shell and .hp-ed-portal the dialog, which
+   is portalled outside it.
+*/
+:is(.hp-ed, .hp-ed-portal) .hp-btn:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-action:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-owner-action:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-chip:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-go:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-again:disabled {
+  cursor: default;
+}
+
+/* ---- The owner's flows, on the Profile's own dialog ------------------- */
+/*
+   Adding a piece of work opens the surface the Career Q&A answer established,
+   through ProfileModal. Everything that makes it look like a dialog - the
+   backdrop and its blur, the eggplant surface, the hair of lavender round it,
+   the glow, the radius, the pinned head and foot - is in the Profile's own
+   stylesheet and is not restated here. What follows is only what is different
+   about a form standing in it instead of an answer.
+
+   The portal renders onto document.body, outside .hp-profile, so nothing
+   scoped to the Profile reaches it by descent. Every control the editor styles
+   is therefore scoped to .hp-profile OR .hp-ed-portal, and the dialog carries
+   the second class. That is one selector list, not a second stylesheet.
+*/
+
+/* One short question does not need a form's width. The shell's own width is
+   680 and stays that for the forms; this is the step that is a single card and
+   two lines, which at 680 was mostly empty dialog. Height is untouched: the
+   surface has no minimum, so it has always taken the height of what it holds. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="compact"] {
+  width: min(100%, 640px);
+}
+
+/* One choice is not a row of choices. auto-fit lays out as many 230px tracks
+   as the body will hold and puts the single card in the first of them, which
+   left it sitting at under half the width with nothing beside it. The
+   evidence chooser keeps the auto-fit rule, because it genuinely has two. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="compact"] .hp-ed-add-choices {
+  grid-template-columns: 1fr;
+}
+
+/* The three buttons of an editor bar, in a dialog footer. Left, because the
+   order is the order of the decision and the thing most people want is first;
+   the add-work flows put their primary on the right because theirs is last. */
+.hp-ed-portal .hp-ed-foot-left { flex-wrap: wrap; gap: 8px; }
+
+/* In My Own Words keeps its controls inside the half they belong to rather
+   than in the dialog footer, so they scroll with the writing and can never
+   end up sitting over the video option below. */
+.hp-ed-portal .hp-ed-write-bar { margin-top: 10px; }
+
+/* ---- A dialog that fits rather than one that scrolls ------------------ */
+/*
+   Tell your story holds two alternatives, and the second of them was below
+   the fold: the dialog took its 84vh and put a scrollbar down the side, so
+   the video option existed only for somebody who thought to scroll a modal.
+   A dialog with a way out at the bottom can scroll; one offering a choice
+   should show both halves of it.
+
+   So the body does not scroll, and the box of text is the part that gives
+   way. Everything else in here is a line or a control at its natural size;
+   the textarea can lose a row or two and scroll inside itself, which is
+   what `flex: 0 1 auto` with `min-height: 0` says. It never grows past the
+   height useAutoGrow writes - only shrinks below it when the screen is
+   short. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > * {
+  flex: 0 0 auto;
+}
+
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-textarea,
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-compare {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* The comparison is two columns of prose and can be long. It scrolls inside
+   itself for the same reason the box it replaces does. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-compare {
+  overflow-y: auto;
+}
+
+/* The shared title is sized for a reader's question. These are dialog titles
+   and take the weight the rest of this editor gives a heading. */
+.hp-ed-portal .hp-rt-answer-q {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Back on one side, the way out and the way on together on the other. The foot
+   itself is already space-between, so two groups are all this needs. */
+.hp-ed-foot-left,
+.hp-ed-foot-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hp-ed-foot-right { margin-left: auto; }
+
+/* Fields in a dialog stand closer together than fields laid over a document:
+   there is a frame around them saying where the form begins and ends, so they
+   do not each have to say it. */
+/* In a dialog the small uppercase labels are the only thing holding the form
+   together, and at 42 percent white they were quieter than the placeholder
+   text they sat above. The accent is the page's own and is already what every
+   other eyebrow on this profile is set in, so this is the existing hierarchy
+   applied rather than a new colour introduced.
+
+   Deliberately scoped. The same class names the testimonial manager, which is
+   not this pass's to restyle. */
+/* The soft accent rather than the accent itself. These are eight or nine
+   small uppercase labels stacked down a form, and at that size and weight
+   #a78bfa carried more colour than a label needs - the form read as a list
+   of purple headings with the answers between them. The lighter step still
+   reads as the same family beside the dialog's white title and grey helper
+   lines. The Profile's own section eyebrows are unaffected: they are
+   .hp-eyebrow and .hp-label, and neither is touched here. */
+.hp-ed-portal .hp-ed-field-label,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-field-label[data-accent="true"] {
+  color: var(--ed-info-ink);
+}
+
+.hp-ed-portal .hp-ed-field-label { margin-top: 14px; }
+.hp-ed-portal .hp-ed-field-label:first-child { margin-top: 0; }
+
+.hp-ed-portal .hp-ed-add-grid { margin-top: 2px; }
+
+/* The dialog takes the width it is given on a phone, with an ordinary margin
+   round it, and its body scrolls rather than the surface running off screen.
+   Both of those are the shared shell's own rules; this only asks for the
+   margin, which the shell states per variant. */
+@media (max-width: 720px) {
+  .hp-rt-backdrop.hp-ed-portal { padding: 12px; }
+  .hp-ed-portal .hp-ed-add-choices { grid-template-columns: 1fr; }
+}
+
 .hp-ed-add-row {
   display: flex;
   justify-content: center;
   margin-top: 26px;
 }
 
-.hp-profile .hp-ed-add {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add {
   max-width: 680px;
   margin-inline: auto;
   margin-top: 26px;
@@ -1134,7 +1524,7 @@ html:has(.hp-ed) {
   gap: 10px;
 }
 
-.hp-profile .hp-ed-add-choice {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add-choice {
   appearance: none;
   display: flex;
   flex-direction: column;
@@ -1149,12 +1539,12 @@ html:has(.hp-ed) {
   transition: border-color 150ms ease, background 150ms ease;
 }
 
-.hp-profile .hp-ed-add-choice:hover:not(:disabled) {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add-choice:hover:not(:disabled) {
   border-color: rgb(var(--profile-accent-rgb) / 0.5);
   background: rgb(var(--profile-accent-rgb) / 0.08);
 }
 
-.hp-profile .hp-ed-add-choice:disabled { opacity: 0.42; cursor: not-allowed; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add-choice:disabled { opacity: 0.42; cursor: default; }
 
 .hp-ed-add-choice-title {
   font-size: 13.5px;
@@ -1169,32 +1559,33 @@ html:has(.hp-ed) {
 }
 
 /* Said once, above the form, when the page would not give up its own title. */
-/* The default is amber, because most of these notes report that something
-   did not go to plan: a link that would not read, a save that half worked. */
+/* The default reports that something did not go entirely to plan: a link
+   that would not read, a save that half worked. Neither is a failure - the
+   work is still being added - so it is the caution colour rather than the
+   error one. */
 .hp-ed-add-note {
   margin: 0 0 12px;
   padding: 8px 10px;
   border-radius: 7px;
   font-size: 12px;
   line-height: 1.45;
-  color: #fcd9a5;
-  background: rgb(180 83 9 / 0.16);
-  border: 1px solid rgb(180 83 9 / 0.3);
+  color: var(--ed-warn-ink);
+  background: var(--ed-warn-ground);
+  border: 1px solid var(--ed-warn-edge);
 }
 
-/* ...and this is the one that reports something went right. Amber on a
-   confirmation reads as a warning about the thing that just succeeded, so it
-   takes the page's own lavender instead: the accent wash for the ground, the
-   accent edge for the rule, and the soft accent for the words. All three are
-   existing tokens, so this stays in step with the rest of the profile rather
-   than introducing a fourth colour nobody else uses.
+/* ...and this is the one that reports something went right, or simply what
+   just happened. An alert on a confirmation is a warning about the thing
+   that succeeded, so it takes the page's own lavender instead: the accent
+   wash for the ground, the accent edge for the rule, and the soft accent for
+   the words. All three are existing tokens.
 
    The soft accent on the wash is 8.4:1 against the surface underneath, which
    clears AAA for text at this size. */
 .hp-ed-add-note[data-tone="done"] {
-  color: var(--profile-accent-soft);
-  background: var(--profile-accent-wash-strong);
-  border-color: var(--profile-accent-edge);
+  color: var(--ed-info-ink);
+  background: var(--ed-info-ground);
+  border-color: var(--ed-info-edge);
 }
 
 /* ---- Two readings of the same passage ---------------------------------- */
@@ -1213,28 +1604,28 @@ html:has(.hp-ed) {
    asking the viewport how much room there is gives the wrong answer at every
    width: at 1440 the columns went side by side in 510px and read as two
    gutters. The panel measures itself instead. */
-.hp-profile .hp-ed-compare {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare {
   margin-bottom: 12px;
   container-type: inline-size;
 }
 
-.hp-profile .hp-ed-compare-lede {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-lede {
   margin: 0 0 10px;
   font-size: 12px;
   line-height: 1.45;
   color: var(--profile-meta);
 }
 
-.hp-profile .hp-ed-compare-pair {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-pair {
   display: grid;
   gap: 12px;
 }
 
 @container (min-width: 660px) {
-  .hp-profile .hp-ed-compare-pair { grid-template-columns: 1fr 1fr; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-compare-pair { grid-template-columns: 1fr 1fr; }
 }
 
-.hp-profile .hp-ed-compare-side {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-side {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1245,12 +1636,12 @@ html:has(.hp-ed) {
   background: rgb(0 0 0 / 0.22);
 }
 
-.hp-profile .hp-ed-compare-side[data-suggested="true"] {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-side[data-suggested="true"] {
   border-color: var(--profile-accent-edge);
   background: var(--profile-accent-wash);
 }
 
-.hp-profile .hp-ed-compare-title {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-title {
   margin: 0;
   font-size: 10.5px;
   font-weight: 700;
@@ -1259,14 +1650,14 @@ html:has(.hp-ed) {
   color: var(--profile-meta);
 }
 
-.hp-profile .hp-ed-compare-side[data-suggested="true"] .hp-ed-compare-title {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-side[data-suggested="true"] .hp-ed-compare-title {
   color: var(--profile-accent-soft);
 }
 
 /* The passages are the point, so they are set at reading size and keep the
    line breaks the person typed. `flex: 1` on the text is what keeps the two
    buttons level when one version is a line shorter than the other. */
-.hp-profile .hp-ed-compare-text {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-compare-text {
   flex: 1 1 auto;
   margin: 0;
   font-size: 13.5px;
@@ -1285,7 +1676,7 @@ html:has(.hp-ed) {
   color: rgb(255 255 255 / 0.42);
 }
 
-.hp-profile .hp-ed-block { display: block; width: 100%; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-block { display: block; width: 100%; }
 
 .hp-ed-add-grid {
   display: grid;
@@ -1320,7 +1711,7 @@ html:has(.hp-ed) {
   color: rgb(255 255 255 / 0.45);
 }
 
-.hp-profile .hp-ed-lens-picks {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-lens-picks {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1362,7 +1753,7 @@ html:has(.hp-ed) {
 .hp-profile select.hp-ed-input option { background: #14101f; color: #f4f2f8; }
 
 /* The handle on a reorderable tile. Same inert treatment. */
-.hp-profile .hp-ed-grip {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-grip {
   appearance: none;
   position: absolute;
   top: 8px;
@@ -1379,14 +1770,16 @@ html:has(.hp-ed) {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: rgb(var(--profile-accent-rgb) / 0.88);
-  cursor: not-allowed;
+  cursor: pointer;
   opacity: 0;
   transition: opacity 160ms ease;
 }
 
+:is(.hp-profile, .hp-ed-portal) .hp-ed-grip:disabled { cursor: default; }
+
 .hp-ed-grip svg { width: 13px; height: 13px; }
 
-.hp-profile .hp-ed-slot:hover > .hp-ed-grip,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-slot:hover > .hp-ed-grip,
 .hp-ed-grip:focus-visible { opacity: 1; }
 
 @media (hover: none) {
@@ -1396,7 +1789,7 @@ html:has(.hp-ed) {
 /* A section the owner cannot type into here, because its content is somebody
    else's record - the resume, or a generator. It gets a route out rather than
    a pencil that would lie about what it does. */
-.hp-profile .hp-ed-elsewhere {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-elsewhere {
   position: absolute;
   top: 0;
   right: 0;
@@ -1416,7 +1809,7 @@ html:has(.hp-ed) {
   white-space: nowrap;
 }
 
-.hp-profile .hp-ed-slot:hover > .hp-ed-elsewhere,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-slot:hover > .hp-ed-elsewhere,
 .hp-ed-elsewhere:focus-visible { opacity: 1; }
 
 @media (hover: none) {
@@ -1540,7 +1933,7 @@ html:has(.hp-ed) {
   color: rgb(255 255 255 / 0.4);
 }
 
-.hp-profile .hp-ed-mrows {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-mrows {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1589,12 +1982,17 @@ html:has(.hp-ed) {
   white-space: nowrap;
 }
 
-.hp-ed-mrow-badge[data-tone="warn"] { background: rgb(180 83 9 / 0.26); color: #fcd9a5; }
+/* Private. Nothing is wrong with a private item - it is a choice the owner
+   made - so this says "worth knowing" rather than "look out". */
+.hp-ed-mrow-badge[data-tone="warn"] {
+  background: var(--ed-info-ground);
+  color: var(--ed-info-ink);
+}
 .hp-ed-mrow-badge[data-tone="quiet"] { background: rgb(var(--profile-accent-rgb) / 0.16); color: rgb(var(--profile-accent-rgb) / 0.95); }
 
 /* The star. Two states, one of which is already true for something else in
    this direction, so it reads as a switch rather than an action. */
-.hp-profile .hp-ed-star {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-star {
   appearance: none;
   border: 0;
   background: none;
@@ -1606,9 +2004,11 @@ html:has(.hp-ed) {
   transition: color 140ms ease;
 }
 
-.hp-profile .hp-ed-star[data-on="true"] { color: #f4c152; }
-.hp-profile .hp-ed-star:hover:not(:disabled) { color: #f4c152; }
-.hp-profile .hp-ed-star:disabled { cursor: default; opacity: 0.5; }
+/* Still gold, and now the product's own gold: #f4c152 existed only here,
+   two shades off the one every score band and progress dot uses. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-star[data-on="true"] { color: var(--ed-warn-ink); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-star:hover:not(:disabled) { color: var(--ed-warn-ink); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-star:disabled { cursor: default; opacity: 0.5; }
 
 .hp-ed-star-gap { display: inline-block; width: 23px; }
 
@@ -1619,7 +2019,7 @@ html:has(.hp-ed) {
   margin-top: 8px;
 }
 
-.hp-profile .hp-ed-lens-chip {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-lens-chip {
   appearance: none;
   font: inherit;
   font-size: 11.5px;
@@ -1632,21 +2032,21 @@ html:has(.hp-ed) {
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
 
-.hp-profile .hp-ed-lens-chip[aria-pressed="true"] {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-lens-chip[aria-pressed="true"] {
   border-style: solid;
   border-color: rgb(var(--profile-accent-rgb) / 0.5);
   background: rgb(var(--profile-accent-rgb) / 0.16);
   color: var(--profile-text);
 }
 
-.hp-profile .hp-ed-lens-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-lens-chip:disabled { opacity: 0.45; cursor: default; }
 
 .hp-ed-mrow-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-.hp-profile .hp-ed-action.hp-ed-danger { color: #fca5a5; }
-.hp-profile .hp-ed-action.hp-ed-danger:hover:not(:disabled) {
-  background: rgb(185 28 28 / 0.18);
-  border-color: rgb(185 28 28 / 0.5);
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action.hp-ed-danger { color: var(--ed-error-ink); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-action.hp-ed-danger:hover:not(:disabled) {
+  background: var(--ed-error-ground);
+  border-color: var(--ed-error-edge);
 }
 
 .hp-ed-mrow-edit {
@@ -1799,7 +2199,7 @@ html:has(.hp-ed) {
 /* Held at 16px with the rest of them. This select used to shrink to 12.5px to
    sit tightly beside its label, which is the size that makes iOS Safari zoom
    the page on focus. The row it sits in wraps, so it can afford the height. */
-.hp-profile .hp-ed-tm-rel select.hp-ed-input {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tm-rel select.hp-ed-input {
   font-size: 16px;
   padding: 6px 30px 6px 10px;
   background-position: calc(100% - 13px) 50%, calc(100% - 8px) 50%;
@@ -2024,7 +2424,185 @@ html:has(.hp-ed) {
   grid-row: 1;
 }
 
-.hp-profile[data-mode="edit"] .hp-practice-part > .hp-ed-add-row {
+.hp-profile[data-mode="edit"] .hp-practice-part > /* The dialog renders onto document.body, outside .hp-ed, so the tokens it
+   uses have to be declared on it as well as on the shell. */
+.hp-ed-portal {
+  --ed-error-ink: #e57373;
+  --ed-error-ground: rgb(229 115 115 / 0.12);
+  --ed-error-edge: rgb(229 115 115 / 0.34);
+
+  --ed-warn-ink: #ffc870;
+  --ed-warn-ground: rgb(255 200 112 / 0.12);
+  --ed-warn-edge: rgb(255 200 112 / 0.32);
+
+  --ed-ok-ink: #81c784;
+  --ed-ok-ground: rgb(129 199 132 / 0.12);
+  --ed-ok-edge: rgb(129 199 132 / 0.32);
+
+  --ed-info-ink: #c4b5fd;
+  --ed-info-ground: rgb(196 181 253 / 0.12);
+  --ed-info-edge: rgb(196 181 253 / 0.3);
+}
+
+/* ---- No prohibition cursors anywhere on this page --------------------- */
+/*
+   The document this page renders is the public Profile, and the public
+   stylesheets still put not-allowed on their own disabled controls: the two
+   header actions, the footer's resume button, the owner's section controls and
+   the three recruiter-tool buttons. Every one of those is disabled for a
+   reason that is "not yet" rather than "you may not" - nothing chosen, nothing
+   to download, a request still in flight.
+
+   Overridden here rather than at source, because those rules are the approved
+   public Profile's and this stylesheet is loaded by the management page alone.
+   The public page keeps exactly the behaviour it was signed off with; the
+   owner's copy of it stops telling them they are forbidden from their own
+   controls. .hp-ed is the management shell and .hp-ed-portal the dialog, which
+   is portalled outside it.
+*/
+:is(.hp-ed, .hp-ed-portal) .hp-btn:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-action:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-owner-action:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-chip:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-go:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-again:disabled {
+  cursor: default;
+}
+
+/* ---- The owner's flows, on the Profile's own dialog ------------------- */
+/*
+   Adding a piece of work opens the surface the Career Q&A answer established,
+   through ProfileModal. Everything that makes it look like a dialog - the
+   backdrop and its blur, the eggplant surface, the hair of lavender round it,
+   the glow, the radius, the pinned head and foot - is in the Profile's own
+   stylesheet and is not restated here. What follows is only what is different
+   about a form standing in it instead of an answer.
+
+   The portal renders onto document.body, outside .hp-profile, so nothing
+   scoped to the Profile reaches it by descent. Every control the editor styles
+   is therefore scoped to .hp-profile OR .hp-ed-portal, and the dialog carries
+   the second class. That is one selector list, not a second stylesheet.
+*/
+
+/* One short question does not need a form's width. The shell's own width is
+   680 and stays that for the forms; this is the step that is a single card and
+   two lines, which at 680 was mostly empty dialog. Height is untouched: the
+   surface has no minimum, so it has always taken the height of what it holds. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="compact"] {
+  width: min(100%, 640px);
+}
+
+/* One choice is not a row of choices. auto-fit lays out as many 230px tracks
+   as the body will hold and puts the single card in the first of them, which
+   left it sitting at under half the width with nothing beside it. The
+   evidence chooser keeps the auto-fit rule, because it genuinely has two. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="compact"] .hp-ed-add-choices {
+  grid-template-columns: 1fr;
+}
+
+/* The three buttons of an editor bar, in a dialog footer. Left, because the
+   order is the order of the decision and the thing most people want is first;
+   the add-work flows put their primary on the right because theirs is last. */
+.hp-ed-portal .hp-ed-foot-left { flex-wrap: wrap; gap: 8px; }
+
+/* In My Own Words keeps its controls inside the half they belong to rather
+   than in the dialog footer, so they scroll with the writing and can never
+   end up sitting over the video option below. */
+.hp-ed-portal .hp-ed-write-bar { margin-top: 10px; }
+
+/* ---- A dialog that fits rather than one that scrolls ------------------ */
+/*
+   Tell your story holds two alternatives, and the second of them was below
+   the fold: the dialog took its 84vh and put a scrollbar down the side, so
+   the video option existed only for somebody who thought to scroll a modal.
+   A dialog with a way out at the bottom can scroll; one offering a choice
+   should show both halves of it.
+
+   So the body does not scroll, and the box of text is the part that gives
+   way. Everything else in here is a line or a control at its natural size;
+   the textarea can lose a row or two and scroll inside itself, which is
+   what `flex: 0 1 auto` with `min-height: 0` says. It never grows past the
+   height useAutoGrow writes - only shrinks below it when the screen is
+   short. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > * {
+  flex: 0 0 auto;
+}
+
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-textarea,
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-compare {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* The comparison is two columns of prose and can be long. It scrolls inside
+   itself for the same reason the box it replaces does. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-compare {
+  overflow-y: auto;
+}
+
+/* The shared title is sized for a reader's question. These are dialog titles
+   and take the weight the rest of this editor gives a heading. */
+.hp-ed-portal .hp-rt-answer-q {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Back on one side, the way out and the way on together on the other. The foot
+   itself is already space-between, so two groups are all this needs. */
+.hp-ed-foot-left,
+.hp-ed-foot-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hp-ed-foot-right { margin-left: auto; }
+
+/* Fields in a dialog stand closer together than fields laid over a document:
+   there is a frame around them saying where the form begins and ends, so they
+   do not each have to say it. */
+/* In a dialog the small uppercase labels are the only thing holding the form
+   together, and at 42 percent white they were quieter than the placeholder
+   text they sat above. The accent is the page's own and is already what every
+   other eyebrow on this profile is set in, so this is the existing hierarchy
+   applied rather than a new colour introduced.
+
+   Deliberately scoped. The same class names the testimonial manager, which is
+   not this pass's to restyle. */
+/* The soft accent rather than the accent itself. These are eight or nine
+   small uppercase labels stacked down a form, and at that size and weight
+   #a78bfa carried more colour than a label needs - the form read as a list
+   of purple headings with the answers between them. The lighter step still
+   reads as the same family beside the dialog's white title and grey helper
+   lines. The Profile's own section eyebrows are unaffected: they are
+   .hp-eyebrow and .hp-label, and neither is touched here. */
+.hp-ed-portal .hp-ed-field-label,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-field-label[data-accent="true"] {
+  color: var(--ed-info-ink);
+}
+
+.hp-ed-portal .hp-ed-field-label { margin-top: 14px; }
+.hp-ed-portal .hp-ed-field-label:first-child { margin-top: 0; }
+
+.hp-ed-portal .hp-ed-add-grid { margin-top: 2px; }
+
+/* The dialog takes the width it is given on a phone, with an ordinary margin
+   round it, and its body scrolls rather than the surface running off screen.
+   Both of those are the shared shell's own rules; this only asks for the
+   margin, which the shell states per variant. */
+@media (max-width: 720px) {
+  .hp-rt-backdrop.hp-ed-portal { padding: 12px; }
+  .hp-ed-portal .hp-ed-add-choices { grid-template-columns: 1fr; }
+}
+
+.hp-ed-add-row {
   grid-column: 2;
   grid-row: 1;
   justify-self: end;
@@ -2048,7 +2626,185 @@ html:has(.hp-ed) {
   .hp-profile[data-mode="edit"] .hp-practice-part > * { order: 2; }
   .hp-profile[data-mode="edit"] .hp-practice-part > .hp-pf-intro,
   .hp-profile[data-mode="edit"] .hp-practice-part > .hp-ev-intro { order: 0; }
-  .hp-profile[data-mode="edit"] .hp-practice-part > .hp-ed-add-row {
+  .hp-profile[data-mode="edit"] .hp-practice-part > /* The dialog renders onto document.body, outside .hp-ed, so the tokens it
+   uses have to be declared on it as well as on the shell. */
+.hp-ed-portal {
+  --ed-error-ink: #e57373;
+  --ed-error-ground: rgb(229 115 115 / 0.12);
+  --ed-error-edge: rgb(229 115 115 / 0.34);
+
+  --ed-warn-ink: #ffc870;
+  --ed-warn-ground: rgb(255 200 112 / 0.12);
+  --ed-warn-edge: rgb(255 200 112 / 0.32);
+
+  --ed-ok-ink: #81c784;
+  --ed-ok-ground: rgb(129 199 132 / 0.12);
+  --ed-ok-edge: rgb(129 199 132 / 0.32);
+
+  --ed-info-ink: #c4b5fd;
+  --ed-info-ground: rgb(196 181 253 / 0.12);
+  --ed-info-edge: rgb(196 181 253 / 0.3);
+}
+
+/* ---- No prohibition cursors anywhere on this page --------------------- */
+/*
+   The document this page renders is the public Profile, and the public
+   stylesheets still put not-allowed on their own disabled controls: the two
+   header actions, the footer's resume button, the owner's section controls and
+   the three recruiter-tool buttons. Every one of those is disabled for a
+   reason that is "not yet" rather than "you may not" - nothing chosen, nothing
+   to download, a request still in flight.
+
+   Overridden here rather than at source, because those rules are the approved
+   public Profile's and this stylesheet is loaded by the management page alone.
+   The public page keeps exactly the behaviour it was signed off with; the
+   owner's copy of it stops telling them they are forbidden from their own
+   controls. .hp-ed is the management shell and .hp-ed-portal the dialog, which
+   is portalled outside it.
+*/
+:is(.hp-ed, .hp-ed-portal) .hp-btn:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-action:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-owner-action:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-chip:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-go:disabled,
+:is(.hp-ed, .hp-ed-portal) .hp-rt-again:disabled {
+  cursor: default;
+}
+
+/* ---- The owner's flows, on the Profile's own dialog ------------------- */
+/*
+   Adding a piece of work opens the surface the Career Q&A answer established,
+   through ProfileModal. Everything that makes it look like a dialog - the
+   backdrop and its blur, the eggplant surface, the hair of lavender round it,
+   the glow, the radius, the pinned head and foot - is in the Profile's own
+   stylesheet and is not restated here. What follows is only what is different
+   about a form standing in it instead of an answer.
+
+   The portal renders onto document.body, outside .hp-profile, so nothing
+   scoped to the Profile reaches it by descent. Every control the editor styles
+   is therefore scoped to .hp-profile OR .hp-ed-portal, and the dialog carries
+   the second class. That is one selector list, not a second stylesheet.
+*/
+
+/* One short question does not need a form's width. The shell's own width is
+   680 and stays that for the forms; this is the step that is a single card and
+   two lines, which at 680 was mostly empty dialog. Height is untouched: the
+   surface has no minimum, so it has always taken the height of what it holds. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="compact"] {
+  width: min(100%, 640px);
+}
+
+/* One choice is not a row of choices. auto-fit lays out as many 230px tracks
+   as the body will hold and puts the single card in the first of them, which
+   left it sitting at under half the width with nothing beside it. The
+   evidence chooser keeps the auto-fit rule, because it genuinely has two. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="compact"] .hp-ed-add-choices {
+  grid-template-columns: 1fr;
+}
+
+/* The three buttons of an editor bar, in a dialog footer. Left, because the
+   order is the order of the decision and the thing most people want is first;
+   the add-work flows put their primary on the right because theirs is last. */
+.hp-ed-portal .hp-ed-foot-left { flex-wrap: wrap; gap: 8px; }
+
+/* In My Own Words keeps its controls inside the half they belong to rather
+   than in the dialog footer, so they scroll with the writing and can never
+   end up sitting over the video option below. */
+.hp-ed-portal .hp-ed-write-bar { margin-top: 10px; }
+
+/* ---- A dialog that fits rather than one that scrolls ------------------ */
+/*
+   Tell your story holds two alternatives, and the second of them was below
+   the fold: the dialog took its 84vh and put a scrollbar down the side, so
+   the video option existed only for somebody who thought to scroll a modal.
+   A dialog with a way out at the bottom can scroll; one offering a choice
+   should show both halves of it.
+
+   So the body does not scroll, and the box of text is the part that gives
+   way. Everything else in here is a line or a control at its natural size;
+   the textarea can lose a row or two and scroll inside itself, which is
+   what `flex: 0 1 auto` with `min-height: 0` says. It never grows past the
+   height useAutoGrow writes - only shrinks below it when the screen is
+   short. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > * {
+  flex: 0 0 auto;
+}
+
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-textarea,
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-compare {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* The comparison is two columns of prose and can be long. It scrolls inside
+   itself for the same reason the box it replaces does. */
+.hp-ed-portal .hp-rt-answer-surface[data-size="fit"] .hp-rt-answer-body > .hp-ed-compare {
+  overflow-y: auto;
+}
+
+/* The shared title is sized for a reader's question. These are dialog titles
+   and take the weight the rest of this editor gives a heading. */
+.hp-ed-portal .hp-rt-answer-q {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Back on one side, the way out and the way on together on the other. The foot
+   itself is already space-between, so two groups are all this needs. */
+.hp-ed-foot-left,
+.hp-ed-foot-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hp-ed-foot-right { margin-left: auto; }
+
+/* Fields in a dialog stand closer together than fields laid over a document:
+   there is a frame around them saying where the form begins and ends, so they
+   do not each have to say it. */
+/* In a dialog the small uppercase labels are the only thing holding the form
+   together, and at 42 percent white they were quieter than the placeholder
+   text they sat above. The accent is the page's own and is already what every
+   other eyebrow on this profile is set in, so this is the existing hierarchy
+   applied rather than a new colour introduced.
+
+   Deliberately scoped. The same class names the testimonial manager, which is
+   not this pass's to restyle. */
+/* The soft accent rather than the accent itself. These are eight or nine
+   small uppercase labels stacked down a form, and at that size and weight
+   #a78bfa carried more colour than a label needs - the form read as a list
+   of purple headings with the answers between them. The lighter step still
+   reads as the same family beside the dialog's white title and grey helper
+   lines. The Profile's own section eyebrows are unaffected: they are
+   .hp-eyebrow and .hp-label, and neither is touched here. */
+.hp-ed-portal .hp-ed-field-label,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-field-label[data-accent="true"] {
+  color: var(--ed-info-ink);
+}
+
+.hp-ed-portal .hp-ed-field-label { margin-top: 14px; }
+.hp-ed-portal .hp-ed-field-label:first-child { margin-top: 0; }
+
+.hp-ed-portal .hp-ed-add-grid { margin-top: 2px; }
+
+/* The dialog takes the width it is given on a phone, with an ordinary margin
+   round it, and its body scrolls rather than the surface running off screen.
+   Both of those are the shared shell's own rules; this only asks for the
+   margin, which the shell states per variant. */
+@media (max-width: 720px) {
+  .hp-rt-backdrop.hp-ed-portal { padding: 12px; }
+  .hp-ed-portal .hp-ed-add-choices { grid-template-columns: 1fr; }
+}
+
+.hp-ed-add-row {
     order: 1;
     align-self: flex-start;
     margin: 0 0 20px;
@@ -2066,8 +2822,8 @@ html:has(.hp-ed) {
    document rather than as a card that arrived from somewhere else. The copy
    inside keeps a readable measure of its own; it is the panel that is wide,
    not the sentences. */
-.hp-profile .hp-ed-add,
-.hp-profile .hp-ed-manager {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-manager {
   max-width: none;
   width: 100%;
   margin-inline: 0;
@@ -2084,20 +2840,20 @@ html:has(.hp-ed) {
   box-shadow: 0 18px 44px rgb(0 0 0 / 0.34);
 }
 
-.hp-profile .hp-ed-add { margin-top: 22px; padding: 22px; }
-.hp-profile .hp-ed-manager { margin-top: 26px; padding: 22px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add { margin-top: 22px; padding: 22px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-manager { margin-top: 26px; padding: 22px; }
 
 /* The panel is wide; its prose is not. */
-.hp-profile .hp-ed-add-title,
-.hp-profile .hp-ed-add-note { max-width: 68ch; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add-title,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-add-note { max-width: 68ch; }
 
 @media (min-width: 768px) {
-  .hp-profile .hp-ed-add { padding: 26px 28px; }
-  .hp-profile .hp-ed-manager { padding: 26px 28px; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-add { padding: 26px 28px; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-manager { padding: 26px 28px; }
 
   /* The two ways in sit side by side once there is room, rather than stacking
      down the middle of a very wide panel. */
-  .hp-profile .hp-ed-add-choices {
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-add-choices {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
@@ -2109,22 +2865,22 @@ html:has(.hp-ed) {
    A free account sees the same ghosted section a paid one does, with one quiet
    line under it instead of an action. The line is rendered by GhostNote, so
    what is left here is the lock mark and the link inside it. */
-.hp-profile .hp-ed-locked-mark {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-mark {
   display: inline-flex;
   color: rgb(var(--profile-accent-rgb) / 0.8);
 }
 
-.hp-profile .hp-ed-locked-mark svg { width: 13px; height: 13px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-mark svg { width: 13px; height: 13px; }
 
-.hp-profile .hp-ed-locked-link {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-link {
   color: var(--profile-accent);
   font-weight: 600;
   text-decoration: none;
   border-bottom: 1px solid rgb(var(--profile-accent-rgb) / 0.35);
 }
 
-.hp-profile .hp-ed-locked-link:hover,
-.hp-profile .hp-ed-locked-link:focus-visible {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-link:hover,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-locked-link:focus-visible {
   color: var(--profile-text);
   border-bottom-color: currentColor;
 }
@@ -2141,8 +2897,8 @@ html:has(.hp-ed) {
 .hp-ed-intro-body { max-width: 72ch; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hp-profile .hp-ed-add,
-  .hp-profile .hp-ed-manager,
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-add,
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-manager,
   .hp-ed-action,
   .hp-ed-mode { transition: none; }
 }
@@ -2163,9 +2919,9 @@ html:has(.hp-ed) {
    =========================================================================== */
 
 /* A line of nothing, at the height of a line of something. */
-.hp-profile .hp-ed-ghost-text { display: block; width: 100%; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-text { display: block; width: 100%; }
 
-.hp-profile .hp-ed-ghost-line {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-line {
   display: block;
   height: 0.62em;
   margin: 0.34em 0;
@@ -2175,33 +2931,33 @@ html:has(.hp-ed) {
 
 /* The content-bearing parts step back; the structure does not move. Nothing
    here changes a box, only what is drawn inside one. */
-.hp-profile .hp-ed-ghost-mat,
-.hp-profile .hp-ed-ghost-tile,
-.hp-profile .hp-ed-ghost-panel,
-.hp-profile .hp-ed-ghost-voice { opacity: 0.55; cursor: default; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-mat,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-tile,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-panel,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-voice { opacity: 0.55; cursor: default; }
 
-.hp-profile .hp-ed-ghost-grid,
-.hp-profile .hp-ed-ghost-field,
-.hp-profile .hp-ed-ghost-voices,
-.hp-profile .hp-ed-ghost-proof,
-.hp-profile .hp-ed-ghost-about { opacity: 0.55; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-grid,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-field,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-voices,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-proof,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-about { opacity: 0.55; }
 
 /* The mats keep their square and their border from the public grid; only the
    picture inside them is absent. */
-.hp-profile .hp-ed-ghost-mat .hp-pf-mat-frame { background: rgb(var(--profile-accent-rgb) / 0.05); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-mat .hp-pf-mat-frame { background: rgb(var(--profile-accent-rgb) / 0.05); }
 
-.hp-profile .hp-ed-ghost-voices { overflow: hidden; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-voices { overflow: hidden; }
 
 /* Proof figures are set at display scale, so their ghost lines need the height
    of the number they stand in for rather than of a line of body copy. */
-.hp-profile .hp-ed-ghost-proof .hp-proof-lead-num .hp-ed-ghost-line,
-.hp-profile .hp-ed-ghost-proof .hp-proof-num .hp-ed-ghost-line { height: 0.5em; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-proof .hp-proof-lead-num .hp-ed-ghost-line,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-proof .hp-proof-num .hp-ed-ghost-line { height: 0.5em; }
 
 /* The proof band is `display: contents` below 1200, so the ghost band cannot
    carry the fade itself at those widths and it goes on the figures. */
 @media (max-width: 1199px) {
-  .hp-profile .hp-ed-ghost-proof { display: contents; }
-  .hp-profile .hp-ed-ghost-proof > * { opacity: 0.55; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-proof { display: contents; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-proof > * { opacity: 0.55; }
 }
 
 /* ---- The instruction, inside the slot ----------------------------------
@@ -2210,7 +2966,7 @@ html:has(.hp-ed) {
    quote row, the lead proof figure. It inherits that slot's box, so none of
    these rules set a width, a grid or a position. Doing so would be recreating
    the public geometry in editor CSS, which is the mistake this pass undoes. */
-.hp-profile .hp-ed-guide {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2220,7 +2976,7 @@ html:has(.hp-ed) {
   text-align: left;
 }
 
-.hp-profile .hp-ed-guide-index {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-index {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -2228,7 +2984,7 @@ html:has(.hp-ed) {
   font-variant-numeric: tabular-nums;
 }
 
-.hp-profile .hp-ed-guide-head {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-head {
   font-family: var(--profile-font-display);
   font-size: 17px;
   font-weight: 700;
@@ -2237,16 +2993,16 @@ html:has(.hp-ed) {
   color: var(--profile-text);
 }
 
-.hp-profile .hp-ed-guide-body {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-body {
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--profile-meta);
   max-width: 44ch;
 }
 
-.hp-profile .hp-ed-guide .hp-ed-action { margin-top: 4px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide .hp-ed-action { margin-top: 4px; }
 
-.hp-profile .hp-ed-guide-locked {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-locked {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
@@ -2256,30 +3012,30 @@ html:has(.hp-ed) {
 
 /* Where the slot is already a paragraph the guide needs no padding of its own:
    the paragraph is at the measure and in the place already. */
-.hp-profile .hp-ed-guide-prose .hp-ed-guide { padding: 0; }
-.hp-profile .hp-ed-guide-prose { display: block; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-prose .hp-ed-guide { padding: 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-prose { display: block; }
 
 /* Mats and tiles carrying guidance keep their box from the public grid and
    take a slightly stronger edge, so the one asking for something is not the
    same weight as the ones that are only waiting. */
-.hp-profile .hp-ed-guide-mat,
-.hp-profile .hp-ed-guide-tile {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile {
   border-color: rgb(var(--profile-accent-rgb) / 0.34);
   background: rgb(var(--profile-accent-rgb) / 0.05);
   cursor: default;
 }
 
-.hp-profile .hp-ed-guide-mat .hp-pf-mat-frame {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-pf-mat-frame {
   display: flex;
   align-items: center;
   justify-content: center;
   background: none;
 }
 
-.hp-profile .hp-ed-guide-tile { display: block; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile { display: block; }
 
 /* One future position: a number, and the room the real thing will take. */
-.hp-profile .hp-ed-slot-ghost {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-slot-ghost {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
@@ -2288,7 +3044,7 @@ html:has(.hp-ed) {
   padding: 18px;
 }
 
-.hp-profile .hp-ed-slot-ghost .hp-ed-guide-index { color: rgb(var(--profile-accent-rgb) / 0.4); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-slot-ghost .hp-ed-guide-index { color: rgb(var(--profile-accent-rgb) / 0.4); }
 
 /* ---- Manage, on request ------------------------------------------------
    A compact secondary control in the heading row. It opens the existing
@@ -2300,7 +3056,7 @@ html:has(.hp-ed) {
   margin: -6px 0 12px;
 }
 
-.hp-profile .hp-ed-manage {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-manage {
   appearance: none;
   font: inherit;
   font-size: 12.5px;
@@ -2313,8 +3069,8 @@ html:has(.hp-ed) {
   cursor: pointer;
 }
 
-.hp-profile .hp-ed-manage:hover,
-.hp-profile .hp-ed-manage:focus-visible {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-manage:hover,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-manage:focus-visible {
   border-color: rgb(var(--profile-accent-rgb) / 0.34);
   background: rgb(var(--profile-accent-rgb) / 0.1);
   color: var(--profile-text);
@@ -2464,12 +3220,12 @@ html:has(.hp-ed) {
 
 /* 5. The Collective Impact ghost rows, spaced evenly so the panel reads as
    filled rather than unfinished. */
-.hp-profile .hp-ed-ghost-theme { padding-block: 16px; }
-.hp-profile .hp-ed-ghost-theme .hp-ed-ghost-line { margin: 0.4em 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-theme { padding-block: 16px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-theme .hp-ed-ghost-line { margin: 0.4em 0; }
 
 /* 6. The Firsthand Accounts explanation and its two actions, both at the
    column's full width. No testimonial measure cap on the explanation. */
-.hp-profile .hp-ed-voices-say {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-say {
   margin: 8px 0 14px;
   font-size: 14px;
   line-height: 1.6;
@@ -2477,7 +3233,7 @@ html:has(.hp-ed) {
   max-width: none;
 }
 
-.hp-profile .hp-ed-voices-actions {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -2488,9 +3244,9 @@ html:has(.hp-ed) {
 
 /* 7. Tile 01 uses the square confidently: number, heading, body, and the
    action pushed to the bottom. */
-.hp-profile .hp-ed-guide-mat .hp-pf-mat-frame { padding: 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-pf-mat-frame { padding: 0; }
 
-.hp-profile .hp-ed-guide-mat .hp-ed-guide {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-ed-guide {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2498,7 +3254,7 @@ html:has(.hp-ed) {
   gap: 0;
 }
 
-.hp-profile .hp-ed-guide-mat .hp-ed-guide-index {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-ed-guide-index {
   font-size: 64px;
   font-weight: 700;
   line-height: 1;
@@ -2506,13 +3262,13 @@ html:has(.hp-ed) {
   margin-bottom: 18px;
 }
 
-.hp-profile .hp-ed-guide-mat .hp-ed-guide-head {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-ed-guide-head {
   font-size: 30px;
   line-height: 1.12;
   margin-bottom: 12px;
 }
 
-.hp-profile .hp-ed-guide-mat .hp-ed-guide-body {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-ed-guide-body {
   font-size: 18px;
   line-height: 1.5;
   max-width: none;
@@ -2520,15 +3276,15 @@ html:has(.hp-ed) {
 
 /* In flow, immediately after the copy, at the spacing Add evidence uses.
    Pinning it to the bottom left a long drop of empty square between the two. */
-.hp-profile .hp-ed-guide-mat .hp-ed-guide .hp-ed-action,
-.hp-profile .hp-ed-guide-mat .hp-ed-guide-locked { margin-top: 44px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-ed-guide .hp-ed-action,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-mat .hp-ed-guide-locked { margin-top: 44px; }
 
 /* 7. Tiles 02 to 06: the same numeral treatment as 01, at the same inset. */
-.hp-profile .hp-ed-ghost-mat .hp-pf-mat-frame { padding: 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-mat .hp-pf-mat-frame { padding: 0; }
 
-.hp-profile .hp-ed-ghost-mat .hp-ed-slot-ghost { padding: 32px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-mat .hp-ed-slot-ghost { padding: 32px; }
 
-.hp-profile .hp-ed-ghost-mat .hp-ed-guide-index {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-mat .hp-ed-guide-index {
   font-size: 64px;
   font-weight: 700;
   line-height: 1;
@@ -2537,7 +3293,7 @@ html:has(.hp-ed) {
 
 /* 8. Evidence slot 01, one step larger than a portfolio tile because the
    featured slot is larger. */
-.hp-profile .hp-ed-guide-tile .hp-ed-guide {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -2545,7 +3301,7 @@ html:has(.hp-ed) {
   gap: 0;
 }
 
-.hp-profile .hp-ed-guide-tile .hp-ed-guide-index {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide-index {
   font-size: 72px;
   font-weight: 700;
   line-height: 1;
@@ -2553,26 +3309,26 @@ html:has(.hp-ed) {
   margin-bottom: 20px;
 }
 
-.hp-profile .hp-ed-guide-tile .hp-ed-guide-head {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide-head {
   font-size: 34px;
   line-height: 1.1;
   margin-bottom: 12px;
 }
 
-.hp-profile .hp-ed-guide-tile .hp-ed-guide-body {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide-body {
   font-size: 18px;
   line-height: 1.5;
   max-width: none;
 }
 
-.hp-profile .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
-.hp-profile .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: auto; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: auto; }
 
 /* 8. Evidence slots 02 to 05 keep their own padding and take the numeral at
    the smaller supporting size. */
-.hp-profile .hp-ed-ghost-tile .hp-ed-slot-ghost { padding: 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-tile .hp-ed-slot-ghost { padding: 0; }
 
-.hp-profile .hp-ed-ghost-tile .hp-ed-guide-index {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-tile .hp-ed-guide-index {
   font-size: 48px;
   font-weight: 700;
   line-height: 1;
@@ -2591,14 +3347,14 @@ html:has(.hp-ed) {
    pencil.
    =========================================================================== */
 
-.hp-profile .hp-ed-incomplete {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-incomplete {
   position: relative;
   box-shadow:
     0 0 0 1px rgb(var(--profile-accent-rgb) / 0.28),
     0 0 28px -6px rgb(var(--profile-accent-rgb) / 0.3);
 }
 
-.hp-profile .hp-ed-pill {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-pill {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -2622,7 +3378,43 @@ html:has(.hp-ed) {
 
 /* Where a pencil already sits in that corner, the pill steps to the left of it
    rather than under it. */
-.hp-profile .hp-ed-slot > .hp-ed-pill { right: 56px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-slot > .hp-ed-pill { right: 56px; }
+
+/* Most pills are markers on a card that has not been filled in. This one is a
+   control: it names what it opens and it can be pressed. */
+:is(.hp-profile, .hp-ed-portal) .hp-ed-pill-action {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-pill-action:hover {
+  border-color: rgb(var(--profile-accent-rgb) / 0.62);
+  background: rgb(var(--profile-accent-rgb) / 0.14);
+  color: var(--profile-accent);
+}
+
+/* The footer's Open to line is one short row, so a pill hanging in its corner
+   would sit on top of the tags. In Edit the line takes a band of room above
+   itself and the pill goes in that band, hard against the right-hand end of
+   the tags it belongs to. Edit only: .hp-ed-slot is not applied in Preview or
+   on the public page, so the closing line is untouched for a reader. */
+.hp-profile .hp-foot-open.hp-ed-slot {
+  padding-top: 32px;
+  padding-right: 0;
+}
+
+.hp-profile .hp-foot-open.hp-ed-slot > .hp-ed-pill-action {
+  top: 0;
+  right: 0;
+}
+
+/* ...and the pencil that shares the corner steps out of the pill's way. */
+.hp-profile .hp-foot-open.hp-ed-slot > .hp-ed-pencil {
+  top: -2px;
+  right: auto;
+  left: 0;
+}
 
 
 /* ---- The empty In My Own Words card ------------------------------------
@@ -2630,7 +3422,7 @@ html:has(.hp-ed) {
    down its edge, the quote marks, the wash and the serif setting all come from
    .hp-voice and .hp-voice-text in the public stylesheet; only the supporting
    line and the action are added here. */
-.hp-profile .hp-ed-voice-note {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voice-note {
   position: relative;
   z-index: 2;
   margin: 14px 0 0;
@@ -2639,7 +3431,7 @@ html:has(.hp-ed) {
   color: var(--profile-meta);
 }
 
-.hp-profile .hp-ed-guide-voice .hp-ed-action {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-voice .hp-ed-action {
   position: relative;
   z-index: 2;
   margin-top: 18px;
@@ -2656,14 +3448,14 @@ html:has(.hp-ed) {
    column is `height: 0; min-height: 100%` and takes whatever the row settles
    on. So the card is held to the public height and its three rows are
    distributed through it rather than stacked from the top. */
-.hp-profile .hp-ed-ghost-panel {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-panel {
   display: flex;
   flex-direction: column;
   height: 458px;
   max-height: 458px;
 }
 
-.hp-profile .hp-ed-ghost-panel .hp-themes {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-panel .hp-themes {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -2673,23 +3465,23 @@ html:has(.hp-ed) {
 
 /* Rows carry their three lines without the padding that was pushing the card
    past its height; the even distribution above supplies the rhythm instead. */
-.hp-profile .hp-ed-ghost-theme { padding-block: 0; }
-.hp-profile .hp-ed-ghost-theme .hp-ed-ghost-line { margin: 0.34em 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-theme { padding-block: 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-theme .hp-ed-ghost-line { margin: 0.34em 0; }
 
 /* The accounts column fills the same height: head, copy and actions take what
    they need and the ghost rows spread through the rest, so the two columns end
    together instead of one trailing whitespace. */
-.hp-profile .hp-ed-voices-empty {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty {
   display: flex;
   flex-direction: column;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-ed-ghost-voices {
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voices {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voices {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2699,15 +3491,15 @@ html:has(.hp-ed) {
 @media (max-width: 1199px) {
   /* Stacked, so there is no shared row to match and a fixed height would only
      crop the card. */
-  .hp-profile .hp-ed-ghost-panel { height: auto; max-height: none; }
-  .hp-profile .hp-ed-ghost-panel .hp-themes { gap: 16px; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-panel { height: auto; max-height: none; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-ghost-panel .hp-themes { gap: 16px; }
 }
 
 /* The accounts column's copy runs the full width of the column, so an
    absolutely placed pill sat on top of its first line. Here the pill shares
    the heading row instead, which is still the area's top right and collides
    with nothing. */
-.hp-profile .hp-ed-voices-empty > .hp-ed-pill {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty > .hp-ed-pill {
   position: static;
   align-self: flex-end;
 }
@@ -2715,12 +3507,12 @@ html:has(.hp-ed) {
 /* 20px from the bottom of the pill to the heading, 8px from the heading to the
    copy. The head carries no spacing of its own so those two are the only
    numbers in the stack. */
-.hp-profile .hp-ed-voices-empty .hp-voices-head {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-voices-head {
   margin: 20px 0 0;
   padding: 0;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-voices-title { margin: 0; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-voices-title { margin: 0; }
 
 /* 3. In My Own Words and Firsthand Accounts drop the incomplete perimeter.
    Both already carry an edge from the public design - the lavender rail down
@@ -2730,8 +3522,8 @@ html:has(.hp-ed) {
    Only the box-shadow goes. .hp-ed-incomplete adds nothing else, so there is
    no background or border to reset here, and resetting either would strip the
    voice card of the public wash it is drawn with. The pills stay. */
-.hp-profile .hp-ed-guide-voice.hp-ed-incomplete,
-.hp-profile .hp-ed-voices-empty.hp-ed-incomplete {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-voice.hp-ed-incomplete,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty.hp-ed-incomplete {
   box-shadow: none;
 }
 
@@ -2739,32 +3531,32 @@ html:has(.hp-ed) {
    The pill leaves the flow so the heading can start where the synthesis
    eyebrow starts. The offset is the synthesis card's own padding-top, so the
    two labels sit on one line across the act. */
-.hp-profile .hp-ed-voices-empty { position: relative; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty { position: relative; }
 
-.hp-profile .hp-ed-voices-empty > .hp-ed-pill {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty > .hp-ed-pill {
   position: absolute;
   top: 0;
   right: 0;
   align-self: auto;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-voices-head { margin-top: 25px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-voices-head { margin-top: 25px; }
 
 @media (min-width: 1200px) {
-  .hp-profile .hp-ed-voices-empty .hp-voices-head { margin-top: 31px; }
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-voices-head { margin-top: 31px; }
 }
 
 /* Two rows of equal height filling what is left, rather than one pinned to
    each end with a hole between them. Each keeps the same inner alignment and
    the same rule above it. */
-.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voices {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voices {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   height: 100%;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
@@ -2772,18 +3564,18 @@ html:has(.hp-ed) {
   padding-block: 14px;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item:first-child {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item:first-child {
   padding-top: 0;
   border-top: 1px solid transparent;
 }
 
-.hp-profile .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item:last-child {
+:is(.hp-profile, .hp-ed-portal) .hp-ed-voices-empty .hp-ed-ghost-voices .hp-voice-item:last-child {
   padding-bottom: 0;
   border-top: 1px solid var(--profile-line);
 }
 
 /* ---- Evidence tile 01: composition 32px higher, 24px under the copy ----- */
-.hp-profile .hp-ed-guide-tile .hp-ed-guide { padding-top: 4px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide { padding-top: 4px; }
 
-.hp-profile .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
-.hp-profile .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: 24px; }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
+:is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: 24px; }

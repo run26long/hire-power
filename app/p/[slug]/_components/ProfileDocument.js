@@ -87,6 +87,11 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // place that knows a direction changed.
   const [openField, setOpenField] = useState(null)
   const [busy, setBusy] = useState(null)
+  // Which kind of work the busy field is doing: 'save' or 'draft'. One flag
+  // was not enough. Save read `busy` and called itself "Saving…" while the
+  // thing actually running was Show me another version, so a button nobody had
+  // pressed claimed to be writing to the database.
+  const [busyKind, setBusyKind] = useState(null)
   const [writeError, setWriteError] = useState(null)
   const [errorField, setErrorField] = useState(null)
 
@@ -345,6 +350,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const runWrite = useCallback(async (field, work) => {
     if (!work || !editLensId) return false
     setBusy(field)
+    setBusyKind('save')
     setWriteError(null)
     setErrorField(null)
     try {
@@ -360,6 +366,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       return false
     } finally {
       setBusy(null)
+      setBusyKind(null)
     }
   }, [editLensId, onLensUpdated])
 
@@ -375,6 +382,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const runDraft = useCallback(async (field, work) => {
     if (!work || !editLensId) return null
     setBusy(field)
+    setBusyKind('draft')
     setWriteError(null)
     setErrorField(null)
     try {
@@ -386,6 +394,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       return null
     } finally {
       setBusy(null)
+      setBusyKind(null)
     }
   }, [editLensId, editNotify])
 
@@ -428,6 +437,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onDownloadReferenceSheet: edit.onDownloadReferenceSheet,
       openField,
       busy,
+      busyKind,
       busyField: busy,
       error: writeError,
       errorField,
@@ -447,7 +457,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
-    lenses, editLensId, openField, busy, writeError, errorField,
+    lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate,
     edit?.onGenerateImow, edit?.onStrengthenImow,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,

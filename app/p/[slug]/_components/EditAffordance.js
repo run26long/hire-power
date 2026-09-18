@@ -77,7 +77,11 @@ export function UpgradeNote({ feature }) {
   )
 }
 
-export function EditPencil({ field, label }) {
+// `persists` is for the fields whose editor opens as a dialog over the page
+// rather than in place of the content. The rule below is right for an inline
+// editor and wrong for those: the pencil is what focus has to return to when
+// the dialog closes, and a control that has unmounted cannot be returned to.
+export function EditPencil({ field, label, persists = false }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor(field)
   const canEdit = useCanEdit()
@@ -103,9 +107,10 @@ export function EditPencil({ field, label }) {
     )
   }
 
-  // While an editor is open the field it belongs to is being edited, so its
-  // own pencil has nothing left to offer.
-  if (editor.isOpen) return null
+  // While an inline editor is open the field it belongs to has been replaced
+  // by it, so its own pencil has nothing left to point at. A dialog replaces
+  // nothing, and its pencil stays.
+  if (editor.isOpen && !persists) return null
 
   return (
     <button

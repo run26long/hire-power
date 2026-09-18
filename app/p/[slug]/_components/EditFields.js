@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useFieldEditor } from '../_lib/editContext'
+import useAutoGrow from '../_lib/useAutoGrow'
+import ProfileModal from './ProfileModal'
+import { LIMITS, clampToLimit, overLimitNote } from '@/lib/textLimits'
 
 // ============================================================================
 // THE FIELD EDITORS
@@ -25,30 +28,32 @@ import { useFieldEditor } from '../_lib/editContext'
 // ---------------------------------------------------------------------------
 // The row under every editor: what it can do, what went wrong, and the way out.
 // ---------------------------------------------------------------------------
-function EditorShell({ editor, label, onSave, canSave, children, onRegenerate }) {
-  return (
-    <div className="hp-ed-editor" role="group" aria-label={`Editing ${label}`}>
-      {children}
-
-      <div className="hp-ed-editor-bar">
-        <button
-          type="button"
-          className="hp-ed-action"
-          data-primary="true"
-          onClick={onSave}
-          disabled={!canSave || editor.busy}
-        >
-          {editor.busy ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          type="button"
-          className="hp-ed-action"
-          onClick={editor.close}
-          disabled={editor.busy}
-        >
-          Cancel
-        </button>
-
+// `hint` and `count` are the row under the field. It sits under rather than
+// over because both halves are about text that already exists: what you may do
+// with it, and how much of the room it is using. Above the field they were
+// answering a question nobody had asked yet, and they pushed the words the
+// editor exists to show further down the screen.
+//
+// The order of the bar is the order of the decision. Asking for another
+// version is the thing most people will want first and is the only control
+// here that does any work, so it leads and carries the page's primary
+// treatment; Save and Cancel follow in the outlined treatment, because by the
+// time somebody is pressing either of those they are looking for them.
+// `modalTitle` is what turns this from a panel in the document into a dialog
+// over it. Some of these fields are a line of text and belong where the line
+// is; others are a whole editing session, and one of those opening inline made
+// the page taller by several hundred pixels and pushed everything below it
+// down - the owner pressed a pencil and the profile moved.
+//
+// The dialog is the shared one, so the overlay, the focus trap, Escape, the
+// scroll lock, the returning focus and the internal scrolling are decided in a
+// single place and not restated here. The bar becomes its pinned footer, in
+// the same order it has inline.
+function EditorShell({
+  editor, label, onSave, canSave, children, onRegenerate, hint, count, note, modalTitle
+}) {
+  const bar = (
+    <>
         {/* Offered only where it exists. A free account with more than one
             direction cannot generate at all, and a button that always
             answered PRO_REQUIRED would be worse than no button.
@@ -61,19 +66,76 @@ function EditorShell({ editor, label, onSave, canSave, children, onRegenerate })
           <button
             type="button"
             className="hp-ed-action"
+            data-primary="true"
+            data-working={editor.working ? 'true' : undefined}
             onClick={onRegenerate}
             disabled={editor.busy}
-            title="Rewrite this from your coaching sessions"
+            title="Write this again from your coaching sessions"
           >
-            {editor.busy ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
-            {editor.busy ? 'Rewriting…' : 'Regenerate'}
+            {editor.working ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+            {editor.working ? 'Creating another version…' : 'Show me another version'}
           </button>
         ) : null}
 
-        <span className="hp-ed-editor-gap" />
-      </div>
+        {/* `saving`, not `busy`. This button is disabled while a new version is
+            being written, and a disabled control is not a reason to claim a
+            database write is under way. It says Saving… when it is saving. */}
+        <button
+          type="button"
+          className="hp-ed-action"
+          onClick={onSave}
+          disabled={!canSave || editor.busy}
+        >
+          {editor.saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          className="hp-ed-action"
+          onClick={editor.close}
+          disabled={editor.busy}
+        >
+          Cancel
+        </button>
 
+      <span className="hp-ed-editor-gap" />
+    </>
+  )
+
+  const body = (
+    <>
+      {children}
+
+      {hint || count ? (
+        <div className="hp-ed-editor-helper">
+          {hint ? <p className="hp-ed-editor-hint">{hint}</p> : <span />}
+          {count ? <p className="hp-ed-editor-count" data-over={count.over ? 'true' : undefined}>{count.text}</p> : null}
+        </div>
+      ) : null}
+
+      {note ? <p className="hp-ed-editor-note">{note}</p> : null}
       {editor.error ? <p className="hp-ed-editor-error">{editor.error}</p> : null}
+    </>
+  )
+
+  if (modalTitle) {
+    return (
+      <ProfileModal
+        open
+        title={modalTitle}
+        titleId={`hp-ed-modal-${label.replace(/\s+/g, '-').toLowerCase()}`}
+        portalClass="hp-ed-portal"
+        onClose={editor.close}
+        foot={<span className="hp-ed-foot-left">{bar}</span>}
+      >
+        {body}
+      </ProfileModal>
+    )
+  }
+
+  return (
+    <div className="hp-ed-editor" role="group" aria-label={`Editing ${label}`}>
+      {body}
+      <div className="hp-ed-editor-bar">{bar}</div>
     </div>
   )
 }
@@ -98,6 +160,21 @@ function useEscape(active, close) {
 // headline size and the bio at reading size. Somebody writing a headline needs
 // to see it break the way it will break.
 // ---------------------------------------------------------------------------
+// Said under the headline and the bio, which are the two fields that arrive
+// already written. It is withheld where there is no second version to ask for,
+// because half of it would then be an offer nobody can take.
+const HINT = 'Edit our suggestion directly, or ask us for another version.'
+
+// How tall each box may grow before it stops growing and starts scrolling. The
+// headline is a line of display type on the cover and stays close to one; the
+// bio is a paragraph. The character ceilings themselves are in lib/textLimits,
+// because the generator has to know them too.
+const SHAPES = {
+  headline: { minRows: 2, maxRows: 5 },
+  bio: { minRows: 6, maxRows: 14 }
+}
+const DEFAULT_SHAPE = { minRows: 4, maxRows: 12 }
+
 export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   const editor = useFieldEditor(field)
   // Initialised at mount, not synchronised by an effect. Each of these is
@@ -108,6 +185,10 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   const ref = useRef(null)
 
   const isOpen = editor?.isOpen === true
+  const shape = SHAPES[field] || DEFAULT_SHAPE
+  const max = LIMITS[field] || LIMITS.bio
+
+  useAutoGrow(ref, draft, shape.minRows, shape.maxRows, isOpen)
 
   useEffect(() => {
     if (!isOpen) return
@@ -127,16 +208,35 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   // offering an alternative should do. Nothing is lost by pressing it.
   async function regenerate() {
     const next = await editor.regenerate()
-    if (typeof next === 'string') setDraft(next)
+    // Held to the same ceiling a typed one is, and cut at a sentence rather
+    // than at a character. A field that will not save what its own button just
+    // put in it is worse than a slightly shorter answer.
+    // The generator is told the limit and its answers are refused server-side
+    // for breaking it, so this should never have anything to do. It stays as
+    // the last line of defence: a field that will not save what its own button
+    // just put in it is worse than a slightly shorter answer.
+    if (typeof next === 'string') setDraft(clampToLimit(next, max))
   }
 
   const trimmed = draft.trim()
+
+  // Copy written before the limit existed is longer than the limit, and it is
+  // not this editor's business to quietly shorten somebody's profile to open
+  // it. So it is shown in full, counted honestly, and Save waits until the
+  // owner has either cut it or taken a version that fits.
+  const over = draft.length > max
 
   return (
     <EditorShell
       editor={editor}
       label={label}
-      canSave={Boolean(trimmed) && trimmed !== (value || '').trim()}
+      hint={editor.canRegenerate ? HINT : null}
+      count={{
+        over,
+        text: `${draft.length.toLocaleString('en-US')} of ${max.toLocaleString('en-US')} characters`
+      }}
+      note={over ? overLimitNote(max) : null}
+      canSave={Boolean(trimmed) && trimmed !== (value || '').trim() && !over}
       onSave={() => editor.save({ [field]: trimmed })}
       onRegenerate={regenerate}
     >
@@ -144,8 +244,10 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
         ref={ref}
         className="hp-ed-textarea"
         data-size={size}
+        data-grow="true"
         rows={rows}
         value={draft}
+        maxLength={max}
         onChange={e => setDraft(e.target.value)}
         aria-label={label}
         spellCheck="true"
@@ -170,9 +272,13 @@ export function TagsEditor({ field = 'ready_tags', label = 'Open To tags', value
 
   const isOpen = editor?.isOpen === true
 
-
-  useEffect(() => { if (isOpen) ref.current?.focus() }, [isOpen])
-  useEscape(isOpen, editor?.close)
+  // No useEscape here: the dialog owns the key, and two handlers on one press
+  // is one of them closing something the other has already closed.
+  useEffect(() => {
+    if (!isOpen) return
+    const t = window.setTimeout(() => ref.current?.focus(), 60)
+    return () => window.clearTimeout(t)
+  }, [isOpen])
 
   if (!editor || !isOpen) return null
 
@@ -206,6 +312,7 @@ export function TagsEditor({ field = 'ready_tags', label = 'Open To tags', value
     <EditorShell
       editor={editor}
       label={label}
+      modalTitle="Edit career focus"
       canSave={tags.length > 0 && changed}
       onSave={() => editor.save({ [field]: tags })}
       onRegenerate={regenerate}

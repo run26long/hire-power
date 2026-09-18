@@ -7,12 +7,24 @@ import {
   ACCEPT_ATTRIBUTE, VISUAL_ACCEPT_ATTRIBUTE, MAX_UPLOAD_BYTES, humanSize, uploadTypeFor
 } from '@/lib/evidenceUploads'
 import VideoFramePicker from './VideoFramePicker'
+import ProfileModal from './ProfileModal'
 
 // ============================================================================
 // ADDING EVIDENCE
 //
-// Two ways in, three steps, and the whole thing renders inside the Evidence
-// section so the owner is adding the work where the work will appear.
+// Two ways in, three steps, and all of them in one dialog over the page.
+//
+// WHY THIS IS A DIALOG AND NOT A PANEL
+// It used to open inline underneath the section, which meant the act of
+// starting made the page taller and pushed everything below it down, and each
+// step after that changed the height again. Adding a piece of work is a short
+// errand with an end: it belongs on its own surface, over a page that stays
+// exactly where it was, and the page is unchanged again the moment it closes.
+//
+// The surface is the one the Career Q&A answer established and is reached
+// through ProfileModal, which owns the portal, the focus trap, Escape, the
+// scroll lock and where focus goes afterwards. Nothing about how a dialog
+// behaves is decided in this file.
 //
 // WHY THE LOOKUP IS OPTIONAL AND NEVER BLOCKING
 // A pasted link is read server-side for the title and description the page
@@ -229,33 +241,113 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
   }
 
   // ---- the way in ----
-  if (step === 'closed') {
-    return (
-      // While a section is empty its own guidance slot carries the action, so
-      // the heading row keeps a second identical button out of the way.
-      trigger ? (
-        <div className="hp-ed-add-row">
-          <button type="button" className="hp-ed-action" data-primary="true" onClick={() => setStep('choose')}>
-            {visualOnly ? '+ Add to portfolio' : '+ Add evidence'}
-          </button>
-        </div>
-      ) : null
-    )
-  }
-
+  //
+  // The trigger stays in the document while the dialog is over it, so there is
+  // something for focus to come back to when it closes, and so the section
+  // behind does not reflow as the flow opens and shuts. While a section is
+  // empty its own guidance slot carries the action instead and `trigger` is
+  // false; focus then returns to that slot's own button, which is where the
+  // owner pressed.
   const family = familyForType(form.evidence_type)
   // A link needs its address; an upload needs its file. Both need a title and
   // a type, and the rest of the form is identical.
   const hasSource = file ? true : Boolean(form.url.trim())
   const canSave = Boolean(hasSource && form.title.trim() && family) && !saving
 
+  const title = visualOnly ? 'Add a photo or video' : 'Add evidence'
+
+  // Back on the left, the way out and the way on together on the right. The
+  // footer is pinned by the dialog, so on the long form the way out of it is
+  // still on screen at the bottom of a scroll.
+  const foot = (
+    <>
+      <span className="hp-ed-foot-left">
+        {step === 'form' ? (
+          <button
+            type="button"
+            className="hp-ed-action"
+            onClick={() => setStep(file ? 'choose' : 'link')}
+            disabled={saving}
+          >
+            Back
+          </button>
+        ) : null}
+        {step === 'link' ? (
+          <button type="button" className="hp-ed-action" onClick={() => setStep('choose')}>
+            Back
+          </button>
+        ) : null}
+      </span>
+
+      <span className="hp-ed-foot-right">
+        <button type="button" className="hp-ed-action" onClick={reset} disabled={saving}>
+          {step === 'done' ? 'Done' : 'Cancel'}
+        </button>
+
+        {step === 'link' ? (
+          <button
+            type="button"
+            className="hp-ed-action"
+            data-primary="true"
+            onClick={lookUp}
+            disabled={!form.url.trim() || looking}
+          >
+            {looking ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
+            {looking ? 'Reading…' : 'Continue'}
+          </button>
+        ) : null}
+
+        {step === 'form' ? (
+          <button
+            type="button"
+            className="hp-ed-action"
+            data-primary="true"
+            onClick={save}
+            disabled={!canSave}
+          >
+            {uploading ? 'Uploading…' : saving ? 'Saving…' : title}
+          </button>
+        ) : null}
+
+        {step === 'done' ? (
+          <button
+            type="button"
+            className="hp-ed-action"
+            data-primary="true"
+            onClick={() => { setSaved(null); setStep('choose') }}
+          >
+            Add another
+          </button>
+        ) : null}
+      </span>
+    </>
+  )
+
   return (
-    <div className="hp-ed-editor hp-ed-add" role="group" aria-label="Add evidence">
-      {step === 'choose' && (
-        <>
-          <p className="hp-ed-add-title">
-            {visualOnly ? 'Add a photo or a video' : 'What are you adding?'}
-          </p>
+    <>
+      {trigger ? (
+        <div className="hp-ed-add-row">
+          <button type="button" className="hp-ed-action" data-primary="true" onClick={() => setStep('choose')}>
+            {visualOnly ? '+ Add to portfolio' : '+ Add evidence'}
+          </button>
+        </div>
+      ) : null}
+
+      {/* The portfolio's first screen is one card and two lines. At the form
+          width it was mostly empty dialog, which reads as something failing to
+          load rather than as a short question. The form that follows a chosen
+          file keeps the full width, because it is a form; so does the evidence
+          chooser, because two cards side by side need it. */}
+      <ProfileModal
+        open={step !== 'closed'}
+        size={visualOnly && step === 'choose' ? 'compact' : null}
+        title={title}
+        titleId={`hp-ed-add-title${visualOnly ? '-visual' : ''}`}
+        portalClass="hp-ed-portal"
+        onClose={reset}
+        foot={foot}
+      >
+        {step === 'choose' && (
           <div className="hp-ed-add-choices">
             {/* No link route in the portfolio. A link to a picture on somebody
                 else's site is not something this page can put in a mat, and
@@ -277,7 +369,7 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
               </span>
               <span className="hp-ed-add-choice-note">
                 {visualOnly
-                  ? 'Photos and video from your own machine. Up to 50MB.'
+                  ? 'Upload a photo or video that shows the work, the process, or the result. Up to 50MB.'
                   : 'Images, PDF, Word documents and video from your own machine. Up to 50MB.'}
               </span>
               <input
@@ -289,15 +381,14 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
               />
             </label>
           </div>
-        </>
-      )}
+        )}
 
-      {step === 'link' && (
-        <>
-          <p className="hp-ed-add-title">Paste the link</p>
-          <div className="hp-ed-tag-add">
+        {step === 'link' && (
+          <>
+            <label className="hp-ed-field-label" htmlFor="hp-ed-ev-paste">Paste the link</label>
             <input
-              className="hp-ed-input"
+              id="hp-ed-ev-paste"
+              className="hp-ed-input hp-ed-block"
               type="url"
               value={form.url}
               placeholder="https://"
@@ -307,229 +398,197 @@ export default function AddEvidence({ only = null, openSignal = 0, trigger = tru
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookUp() } }}
               aria-label="The link to add"
             />
-            <button
-              type="button"
-              className="hp-ed-action"
-              data-primary="true"
-              onClick={lookUp}
-              disabled={!form.url.trim() || looking}
-            >
-              {looking ? 'Reading…' : 'Continue'}
-            </button>
-          </div>
-          <p className="hp-ed-proof-note">
-            We&apos;ll read the title and description off the page if it publishes them.
-            You can change anything before it is saved.
-          </p>
-        </>
-      )}
+            <p className="hp-ed-proof-note">
+              We&apos;ll read the title and description off the page if it publishes them.
+              You can change anything before it is saved.
+            </p>
+          </>
+        )}
 
-      {step === 'form' && (
-        <>
-          {note ? <p className="hp-ed-add-note">{note}</p> : null}
+        {step === 'form' && (
+          <>
+            {note ? <p className="hp-ed-add-note">{note}</p> : null}
 
-          {preview?.image ? (
-            <div className="hp-ed-add-preview">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview.image} alt="" className="hp-ed-add-preview-img" />
-              <span className="hp-ed-add-preview-note">
-                The page&apos;s own image, shown so you can check the link. It is not saved.
-              </span>
-            </div>
-          ) : null}
-
-          {file ? (
-            <>
-              <p className="hp-ed-field-label">File</p>
-              <p className="hp-ed-file-chosen">
-                <span className="hp-ed-file-name">{file.name}</span>
-                <span className="hp-ed-file-meta">
-                  {uploadTypeFor(file.type)?.label}
-                  {humanSize(file.size) ? ` · ${humanSize(file.size)}` : ''}
+            {preview?.image ? (
+              <div className="hp-ed-add-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={preview.image} alt="" className="hp-ed-add-preview-img" />
+                <span className="hp-ed-add-preview-note">
+                  The page&apos;s own image, shown so you can check the link. It is not saved.
                 </span>
-                <button
-                  type="button"
-                  className="hp-ed-tag-drop"
-                  onClick={() => { setFile(null); setStep('choose') }}
-                  aria-label="Choose a different file"
-                  disabled={saving}
+              </div>
+            ) : null}
+
+            {file ? (
+              <>
+                <p className="hp-ed-field-label">File</p>
+                <p className="hp-ed-file-chosen">
+                  <span className="hp-ed-file-name">{file.name}</span>
+                  <span className="hp-ed-file-meta">
+                    {uploadTypeFor(file.type)?.label}
+                    {humanSize(file.size) ? ` · ${humanSize(file.size)}` : ''}
+                  </span>
+                  <button
+                    type="button"
+                    className="hp-ed-tag-drop"
+                    onClick={() => { setFile(null); setStep('choose') }}
+                    aria-label="Choose a different file"
+                    disabled={saving}
+                  >
+                    ×
+                  </button>
+                </p>
+                {/* A video needs a picture and there is nothing on the server
+                    that can make one, so the frame is chosen here. It captures
+                    one on its own as soon as the file is readable; scrubbing and
+                    pressing the button replaces it. */}
+                {uploadTypeFor(file.type)?.media_class === 'video' ? (
+                  <VideoFramePicker file={file} onFrame={onFrame} onDuration={onDuration} />
+                ) : null}
+
+                {uploading ? (
+                  <p className="hp-ed-proof-note" role="status">
+                    Uploading… {progress}%
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-url">Link</label>
+                <input
+                  id="hp-ed-ev-url"
+                  className="hp-ed-input hp-ed-block"
+                  type="url"
+                  value={form.url}
+                  spellCheck="false"
+                  onChange={e => set('url', e.target.value)}
+                />
+              </>
+            )}
+
+            <label className="hp-ed-field-label" htmlFor="hp-ed-ev-title">Title</label>
+            <input
+              id="hp-ed-ev-title"
+              className="hp-ed-input hp-ed-block"
+              type="text"
+              value={form.title}
+              placeholder="What is this?"
+              onChange={e => set('title', e.target.value)}
+            />
+
+            <label className="hp-ed-field-label" htmlFor="hp-ed-ev-desc">Description</label>
+            <textarea
+              id="hp-ed-ev-desc"
+              className="hp-ed-textarea"
+              data-size="body"
+              rows={3}
+              value={form.description}
+              placeholder="A sentence on what it shows."
+              onChange={e => set('description', e.target.value)}
+            />
+
+            {/* The three short ones share a row on a wide dialog and stack on a
+                narrow one, which is what the grid already does. Title, link and
+                description stay full width above: they are the fields somebody
+                actually writes in. */}
+            <div className="hp-ed-add-grid">
+              <div>
+                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-type">Type</label>
+                <select
+                  id="hp-ed-ev-type"
+                  className="hp-ed-input hp-ed-block"
+                  value={form.evidence_type}
+                  onChange={e => set('evidence_type', e.target.value)}
                 >
-                  ×
-                </button>
-              </p>
-              {/* A video needs a picture and there is nothing on the server
-                  that can make one, so the frame is chosen here. It captures
-                  one on its own as soon as the file is readable; scrubbing and
-                  pressing the button replaces it. */}
-              {uploadTypeFor(file.type)?.media_class === 'video' ? (
-                <VideoFramePicker file={file} onFrame={onFrame} onDuration={onDuration} />
-              ) : null}
-
-              {uploading ? (
-                <p className="hp-ed-proof-note" role="status">
-                  Uploading… {progress}%
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-url">Link</label>
-              <input
-                id="hp-ed-ev-url"
-                className="hp-ed-input hp-ed-block"
-                type="url"
-                value={form.url}
-                spellCheck="false"
-                onChange={e => set('url', e.target.value)}
-              />
-            </>
-          )}
-
-          <label className="hp-ed-field-label" htmlFor="hp-ed-ev-title">Title</label>
-          <input
-            id="hp-ed-ev-title"
-            className="hp-ed-input hp-ed-block"
-            type="text"
-            value={form.title}
-            placeholder="What is this?"
-            onChange={e => set('title', e.target.value)}
-          />
-
-          <label className="hp-ed-field-label" htmlFor="hp-ed-ev-desc">Description</label>
-          <textarea
-            id="hp-ed-ev-desc"
-            className="hp-ed-textarea"
-            data-size="body"
-            rows={3}
-            value={form.description}
-            placeholder="A sentence on what it shows."
-            onChange={e => set('description', e.target.value)}
-          />
-
-          <div className="hp-ed-add-grid">
-            <div>
-              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-type">Type</label>
-              <select
-                id="hp-ed-ev-type"
-                className="hp-ed-input hp-ed-block"
-                value={form.evidence_type}
-                onChange={e => set('evidence_type', e.target.value)}
-              >
-                <option value="">Choose one…</option>
-                {GROUPED.map(([familyKey, types]) => (
-                  <optgroup key={familyKey} label={FAMILY_LABELS[familyKey]}>
-                    {types.map(t => <option key={t} value={t}>{t}</option>)}
-                  </optgroup>
-                ))}
-              </select>
-              {/* Said rather than asked. The family follows from the type, and
-                  making somebody choose both is making them guess at our
-                  filing system. */}
-              <p className="hp-ed-proof-note">
-                {family ? `Filed under ${FAMILY_LABELS[family]}.` : 'Choose a type to file this.'}
-              </p>
-            </div>
-
-            <div>
-              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-org">Organisation</label>
-              <input
-                id="hp-ed-ev-org"
-                className="hp-ed-input hp-ed-block"
-                type="text"
-                value={form.organization}
-                placeholder="Optional"
-                onChange={e => set('organization', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="hp-ed-field-label" htmlFor="hp-ed-ev-date">Date</label>
-              <input
-                id="hp-ed-ev-date"
-                className="hp-ed-input hp-ed-block"
-                type="text"
-                value={form.date_label}
-                placeholder="Optional, e.g. 2023"
-                onChange={e => set('date_label', e.target.value)}
-              />
-            </div>
-          </div>
-
-          {lenses.length > 0 && (
-            <>
-              <p className="hp-ed-field-label">Show it in</p>
-              <ul className="hp-ed-lens-picks">
-                {lenses.map(lens => (
-                  <li key={lens.id}>
-                    <label className="hp-ed-lens-pick">
-                      <input
-                        type="checkbox"
-                        checked={lensIds.includes(lens.id)}
-                        onChange={e => setLensIds(ids =>
-                          e.target.checked ? [...ids, lens.id] : ids.filter(id => id !== lens.id)
-                        )}
-                      />
-                      <span>{lens.name}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-              {lensIds.length === 0 ? (
+                  <option value="">Choose one…</option>
+                  {GROUPED.map(([familyKey, types]) => (
+                    <optgroup key={familyKey} label={FAMILY_LABELS[familyKey]}>
+                      {types.map(t => <option key={t} value={t}>{t}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+                {/* Said rather than asked. The family follows from the type, and
+                    making somebody choose both is making them guess at our
+                    filing system. */}
                 <p className="hp-ed-proof-note">
-                  Pick none and it is saved but shown nowhere. You can place it later.
+                  {family ? `Filed under ${FAMILY_LABELS[family]}.` : 'Choose a type to file this.'}
                 </p>
-              ) : null}
-            </>
-          )}
-        </>
-      )}
+              </div>
 
-      {step === 'done' && saved && (
-        <>
-          <p className="hp-ed-add-title">Added.</p>
-          <p className="hp-ed-add-saved">
-            <strong>{saved.title}</strong>
-            {saved.where.length > 0
-              ? ` is now in ${saved.where.join(' and ')}.`
-              : ' is saved but not shown in any direction yet.'}
-          </p>
-          {/* Where it went, and why it may not be on screen. The collection
-              is shown a few at a time and a new piece joins the end of it. */}
-          <p className="hp-ed-proof-note">
-            New evidence joins the end of the collection, so it may sit behind
-            {' '}<em>View all evidence</em> rather than in the preview above.
-            Ordering and featuring arrive in the next pass.
-          </p>
-          {saved.warning ? <p className="hp-ed-add-note">{saved.warning}</p> : null}
-        </>
-      )}
+              <div>
+                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-org">Organisation</label>
+                <input
+                  id="hp-ed-ev-org"
+                  className="hp-ed-input hp-ed-block"
+                  type="text"
+                  value={form.organization}
+                  placeholder="Optional"
+                  onChange={e => set('organization', e.target.value)}
+                />
+              </div>
 
-      <div className="hp-ed-editor-bar">
-        {step === 'done' ? (
-          <button type="button" className="hp-ed-action" data-primary="true" onClick={() => { setSaved(null); setStep('choose') }}>
-            Add another
-          </button>
-        ) : null}
-        {step === 'form' ? (
-          <button
-            type="button"
-            className="hp-ed-action"
-            data-primary="true"
-            onClick={save}
-            disabled={!canSave}
-          >
-            {uploading ? 'Uploading…' : saving ? 'Saving…' : 'Add evidence'}
-          </button>
-        ) : null}
-        <button type="button" className="hp-ed-action" onClick={reset} disabled={saving}>
-          {step === 'done' ? 'Done' : 'Cancel'}
-        </button>
-        {step === 'form' ? (
-          <button type="button" className="hp-ed-action" onClick={() => setStep(file ? 'choose' : 'link')} disabled={saving}>
-            Back
-          </button>
-        ) : null}
-      </div>
-    </div>
+              <div>
+                <label className="hp-ed-field-label" htmlFor="hp-ed-ev-date">Date</label>
+                <input
+                  id="hp-ed-ev-date"
+                  className="hp-ed-input hp-ed-block"
+                  type="text"
+                  value={form.date_label}
+                  placeholder="Optional, e.g. 2023"
+                  onChange={e => set('date_label', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {lenses.length > 0 && (
+              <>
+                <p className="hp-ed-field-label">Show it in</p>
+                <ul className="hp-ed-lens-picks">
+                  {lenses.map(lens => (
+                    <li key={lens.id}>
+                      <label className="hp-ed-lens-pick">
+                        <input
+                          type="checkbox"
+                          checked={lensIds.includes(lens.id)}
+                          onChange={e => setLensIds(ids =>
+                            e.target.checked ? [...ids, lens.id] : ids.filter(id => id !== lens.id)
+                          )}
+                        />
+                        <span>{lens.name}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                {lensIds.length === 0 ? (
+                  <p className="hp-ed-proof-note">
+                    Pick none and it is saved but shown nowhere. You can place it later.
+                  </p>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
+
+        {step === 'done' && saved && (
+          <>
+            <p className="hp-ed-add-title">Added.</p>
+            <p className="hp-ed-add-saved">
+              <strong>{saved.title}</strong>
+              {saved.where.length > 0
+                ? ` is now in ${saved.where.join(' and ')}.`
+                : ' is saved but not shown in any direction yet.'}
+            </p>
+            {/* Where it went, and why it may not be on screen. The collection
+                is shown a few at a time and a new piece joins the end of it. */}
+            <p className="hp-ed-proof-note">
+              New evidence joins the end of the collection, so it may sit behind
+              {' '}<em>View all evidence</em> rather than in the preview above.
+              Ordering and featuring arrive in the next pass.
+            </p>
+            {saved.warning ? <p className="hp-ed-add-note">{saved.warning}</p> : null}
+          </>
+        )}
+      </ProfileModal>
+    </>
   )
 }
