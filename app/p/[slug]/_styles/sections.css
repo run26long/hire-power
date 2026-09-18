@@ -3441,49 +3441,32 @@
    into each of them should not be two different-looking buttons. */
 .hp-pf-field { position: relative; }
 
-/* Matched to .hp-ev-all as it actually computes, which is not the pill its
-   first rule describes: that block is overridden further down the file into
-   this compact rectangle, and the rendered control is what there is to match.
-   Same 3px corner, same 9px/15px, same faint accent wash, same 12px/700 caps
-   at 0.1em. Two sections showing one collection should not be entered through
-   two different-looking buttons. */
+/* The Portfolio's own control, not the Evidence one. Its pill shape, its
+   sentence case, its 14px in the body colour and its transparent ground: this
+   section is a wall of pictures and the way into the rest of them is a quiet
+   outline on that wall, where Evidence needs a lit rectangle to hold its own
+   against a card. Same two sections, two different problems.
+
+   Only the position below is shared with .hp-ev-all. */
 .hp-profile .hp-pf-all {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin: 14px 0 0;
-  padding: 9px 15px;
-  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
-  border-radius: 3px;
-  /* A flat accent wash over an opaque base, which is exactly what .hp-ev-all
-     computes to. The base is not decoration: this control overhangs the mats,
-     so a 10% wash on its own would leave the label sitting on whatever
-     photograph happens to be in the bottom-right square. */
-  background-color: var(--profile-surface-2);
-  background-image: linear-gradient(
-    0deg,
-    rgb(var(--profile-accent-rgb) / 0.1),
-    rgb(var(--profile-accent-rgb) / 0.1)
-  );
-  box-shadow: none;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--profile-accent);
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 10px 16px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--profile-text);
+  font-size: 14px;
   cursor: pointer;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  transition: border-color 180ms ease, background-color 180ms ease;
 }
 
 .hp-profile .hp-pf-all:hover,
 .hp-profile .hp-pf-all:focus-visible {
-  border-color: rgb(var(--profile-accent-rgb) / 0.62);
-  background-image: linear-gradient(
-    0deg,
-    rgb(var(--profile-accent-rgb) / 0.17),
-    rgb(var(--profile-accent-rgb) / 0.17)
-  );
-  color: var(--profile-accent-soft);
+  border-color: rgb(var(--profile-accent-rgb) / 0.6);
+  background: rgb(var(--profile-accent-rgb) / 0.08);
 }
 
 .hp-profile .hp-pf-all:focus-visible {
@@ -3491,7 +3474,7 @@
   outline-offset: 4px;
 }
 
-.hp-pf-all-arrow { font-size: 13px; line-height: 1; transition: transform 160ms ease; }
+.hp-pf-all-arrow { transition: transform 180ms ease; }
 .hp-profile .hp-pf-all:hover .hp-pf-all-arrow { transform: translateX(3px); }
 
 /* On a phone it sits under the grid, full width. There is no corner worth

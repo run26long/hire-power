@@ -13,3 +13,4 @@ output/rename-backup.json
 # rather than source, and the same rule applies: backups stay on the machine
 # that made them.
 output/removed-placeholders.json
+output/removed-links.json

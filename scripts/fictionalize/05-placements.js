@@ -34,11 +34,13 @@
 const { sb, PROFILE_ID, LENS, APPLY } = require('./_env')
 const { isPortfolioItem } = require('./_portfolio')
 
-// One lead per direction, chosen so all three lead-card renderings are on
-// screen somewhere: an image, a link, and a document.
+// One lead per direction. This used to put a link in the Business Development
+// slot so that all three lead-card renderings were on screen somewhere; step 8
+// removed every link-class item as invented, so there is no longer a real one
+// to lead with and none is invented to fill the gap.
 const LEAD = {
   [LENS.OPERATIONS]: 'Production Floor Redesign: Before and After',
-  [LENS.BUSINESS_DEV]: 'Manufacturing Excellence Award, Plant of the Year',
+  [LENS.BUSINESS_DEV]: 'Parts Store and Staging Redesign',
   [LENS.EXECUTIVE]: 'Rebuilding Delivery Performance at Apex Manufacturing'
 }
 
@@ -56,20 +58,16 @@ const EMPHASIS = {
     'Lean Six Sigma Black Belt'
   ],
   [LENS.BUSINESS_DEV]: [
-    'Manufacturing Excellence Award, Plant of the Year',
     'Parts Store and Staging Redesign',
-    'Carolinas Manufacturing Excellence Award, Operational Turnaround',
-    'What a WIP Report Changes in the First Week',
     'Project Management Professional',
-    'Weekly Operations Dashboard'
+    'Weekly Operations Dashboard',
+    'Rebuilding Delivery Performance at Apex Manufacturing'
   ],
   [LENS.EXECUTIVE]: [
     'Rebuilding Delivery Performance at Apex Manufacturing',
     'Operating Structure After Restructure',
     'Leadership Development Program',
-    'Production Floor Redesign: Before and After',
-    'What a WIP Report Changes in the First Week',
-    'Carolinas Manufacturing Excellence Award, Operational Turnaround'
+    'Production Floor Redesign: Before and After'
   ]
 }
 

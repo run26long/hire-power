@@ -51,6 +51,9 @@ async function main() {
   let failures = 0
   const fail = (m) => { failures++; console.log('  FAIL  ' + m) }
   const pass = (m) => console.log('  ok    ' + m)
+  // Reported, not asserted: a fact worth seeing that no longer has a right
+  // answer to hold it to.
+  const note = (m) => console.log('  --    ' + m)
 
   // ---- 1. identity ----
   console.log('IDENTITY')
@@ -92,7 +95,13 @@ async function main() {
   portfolio.length >= 8
     ? pass('portfolio holds ' + portfolio.length + ' items (preview shows 6, so overflow is exercised)')
     : fail('portfolio holds only ' + portfolio.length + ', need 8 to exercise overflow')
-  pass('evidence section holds ' + evidenceOnly.length + ' items')
+  note('evidence section holds ' + evidenceOnly.length + ' items')
+
+  // Nothing on this profile should point at an address rather than a file.
+  const links = visible.filter(e => ['link', 'embed'].includes(e.media_class))
+  links.length === 0
+    ? pass('no link-class evidence: every item is backed by a file we hold')
+    : fail(links.length + ' link-class items remain: ' + links.map(e => e.title).join(', '))
 
   const noThumb = portfolio.filter(e => !e.thumbnail_path)
   noThumb.length === 0
@@ -132,15 +141,21 @@ async function main() {
       ? pass(name + ': ' + rows.length + ' items, 1 lead')
       : fail(name + ': ' + rows.length + ' items, ' + leads.length + ' leads (expected exactly 1)')
 
-    // The whole point of the counts: at or below the preview limit the
-    // overflow control does not render, and there is nothing in the UI to say
-    // why not.
+    // Portfolio is still held to overflowing: eight uploads exist precisely so
+    // that control can be looked at, and a drop below seven would mean
+    // something went missing rather than something was decided.
     portfolio.length > PORTFOLIO_PREVIEW_DESKTOP
       ? pass('  portfolio ' + portfolio.length + ' > ' + PORTFOLIO_PREVIEW_DESKTOP + ', so "View full portfolio" renders')
       : fail('  portfolio ' + portfolio.length + ' <= ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the overflow link will NOT render')
-    docs.length > PORTFOLIO_PREVIEW_DESKTOP
-      ? pass('  evidence ' + docs.length + ' > ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow renders')
-      : fail('  evidence ' + docs.length + ' <= ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow will NOT render')
+
+    // Evidence is reported, not asserted. Once the invented links came out,
+    // five is simply what the real material adds up to, and a section that
+    // stops offering to show more is the correct behaviour rather than a
+    // regression. Holding a number here would only invite somebody to invent
+    // items to satisfy it.
+    note('  evidence ' + docs.length + (docs.length > PORTFOLIO_PREVIEW_DESKTOP
+      ? ' > ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow renders'
+      : ' <= ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow is correctly absent'))
 
     const missing = visible.filter(e => !rows.some(p => p.evidence_id === e.id))
     missing.length === 0
