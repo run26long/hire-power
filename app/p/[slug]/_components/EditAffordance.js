@@ -175,6 +175,60 @@ export function EditElsewhere({ children, href }) {
 // visitors, which it briefly did in the hero during this pass.
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// THE INSTRUCTION IS THE GHOST CONTENT
+//
+// A missing section is not explained underneath itself. The public composition
+// stays exactly as it is, and the guidance goes into the slot the real content
+// will occupy: the first portfolio mat, the featured evidence tile, the About
+// column, the first quote row. The owner reads the explanation in the place
+// the thing being explained will appear, and the slots around it stay as
+// numbered future positions so the finished shape is obvious.
+//
+// That is the whole difference from the previous pass, which put a sentence
+// and a button in a row beneath each empty composition. A caption under a
+// composition explains a picture; a caption inside the frame is the picture
+// telling you what goes there.
+// ---------------------------------------------------------------------------
+
+// What goes in the slot that is next to be filled.
+export function SlotGuide({ index, heading, children, action, onAction, feature }) {
+  const canEdit = useCanEdit()
+
+  return (
+    <span className="hp-ed-guide">
+      {index ? <span className="hp-ed-guide-index" aria-hidden="true">{index}</span> : null}
+      <span className="hp-ed-guide-head">{heading}</span>
+      <span className="hp-ed-guide-body">{children}</span>
+
+      {/* A free account sees the same composition and the same explanation.
+          What changes is the one control: an action it cannot use would be a
+          button that does nothing, so the slot carries the line that says why
+          instead. Said once, here, rather than repeated beside it. */}
+      {canEdit ? (
+        <button type="button" className="hp-ed-action" data-primary="true" onClick={onAction}>
+          {action}
+        </button>
+      ) : (
+        <span className="hp-ed-guide-locked">
+          <span className="hp-ed-locked-mark"><LockIcon /></span>
+          <a className="hp-ed-locked-link" href={UPGRADE_HREF}>{upgradeCopyFor(feature)}</a>
+        </span>
+      )}
+    </span>
+  )
+}
+
+// One future position. A number and nothing else: it says "another of these
+// goes here" without pretending to hold anything.
+export function SlotGhost({ index }) {
+  return (
+    <span className="hp-ed-slot-ghost" aria-hidden="true">
+      <span className="hp-ed-guide-index">{index}</span>
+    </span>
+  )
+}
+
 // A line of nothing, at the height of a line of something. Never words: an
 // invented sentence in a ghost is a claim about a profile that has none.
 export function GhostText({ width = '100%', lines = 1 }) {

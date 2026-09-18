@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
-import { EditPencil, GhostNote, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, SlotGuide, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
 import ImowVideo from './ImowVideo'
@@ -152,16 +152,21 @@ export default function ProfileSpread({
         {!hasBio && canShowEmpty && !bioEditor?.isOpen && (
           <div data-resolve="about">
             <span className="hp-eyebrow">About</span>
-            {/* The About column's own shape: the lead paragraph and the
-                detail under it, at the measure they will occupy. */}
-            <p className="hp-about-lead" aria-hidden="true"><GhostText lines={2} /></p>
-            <div className="hp-about hp-ed-ghost-about" aria-hidden="true">
-              <p><GhostText lines={3} /></p>
+            {/* The guidance takes the lead paragraph's own position and its own
+                measure, so it sits where the story will sit rather than under
+                a drawing of it. */}
+            <div className="hp-about-lead hp-ed-guide-prose">
+              <SlotGuide
+                heading="Your career, in under a minute."
+                action="Review the short version"
+                feature="bio"
+                onAction={() => bioEditor?.open()}
+              >
+                This is the career story someone can understand in under a
+                minute. Hire Power has started it from your résumé and coaching.
+                Review it, sharpen it, and make sure it sounds like you.
+              </SlotGuide>
             </div>
-            <GhostNote field="bio" feature="bio" action="Write the bio">
-              A few sentences on what this direction is and why it is yours.
-              Coach can draft one from your sessions.
-            </GhostNote>
           </div>
         )}
 
@@ -215,18 +220,26 @@ export default function ProfileSpread({
             keeps the weight it will have rather than becoming a rectangle. */}
         {!hasVoice && canShowEmpty && !imowEditor?.isOpen && (
           <div data-resolve="voice">
-            <figure className="hp-voice hp-ed-ghost-voice">
+            {/* The real voice card, with the invitation where the words go.
+                Same figure, same wash, same rule down its edge, same quotation
+                marks and same eyebrow, so this side of the spread keeps the
+                weight it will have. */}
+            <figure className="hp-voice hp-ed-guide-voice">
               <span className="hp-voice-mark hp-voice-mark-open" aria-hidden="true">&#8220;</span>
               <span className="hp-eyebrow">In my own words</span>
-              <blockquote className="hp-voice-text" aria-hidden="true">
-                <GhostText lines={4} />
-              </blockquote>
+              <div className="hp-voice-text hp-ed-guide-prose">
+                <SlotGuide
+                  heading="The part only you can tell."
+                  action="Add your perspective"
+                  feature="imow"
+                  onAction={() => imowEditor?.open()}
+                >
+                  Add the part only you can tell: what drives you, how you work,
+                  and what you want people to understand about your career.
+                </SlotGuide>
+              </div>
               <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
             </figure>
-            <GhostNote field="imow" feature="imow" action="Add your words">
-              Write it, or record a short video. This is the one part of the page
-              in your voice rather than a summary of you.
-            </GhostNote>
           </div>
         )}
       </div>

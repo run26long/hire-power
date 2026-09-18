@@ -708,6 +708,24 @@ html:has(.hp-ed) {
 .hp-ed-slot:hover::after,
 .hp-ed-slot:focus-within::after { opacity: 1; }
 
+/* ---- The hero's editable region stops at the middle ---------------------
+   Act I places the identity and the proof on one twelve column grid and lets
+   them cross: the identity's own box runs to about 66 percent of the stage
+   while the lead figure begins at about 56 percent, which is how the figure
+   comes to sit inside the band the name and deck make. That crossing is the
+   approved public composition and is not changed here.
+
+   What is changed is the editor's own wash. Drawn over the identity's full
+   box it reached across the proof figures, which made the hero look boxed and
+   divided by an editor artefact. It is clipped to the stage's midpoint
+   instead, so the surface the owner edits is the left half and the figures
+   beside it are never under it. A percentage rather than a pixel, because
+   both boxes are grid fractions and the ratio holds at every width in this
+   layout. */
+@media (min-width: 768px) {
+  .hp-act1-identity.hp-ed-slot::after { right: 24.4%; }
+}
+
 /* The rejected empty-state components from the previous pass stood here: a
    dashed card, invented shapes for each section, and a two column spread
    with a separate instruction column beside them. They are gone along with
@@ -2025,33 +2043,229 @@ html:has(.hp-ed) {
   .hp-profile .hp-ed-ghost-proof > * { opacity: 0.55; }
 }
 
-/* ---- The instruction and the action ------------------------------------
-   Under the ghosted composition rather than inside it, so the composition
-   keeps its real proportions, and on the section's own left edge. One line,
-   one action, never a second explanatory column. */
-.hp-profile .hp-ed-ghost-note {
+/* ---- The instruction, inside the slot ----------------------------------
+   The guidance lives in the position the real content will take: the first
+   portfolio mat, the featured evidence tile, the About paragraph, the first
+   quote row, the lead proof figure. It inherits that slot's box, so none of
+   these rules set a width, a grid or a position. Doing so would be recreating
+   the public geometry in editor CSS, which is the mistake this pass undoes. */
+.hp-profile .hp-ed-guide {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin: 18px 0 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 18px;
+  text-align: left;
+}
+
+.hp-profile .hp-ed-guide-index {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgb(var(--profile-accent-rgb) / 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.hp-profile .hp-ed-guide-head {
+  font-family: var(--profile-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--profile-text);
+}
+
+.hp-profile .hp-ed-guide-body {
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--profile-meta);
+  max-width: 44ch;
 }
 
-.hp-profile .hp-ed-ghost-say { max-width: 62ch; }
-.hp-profile .hp-ed-ghost-note[data-locked="true"] { gap: 9px; }
+.hp-profile .hp-ed-guide .hp-ed-action { margin-top: 4px; }
 
-/* Act I places its children explicitly on a twelve column grid, so a note with
-   no placement auto-fills whichever cell is free - which put the hero's
-   instruction up beside the direction invitation. It belongs under the proof
-   figures it describes. */
-.hp-act1-stage > .hp-ed-ghost-note {
-  grid-column: 1 / -1;
-  margin-top: 18px;
+.hp-profile .hp-ed-guide-locked {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
 }
 
-@media (min-width: 1200px) {
-  .hp-act1-stage > .hp-ed-ghost-note { grid-row: 4; }
+/* Where the slot is already a paragraph the guide needs no padding of its own:
+   the paragraph is at the measure and in the place already. */
+.hp-profile .hp-ed-guide-prose .hp-ed-guide { padding: 0; }
+.hp-profile .hp-ed-guide-prose { display: block; }
+
+/* Mats and tiles carrying guidance keep their box from the public grid and
+   take a slightly stronger edge, so the one asking for something is not the
+   same weight as the ones that are only waiting. */
+.hp-profile .hp-ed-guide-mat,
+.hp-profile .hp-ed-guide-tile {
+  border-color: rgb(var(--profile-accent-rgb) / 0.34);
+  background: rgb(var(--profile-accent-rgb) / 0.05);
+  cursor: default;
 }
+
+.hp-profile .hp-ed-guide-mat .hp-pf-mat-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+}
+
+.hp-profile .hp-ed-guide-tile { display: block; }
+
+/* One future position: a number, and the room the real thing will take. */
+.hp-profile .hp-ed-slot-ghost {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+}
+
+.hp-profile .hp-ed-slot-ghost .hp-ed-guide-index { color: rgb(var(--profile-accent-rgb) / 0.4); }
+
+/* ---- Manage, on request ------------------------------------------------
+   A compact secondary control in the heading row. It opens the existing
+   management list in flow beneath the section, and while it is closed the
+   section's geometry is exactly the public one. */
+.hp-ed-manage-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 12px;
+}
+
+.hp-profile .hp-ed-manage {
+  appearance: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--profile-line-strong);
+  background: rgb(255 255 255 / 0.03);
+  color: var(--profile-body);
+  cursor: pointer;
+}
+
+.hp-profile .hp-ed-manage:hover,
+.hp-profile .hp-ed-manage:focus-visible {
+  border-color: rgb(var(--profile-accent-rgb) / 0.34);
+  background: rgb(var(--profile-accent-rgb) / 0.1);
+  color: var(--profile-text);
+}
+
+
+/* ===========================================================================
+   THE OWNER'S INTRODUCTION
+
+   One editorial spread, in Edit only, between the toolbar and the profile.
+   Two columns on the same spine the document uses: what this is on the left,
+   the three steps on the right. Short by design - the profile's own hero has
+   to start on the same screen at 1440 by 900, or the introduction is buying
+   its explanation by hiding the thing it explains.
+   =========================================================================== */
+
+.hp-ed-guide-intro {
+  border-bottom: 1px solid var(--profile-line);
+  background:
+    linear-gradient(
+      170deg,
+      rgb(var(--profile-accent-rgb) / 0.07) 0%,
+      rgb(var(--profile-accent-rgb) / 0.02) 60%,
+      rgb(var(--profile-accent-rgb) / 0) 100%
+    );
+}
+
+.hp-ed-guide-inner {
+  max-width: var(--ed-frame);
+  margin-inline: auto;
+  padding: 30px var(--ed-pad) 28px;
+  display: grid;
+  gap: 26px;
+}
+
+.hp-ed-guide-eyebrow {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-ed-guide-headline {
+  margin: 0 0 12px;
+  font-family: var(--profile-font-display);
+  font-size: clamp(23px, 2.4vw, 31px);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.024em;
+  color: var(--profile-text);
+  max-width: 24ch;
+}
+
+.hp-ed-guide-lede {
+  margin: 0 0 18px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--profile-body);
+  max-width: 62ch;
+}
+
+.hp-ed-guide-steps {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-content: center;
+}
+
+.hp-ed-guide-step {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-ed-guide-step:last-child { border-bottom: 0; padding-bottom: 0; }
+
+.hp-ed-guide-step-index {
+  grid-row: span 2;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: rgb(var(--profile-accent-rgb) / 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.hp-ed-guide-step-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--profile-text);
+}
+
+.hp-ed-guide-step-note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--profile-meta);
+}
+
+@media (min-width: 900px) {
+  .hp-ed-guide-inner {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 56px;
+    align-items: center;
+  }
+}
+

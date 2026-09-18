@@ -1,6 +1,6 @@
 'use client'
 
-import { EditPencil, GhostNote, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, SlotGuide, SlotGhost, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor, ProofPointsEditor } from './EditFields'
 import { useFieldEditor, useCanShowEmpty } from '../_lib/editContext'
 
@@ -99,7 +99,17 @@ export default function IdentityAct({
       <div className="hp-frame hp-act1-frame">
         {chrome}
 
-        <div className="hp-act1-stage" data-proof={hasProof ? 'true' : 'false'}>
+        {/* The stage has two layouts: with figures, where the identity keeps
+            the left half and the proof takes the right, and without, where the
+            identity widens across the whole frame. Edit mode shows the proof
+            band whenever it can show an empty section, so it has to ask for
+            the proof layout too - otherwise the widened name runs straight
+            over the figures beside it. `canShowEmpty` is false publicly, so
+            the public page chooses exactly what it chose before. */}
+        <div
+          className="hp-act1-stage"
+          data-proof={hasProof || (canShowEmpty && !proofEditor?.isOpen) ? 'true' : 'false'}
+        >
           {/* The selector comes first, in the DOM and on the page, because
               everything below it is what it changes. Choosing a direction and
               then meeting the identity written for it is the right order; the
@@ -197,27 +207,34 @@ export default function IdentityAct({
               to carry it: without this, a profile with no proof points would
               have shipped ghost figures to visitors. */}
           {!hasProof && canShowEmpty && !proofEditor?.isOpen && (
-            <>
-              <div className="hp-proof-band hp-ed-ghost-proof" aria-hidden="true">
-                <div className="hp-proof-lead">
-                  <span className="hp-proof-caption">Selected proof</span>
-                  <span className="hp-proof-lead-num"><GhostText width="128px" /></span>
-                  <span className="hp-proof-lead-label"><GhostText width="180px" /></span>
-                </div>
-                <div className="hp-proof-subs">
-                  {[0, 1].map(i => (
-                    <div className="hp-proof-sub" data-sub={i} key={i}>
-                      <span className="hp-proof-num"><GhostText width="74px" /></span>
-                      <span className="hp-proof-label"><GhostText lines={2} /></span>
-                    </div>
-                  ))}
+            <div className="hp-proof-band hp-ed-ghost-proof">
+              {/* The invitation takes the lead figure's own position, so the
+                  hero keeps its real shape and the explanation sits where the
+                  number will be. The two supporting positions stay numbered. */}
+              <div className="hp-proof-lead">
+                <span className="hp-proof-caption">Selected proof</span>
+                <div className="hp-ed-guide-prose">
+                  <SlotGuide
+                    heading="Lead with the numbers."
+                    action="Add proof points"
+                    feature="identity"
+                    onAction={() => proofEditor?.open()}
+                  >
+                    Two or three results that stand behind this direction. They
+                    lead the cover.
+                  </SlotGuide>
                 </div>
               </div>
-              <GhostNote field="proof_points" feature="identity" action="Add proof points">
-                Two or three numbers that stand behind this direction. They lead
-                the cover.
-              </GhostNote>
-            </>
+
+              <div className="hp-proof-subs" aria-hidden="true">
+                {['02', '03'].map((n, i) => (
+                  <div className="hp-proof-sub" data-sub={i} key={n}>
+                    <span className="hp-proof-num"><SlotGhost index={n} /></span>
+                    <span className="hp-proof-label"><GhostText lines={2} /></span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

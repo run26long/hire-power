@@ -6,7 +6,7 @@ import Reveal from './Reveal'
 import PortfolioLightbox from './PortfolioLightbox'
 import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
-import { GhostNote, GhostText, UpgradeNote, useEditSlot } from './EditAffordance'
+import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
 import { PORTFOLIO_PREVIEW_DESKTOP } from '@/lib/portfolio'
 
@@ -42,6 +42,8 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   // null | { mode: 'grid' } | { mode: 'item', index, fromGrid }
   const [overlay, setOverlay] = useState(null)
   const [visit, setVisit] = useState(0)
+  // Bumped by the guidance mat to open the add panel that lives below.
+  const [openAdd, setOpenAdd] = useState(0)
 
   // A direction change replaces the collection. Anything open belonged to the
   // direction that is leaving.
@@ -100,29 +102,40 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           <p className="hp-practice-line">The work, in frame and in motion.</p>
         </Reveal>
 
-        {ordered.length === 0 ? (
-          // The public grid, empty. Same ul, same class, same six cells the
-          // section shows when it is full, so the mats are the real size at the
-          // real gaps and the owner is looking at the shape of the finished
-          // section rather than at a placeholder drawn to suggest it. Three
-          // across and two down here, two across and three down on a phone,
-          // because that is what .hp-pf-grid already does.
-          <>
-            <ul className="hp-pf-grid hp-ed-ghost-grid" data-count="6" aria-hidden="true">
-              {Array.from({ length: PORTFOLIO_PREVIEW_DESKTOP }, (_, i) => (
-                <li className="hp-pf-cell" key={i}>
-                  <span className="hp-pf-mat hp-ed-ghost-mat">
-                    <span className="hp-pf-mat-frame" />
-                    <span className="hp-pf-mat-title"><GhostText width="62%" /></span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <GhostNote feature="portfolio">
-              Portfolio holds images and video of the work itself. The first six
-              appear here, and a reader can open any of them full size.
-            </GhostNote>
-          </>
+        {ordered.length === 0 && canShowEmpty ? (
+          // The public grid, with the guidance living in the first mat.
+          //
+          // Same ul, same class, same six cells at the same sizes and gaps the
+          // section uses when it is full, so this is the finished composition
+          // with its first square explaining itself rather than a drawing of
+          // one. Three across and two down here, two across and three down on
+          // a phone, because that is what .hp-pf-grid already does and nothing
+          // here re-states it.
+          <ul className="hp-pf-grid" data-count="6">
+            <li className="hp-pf-cell">
+              <span className="hp-pf-mat hp-ed-guide-mat">
+                <span className="hp-pf-mat-frame">
+                  <SlotGuide
+                    index="01"
+                    heading="Show the work itself."
+                    action="Add to portfolio"
+                    feature="portfolio"
+                    onAction={() => setOpenAdd(n => n + 1)}
+                  >
+                    Add photos or video of what you built, led, improved, or delivered.
+                  </SlotGuide>
+                </span>
+              </span>
+            </li>
+
+            {['02', '03', '04', '05', '06'].map(n => (
+              <li className="hp-pf-cell" key={n}>
+                <span className="hp-pf-mat hp-ed-ghost-mat">
+                  <span className="hp-pf-mat-frame"><SlotGhost index={n} /></span>
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : (
           <Reveal enabled={animate}>
             <ul className="hp-pf-grid" data-count={String(shown.length)}>
@@ -135,6 +148,38 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
                     slot={slot}
                     onOpen={() => openAt(index)}
                   />
+                </li>
+              ))}
+
+              {/* Part way through. The next real mat carries the invitation and
+                  the rest stay numbered, so a portfolio of two reads as two of
+                  six rather than as two and a gap. */}
+              {canShowEmpty && shown.length < PORTFOLIO_PREVIEW_DESKTOP && (
+                <li className="hp-pf-cell">
+                  <span className="hp-pf-mat hp-ed-guide-mat">
+                    <span className="hp-pf-mat-frame">
+                      <SlotGuide
+                        index={String(shown.length + 1).padStart(2, '0')}
+                        heading="Add another."
+                        action="Add to portfolio"
+                        feature="portfolio"
+                        onAction={() => setOpenAdd(n => n + 1)}
+                      >
+                        Six appear here, and a reader can open any of them full size.
+                      </SlotGuide>
+                    </span>
+                  </span>
+                </li>
+              )}
+
+              {canShowEmpty && Array.from(
+                { length: Math.max(0, PORTFOLIO_PREVIEW_DESKTOP - shown.length - 1) },
+                (_, i) => String(shown.length + i + 2).padStart(2, '0')
+              ).map(n => (
+                <li className="hp-pf-cell" key={n}>
+                  <span className="hp-pf-mat hp-ed-ghost-mat">
+                    <span className="hp-pf-mat-frame"><SlotGhost index={n} /></span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -159,8 +204,10 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           </Reveal>
         )}
 
+        {/* The heading-row trigger stands down while the grid has a guidance
+            mat of its own: one invitation per section. */}
         {canEdit
-          ? <AddEvidence only="visual" />
+          ? <AddEvidence only="visual" openSignal={openAdd} trigger={ordered.length >= PORTFOLIO_PREVIEW_DESKTOP} />
           : ordered.length > 0 ? <UpgradeNote feature="portfolio" /> : null}
 
       <PortfolioLightbox

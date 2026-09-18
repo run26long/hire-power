@@ -58,20 +58,33 @@ const GROUPED = Object.entries(
 // route absent, because a link is not a portfolio piece. One component rather
 // than two, so a change to how evidence is added cannot reach one section and
 // miss the other.
-export default function AddEvidence({ only = null }) {
+// `openSignal` is a counter the section increments when something outside this
+// component asks it to open: the guidance inside the first empty slot, which is
+// where the owner is actually looking when they decide to add something. A
+// counter rather than a boolean, so asking twice works and this component keeps
+// sole ownership of which step it is on.
+export default function AddEvidence({ only = null, openSignal = 0, trigger = true }) {
   const visualOnly = only === 'visual'
   const edit = useProfileEdit()
   const notify = useNotify()
 
   // 'closed' | 'choose' | 'link' | 'form' | 'done'
   const [step, setStep] = useState('closed')
+
+  // Opened from outside. Compared rather than watched with an effect, so the
+  // step changes during the same render that carries the new signal.
+  const [sawSignal, setSawSignal] = useState(openSignal)
+  if (sawSignal !== openSignal) {
+    setSawSignal(openSignal)
+    if (openSignal > 0 && step === 'closed') setStep('choose')
+  }
   const [saved, setSaved] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [lensIds, setLensIds] = useState([])
   const [preview, setPreview] = useState(null)
   const [looking, setLooking] = useState(false)
   const [note, setNote] = useState(null)
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState(false)
   // The chosen file, and how far its upload has got. A file being set is what
   // makes this an upload rather than a link: the form below is the same either
   // way, and only the save differs.
@@ -218,11 +231,15 @@ export default function AddEvidence({ only = null }) {
   // ---- the way in ----
   if (step === 'closed') {
     return (
-      <div className="hp-ed-add-row">
-        <button type="button" className="hp-ed-action" data-primary="true" onClick={() => setStep('choose')}>
-          {visualOnly ? '+ Add to portfolio' : '+ Add evidence'}
-        </button>
-      </div>
+      // While a section is empty its own guidance slot carries the action, so
+      // the heading row keeps a second identical button out of the way.
+      trigger ? (
+        <div className="hp-ed-add-row">
+          <button type="button" className="hp-ed-action" data-primary="true" onClick={() => setStep('choose')}>
+            {visualOnly ? '+ Add to portfolio' : '+ Add evidence'}
+          </button>
+        </div>
+      ) : null
     )
   }
 

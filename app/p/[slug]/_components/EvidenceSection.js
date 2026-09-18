@@ -6,7 +6,7 @@ import Reveal from './Reveal'
 import StrokeIcon from './StrokeIcon'
 import EvidenceOverlay from './EvidenceOverlay'
 import { glyphFor } from './EvidenceViewer'
-import { EditGrip, GhostNote, GhostText, UpgradeNote, useEditSlot } from './EditAffordance'
+import { EditGrip, SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
 import EvidenceManager from './EvidenceManager'
 import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
@@ -68,6 +68,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   // the gallery and an item inside a single visit keeps the same key and
   // therefore the same filter and scroll position.
   const [visit, setVisit] = useState(0)
+  // Opened from the guidance tile, and from the heading control.
+  const [openAdd, setOpenAdd] = useState(0)
+  const [manageOpen, setManageOpen] = useState(false)
 
   // A direction change replaces the whole collection. Whatever was open
   // belonged to the direction that is leaving, and so did every bit of state
@@ -152,36 +155,58 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           <p className="hp-practice-line">Credentials, recognition, and documents that back it up.</p>
         </Reveal>
 
+        {/* One compact control, in the heading row, secondary to the headline
+            beside it. Nothing about the section's geometry changes while it is
+            closed. */}
+        {canEdit && items.length > 0 ? (
+          <div className="hp-ed-manage-row">
+            <button
+              type="button"
+              className="hp-ed-manage"
+              aria-expanded={manageOpen}
+              onClick={() => setManageOpen(v => !v)}
+            >
+              {manageOpen ? 'Done managing' : 'Manage evidence'}
+            </button>
+          </div>
+        ) : null}
+
         {items.length === 0 ? (
           // The public Evidence composition, empty: the same field, the same
           // grid, the same lead slot and the same number of tiles the section
           // shows when it is full, so the featured artifact keeps its real
           // scale beside the smaller ones and the arrangement is the real one.
-          <>
-            <div className="hp-ev-field hp-ed-ghost-field" aria-hidden="true">
-              <div className="hp-ev-grid" data-count={String(narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP)}>
-                <div className="hp-ev-lead-slot" data-more="false">
-                  <span className="hp-ev-tile hp-ed-ghost-tile" data-role="lead">
-                    <span className="hp-ev-tile-mark" />
-                    <span className="hp-ev-tile-type"><GhostText width="46%" /></span>
-                    <span className="hp-ev-tile-title"><GhostText width="86%" /></span>
-                    <span className="hp-ev-tile-blurb"><GhostText lines={2} /></span>
-                  </span>
-                </div>
-                {Array.from({ length: (narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP) - 1 }, (_, i) => (
-                  <span className="hp-ev-tile hp-ed-ghost-tile" data-role="rest" key={i}>
-                    <span className="hp-ev-tile-mark" />
-                    <span className="hp-ev-tile-type"><GhostText width="52%" /></span>
-                    <span className="hp-ev-tile-title"><GhostText width="80%" /></span>
-                  </span>
-                ))}
+          // The public Evidence composition with the guidance in its featured
+          // slot. Same field, same grid, same lead slot, same tile count, so
+          // the large artifact keeps its real scale beside the smaller ones and
+          // the arrangement is the section's own rather than a drawing of it.
+          <div className="hp-ev-field">
+            <div className="hp-ev-grid" data-count={String(narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP)}>
+              <div className="hp-ev-lead-slot" data-more="false">
+                <span className="hp-ev-tile hp-ed-guide-tile" data-role="lead">
+                  <SlotGuide
+                    index="01"
+                    heading="Back up the story."
+                    action="Add evidence"
+                    feature="evidence"
+                    onAction={() => setOpenAdd(n => n + 1)}
+                  >
+                    Add credentials, recognition, reports, presentations, or other
+                    documents that make the work tangible.
+                  </SlotGuide>
+                </span>
               </div>
+
+              {Array.from(
+                { length: (narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP) - 1 },
+                (_, i) => String(i + 2).padStart(2, '0')
+              ).map(n => (
+                <span className="hp-ev-tile hp-ed-ghost-tile" data-role="rest" key={n}>
+                  <SlotGhost index={n} />
+                </span>
+              ))}
             </div>
-            <GhostNote feature="evidence">
-              Evidence holds credentials, recognition and the documents behind
-              the claims. One leads the section and the rest sit alongside it.
-            </GhostNote>
-          </>
+          </div>
         ) : (
         <Reveal enabled={animate}>
           {/* The featured card and the way into the rest of the collection are
@@ -212,11 +237,14 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         </Reveal>
         )}
 
-        {/* Under the collection rather than over it: the section is about the
-            work, and the way to add more belongs after what is already there. */}
-        <EvidenceManager />
+        {/* On request, not by default. This list used to stand open under the
+            section permanently, which meant the owner met a management table
+            every time they scrolled past their own evidence. It opens from the
+            control beside the heading, in flow, and pushes what follows down. */}
+        {canEdit && manageOpen ? <EvidenceManager /> : null}
+
         {canEdit
-          ? <AddEvidence />
+          ? <AddEvidence openSignal={openAdd} trigger={items.length > 0} />
           : items.length > 0 ? <UpgradeNote feature="evidence" /> : null}
 
       <EvidenceOverlay

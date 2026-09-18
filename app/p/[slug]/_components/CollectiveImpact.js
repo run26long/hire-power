@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
-import { EditElsewhere, GhostNote, GhostText, useEditSlot } from './EditAffordance'
+import { SlotGuide, GhostText, useEditSlot } from './EditAffordance'
 import TestimonialManager from './TestimonialManager'
 import { useCanShowEmpty } from '../_lib/editContext'
 
@@ -42,6 +42,9 @@ export default function CollectiveImpact({
   const [expanded, setExpanded] = useState(() => new Set())
   const [overflowing, setOverflowing] = useState(() => new Set())
   const [shownFor, setShownFor] = useState(directionKey)
+  // The management list opens on request, from the heading control or from the
+  // invitation in the first quote position.
+  const [manageOpen, setManageOpen] = useState(false)
 
   const bodyRefs = useRef(new Map())
   const scrollRef = useRef(null)
@@ -127,9 +130,23 @@ export default function CollectiveImpact({
             the accounts on the right are two readings of the same thing. What
             each column is then says so inside the column itself. */}
         <Reveal enabled={animate} className={`hp-impact-intro${slot}`}>
-          <EditElsewhere>Written by others, and not editable here</EditElsewhere>
           <h2 className="hp-impact-headline">What others see.</h2>
         </Reveal>
+
+        {/* One compact control beside the headline, secondary to it, and
+            nothing else added to this act's chrome. */}
+        {canShowEmpty ? (
+          <div className="hp-ed-manage-row">
+            <button
+              type="button"
+              className="hp-ed-manage"
+              aria-expanded={manageOpen}
+              onClick={() => setManageOpen(v => !v)}
+            >
+              {manageOpen ? 'Done managing' : 'Manage testimonials'}
+            </button>
+          </div>
+        ) : null}
 
         {/* Which sides are actually there, so one missing side widens the
             other rather than leaving an empty column beside it. */}
@@ -164,36 +181,38 @@ export default function CollectiveImpact({
             </Reveal>
           )}
 
-          {/* The synthesis panel, empty, so the act keeps its two columns while
-              it is being filled. Written by the coaching rather than by hand,
-              so there is no action under it: it says where it will appear. */}
+          {/* The synthesis panel, empty, so the act keeps both its columns
+              while it is being filled. This one is written by Hire Power from
+              published testimonials rather than by hand, so the panel says what
+              will produce it and offers no action: an "add" here would promise
+              a control that does not exist. The 01/02/03 theme rows stay
+              underneath as the real composition waiting. */}
           {!hasImpact && canShowEmpty && (
             <div className="hp-impact-synthesis hp-ed-ghost-panel">
               <span className="hp-label hp-impact-eyebrow">Collective Impact</span>
-              <p className="hp-impact-summary" aria-hidden="true"><GhostText lines={3} /></p>
+
+              <p className="hp-impact-summary hp-ed-guide-prose">
+                Once you publish enough testimonials, Hire Power will find the
+                patterns across them and turn those patterns into a clear view of
+                your impact.
+              </p>
+
               <ol className="hp-themes" aria-hidden="true">
-                {[0, 1, 2].map(i => (
-                  <li className="hp-theme" key={i}>
-                    <span className="hp-theme-index">{String(i + 1).padStart(2, '0')}</span>
+                {['01', '02', '03'].map(n => (
+                  <li className="hp-theme" key={n}>
+                    <span className="hp-theme-index">{n}</span>
                     <span className="hp-theme-statement"><GhostText lines={2} /></span>
                   </li>
                 ))}
               </ol>
-              <p className="hp-ed-ghost-note">
-                <span className="hp-ed-ghost-say">
-                  Written from what your referees say once a few testimonials are
-                  published. It appears here on its own.
-                </span>
-              </p>
             </div>
           )}
 
-          {/* The public Firsthand Accounts column, empty. Same class, so it
-              takes the same half of the same two column flow at the same
-              width; same head, same scroll region, same quote rows, so the
-              owner sees the real composition waiting rather than a stack of
-              bars. The rows carry no words, because inventing a testimonial
-              in a ghost would be inventing a person. */}
+          {/* The public Firsthand Accounts column, with the invitation in the
+              first quote position. Same class, so it takes the same half of the
+              same two column flow at the same width; same head, same scroll
+              region, same quote rows. The rows below carry no words, because
+              inventing a testimonial would be inventing a person. */}
           {!hasQuotes && canShowEmpty && (
             <div className="hp-impact-voices hp-ed-voices-empty">
               <div className="hp-voices-head">
@@ -201,10 +220,25 @@ export default function CollectiveImpact({
                 <p className="hp-voices-note">In the words of people who saw the work up close.</p>
               </div>
 
-              <div className="hp-voices-scroll hp-ed-ghost-voices" aria-hidden="true">
+              <div className="hp-voices-scroll hp-ed-ghost-voices">
                 <ul className="hp-voices">
-                  {[0, 1, 2].map(i => (
-                    <li className="hp-voice-item" key={i}>
+                  <li className="hp-voice-item">
+                    <div className="hp-voice-quote hp-ed-guide-quote">
+                      <SlotGuide
+                        heading="Ask the people who were there."
+                        action="Request a testimonial"
+                        feature="testimonial"
+                        onAction={() => setManageOpen(true)}
+                      >
+                        Ask people who have seen your work up close. They write a
+                        few sentences, review the polished version, and you decide
+                        whether it appears here.
+                      </SlotGuide>
+                    </div>
+                  </li>
+
+                  {[0, 1].map(i => (
+                    <li className="hp-voice-item" key={i} aria-hidden="true">
                       <blockquote className="hp-voice-quote" data-expanded="false">
                         <GhostText lines={3} />
                       </blockquote>
@@ -218,11 +252,6 @@ export default function CollectiveImpact({
                   ))}
                 </ul>
               </div>
-
-              <GhostNote feature="testimonial">
-                Ask someone you worked with to write one. They answer in their
-                own words, and nothing appears here until you publish it.
-              </GhostNote>
             </div>
           )}
 
@@ -306,8 +335,12 @@ export default function CollectiveImpact({
               below it. That row had no height to give, and `min-height: 100%`
               against it resolved to nothing, so the whole Firsthand Accounts
               column silently collapsed to zero in edit mode while preview,
-              which does not render this, was fine. */}
-          {canShowEmpty ? <TestimonialManager /> : null}
+              which does not render this, was fine.
+
+              On request now, not by default. It used to stand open under every
+              visit to this act, which meant the owner met a management table
+              instead of the section they had come to read. */}
+          {canShowEmpty && manageOpen ? <TestimonialManager /> : null}
         </div>
       </div>
     </section>

@@ -10,6 +10,7 @@ import ErrorToast from '../components/ErrorToast'
 import SuccessToast from '../components/SuccessToast'
 import ProfileDocument from '../p/[slug]/_components/ProfileDocument'
 import SettingsDrawer from './_components/SettingsDrawer'
+import EditorGuide from './_components/EditorGuide'
 
 import './_styles/editor.css'
 
@@ -692,11 +693,13 @@ export default function CareerProfileEditorPage() {
         </div>
       </div>
 
-      {/* The profile begins here, directly under the toolbar. There used to be
-          a large dismissible introduction in this gap explaining the page. It
-          is gone: guidance about an empty section belongs in that section,
-          where the owner is looking when they need it, and a banner above the
-          document pushed the actual Career Profile off the first screen. */}
+      {/* One short editorial spread, in Edit only, saying what this page is and
+          where the owner is in it. Short on purpose: the profile itself starts
+          on the same screen. */}
+      {editing ? (
+        <EditorGuide doc={document_} onPreview={() => setMode(MODES.PREVIEW)} />
+      ) : null}
+
       <ProfileDocument
         data={document_}
         slug={profile?.slug}
