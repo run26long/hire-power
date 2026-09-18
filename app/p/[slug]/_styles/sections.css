@@ -3456,6 +3456,12 @@
    assumed. */
 .hp-profile .hp-pf-grid .hp-pf-mat { --pf-band: 18.75%; }
 
+/* The caption hangs from the top of the band, not from its middle. Centred in
+   the band it sat around 30px under the graphic - far enough to read as a
+   separate thing again, and on the last card close enough to the overflow
+   control to crowd it. Anchored to the top with a fixed 11px, it reads as
+   belonging to the graphic above it, and the space it gives up falls below,
+   which is where the control is. */
 .hp-profile .hp-pf-grid .hp-pf-mat-title {
   position: absolute;
   left: 0;
@@ -3463,9 +3469,9 @@
   bottom: 0;
   top: calc(100% - var(--pf-band));
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 0 12px;
+  padding: 11px 12px 0;
   text-align: center;
 }
 
