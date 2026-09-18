@@ -3394,26 +3394,19 @@ html:has(.hp-ed) {
   color: var(--profile-accent);
 }
 
-/* The footer's Open to line is one short row, so a pill hanging in its corner
-   would sit on top of the tags. In Edit the line takes a band of room above
-   itself and the pill goes in that band, hard against the right-hand end of
-   the tags it belongs to. Edit only: .hp-ed-slot is not applied in Preview or
-   on the public page, so the closing line is untouched for a reader. */
-.hp-profile .hp-foot-open.hp-ed-slot {
-  padding-top: 32px;
-  padding-right: 0;
-}
-
-.hp-profile .hp-foot-open.hp-ed-slot > .hp-ed-pill-action {
-  top: 0;
-  right: 0;
-}
-
-/* ...and the pencil that shares the corner steps out of the pill's way. */
+/* The footer's Open to line is one short row, and its pencil sits in the row
+   itself rather than floating over it: static, so the flex line places it with
+   the same 8px gap it gives the label and the tags, and standing rather than
+   waiting for a hover, because on a line that reads like a statement about the
+   person an affordance that only appears on hover is never found.
+   Edit only: .hp-ed-slot is not applied in Preview or on the public page, so
+   the closing line a reader sees is untouched. */
 .hp-profile .hp-foot-open.hp-ed-slot > .hp-ed-pencil {
-  top: -2px;
-  right: auto;
-  left: 0;
+  position: static;
+  opacity: 1;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
 }
 
 

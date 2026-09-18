@@ -3,7 +3,6 @@
 import Reveal from './Reveal'
 import { EditPencil, useEditSlot, UpgradeNote } from './EditAffordance'
 import { TagsEditor } from './EditFields'
-import { useFieldEditor, useCanEdit } from '../_lib/editContext'
 
 // ============================================================================
 // The resolution, and the page's footer.
@@ -31,8 +30,6 @@ import { useFieldEditor, useCanEdit } from '../_lib/editContext'
 // ============================================================================
 export default function ProfileResolution({ readyTags, location, actions, animate }) {
   const slot = useEditSlot()
-  const tagsEditor = useFieldEditor('ready_tags')
-  const canEdit = useCanEdit()
   const hasTags = readyTags.length > 0
   const hasLocation = Boolean(location)
 
@@ -49,20 +46,12 @@ export default function ProfileResolution({ readyTags, location, actions, animat
 
             {hasTags && (
               <p className={`hp-foot-open${slot}`}>
-                {/* Said rather than only implied. The pencil is a hover
-                    affordance on a row of plain text, and on a line that looks
-                    like a statement about the person nobody goes looking for
-                    one. The pill is always there in Edit, names the thing it
-                    opens, and opens the same dialog the pencil does. */}
-                {canEdit && (
-                  <button
-                    type="button"
-                    className="hp-ed-pill hp-ed-pill-action"
-                    onClick={() => tagsEditor?.open()}
-                  >
-                    Edit career focus
-                  </button>
-                )}
+                {/* The pencil sits in the line itself, beside the label it
+                    edits, rather than floating in a band above it. On a row
+                    that reads like a statement about the person a hover-only
+                    affordance goes unfound, so in Edit this one is standing
+                    rather than waiting to be hovered. It opens the same dialog
+                    it always did. */}
                 <EditPencil field="ready_tags" label="the Open To tags" persists />
                 <strong className="hp-foot-open-label">Open to</strong>
                 {readyTags.map((tag, index) => (
