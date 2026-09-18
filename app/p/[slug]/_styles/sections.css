@@ -3433,6 +3433,26 @@
   overflow-wrap: anywhere;
 }
 
+/* ---- The six on the page: one card, not a picture and a caption ----
+   The frame is square everywhere else, and a square is right when the
+   collection is mixed. These six are all wide, so a square left a band of
+   empty mat above and below every graphic and pushed each title away from the
+   thing it names - the card stopped reading as one object.
+
+   Matching the frame to the shape the work is actually in closes that band, so
+   the title sits directly under its graphic. `object-fit: contain` is
+   untouched, so this still letterboxes rather than crops: a portrait item in
+   this grid gets bars at its sides instead of a haircut.
+
+   Scoped to .hp-pf-grid. The full gallery draws .hp-pf-box-grid and keeps its
+   square, because there the collection really is mixed. */
+.hp-profile .hp-pf-grid .hp-pf-mat-frame { aspect-ratio: 16 / 10; }
+
+.hp-profile .hp-pf-grid .hp-pf-mat-title {
+  padding: 12px 14px 14px;
+  text-align: center;
+}
+
 /* ---- The way into the rest ----
    Same control as the Evidence section's, in the same relationship to the work
    it opens: a lit pill on the lower-right corner of the grid, overhanging the
@@ -3488,12 +3508,14 @@
   }
 }
 
-/* From tablet up it overhangs the grid's lower-right corner by the same 19px
-   and the same 22px inset the Evidence control uses on its lead card. The
-   field pays for the overhang out of its own padding, so the control never
-   lands on whatever follows the section. */
+/* Lower-right of the portfolio block, and clear of it. It used to overhang the
+   grid, which put it across the last card's title - readable while the titles
+   sat at the bottom of a tall empty mat, and not once they moved up under
+   their graphics. So the field reserves the control's own height plus a gap
+   below the grid, and the control sits in that reserved band: same corner,
+   nothing covered. */
 @media (min-width: 768px) {
-  .hp-pf-field[data-more='true'] { padding-bottom: 19px; }
+  .hp-pf-field[data-more='true'] { padding-bottom: 56px; }
 
   .hp-profile .hp-pf-all {
     position: absolute;

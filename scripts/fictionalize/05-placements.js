@@ -55,18 +55,21 @@ const EMPHASIS = {
     'Weekly Operations Dashboard',
     'Safety Compliance Scorecard',
     'Rebuilding Delivery Performance at Apex Manufacturing',
+    'Eliminating Rework Through Departmental Quality Control',
     'Lean Six Sigma Black Belt'
   ],
   [LENS.BUSINESS_DEV]: [
     'Parts Store and Staging Redesign',
     'Project Management Professional',
     'Weekly Operations Dashboard',
-    'Rebuilding Delivery Performance at Apex Manufacturing'
+    'Rebuilding Delivery Performance at Apex Manufacturing',
+    'Eliminating Rework Through Departmental Quality Control'
   ],
   [LENS.EXECUTIVE]: [
     'Rebuilding Delivery Performance at Apex Manufacturing',
     'Operating Structure After Restructure',
     'Leadership Development Program',
+    'Eliminating Rework Through Departmental Quality Control',
     'Production Floor Redesign: Before and After'
   ]
 }

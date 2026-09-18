@@ -33,17 +33,19 @@ function load() {
     )
   }
 
-  const module = { exports: {} }
+  // Named `box` rather than `module`: this is the sandbox's module object, not
+  // this file's, and calling it `module` trips @next/next/no-assign-module-variable.
+  const box = { exports: {} }
   const cjs = src.replace(/^\s*export\s+(const|function|default)\s/gm, '$1 ')
     // Re-export whatever the file defined at top level, by name.
     + '\n;(' + JSON.stringify(namesIn(src)) + ').forEach(n => { try { module.exports[n] = eval(n) } catch {} });'
 
-  vm.runInNewContext(cjs, { module, exports: module.exports, console })
+  vm.runInNewContext(cjs, { module: box, exports: box.exports, console })
 
-  if (typeof module.exports.isPortfolioItem !== 'function') {
+  if (typeof box.exports.isPortfolioItem !== 'function') {
     throw new Error('lib/portfolio.js no longer exports isPortfolioItem; fix this loader.')
   }
-  return module.exports
+  return box.exports
 }
 
 // Every top-level binding the file exports, by name.

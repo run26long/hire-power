@@ -16,8 +16,26 @@
 //      refuses to fall back to the source file for variant=thumbnail.
 // ============================================================================
 
+const fs = require('fs')
+const path = require('path')
 const { sb, PROFILE_ID, USER_ID, SLUG, BUCKET, LENS } = require('./_env')
 const { isPortfolioItem, PORTFOLIO_PREVIEW_DESKTOP } = require('./_portfolio')
+
+// The two sections page at different counts, and this script previously
+// reported Evidence against the Portfolio's 6 - which said the overflow was
+// "correctly absent" at six items while the control was in fact on screen.
+// Evidence keeps its limit as a local constant in its own component rather than
+// in lib, so it is read from there and the script fails loudly if it moves.
+function evidencePreviewDesktop() {
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'app', 'p', '[slug]', '_components', 'EvidenceSection.js'),
+    'utf8'
+  )
+  const m = src.match(/const\s+PREVIEW_DESKTOP\s*=\s*(\d+)/)
+  if (!m) throw new Error('Could not read PREVIEW_DESKTOP out of EvidenceSection.js; fix this reader.')
+  return Number(m[1])
+}
+const EVIDENCE_PREVIEW_DESKTOP = evidencePreviewDesktop()
 
 const NEEDLES = [
   /\bJames\b/g, /\bLong\b/g, /disruptor/gi, /\bmbf\b/gi, /madstad/gi, /oshkosh/gi,
@@ -153,9 +171,9 @@ async function main() {
     // stops offering to show more is the correct behaviour rather than a
     // regression. Holding a number here would only invite somebody to invent
     // items to satisfy it.
-    note('  evidence ' + docs.length + (docs.length > PORTFOLIO_PREVIEW_DESKTOP
-      ? ' > ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow renders'
-      : ' <= ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow is correctly absent'))
+    note('  evidence ' + docs.length + (docs.length > EVIDENCE_PREVIEW_DESKTOP
+      ? ' > ' + EVIDENCE_PREVIEW_DESKTOP + ', so "View all evidence" renders'
+      : ' <= ' + EVIDENCE_PREVIEW_DESKTOP + ', so the evidence overflow is absent'))
 
     const missing = visible.filter(e => !rows.some(p => p.evidence_id === e.id))
     missing.length === 0

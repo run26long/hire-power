@@ -176,10 +176,12 @@ const OSHA_LEADERSHIP = () => certificate({
 // Every figure here already exists in this account's data: the resume bullets,
 // career_knowledge, and the two published testimonials.
 // ---------------------------------------------------------------------------
-function caseStudy() {
-  const { Document, Page, Text, View, StyleSheet } = require('@react-pdf/renderer')
+// The case-study sheet, made once and shared, so a second case study cannot
+// drift from the first by a margin here and a point size there.
+function caseStudyStyles() {
+  const { StyleSheet } = require('@react-pdf/renderer')
 
-  const s = StyleSheet.create({
+  return StyleSheet.create({
     page: { paddingTop: 52, paddingBottom: 56, paddingHorizontal: 58, fontFamily: 'Helvetica', fontSize: 10, color: INK },
     eyebrow: { fontSize: 7.5, letterSpacing: 2, color: ACCENT, fontFamily: 'Helvetica-Bold', marginBottom: 10 },
     title: { fontSize: 22, fontFamily: 'Helvetica-Bold', lineHeight: 1.25, marginBottom: 8 },
@@ -208,6 +210,11 @@ function caseStudy() {
     footer: { position: 'absolute', bottom: 30, left: 58, right: 58, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderColor: LINE, paddingTop: 8 },
     footerText: { fontSize: 7.5, color: MUTED }
   })
+}
+
+function caseStudy() {
+  const { Document, Page, Text, View } = require('@react-pdf/renderer')
+  const s = caseStudyStyles()
 
   const bullet = (t, k) => h(View, { style: s.bullet, key: k },
     h(Text, { style: s.dot }, '•'), h(Text, { style: s.bulletText }, t))
@@ -346,6 +353,143 @@ function caseStudy() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// The second case study: the QC change on its own
+//
+// Same Apex Manufacturing engagement as the first, narrowed to the one change
+// the first could only give five bullets to. Every figure here is already on
+// this profile: the 1 to 2 hours of daily assembly rework caused by upstream
+// engineering errors, the end-of-line inspection it replaced, the 25 to 13
+// headcount, the 100% on-time inside 50 days, the six stations on the
+// upfitting line, and Tomas Duarte's published testimonial. No second employer,
+// no outside body, no number that is not already claimed elsewhere on the page.
+// ---------------------------------------------------------------------------
+function reworkCaseStudy() {
+  const { Document, Page, Text, View } = require('@react-pdf/renderer')
+  const s = caseStudyStyles()
+
+  const bullet = (t, k) => h(View, { style: s.bullet, key: k },
+    h(Text, { style: s.dot }, '•'), h(Text, { style: s.bulletText }, t))
+
+  const footer = () => h(View, { style: s.footer, fixed: true },
+    h(Text, { style: s.footerText }, 'Eliminating Rework Through Departmental Quality Control'),
+    h(Text, {
+      style: s.footerText,
+      render: ({ pageNumber, totalPages }) => CANDIDATE + '  ·  Page ' + pageNumber + ' of ' + totalPages
+    }))
+
+  const cell = (w) => ({ width: w })
+
+  return h(Document, {},
+    h(Page, { size: 'A4', style: s.page },
+      h(Text, { style: s.eyebrow }, 'OPERATIONS CASE STUDY'),
+      h(Text, { style: s.title }, 'Eliminating Rework Through Departmental Quality Control'),
+      h(Text, { style: s.standfirst },
+        'An upfitting line inspected its work once, at the end. Moving the check into the department '
+        + 'that did the work removed one to two hours of assembly rework every day, and did it without '
+        + 'adding a single inspector.'),
+      h(View, { style: s.rule }),
+
+      h(View, { style: s.metaBar },
+        h(View, { style: s.metaCell },
+          h(Text, { style: s.metaLabel }, 'ORGANISATION'),
+          h(Text, { style: s.metaValue }, 'Apex Manufacturing')),
+        h(View, { style: s.metaCell },
+          h(Text, { style: s.metaLabel }, 'ROLE'),
+          h(Text, { style: s.metaValue }, 'Managing Director')),
+        h(View, { style: s.metaCell },
+          h(Text, { style: s.metaLabel }, 'SCOPE'),
+          h(Text, { style: s.metaValue }, 'Six stations, one line')),
+        h(View, { style: s.metaCell },
+          h(Text, { style: s.metaLabel }, 'PERIOD'),
+          h(Text, { style: s.metaValue }, '2023, weeks 3 to 5'))
+      ),
+
+      h(Text, { style: s.heading }, 'Where the rework came from'),
+      h(Text, { style: s.body },
+        'Quality was checked once, after paint, by people who had not built the unit. A wiring error '
+        + 'introduced in the second hour of a four-day build was therefore found on day four, by which '
+        + 'point three more stations had worked on top of it. Assembly was losing one to two hours every '
+        + 'day to corrections of this kind, and the errors were largely upstream engineering ones rather '
+        + 'than mistakes made at the bench being asked to fix them.'),
+      h(Text, { style: s.body },
+        'The cost was not only the hours. A defect found at the end is a defect nobody owns: the station '
+        + 'that caused it has moved on, the station correcting it did not make it, and the line learns '
+        + 'nothing either way. That is the part an extra inspector would not have fixed.'),
+
+      h(Text, { style: s.heading }, 'The change'),
+      bullet('Each of the six stations - cut, weld, assembly, wiring, paint and final - was given written '
+        + 'pass criteria for its own work, rather than one specification for the finished unit.', 'r1'),
+      bullet('Work stopped advancing until the department that did it signed it off. A unit that failed '
+        + 'its own station’s criteria went back to that station, not forward to the next one.', 'r2'),
+      bullet('The criteria were written by the departments that had to meet them. A standard handed down '
+        + 'to a bench is a standard that bench works around.', 'r3'),
+      bullet('Supervisors were taught the reasoning behind each criterion rather than told which '
+        + 'correction to apply, so a case the criteria did not anticipate still got judged correctly.', 'r4'),
+      bullet('End-of-line inspection was retired rather than kept alongside. Running both would have left '
+        + 'the last check as the one that counted, and the station checks as paperwork.', 'r5'),
+
+      footer()
+    ),
+
+    h(Page, { size: 'A4', style: s.page },
+      h(Text, { style: s.heading }, 'What it changed'),
+      h(View, { style: s.statRow },
+        h(View, { style: s.stat },
+          h(Text, { style: s.statNum }, '0 hrs'),
+          h(Text, { style: s.statLabel }, 'daily assembly rework,\nfrom 1 to 2 hours')),
+        h(View, { style: s.stat },
+          h(Text, { style: s.statNum }, '6 of 6'),
+          h(Text, { style: s.statLabel }, 'stations checking\ntheir own work')),
+        h(View, { style: { ...s.stat, marginRight: 0 } },
+          h(Text, { style: s.statNum }, '0'),
+          h(Text, { style: s.statLabel }, 'inspectors added to\nmake the change'))
+      ),
+
+      h(View, { style: s.tableHead },
+        h(Text, { style: { ...s.th, ...cell('46%') } }, 'MEASURE'),
+        h(Text, { style: { ...s.th, ...cell('27%') } }, 'END-OF-LINE MODEL'),
+        h(Text, { style: { ...s.th, ...cell('27%') } }, 'DEPARTMENTAL MODEL')
+      ),
+      ...[
+        ['Where a defect is found', 'After paint', 'At the station that made it'],
+        ['Who corrects it', 'Whoever is at the end', 'Whoever made it'],
+        ['Daily assembly rework', '1 to 2 hours', 'None'],
+        ['What the line learns', 'Nothing', 'The cause, at the bench'],
+        ['Inspection headcount', 'A final check', 'None separate']
+      ].map((r, i) => h(View, { style: s.tr, key: 'q' + i },
+        h(Text, { style: { ...s.td, ...cell('46%'), fontFamily: 'Helvetica-Bold' } }, r[0]),
+        h(Text, { style: { ...s.td, ...cell('27%'), color: MUTED } }, r[1]),
+        h(Text, { style: { ...s.td, ...cell('27%'), color: ACCENT, fontFamily: 'Helvetica-Bold' } }, r[2])
+      )),
+
+      h(Text, { style: s.heading }, 'What it made possible'),
+      h(Text, { style: s.body },
+        'This was one of three changes made in the first fifty days, and on its own it did not restore '
+        + 'the delivery record. What it did was remove the work that was not building anything. Once the '
+        + 'line stopped rebuilding its own mistakes, the same output no longer needed the same number of '
+        + 'hands, and the reduction from twenty-five people to thirteen followed from that rather than '
+        + 'from a target. Every active account was delivering on schedule within fifty days.'),
+
+      h(Text, { style: s.heading }, 'Why it held'),
+      h(Text, { style: s.body },
+        'A quality standard usually leaves with the person who introduced it. This one did not belong to '
+        + 'that person: it was written by the departments it governed, and the supervisors running it had '
+        + 'been taught why each criterion existed rather than what to do when it failed. That is the '
+        + 'difference between a rule a line follows and one it understands.'),
+
+      h(View, { style: s.quote },
+        h(Text, { style: s.quoteText },
+          '"He put the QC checks inside each department instead of at the end, which stopped us '
+          + 'rebuilding other people’s mistakes."'),
+        h(Text, { style: s.quoteWho }, 'Tomas Duarte, Production Lead, Apex Manufacturing')
+      ),
+
+      footer()
+    )
+  )
+}
+
 async function render(docFactory) {
   const { renderToBuffer, Font } = await import('@react-pdf/renderer')
   // Off by default it is not: the renderer hyphenates, and left alone it broke
@@ -393,6 +537,15 @@ const DOCUMENTS = [
     date_label: 'Completed 2021'
   },
   {
+    key: 'case-study-departmental-qc',
+    doc: reworkCaseStudy,
+    title: 'Eliminating Rework Through Departmental Quality Control',
+    description: 'The quality change on its own: why an end-of-line check was costing assembly one to two hours a day, what replaced it across all six stations, and why the standard outlasted the person who introduced it.',
+    evidence_type: 'Case study',
+    organization: 'Apex Manufacturing',
+    date_label: '2023'
+  },
+  {
     key: 'osha-safety-leadership',
     doc: OSHA_LEADERSHIP,
     title: 'Safety Leadership in General Industry',
@@ -404,40 +557,18 @@ const DOCUMENTS = [
 ]
 
 // ---------------------------------------------------------------------------
-// The two link items
+// Link items
+//
+// Deliberately empty. This profile carried three: a LinkedIn article that was
+// never written and two association awards that were never given. Every one of
+// them pointed at an address invented to fill a tile, which is worse than an
+// obviously fake one because a plausible hostname invites the click.
+// 08-remove-links.js took them out, and the list is emptied here rather than
+// left populated, so that re-running this script cannot put them back.
+//
+// The loop that reads it stays, so a real link can be added without rebuilding
+// the path for one.
 // ---------------------------------------------------------------------------
-const LINKS = [
-  {
-    key: 'linkedin-article',
-    title: 'What a WIP Report Changes in the First Week',
-    description: 'An article on why operational turnarounds fail when the first move is a change rather than a measurement, written after the third plant.',
-    url: 'https://www.linkedin.com/pulse/what-wip-report-changes-first-week-daniel-mercer',
-    evidence_type: 'Publication',
-    organization: 'LinkedIn',
-    date_label: '2024'
-  },
-  {
-    key: 'industry-award',
-    title: 'Carolinas Manufacturing Excellence Award, Operational Turnaround',
-    description: 'Listed for the delivery performance rebuild at Apex Manufacturing, in the category recognising a restored production system rather than a single year of output.',
-    url: 'https://www.carolinasmfg.org/awards/2024/operational-turnaround',
-    evidence_type: 'Award',
-    organization: 'Carolinas Manufacturing Association',
-    date_label: '2024'
-  },
-  {
-    // Deliberately a different award in a different year from the one above,
-    // and under the same awarding body rather than a second one with almost
-    // the same name: two near-identical associations on one profile reads as
-    // invented, which is the opposite of what these fixtures are for.
-    key: 'manufacturing-excellence-award',
-    title: 'Manufacturing Excellence Award, Plant of the Year',
-    description: 'The association’s annual site award, judged on delivery performance, safety record and workforce development together rather than on output alone.',
-    url: 'https://www.carolinasmfg.org/awards/2025/plant-of-the-year',
-    evidence_type: 'Award',
-    organization: 'Carolinas Manufacturing Association',
-    date_label: '2025'
-  }
-]
+const LINKS = []
 
 module.exports = { DOCUMENTS, LINKS, render }
