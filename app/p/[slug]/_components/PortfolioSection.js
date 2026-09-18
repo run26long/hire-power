@@ -141,6 +141,12 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           </ul>
         ) : (
           <Reveal enabled={animate}>
+            {/* The grid and the way into the rest are one composition, so they
+                share a positioned box: the control sits on the grid's
+                lower-right corner and overhangs it, the way the Evidence
+                section's does on its lead card. The field is what the control
+                is positioned against; the grid keeps its own geometry. */}
+            <div className="hp-pf-field" data-more={hidden > 0 ? 'true' : 'false'}>
             <ul className="hp-pf-grid" data-count={String(shown.length)}>
               {shown.map((item, index) => (
                 <li className="hp-pf-cell" key={item.id}>
@@ -190,20 +196,20 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
             {/* Offered only when there is something the six did not show.
                 Six or fewer and the grid is the whole portfolio, so an action
                 promising more would open a gallery the reader has already
-                read. */}
+                read. The count is the whole collection, not the remainder:
+                "(8)" is what the reader will find on the other side of it. */}
             {hidden > 0 && (
-              <div className="hp-pf-more">
-                <button
-                  type="button"
-                  className="hp-pf-all"
-                  onClick={openGrid}
-                  aria-haspopup="dialog"
-                >
-                  View full portfolio
-                  <span className="hp-pf-all-arrow" aria-hidden="true">→</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className="hp-pf-all"
+                onClick={openGrid}
+                aria-haspopup="dialog"
+              >
+                View full portfolio ({ordered.length})
+                <span className="hp-pf-all-arrow" aria-hidden="true">→</span>
+              </button>
             )}
+            </div>
           </Reveal>
         )}
 

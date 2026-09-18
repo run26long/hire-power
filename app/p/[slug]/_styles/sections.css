@@ -2769,6 +2769,67 @@
 .hp-ev-doc, .hp-ev-frame { width: 100%; height: 100%; min-height: 320px; }
 .hp-ev-object, .hp-ev-iframe { width: 100%; height: 100%; min-height: 320px; border: 0; border-radius: 8px; background: #000; }
 
+/* ---- A rendered PDF ----
+   The stage is a centring grid, which is right for a photograph and wrong for
+   a stack of pages: they take the full measure and start at the top, and the
+   stage scrolls them with the same thin accent bar it already uses. No scroll
+   container of its own - a second one inside the first would put two bars side
+   by side and trap the wheel in the inner one. */
+.hp-ev-stage:has(.hp-ev-pdf) { place-items: start stretch; }
+
+/* The self-alignment is repeated on the child rather than left to the :has()
+   above, so the stack still takes the full measure and starts at the top on a
+   browser that does not support :has(). */
+.hp-ev-pdf { width: 100%; min-width: 0; justify-self: stretch; align-self: start; }
+
+/* Width-bearing even while empty, and deliberately so: the scale every page is
+   rendered at is measured off this element, so a rule that collapsed it before
+   the first page existed would leave nothing to measure and nothing would ever
+   render. */
+.hp-ev-pdf-host { width: 100%; }
+
+.hp-ev-pdf-stack {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+/* Paper, so a page reads as a page on the dark field rather than as an image
+   bleeding into it. */
+.hp-ev-pdf-page {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 6px 20px rgb(var(--profile-void-rgb) / 0.55);
+}
+
+/* Laid out at the container's width; the backing store is larger by the device
+   pixel ratio, which is what keeps the text crisp rather than resampled. */
+.hp-ev-pdf-canvas { display: block; width: 100%; height: auto; }
+
+.hp-ev-pdf-badge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(var(--profile-void-rgb) / 0.62);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgb(255 255 255 / 0.9);
+  pointer-events: none;
+}
+
+.hp-ev-pdf-status {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px 0;
+  text-align: center;
+}
+
 .hp-ev-audio {
   display: grid;
   justify-items: center;
@@ -3372,31 +3433,92 @@
   overflow-wrap: anywhere;
 }
 
-/* ---- The way into the rest ---- */
-.hp-pf-more { margin-top: 18px; }
+/* ---- The way into the rest ----
+   Same control as the Evidence section's, in the same relationship to the work
+   it opens: a lit pill on the lower-right corner of the grid, overhanging the
+   edge just enough to read as attached to it rather than drawn on it. The two
+   sections are the same collection read through different questions, so the way
+   into each of them should not be two different-looking buttons. */
+.hp-pf-field { position: relative; }
 
+/* Matched to .hp-ev-all as it actually computes, which is not the pill its
+   first rule describes: that block is overridden further down the file into
+   this compact rectangle, and the rendered control is what there is to match.
+   Same 3px corner, same 9px/15px, same faint accent wash, same 12px/700 caps
+   at 0.1em. Two sections showing one collection should not be entered through
+   two different-looking buttons. */
 .hp-profile .hp-pf-all {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--profile-text);
-  font-size: 14px;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 9px 15px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 3px;
+  /* A flat accent wash over an opaque base, which is exactly what .hp-ev-all
+     computes to. The base is not decoration: this control overhangs the mats,
+     so a 10% wash on its own would leave the label sitting on whatever
+     photograph happens to be in the bottom-right square. */
+  background-color: var(--profile-surface-2);
+  background-image: linear-gradient(
+    0deg,
+    rgb(var(--profile-accent-rgb) / 0.1),
+    rgb(var(--profile-accent-rgb) / 0.1)
+  );
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
   cursor: pointer;
-  transition: border-color 180ms ease, background-color 180ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 
 .hp-profile .hp-pf-all:hover,
 .hp-profile .hp-pf-all:focus-visible {
-  border-color: rgb(var(--profile-accent-rgb) / 0.6);
-  background: rgb(var(--profile-accent-rgb) / 0.08);
+  border-color: rgb(var(--profile-accent-rgb) / 0.62);
+  background-image: linear-gradient(
+    0deg,
+    rgb(var(--profile-accent-rgb) / 0.17),
+    rgb(var(--profile-accent-rgb) / 0.17)
+  );
+  color: var(--profile-accent-soft);
 }
 
-.hp-pf-all-arrow { transition: transform 180ms ease; }
+.hp-profile .hp-pf-all:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 4px;
+}
+
+.hp-pf-all-arrow { font-size: 13px; line-height: 1; transition: transform 160ms ease; }
 .hp-profile .hp-pf-all:hover .hp-pf-all-arrow { transform: translateX(3px); }
+
+/* On a phone it sits under the grid, full width. There is no corner worth
+   overhanging at a two-column measure, and a control hanging off one would
+   land on a mat. */
+@media (max-width: 767px) {
+  .hp-profile .hp-pf-all {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* From tablet up it overhangs the grid's lower-right corner by the same 19px
+   and the same 22px inset the Evidence control uses on its lead card. The
+   field pays for the overhang out of its own padding, so the control never
+   lands on whatever follows the section. */
+@media (min-width: 768px) {
+  .hp-pf-field[data-more='true'] { padding-bottom: 19px; }
+
+  .hp-profile .hp-pf-all {
+    position: absolute;
+    right: 22px;
+    bottom: 0;
+    margin: 0;
+  }
+}
 
 @media (min-width: 768px) {
   .hp-pf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -3692,7 +3814,6 @@
   border-radius: 50%;
   background: rgb(0 0 0 / 0.5);
   color: rgb(255 255 255 / 0.92);
-  font-size: 26px;
   line-height: 1;
   cursor: pointer;
 }

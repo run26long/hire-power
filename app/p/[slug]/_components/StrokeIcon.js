@@ -25,6 +25,12 @@ export default function StrokeIcon({ paths, size = 18, strokeWidth = 1.4 }) {
 export const ICON_CERT = ['M12 15a6 6 0 100-12 6 6 0 000 12z', 'M8.2 14L7 22l5-3 5 3-1.2-8']
 export const ICON_PLUS = ['M12 5v14', 'M5 12h14']
 
+// Whole arrows: a shaft and a head, not the bare chevron a single angle draws.
+// The shaft is what makes one read as "go back to the previous item" rather
+// than as the corner of something.
+export const ICON_ARROW_LEFT = ['M20 12H4', 'M10 6l-6 6 6 6']
+export const ICON_ARROW_RIGHT = ['M4 12h16', 'M14 6l6 6-6 6']
+
 // Artifacts are drawn by what the thing is, so a link holder can tell a video
 // from a document before they open it.
 export const ICON_MEDIA = {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
+import EvidencePdf from './EvidencePdf'
 
 // ============================================================================
 // THE EVIDENCE DETAIL
@@ -39,6 +40,16 @@ export const externalUrl = (item) =>
 
 export const metaLine = (item) =>
   [item?.evidence_type, item?.organization, item?.date_label].filter(Boolean).join(' · ')
+
+// The stored mime is what storage actually reported, so it decides. When there
+// is none, the renderer is still the better bet than an <object>: the upload
+// route only accepts PDFs and Word files as documents, and a pdfjs attempt that
+// fails says so and offers a way out, where an <object> that fails shows an
+// empty rectangle and says nothing. So only an explicit non-PDF type opts out.
+const isPdf = (mime) => {
+  const declared = String(mime || '').split(';')[0].trim().toLowerCase()
+  return !declared || declared === 'application/pdf'
+}
 
 const isEmbeddable = (item) =>
   item?.media_class === 'embed'
@@ -108,9 +119,19 @@ export function EvidenceStage({ item, slug, lensId }) {
     )
   }
   if (item.media_class === 'document' && file.url) {
+    // A PDF is drawn onto canvases by pdfjs rather than handed to the browser
+    // as an <object>. Whether an <object> shows anything is the browser's
+    // decision, not ours - Chrome's "download instead of open" preference and
+    // iOS Safari both turn it into an empty rectangle inside a modal that is
+    // otherwise working - and an empty rectangle explains nothing.
+    if (isPdf(file.mime)) {
+      return <EvidencePdf url={file.url} title={item.title} fallbackUrl={file.url} />
+    }
+    // Anything else that calls itself a document - a .docx, say - has no
+    // renderer here, so it keeps the element that at least lets a browser try.
     return (
       <div className="hp-ev-doc">
-        <object className="hp-ev-object" data={file.url} type={file.mime || 'application/pdf'}>
+        <object className="hp-ev-object" data={file.url} type={file.mime || 'application/octet-stream'}>
           <p className="hp-ev-note">This document cannot be shown inside the page on this browser.</p>
         </object>
       </div>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
+import StrokeIcon, { ICON_MEDIA, ICON_ARROW_LEFT, ICON_ARROW_RIGHT } from './StrokeIcon'
 import PortfolioMat from './PortfolioMat'
 import { formatDuration } from '@/lib/portfolio'
 
@@ -271,7 +271,7 @@ export default function PortfolioLightbox({
                   onClick={() => go(-1)}
                   aria-label="Previous"
                 >
-                  ‹
+                  <StrokeIcon paths={ICON_ARROW_LEFT} size={20} strokeWidth={1.6} />
                 </button>
               )}
 
@@ -287,7 +287,7 @@ export default function PortfolioLightbox({
                   onClick={() => go(1)}
                   aria-label="Next"
                 >
-                  ›
+                  <StrokeIcon paths={ICON_ARROW_RIGHT} size={20} strokeWidth={1.6} />
                 </button>
               )}
             </div>
