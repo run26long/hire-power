@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import puppeteer from 'puppeteer';
 import { normalizeSkillCategories } from '@/lib/resumeText'
+import { coreResumeLabel } from '@/lib/resumeLabel'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -373,6 +374,22 @@ export async function GET(req) {
         .maybeSingle());
     }
 
+    // Every lens this account has, for naming its cores. Deliberately a second
+    // query rather than a reuse of the one below: that one is filtered to
+    // source 'coaching_extraction' because it feeds the suggestion tiles, and
+    // the primary direction carries source 'user', so it is the one row that
+    // query can never return. Naming a core from it needs all of them.
+    const { data: namingLenses, error: namingLensesError } = await supabase
+      .from('profile_lenses')
+      .select('name, source, sort_order, status, core_resume_id')
+      .eq('user_id', user.id);
+
+    if (namingLensesError) {
+      // Costs the direction in the title, nothing else. Every card still
+      // renders, just under the name it had before.
+      console.error('Naming lens lookup failed (non-fatal):', namingLensesError);
+    }
+
     // Directions Coach found in the background, whether or not the user acted on them.
     // Service role, so this is not subject to RLS on profile_lenses.
     // Both statuses: a suggestion is a core the user could build, an active lens is
@@ -393,9 +410,22 @@ export async function GET(req) {
     // The card shape, shared by the core the hub opens with and every core it can
     // toggle to. The thumbnail is passed in because only the one core above pays to
     // have one generated; the rest carry whatever they already had.
+    // How many cores this account holds, which is what decides whether the
+    // account's direction can be taken to mean one particular document. The
+    // query above is already filtered to is_active, so this is that count.
+    const activeCoreCount = allCore.length;
+
     const projectCore = (core, generatedThumbnail) => ({
       id: core.id,
-      display_name: core.display_name || 'Core Resume',
+      // The direction this resume is for, where one is knowable. Resolved here
+      // rather than in the page so every caller of this route agrees, and so
+      // the rule lives in one testable place.
+      display_name: coreResumeLabel({
+        resume: core,
+        lenses: namingLenses || [],
+        currentLensName: careerContext?.current_lens_name || null,
+        coreCount: activeCoreCount
+      }),
       resume_data: core.resume_data,
       current_score: core.current_score,
       initial_score: core.initial_resume_power_score,

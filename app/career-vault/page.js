@@ -9,6 +9,7 @@ import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
+import { coreResumeLabel } from '@/lib/resumeLabel';
 
 // Status badge colors — muted to avoid clashing with HP purple
 function GapWinLogger({ gapText, currentJobEntry, supabase, user, onSaved, onDismiss, onRegenerate }) {
@@ -112,6 +113,11 @@ export default function CareerVaultPage() {
  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [resumeCount, setResumeCount] = useState(0);
   const [activeResumes, setActiveResumes] = useState([]);
+  // What this account's cores are called, read the same way the hub and the
+  // resume page read it so one resume does not carry two names across screens.
+  const [namingLenses, setNamingLenses] = useState([]);
+  const [currentLensName, setCurrentLensName] = useState(null);
+  const [activeCoreCount, setActiveCoreCount] = useState(null);
   const [showResumeListModal, setShowResumeListModal] = useState(false);
   const [confirmArchiveResume, setConfirmArchiveResume] = useState(null);
   const [archivingResumeId, setArchivingResumeId] = useState(null);
@@ -282,6 +288,26 @@ export default function CareerVaultPage() {
         });
         setActiveResumes(sortedResumes);
         setResumeCount(sortedResumes.length);
+
+        // What to call the cores. The lens rows name them, career_context is the
+        // fallback for an account with no profile yet, and the count of active
+        // cores decides whether the account's direction can mean one particular
+        // document. Failing here costs the direction in the name and nothing
+        // else, so it is read alongside rather than guarded against.
+        const [{ data: lensRows }, { data: contextRow }] = await Promise.all([
+          supabase
+            .from('profile_lenses')
+            .select('name, source, sort_order, status, core_resume_id')
+            .eq('user_id', user.id),
+          supabase
+            .from('career_context')
+            .select('current_lens_name')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        ]);
+        setNamingLenses(lensRows || []);
+        setCurrentLensName(contextRow?.current_lens_name || null);
+        setActiveCoreCount(sortedResumes.filter(r => r.resume_type === 'core').length);
 
         // Load archived job cards
         const { data: archivedApps, error: archivedError } = await supabase
@@ -1813,7 +1839,12 @@ export default function CareerVaultPage() {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900 truncate">
                           {resume.resume_type === 'core'
-                            ? (resume.display_name || 'Core Resume')
+                            ? coreResumeLabel({
+                                resume,
+                                lenses: namingLenses,
+                                currentLensName,
+                                coreCount: activeCoreCount
+                              })
                             : (resume.display_name || `${resume.job_title || 'Untitled'}${resume.job_company ? ' at ' + resume.job_company : ''}`)
                           }
                         </p>
@@ -1872,7 +1903,12 @@ export default function CareerVaultPage() {
                 <h2 className="text-base font-bold text-white">Move to Archive?</h2>
                 <p className="text-purple-100 text-xs">
                   {confirmArchiveResume.resume_type === 'core'
-                    ? (confirmArchiveResume.display_name || 'Core Resume')
+                    ? coreResumeLabel({
+                        resume: confirmArchiveResume,
+                        lenses: namingLenses,
+                        currentLensName,
+                        coreCount: activeCoreCount
+                      })
                     : `${confirmArchiveResume.job_title || 'Untitled'}${confirmArchiveResume.job_company ? ' at ' + confirmArchiveResume.job_company : ''}`
                   }
                 </p>

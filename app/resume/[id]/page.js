@@ -9,6 +9,7 @@ import UpgradeModal from '@/app/components/UpgradeModal'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
+import { coreResumeLabel } from '@/lib/resumeLabel'
 import ErrorToast from '../../components/ErrorToast'
 import SuccessToast from '../../components/SuccessToast'
 import CaptureCounter from '../../components/CaptureCounter'
@@ -136,6 +137,12 @@ export default function ResumePage() {
   const [siblingResumes, setSiblingResumes] = useState([])
   const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
   const [coreResumes, setCoreResumes] = useState([])
+  // What this account's cores are called. The lens rows name them and the count
+  // decides whether the account's direction can mean one particular document;
+  // both are read here so the title matches the hub rather than being computed
+  // from a different set of facts on each page.
+  const [namingLenses, setNamingLenses] = useState([])
+  const [activeCoreCount, setActiveCoreCount] = useState(null)
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -1123,17 +1130,36 @@ if (data.ai_analysis) {
   async function loadBreadcrumbLinks(resumeRow, userId) {
     try {
       if (resumeRow?.resume_type === 'core') {
-        const { data: cores } = await supabase
-          .from('resumes')
-          .select('id, display_name')
-          .eq('user_id', userId)
-          .eq('resume_type', 'core')
-          .eq('is_active', true)
-          .eq('coaching_complete', true)
-          .order('is_priority_core', { ascending: false })
-          .order('created_at', { ascending: true })
+        // The switcher list is the finished cores. The lens rows and the core
+        // count are for the titles, and the count deliberately is not the
+        // switcher's: that one is narrowed to coaching_complete, and counting
+        // only those would call a second core unambiguous while another still
+        // being coached sits beside it.
+        const [{ data: cores }, { data: lenses }, { count: coreTotal }] = await Promise.all([
+          supabase
+            .from('resumes')
+            .select('id, display_name')
+            .eq('user_id', userId)
+            .eq('resume_type', 'core')
+            .eq('is_active', true)
+            .eq('coaching_complete', true)
+            .order('is_priority_core', { ascending: false })
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('profile_lenses')
+            .select('name, source, sort_order, status, core_resume_id')
+            .eq('user_id', userId),
+          supabase
+            .from('resumes')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('resume_type', 'core')
+            .eq('is_active', true)
+        ])
 
         setCoreResumes(cores || [])
+        setNamingLenses(lenses || [])
+        setActiveCoreCount(typeof coreTotal === 'number' ? coreTotal : null)
         return
       }
 
@@ -1328,6 +1354,25 @@ if (data.ai_analysis) {
   const journeyStep = resume?.journey_step || 'start'
   const score = resume?.current_score || null
 
+  // The title for one resume row. Only a core is named after a direction; a
+  // job-specific resume is already called after the job it is for, which is a
+  // better name than any direction would be, so it passes straight through.
+  //
+  // The switcher passes rows carrying only id and display_name, which is all
+  // the rule needs: a lens points at a resume by id.
+  const labelForCore = (row) => {
+    if (!row) return 'Core Resume'
+    if (row.resume_type && row.resume_type !== 'core') {
+      return row.display_name || row.job_title || 'Untitled Resume'
+    }
+    return coreResumeLabel({
+      resume: row,
+      lenses: namingLenses,
+      currentLensName: careerContext?.current_lens_name || null,
+      coreCount: activeCoreCount
+    })
+  }
+
   // The modal shows at most five items, in the order the model ranked them.
   // Grouping happens after the cap, so group order follows first appearance.
   const knowledgeDisplayItems = knowledgeMatches.slice(0, 5)
@@ -1377,13 +1422,13 @@ if (data.ai_analysis) {
             : [
                 { label: 'Resume Writer', path: '/resume-coach' },
                 {
-                  label: resume.display_name || 'Core Resume',
+                  label: labelForCore(resume),
                   // One core is the ordinary case and stays a plain label. The menu
                   // lists every core including this one, checked, so the user can see
                   // which of them they are looking at.
                   options: coreResumes.length > 1
                     ? coreResumes.map(r => ({
-                        label: r.display_name || 'Core Resume',
+                        label: labelForCore(r),
                         path: `/resume/${r.id}`,
                         current: r.id === resume.id
                       }))
@@ -2103,7 +2148,7 @@ if (data.ai_analysis) {
               analysisResults={analysisResults}
               filteredAnalysisResults={filteredAnalysisResults}
               userTier={userProfile?.subscription_tier || 'free'}
-              resumeName={resume.display_name || 'Core Resume'}
+              resumeName={labelForCore(resume)}
               userName={userProfile?.display_name}
               userProfile={userProfile}
               supabase={supabase}
