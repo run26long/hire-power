@@ -1,149 +1,160 @@
 // ============================================================================
-// STEP 5 - WHERE EACH NEW ITEM IS SHOWN
+// STEP 5 - WHERE EACH ITEM IS SHOWN
 //
-// A placement says which direction shows an item, in what order, and which one
-// leads. The table enforces four things this script has to respect:
+// Rewrites the placement table for this profile from scratch: every publicly
+// eligible item on all three directions, in a per-direction order, with one
+// lead each.
 //
-//   unique (evidence_id, lens_id) where lens_id is not null
-//   unique (evidence_id)          where lens_id is null   - one shared row only
-//   unique (lens_id)              where featured          - one lead per direction
-//   unique (profile_id)           where featured and lens_id is null
+// WHY NOT THE SHARED LAYER
+// The first version of this script put the three general credentials in the
+// shared layer and nothing else, on the reasoning that a credential argues for
+// every direction equally. That was wrong, and ProfileDocument says why:
 //
-// SHARED IS A FALLBACK, NOT A BROADCAST
-// The migration that created this table is explicit that an item with direction
-// placements gets no shared row, because explicit curation is not quietly
-// widened. So the three general credentials take a shared placement and nothing
-// else, and every other item is placed on the directions it actually argues for.
+//     data?.evidencePlacements?.[selectedLens?.id] ?? data?.evidenceShared ?? []
 //
-// THE LEADS ARE RE-POINTED, DELIBERATELY
-// All three directions currently lead on an example.com link that resolves to
-// nothing. Two are moved onto real uploads. Business Development is left where
-// it is on purpose: that leaves one direction leading on an image, one on a
-// document and one on a link, which is the whole set of lead-card renderings
-// this profile exists to exercise.
+// Shared is a FALLBACK, reached only by a direction that has no placements of
+// its own, and the two are never merged - deliberately, so a reader can always
+// tell what this direction actually chose. All three directions here have their
+// own placements, so those three credentials were invisible on every one of
+// them. Nothing in the UI would have shown that; the item simply was not there.
+//
+// WHY EVERY ITEM ON EVERY DIRECTION
+// Both sections page at six. With sixteen items split three ways by theme, no
+// single direction reached seven of either, so neither overflow control ever
+// rendered - which is the bug this profile exists to let somebody look at. The
+// per-direction ORDER still differs, which is the part that actually matters:
+// the same collection, led and sequenced differently under each direction.
+//
+// WHY IT REPLACES RATHER THAN APPENDS
+// Placements were left behind by deleted rows, by the shared-layer mistake, and
+// by two earlier runs. Rebuilding the table is one obvious state instead of
+// three overlapping corrections.
 // ============================================================================
 
 const { sb, PROFILE_ID, LENS, APPLY } = require('./_env')
+const { isPortfolioItem } = require('./_portfolio')
 
-const SHARED = null
+// One lead per direction, chosen so all three lead-card renderings are on
+// screen somewhere: an image, a link, and a document.
+const LEAD = {
+  [LENS.OPERATIONS]: 'Production Floor Redesign: Before and After',
+  [LENS.BUSINESS_DEV]: 'Manufacturing Excellence Award, Plant of the Year',
+  [LENS.EXECUTIVE]: 'Rebuilding Delivery Performance at Apex Manufacturing'
+}
 
-// title -> the directions that show it, and whether it leads there
-const PLAN = [
-  // --- portfolio ---
-  ['Production Floor Redesign: Before and After', [[LENS.OPERATIONS, 'lead'], [LENS.EXECUTIVE]]],
-  ['Lean Implementation Sequence', [[LENS.OPERATIONS]]],
-  ['Weekly Operations Dashboard', [[LENS.OPERATIONS], [LENS.EXECUTIVE]]],
-  ['Departmental QC Standard', [[LENS.OPERATIONS]]],
-  ['Weekly WIP Board', [[LENS.OPERATIONS]]],
-  ['Safety Compliance Scorecard', [[LENS.OPERATIONS]]],
-  ['Operating Structure After Restructure', [[LENS.EXECUTIVE]]],
-  ['Parts Store and Staging Redesign', [[LENS.BUSINESS_DEV]]],
-
-  // --- evidence ---
-  ['Rebuilding Delivery Performance at Apex Manufacturing', [[LENS.EXECUTIVE, 'lead'], [LENS.OPERATIONS]]],
-  ['What a WIP Report Changes in the First Week', [[LENS.EXECUTIVE]]],
-  ['Carolinas Manufacturing Excellence Award, Operational Turnaround', [[LENS.BUSINESS_DEV], [LENS.EXECUTIVE]]],
-
-  // --- credentials: shared layer, nothing else ---
-  ['Lean Six Sigma Black Belt', [[SHARED]]],
-  ['Project Management Professional', [[SHARED]]],
-  ['Safety Leadership in General Industry', [[SHARED]]]
-]
+// What each direction puts first. Anything not named here follows in canonical
+// sort order, so adding an item never silently drops it from a direction.
+const EMPHASIS = {
+  [LENS.OPERATIONS]: [
+    'Production Floor Redesign: Before and After',
+    'Departmental QC Standard',
+    'Weekly WIP Board',
+    'Lean Implementation Sequence',
+    'Weekly Operations Dashboard',
+    'Safety Compliance Scorecard',
+    'Rebuilding Delivery Performance at Apex Manufacturing',
+    'Lean Six Sigma Black Belt'
+  ],
+  [LENS.BUSINESS_DEV]: [
+    'Manufacturing Excellence Award, Plant of the Year',
+    'Parts Store and Staging Redesign',
+    'Carolinas Manufacturing Excellence Award, Operational Turnaround',
+    'What a WIP Report Changes in the First Week',
+    'Project Management Professional',
+    'Weekly Operations Dashboard'
+  ],
+  [LENS.EXECUTIVE]: [
+    'Rebuilding Delivery Performance at Apex Manufacturing',
+    'Operating Structure After Restructure',
+    'Leadership Development Program',
+    'Production Floor Redesign: Before and After',
+    'What a WIP Report Changes in the First Week',
+    'Carolinas Manufacturing Excellence Award, Operational Turnaround'
+  ]
+}
 
 const LENS_NAME = {
   [LENS.OPERATIONS]: 'Manufacturing Operations',
   [LENS.BUSINESS_DEV]: 'Business Development',
   [LENS.EXECUTIVE]: 'Executive Leadership'
 }
-const label = (id) => id === SHARED ? 'Shared layer' : (LENS_NAME[id] || id)
+
+// Both sections page at six, so seven is the first count that shows a control.
+const PREVIEW = 6
 
 async function main() {
-  const { data: evidence, error: evErr } = await sb
-    .from('profile_evidence').select('id, title').eq('profile_id', PROFILE_ID).is('deleted_at', null)
-  if (evErr) throw evErr
-  const idFor = new Map(evidence.map(e => [e.title, e.id]))
+  const { data: evidence, error } = await sb
+    .from('profile_evidence')
+    .select('id, title, media_class, source_type, status, privacy, sort_order')
+    .eq('profile_id', PROFILE_ID)
+    .is('deleted_at', null)
+    .order('sort_order')
+  if (error) throw error
 
-  const { data: existing, error: plErr } = await sb
-    .from('profile_evidence_placements').select('*').eq('profile_id', PROFILE_ID)
-  if (plErr) throw plErr
+  // Exactly the filter the public route applies. An item that fails it cannot
+  // be seen however it is placed, so it is not placed.
+  const visible = evidence.filter(e => e.status === 'published' && e.privacy === 'public')
+  const hidden = evidence.filter(e => !(e.status === 'published' && e.privacy === 'public'))
 
-  // Next free sort_order per layer, so new rows land after what is already there.
-  const nextSort = new Map()
-  for (const p of existing) {
-    const k = p.lens_id || 'SHARED'
-    nextSort.set(k, Math.max(nextSort.get(k) ?? -1, p.sort_order ?? 0))
-  }
+  const byTitle = new Map(visible.map(e => [e.title, e]))
+  const rows = []
 
-  const already = new Set(existing.map(p => p.evidence_id + '|' + (p.lens_id || 'SHARED')))
+  for (const [lensId, name] of Object.entries(LENS_NAME)) {
+    const emphasis = EMPHASIS[lensId] || []
+    for (const title of emphasis) {
+      if (!byTitle.has(title)) throw new Error(name + ' emphasises an item that does not exist: ' + title)
+    }
+    const first = emphasis.map(t => byTitle.get(t))
+    const rest = visible.filter(e => !emphasis.includes(e.title))
+    const ordered = [...first, ...rest]
 
-  const inserts = []
-  const demote = []   // existing leads that have to stand down first
+    const leadTitle = LEAD[lensId]
+    if (!byTitle.has(leadTitle)) throw new Error(name + ' leads on an item that does not exist: ' + leadTitle)
 
-  for (const [title, targets] of PLAN) {
-    const evidenceId = idFor.get(title)
-    if (!evidenceId) throw new Error('No evidence row titled: ' + title)
-
-    for (const [lensId, lead] of targets) {
-      const key = evidenceId + '|' + (lensId || 'SHARED')
-      if (already.has(key)) { console.log('skip (already placed): ' + title + ' on ' + label(lensId)); continue }
-
-      if (lead) {
-        // One lead per direction. The incumbent is demoted in the same run,
-        // before the new row is written, or the partial unique index refuses it.
-        const incumbent = existing.find(p => p.featured && (p.lens_id || 'SHARED') === (lensId || 'SHARED'))
-        if (incumbent) demote.push(incumbent)
-      }
-
-      const k = lensId || 'SHARED'
-      const sort = (nextSort.get(k) ?? -1) + 1
-      nextSort.set(k, sort)
-
-      inserts.push({
+    ordered.forEach((item, i) => {
+      rows.push({
         profile_id: PROFILE_ID,
-        evidence_id: evidenceId,
+        evidence_id: item.id,
         lens_id: lensId,
-        sort_order: sort,
-        featured: Boolean(lead),
-        _title: title
+        sort_order: i,
+        featured: item.title === leadTitle
       })
-    }
+    })
+
+    const portfolio = ordered.filter(isPortfolioItem)
+    const docs = ordered.filter(e => !isPortfolioItem(e))
+    console.log(
+      name.padEnd(26)
+      + 'portfolio ' + String(portfolio.length).padStart(2) + (portfolio.length > PREVIEW ? ' (overflow) ' : ' (no overflow) ')
+      + 'evidence ' + String(docs.length).padStart(2) + (docs.length > PREVIEW ? ' (overflow)' : ' (no overflow)')
+    )
+    console.log('  lead: ' + leadTitle)
   }
 
-  // ---- report ----
-  const byLayer = {}
-  for (const row of inserts) {
-    const k = row.lens_id || 'SHARED'
-    ;(byLayer[k] = byLayer[k] || []).push(row)
+  if (hidden.length) {
+    console.log('\nNot placed, because the public route would filter them anyway:')
+    for (const e of hidden) console.log('  ' + e.status + '/' + e.privacy + '  ' + e.title)
   }
-  for (const [k, rows] of Object.entries(byLayer)) {
-    console.log('\n' + label(k === 'SHARED' ? SHARED : k))
-    for (const r of rows) {
-      console.log('  ' + String(r.sort_order).padStart(3) + '  ' + (r.featured ? '[LEAD] ' : '       ') + r._title)
-    }
-  }
-  if (demote.length) {
-    console.log('\nLeads standing down:')
-    for (const d of demote) {
-      const t = evidence.find(e => e.id === d.evidence_id)
-      console.log('  ' + label(d.lens_id) + ': ' + (t ? t.title : d.evidence_id))
-    }
-  }
-  console.log('\n=== ' + inserts.length + ' placements to create, ' + demote.length + ' leads to re-point ===')
+
+  const { data: current } = await sb
+    .from('profile_evidence_placements').select('id, lens_id').eq('profile_id', PROFILE_ID)
+  const shared = (current || []).filter(p => p.lens_id === null).length
+  console.log('\nReplacing ' + (current || []).length + ' existing placements'
+    + (shared ? ' (' + shared + ' of them in the shared layer, which no direction was reaching)' : ''))
+  console.log('=== ' + rows.length + ' placements: ' + visible.length + ' items across 3 directions ===')
 
   if (!APPLY) { console.log('DRY RUN - nothing written. Pass --apply to write.'); return }
 
-  // Demote first. Doing it the other way round trips the unique index.
-  for (const d of demote) {
-    const { error } = await sb.from('profile_evidence_placements')
-      .update({ featured: false }).eq('id', d.id)
-    if (error) throw new Error('demote failed: ' + error.message)
-  }
+  // Cleared first. The partial unique indexes on featured would refuse a second
+  // lead for a direction that still has its old one.
+  const { error: delErr } = await sb
+    .from('profile_evidence_placements').delete().eq('profile_id', PROFILE_ID)
+  if (delErr) throw new Error('clear failed: ' + delErr.message)
 
-  const { error } = await sb.from('profile_evidence_placements')
-    .insert(inserts.map(({ _title, ...row }) => row))
-  if (error) throw new Error('insert failed: ' + error.message)
+  const { error: insErr } = await sb.from('profile_evidence_placements').insert(rows)
+  if (insErr) throw new Error('insert failed: ' + insErr.message)
 
-  console.log('APPLIED: ' + inserts.length + ' placements, ' + demote.length + ' leads re-pointed')
+  console.log('APPLIED: ' + rows.length + ' placements')
 }
 
 main().catch(e => { console.error('ERR', e.message); process.exit(1) })

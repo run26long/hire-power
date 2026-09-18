@@ -3736,6 +3736,11 @@
 @media (min-width: 768px) {
   .hp-pf-box { padding: 28px; }
   .hp-pf-box-surface { gap: 14px; }
-  .hp-pf-box .hp-pf-step[data-step="prev"] { left: -8px; }
-  .hp-pf-box .hp-pf-step[data-step="next"] { right: -8px; }
+  /* Inside the stage, not hanging off it. These used to sit at -8px, which
+     reads as "clear of the picture" until you remember the stage is
+     overflow: hidden - so 8px of each 42px circle was clipped away by the
+     edge it was hanging over. Positive inset keeps the whole control visible;
+     top: 50% with the -50% translate above still centres them. */
+  .hp-pf-box .hp-pf-step[data-step="prev"] { left: 12px; }
+  .hp-pf-box .hp-pf-step[data-step="next"] { right: 12px; }
 }

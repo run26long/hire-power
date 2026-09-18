@@ -7,3 +7,9 @@
 # It is written locally on every run of 01-rename.js, which is where it is
 # useful and the only place it should ever live.
 output/rename-backup.json
+
+# The placeholder rollback. Clean of any real identity (those rows were already
+# fictionalised before they were deleted), but it is a local rollback artifact
+# rather than source, and the same rule applies: backups stay on the machine
+# that made them.
+output/removed-placeholders.json

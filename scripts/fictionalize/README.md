@@ -32,10 +32,14 @@ node scripts/fictionalize/01-rename.js --apply
 
 node scripts/fictionalize/02-lenses.js --apply      # the three directions + slug
 node scripts/fictionalize/03-portfolio-images.js --apply
+node scripts/fictionalize/07-remove-placeholders.js --apply
 node scripts/fictionalize/04-evidence.js --apply
-node scripts/fictionalize/05-placements.js --apply
+node scripts/fictionalize/05-placements.js --apply  # run AFTER 07, it rebuilds the table
 node scripts/fictionalize/06-verify.js              # read-only, exits non-zero on failure
 ```
+
+`07` runs before `05` because it deletes rows, and `05` rebuilds the placement
+table from whatever is left.
 
 Credentials come from `.env.local`. The service-role key is used because there
 is no request context here to carry a user JWT and the writes span tables whose
@@ -62,11 +66,42 @@ finalise step does: a path of two random UUIDs carrying no identifiers, and
 **`04-evidence.js`** generates four PDFs with `@react-pdf/renderer` and adds two
 external links.
 
-**`05-placements.js`** decides which direction shows what, in what order, and
-which item leads.
+**`07-remove-placeholders.js`** deletes the seeded rows that pointed at
+`example.com`. They were useful while the layouts had nothing else to hold, and
+a liability afterwards: a tile that invites a reader to open a link that goes
+nowhere. Backed up to `output/removed-placeholders.json` first.
+
+**`05-placements.js`** rebuilds the placement table: every publicly eligible
+item on all three directions, in a per-direction order, with one lead each.
 
 **`06-verify.js`** proves both halves: that no real-world identity survives, and
 that the profile actually renders.
+
+## The shared layer is a fallback, not a broadcast
+
+`ProfileDocument` resolves a direction's evidence like this:
+
+```js
+data?.evidencePlacements?.[selectedLens?.id] ?? data?.evidenceShared ?? []
+```
+
+A `lens_id` of null is reached **only** by a direction that has no placements of
+its own, and the two lists are never merged. The first version of `05` put the
+three general credentials in the shared layer on the reasoning that a
+certification argues for every direction equally. All three directions had their
+own placements, so those three items were invisible on every one of them, and
+nothing in the UI showed that — the items simply were not there.
+
+If you place something, place it on the directions that should show it.
+
+## Why every item is on every direction
+
+Both sections page at six, so seven is the first count that renders an overflow
+control. Sixteen items split three ways by theme left no direction with seven of
+either, so neither control appeared — which is the thing this profile exists to
+let somebody look at. The per-direction **order** still differs, and that is the
+part that carries meaning: the same collection, led and sequenced differently
+under each direction.
 
 ## Things worth knowing before editing these
 

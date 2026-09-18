@@ -17,6 +17,7 @@
 // ============================================================================
 
 const { sb, PROFILE_ID, USER_ID, SLUG, BUCKET, LENS } = require('./_env')
+const { isPortfolioItem, PORTFOLIO_PREVIEW_DESKTOP } = require('./_portfolio')
 
 const NEEDLES = [
   /\bJames\b/g, /\bLong\b/g, /disruptor/gi, /\bmbf\b/gi, /madstad/gi, /oshkosh/gi,
@@ -115,22 +116,53 @@ async function main() {
     .from('profile_evidence_placements').select('*').eq('profile_id', PROFILE_ID)
 
   const visibleIds = new Set(visible.map(e => e.id))
+  const byId = new Map(visible.map(e => [e.id, e]))
+
+  // ProfileDocument reads evidencePlacements[lensId] ?? evidenceShared: shared
+  // is a fallback, never merged, so what a direction shows is exactly its own
+  // placements and nothing else. Each is checked on its own terms.
   for (const [name, id] of Object.entries(LENS)) {
     const rows = placements.filter(p => p.lens_id === id && visibleIds.has(p.evidence_id))
+    const items = rows.map(p => byId.get(p.evidence_id))
+    const portfolio = items.filter(isPortfolioItem)
+    const docs = items.filter(e => !isPortfolioItem(e))
     const leads = rows.filter(p => p.featured)
-    const line = name + ': ' + rows.length + ' items, ' + leads.length + ' lead'
-    leads.length === 1 ? pass(line) : fail(line + ' (expected exactly 1)')
+
+    leads.length === 1
+      ? pass(name + ': ' + rows.length + ' items, 1 lead')
+      : fail(name + ': ' + rows.length + ' items, ' + leads.length + ' leads (expected exactly 1)')
+
+    // The whole point of the counts: at or below the preview limit the
+    // overflow control does not render, and there is nothing in the UI to say
+    // why not.
+    portfolio.length > PORTFOLIO_PREVIEW_DESKTOP
+      ? pass('  portfolio ' + portfolio.length + ' > ' + PORTFOLIO_PREVIEW_DESKTOP + ', so "View full portfolio" renders')
+      : fail('  portfolio ' + portfolio.length + ' <= ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the overflow link will NOT render')
+    docs.length > PORTFOLIO_PREVIEW_DESKTOP
+      ? pass('  evidence ' + docs.length + ' > ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow renders')
+      : fail('  evidence ' + docs.length + ' <= ' + PORTFOLIO_PREVIEW_DESKTOP + ', so the evidence overflow will NOT render')
+
+    const missing = visible.filter(e => !rows.some(p => p.evidence_id === e.id))
+    missing.length === 0
+      ? pass('  every eligible item is placed on this direction')
+      : fail('  ' + missing.length + ' eligible items missing here: ' + missing.map(e => e.title).join(', '))
   }
+
   const shared = placements.filter(p => p.lens_id === null)
-  pass('shared layer: ' + shared.length + ' items')
+  shared.length === 0
+    ? pass('shared layer empty, which is correct: every direction has its own placements, so a shared row would never be reached')
+    : fail(shared.length + ' shared placements that no direction can reach')
 
   const orphan = placements.filter(p => !visibleIds.has(p.evidence_id))
-  pass(orphan.length + ' placements point at evidence a visitor cannot see (drafts and private items)')
+  orphan.length === 0
+    ? pass('no placements point at evidence a visitor cannot see')
+    : fail(orphan.length + ' placements point at invisible evidence')
 
-  const unplaced = visible.filter(e => !placements.some(p => p.evidence_id === e.id))
-  unplaced.length === 0
-    ? pass('every publicly eligible item has at least one placement')
-    : fail(unplaced.length + ' eligible items are placed nowhere: ' + unplaced.map(e => e.title).join(', '))
+  // Nothing fake left behind.
+  const fake = visible.filter(e => String(e.url || '').includes('example.com'))
+  fake.length === 0
+    ? pass('no example.com placeholders remain')
+    : fail(fake.length + ' example.com placeholders still published: ' + fake.map(e => e.title).join(', '))
 
   // ---- 5. lens copy ----
   console.log('\nDIRECTIONS')

@@ -30,7 +30,7 @@ const CANDIDATE = 'Daniel Mercer'
 // ---------------------------------------------------------------------------
 // Certificates
 // ---------------------------------------------------------------------------
-function certificate({ issuer, issuerLine, award, detail, recipient, date, credentialId, signatories }) {
+function certificate({ issuer, issuerLine, award, detail, recipient, date, credentialId, signatories = [], specimenTone }) {
   const { Document, Page, Text, View, StyleSheet } = require('@react-pdf/renderer')
 
   const s = StyleSheet.create({
@@ -90,8 +90,11 @@ function certificate({ issuer, issuerLine, award, detail, recipient, date, crede
             h(Text, { style: s.sigRole }, sig.role)
           ))
         ),
-        h(Text, { style: s.specimen },
-          'SPECIMEN DOCUMENT. Issuing body and credential are fictional, generated for interface testing.')
+        h(Text, { style: specimenTone ? { ...s.specimen, color: specimenTone, fontSize: 7.5, fontFamily: 'Helvetica-Bold' } : s.specimen },
+          specimenTone
+            ? 'SPECIMEN DOCUMENT. Not a real credential and not issued by the organisation named. '
+              + 'Generated as fixture data for interface testing.'
+            : 'SPECIMEN DOCUMENT. Issuing body and credential are fictional, generated for interface testing.')
       )
     )
   ))
@@ -129,6 +132,25 @@ const PMP = () => certificate({
     { script: 'A. Varga', name: 'Anna Varga', role: 'Registrar' },
     { script: 'D. Mbeki', name: 'Daniel Mbeki', role: 'President' }
   ]
+})
+
+// The one certificate here that names a real organisation, because it was
+// asked for by name. The SPECIMEN line matters more on this one than on the
+// others and is set in the accent rather than the muted grey for that reason:
+// what stops a document like this being forgeable is that it says so on its
+// face, not that nobody happens to look at it.
+const AMA_LEADERSHIP = () => certificate({
+  issuer: 'American Management Association',
+  issuerLine: 'Executive and Leadership Development',
+  recipient: CANDIDATE,
+  award: 'Leadership Development Program',
+  detail:
+    'Awarded on completion of the six-module programme in leading through influence, coaching for '
+    + 'performance, structured delegation, and developing supervisors into managers who own a standard '
+    + 'rather than enforce one.',
+  date: '30 October 2021',
+  credentialId: 'AMA-LDP-21-60518',
+  specimenTone: ACCENT
 })
 
 const OSHA_LEADERSHIP = () => certificate({
@@ -362,6 +384,15 @@ const DOCUMENTS = [
     date_label: '2023'
   },
   {
+    key: 'ama-leadership-development',
+    doc: AMA_LEADERSHIP,
+    title: 'Leadership Development Program',
+    description: 'Six modules on leading through influence, coaching for performance, and structured delegation. The method behind promoting four operators into department leads inside a single turnaround.',
+    evidence_type: 'Training certificate',
+    organization: 'American Management Association',
+    date_label: 'Completed 2021'
+  },
+  {
     key: 'osha-safety-leadership',
     doc: OSHA_LEADERSHIP,
     title: 'Safety Leadership in General Industry',
@@ -389,10 +420,23 @@ const LINKS = [
     key: 'industry-award',
     title: 'Carolinas Manufacturing Excellence Award, Operational Turnaround',
     description: 'Listed for the delivery performance rebuild at Apex Manufacturing, in the category recognising a restored production system rather than a single year of output.',
-    url: 'https://www.carolinasmfgcouncil.org/awards/2024/operational-turnaround',
+    url: 'https://www.carolinasmfg.org/awards/2024/operational-turnaround',
     evidence_type: 'Award',
-    organization: 'Carolinas Manufacturing Council',
+    organization: 'Carolinas Manufacturing Association',
     date_label: '2024'
+  },
+  {
+    // Deliberately a different award in a different year from the one above,
+    // and under the same awarding body rather than a second one with almost
+    // the same name: two near-identical associations on one profile reads as
+    // invented, which is the opposite of what these fixtures are for.
+    key: 'manufacturing-excellence-award',
+    title: 'Manufacturing Excellence Award, Plant of the Year',
+    description: 'The association’s annual site award, judged on delivery performance, safety record and workforce development together rather than on output alone.',
+    url: 'https://www.carolinasmfg.org/awards/2025/plant-of-the-year',
+    evidence_type: 'Award',
+    organization: 'Carolinas Manufacturing Association',
+    date_label: '2025'
   }
 ]
 
