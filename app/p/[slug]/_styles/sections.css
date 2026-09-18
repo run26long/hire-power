@@ -3433,23 +3433,39 @@
   overflow-wrap: anywhere;
 }
 
-/* ---- The six on the page: one card, not a picture and a caption ----
-   The frame is square everywhere else, and a square is right when the
-   collection is mixed. These six are all wide, so a square left a band of
-   empty mat above and below every graphic and pushed each title away from the
-   thing it names - the card stopped reading as one object.
+/* ---- The six on the page: the caption moves into the mat ----
+   The mat stays square and the graphics are 16:10, so `object-fit: contain`
+   letterboxes each one: a band of empty mat above the graphic and an identical
+   band below it. The caption used to sit under the whole square, which left it
+   a full band away from the thing it names while that band sat empty.
 
-   Matching the frame to the shape the work is actually in closes that band, so
-   the title sits directly under its graphic. `object-fit: contain` is
-   untouched, so this still letterboxes rather than crops: a portrait item in
-   this grid gets bars at its sides instead of a haircut.
+   So the caption moves into the lower band and is centred in it. Nothing else
+   moves. The frame is still square, the graphic is still contained and still
+   centred inside it, and not one pixel of it is cropped, scaled or shifted -
+   an earlier attempt reshaped the frame to close the band instead, which moved
+   every graphic on the page to fix where a caption sat.
+
+   Taking the caption out of flow also makes the card itself square, since the
+   frame is then the only thing setting the mat's height.
+
+   --pf-band is that band, derived from the 16:10 these graphics are rendered
+   at: (1 - 10/16) / 2 = 18.75% of a square.
 
    Scoped to .hp-pf-grid. The full gallery draws .hp-pf-box-grid and keeps its
-   square, because there the collection really is mixed. */
-.hp-profile .hp-pf-grid .hp-pf-mat-frame { aspect-ratio: 16 / 10; }
+   caption below the square, where the collection is mixed and no band can be
+   assumed. */
+.hp-profile .hp-pf-grid .hp-pf-mat { --pf-band: 18.75%; }
 
 .hp-profile .hp-pf-grid .hp-pf-mat-title {
-  padding: 12px 14px 14px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: calc(100% - var(--pf-band));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
   text-align: center;
 }
 
@@ -3508,14 +3524,12 @@
   }
 }
 
-/* Lower-right of the portfolio block, and clear of it. It used to overhang the
-   grid, which put it across the last card's title - readable while the titles
-   sat at the bottom of a tall empty mat, and not once they moved up under
-   their graphics. So the field reserves the control's own height plus a gap
-   below the grid, and the control sits in that reserved band: same corner,
-   nothing covered. */
+/* From tablet up it overhangs the grid's lower-right corner by the same 19px
+   and the same 22px inset the Evidence control uses on its lead card. The
+   field pays for the overhang out of its own padding, so the control never
+   lands on whatever follows the section. */
 @media (min-width: 768px) {
-  .hp-pf-field[data-more='true'] { padding-bottom: 56px; }
+  .hp-pf-field[data-more='true'] { padding-bottom: 19px; }
 
   .hp-profile .hp-pf-all {
     position: absolute;
