@@ -1,8 +1,8 @@
 'use client'
 
-import { EditPencil, EditEmpty, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, GhostNote, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor, ProofPointsEditor } from './EditFields'
-import { useFieldEditor } from '../_lib/editContext'
+import { useFieldEditor, useCanShowEmpty } from '../_lib/editContext'
 
 // ============================================================================
 // ACT I - the cover.
@@ -82,6 +82,7 @@ export default function IdentityAct({
   const hasProof = proofPoints.length > 0
   const [lead, ...supporting] = proofPoints
   const slot = useEditSlot()
+  const canShowEmpty = useCanShowEmpty()
   const headlineEditor = useFieldEditor('headline')
   const proofEditor = useFieldEditor('proof_points')
 
@@ -183,12 +184,40 @@ export default function IdentityAct({
               owner cannot see is an absence they cannot fill. */}
           <UpgradeNote feature="identity" />
 
-          {!hasProof && !proofEditor?.isOpen && (
-            <EditEmpty
-              field="proof_points"
-              title="Add proof points"
-              note="Two or three numbers that stand behind this direction. They lead the cover."
-            />
+          {/* The public proof composition, empty: the lead figure with its
+              rotated caption and the two supporting figures beside it, in the
+              same wrapper and the same classes, so the hero keeps the shape it
+              has when the numbers are there. No invented figures - a ghost
+              showing a percentage would be putting a claim on the cover. */}
+          {/* `canShowEmpty` is the guard that keeps every one of these out of
+              the public page and out of Preview. The branch it replaced was
+              `{!hasProof && ...}` around an <EditEmpty>, which was safe only
+              because EditEmpty returned null on its own when there was no edit
+              context. Ghost markup has no such instinct, so the condition has
+              to carry it: without this, a profile with no proof points would
+              have shipped ghost figures to visitors. */}
+          {!hasProof && canShowEmpty && !proofEditor?.isOpen && (
+            <>
+              <div className="hp-proof-band hp-ed-ghost-proof" aria-hidden="true">
+                <div className="hp-proof-lead">
+                  <span className="hp-proof-caption">Selected proof</span>
+                  <span className="hp-proof-lead-num"><GhostText width="128px" /></span>
+                  <span className="hp-proof-lead-label"><GhostText width="180px" /></span>
+                </div>
+                <div className="hp-proof-subs">
+                  {[0, 1].map(i => (
+                    <div className="hp-proof-sub" data-sub={i} key={i}>
+                      <span className="hp-proof-num"><GhostText width="74px" /></span>
+                      <span className="hp-proof-label"><GhostText lines={2} /></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <GhostNote field="proof_points" feature="identity" action="Add proof points">
+                Two or three numbers that stand behind this direction. They lead
+                the cover.
+              </GhostNote>
+            </>
           )}
         </div>
       </div>

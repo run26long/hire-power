@@ -6,7 +6,7 @@ import Reveal from './Reveal'
 import PortfolioLightbox from './PortfolioLightbox'
 import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
-import { EditEmpty, UpgradeNote, useEditSlot } from './EditAffordance'
+import { GhostNote, GhostText, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
 import { PORTFOLIO_PREVIEW_DESKTOP } from '@/lib/portfolio'
 
@@ -101,12 +101,28 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
         </Reveal>
 
         {ordered.length === 0 ? (
-          <EditEmpty
-            feature="portfolio"
-            shape="grid"
-            title="Add your visual work"
-            note="Photographs and video of what you have built or run. Six sit here as a gallery a reader can open, and each one can appear under any of your directions."
-          />
+          // The public grid, empty. Same ul, same class, same six cells the
+          // section shows when it is full, so the mats are the real size at the
+          // real gaps and the owner is looking at the shape of the finished
+          // section rather than at a placeholder drawn to suggest it. Three
+          // across and two down here, two across and three down on a phone,
+          // because that is what .hp-pf-grid already does.
+          <>
+            <ul className="hp-pf-grid hp-ed-ghost-grid" data-count="6" aria-hidden="true">
+              {Array.from({ length: PORTFOLIO_PREVIEW_DESKTOP }, (_, i) => (
+                <li className="hp-pf-cell" key={i}>
+                  <span className="hp-pf-mat hp-ed-ghost-mat">
+                    <span className="hp-pf-mat-frame" />
+                    <span className="hp-pf-mat-title"><GhostText width="62%" /></span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <GhostNote feature="portfolio">
+              Portfolio holds images and video of the work itself. The first six
+              appear here, and a reader can open any of them full size.
+            </GhostNote>
+          </>
         ) : (
           <Reveal enabled={animate}>
             <ul className="hp-pf-grid" data-count={String(shown.length)}>

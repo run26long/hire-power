@@ -150,83 +150,79 @@ export function EditElsewhere({ children, href }) {
   return <a className="hp-ed-elsewhere" href={href}>{children}</a>
 }
 
-// The one thing the public page will not do: show a section that has nothing
-// in it. This renders only in edit mode - never in preview - which is what
-// keeps preview an honest preview.
-export function EditEmpty({ title, note, field, feature, shape }) {
-  const edit = useProfileEdit()
-  const editor = useFieldEditor(field)
-  const canEdit = useCanEdit()
-  if (!edit?.editing) return null
+// ---------------------------------------------------------------------------
+// GHOSTING A REAL SECTION
+//
+// The method, and the thing the previous pass got wrong.
+//
+// A ghost is not a composition invented to stand in for a section. It is the
+// section, rendered from its own public markup and its own public classes,
+// with the content taken out. That is what makes an empty Portfolio six square
+// mats at the real size in the real grid rather than three small rectangles
+// gesturing at one, and What Others See two real columns rather than a stack
+// of skeleton bars.
+//
+// So these two helpers deliberately supply no layout. `GhostText` is a muted
+// rule occupying the line a sentence would have; `GhostNote` is the one
+// instruction and the one action. Everything around them is the public
+// component doing exactly what it does publicly.
+//
+// THE GUARD IS THE CALLER'S JOB
+// These render whatever they are given. The old `EditEmpty` returned null on
+// its own when there was no edit context, which quietly protected every call
+// site; ghost markup has no such instinct, so every branch that renders one
+// must test `canShowEmpty` itself. Getting that wrong ships ghost content to
+// visitors, which it briefly did in the hero during this pass.
+// ---------------------------------------------------------------------------
 
-  // An empty section on a plan that cannot fill it.
-  //
-  // It used to be the upgrade line on its own, which told a free account what
-  // it could not have and nothing about what the section is. Now it is the
-  // same shape the paid ghost draws, quieter, with the one line underneath:
-  // the owner can see what the section would become, which is the argument for
-  // the plan and is more honest than a sentence about money.
-  //
-  // No pencil and no add control, because neither would do anything. Nothing
-  // stored is exposed either: this branch draws outlines, never content.
+// A line of nothing, at the height of a line of something. Never words: an
+// invented sentence in a ghost is a claim about a profile that has none.
+export function GhostText({ width = '100%', lines = 1 }) {
+  return (
+    <span className="hp-ed-ghost-text" aria-hidden="true">
+      {Array.from({ length: lines }, (_, i) => (
+        <span
+          key={i}
+          className="hp-ed-ghost-line"
+          style={{ width: i === lines - 1 && lines > 1 ? '58%' : width }}
+        />
+      ))}
+    </span>
+  )
+}
+
+// The instruction and the action, under the ghosted section rather than inside
+// it, so the composition above keeps its real proportions.
+//
+// `action` is the label of the one control this ghost offers, and is omitted
+// where the section already carries its own trigger beside the heading, which
+// is the case for Portfolio and Evidence: two buttons offering the same thing
+// in one section is one button too many.
+export function GhostNote({ children, feature, field, action }) {
+  const canEdit = useCanEdit()
+  const editor = useFieldEditor(field)
+
+  // One line, one destination, and no active control: a free account pressing
+  // "Add" would be pressing something that cannot do anything.
   if (!canEdit) {
     return (
-      <div className="hp-ed-locked">
-        {shape ? (
-          <span className="hp-ed-empty-shape" data-shape={shape} aria-hidden="true">
-            <span className="hp-ed-empty-cell" />
-            <span className="hp-ed-empty-cell" />
-            <span className="hp-ed-empty-cell" />
-          </span>
-        ) : null}
-        {/* The sentence is the action. Every line in the copy map already
-            opens with "Upgrade to Vault to", so a separate link reading
-            "Upgrade to Vault" beside it said the same words twice in the same
-            breath. One sentence, one destination, no stutter. */}
-        <p className="hp-ed-locked-note">
-          <span className="hp-ed-locked-mark"><LockIcon /></span>
-          <a className="hp-ed-locked-link" href={UPGRADE_HREF}>
-            {upgradeCopyFor(feature || field)}
-          </a>
-        </p>
-      </div>
+      <p className="hp-ed-ghost-note" data-locked="true">
+        <span className="hp-ed-locked-mark"><LockIcon /></span>
+        <a className="hp-ed-locked-link" href={UPGRADE_HREF}>
+          {upgradeCopyFor(feature || field)}
+        </a>
+      </p>
     )
   }
 
-  // An empty section whose field has an editor is the way into it. One that
-  // does not is still drawn, so the absence is visible, and still says so.
-  const live = Boolean(field && editor)
-  if (live && editor.isOpen) return null
-
   return (
-    <button
-      type="button"
-      className="hp-ed-empty"
-      data-live={live ? 'true' : undefined}
-      disabled={!live}
-      onClick={live ? editor.open : undefined}
-      title={live ? title : 'Coming in a later pass'}
-    >
-      {/* The shape of the thing that is missing, drawn faintly behind the
-          invitation: the portfolio ghost is the same three-up grid of squares
-          the section will hold, so the owner can see what they are being
-          offered rather than read about it.
-
-          Empty outlines and never fake content. A ghost filled with plausible
-          sample work would be a lie about the state of the profile, and one
-          the owner would have to go and delete. Nothing here is a record and
-          nothing here is written anywhere. Hidden from assistive technology
-          because it says nothing the copy underneath does not. */}
-      {shape ? (
-        <span className="hp-ed-empty-shape" data-shape={shape} aria-hidden="true">
-          <span className="hp-ed-empty-cell" />
-          <span className="hp-ed-empty-cell" />
-          <span className="hp-ed-empty-cell" />
-        </span>
+    <p className="hp-ed-ghost-note">
+      <span className="hp-ed-ghost-say">{children}</span>
+      {action && field && editor ? (
+        <button type="button" className="hp-ed-action" data-primary="true" onClick={editor.open}>
+          {action}
+        </button>
       ) : null}
-
-      <span className="hp-ed-empty-title">{title}</span>
-      {note ? <span className="hp-ed-empty-note">{note}</span> : null}
-    </button>
+    </p>
   )
 }

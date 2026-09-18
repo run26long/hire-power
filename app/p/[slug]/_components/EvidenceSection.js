@@ -6,7 +6,7 @@ import Reveal from './Reveal'
 import StrokeIcon from './StrokeIcon'
 import EvidenceOverlay from './EvidenceOverlay'
 import { glyphFor } from './EvidenceViewer'
-import { EditPencil, EditGrip, EditEmpty, UpgradeNote, useEditSlot } from './EditAffordance'
+import { EditGrip, GhostNote, GhostText, UpgradeNote, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
 import EvidenceManager from './EvidenceManager'
 import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
@@ -153,12 +153,35 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         </Reveal>
 
         {items.length === 0 ? (
-          <EditEmpty
-            feature="evidence"
-            shape="evidence"
-            title="Add evidence of your work"
-            note="Certificates, reports, recognition and links. One leads the section and the rest sit beside it, under whichever directions you choose."
-          />
+          // The public Evidence composition, empty: the same field, the same
+          // grid, the same lead slot and the same number of tiles the section
+          // shows when it is full, so the featured artifact keeps its real
+          // scale beside the smaller ones and the arrangement is the real one.
+          <>
+            <div className="hp-ev-field hp-ed-ghost-field" aria-hidden="true">
+              <div className="hp-ev-grid" data-count={String(narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP)}>
+                <div className="hp-ev-lead-slot" data-more="false">
+                  <span className="hp-ev-tile hp-ed-ghost-tile" data-role="lead">
+                    <span className="hp-ev-tile-mark" />
+                    <span className="hp-ev-tile-type"><GhostText width="46%" /></span>
+                    <span className="hp-ev-tile-title"><GhostText width="86%" /></span>
+                    <span className="hp-ev-tile-blurb"><GhostText lines={2} /></span>
+                  </span>
+                </div>
+                {Array.from({ length: (narrow ? PREVIEW_MOBILE : PREVIEW_DESKTOP) - 1 }, (_, i) => (
+                  <span className="hp-ev-tile hp-ed-ghost-tile" data-role="rest" key={i}>
+                    <span className="hp-ev-tile-mark" />
+                    <span className="hp-ev-tile-type"><GhostText width="52%" /></span>
+                    <span className="hp-ev-tile-title"><GhostText width="80%" /></span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <GhostNote feature="evidence">
+              Evidence holds credentials, recognition and the documents behind
+              the claims. One leads the section and the rest sit alongside it.
+            </GhostNote>
+          </>
         ) : (
         <Reveal enabled={animate}>
           {/* The featured card and the way into the rest of the collection are

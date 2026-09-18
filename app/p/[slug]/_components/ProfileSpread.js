@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
-import { EditPencil, EditEmpty, useEditSlot, UpgradeNote } from './EditAffordance'
+import { EditPencil, GhostNote, GhostText, useEditSlot, UpgradeNote } from './EditAffordance'
 import { ProseEditor } from './EditFields'
 import ImowEditor from './ImowEditor'
 import ImowVideo from './ImowVideo'
@@ -152,12 +152,16 @@ export default function ProfileSpread({
         {!hasBio && canShowEmpty && !bioEditor?.isOpen && (
           <div data-resolve="about">
             <span className="hp-eyebrow">About</span>
-            <EditEmpty
-              field="bio"
-              shape="lines"
-              title="Write the bio for this direction"
-              note="A few sentences on what this direction is and why it is yours. Coach can draft one from your sessions."
-            />
+            {/* The About column's own shape: the lead paragraph and the
+                detail under it, at the measure they will occupy. */}
+            <p className="hp-about-lead" aria-hidden="true"><GhostText lines={2} /></p>
+            <div className="hp-about hp-ed-ghost-about" aria-hidden="true">
+              <p><GhostText lines={3} /></p>
+            </div>
+            <GhostNote field="bio" feature="bio" action="Write the bio">
+              A few sentences on what this direction is and why it is yours.
+              Coach can draft one from your sessions.
+            </GhostNote>
           </div>
         )}
 
@@ -205,15 +209,24 @@ export default function ProfileSpread({
           </figure>
         )}
 
+        {/* The public voice card, empty. The same figure, the same wash, the
+            same rule down its edge, the same quotation marks and the same
+            eyebrow the populated card carries, so this side of the spread
+            keeps the weight it will have rather than becoming a rectangle. */}
         {!hasVoice && canShowEmpty && !imowEditor?.isOpen && (
           <div data-resolve="voice">
-            <span className="hp-eyebrow">In my own words</span>
-            <EditEmpty
-              field="imow"
-              shape="frame"
-              title="Say it in your own words"
-              note="Write it, or record a short video. This is the one part of the page in your voice rather than a summary of you."
-            />
+            <figure className="hp-voice hp-ed-ghost-voice">
+              <span className="hp-voice-mark hp-voice-mark-open" aria-hidden="true">&#8220;</span>
+              <span className="hp-eyebrow">In my own words</span>
+              <blockquote className="hp-voice-text" aria-hidden="true">
+                <GhostText lines={4} />
+              </blockquote>
+              <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>
+            </figure>
+            <GhostNote field="imow" feature="imow" action="Add your words">
+              Write it, or record a short video. This is the one part of the page
+              in your voice rather than a summary of you.
+            </GhostNote>
           </div>
         )}
       </div>

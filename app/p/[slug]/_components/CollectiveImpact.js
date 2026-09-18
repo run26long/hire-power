@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
-import { EditElsewhere, EditEmpty, useEditSlot } from './EditAffordance'
+import { EditElsewhere, GhostNote, GhostText, useEditSlot } from './EditAffordance'
 import TestimonialManager from './TestimonialManager'
 import { useCanShowEmpty } from '../_lib/editContext'
 
@@ -135,7 +135,7 @@ export default function CollectiveImpact({
             other rather than leaving an empty column beside it. */}
         <div
           className="hp-impact-flow"
-          data-synthesis={hasImpact ? 'true' : 'false'}
+          data-synthesis={hasImpact || canShowEmpty ? 'true' : 'false'}
           data-voices={hasQuotes || canShowEmpty ? 'true' : 'false'}
         >
           {hasImpact && (
@@ -164,18 +164,65 @@ export default function CollectiveImpact({
             </Reveal>
           )}
 
+          {/* The synthesis panel, empty, so the act keeps its two columns while
+              it is being filled. Written by the coaching rather than by hand,
+              so there is no action under it: it says where it will appear. */}
+          {!hasImpact && canShowEmpty && (
+            <div className="hp-impact-synthesis hp-ed-ghost-panel">
+              <span className="hp-label hp-impact-eyebrow">Collective Impact</span>
+              <p className="hp-impact-summary" aria-hidden="true"><GhostText lines={3} /></p>
+              <ol className="hp-themes" aria-hidden="true">
+                {[0, 1, 2].map(i => (
+                  <li className="hp-theme" key={i}>
+                    <span className="hp-theme-index">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="hp-theme-statement"><GhostText lines={2} /></span>
+                  </li>
+                ))}
+              </ol>
+              <p className="hp-ed-ghost-note">
+                <span className="hp-ed-ghost-say">
+                  Written from what your referees say once a few testimonials are
+                  published. It appears here on its own.
+                </span>
+              </p>
+            </div>
+          )}
+
+          {/* The public Firsthand Accounts column, empty. Same class, so it
+              takes the same half of the same two column flow at the same
+              width; same head, same scroll region, same quote rows, so the
+              owner sees the real composition waiting rather than a stack of
+              bars. The rows carry no words, because inventing a testimonial
+              in a ghost would be inventing a person. */}
           {!hasQuotes && canShowEmpty && (
             <div className="hp-impact-voices hp-ed-voices-empty">
               <div className="hp-voices-head">
                 <h3 className="hp-voices-title">Firsthand Accounts</h3>
                 <p className="hp-voices-note">In the words of people who saw the work up close.</p>
               </div>
-              <EditEmpty
-                feature="testimonial"
-                shape="quote"
-                title="Request a testimonial"
-                note="Ask someone you worked with. They write it in their own words, and nothing appears here until you publish it."
-              />
+
+              <div className="hp-voices-scroll hp-ed-ghost-voices" aria-hidden="true">
+                <ul className="hp-voices">
+                  {[0, 1, 2].map(i => (
+                    <li className="hp-voice-item" key={i}>
+                      <blockquote className="hp-voice-quote" data-expanded="false">
+                        <GhostText lines={3} />
+                      </blockquote>
+                      <div className="hp-voice-foot">
+                        <p className="hp-voice-face">
+                          <span className="hp-voice-name"><GhostText width="92px" /></span>
+                          <span className="hp-voice-role"><GhostText width="140px" /></span>
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <GhostNote feature="testimonial">
+                Ask someone you worked with to write one. They answer in their
+                own words, and nothing appears here until you publish it.
+              </GhostNote>
             </div>
           )}
 

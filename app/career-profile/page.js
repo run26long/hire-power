@@ -9,7 +9,6 @@ import MainNav from '../components/MainNav'
 import ErrorToast from '../components/ErrorToast'
 import SuccessToast from '../components/SuccessToast'
 import ProfileDocument from '../p/[slug]/_components/ProfileDocument'
-import EditorIntro from './_components/EditorIntro'
 import SettingsDrawer from './_components/SettingsDrawer'
 
 import './_styles/editor.css'
@@ -693,10 +692,11 @@ export default function CareerProfileEditorPage() {
         </div>
       </div>
 
-      {/* Inside the document's ground, above the profile itself, and only
-          while editing: a recruiter's preview has nothing to explain. */}
-      {editing ? <EditorIntro /> : null}
-
+      {/* The profile begins here, directly under the toolbar. There used to be
+          a large dismissible introduction in this gap explaining the page. It
+          is gone: guidance about an empty section belongs in that section,
+          where the owner is looking when they need it, and a banner above the
+          document pushed the actual Career Profile off the first screen. */}
       <ProfileDocument
         data={document_}
         slug={profile?.slug}
