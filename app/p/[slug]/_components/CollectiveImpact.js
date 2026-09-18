@@ -164,10 +164,6 @@ export default function CollectiveImpact({
             </Reveal>
           )}
 
-          {/* Asking, and deciding. Under the accounts rather than over them:
-              the section is what people said, and managing it comes after. */}
-          {canShowEmpty ? <TestimonialManager /> : null}
-
           {!hasQuotes && canShowEmpty && (
             <div className="hp-impact-voices hp-ed-voices-empty">
               <div className="hp-voices-head">
@@ -252,6 +248,18 @@ export default function CollectiveImpact({
               </div>
             </Reveal>
           )}
+
+          {/* Asking, and deciding. Under the accounts rather than over them:
+              the section is what people said, and managing it comes after.
+
+              Last in the flow, and it has to be. Grid auto-placement is sparse:
+              the cursor moves forward and never goes back, so a full-width item
+              placed before the accounts pushed them into a row of their own
+              below it. That row had no height to give, and `min-height: 100%`
+              against it resolved to nothing, so the whole Firsthand Accounts
+              column silently collapsed to zero in edit mode while preview,
+              which does not render this, was fine. */}
+          {canShowEmpty ? <TestimonialManager /> : null}
         </div>
       </div>
     </section>

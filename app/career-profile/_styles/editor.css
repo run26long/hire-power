@@ -369,11 +369,16 @@
 
 /* ---- The controls that actually write ---------------------------------- */
 
+/* 16px, and not a decorative choice: a text control under 16px makes iOS
+   Safari zoom the page the moment it takes focus, and the reader is then
+   looking at a magnified fragment of their own profile with no obvious way
+   back. Every control the owner types into is held at or above that, here and
+   in the managers below. */
 .hp-ed-input {
   width: 100%;
   font: inherit;
-  font-size: 13.5px;
-  padding: 8px 10px;
+  font-size: 16px;
+  padding: 9px 11px;
   border-radius: 7px;
   border: 1px solid var(--ed-line);
   background: var(--ed-surface);
@@ -606,6 +611,50 @@
   line-height: 1.5;
   color: var(--profile-muted, rgb(255 255 255 / 0.5));
   max-width: 44ch;
+}
+
+/* ---- The shape of what is missing --------------------------------------
+   A ghost that is a dashed box says "something goes here". A ghost built to
+   the proportions of the real section says what. These are the Portfolio's
+   own square mats at its own column count, drawn as empty outlines: the owner
+   sees the three-up grid they would be filling rather than reading a sentence
+   about it.
+
+   Outlines, never sample content. Anything that looked like real work in here
+   would be a claim about a profile that has none, and something its owner
+   would then have to go and delete. */
+.hp-profile .hp-ed-empty-shape {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 460px;
+  margin-bottom: 14px;
+  /* Behind the invitation rather than beside it. It is scenery, and the copy
+     and the action are what the owner is actually being offered. */
+  opacity: 0.5;
+}
+
+.hp-profile .hp-ed-empty-cell {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.3);
+  border-radius: 8px;
+  background: rgb(var(--profile-accent-rgb) / 0.05);
+}
+
+.hp-profile .hp-ed-empty:hover .hp-ed-empty-shape { opacity: 0.7; }
+
+@media (max-width: 560px) {
+  /* Two across, which is the grid this section actually uses at this width. */
+  .hp-profile .hp-ed-empty-shape { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 260px; }
+  .hp-profile .hp-ed-empty-shape .hp-ed-empty-cell:nth-child(3) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-profile .hp-ed-empty,
+  .hp-profile .hp-ed-empty-shape { transition: none; }
 }
 
 
@@ -1422,7 +1471,30 @@
 
 /* ---- Testimonials ------------------------------------------------------ */
 
-.hp-ed-tm { max-width: 760px; }
+/* ---- The testimonial manager, and the grid it sits in -------------------
+   It is a child of `.hp-impact-flow`, which above 1200px is a twelve column
+   grid with the synthesis at 1/6 and the accounts at 6/13. Nothing placed this
+   one, so it was auto-placed into a single track: a 105px column that wrapped
+   testimonial prose at about thirteen characters and ran thousands of pixels
+   down the page, with the right half of the frame standing empty beside it.
+   A long testimonial became an unreadable vertical strip.
+
+   So it is placed explicitly, across the whole row and beneath both columns.
+   `grid-column: 1 / -1` is inert outside that grid, which is what the phone
+   layout and Preview both are, so this adds a rule rather than a second
+   arrangement to keep in step. */
+.hp-ed-tm {
+  max-width: 860px;
+  margin-inline: auto;
+}
+
+.hp-impact-flow > .hp-ed-tm { grid-column: 1 / -1; width: 100%; }
+
+@media (min-width: 1200px) {
+  /* Under the two columns, with the same air between them that the synthesis
+     and the accounts already keep from the heading above. */
+  .hp-impact-flow > .hp-ed-tm { margin-top: 30px; }
+}
 
 .hp-ed-tm-role { font-weight: 400; color: rgb(255 255 255 / 0.5); }
 
@@ -1500,9 +1572,12 @@
 
 .hp-ed-tm-rel .hp-ed-field-label { margin: 0; }
 
+/* Held at 16px with the rest of them. This select used to shrink to 12.5px to
+   sit tightly beside its label, which is the size that makes iOS Safari zoom
+   the page on focus. The row it sits in wraps, so it can afford the height. */
 .hp-profile .hp-ed-tm-rel select.hp-ed-input {
-  font-size: 12.5px;
-  padding: 5px 28px 5px 9px;
+  font-size: 16px;
+  padding: 6px 30px 6px 10px;
   background-position: calc(100% - 13px) 50%, calc(100% - 8px) 50%;
 }
 

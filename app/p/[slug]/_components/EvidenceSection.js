@@ -146,11 +146,10 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   )
 
   return (
-    <section className="hp-section hp-ev-section">
-      <div className="hp-wrap">
+    <div className="hp-practice-part hp-ev-section">
         <Reveal enabled={animate} className="hp-ev-intro">
-          <span className="hp-label">Evidence</span>
-          <h2 className="hp-ev-headline">See the work for yourself.</h2>
+          <h3 className="hp-practice-sub">Evidence</h3>
+          <p className="hp-practice-line">Credentials, recognition, and documents that back it up.</p>
         </Reveal>
 
         {items.length === 0 ? (
@@ -195,7 +194,6 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         {canEdit
           ? <AddEvidence />
           : items.length > 0 ? <UpgradeNote feature="evidence" /> : null}
-      </div>
 
       <EvidenceOverlay
         key={`${directionKey}:${visit}`}
@@ -209,6 +207,6 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         onBack={overlay?.fromGallery ? backToGallery : null}
         onClose={close}
       />
-    </section>
+    </div>
   )
 }

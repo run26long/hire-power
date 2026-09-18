@@ -324,7 +324,7 @@
    a negative margin and no height is capped: the carousel, its nav row and
    the four-row cards are all untouched. */
 .hp-skills { padding-bottom: 34px; }
-.hp-skills + .hp-ev-section { padding-top: 34px; }
+.hp-skills + .hp-practice { padding-top: 34px; }
 
 /* Evidence to Recruiter Tools had the same fault and takes the same cure:
    Evidence kept the full section padding at the bottom while Recruiter Tools
@@ -333,24 +333,24 @@
    proportion, scoped to the pair, so Recruiter Tools keeps its own padding
    wherever Evidence is not above it. The section's own bottom padding is
    untouched, so its distance from the footer is exactly what it was. */
-.hp-ev-section { padding-bottom: 34px; }
-.hp-ev-section + .hp-rt-section { padding-top: 34px; }
+.hp-practice { padding-bottom: 34px; }
+.hp-practice + .hp-rt-section { padding-top: 34px; }
 
 @media (min-width: 768px) {
   .hp-section-exp { padding-top: 72px; padding-bottom: 38px; }
   .hp-impact + .hp-section { padding-top: 32px; }
   .hp-skills { padding-bottom: 40px; }
-  .hp-skills + .hp-ev-section { padding-top: 40px; }
-  .hp-ev-section { padding-bottom: 40px; }
-  .hp-ev-section + .hp-rt-section { padding-top: 40px; }
+  .hp-skills + .hp-practice { padding-top: 40px; }
+  .hp-practice { padding-bottom: 40px; }
+  .hp-practice + .hp-rt-section { padding-top: 40px; }
 }
 @media (min-width: 1200px) {
   .hp-section-exp { padding-top: 84px; padding-bottom: 42px; }
   .hp-impact + .hp-section { padding-top: 28px; }
   .hp-skills { padding-bottom: 44px; }
-  .hp-skills + .hp-ev-section { padding-top: 44px; }
-  .hp-ev-section { padding-bottom: 44px; }
-  .hp-ev-section + .hp-rt-section { padding-top: 44px; }
+  .hp-skills + .hp-practice { padding-top: 44px; }
+  .hp-practice { padding-bottom: 44px; }
+  .hp-practice + .hp-rt-section { padding-top: 44px; }
 }
 
 /* -------------------------------------------------- SELECTED EXPERIENCE -- */
@@ -1962,8 +1962,7 @@
    .hp-profile button - hence .hp-profile in front of each of them.
    =========================================================================== */
 
-.hp-ev-intro { margin-bottom: 26px; }
-.hp-ev-intro .hp-label { margin-bottom: 14px; }
+.hp-ev-intro { margin-bottom: 22px; }
 
 /* ---- The About heading ----
    The same display voice as Experience, Skills, Impact and Evidence, so the
@@ -1984,7 +1983,7 @@
   color: var(--profile-text);
 }
 
-.hp-ev-headline {
+.hp-practice-headline {
   display: block;
   margin: 0;
   font-family: var(--profile-font-display);
@@ -3102,17 +3101,17 @@
 
    Size and leading only. Weight, tracking, family, colour, margin and measure
    are its own and stay untouched. */
-.hp-ev-headline {
+.hp-practice-headline {
   font-size: clamp(36px, 10vw, 46px);
   line-height: 1.04;
 }
 
 @media (min-width: 768px) {
-  .hp-ev-headline { font-size: clamp(44px, 5.2vw, 52px); }
+  .hp-practice-headline { font-size: clamp(44px, 5.2vw, 52px); }
 }
 
 @media (min-width: 1200px) {
-  .hp-ev-headline { font-size: clamp(48px, 4.5vw, 68px); }
+  .hp-practice-headline { font-size: clamp(48px, 4.5vw, 68px); }
 }
 
 /* Said beside the control that failed, not in place of it, so the button the
@@ -3189,30 +3188,48 @@
    padding and border. The same trap the Evidence tiles document above.
    ============================================================================ */
 
-/* The handoff either side. Portfolio sits between Skills and Evidence, so it
-   takes both halves of the tuning those two already had for each other:
-   Skills gives the same space above it that it gave Evidence, and Portfolio
-   gives the same below. When a profile has no visual work the section renders
-   nothing at all, no element is in the DOM, and `.hp-skills + .hp-ev-section`
-   goes on matching exactly as it did. */
-.hp-skills + .hp-pf-section { padding-top: 34px; }
-.hp-pf-section { padding-bottom: 34px; }
-.hp-pf-section + .hp-ev-section { padding-top: 34px; }
-.hp-pf-section + .hp-rt-section { padding-top: 34px; }
+/* ---- IN PRACTICE, the act both lanes sit in ----
+   One eyebrow and one display headline for the pair, then a subheading each.
+   Portfolio and Evidence used to open at the same weight as Experience and
+   Skills, one after the other, which read as two openings for one idea. The
+   hierarchy here is what joins them: the act announces itself once, and the
+   lanes announce themselves quietly underneath it.
 
-.hp-pf-intro { margin-bottom: 26px; }
-.hp-pf-intro .hp-label { margin-bottom: 14px; }
+   The spacing between the lanes is a margin on the second rather than a gap on
+   a flex parent, so a lane that renders nothing takes no space with it. That
+   is what lets one empty lane close completely instead of leaving a gap where
+   its heading would have been. */
+.hp-practice-intro { margin-bottom: 30px; }
+.hp-practice-intro .hp-label { margin-bottom: 14px; }
 
-.hp-pf-headline {
+.hp-practice-part + .hp-practice-part { margin-top: 44px; }
+
+.hp-practice-sub {
   display: block;
-  margin: 0;
-  font-family: var(--profile-font-display);
-  font-size: clamp(32px, 9vw, 40px);
+  margin: 0 0 6px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1.06;
-  letter-spacing: -0.032em;
-  color: var(--profile-text);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
 }
+
+.hp-practice-line {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--profile-meta);
+}
+
+@media (min-width: 768px) {
+  .hp-practice-part + .hp-practice-part { margin-top: 52px; }
+  .hp-practice-line { font-size: 17px; }
+}
+@media (min-width: 1200px) {
+  .hp-practice-part + .hp-practice-part { margin-top: 60px; }
+}
+
+.hp-pf-intro { margin-bottom: 22px; }
 
 /* ---- The grid ----
    Two across on a phone, three from tablet up. A list rather than a row of
@@ -3228,8 +3245,20 @@
 
 .hp-pf-cell { display: flex; }
 
-/* ---- One mat ---- */
-.hp-profile .hp-pf-mat {
+/* ---- One mat ----
+   Carried by two selectors, and both are needed.
+
+   `.hp-profile` is there because a mat is a button and `.hp-profile button` is
+   (0,1,1): a bare class would lose to it and the mat would come back wearing
+   the button reset's padding and border.
+
+   `.hp-pf-box` is there because the overlay is portalled to document.body,
+   which is outside `.hp-profile` entirely. The same mats are drawn in the full
+   portfolio grid, and scoped to the profile alone they arrived there with no
+   card, no border and no surface - bare pictures floating on the backdrop. The
+   portal needs its own root named, not a looser selector. */
+.hp-profile .hp-pf-mat,
+.hp-pf-box .hp-pf-mat {
   --pf-tone: var(--profile-accent-rgb);
   position: relative;
   display: flex;
@@ -3248,7 +3277,9 @@
 }
 
 .hp-profile .hp-pf-mat:hover,
-.hp-profile .hp-pf-mat:focus-visible {
+.hp-profile .hp-pf-mat:focus-visible,
+.hp-pf-box .hp-pf-mat:hover,
+.hp-pf-box .hp-pf-mat:focus-visible {
   border-color: rgb(var(--pf-tone) / 0.42);
   transform: translateY(-2px);
 }
@@ -3365,18 +3396,10 @@
 
 @media (min-width: 768px) {
   .hp-pf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-  .hp-skills + .hp-pf-section { padding-top: 40px; }
-  .hp-pf-section { padding-bottom: 40px; }
-  .hp-pf-section + .hp-ev-section { padding-top: 40px; }
-  .hp-pf-section + .hp-rt-section { padding-top: 40px; }
 }
 
 @media (min-width: 1200px) {
   .hp-pf-grid { gap: 18px; }
-  .hp-skills + .hp-pf-section { padding-top: 44px; }
-  .hp-pf-section { padding-bottom: 44px; }
-  .hp-pf-section + .hp-ev-section { padding-top: 44px; }
-  .hp-pf-section + .hp-rt-section { padding-top: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3426,6 +3449,31 @@
   height: 100%;
 }
 
+/* The item view puts one picture on a transparent stage, so the surface is a
+   layout box and nothing more. The grid view is a panel of mats and needs to
+   read as one thing standing over the page rather than as tiles scattered on
+   the backdrop, so it takes a ground, an edge and a radius. Only in that mode:
+   a panel behind a single photograph would be a frame nobody asked for. */
+.hp-pf-box-surface[data-mode="grid"] {
+  height: min(100%, 860px);
+  padding: 18px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      160deg,
+      rgb(var(--profile-accent-rgb) / 0.09) 0%,
+      rgb(var(--profile-accent-rgb) / 0.03) 52%,
+      rgb(var(--profile-accent-rgb) / 0.012) 100%
+    ),
+    var(--profile-ground);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
+}
+
+@media (min-width: 768px) {
+  .hp-pf-box-surface[data-mode="grid"] { padding: 22px; }
+}
+
 .hp-pf-box-bar {
   flex: none;
   display: flex;
@@ -3438,6 +3486,102 @@
   font-size: 13px;
   color: rgb(255 255 255 / 0.62);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- The bar's left half ----
+   In the grid view it carries the eyebrow and the title; in the item view a
+   count, with the way back above it when the reader arrived through the grid.
+   One column either way, so the close control stays where it was and the bar
+   does not reflow between views. */
+.hp-pf-box-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hp-pf-box-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+}
+
+.hp-pf-box-heading-title {
+  margin: 0;
+  font-family: var(--profile-font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  color: rgb(255 255 255 / 0.94);
+}
+
+.hp-pf-box-heading-title .hp-pf-box-count { font-weight: 400; }
+
+/* Back to the grid without closing the surface. A separate control from the
+   close, because "I have finished with this picture" and "I have finished
+   with the portfolio" are different intentions and a reader should not have
+   to reopen the gallery to express the first one. */
+.hp-profile .hp-pf-back,
+.hp-pf-box .hp-pf-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  margin-bottom: 2px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.66);
+  cursor: pointer;
+}
+
+.hp-pf-box .hp-pf-back:hover,
+.hp-pf-box .hp-pf-back:focus-visible { color: rgb(255 255 255 / 0.95); }
+
+.hp-pf-back-arrow { transition: transform 180ms ease; }
+.hp-pf-box .hp-pf-back:hover .hp-pf-back-arrow { transform: translateX(-3px); }
+
+/* ---- The grid view ----
+   The whole portfolio, in the same square mats the page uses, scrolling
+   inside the surface rather than moving the page behind it. */
+.hp-pf-box-gallery {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+}
+
+.hp-pf-box-gallery::-webkit-scrollbar { width: 6px; }
+.hp-pf-box-gallery::-webkit-scrollbar-track { background: transparent; }
+.hp-pf-box-gallery::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.22);
+  border-radius: 3px;
+}
+.hp-pf-box-gallery::-webkit-scrollbar-thumb:hover { background: rgb(255 255 255 / 0.34); }
+
+.hp-pf-box-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .hp-pf-box-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+}
+@media (min-width: 1200px) {
+  .hp-pf-box-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 }
 
 .hp-pf-box .hp-pf-box-close {

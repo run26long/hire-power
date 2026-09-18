@@ -88,7 +88,7 @@ export function EditPencil({ field, label }) {
         type="button"
         className="hp-ed-pencil"
         disabled
-        aria-label={`Edit ${label} — not available yet`}
+        aria-label={`Edit ${label}, not available yet`}
         title={`Editing ${label} is coming in a later pass`}
       >
         <PencilIcon />
@@ -146,7 +146,7 @@ export function EditElsewhere({ children, href }) {
 // The one thing the public page will not do: show a section that has nothing
 // in it. This renders only in edit mode - never in preview - which is what
 // keeps preview an honest preview.
-export function EditEmpty({ title, note, field, feature }) {
+export function EditEmpty({ title, note, field, feature, shape }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor(field)
   const canEdit = useCanEdit()
@@ -171,6 +171,24 @@ export function EditEmpty({ title, note, field, feature }) {
       onClick={live ? editor.open : undefined}
       title={live ? title : 'Coming in a later pass'}
     >
+      {/* The shape of the thing that is missing, drawn faintly behind the
+          invitation: the portfolio ghost is the same three-up grid of squares
+          the section will hold, so the owner can see what they are being
+          offered rather than read about it.
+
+          Empty outlines and never fake content. A ghost filled with plausible
+          sample work would be a lie about the state of the profile, and one
+          the owner would have to go and delete. Nothing here is a record and
+          nothing here is written anywhere. Hidden from assistive technology
+          because it says nothing the copy underneath does not. */}
+      {shape ? (
+        <span className="hp-ed-empty-shape" data-shape={shape} aria-hidden="true">
+          <span className="hp-ed-empty-cell" />
+          <span className="hp-ed-empty-cell" />
+          <span className="hp-ed-empty-cell" />
+        </span>
+      ) : null}
+
       <span className="hp-ed-empty-title">{title}</span>
       {note ? <span className="hp-ed-empty-note">{note}</span> : null}
     </button>

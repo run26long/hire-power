@@ -1,14 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import Reveal from './Reveal'
-import StrokeIcon, { ICON_MEDIA } from './StrokeIcon'
 import PortfolioLightbox from './PortfolioLightbox'
+import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
-import { EditGrip, EditEmpty, UpgradeNote, useEditSlot } from './EditAffordance'
+import { EditEmpty, UpgradeNote, useEditSlot } from './EditAffordance'
 import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
-import { PORTFOLIO_PREVIEW_DESKTOP, formatDuration } from '@/lib/portfolio'
+import { PORTFOLIO_PREVIEW_DESKTOP } from '@/lib/portfolio'
 
 // ============================================================================
 // PORTFOLIO
@@ -39,17 +39,16 @@ import { PORTFOLIO_PREVIEW_DESKTOP, formatDuration } from '@/lib/portfolio'
 // ============================================================================
 
 export default function PortfolioSection({ items, slug, lensId, animate, directionKey }) {
-  const [open, setOpen] = useState(null)   // { index } | null
+  // null | { mode: 'grid' } | { mode: 'item', index, fromGrid }
+  const [overlay, setOverlay] = useState(null)
   const [visit, setVisit] = useState(0)
-  const [showAll, setShowAll] = useState(false)
 
   // A direction change replaces the collection. Anything open belonged to the
-  // direction that is leaving, and so did the decision to show everything.
+  // direction that is leaving.
   const [shownFor, setShownFor] = useState(directionKey)
   if (shownFor !== directionKey) {
     setShownFor(directionKey)
-    if (open) setOpen(null)
-    if (showAll) setShowAll(false)
+    if (overlay) setOverlay(null)
   }
 
   const canShowEmpty = useCanShowEmpty()
@@ -67,33 +66,46 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
       : items
   }, [items])
 
+  // The two ways in each start a visit, so the overlay mounts fresh. Moving
+  // between the grid and one item inside a single visit keeps the key, and
+  // therefore the scroll position the grid was left at.
   const openAt = useCallback((index) => {
     setVisit(n => n + 1)
-    setOpen({ index })
+    setOverlay({ mode: 'item', index, fromGrid: false })
   }, [])
-  const close = useCallback(() => setOpen(null), [])
+  const openGrid = useCallback(() => {
+    setVisit(n => n + 1)
+    setOverlay({ mode: 'grid' })
+  }, [])
+
+  // ...and these two move around inside one.
+  const fromGrid = useCallback((index) => setOverlay({ mode: 'item', index, fromGrid: true }), [])
+  const backToGrid = useCallback(() => setOverlay({ mode: 'grid' }), [])
+  const close = useCallback(() => setOverlay(null), [])
 
   // Empty, this section is not on the public page at all - the same rule every
   // other section follows. The owner still sees it, because an absence they
   // cannot see is an absence they cannot fill.
   if (ordered.length === 0 && !canShowEmpty) return null
 
-  const shown = showAll ? ordered : ordered.slice(0, PORTFOLIO_PREVIEW_DESKTOP)
+  // Always the selection, never the archive: six, in the order the owner put
+  // them in, with whatever this direction featured pulled to the front above.
+  const shown = ordered.slice(0, PORTFOLIO_PREVIEW_DESKTOP)
   const hidden = ordered.length - shown.length
 
   return (
-    <section className="hp-section hp-pf-section">
-      <div className="hp-wrap">
+    <div className="hp-practice-part hp-pf-section">
         <Reveal enabled={animate} className="hp-pf-intro">
-          <span className="hp-label">Portfolio</span>
-          <h2 className="hp-pf-headline">The work, as it looks.</h2>
+          <h3 className="hp-practice-sub">Portfolio</h3>
+          <p className="hp-practice-line">The work, in frame and in motion.</p>
         </Reveal>
 
         {ordered.length === 0 ? (
           <EditEmpty
             feature="portfolio"
+            shape="grid"
             title="Add your visual work"
-            note="Photographs and video of what you have built or run. They appear as a gallery a reader can open, and each one can sit under any of your directions."
+            note="Photographs and video of what you have built or run. Six sit here as a gallery a reader can open, and each one can appear under any of your directions."
           />
         ) : (
           <Reveal enabled={animate}>
@@ -111,10 +123,19 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
               ))}
             </ul>
 
+            {/* Offered only when there is something the six did not show.
+                Six or fewer and the grid is the whole portfolio, so an action
+                promising more would open a gallery the reader has already
+                read. */}
             {hidden > 0 && (
               <div className="hp-pf-more">
-                <button type="button" className="hp-pf-all" onClick={() => setShowAll(true)}>
-                  View full gallery ({ordered.length})
+                <button
+                  type="button"
+                  className="hp-pf-all"
+                  onClick={openGrid}
+                  aria-haspopup="dialog"
+                >
+                  View full portfolio
                   <span className="hp-pf-all-arrow" aria-hidden="true">→</span>
                 </button>
               </div>
@@ -125,98 +146,18 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
         {canEdit
           ? <AddEvidence only="visual" />
           : ordered.length > 0 ? <UpgradeNote feature="portfolio" /> : null}
-      </div>
 
       <PortfolioLightbox
         key={`${directionKey}:${visit}`}
+        mode={overlay?.mode || null}
         items={ordered}
-        startIndex={open?.index ?? 0}
-        active={open !== null}
+        startIndex={overlay?.index ?? 0}
         slug={slug}
         lensId={lensId}
+        onOpenItem={fromGrid}
+        onBack={overlay?.fromGrid ? backToGrid : null}
         onClose={close}
       />
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// One mat.
-//
-// Its own component so each tile owns the state of its own picture: one
-// thumbnail failing to sign is one mat falling back to its mark, not a section
-// that decides it has no pictures.
-// ---------------------------------------------------------------------------
-function PortfolioMat({ item, slug, lensId, slot, onOpen }) {
-  const [url, setUrl] = useState(null)
-  const [failed, setFailed] = useState(false)
-
-  // Counts the attempts rather than storing a flag, so the one retry after an
-  // expired signature is a dependency change the effect below already reacts
-  // to instead of a second effect watching the first.
-  const [attempt, setAttempt] = useState(0)
-
-  const wanted = item?.has_thumbnail === true
-
-  useEffect(() => {
-    if (!wanted || !item?.id) return
-    const suffix = lensId ? `&lens=${encodeURIComponent(lensId)}` : ''
-    let live = true
-    fetch(
-      `/api/career-profile/${encodeURIComponent(slug)}/evidence/`
-      + `${encodeURIComponent(item.id)}?variant=thumbnail${suffix}`
-    )
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then(body => { if (live) setUrl(body.url || null) })
-      .catch(() => { if (live) setFailed(true) })
-    return () => { live = false }
-  }, [wanted, slug, lensId, item?.id, attempt])
-
-  const duration = item?.media_class === 'video' ? formatDuration(item.duration_seconds) : null
-  const showPicture = wanted && url && !failed
-
-  return (
-    <button
-      type="button"
-      className={`hp-pf-mat${slot}`}
-      data-media={item.media_class}
-      onClick={onOpen}
-      aria-haspopup="dialog"
-    >
-      <EditGrip />
-
-      <span className="hp-pf-mat-frame">
-        {showPicture ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            className="hp-pf-mat-img"
-            src={url}
-            alt={item.title || ''}
-            loading="lazy"
-            decoding="async"
-            // A signed URL lives ten minutes. One that expires under a reader
-            // who left the page open is asked for again, once - a second
-            // failure is a real one and the mat keeps its mark.
-            onError={() => (attempt === 0 ? setAttempt(1) : setFailed(true))}
-          />
-        ) : (
-          <span className="hp-pf-mat-mark" aria-hidden="true">
-            <StrokeIcon paths={ICON_MEDIA[item.media_class] || ICON_MEDIA.default} size={26} strokeWidth={1.2} />
-          </span>
-        )}
-
-        {/* On the picture rather than beside it: a play mark under a still is
-            a caption, and a reader has to be told this one moves. */}
-        {item.media_class === 'video' && (
-          <span className="hp-pf-play" aria-hidden="true">
-            <span className="hp-pf-play-tri" />
-          </span>
-        )}
-
-        {duration && <span className="hp-pf-time">{duration}</span>}
-      </span>
-
-      <span className="hp-pf-mat-title">{item.title}</span>
-    </button>
+    </div>
   )
 }

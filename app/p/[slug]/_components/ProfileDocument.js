@@ -25,8 +25,7 @@ import { LensStage, LensBar } from './LensNav'
 import ProfileSpread from './ProfileSpread'
 import SelectedExperience from './SelectedExperience'
 import SkillsSection from './SkillsSection'
-import PortfolioSection from './PortfolioSection'
-import EvidenceSection from './EvidenceSection'
+import InPractice from './InPractice'
 import RecruiterTools from './RecruiterTools'
 import CollectiveImpact from './CollectiveImpact'
 import ProfileResolution from './ProfileResolution'
@@ -524,21 +523,17 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
             because the resume happens to carry a line. Nothing was deleted -
             the resume still holds what it held, and an owner-facing workflow
             can promote any of it into real evidence with a real source. */}
-        {/* The visual work, immediately before the collection it was taken
-            out of. The page is built claims first and artefacts after, and
-            these two are the same move - what the work looks like, then what
-            backs it up. A gallery any earlier would be showing a reader
-            pictures before they know what they are looking at. */}
-        <PortfolioSection
-          items={directionPortfolio}
-          slug={slug}
-          lensId={selectedLens?.id}
-          animate={animate}
-          directionKey={contentIndex}
-        />
+        {/* The artefacts, after the claims they stand behind. One act with two
+            lanes inside it: what the work looks like, then what backs it up.
+            Either earlier on the page would be showing a reader pictures and
+            documents before they know what they are looking at.
 
-        <EvidenceSection
-          items={directionDocuments}
+            The two lanes used to be two sections with two display headlines,
+            which read as two openings for one idea. The wrapper says it once
+            and owns the collapse rule for both. */}
+        <InPractice
+          portfolio={directionPortfolio}
+          evidence={directionDocuments}
           slug={slug}
           lensId={selectedLens?.id}
           animate={animate}

@@ -16,6 +16,14 @@
    named here alongside the Profile for that reason and no other: it is the
    same visual system, standing somewhere else in the document.
 
+   .hp-pf-box is the portfolio overlay, portalled to the body for the same
+   reason and missing from this list until now. Its own wash asked for
+   --profile-void-rgb and got nothing, so the backdrop was a blur over an
+   undimmed page rather than the dark wash the evidence overlay uses. That was
+   survivable while the overlay held one picture on a transparent stage; it was
+   not once the overlay grew a grid of mats that read these tokens for their
+   surface and their edges.
+
    .hp-tm is the referee page at /testimonial/[token]. It is a different route
    with no profile on it, and it is named here for the same reason: somebody
    arriving from a dark testimonial email should land somewhere that looks like
@@ -26,6 +34,7 @@
 .hp-profile,
 .hp-ev-backdrop,
 .hp-rt-backdrop,
+.hp-pf-box,
 .hp-tm {
   /* ---- Signature default palette: the raw ramp ---- */
   --profile-void: #09060f;    /* the hero's own darker ground */
