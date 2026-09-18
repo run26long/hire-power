@@ -1,0 +1,9 @@
+# The rollback backup is a verbatim copy of every row BEFORE fictionalisation:
+# the real person's name, their three real employers, their home town, their
+# phone number and the whole coaching transcript. Committing it would put the
+# identity this exercise exists to remove into git history permanently, where
+# deleting the file later would not take it back out.
+#
+# It is written locally on every run of 01-rename.js, which is where it is
+# useful and the only place it should ever live.
+output/rename-backup.json
