@@ -56,6 +56,10 @@ export default function ProfileSpread({
   bioExpanded,
   onToggleBio,
   imowText,
+  imowToShow,
+  isImowCollapsible,
+  imowExpanded,
+  onToggleImow,
   imowType,
   imowHasVideo,
   slug,
@@ -204,7 +208,26 @@ export default function ProfileSpread({
               {/* Video first, then the words, when there are both: the point
                   of this section is hearing them say it, and the text is what
                   somebody reads when they will not play a video on a train. */}
-              {imowText && <blockquote className="hp-voice-text">{imowText}</blockquote>}
+              {imowText && (
+                <blockquote className="hp-voice-text">{imowToShow || imowText}</blockquote>
+              )}
+
+              {/* The About column's control, reused rather than restated, so
+                  the two sides of the spread open the same way. It sits inside
+                  the Reveal and under the words, which keeps it inside the card
+                  and clear of the closing quotation mark below. */}
+              {imowText && isImowCollapsible && (
+                <button
+                  type="button"
+                  className="hp-more"
+                  onClick={onToggleImow}
+                  aria-expanded={imowExpanded}
+                  data-expanded={imowExpanded ? 'true' : 'false'}
+                >
+                  {imowExpanded ? 'Read less' : 'Read more'}
+                  <span className="hp-more-mark" aria-hidden="true" />
+                </button>
+              )}
             </Reveal>
 
             {!hasVideo && (

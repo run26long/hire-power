@@ -79,6 +79,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const [downloadingResume, setDownloadingResume] = useState(false)
   const [resumeError, setResumeError] = useState(null)
   const [bioExpanded, setBioExpanded] = useState(false)
+  const [imowExpanded, setImowExpanded] = useState(false)
   const [expandedRole, setExpandedRole] = useState(null)
 
   // Which field has its editor open, and what the last write did. Held here
@@ -161,6 +162,14 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const bioToShow = collapsedBio && !bioExpanded ? collapsedBio : fullBio
 
   const imowText = data?.profile?.imow_text || null
+  // The same collapse the About column gets, at the same length. A saved
+  // passage may be up to 2,000 characters and a reader meeting a wall of text
+  // in the one section written in somebody's own voice stops reading it, which
+  // is the opposite of what the section is for. Cut at a sentence end or not at
+  // all: truncateAtSentence returns null when there is no full stop to cut on,
+  // and a passage that cannot be cut cleanly is shown whole.
+  const collapsedImow = useMemo(() => truncateAtSentence(imowText || '', BIO_COLLAPSE_AT), [imowText])
+  const imowToShow = collapsedImow && !imowExpanded ? collapsedImow : imowText
   const imowType = data?.profile?.imow_type || null
   // Whether a video exists, never where it is. The path stays server-side and
   // the player asks the signing route for a link when it is about to play.
@@ -538,6 +547,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         bioExpanded={bioExpanded}
         onToggleBio={() => setBioExpanded(value => !value)}
         imowText={imowText}
+        imowToShow={imowToShow}
+        isImowCollapsible={Boolean(collapsedImow)}
+        imowExpanded={imowExpanded}
+        onToggleImow={() => setImowExpanded(value => !value)}
         imowType={imowType}
         imowHasVideo={imowHasVideo}
         slug={slug}
