@@ -1,5 +1,6 @@
 import React from 'react'
 import { Document, Page, Text, View, Image, Link, StyleSheet, Font } from '@react-pdf/renderer'
+import fs from 'fs'
 import path from 'path'
 
 // ============================================================================
@@ -24,7 +25,27 @@ const fontsDir = path.join(process.cwd(), 'public', 'fonts')
 
 // The full-colour mark, because this page is white. The white variant the
 // profile header uses would be invisible here.
+//
+// Held as bytes rather than as a path. react-pdf takes a string `src` to be a
+// URL and fetches it; an absolute filesystem path is not one, so the fetch
+// fails, and the failure is swallowed - the document still renders, just with
+// nothing where the image was. That is how this went unnoticed in both PDFs
+// that carry the mark: a missing logo looks like a design choice.
+//
+// Font.register is not affected and still takes the path above; it reads from
+// disk itself. Only Image goes through fetch.
+//
+// Read once at module load, like the fonts. If it cannot be read the brief
+// renders without it, which is what it did before and is better than a hiring
+// brief that fails to build over a logo.
 const logoPath = path.join(process.cwd(), 'public', 'images', 'HirePower_logo.png')
+
+let logoImage = null
+try {
+  logoImage = fs.readFileSync(logoPath)
+} catch (error) {
+  console.error('[RoleAlignmentBriefPDF] Could not read the logo:', error?.message)
+}
 
 Font.register({
   family: 'Lato',
@@ -259,7 +280,7 @@ export default function RoleAlignmentBriefPDF({
           {/* react-pdf's Image is not an HTML img and takes no alt; the rule
               cannot tell the difference. */}
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image style={styles.brandMark} src={logoPath} />
+          {logoImage ? <Image style={styles.brandMark} src={logoImage} /> : null}
           <Text style={styles.brandText}>
             Take your career beyond the page.{'\n'}
             <Link style={styles.brandLink} src="https://HirePowerAI.com">

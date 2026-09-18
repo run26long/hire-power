@@ -1,5 +1,6 @@
 import React from 'react'
 import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import fs from 'fs'
 import path from 'path'
 
 // ============================================================================
@@ -23,6 +24,28 @@ import path from 'path'
 
 const fontsDir = path.join(process.cwd(), 'public', 'fonts')
 const logoPath = path.join(process.cwd(), 'public', 'images', 'HirePower_logo.png')
+
+// ---------------------------------------------------------------------------
+// The mark, as bytes rather than as a path.
+//
+// react-pdf takes a string `src` to be a URL and fetches it. An absolute
+// filesystem path is not one, so the fetch fails, and the failure is swallowed:
+// the document still renders, just with nothing where the image was. That is
+// how this went unnoticed - a missing logo looks like a design choice.
+//
+// Font.register is not affected and still takes the paths above; it reads from
+// disk itself. Only Image goes through fetch.
+//
+// Read once at module load, like the fonts. If it cannot be read the document
+// renders without it, which is exactly what it did before and is better than a
+// reference sheet that fails to build over a logo.
+// ---------------------------------------------------------------------------
+let logoImage = null
+try {
+  logoImage = fs.readFileSync(logoPath)
+} catch (error) {
+  console.error('[ReferenceSheetPDF] Could not read the logo:', error?.message)
+}
 
 Font.register({
   family: 'Lato',
@@ -164,7 +187,7 @@ export default function ReferenceSheetPDF({ candidateName, issuedOn, references 
         <View style={styles.brand} wrap={false}>
           {/* react-pdf's Image is not an HTML img and takes no alt. */}
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image style={styles.brandMark} src={logoPath} />
+          {logoImage ? <Image style={styles.brandMark} src={logoImage} /> : null}
           <Text style={styles.brandText}>Take your career beyond the page.</Text>
         </View>
 
