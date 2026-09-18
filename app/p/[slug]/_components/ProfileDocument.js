@@ -287,8 +287,14 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // direction's own where it has built one, the priority core otherwise. Which
   // is not decided here - the direction id is sent and the server resolves it,
   // because a resume id from this side would be a resume id anybody could send.
-  async function handleDownloadResume() {
+  // `lensId` is the direction the reader picked from the download menu, when
+  // the profile offered one. Anything else - no menu, or a handler wired
+  // straight to a click - falls back to the direction on screen, which is what
+  // this has always sent. Guarded by type rather than truthiness so a click
+  // event arriving here could never be mistaken for an id.
+  async function handleDownloadResume(lensId) {
     if (!activeResume || downloadingResume) return
+    const wanted = typeof lensId === 'string' ? lensId : (selectedLens?.id || null)
     setDownloadingResume(true)
     setResumeError(null)
     try {
@@ -300,7 +306,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       const res = await fetch('/api/career-profile/download-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...auth },
-        body: JSON.stringify({ slug, lens_id: selectedLens?.id || null })
+        body: JSON.stringify({ slug, lens_id: wanted })
       })
 
       if (!res.ok) {
@@ -473,6 +479,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       downloading={downloadingResume}
       downloadError={resumeError}
       onDownload={handleDownloadResume}
+      lenses={lenses}
+      selectedLensId={selectedLens?.id || null}
     />
   )
 

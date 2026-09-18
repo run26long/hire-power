@@ -1,5 +1,7 @@
 'use client'
 
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 // ============================================================================
 // The masthead, and the pair of actions it owns.
 //
@@ -15,6 +17,12 @@
 // Both actions are live now. Download builds the PDF on the server from the
 // direction being read; Contact is a mailto: to the address the owner set.
 //
+// Download carries a menu when, and only when, the profile's directions
+// actually resolve to more than one file - see offersRealChoice below. Picking
+// one downloads it and nothing else: the page stays on the direction the reader
+// was reading, because choosing a file to take away is not the same gesture as
+// changing what you are looking at.
+//
 // Contact does not render at all when no address is set. A disabled button
 // would tell a recruiter that there is a way to reach this person and that it
 // is closed, which is worse than the page simply not offering one - the same
@@ -27,9 +35,34 @@
 const DOWNLOAD_LABEL = 'Download résumé'
 const CONTACT_LABEL = 'Contact'
 
-function downloadTitleFor(resume, downloading) {
+function downloadTitleFor(resume, downloading, offersChoice) {
   if (downloading) return 'Building the PDF'
-  return resume ? 'Download this résumé as a PDF' : 'No resume published yet'
+  if (!resume) return 'No resume published yet'
+  return offersChoice ? 'Choose which résumé to download' : 'Download this résumé as a PDF'
+}
+
+// ---------------------------------------------------------------------------
+// WHETHER THE CHOICE IS WORTH OFFERING
+//
+// A direction downloads its own résumé only when it has built one. Every
+// direction that has not falls back to the same priority core, which the
+// download route resolves on its side - so a profile can show five directions
+// and hand over one file for all of them.
+//
+// A menu there would be a menu of one answer wearing five names. The reader
+// would pick "Executive Leadership", get the same PDF they would have got
+// anyway, and have no way to know that was the whole truth. So the menu appears
+// only when the choice actually changes what arrives: more than one direction,
+// AND more than one file behind them. One direction, or one file, and the
+// button stays the plain button it has always been.
+//
+// This is the same rule that already hides the picker for a single direction,
+// applied to what the picker is actually for.
+// ---------------------------------------------------------------------------
+function offersRealChoice(lenses) {
+  if (!Array.isArray(lenses) || lenses.length < 2) return false
+  const targets = new Set(lenses.map(lens => lens?.core_resume_id || 'CORE'))
+  return targets.size > 1
 }
 
 export function ProfileActionButtons({
@@ -37,27 +70,134 @@ export function ProfileActionButtons({
   contactEmail,
   downloading,
   downloadError,
-  onDownload
+  onDownload,
+  lenses,
+  selectedLensId
 }) {
+  const directions = useMemo(() => (Array.isArray(lenses) ? lenses : []), [lenses])
+  const offersChoice = useMemo(() => offersRealChoice(directions), [directions])
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  // Held per instance, deliberately. This component is built once by the page
+  // and rendered in three places, so three copies of it exist; opening the
+  // masthead's menu must not open the footer's. The busy state and the error
+  // are the opposite case and stay lifted, so all three agree about them.
+  const wrapRef = useRef(null)
+  const triggerRef = useRef(null)
+  const itemRefs = useRef([])
+
+  const closeMenu = useCallback((returnFocus) => {
+    setMenuOpen(false)
+    if (returnFocus) triggerRef.current?.focus()
+  }, [])
+
+  // A menu that cannot be dismissed by the two gestures everyone already knows
+  // is a trap, so both are wired: anywhere outside closes it, Escape closes it
+  // and puts focus back where it started.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    function onPointerDown(event) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target)) setMenuOpen(false)
+    }
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.stopPropagation()
+        closeMenu(true)
+      }
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen, closeMenu])
+
+  // Opening lands on the direction being read, which is the one already marked
+  // as chosen. A keyboard reader who opens and presses Enter gets exactly what
+  // the button would have given them unaided.
+  useEffect(() => {
+    if (!menuOpen) return
+    const current = directions.findIndex(lens => lens.id === selectedLensId)
+    itemRefs.current[current > -1 ? current : 0]?.focus()
+  }, [menuOpen, directions, selectedLensId])
+
+  function choose(lensId) {
+    setMenuOpen(false)
+    triggerRef.current?.focus()
+    onDownload(lensId)
+  }
+
+  function onItemKeyDown(event, index) {
+    const last = directions.length - 1
+    let next = null
+    if (event.key === 'ArrowDown') next = index === last ? 0 : index + 1
+    else if (event.key === 'ArrowUp') next = index === 0 ? last : index - 1
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = last
+    if (next === null) return
+    event.preventDefault()
+    itemRefs.current[next]?.focus()
+  }
+
+  // Sent only when the reader picked one. Without a choice the page's own
+  // selection decides, which is what this button has always done.
+  const downloadCurrent = () => onDownload(null)
+
   return (
     <>
-      <button
-        type="button"
-        className="hp-btn hp-btn-secondary"
-        disabled={!resume || downloading}
-        aria-label={DOWNLOAD_LABEL}
-        aria-busy={downloading ? 'true' : undefined}
-        title={downloadTitleFor(resume, downloading)}
-        onClick={onDownload}
-      >
-        {/* The accessible name is on the button, so the visible text can
-            shorten in the sticky bar on a phone without the control losing
-            what it is called. */}
-        <span className="hp-btn-full">{downloading ? 'Building…' : DOWNLOAD_LABEL}</span>
-        <span className="hp-btn-short" aria-hidden="true">
-          {downloading ? '…' : 'Résumé'}
-        </span>
-      </button>
+      {/* The positioned ancestor the menu hangs off. inline-flex so it takes
+          exactly the button's box and the flex rows it sits in are unchanged. */}
+      <span className="hp-dl" ref={wrapRef}>
+        <button
+          type="button"
+          ref={triggerRef}
+          className="hp-btn hp-btn-secondary"
+          disabled={!resume || downloading}
+          aria-label={DOWNLOAD_LABEL}
+          aria-busy={downloading ? 'true' : undefined}
+          aria-haspopup={offersChoice ? 'menu' : undefined}
+          aria-expanded={offersChoice ? (menuOpen ? 'true' : 'false') : undefined}
+          title={downloadTitleFor(resume, downloading, offersChoice)}
+          onClick={offersChoice ? () => setMenuOpen(open => !open) : downloadCurrent}
+        >
+          {/* The accessible name is on the button, so the visible text can
+              shorten in the sticky bar on a phone without the control losing
+              what it is called. */}
+          <span className="hp-btn-full">{downloading ? 'Building…' : DOWNLOAD_LABEL}</span>
+          <span className="hp-btn-short" aria-hidden="true">
+            {downloading ? '…' : 'Résumé'}
+          </span>
+          {offersChoice && !downloading ? (
+            <span className="hp-dl-caret" aria-hidden="true" />
+          ) : null}
+        </button>
+
+        {offersChoice && menuOpen ? (
+          <div className="hp-dl-menu" role="menu" aria-label="Choose a résumé to download">
+            {directions.map((lens, index) => {
+              const current = lens.id === selectedLensId
+              return (
+                <button
+                  key={lens.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={current ? 'true' : 'false'}
+                  data-current={current ? 'true' : 'false'}
+                  className="hp-dl-item"
+                  ref={node => { itemRefs.current[index] = node }}
+                  onClick={() => choose(lens.id)}
+                  onKeyDown={event => onItemKeyDown(event, index)}
+                >
+                  {lens.name}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
+      </span>
 
       {/* An anchor rather than a button, because it goes somewhere: it should
           be openable in the way every other link is, and a mail client is a

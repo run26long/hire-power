@@ -822,6 +822,105 @@
   .hp-bar-item:not([data-active="true"]):hover { color: var(--profile-body); }
 }
 
+/* ============================================== THE DOWNLOAD PICKER ===== */
+/* Offered only when the directions genuinely resolve to different files, so a
+   caret here always means there is something to choose. One markup, three
+   placements: the masthead, the sticky bar and the resolution at the foot all
+   render the same component, and the context selectors below decide only which
+   way the menu opens.
+
+   Note the doubled class on the items. The `.hp-profile button` reset near the
+   top of this file is (0,1,1) and would outrank a bare `.hp-dl-item` at (0,1,0),
+   which is the trap already documented for `.hp-action`. `.hp-dl-menu
+   .hp-dl-item` is (0,2,0) and clears it. */
+
+.hp-dl {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A quiet mark that the control opens rather than fires. Drawn rather than
+   typed, so it cannot pick up the button's letter-spacing or be read aloud. */
+.hp-dl-caret {
+  /* inline-block, not inline: an inline box ignores width and height, which
+     collapses the two borders below into a single hairline. */
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  border-radius: 1px;
+  transform: translateY(-2px) rotate(45deg);
+  opacity: 0.55;
+}
+
+.hp-dl-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  /* The page is `overflow-x: clip`, so the menu hangs off the right edge of its
+     button and grows inward, where there is always room. */
+  right: 0;
+  z-index: 40; /* above the stuck bar's 20 */
+  min-width: 216px;
+  max-width: min(288px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--profile-surface-2);
+  border: 1px solid var(--profile-line-strong);
+  box-shadow: 0 18px 40px rgb(var(--profile-void-rgb) / 0.55);
+}
+
+/* The resolution is the last thing on the page, so its menu opens upward
+   rather than off the end of the document. */
+.hp-foot .hp-dl-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.hp-dl-menu .hp-dl-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--profile-body);
+  padding: 9px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: normal;
+  transition: background var(--profile-move-ms) var(--profile-ease-in),
+              color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+/* The direction being read. Marked by weight and a full-strength colour rather
+   than a tick, so the row reads the same whether or not it is announced. */
+.hp-dl-menu .hp-dl-item[data-current="true"] {
+  color: var(--profile-text);
+  font-weight: 600;
+  background: var(--profile-accent-wash);
+}
+
+.hp-dl-menu .hp-dl-item:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-dl-menu .hp-dl-item:hover {
+    color: var(--profile-text);
+    background: var(--profile-accent-wash-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-dl-menu .hp-dl-item { transition: none; }
+}
+
 /* ============================================== THE REFOCUS ============= */
 /* The same person, reinterpreted. The standing content softens and steps back,
    the swap happens behind that, and the new content resolves in ordered
