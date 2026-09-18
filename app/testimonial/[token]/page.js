@@ -340,17 +340,12 @@ export default function TestimonialPage() {
             Your testimonial has been sent to {first}.
           </p>
           <blockquote className="hp-tm-quote">{record?.polished_text}</blockquote>
-          <p className="hp-tm-note">
-            {first} decides whether this appears on the profile. It is not public until
-            published.
-          </p>
 
           {/* Nothing to press. The favour is done, so the screen stops offering
-              ways to redo it and says so instead: an edit control here invites
-              somebody to keep working on something they have finished, and a
-              line about how many versions are left today is a limit on a thing
-              nobody is being asked to do any more. */}
-          <p className="hp-tm-note">You are all set. You can close this window.</p>
+              ways to redo it: an edit control here invites somebody to keep
+              working on something they have finished, and a line about how many
+              versions are left today is a limit on a thing nobody is being
+              asked to do any more. */}
 
           {/* Only here, and only now. Asking somebody to sign up before they
               have done the favour is the wrong order. */}
@@ -400,6 +395,11 @@ export default function TestimonialPage() {
 
             {consent ? (
               <>
+                <p className="hp-tm-hint">
+                  Checking this box gives {first} permission to include your contact information
+                  on reference sheets for future job applications. It will never appear on the
+                  public Career Profile.
+                </p>
                 <input
                   className="hp-tm-phone"
                   type="tel"
@@ -408,11 +408,6 @@ export default function TestimonialPage() {
                   onChange={e => setPhone(e.target.value)}
                   aria-label="Your phone number, optional"
                 />
-                <p className="hp-tm-hint">
-                  Checking this box gives {first} permission to include your contact information
-                  on reference sheets for future job applications. It will never appear on the
-                  public Career Profile.
-                </p>
               </>
             ) : null}
           </div>
