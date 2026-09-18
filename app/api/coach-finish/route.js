@@ -448,19 +448,19 @@ Established Career and Senior Level: deep, field-specific vocabulary reflecting 
 SKILLS SECTION LENGTH AND CONTENT:
 
 TOO MANY — DO NOT WRITE LIKE THIS:
-Technical Skills: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
+Business Systems & Platforms: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
 
-Operations Skills: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • Vendor Compliance • SLA Management • Supply Chain Coordination • Inventory Management • Workflow Optimization • Operational KPIs • Project Coordination • Cross-Functional Collaboration • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Scheduling • Record Keeping • Reporting • Team Player • Detail-Oriented • Communication • Problem-Solving • Leadership • Adaptability
+Vendor & Procurement Operations: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • Vendor Compliance • SLA Management • Supply Chain Coordination • Inventory Management • Workflow Optimization • Operational KPIs • Project Coordination • Cross-Functional Collaboration • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Scheduling • Record Keeping • Reporting • Team Player • Detail-Oriented • Communication • Problem-Solving • Leadership • Adaptability
 
 Too long, includes soft skills (not searchable ATS terms), and pads the list with generic terms that add no keyword value.
 
 JUST RIGHT — WRITE LIKE THIS:
-Technical Skills: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
+Business Systems & Platforms: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
 
-Operations Skills: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • SLA Management • Supply Chain Coordination • Workflow Optimization • Project Coordination • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Reporting
+Vendor & Procurement Operations: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • SLA Management • Supply Chain Coordination • Workflow Optimization • Project Coordination • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Reporting
 
 TOO SHORT — DO NOT WRITE LIKE THIS:
-Skills: Microsoft Office • Vendor Management • Communication • Project Coordination
+Operations & Office Support: Microsoft Office • Vendor Management • Communication • Project Coordination
 
 Missing field-specific vocabulary, named tools, and searchable operations terminology. A recruiter scanning for keywords finds almost nothing here.
 
@@ -965,17 +965,12 @@ NEVER write just the tools without the suite name: "Word, Excel, PowerPoint" los
 For other software suites (Adobe, Google Workspace, etc.): keep individual tool names only. Individual names: "Photoshop, Illustrator, InDesign". ATS searches each one separately. Suite name alone - "Adobe Creative Suite" - loses all individual keywords. Do not use alone.
 
 CATEGORIES:
-DEFAULT: 2 categories. This is the standard for most resumes.
-Use: Technical Skills + Professional Skills
-Or for industry-specific resumes: [Industry] Skills + Technical Skills
-  
-ONLY use 3 categories when:
-  - The candidate has a genuinely distinct third grouping that would confuse a recruiter if merged
-  - Example: a production role with Equipment/Technical, Administrative, and Soft Skills where mixing them would bury searchable hard skills under soft skills
-  - This should be rare, not the default
+Name every category for this candidate's real domain of expertise as the resume and the coaching conversation show it. Derive the names from the content in front of you — read the roles, the tools, and the vocabulary, and name the areas the work actually falls into. An operations candidate might yield "Operations & Manufacturing", "Commercial Strategy", "Tools & Platforms"; an engineering candidate might yield "Software Engineering", "Data & Analytics", "Cloud Infrastructure". Those are illustrations of the right altitude, not a list to choose from.
 
-NEVER use more than 3 categories under any circumstances. Do not create a category for fewer than 4 skills. Merge into the closest existing category. Remove skills already well-represented in bullets UNLESS they are searchable ATS keywords.
-  
+NEVER use "Technical Skills", "Professional Skills", "Soft Skills", "Core Competencies", "Key Skills", "Additional Skills" or "Areas of Expertise" as a category name. They describe the shape of a list rather than what the person does. Every category name must be specific to what is actually in it.
+
+Write 2 to 4 categories. Let the skills decide the number — use the number they genuinely fall into, and do not pad to reach a target or merge distinct domains to stay under one. NEVER use more than 4 categories under any circumstances. Merge a thin grouping into the closest existing category rather than leaving it stranded. Remove skills already well-represented in bullets UNLESS they are searchable ATS keywords.
+
 ONE CATEGORY IS ACCEPTABLE when the skill set is small or tightly focused. Do not create artificial separation just to add structure.
 
 PRESERVE ADMIN SKILLS CATEGORY FOR STUDENT AND EARLY-CAREER RESUMES (OR ANY JOB TYPE THAT REQUIRES IT:
@@ -1000,19 +995,19 @@ Examples of the recognition test:
 SKILLS SECTION LENGTH AND CONTENT:
 
 TOO MANY — DO NOT WRITE LIKE THIS:
-Technical Skills: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
+Business Systems & Platforms: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
 
-Operations Skills: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • Vendor Compliance • SLA Management • Supply Chain Coordination • Inventory Management • Workflow Optimization • Operational KPIs • Project Coordination • Cross-Functional Collaboration • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Scheduling • Record Keeping • Reporting • Team Player • Detail-Oriented • Communication • Problem-Solving • Leadership • Adaptability
+Vendor & Procurement Operations: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • Vendor Compliance • SLA Management • Supply Chain Coordination • Inventory Management • Workflow Optimization • Operational KPIs • Project Coordination • Cross-Functional Collaboration • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Scheduling • Record Keeping • Reporting • Team Player • Detail-Oriented • Communication • Problem-Solving • Leadership • Adaptability
 
 Too long, includes soft skills (not searchable ATS terms), and pads the list with generic terms that add no keyword value.
 
 JUST RIGHT — WRITE LIKE THIS:
-Technical Skills: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
+Business Systems & Platforms: Asana • Salesforce • QuickBooks • DocuSign • Slack • Microsoft Office (Word, Excel, PowerPoint, Outlook)
 
-Operations Skills: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • SLA Management • Supply Chain Coordination • Workflow Optimization • Project Coordination • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Reporting
+Vendor & Procurement Operations: Vendor Management • Procurement Lifecycle • Invoice Processing • Contract Negotiation • SLA Management • Supply Chain Coordination • Workflow Optimization • Project Coordination • Stakeholder Management • Process Improvement • Process Documentation • Client Escalation Resolution • Onboarding Coordination • Budget Tracking • Reporting
 
 TOO SHORT — DO NOT WRITE LIKE THIS:
-Skills: Microsoft Office • Vendor Management • Communication • Project Coordination
+Operations & Office Support: Microsoft Office • Vendor Management • Communication • Project Coordination
 
 Missing field-specific vocabulary, named tools, and searchable operations terminology. A recruiter scanning for keywords finds almost nothing here.
 
