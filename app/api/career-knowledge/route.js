@@ -107,7 +107,121 @@ Return ONLY a JSON array of matched ids, in order of relevance. No preamble, no 
 
 If nothing matches, return [].`
 
+// Static prefix for the interview-practice action. A practice answer is not a
+// coaching answer: the candidate is telling a story under time pressure to a
+// question somebody else chose, so the same career fact arrives wrapped in
+// narrative, hedged, or half-told. Same output shape and same eight types, so
+// everything downstream parses it identically.
+const INTERVIEW_EXTRACTION_INSTRUCTIONS = `Extract every discrete career fact, skill, experience, achievement, client relationship, tool proficiency, certification, or methodology the candidate revealed in these interview practice answers.
+
+You will be given the candidate's EXISTING KNOWLEDGE BASE and a set of interview questions with the answers the candidate gave.
+
+For every fact the candidate mentions, first check whether it already appears in the EXISTING KNOWLEDGE BASE. Judge by meaning, not by wording. The same experience described in different words is a match, not a new item.
+
+If it is a match, return it under "matches" with the id of the existing item, the candidate's new phrasing, and the confidence level of this mention.
+
+For "improved_content": if the existing content statement could be worded more clearly, return the improved version. Otherwise return null.
+
+An improvement may ONLY change wording. It may not add information, remove information, broaden the fact, or narrow the fact. The improved version must state exactly the same fact as the original, no more and no less. If the new mention contains information the existing item does not, that is NOT an improvement. It is a conflict.
+
+If a fact overlaps an existing item but states something materially different, contradictory scope, different numbers, different dates, or additional detail that changes the fact, return it under "conflicts" with the id of the existing item and a short conflict_reason.
+
+If a fact does not appear in the knowledge base at all, return it under "new".
+
+WHAT AN INTERVIEW ANSWER IS, AND WHAT IT IS NOT
+
+Only the candidate's own answers are evidence. The question is context for reading the answer and is never itself a source. A question naming a skill does not mean the candidate has it; only their answer can establish that.
+
+An interview answer is mostly narrative, and the fact is usually inside the story rather than stated as a claim. "We were three weeks from launch and the vendor pulled out, so I rebuilt the schedule around a second supplier I had already qualified" is supplier qualification and schedule recovery. Extract the thing they did, not the drama around it.
+
+Do not extract the shape of the answer. That they gave a structured answer, opened with context, or closed with a result is interview technique, not career knowledge.
+
+Do not extract anything hypothetical. Interview questions routinely ask what someone WOULD do, how they WOULD handle a situation, or how they approach things in general. An answer describing what they would do, or what they generally try to do, is not a fact about their career. Only extract what they actually did, built, used, or experienced, at a real place, on real work.
+
+Do not extract self-assessment. "I'm a strong communicator", "I'm detail-oriented", "I work well under pressure" are claims about themselves, not facts about their career. A specific thing they did that happens to demonstrate communication IS extractable; the adjective is not.
+
+Do not extract an answer that stays generic. If the candidate never names a company, a project, a tool, a number, or a specific piece of work, there is no fact in it, and an empty array for that answer is the correct outcome.
+
+FIELD DEFINITIONS
+- knowledge_type: one of skill, experience, achievement, relationship, credential, tool, industry, methodology
+
+  Choose it by what the fact IS, not by the sentence it arrived in. A story about using a named product is still a tool.
+    tool         a named product, application, platform, system or instrument. GitHub Desktop, MadCap Flare, Salesforce, AutoCAD, Postgres. If it has a proper name and it is a thing you use, it is a tool.
+    methodology  a named practice, framework, standard or process. Lean, Agile, ANSI Z535, structured authoring, a template system they built and work inside.
+    skill        a capability with no proper name attached. Restructuring technical content for consumers, qualifying suppliers, de-escalating a client call.
+    experience   a specific piece of work at a specific place. The manual rewrite at Dual, the floor rebuild at Apex.
+    achievement  an outcome with a result attached, usually a number. Support calls from 12% to under 3%.
+    credential   a certification, licence or qualification they hold.
+    relationship a named client, partner, employer or account they worked with.
+    industry     a sector they have worked in.
+
+  When a single answer contains a tool AND what they did with it, those are two facts, not one. Record the tool as a tool and the work as an experience.
+
+- content: a structured, factual, self-contained statement written in third person without pronouns. Use plain English descriptions of what the candidate actually said and did. Do not use field-standard terminology, technical labels, or vocabulary from your training that the candidate did not use themselves. If the candidate described "using one model to check another," write that — do not write "LLM-as-judge." The content must reflect the candidate's knowledge and language, not the model's. Example: "Managed GSA Schedule 70 contracts for federal IT procurement"
+- raw_phrasing: the candidate's own words describing this, verbatim or near verbatim, pulled directly from their answer. Take the sentence they actually spoke, not a tidied version of it. This is the field their own voice is reconstructed from later, so a cleaned-up paraphrase is worse than a rough quote.
+- confidence: "explicit" if the candidate directly stated the fact, "inferred" if you interpreted it from context, implication, or indirect reference
+- id: the id shown in the EXISTING KNOWLEDGE BASE for the item being matched or conflicted. Copy it exactly. Never invent an id.
+- improved_content: a wording-only rewrite of the existing content statement, or null. Apply the same vocabulary rule as content.
+- conflict_reason: one short sentence naming exactly what differs
+
+Do not extract plans, intentions, or future goals. Only extract things the candidate has actually done, built, used, or experienced. If the candidate says they plan to, are going to, hope to, or haven't done something yet, do not extract it.
+
+OUTPUT SHAPE
+Return exactly this JSON object:
+
+{
+  "new": [ { "knowledge_type": "...", "content": "...", "raw_phrasing": "...", "confidence": "..." } ],
+  "matches": [ { "id": "...", "raw_phrasing": "...", "confidence": "...", "improved_content": null } ],
+  "conflicts": [ { "id": "...", "knowledge_type": "...", "content": "...", "raw_phrasing": "...", "confidence": "...", "conflict_reason": "..." } ]
+}
+
+All three keys must be present. Use an empty array for any category with no items.
+
+Return ONLY the JSON object. No preamble, no markdown code fences, no explanation.`
+
 const VALID_TYPES = ['skill', 'experience', 'achievement', 'relationship', 'credential', 'tool', 'industry', 'methodology']
+
+// ---------------------------------------------------------------------------
+// WHICH PRACTICE ANSWERS CARRY CAREER DATA
+//
+// content is the dimension that measures substance; structure measures how it
+// was delivered. A well-organised answer about nothing has a high structure
+// score and nothing to extract, so the floor is on content alone.
+//
+// 60 keeps roughly two thirds of scored answers on the current data. Below it
+// are the fumbles and the answers that never land on a specific: the ones the
+// instructions above would return an empty array for anyway, at the cost of a
+// model call each.
+//
+// The closer is a conversation prompt rather than a graded answer - the same
+// reason complete-session keeps it out of its averages - so it never qualifies
+// however it scored.
+// ---------------------------------------------------------------------------
+const INTERVIEW_MIN_CONTENT_SCORE = 60
+
+function interviewAnswerQualifies(question) {
+  if (!question) return false
+  if (question.evaluation_status !== 'scored') return false
+  if (question.question_source === 'closer') return false
+  if (!String(question.user_answer_text || '').trim()) return false
+  return Number.isFinite(question.score_content) && question.score_content >= INTERVIEW_MIN_CONTENT_SCORE
+}
+
+// The answers as the model reads them. The question is labelled as context and
+// the answer as the source, because the instructions turn on that distinction.
+function buildInterviewBlock(answers) {
+  return answers
+    .map((a, index) => {
+      const score = Number.isFinite(a?.score_content) ? ` (content score ${a.score_content})` : ''
+      return `--- ANSWER ${index + 1}${score} ---
+QUESTION ASKED (context only, never a source):
+${a?.question_text || '(not recorded)'}
+
+THE CANDIDATE'S ANSWER (the only thing to extract from):
+${a?.user_answer_text || ''}`
+    })
+    .join('\n\n')
+}
 
 // Lowercase, strip everything but alphanumerics and spaces, collapse runs of
 // spaces, trim. Matches the unique index on (user_id, content_key).
@@ -394,7 +508,7 @@ export async function POST(request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { action, resumeId, transcript, resumeData, jobTitle, jobCompany, missingKeywords, ids } = await request.json()
+    const { action, resumeId, transcript, resumeData, jobTitle, jobCompany, missingKeywords, ids, answers } = await request.json()
 
     if (action === 'match') {
       // Own try/catch so an unexpected failure returns the match-shaped payload
@@ -408,16 +522,38 @@ export async function POST(request) {
     }
 
     const isResumeMode = action === 'extract_resume'
+    const isInterviewMode = action === 'extract_interview'
 
-    if (action !== 'extract' && !isResumeMode) {
+    if (action !== 'extract' && !isResumeMode && !isInterviewMode) {
       console.error('[career-knowledge] Unknown action:', action)
       return NextResponse.json(noop)
     }
 
-    // Resume mode has no transcript by definition: the resume is the source. Every
-    // other mode needs one, and without it there is nothing to read.
-    const transcriptText = isResumeMode ? '' : normalizeTranscript(transcript)
-    if (!isResumeMode && !transcriptText.trim()) {
+    // Where the row will say it came from. One place, because it is written at
+    // two sites below and a disagreement between them would be invisible.
+    const sourceType = isResumeMode
+      ? 'uploaded_resume'
+      : (isInterviewMode ? 'interview_practice' : 'conversation')
+
+    // The caller sends every answer it has; the floor is applied here so the
+    // rule lives beside the instructions that assume it, rather than in each
+    // caller that might forget it.
+    const qualifyingAnswers = isInterviewMode
+      ? (Array.isArray(answers) ? answers.filter(interviewAnswerQualifies) : [])
+      : []
+
+    if (isInterviewMode && qualifyingAnswers.length === 0) {
+      // Not an error. A session where nothing cleared the bar is an ordinary
+      // outcome, and the floor exists precisely to spend no model call on it.
+      console.log('[career-knowledge] No practice answers cleared the content floor, nothing to extract')
+      return NextResponse.json(noop)
+    }
+
+    // Resume mode has no transcript by definition: the resume is the source.
+    // Interview mode has answers instead. Coaching needs a transcript, and
+    // without one there is nothing to read.
+    const transcriptText = (isResumeMode || isInterviewMode) ? '' : normalizeTranscript(transcript)
+    if (!isResumeMode && !isInterviewMode && !transcriptText.trim()) {
       console.error('[career-knowledge] No transcript provided, nothing to extract')
       return NextResponse.json(noop)
     }
@@ -459,13 +595,25 @@ export async function POST(request) {
             // Two cache breakpoints: the instructions never change, and the
             // knowledge base only changes when rows are added, so a session
             // that adds nothing new replays both prefixes from cache.
-            { type: 'text', text: isResumeMode ? RESUME_EXTRACTION_INSTRUCTIONS : EXTRACTION_INSTRUCTIONS, cache_control: { type: 'ephemeral' } },
+            {
+              type: 'text',
+              text: isResumeMode
+                ? RESUME_EXTRACTION_INSTRUCTIONS
+                : (isInterviewMode ? INTERVIEW_EXTRACTION_INSTRUCTIONS : EXTRACTION_INSTRUCTIONS),
+              cache_control: { type: 'ephemeral' }
+            },
             { type: 'text', text: buildKnowledgeBaseBlock(knowledgeBase), cache_control: { type: 'ephemeral' } },
             {
               type: 'text',
               text: isResumeMode
                 ? `RESUME DATA (extract from this):
 ${JSON.stringify(resumeData ?? null)}
+
+Return the JSON object now.`
+                : isInterviewMode
+                ? `INTERVIEW PRACTICE ANSWERS (extract from the answers only):
+
+${buildInterviewBlock(qualifyingAnswers)}
 
 Return the JSON object now.`
                 : `RESUME DATA ALREADY ON FILE (do not extract anything already represented here):
@@ -573,7 +721,7 @@ Return the JSON object now.`
     if (items.length > 0) {
       const rows = items.map(i => ({
         user_id: user.id,
-        source_type: isResumeMode ? 'uploaded_resume' : 'conversation',
+        source_type: sourceType,
         resume_id: resumeId || null,
         knowledge_type: i.knowledge_type,
         content: i.content,
@@ -717,7 +865,7 @@ Return the JSON object now.`
       const row = {
         user_id: user.id,
         resume_id: resumeId || null,
-        source_type: isResumeMode ? 'uploaded_resume' : 'conversation',
+        source_type: sourceType,
         knowledge_type: entry.item.knowledge_type,
         content: entry.item.content,
         content_key: entry.item.content_key,

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { waitUntil } from '@vercel/functions';
 import { apiError } from '@/lib/apiError';
 
 // ============================================================================
@@ -121,7 +122,9 @@ export async function POST(request) {
     // ---- QUESTIONS ----
     const { data: questions, error: questionsError } = await supabase
       .from('interview_questions')
-      .select('score_structure, score_content, score_delivery, evaluation_status, question_source')
+      // question_text and user_answer_text are for the knowledge extraction at
+      // the end. They are not read by any of the scoring below.
+      .select('question_text, user_answer_text, score_structure, score_content, score_delivery, evaluation_status, question_source')
       .eq('session_id', session_id)
       .eq('user_id', userId);
 
@@ -161,6 +164,17 @@ export async function POST(request) {
 
     const questionsFailed = allQuestions.filter(q => q.evaluation_status === 'failed').length;
 
+    // What the knowledge extraction is offered. Only the fields it reads, so a
+    // session's answers are not carried around whole, and only the scored ones,
+    // because an unscored row has no content score to judge against.
+    const scoredAnswers = scorable.map(q => ({
+      question_text: q.question_text,
+      user_answer_text: q.user_answer_text,
+      score_content: q.score_content,
+      evaluation_status: q.evaluation_status,
+      question_source: q.question_source
+    }));
+
     // ---- SCORES ----
     const avgScoreStructure = average(structureScores);
     const avgScoreContent = average(contentScores);
@@ -180,7 +194,10 @@ export async function POST(request) {
     // ---- JOB CARD (read before write, for the high-water comparisons) ----
     const { data: jobCard, error: jobCardError } = await supabase
       .from('applications')
-      .select('id, interview_level, interview_readiness_score, interview_sessions_count')
+      // title and company are for the knowledge extraction below, which records
+      // which job the practice was for. Two more columns on a query already
+      // being made, rather than a second round trip for them.
+      .select('id, title, company, interview_level, interview_readiness_score, interview_sessions_count')
       .eq('id', session.job_card_id)
       .eq('user_id', userId)
       .maybeSingle();
@@ -256,6 +273,44 @@ export async function POST(request) {
       console.error('Complete session update error:', sessionUpdateError);
       return Response.json({ error: 'SESSION_COMPLETION_FAILED' }, { status: 500 });
     }
+
+    // ---- BACKGROUND: career knowledge extraction ----
+    //
+    // A practice answer is the candidate talking about their real work, which
+    // is the same raw material coaching mines, arriving through a different
+    // door. It goes to the same extractor, which dedupes it against everything
+    // already known and increments a mention rather than storing it twice.
+    //
+    // The same shape coach-finish uses: after the writes have succeeded, inside
+    // waitUntil, never awaited. The session is already finished and already
+    // saved by this point, so nothing here can cost the candidate their
+    // practice.
+    //
+    // Deliberately silent to the user. The response has been sent by the time
+    // this runs, so there is nothing left to tell them through - and an error
+    // over a finished interview would read as though the scores themselves had
+    // gone wrong, which is the same reason the coaching notes fail quietly.
+    // Failures are logged and end there.
+    waitUntil(
+      fetch(new URL('/api/career-knowledge', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader
+        },
+        body: JSON.stringify({
+          action: 'extract_interview',
+          // Every scored answer, with the scores. Which of them carry career
+          // data is decided by the extractor, so the floor is defined once
+          // beside the instructions that assume it.
+          answers: scoredAnswers,
+          jobTitle: jobCard.title || null,
+          jobCompany: jobCard.company || null
+        })
+      }).catch(e =>
+        console.error('[career-knowledge] Interview extraction failed (non-fatal):', e)
+      )
+    );
 
     // ---- RETURN ----
     return Response.json({
