@@ -200,26 +200,37 @@ Wrong: "set up nesting software that addressed the sheet metal waste problem" - 
 Right: "the shop was throwing away 60 percent of its sheet metal when he set up the nesting software" - the figure, the action, no ending.
 
 WHAT TO DO WITH THE SENTENCES ABOUT THEMSELVES
-Referees write things like "I would work with him again" and "I did not see him handle a crisis". Those are about ${refereeName}, and this text carries ${refereeName}'s name underneath it already. Turn such a sentence into what it says about ${candidateFirst}, or leave it out. Never name ${refereeName} and never replace "I" with ${refereeName} or with any description of them. The result must not contain the word "${refereeName}" or any part of it.
+Referees write things like "I would work with him again" and "I did not see him handle a crisis". Those are about ${refereeName}, and this text carries ${refereeName}'s name underneath it already. Turn such a sentence into what it says about the candidate, or leave it out. Never name ${refereeName} and never replace "I" with ${refereeName} or with any description of them. The result must not contain the word "${refereeName}" or any part of it.
 
-The word "I" must not survive anywhere in your answer, including in the middle of a sentence. "I would work with him again" does not become "he is someone I would work with again", which is the same first-person sentence with a clause in front of it. It becomes a statement about ${candidateFirst} or it is dropped.
+The word "I" must not survive anywhere in your answer, including in the middle of a sentence. "I would work with him again" does not become "he is someone I would work with again", which is the same first-person sentence with a clause in front of it. It becomes a statement about the candidate or it is dropped.
 
 WHO THE SENTENCES ARE ABOUT
-${candidateName}, always. This becomes a quotation printed on ${candidateName}'s profile with "${refereeName}" already shown underneath it as the person who said it, so naming ${refereeName} in the text itself makes it read as a third party describing the wrong person. Never write "${refereeName}" and never write "they" meaning ${refereeName}. "Worked with him for three years" becomes a statement about ${candidateName}, not about ${refereeName}.
+The candidate, always. This becomes a quotation printed on their profile with "${refereeName}" already shown underneath it as the person who said it, so naming ${refereeName} in the text itself makes it read as a third party describing the wrong person. Never write "${refereeName}" and never write "they" meaning ${refereeName}. "Worked with him for three years" becomes a statement about the candidate, not about ${refereeName}.
 
 WHAT TO CALL THEM
-"${candidateFirst}". A quotation from a colleague says the name a colleague would say, and the profile it sits on already carries the full name at the top of the page. Use "${candidateFirst}" once where the sentence needs a name and a pronoun after that. Do not write "${candidateName}" at all, and do not repeat "${candidateFirst}" in every sentence.
+The name ${refereeName} uses, whenever they use one name consistently and it is plausibly his. Colleagues call people different things, and which name somebody reaches for is part of how they talk about them. "Jim" all the way through stays "Jim". "Jamie" all the way through stays "Jamie". Neither gets standardised to "${candidateFirst}", because which one he prefers is not yours to decide.
+
+Fall back to "${candidateFirst}" only where there is no such name:
+- They never named him.
+- More than one name is used for the person being described. Do not settle on whichever came first and quietly drop the rest: if he is "Jim" in one sentence and "Rob", "Jimmy" or "Dave" in another, the naming is unreliable and "${candidateFirst}" is the only safe name to print.
+- What they used is not a name at all, such as "Pickleball".
+- The name is unrelated to his own and reads as a mistake rather than a preference.
+- The name they use for him is also ${refereeName}'s own, which a reader cannot tell apart from the signature under the quotation.
+
+Whichever name you land on, write that name and nothing more. Never a surname, and never a first and last name together. The only exception is a surname ${refereeName} wrote themselves in a sentence that genuinely needs it, which is rare. The page already prints his full name above the quotation.
+
+Use the name once, where a sentence needs one, then pronouns. Do not repeat it in every sentence.
 
 RULES
 - Two or three sentences. No more.
-- Third person, about ${candidateFirst}. Never "I", never "${refereeName}", never address the reader.
+- Third person, about the candidate, under the name chosen in WHAT TO CALL THEM. Never "I", never "${refereeName}", never address the reader.
 - Never invent a fact, a number, a role, a company or a period of time. If they were vague, stay vague.
 - Never add a person, a group, a relationship, a quality or an outcome they did not state.
 - Never say a figure was reduced, cut or improved unless they said what it became.
 - Do not add praise they did not give. If they were measured, stay measured.
 - Sound like them. Warm and casual stays warm and casual, formal stays formal.
 - No em dashes. Use a comma or a full stop.
-- Do not open with "${candidateFirst} is".
+- Do not open with the name followed by "is", whichever name you settled on.
 - No quotation marks around the result.
 
 WHAT THEY WROTE
@@ -228,13 +239,15 @@ ${raw}
 CHECK YOUR ANSWER BEFORE YOU GIVE IT
 Read what you have written back against what they wrote above, one claim at a time. For every person, group, relationship, quality, fact, figure and outcome in your version, find the specific phrase in their text that it came from. Anything you cannot trace to a phrase they actually wrote comes out, even where it is plausible, flattering and almost certainly true. Correct it, then answer with the corrected version.
 
-Trace the words themselves and not the impression they leave. These five get through most often, so check each one by name:
+Trace the words themselves and not the impression they leave. These are the ones that get through most often, so check each by name:
 
 1. A word swapped for a nearby one. It is a different claim. "never late" is about timekeeping and does not become "never missed a shift", which is about attendance. "helped with" does not become "led". "asked his advice" does not become "relied on him". Where their word was narrower, keep their word.
 2. A result they did not give. Never say an action reduced, cut, fixed, improved or solved anything unless they said it did. "set up the nesting software" is an action. "set up nesting software that reduced waste" is an action and a result, and the result is yours, not theirs. Say what they did and stop. Where a figure was attached to it, the figure stays: take out the result, never the number. A comparison they set up is not an outcome either: "fixed the press when the vendor said two weeks" says what the vendor said and says nothing about how long it actually took, so "fixed it in days" is a duration nobody gave.
 3. A qualifier moved. "generally reliable" and "mostly hit his deadlines" are two claims qualified two ways. They do not become "generally hit his deadlines". Each qualifier stays on the claim they put it on.
-4. A sentence whose subject is the writer, including one with the subject dropped. "Ran the night shift with him" is their sentence with the "I" left off, and so is "Worked alongside him for years". Make it a statement about ${candidateFirst} or leave it out.
+4. A sentence whose subject is the writer, including one with the subject dropped. "Ran the night shift with him" is their sentence with the "I" left off, and so is "Worked alongside him for years". Make it a statement about the candidate or leave it out.
 5. A person, group or audience they did not name, or a second quality standing next to the one they gave.
+6. The name. If they used one plausible name for him all the way through, your version uses that exact name: swapping their "Jim" or "Jamie" for "${candidateFirst}" rewrites what this person calls him, and it is the one substitution that looks like tidying and is not. If instead more than one name appeared, or what they used was not plausibly his name, your version says "${candidateFirst}". Either way it is one first name on its own, with no surname attached to it.
+7. The figure. If they gave a number, it is in your version. Dropping it to avoid claiming a result is the wrong repair: keep the number and drop the result.
 
 Return ONLY the polished testimonial. No preamble, no explanation.`
 }
