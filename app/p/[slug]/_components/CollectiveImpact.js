@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
-import { SlotGuide, GhostText, useEditSlot } from './EditAffordance'
+import { GhostText, useEditSlot } from './EditAffordance'
 import TestimonialManager from './TestimonialManager'
-import { useCanShowEmpty } from '../_lib/editContext'
+import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
 
 // ============================================================================
 // COLLECTIVE IMPACT + FIRSTHAND ACCOUNTS
@@ -45,6 +45,11 @@ export default function CollectiveImpact({
   // The management list opens on request, from the heading control or from the
   // invitation in the first quote position.
   const [manageOpen, setManageOpen] = useState(false)
+
+  // Every testimonial row the owner has, at any status, which is what there is
+  // to manage. The published ones are a subset and are what the column shows.
+  const edit = useProfileEdit()
+  const recordCount = Array.isArray(edit?.testimonials) ? edit.testimonials.length : 0
 
   const bodyRefs = useRef(new Map())
   const scrollRef = useRef(null)
@@ -199,19 +204,25 @@ export default function CollectiveImpact({
 
               <ol className="hp-themes" aria-hidden="true">
                 {['01', '02', '03'].map(n => (
-                  <li className="hp-theme" key={n}>
+                  <li className="hp-theme hp-ed-ghost-theme" key={n}>
                     <span className="hp-theme-index">{n}</span>
-                    <span className="hp-theme-statement"><GhostText lines={2} /></span>
+                    <span className="hp-theme-statement">
+                      <span className="hp-ed-ghost-text">
+                        <span className="hp-ed-ghost-line" style={{ width: '100%' }} />
+                        <span className="hp-ed-ghost-line" style={{ width: '72%' }} />
+                        <span className="hp-ed-ghost-line" style={{ width: '48%' }} />
+                      </span>
+                    </span>
                   </li>
                 ))}
               </ol>
             </div>
           )}
 
-          {/* The public Firsthand Accounts column, with the invitation in the
-              first quote position. Same class, so it takes the same half of the
-              same two column flow at the same width; same head, same scroll
-              region, same quote rows. The rows below carry no words, because
+          {/* The public Firsthand Accounts column. Same class, so it takes the
+              same half of the same two column flow at the same width; same
+              head, same rows. The explanation and the two actions sit under the
+              heading at full width, and the rows below carry no words, because
               inventing a testimonial would be inventing a person. */}
           {!hasQuotes && canShowEmpty && (
             <div className="hp-impact-voices hp-ed-voices-empty">
@@ -220,24 +231,34 @@ export default function CollectiveImpact({
                 <p className="hp-voices-note">In the words of people who saw the work up close.</p>
               </div>
 
+              <p className="hp-ed-voices-say">
+                Testimonials show what your work looks like from the other side.
+                Ask people who have seen it up close. They write a few sentences,
+                review the polished version, and you decide whether it appears here.
+              </p>
+
+              <div className="hp-ed-voices-actions">
+                <button
+                  type="button"
+                  className="hp-ed-action"
+                  data-primary="true"
+                  onClick={() => setManageOpen(true)}
+                >
+                  Request a new testimonial
+                </button>
+                <button
+                  type="button"
+                  className="hp-ed-action"
+                  disabled={recordCount === 0}
+                  onClick={() => setManageOpen(true)}
+                >
+                  Manage existing testimonials
+                </button>
+              </div>
+
               <div className="hp-voices-scroll hp-ed-ghost-voices">
                 <ul className="hp-voices">
-                  <li className="hp-voice-item">
-                    <div className="hp-voice-quote hp-ed-guide-quote">
-                      <SlotGuide
-                        heading="Ask the people who were there."
-                        action="Request a testimonial"
-                        feature="testimonial"
-                        onAction={() => setManageOpen(true)}
-                      >
-                        Ask people who have seen your work up close. They write a
-                        few sentences, review the polished version, and you decide
-                        whether it appears here.
-                      </SlotGuide>
-                    </div>
-                  </li>
-
-                  {[0, 1].map(i => (
+                  {[0, 1, 2].map(i => (
                     <li className="hp-voice-item" key={i} aria-hidden="true">
                       <blockquote className="hp-voice-quote" data-expanded="false">
                         <GhostText lines={3} />

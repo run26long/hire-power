@@ -129,6 +129,48 @@ export default function CareerProfileEditorPage() {
     return () => { cancelled = true }
   }, [load])
 
+  // ---- HOW TALL THE CHROME ACTUALLY IS ----
+  //
+  // The toolbar's height was a constant in the stylesheet, and the Profile's
+  // sticky lens bar was told to take hold below nav plus that constant. The
+  // constant was right at desktop and wrong the moment the toolbar wrapped to
+  // two rows on a phone: 56 assumed, 105 real, so the lens bar stuck 49px too
+  // high and sat behind the toolbar.
+  //
+  // So it is measured instead of assumed. The two values are written onto the
+  // shell as custom properties, and every offset that depends on them - the
+  // lens bar's sticky top, scroll-padding, section scroll-margin - is already
+  // expressed in terms of them, so they all follow from one measurement.
+  useEffect(() => {
+    if (loadState !== 'ready') return
+    const shell = document.querySelector('.hp-ed')
+    if (!shell) return
+
+    const apply = () => {
+      const bar = document.querySelector('.hp-ed-bar')
+      const lens = document.querySelector('.hp-profile .hp-bar')
+      // Deliberately not --ed-bar-h. That one is the bar's own min-height, so
+      // writing a measurement back into it resizes the element being observed
+      // and the observer never settles.
+      if (bar) shell.style.setProperty('--ed-bar-real', `${Math.round(bar.getBoundingClientRect().height)}px`)
+      if (lens) {
+        const h = Math.round(lens.getBoundingClientRect().height)
+        // The bar collapses to a sentinel before it is stuck; only a real
+        // height is worth recording.
+        if (h > 8) shell.style.setProperty('--ed-lens-h', `${h}px`)
+      }
+    }
+
+    apply()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(apply)
+    const bar = document.querySelector('.hp-ed-bar')
+    const lens = document.querySelector('.hp-profile .hp-bar')
+    if (bar) observer.observe(bar)
+    if (lens) observer.observe(lens)
+    return () => observer.disconnect()
+  }, [loadState, mode])
+
   const profile = manage?.profile || null
   const published = profile?.is_published === true
   const publicPath = profile?.slug ? `/p/${profile.slug}` : null
@@ -697,7 +739,7 @@ export default function CareerProfileEditorPage() {
           where the owner is in it. Short on purpose: the profile itself starts
           on the same screen. */}
       {editing ? (
-        <EditorGuide doc={document_} onPreview={() => setMode(MODES.PREVIEW)} />
+        <EditorGuide />
       ) : null}
 
       <ProfileDocument

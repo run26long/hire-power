@@ -235,7 +235,8 @@ export default function ProfileSpread({
                   onAction={() => imowEditor?.open()}
                 >
                   Add the part only you can tell: what drives you, how you work,
-                  and what you want people to understand about your career.
+                  and what you want people to understand about your career. Write
+                  it in your own words or upload a video.
                 </SlotGuide>
               </div>
               <span className="hp-voice-mark hp-voice-mark-close" aria-hidden="true">&#8221;</span>

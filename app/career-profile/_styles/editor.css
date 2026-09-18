@@ -64,7 +64,10 @@
    sticky lens bar takes hold below the nav and this toolbar together instead
    of underneath them. */
 .hp-ed .hp-profile {
-  --profile-chrome-top: calc(var(--ed-nav-h) + var(--ed-bar-h));
+  /* The measured toolbar height where it is known, the declared one until
+     the first measurement lands. The toolbar wraps to two rows on a phone, so
+     a constant here put the lens bar behind it. */
+  --profile-chrome-top: calc(var(--ed-nav-h) + var(--ed-bar-real, var(--ed-bar-h)));
 }
 
 /* Three sticky layers stand above the document here where the public page has
@@ -74,12 +77,12 @@
    `scroll-padding-top` is what the browser applies to every scroll it performs
    itself, so anchors, focus moves and scrollIntoView all land in one place. */
 html:has(.hp-ed) {
-  scroll-padding-top: calc(var(--ed-nav-h, 49px) + var(--ed-bar-h, 56px) + var(--ed-lens-h, 52px) + 16px);
+  scroll-padding-top: calc(var(--ed-nav-h, 49px) + var(--ed-bar-real, var(--ed-bar-h, 56px)) + var(--ed-lens-h, 52px) + 16px);
 }
 
 .hp-ed .hp-profile .hp-section,
 .hp-ed .hp-profile section {
-  scroll-margin-top: calc(var(--ed-nav-h) + var(--ed-bar-h) + var(--ed-lens-h, 52px) + 16px);
+  scroll-margin-top: calc(var(--ed-nav-h) + var(--ed-bar-real, var(--ed-bar-h)) + var(--ed-lens-h, 52px) + 16px);
 }
 
 
@@ -414,7 +417,21 @@ html:has(.hp-ed) {
   background: var(--ed-surface);
   border-left: 1px solid var(--ed-line);
   box-shadow: -12px 0 40px rgb(9 6 15 / 0.24);
+  /* 10. The same UI sans the toolbar uses, set once on the drawer so the
+     title, labels, values, placeholders, helper copy, buttons and the
+     template, colour mode and accent values all inherit it. Without it the
+     drawer picked up whatever the document happened to cascade, which is
+     where the stray serif and italic came from. */
+  font-family: var(--profile-font-ui);
 }
+
+/* Inputs and buttons do not inherit the page font on their own. */
+.hp-ed-drawer input,
+.hp-ed-drawer select,
+.hp-ed-drawer textarea,
+.hp-ed-drawer button { font-family: inherit; }
+
+.hp-ed-drawer ::placeholder { font-family: inherit; font-style: normal; }
 
 .hp-ed-drawer-head {
   display: flex;
@@ -458,7 +475,7 @@ html:has(.hp-ed) {
   overflow-wrap: anywhere;
 }
 
-.hp-ed-value[data-empty="true"] { color: #a5a5b4; font-style: italic; }
+.hp-ed-value[data-empty="true"] { color: #a5a5b4; }
 
 .hp-ed-swatch {
   display: inline-block;
@@ -724,6 +741,14 @@ html:has(.hp-ed) {
    layout. */
 @media (min-width: 768px) {
   .hp-act1-identity.hp-ed-slot::after { right: 24.4%; }
+}
+
+/* 3. The hero pencil belongs to the left editable field rather than to the
+   hero. `.hp-ed-slot` already makes that field the containing block, so this
+   only insets it, and it cannot reach the statistics half. */
+.hp-profile .hp-act1-identity > .hp-ed-pencil {
+  top: 18px;
+  right: 18px;
 }
 
 /* The rejected empty-state components from the previous pass stood here: a
@@ -2199,6 +2224,8 @@ html:has(.hp-ed) {
   color: var(--profile-accent);
 }
 
+/* The left column takes the width it is given: no measure cap on either the
+   headline or the body, so the copy fills the 2fr track. */
 .hp-ed-guide-headline {
   margin: 0 0 12px;
   font-family: var(--profile-font-display);
@@ -2207,42 +2234,45 @@ html:has(.hp-ed) {
   line-height: 1.16;
   letter-spacing: -0.024em;
   color: var(--profile-text);
-  max-width: 24ch;
 }
 
 .hp-ed-guide-lede {
-  margin: 0 0 18px;
+  margin: 0;
   font-size: 14.5px;
   line-height: 1.6;
   color: var(--profile-body);
-  max-width: 62ch;
 }
 
+/* The three steps as one card on the Profile's own raised surface. */
 .hp-ed-guide-steps {
   display: grid;
-  gap: 14px;
+  gap: 0;
   margin: 0;
-  padding: 0;
+  padding: 24px;
   list-style: none;
-  align-content: center;
+  align-content: start;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+  border-radius: 14px;
+  background: var(--profile-surface-2);
 }
 
 .hp-ed-guide-step {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  column-gap: 12px;
-  row-gap: 2px;
-  padding-bottom: 12px;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 16px;
+  row-gap: 4px;
+  padding-block: 18px;
   border-bottom: 1px solid var(--profile-line);
 }
 
+.hp-ed-guide-step:first-child { padding-top: 0; }
 .hp-ed-guide-step:last-child { border-bottom: 0; padding-bottom: 0; }
 
 .hp-ed-guide-step-index {
   grid-row: span 2;
-  font-size: 12px;
+  font-size: 40px;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1;
   color: rgb(var(--profile-accent-rgb) / 0.7);
   font-variant-numeric: tabular-nums;
 }
@@ -2263,9 +2293,132 @@ html:has(.hp-ed) {
 
 @media (min-width: 900px) {
   .hp-ed-guide-inner {
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-    gap: 56px;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    gap: clamp(32px, 4vw, 64px);
     align-items: center;
   }
+
+  .hp-ed-guide-steps { padding: 32px; }
+  .hp-ed-guide-step-index { font-size: 56px; }
 }
 
+
+
+/* ===========================================================================
+   GUIDED SLOT INTERNALS
+   The slots themselves are the public ones. Everything here is what is drawn
+   inside them.
+   =========================================================================== */
+
+/* 5. The Collective Impact ghost rows, spaced evenly so the panel reads as
+   filled rather than unfinished. */
+.hp-profile .hp-ed-ghost-theme { padding-block: 16px; }
+.hp-profile .hp-ed-ghost-theme .hp-ed-ghost-line { margin: 0.4em 0; }
+
+/* 6. The Firsthand Accounts explanation and its two actions, both at the
+   column's full width. No testimonial measure cap on the explanation. */
+.hp-profile .hp-ed-voices-say {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--profile-body);
+  max-width: none;
+}
+
+.hp-profile .hp-ed-voices-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+/* 7. Tile 01 uses the square confidently: number, heading, body, and the
+   action pushed to the bottom. */
+.hp-profile .hp-ed-guide-mat .hp-pf-mat-frame { padding: 0; }
+
+.hp-profile .hp-ed-guide-mat .hp-ed-guide {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 32px;
+  gap: 0;
+}
+
+.hp-profile .hp-ed-guide-mat .hp-ed-guide-index {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 18px;
+}
+
+.hp-profile .hp-ed-guide-mat .hp-ed-guide-head {
+  font-size: 30px;
+  line-height: 1.12;
+  margin-bottom: 12px;
+}
+
+.hp-profile .hp-ed-guide-mat .hp-ed-guide-body {
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: none;
+}
+
+.hp-profile .hp-ed-guide-mat .hp-ed-guide .hp-ed-action,
+.hp-profile .hp-ed-guide-mat .hp-ed-guide-locked { margin-top: auto; }
+
+/* 7. Tiles 02 to 06: the same numeral treatment as 01, at the same inset. */
+.hp-profile .hp-ed-ghost-mat .hp-pf-mat-frame { padding: 0; }
+
+.hp-profile .hp-ed-ghost-mat .hp-ed-slot-ghost { padding: 32px; }
+
+.hp-profile .hp-ed-ghost-mat .hp-ed-guide-index {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* 8. Evidence slot 01, one step larger than a portfolio tile because the
+   featured slot is larger. */
+.hp-profile .hp-ed-guide-tile .hp-ed-guide {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 36px;
+  gap: 0;
+}
+
+.hp-profile .hp-ed-guide-tile .hp-ed-guide-index {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+
+.hp-profile .hp-ed-guide-tile .hp-ed-guide-head {
+  font-size: 34px;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+
+.hp-profile .hp-ed-guide-tile .hp-ed-guide-body {
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: none;
+}
+
+.hp-profile .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
+.hp-profile .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: auto; }
+
+/* 8. Evidence slots 02 to 05 keep their own padding and take the numeral at
+   the smaller supporting size. */
+.hp-profile .hp-ed-ghost-tile .hp-ed-slot-ghost { padding: 0; }
+
+.hp-profile .hp-ed-ghost-tile .hp-ed-guide-index {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}

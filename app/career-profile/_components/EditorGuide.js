@@ -17,11 +17,6 @@
 // paragraph and a button, which read as onboarding furniture rather than as
 // part of the Career Profile.
 //
-// WHAT "CONTINUE BUILDING" DOES
-// Goes to the first section that is genuinely incomplete for this profile,
-// worked out from the payload rather than hard coded, so the owner is taken to
-// something that actually needs them. With nothing left it stops being a
-// builder's action and becomes the one thing left worth doing: preview it.
 // ============================================================================
 
 const STEPS = [
@@ -30,39 +25,7 @@ const STEPS = [
   ['03', 'Share it when ready', 'Preview everything first. Nothing is public until you publish.']
 ]
 
-// In the order the page presents them, so "the first incomplete section" means
-// the first one the owner would come to scrolling down.
-export function firstIncomplete(doc) {
-  if (!doc) return null
-
-  const lens = (doc.lenses || [])[0] || null
-  const evidence = Array.isArray(doc.evidence) ? doc.evidence : []
-  const testimonials = (Array.isArray(doc.testimonials) ? doc.testimonials : [])
-    .filter(t => String(t?.polished_text || '').trim())
-
-  const visual = evidence.filter(e => (e?.media_class === 'image' || e?.media_class === 'video') && e?.has_file)
-  const documents = evidence.filter(e => !((e?.media_class === 'image' || e?.media_class === 'video') && e?.has_file))
-
-  if (!lens?.proof_points?.length) return { selector: '.hp-act1', label: 'proof points' }
-  if (!lens?.bio) return { selector: '.hp-about-section', label: 'the short version' }
-  if (!doc?.profile?.imow_text && doc?.profile?.imow_has_video !== true) {
-    return { selector: '.hp-about-section', label: 'your own words' }
-  }
-  if (testimonials.length === 0) return { selector: '.hp-impact', label: 'testimonials' }
-  if (visual.length === 0) return { selector: '.hp-pf-section', label: 'your portfolio' }
-  if (documents.length === 0) return { selector: '.hp-ev-section', label: 'evidence' }
-  return null
-}
-
-export default function EditorGuide({ doc, onPreview }) {
-  const next = firstIncomplete(doc)
-
-  const go = () => {
-    if (!next) { onPreview?.(); return }
-    const el = document.querySelector(next.selector)
-    if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
-  }
-
+export default function EditorGuide() {
   return (
     <section className="hp-ed-guide-intro" aria-label="About your Career Profile">
       <div className="hp-ed-guide-inner">
@@ -77,9 +40,6 @@ export default function EditorGuide({ doc, onPreview }) {
             foundation is here. We&rsquo;ll guide you through the few pieces only
             you and the people who worked with you can add.
           </p>
-          <button type="button" className="hp-ed-action" data-primary="true" onClick={go}>
-            {next ? 'Continue building' : 'Preview your profile'}
-          </button>
         </div>
 
         <ol className="hp-ed-guide-steps">
