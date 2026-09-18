@@ -154,6 +154,7 @@ export default function ProfileSpread({
             <span className="hp-eyebrow">About</span>
             <EditEmpty
               field="bio"
+              shape="lines"
               title="Write the bio for this direction"
               note="A few sentences on what this direction is and why it is yours. Coach can draft one from your sessions."
             />
@@ -209,6 +210,7 @@ export default function ProfileSpread({
             <span className="hp-eyebrow">In my own words</span>
             <EditEmpty
               field="imow"
+              shape="frame"
               title="Say it in your own words"
               note="Write it, or record a short video. This is the one part of the page in your voice rather than a summary of you."
             />

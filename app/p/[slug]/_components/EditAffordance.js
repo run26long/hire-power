@@ -26,6 +26,13 @@ const PencilIcon = () => (
   </svg>
 )
 
+const LockIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="4" y="10" width="16" height="10" rx="2" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </svg>
+)
+
 const GripIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <circle cx="9" cy="6" r="1.6" /><circle cx="15" cy="6" r="1.6" />
@@ -152,10 +159,39 @@ export function EditEmpty({ title, note, field, feature, shape }) {
   const canEdit = useCanEdit()
   if (!edit?.editing) return null
 
-  // An empty section on a plan that cannot fill it. The prompt stands in for
-  // the invitation rather than sitting under a dead one: "Add evidence of your
-  // work" that does nothing when pressed is worse than not offering.
-  if (!canEdit) return <UpgradeNote feature={feature || field} />
+  // An empty section on a plan that cannot fill it.
+  //
+  // It used to be the upgrade line on its own, which told a free account what
+  // it could not have and nothing about what the section is. Now it is the
+  // same shape the paid ghost draws, quieter, with the one line underneath:
+  // the owner can see what the section would become, which is the argument for
+  // the plan and is more honest than a sentence about money.
+  //
+  // No pencil and no add control, because neither would do anything. Nothing
+  // stored is exposed either: this branch draws outlines, never content.
+  if (!canEdit) {
+    return (
+      <div className="hp-ed-locked">
+        {shape ? (
+          <span className="hp-ed-empty-shape" data-shape={shape} aria-hidden="true">
+            <span className="hp-ed-empty-cell" />
+            <span className="hp-ed-empty-cell" />
+            <span className="hp-ed-empty-cell" />
+          </span>
+        ) : null}
+        {/* The sentence is the action. Every line in the copy map already
+            opens with "Upgrade to Vault to", so a separate link reading
+            "Upgrade to Vault" beside it said the same words twice in the same
+            breath. One sentence, one destination, no stutter. */}
+        <p className="hp-ed-locked-note">
+          <span className="hp-ed-locked-mark"><LockIcon /></span>
+          <a className="hp-ed-locked-link" href={UPGRADE_HREF}>
+            {upgradeCopyFor(feature || field)}
+          </a>
+        </p>
+      </div>
+    )
+  }
 
   // An empty section whose field has an editor is the way into it. One that
   // does not is still drawn, so the absence is visible, and still says so.

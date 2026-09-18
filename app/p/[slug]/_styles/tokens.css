@@ -24,6 +24,14 @@
    not once the overlay grew a grid of mats that read these tokens for their
    surface and their edges.
 
+   .hp-ed is the owner's editor shell at /career-profile, which wraps the
+   document rather than sitting inside it. It carried a light palette of its
+   own - white bar, white panels, grey rules - so the page opened with an admin
+   strip laid over an editorial dark document, which is two visual systems
+   meeting on one screen and the seam showing. It reads these tokens now, so
+   there is one palette and the chrome is made of the same material as the page
+   it edits. Custom properties only: nothing here gives .hp-ed a layout.
+
    .hp-tm is the referee page at /testimonial/[token]. It is a different route
    with no profile on it, and it is named here for the same reason: somebody
    arriving from a dark testimonial email should land somewhere that looks like
@@ -32,6 +40,7 @@
    =========================================================================== */
 
 .hp-profile,
+.hp-ed,
 .hp-ev-backdrop,
 .hp-rt-backdrop,
 .hp-pf-box,

@@ -923,7 +923,8 @@
    two supporting figures stagger across. Not one centred stack, and not two
    equal columns. */
 @media (min-width: 768px) {
-  .hp-profile { --profile-pad: 48px; }
+  .hp-profile,
+  .hp-ed { --profile-pad: 48px; }   /* the editor shell shares the document spine */
 
   .hp-act1-stage {
     display: grid;
@@ -980,7 +981,8 @@
    genuinely cross. Supporting figures staggered below. Invitation anchoring the
    lower portion of the same stage. */
 @media (min-width: 1200px) {
-  .hp-profile { --profile-pad: 48px; }
+  .hp-profile,
+  .hp-ed { --profile-pad: 48px; }   /* the editor shell shares the document spine */
 
   .hp-act1 { min-height: var(--profile-act-height); }
 
@@ -1189,7 +1191,8 @@
 }
 
 @media (min-width: 1351px) {
-  .hp-profile { --profile-pad: 64px; }
+  .hp-profile,
+  .hp-ed { --profile-pad: 64px; }   /* the editor shell shares the document spine */
 }
 
 /* Wide enough for the bridging figure to move in off the right and take the
@@ -1234,7 +1237,8 @@
    clearance: the app's persistent help and feedback controls float over the
    lower corners and must not land on the invitation or the active direction. */
 @media (max-width: 767px) {
-  .hp-profile { --profile-pad: 22px; }
+  .hp-profile,
+  .hp-ed { --profile-pad: 22px; }   /* the editor shell shares the document spine */
 
   /* The tail gives back exactly what the proof composition took, so the act
      does not get taller and the handoff below it does not grow. */

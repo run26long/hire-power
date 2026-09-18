@@ -172,6 +172,7 @@ export default function CollectiveImpact({
               </div>
               <EditEmpty
                 feature="testimonial"
+                shape="quote"
                 title="Request a testimonial"
                 note="Ask someone you worked with. They write it in their own words, and nothing appears here until you publish it."
               />

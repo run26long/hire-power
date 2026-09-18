@@ -155,8 +155,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         {items.length === 0 ? (
           <EditEmpty
             feature="evidence"
+            shape="evidence"
             title="Add evidence of your work"
-            note="Upload a document, image, video or audio file, or paste a link. Each piece can appear under any of your directions."
+            note="Certificates, reports, recognition and links. One leads the section and the rest sit beside it, under whichever directions you choose."
           />
         ) : (
         <Reveal enabled={animate}>

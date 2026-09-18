@@ -23,20 +23,40 @@
    underneath the chrome that launched it would be a trap.
    =========================================================================== */
 
+/* Every one of these is the Profile's own token under an editor name. The
+   indirection is kept because the chrome and the document are still different
+   things with different jobs, and a rule here should say which it is talking
+   about - but there is one palette behind both now, so a change to the
+   Profile's ground reaches the bar above it.
+
+   They used to be a light set: white surfaces, #1a1a1a ink, grey rules. The
+   result was an admin strip sitting on an editorial dark page, two systems
+   meeting with the seam showing, and it is most of why this page read as a
+   dashboard with a profile pasted underneath. */
 .hp-ed {
-  --ed-ink: #1a1a1a;
-  --ed-muted: #6b6b76;
-  --ed-line: #e5e5ec;
-  --ed-accent: #7c3aed;
-  --ed-accent-soft: #f5f3ff;
-  --ed-surface: #ffffff;
+  --ed-ink: var(--profile-text);
+  --ed-body: var(--profile-body);
+  --ed-muted: var(--profile-meta);
+  --ed-line: var(--profile-line);
+  --ed-line-strong: var(--profile-line-strong);
+  --ed-accent: var(--profile-accent);
+  --ed-accent-soft: rgb(var(--profile-accent-rgb) / 0.13);
+  --ed-accent-edge: rgb(var(--profile-accent-rgb) / 0.34);
+  --ed-surface: var(--profile-surface);
+  --ed-raised: var(--profile-surface-2);
 
   /* MainNav's own height. The document is told to hold its sticky bar below
      the nav and this bar together. */
   --ed-nav-h: 49px;
-  --ed-bar-h: 52px;
+  --ed-bar-h: 56px;
 
-  background: #0d0916;
+  /* The document's own measure, so the chrome above it and the content below
+     share one spine instead of the bar running edge to edge over a page that
+     does not. */
+  --ed-frame: var(--profile-frame);
+  --ed-pad: var(--profile-pad);
+
+  background: var(--profile-ground);
   min-height: 100vh;
 }
 
@@ -49,30 +69,63 @@
 }
 
 
-/* ---- The mode bar -------------------------------------------------------
-   Sticky directly beneath MainNav. Light, because it belongs to the product
-   rather than to the document, and the seam between the two is the point:
-   everything above this line is chrome, everything below it is the page a
-   recruiter will see. */
+/* ---- The owner toolbar --------------------------------------------------
+   One strip, made of the same material as the page under it, holding three
+   groups: where you are (mode and status), where it lives (the address), and
+   what you can do with it (copy, open, settings).
+
+   It reads as one control strip rather than seven unrelated controls because
+   the three groups are actual groups: the mode and the status sit together on
+   the left because the status is a fact about the mode you are previewing, the
+   address is quiet and central because it is a reference rather than an
+   action, and the three actions are together on the right at one height.
+
+   Aligned to the document's own measure, so the bar and the profile share a
+   left edge instead of the bar running the full width over a page that does
+   not. */
 
 .hp-ed-bar {
   position: sticky;
   top: var(--ed-nav-h);
   z-index: 45;
-  height: var(--ed-bar-h);
+  min-height: var(--ed-bar-h);
+  background: rgb(var(--profile-void-rgb) / 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ed-line);
+}
+
+/* The bar is two rows tall once it wraps, so more of the document passes
+   behind it and a translucency that read as depth at one row reads as noise
+   at two. */
+@media (max-width: 760px) {
+  .hp-ed-bar { background: rgb(var(--profile-void-rgb) / 0.96); }
+}
+
+.hp-ed-bar-inner {
+  max-width: var(--ed-frame);
+  margin-inline: auto;
+  padding-inline: var(--ed-pad);
+  min-height: var(--ed-bar-h);
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 16px;
-  background: var(--ed-surface);
-  border-bottom: 1px solid var(--ed-line);
+  gap: 16px;
+}
+
+/* Where you are. */
+.hp-ed-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .hp-ed-modes {
   display: inline-flex;
-  padding: 2px;
-  border-radius: 8px;
-  background: #f1f1f5;
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--ed-line);
+  background: rgb(0 0 0 / 0.28);
   flex-shrink: 0;
 }
 
@@ -84,7 +137,7 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--ed-muted);
-  padding: 5px 14px;
+  padding: 6px 15px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
@@ -92,36 +145,52 @@
 
 .hp-ed-mode:hover { color: var(--ed-ink); }
 
-.hp-ed-mode[aria-pressed="true"] {
-  background: var(--ed-surface);
-  color: var(--ed-accent);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+.hp-ed-mode:focus-visible {
+  outline: 2px solid var(--ed-accent);
+  outline-offset: 1px;
 }
 
+.hp-ed-mode[aria-pressed="true"] {
+  background: rgb(var(--profile-accent-rgb) / 0.2);
+  color: var(--profile-text);
+  box-shadow: inset 0 0 0 1px rgb(var(--profile-accent-rgb) / 0.4);
+}
+
+/* Status, not decoration. It says what the public address currently serves,
+   so it sits with the mode control rather than floating among the actions. */
 .hp-ed-state {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ed-body);
   flex-shrink: 0;
 }
 
-.hp-ed-state[data-published="true"] { background: #ecfdf5; color: #047857; }
-.hp-ed-state[data-published="false"] { background: #fffbeb; color: #b45309; }
-
 .hp-ed-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: currentColor;
+  flex: none;
+}
+
+/* The one place restrained green is already meaningful on this page: live. */
+.hp-ed-state[data-published="true"] .hp-ed-dot {
+  background: var(--profile-status);
+  box-shadow: 0 0 0 3px rgb(var(--profile-status-rgb) / 0.16);
+}
+.hp-ed-state[data-published="false"] .hp-ed-dot {
+  background: rgb(var(--profile-accent-rgb) / 0.75);
+  box-shadow: 0 0 0 3px rgb(var(--profile-accent-rgb) / 0.14);
 }
 
 /* Takes the slack so the actions sit hard right. */
 .hp-ed-bar-gap { flex: 1 1 auto; min-width: 0; }
 
+/* The address, quiet and secondary: a reference, not an action. */
 .hp-ed-link {
   font-size: 12px;
   color: var(--ed-muted);
@@ -129,46 +198,86 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  min-width: 0;
+  max-width: 420px;
+  direction: rtl;          /* keeps the slug when the origin is what overflows */
+  text-align: right;
+}
+
+.hp-ed-does {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .hp-ed-action {
   appearance: none;
   font: inherit;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 7px;
-  border: 1px solid var(--ed-line);
-  background: var(--ed-surface);
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 8px;
+  border: 1px solid var(--ed-line-strong);
+  background: rgb(255 255 255 / 0.04);
   color: var(--ed-ink);
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-shrink: 0;
-  transition: border-color 140ms ease, background 140ms ease;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
 
-.hp-ed-action:hover { border-color: #c4b5fd; background: var(--ed-accent-soft); }
+.hp-ed-action:hover {
+  border-color: var(--ed-accent-edge);
+  background: var(--ed-accent-soft);
+  color: var(--profile-text);
+}
 
+.hp-ed-action:focus-visible {
+  outline: 2px solid var(--ed-accent);
+  outline-offset: 2px;
+}
+
+/* Settings keeps the strongest treatment, which is the hierarchy this page
+   already had. It is the only control here that opens something. */
 .hp-ed-action[data-primary="true"] {
-  background: var(--ed-accent);
-  border-color: var(--ed-accent);
+  background: linear-gradient(135deg, var(--profile-action) 0%, var(--profile-action-deep) 100%);
+  border-color: transparent;
   color: #fff;
 }
 
-.hp-ed-action[data-primary="true"]:hover { background: #6d28d9; border-color: #6d28d9; }
-
-@media (max-width: 860px) {
-  .hp-ed-link { display: none; }
+.hp-ed-action[data-primary="true"]:hover {
+  background: linear-gradient(135deg, var(--profile-action-lift) 0%, var(--profile-action) 100%);
+  border-color: transparent;
+  color: #fff;
 }
 
-@media (max-width: 560px) {
-  .hp-ed-bar { gap: 8px; padding: 0 10px; }
-  .hp-ed-state { display: none; }
+@media (max-width: 1100px) {
+  .hp-ed-link { max-width: 260px; }
+}
+
+/* The bar wraps into two deliberate rows rather than clipping its actions:
+   where you are on the first, what you can do on the second. */
+@media (max-width: 760px) {
+  .hp-ed-bar-inner {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-block: 10px;
+  }
+  .hp-ed-bar-gap { display: none; }
+  .hp-ed-where { flex: 1 1 100%; justify-content: space-between; }
+  .hp-ed-does { flex: 1 1 100%; justify-content: flex-start; }
+  /* The raw address is the one thing here that cannot be made to fit without
+     either scrolling the page sideways or shrinking to nothing. Copy link and
+     Open both remain, and both do more than reading it would. */
+  .hp-ed-link { display: none; }
+  .hp-ed-action { flex: 0 1 auto; }
 }
 
 
@@ -1757,3 +1866,330 @@
    no placement lands wherever the auto flow puts it. Both columns are named
    the same way the content in them is. */
 .hp-spread > .hp-ed-upsell { max-width: 560px; }
+
+
+/* ===========================================================================
+   THE EDITING LAYER
+
+   Everything below exists only while .hp-profile carries data-mode="edit".
+   Preview drops that attribute, so every rule here stops matching at once and
+   the document returns to the page a visitor gets. The affordances are not
+   dimmed or hidden in preview, they are not selected in the first place.
+   =========================================================================== */
+
+/* ---- The section control group ------------------------------------------
+   A section's controls belong beside that section's heading: not in a rail
+   down the side, and not stranded under the content they act on.
+
+   What makes this possible without rewriting anything is that the add control
+   and the add panel are different elements. AddEvidence renders
+   `.hp-ed-add-row`, holding a single trigger, while it is closed, and
+   `.hp-ed-add`, the whole form, once it is open. So the closed trigger can be
+   placed in the heading row and the open panel can span the section beneath
+   it, with no state passed down: CSS is placing two different children, not
+   one child twice.
+
+   The content keeps the full public measure either way. The control track is
+   `auto`, which is nothing at all when there is no control in it. */
+.hp-profile[data-mode="edit"] .hp-practice-part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 24px;
+  align-items: start;
+}
+
+/* Everything spans, then the two that belong in the heading row are pulled
+   back into their tracks. Sparse auto-placement cannot bite here because
+   every child is placed explicitly. */
+.hp-profile[data-mode="edit"] .hp-practice-part > * { grid-column: 1 / -1; }
+
+.hp-profile[data-mode="edit"] .hp-practice-part > .hp-pf-intro,
+.hp-profile[data-mode="edit"] .hp-practice-part > .hp-ev-intro {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.hp-profile[data-mode="edit"] .hp-practice-part > .hp-ed-add-row {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+  margin: 0;
+}
+
+/* Under the heading on a phone, where a second track would leave the heading
+   about forty characters wide. Still above the content, so the tie between a
+   control and the section it acts on survives the stack. */
+@media (max-width: 767px) {
+  /* Flex rather than grid here, so `order` can lift the control to just under
+     the heading. In DOM order it comes after the content, and a second grid
+     row cannot pull it above the content without fighting auto-placement for
+     every other child. The control belongs with the heading it acts on, not
+     at the bottom of the section. */
+  .hp-profile[data-mode="edit"] .hp-practice-part {
+    display: flex;
+    flex-direction: column;
+  }
+  .hp-profile[data-mode="edit"] .hp-practice-part > * { order: 2; }
+  .hp-profile[data-mode="edit"] .hp-practice-part > .hp-pf-intro,
+  .hp-profile[data-mode="edit"] .hp-practice-part > .hp-ev-intro { order: 0; }
+  .hp-profile[data-mode="edit"] .hp-practice-part > .hp-ed-add-row {
+    order: 1;
+    align-self: flex-start;
+    margin: 0 0 20px;
+  }
+}
+
+/* ---- The editor panel ---------------------------------------------------
+   An open add form, or a management list. These were centred at 680 and 860
+   pixels inside sections more than twelve hundred wide, so they floated in
+   the middle of the page sharing an edge with nothing: the "form detached
+   from the section it affects" this pass is for.
+
+   They now take the section's own width and sit on a raised surface with a
+   lavender edge, so a panel reads as the editing layer opening over the
+   document rather than as a card that arrived from somewhere else. The copy
+   inside keeps a readable measure of its own; it is the panel that is wide,
+   not the sentences. */
+.hp-profile .hp-ed-add,
+.hp-profile .hp-ed-manager {
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
+  border-radius: 14px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
+  background:
+    linear-gradient(
+      165deg,
+      rgb(var(--profile-accent-rgb) / 0.075) 0%,
+      rgb(var(--profile-accent-rgb) / 0.022) 55%,
+      rgb(var(--profile-accent-rgb) / 0.008) 100%
+    ),
+    var(--profile-surface);
+  box-shadow: 0 18px 44px rgb(0 0 0 / 0.34);
+}
+
+.hp-profile .hp-ed-add { margin-top: 22px; padding: 22px; }
+.hp-profile .hp-ed-manager { margin-top: 26px; padding: 22px; }
+
+/* The panel is wide; its prose is not. */
+.hp-profile .hp-ed-add-title,
+.hp-profile .hp-ed-add-note { max-width: 68ch; }
+
+@media (min-width: 768px) {
+  .hp-profile .hp-ed-add { padding: 26px 28px; }
+  .hp-profile .hp-ed-manager { padding: 26px 28px; }
+
+  /* The two ways in sit side by side once there is room, rather than stacking
+     down the middle of a very wide panel. */
+  .hp-profile .hp-ed-add-choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    max-width: 720px;
+  }
+}
+
+/* ---- Editorial ghosts ---------------------------------------------------
+   A section with nothing in it still has a shape, and the ghost is that shape
+   drawn quietly rather than a dashed rectangle with a sentence in the middle.
+   The Portfolio's approved three-up mats are the model; these are the same
+   idea for sections whose shape is editorial rather than gridded.
+
+   A ghost that carries a shape stops being a box and becomes a spread: the
+   shape on one side at a size worth looking at, the invitation beside it,
+   both left aligned on the section's own left edge. The heavy dashed outline
+   goes with it. A dashed rectangle the width of the page with three small
+   squares and a centred sentence floating inside it is the "large empty area
+   with a tiny message in the middle" that this treatment exists to avoid, and
+   it is what the first version of this looked like. */
+.hp-profile .hp-ed-empty:has(.hp-ed-empty-shape) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 30px;
+  text-align: left;
+  padding: 26px 26px 26px 0;
+  border: 0;
+  border-top: 1px solid rgb(var(--profile-accent-rgb) / 0.16);
+  border-bottom: 1px solid rgb(var(--profile-accent-rgb) / 0.16);
+  border-radius: 0;
+  background: none;
+}
+
+.hp-profile .hp-ed-empty:has(.hp-ed-empty-shape):hover {
+  border-top-color: rgb(var(--profile-accent-rgb) / 0.3);
+  border-bottom-color: rgb(var(--profile-accent-rgb) / 0.3);
+  background: rgb(var(--profile-accent-rgb) / 0.022);
+}
+
+.hp-profile .hp-ed-empty:has(.hp-ed-empty-shape) .hp-ed-empty-shape {
+  grid-row: span 2;
+  margin-bottom: 0;
+  width: 270px;
+}
+
+.hp-profile .hp-ed-empty:has(.hp-ed-empty-shape) .hp-ed-empty-title { align-self: end; }
+.hp-profile .hp-ed-empty:has(.hp-ed-empty-shape) .hp-ed-empty-note { align-self: start; }
+
+@media (max-width: 767px) {
+  /* One column on a phone: the shape above the words, both still left
+     aligned, because a 270px shape and a sentence will not share 346px. */
+  .hp-profile .hp-ed-empty:has(.hp-ed-empty-shape) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 22px 0;
+  }
+  .hp-profile .hp-ed-empty:has(.hp-ed-empty-shape) .hp-ed-empty-shape {
+    grid-row: auto;
+    width: 100%;
+    max-width: 240px;
+  }
+}
+
+/* Evidence: a lead card with the smaller ones beside it, which is what the
+   section actually builds. */
+.hp-profile .hp-ed-empty-shape[data-shape="evidence"] {
+  grid-template-columns: 1.5fr 1fr 1fr;
+  max-width: 520px;
+}
+.hp-profile .hp-ed-empty-shape[data-shape="evidence"] .hp-ed-empty-cell { aspect-ratio: 4 / 3; }
+.hp-profile .hp-ed-empty-shape[data-shape="evidence"] .hp-ed-empty-cell:first-child {
+  aspect-ratio: 3 / 4;
+  grid-row: span 2;
+}
+
+/* Testimonials: a quotation and its attribution, as rules. No invented words.
+   A ghost holding a plausible testimonial would be a lie about a profile that
+   has none, and one its owner would have to hunt down to delete. */
+.hp-profile .hp-ed-empty-shape[data-shape="quote"] {
+  display: block;
+  max-width: 440px;
+  border-left: 2px solid rgb(var(--profile-accent-rgb) / 0.4);
+  padding-left: 16px;
+}
+.hp-profile .hp-ed-empty-shape[data-shape="quote"] .hp-ed-empty-cell {
+  aspect-ratio: auto;
+  height: 9px;
+  border: 0;
+  border-radius: 3px;
+  background: rgb(var(--profile-accent-rgb) / 0.16);
+  margin-bottom: 9px;
+}
+.hp-profile .hp-ed-empty-shape[data-shape="quote"] .hp-ed-empty-cell:nth-child(2) { width: 86%; }
+.hp-profile .hp-ed-empty-shape[data-shape="quote"] .hp-ed-empty-cell:nth-child(3) {
+  width: 40%;
+  height: 7px;
+  margin: 15px 0 0;
+  background: rgb(var(--profile-accent-rgb) / 0.26);
+}
+
+/* Editorial text: rules at the measure the prose will take, and nothing that
+   looks like a card. A bio is paragraphs, so its ghost is paragraphs. */
+.hp-profile .hp-ed-empty-shape[data-shape="lines"] {
+  display: block;
+  max-width: 420px;
+}
+.hp-profile .hp-ed-empty-shape[data-shape="lines"] .hp-ed-empty-cell {
+  aspect-ratio: auto;
+  height: 8px;
+  border: 0;
+  border-radius: 3px;
+  background: rgb(var(--profile-accent-rgb) / 0.15);
+  margin-bottom: 10px;
+}
+.hp-profile .hp-ed-empty-shape[data-shape="lines"] .hp-ed-empty-cell:nth-child(2) { width: 94%; }
+.hp-profile .hp-ed-empty-shape[data-shape="lines"] .hp-ed-empty-cell:nth-child(3) { width: 61%; margin-bottom: 0; }
+
+/* A statement to camera has a fixed public footprint, so its ghost is that
+   footprint rather than a row of squares. */
+.hp-profile .hp-ed-empty-shape[data-shape="frame"] {
+  display: block;
+  max-width: 400px;
+}
+.hp-profile .hp-ed-empty-shape[data-shape="frame"] .hp-ed-empty-cell:not(:first-child) { display: none; }
+.hp-profile .hp-ed-empty-shape[data-shape="frame"] .hp-ed-empty-cell { aspect-ratio: 16 / 9; }
+
+/* ---- The locked state ---------------------------------------------------
+   A free account sees the shape of what the plan would add, said once per
+   section and quietly. The note is a line under the shape rather than a
+   banner over it, so several locked sections down one page read as one
+   consistent quiet treatment instead of repeated advertising. */
+/* The same spread the editable ghost uses, so a page mixing the two reads as
+   one treatment at two strengths rather than as two different components. */
+.hp-profile .hp-ed-locked {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 30px;
+  padding: 26px 26px 26px 0;
+  border: 0;
+  border-top: 1px solid rgb(var(--profile-accent-rgb) / 0.12);
+  border-bottom: 1px solid rgb(var(--profile-accent-rgb) / 0.12);
+  border-radius: 0;
+  background: none;
+  text-align: left;
+}
+
+.hp-profile .hp-ed-locked .hp-ed-empty-shape {
+  opacity: 0.3;
+  margin-bottom: 0;
+  width: 270px;
+}
+
+.hp-profile .hp-ed-locked-note {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--profile-meta);
+}
+
+@media (max-width: 767px) {
+  .hp-profile .hp-ed-locked {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 22px 0;
+  }
+  .hp-profile .hp-ed-locked .hp-ed-empty-shape { width: 100%; max-width: 240px; }
+}
+
+.hp-profile .hp-ed-locked-mark {
+  display: inline-flex;
+  color: rgb(var(--profile-accent-rgb) / 0.8);
+}
+
+.hp-profile .hp-ed-locked-mark svg { width: 13px; height: 13px; }
+
+.hp-profile .hp-ed-locked-link {
+  color: var(--profile-accent);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid rgb(var(--profile-accent-rgb) / 0.35);
+}
+
+.hp-profile .hp-ed-locked-link:hover,
+.hp-profile .hp-ed-locked-link:focus-visible {
+  color: var(--profile-text);
+  border-bottom-color: currentColor;
+}
+
+/* ---- The introduction, on the document's spine -------------------------- */
+.hp-ed-intro-inner {
+  max-width: var(--ed-frame);
+  margin-inline: auto;
+  padding-inline: var(--ed-pad);
+  padding-right: calc(var(--ed-pad) + 34px);
+}
+
+.hp-ed-intro-lead,
+.hp-ed-intro-body { max-width: 72ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-profile .hp-ed-add,
+  .hp-profile .hp-ed-manager,
+  .hp-ed-action,
+  .hp-ed-mode { transition: none; }
+}

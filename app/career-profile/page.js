@@ -631,55 +631,66 @@ export default function CareerProfileEditorPage() {
     <div className="hp-ed">
       <MainNav currentPage="career-profile" userProfile={manage?.userProfile || null} />
 
+      {/* Three groups, and they are actual groups: where you are, where it
+          lives, and what you can do with it. The status sits with the mode
+          control because it is a fact about what the address currently serves,
+          not a badge; the address is quiet and central because it is a
+          reference rather than an action. */}
       <div className="hp-ed-bar">
-        <div className="hp-ed-modes" role="group" aria-label="View mode">
-          <button
-            type="button"
-            className="hp-ed-mode"
-            aria-pressed={editing}
-            onClick={() => setMode(MODES.EDIT)}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="hp-ed-mode"
-            aria-pressed={!editing}
-            onClick={() => setMode(MODES.PREVIEW)}
-          >
-            Preview
-          </button>
+        <div className="hp-ed-bar-inner">
+          <div className="hp-ed-where">
+            <div className="hp-ed-modes" role="group" aria-label="View mode">
+              <button
+                type="button"
+                className="hp-ed-mode"
+                aria-pressed={editing}
+                onClick={() => setMode(MODES.EDIT)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="hp-ed-mode"
+                aria-pressed={!editing}
+                onClick={() => setMode(MODES.PREVIEW)}
+              >
+                Preview
+              </button>
+            </div>
+
+            <span className="hp-ed-state" data-published={String(published)}>
+              <span className="hp-ed-dot" aria-hidden="true" />
+              {published ? 'Published' : 'Draft'}
+            </span>
+          </div>
+
+          <span className="hp-ed-bar-gap" />
+
+          {publicUrl ? <span className="hp-ed-link">{publicUrl}</span> : null}
+
+          <div className="hp-ed-does">
+            {publicUrl ? (
+              <button type="button" className="hp-ed-action" onClick={copyLink}>
+                {copied ? 'Copied' : 'Copy link'}
+              </button>
+            ) : null}
+
+            {publicPath ? (
+              <a className="hp-ed-action" href={publicPath} target="_blank" rel="noopener noreferrer">
+                Open
+              </a>
+            ) : null}
+
+            <button
+              type="button"
+              className="hp-ed-action"
+              data-primary="true"
+              onClick={() => setDrawerOpen(true)}
+            >
+              Settings
+            </button>
+          </div>
         </div>
-
-        <span className="hp-ed-state" data-published={String(published)}>
-          <span className="hp-ed-dot" aria-hidden="true" />
-          {published ? 'Published' : 'Draft'}
-        </span>
-
-        <span className="hp-ed-bar-gap" />
-
-        {publicUrl ? <span className="hp-ed-link">{publicUrl}</span> : null}
-
-        {publicUrl ? (
-          <button type="button" className="hp-ed-action" onClick={copyLink}>
-            {copied ? 'Copied' : 'Copy link'}
-          </button>
-        ) : null}
-
-        {publicPath ? (
-          <a className="hp-ed-action" href={publicPath} target="_blank" rel="noopener noreferrer">
-            Open
-          </a>
-        ) : null}
-
-        <button
-          type="button"
-          className="hp-ed-action"
-          data-primary="true"
-          onClick={() => setDrawerOpen(true)}
-        >
-          Settings
-        </button>
       </div>
 
       {/* Inside the document's ground, above the profile itself, and only
