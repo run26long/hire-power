@@ -390,16 +390,24 @@ export async function GET(req) {
       console.error('Naming lens lookup failed (non-fatal):', namingLensesError);
     }
 
-    // Directions Coach found in the background, whether or not the user acted on them.
+    // Every direction this account has, whether Coach found it in the background
+    // or the user's own coaching established it.
     // Service role, so this is not subject to RLS on profile_lenses.
-    // Both statuses: a suggestion is a core the user could build, an active lens is
-    // one they already did, and the hub selector needs to show either as a tile.
+    //
+    // Both statuses: a suggestion is a core the user could build, an active lens
+    // is one they already did, and the hub selector needs to show either.
+    //
+    // No source filter. This used to take only 'coaching_extraction', which
+    // silently dropped every direction carrying source 'user' - the primary one
+    // among them. An account with three directions, two of them its own, showed
+    // one tile and looked like an account with one. The page decides what each
+    // lens is by whether it has a core behind it, which is the question that
+    // actually distinguishes a tile you switch to from one you build.
     const { data: profileLenses, error: lensesError } = await supabase
       .from('profile_lenses')
-      .select('id, name, slug, evidence_summary, status, core_resume_id')
+      .select('id, name, slug, evidence_summary, status, source, core_resume_id')
       .eq('user_id', user.id)
       .in('status', ['suggested', 'active'])
-      .eq('source', 'coaching_extraction')
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
 

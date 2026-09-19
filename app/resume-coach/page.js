@@ -1624,10 +1624,28 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
   const profileLenses = data?.profileLenses || [];
   const hasLensCard = profileLenses.length > 0;
-  // A lens the user built is a core they can switch to. One they have not is still
-  // an offer. The card shows both, so the two are split here rather than in the JSX.
-  const builtLenses = profileLenses.filter(l => l.status === 'active' && l.core_resume_id);
-  const suggestedLenses = profileLenses.filter(l => l.status !== 'active');
+  // A lens with a core behind it is one to switch to. One without is still an
+  // offer. What splits them is the core, not the status: a direction can be
+  // 'suggested' and already have a resume built for it, and offering to build
+  // that one again is how the same core came to appear twice in this row.
+  //
+  // The opening core has its own tile above these, so a lens pointing at it is
+  // dropped rather than rendered a second time under the same name.
+  //
+  // A lens pointing at something the switcher cannot select - a job-specific
+  // resume, or a core still being coached - is dropped too. The tile would
+  // render, the click would find nothing, and the card would silently stay on
+  // whatever was already showing.
+  const switchableCoreIds = new Set([
+    ...(data?.coreResumes || []).map(c => c.id),
+    ...(data?.coreResume ? [data.coreResume.id] : [])
+  ]);
+  const builtLenses = profileLenses.filter(l =>
+    l.core_resume_id &&
+    l.core_resume_id !== data?.coreResume?.id &&
+    switchableCoreIds.has(l.core_resume_id)
+  );
+  const suggestedLenses = profileLenses.filter(l => l.status !== 'active' && !l.core_resume_id);
 
   // The row is three tiles wide and never scrolls, so the core on screen leaves two
   // slots. Cores the user has built claim them first because those already exist;
