@@ -495,8 +495,8 @@ const resumeCoachSidebar = (
               },
               { 
                 num: '2', 
-                title: 'Build Your Core Resume', 
-                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resume is your foundation for every application.' 
+                title: 'Build Your Core Resumes', 
+                desc: 'Review → Assess → Coach → Improve → Format → Save. Your core resumes are your foundation for every application.' 
               },
               { 
                 num: '3', 
@@ -506,14 +506,14 @@ const resumeCoachSidebar = (
               },
               { 
                 num: '4', 
-                title: 'Job-Specific Resume', 
+                title: 'Job-Specific Resumes', 
                 desc: 'Employers expect a tailored resume for every application. Hire Power lets you create one in minutes!',
                 tag: 'Pro only'
               },
               { 
                 num: '5', 
-                title: 'Cover Letter', 
-                desc: 'Written for this job, not every job.',
+                title: 'Cover Letters', 
+                desc: 'Written for each job, not every job.',
                 tag: 'Free: 3 letters ·  Pro: Unlimited letters'
               },
             ].map(({ num, title, desc, tag }) => (
