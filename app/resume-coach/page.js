@@ -599,7 +599,40 @@ export default function MyResumesPage() {
   // Which suggestion is asking to be confirmed. The question lives on the tile
   // rather than in a dialog, so removing one never takes over the page.
   const [confirmingLensId, setConfirmingLensId] = useState(null);
-  
+  // The archive of dismissed directions, closed. It used to be a row of chips
+  // under the card, permanently on screen for anybody who had ever turned a
+  // suggestion down - which put the discarded directions in front of the user
+  // as often as the live ones, and gave the least important thing on the card
+  // its widest element. Behind a control it is there when wanted and absent
+  // otherwise.
+  const [restoreMenuOpen, setRestoreMenuOpen] = useState(false);
+  const restoreMenuRef = useRef(null);
+
+  // Same dismissal the breadcrumb switcher uses: any click outside, or Escape.
+  // A menu left hanging open would float over the tiles while the user is
+  // working on them. Scoped to the trigger and its list together, so clicking
+  // the trigger again closes it through its own handler rather than being
+  // read as an outside click and closed twice.
+  useEffect(() => {
+    if (!restoreMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (restoreMenuRef.current && !restoreMenuRef.current.contains(event.target)) {
+        setRestoreMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setRestoreMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [restoreMenuOpen]);
+
  // Job-specific modal state
   const [showJobModal, setShowJobModal] = useState(false);
   const [jobModalSourceId, setJobModalSourceId] = useState(null);
@@ -1672,9 +1705,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // which is the one place it is offered back.
   const suggestedLenses = profileLenses.filter(l => l.status !== 'dismissed' && !l.core_resume_id);
 
-  // The ones they turned down. Offered back below the row rather than in it:
-  // these are not choices competing with the live tiles, they are things
-  // already declined once, kept because dismissing never deleted them.
+  // The ones they turned down, kept because dismissing never deleted them.
+  // Offered back from the menu in the card's top corner rather than from the
+  // row itself: these are not choices competing with the live tiles.
   const dismissedLenses = profileLenses.filter(l => l.status === 'dismissed');
 
   // Whether there is a tile row at all, which is a question about tiles and not
@@ -1682,7 +1715,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // same thing until dismissed ones started travelling in the payload: an
   // account whose only direction had been thrown away would have opened a
   // selector card holding nothing but the core it already had.
-  const hasLensCard = builtLenses.length > 0 || suggestedLenses.length > 0;
+  //
+  // Dismissed ones count now, and only because the way back moved. The archive
+  // used to be its own row under the card and rendered whether or not the card
+  // did; it is in the card's corner now, so an account that had dismissed
+  // everything would have had nowhere to restore from - the recovery would go
+  // missing in exactly the case it exists for.
+  const hasLensCard = builtLenses.length > 0 || suggestedLenses.length > 0 || dismissedLenses.length > 0;
 
   // The row is three tiles wide and never scrolls, so the core on screen leaves two
   // slots. Cores the user has built claim them first because those already exist;
@@ -1696,6 +1735,10 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // every lens core built from it, so all three lines are reachable: nothing left to
   // build, more than one core in hand, or suggestions still waiting.
   function lensCaptionFor({ builtCount, suggestionCount }) {
+    // One core and nothing suggested is a state the card only reaches now that
+    // dismissed directions open it, and "switch between" is the wrong thing to
+    // say about a single resume.
+    if (suggestionCount === 0 && builtCount === 1) return 'Restore a direction you set aside earlier.';
     if (suggestionCount === 0) return 'Switch between your Core Resumes.';
     if (builtCount > 1) return 'Switch between your Core Resumes, or build the next one.';
     return 'Coach identified multiple career directions. Create Core Resumes for any paths you want to pursue.';
@@ -2106,7 +2149,61 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                   {hasLensCard && (
                     <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:px-5 md:py-3 ${hasLensCard ? 'mt-2' : 'mt-4'}`}>
                      
-                      <p className="text-sm text-gray-500 mb-2">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
+                      {/* The caption and the way back, on one line. The menu is
+                          right-aligned in the card's top corner: it is the only
+                          thing here that is not about the directions in front of
+                          you, and the corner is where a card keeps what it
+                          offers rather than what it is showing. */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className="text-sm text-gray-500">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
+
+                        {/* Nothing dismissed, no control. An account that has
+                            never turned a direction down never learns it is
+                            here, which is the right amount of attention for an
+                            archive. */}
+                        {dismissedLenses.length > 0 && (
+                          <div className="relative flex-shrink-0" ref={restoreMenuRef}>
+                            <button
+                              type="button"
+                              onClick={() => setRestoreMenuOpen(open => !open)}
+                              aria-haspopup="true"
+                              aria-expanded={restoreMenuOpen}
+                              className="inline-flex items-center gap-1 text-xs md:text-[11px] font-semibold text-gray-500 hover:text-purple-600 transition-colors whitespace-nowrap"
+                            >
+                              Restore a suggestion
+                              <span
+                                aria-hidden="true"
+                                className={`text-sm leading-none transition-transform ${restoreMenuOpen ? 'rotate-180' : ''}`}
+                              >
+                                ▾
+                              </span>
+                            </button>
+
+                            {/* Hung from the right edge so it opens inward. On a
+                                narrow screen the trigger is already against the
+                                card's right margin, and a menu anchored left
+                                would run off the side of it; the width cap is
+                                the viewport less the page gutters, so a long
+                                direction name wraps the box rather than widening
+                                it past the screen. */}
+                            {restoreMenuOpen && (
+                              <div className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-md shadow-lg py-1">
+                                {dismissedLenses.map((lens) => (
+                                  <button
+                                    key={lens.id}
+                                    type="button"
+                                    onClick={() => { setRestoreMenuOpen(false); restoreLens(lens); }}
+                                    title={`Bring ${lens.name} back as a suggestion`}
+                                    className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-purple-600 truncate"
+                                  >
+                                    {lens.name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex flex-col md:flex-row gap-2">
 
                         {/* The core the route opens with. Selecting a tile swaps the
@@ -2295,43 +2392,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           );
                         })}
 
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ---- Previously suggested ----
-                      Directions Coach found and the user turned down. Its own
-                      quiet row under the card rather than a fourth tile inside
-                      it: these are not competing with the live ones, and a
-                      discarded direction sharing a box with current ones would
-                      read as another thing to do rather than as an archive.
-
-                      Only here when there is something in it, so an account
-                      that has never dismissed anything never learns the row
-                      exists. Restoring is ungated - it puts the offer back, and
-                      building the core behind it is what costs. */}
-                  {dismissedLenses.length > 0 && (
-                    <div className="mt-2 px-3 md:px-5 py-2.5 rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                      <p className="text-xs md:text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                        Previously suggested
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {dismissedLenses.map((lens) => (
-                          <div
-                            key={lens.id}
-                            className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white"
-                          >
-                            <span className="text-sm md:text-xs text-gray-500 truncate max-w-[180px]">{lens.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => restoreLens(lens)}
-                              title={`Bring ${lens.name} back as a suggestion`}
-                              className="text-xs md:text-[10px] font-semibold text-purple-600 hover:text-purple-800 transition-colors"
-                            >
-                              Restore
-                            </button>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   )}
