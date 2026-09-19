@@ -884,6 +884,14 @@ html:has(.hp-ed) {
   .hp-ed-pencil { opacity: 0.85; }
 }
 
+/* The first-visit tour spotlights this pencil, and a pencil at opacity 0 is a
+   hole cut around nothing. Held visible for exactly the step that points at
+   it: the page carries the running step id, so the rule stops applying the
+   moment the tour moves on or ends. */
+.hp-ed[data-tour-step="profile-about"] .hp-ed-pencil[data-tour="profile-about"] {
+  opacity: 1;
+}
+
 .hp-ed-pencil svg { width: 14px; height: 14px; }
 
 /* The dashed outline that says "this region is a thing you can edit". Drawn

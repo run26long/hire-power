@@ -11,6 +11,7 @@ import SuccessToast from '../components/SuccessToast'
 import ProfileDocument from '../p/[slug]/_components/ProfileDocument'
 import SettingsDrawer from './_components/SettingsDrawer'
 import EditorGuide from './_components/EditorGuide'
+import ProfileTour, { profileTourAlreadySeen } from './_components/ProfileTour'
 
 import './_styles/editor.css'
 
@@ -63,6 +64,17 @@ export default function CareerProfileEditorPage() {
   const [document_, setDocument] = useState(null)
   const [mode, setMode] = useState(MODES.EDIT)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  // First-visit tour. The step id is held here rather than inside the tour
+  // because one stop points at the About pencil, which is invisible until its
+  // slot is hovered - the page stamps the running step on its root and one CSS
+  // rule holds that pencil up for exactly as long as the tour is on it.
+  const [showTour, setShowTour] = useState(false)
+  const [tourStepId, setTourStepId] = useState(null)
+  const closeTour = useCallback(() => {
+    setShowTour(false)
+    setTourStepId(null)
+  }, [])
 
   // One notification channel for the whole page.
   //
@@ -133,6 +145,19 @@ export default function CareerProfileEditorPage() {
       )
       setDocument(doc)
       setLoadState('ready')
+
+      // Walk them through the workspace once. After the document, because
+      // every stop points at something the document renders and the filter
+      // that drops absent stops runs when the tour mounts.
+      //
+      // Desktop only, like the other two tours: the stops are placed for the
+      // wide layout, and below 768 the spread the tour walks along is stacked
+      // into one column.
+      if (window.innerWidth >= 768 && !profileTourAlreadySeen()) {
+        setTimeout(() => {
+          setShowTour(true)
+        }, 300) // 300ms delay
+      }
     } catch (err) {
       console.error('Career Profile editor load failed:', err)
       setLoadError(err.message || "We couldn't load your Career Profile.")
@@ -777,7 +802,7 @@ export default function CareerProfileEditorPage() {
   const editing = mode === MODES.EDIT
 
   return (
-    <div className="hp-ed">
+    <div className="hp-ed" data-tour-step={tourStepId || undefined}>
       <MainNav currentPage="career-profile" userProfile={manage?.userProfile || null} />
 
       {/* Three groups, and they are actual groups: where you are, where it
@@ -788,7 +813,7 @@ export default function CareerProfileEditorPage() {
       <div className="hp-ed-bar">
         <div className="hp-ed-bar-inner">
           <div className="hp-ed-where">
-            <div className="hp-ed-modes" role="group" aria-label="View mode">
+            <div className="hp-ed-modes" role="group" aria-label="View mode" data-tour="profile-mode">
               <button
                 type="button"
                 className="hp-ed-mode"
@@ -829,7 +854,7 @@ export default function CareerProfileEditorPage() {
             <span className="hp-ed-link-note">Publish to share</span>
           ) : null}
 
-          <div className="hp-ed-does">
+          <div className="hp-ed-does" data-tour="profile-settings">
             {published && publicUrl ? (
               <button type="button" className="hp-ed-action" onClick={copyLink}>
                 {copied ? 'Copied' : 'Copy link'}
@@ -924,6 +949,13 @@ export default function CareerProfileEditorPage() {
         lenses={manage?.lenses || []}
         onLensVisibility={setLensVisibility}
       />
+
+      {/* Inside .hp-ed, which is where the workspace's colour tokens live: the
+          card reads them through the DOM, so being fixed-position does not
+          matter but being a descendant does. */}
+      {showTour && (
+        <ProfileTour onStepChange={setTourStepId} onClose={closeTour} />
+      )}
 
       {/* Last in the tree and fixed to the viewport, so nothing above has to
           leave room for them and neither can push the document around. */}

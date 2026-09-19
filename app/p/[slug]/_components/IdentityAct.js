@@ -114,9 +114,13 @@ export default function IdentityAct({
               everything below it is what it changes. Choosing a direction and
               then meeting the identity written for it is the right order; the
               reverse asks the reader to re-read what they have just taken in. */}
-          <div className="hp-act1-invite">{directions}</div>
+          {/* data-tour marks two stops on the Career Profile's first-visit
+              tour. They are inert attributes: the tour component is imported
+              only by the management page, so nothing on the public page reads
+              them and nothing about it changes. */}
+          <div className="hp-act1-invite" data-tour="profile-directions">{directions}</div>
 
-          <div className={`hp-act1-identity${slot}`}>
+          <div className={`hp-act1-identity${slot}`} data-tour="profile-identity">
             <EditPencil field="headline" label="the headline for this direction" />
             <span className="hp-act1-eyebrow">Career Profile</span>
 

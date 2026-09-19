@@ -81,7 +81,11 @@ export function UpgradeNote({ feature }) {
 // rather than in place of the content. The rule below is right for an inline
 // editor and wrong for those: the pencil is what focus has to return to when
 // the dialog closes, and a control that has unmounted cannot be returned to.
-export function EditPencil({ field, label, persists = false }) {
+// `tourId` marks one pencil as a stop on the Career Profile's first-visit
+// tour. Nothing but the tour reads it, and the tour never mounts on the public
+// page or in Preview - as this component does not either, since it returns
+// null without an editing context. A pencil with no tourId is unchanged.
+export function EditPencil({ field, label, persists = false, tourId }) {
   const edit = useProfileEdit()
   const editor = useFieldEditor(field)
   const canEdit = useCanEdit()
@@ -117,6 +121,7 @@ export function EditPencil({ field, label, persists = false }) {
       type="button"
       className="hp-ed-pencil"
       data-live="true"
+      data-tour={tourId}
       onClick={editor.open}
       aria-label={`Edit ${label}`}
       title={`Edit ${label}`}

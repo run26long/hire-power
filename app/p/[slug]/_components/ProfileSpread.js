@@ -150,7 +150,7 @@ export default function ProfileSpread({
 
         {hasBio && !bioEditor?.isOpen && (
           <div className={`hp-refocus${slot}`} data-resolve="about">
-            <EditPencil field="bio" label="the bio for this direction" />
+            <EditPencil field="bio" label="the bio for this direction" tourId="profile-about" />
             <UpgradeNote feature="bio" />
             <Reveal enabled={animate}>
               <span className="hp-eyebrow">About</span>
