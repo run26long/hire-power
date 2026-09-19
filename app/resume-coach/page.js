@@ -2159,6 +2159,21 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           const isEditing = editingLensId === lens.id;
                           const failed = lensRenameError === lens.id;
                           const isConfirming = confirmingLensId === lens.id;
+                          // Whether this tile's two small controls have a route
+                          // that will take them. Both /profile-lenses/dismiss
+                          // and /profile-lenses/rename match on a suggestion
+                          // the coaching extraction wrote, and nothing else, so
+                          // a tile that is not one has an X and a pencil that
+                          // can only fail.
+                          //
+                          // Every tile in this row used to be a suggestion, and
+                          // the controls needed no test. They stopped being one
+                          // when the row started offering a core for any
+                          // direction that lacks one: a direction turned on
+                          // from the profile is active, has no resume yet, and
+                          // belongs here - it simply cannot be retired or
+                          // renamed from here.
+                          const isOffer = lens.status === 'suggested' && lens.source === 'coaching_extraction';
                           // Dashed and greyed: a suggestion is an offer, not a core. Only
                           // the sub-label carries colour, so it reads as the call to action.
                           // Hover fills the tile in for a Pro user, who can actually build
@@ -2175,7 +2190,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           >
                             {/* Only a suggestion can be dismissed, so this lives here
                                 and not on the core tile or a built one. */}
-                            {!isEditing && !isConfirming && (
+                            {isOffer && !isEditing && !isConfirming && (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setConfirmingLensId(lens.id); }}
@@ -2254,7 +2269,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 {failed ? "Couldn't rename" : 'Build this core'}
                               </div>
                             </div>
-                            {!isEditing && !isConfirming && (
+                            {isOffer && !isEditing && !isConfirming && (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setLensRenameError(null); setEditingLensName(lens.name); setEditingLensId(lens.id); }}
