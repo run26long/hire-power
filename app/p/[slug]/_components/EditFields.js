@@ -50,7 +50,12 @@ import { LIMITS, clampToLimit, overLimitNote } from '@/lib/textLimits'
 // single place and not restated here. The bar becomes its pinned footer, in
 // the same order it has inline.
 function EditorShell({
-  editor, label, onSave, canSave, children, onRegenerate, hint, count, note, modalTitle
+  editor, label, onSave, canSave, children, onRegenerate, hint, count, note, modalTitle,
+  // Which of the two carries the primary treatment. Before a version has been
+  // written the generator is the only thing on the bar that does any work, so
+  // it leads. Once there is a draft on screen the decision has moved: the thing
+  // to do next is keep it, and Save leads instead.
+  savePrimary = false
 }) {
   const bar = (
     <>
@@ -66,7 +71,7 @@ function EditorShell({
           <button
             type="button"
             className="hp-ed-action"
-            data-primary="true"
+            data-primary={savePrimary ? undefined : 'true'}
             data-working={editor.working ? 'true' : undefined}
             onClick={onRegenerate}
             disabled={editor.busy}
@@ -83,6 +88,7 @@ function EditorShell({
         <button
           type="button"
           className="hp-ed-action"
+          data-primary={savePrimary ? 'true' : undefined}
           onClick={onSave}
           disabled={!canSave || editor.busy}
         >
@@ -182,6 +188,13 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
   // closing it is the unmount - the stored value is therefore the starting
   // point every time, and a cancelled edit cannot come back on the next open.
   const [draft, setDraft] = useState(value || '')
+  // Whether a version has been written since this opened. Both versions here
+  // are generated, so there is nothing to compare against and nothing to
+  // choose between: the new wording simply replaces what was in the field, and
+  // the only thing left to decide is whether to keep it. Save leads from then
+  // on. Cancel still restores the saved version, because the draft has never
+  // been anywhere near the record.
+  const [regenerated, setRegenerated] = useState(false)
   const ref = useRef(null)
 
   const isOpen = editor?.isOpen === true
@@ -215,7 +228,10 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
     // for breaking it, so this should never have anything to do. It stays as
     // the last line of defence: a field that will not save what its own button
     // just put in it is worse than a slightly shorter answer.
-    if (typeof next === 'string') setDraft(clampToLimit(next, max))
+    if (typeof next === 'string') {
+      setDraft(clampToLimit(next, max))
+      setRegenerated(true)
+    }
   }
 
   const trimmed = draft.trim()
@@ -239,6 +255,7 @@ export function ProseEditor({ field, label, value, size = 'body', rows = 3 }) {
       canSave={Boolean(trimmed) && trimmed !== (value || '').trim() && !over}
       onSave={() => editor.save({ [field]: trimmed })}
       onRegenerate={regenerate}
+      savePrimary={regenerated}
     >
       <textarea
         ref={ref}

@@ -627,6 +627,26 @@
 
 .hp-direction[data-active="true"] { color: var(--profile-text); font-weight: 650; }
 
+/* A direction on offer rather than one that exists. Set back far enough that
+   the row still reads as the chapters this person has, with the plus carrying
+   what it is. Edit only: nothing renders one anywhere else. */
+.hp-direction[data-ghost="true"] {
+  color: var(--profile-meta);
+  opacity: 0.5;
+  font-weight: 400;
+  transition: opacity var(--profile-move-ms) var(--profile-ease-in),
+              color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-direction[data-ghost="true"]:disabled { cursor: wait; }
+
+@media (hover: hover) and (pointer: fine) {
+  .hp-direction[data-ghost="true"]:not(:disabled):hover {
+    opacity: 1;
+    color: var(--profile-accent-soft);
+  }
+}
+
 /* The width of the heaviest state, reserved at all times. The pseudo element is
    the real measurer; the visible text sits under it. Without this, going from
    500 to 650 would still reflow the row. */
@@ -1276,11 +1296,13 @@
   .hp-invite-prompt { font-size: 17px; margin: 0; max-width: 32ch; }
   .hp-direction { font-size: 21px; }
   .hp-direction-single { font-size: 21px; }
-  /* Spread across the track rather than packed at its left, so the last
-     direction anchors near the right edge of the frame and the index reads as
-     a masthead line. Scrolling still takes over if the names ever exceed the
-     track. */
-  .hp-directions { gap: 40px; justify-content: space-between; }
+  /* Packed from the left, filling the positions in order. This used to spread
+     across the track so the last direction anchored near the right edge, which
+     reads as a masthead line with three of them and as two names at opposite
+     ends of an empty rail with two. The row now grows rightward as directions
+     are added, and the first sits where the first always sat. Scrolling still
+     takes over if the names ever exceed the track. */
+  .hp-directions { gap: 40px; justify-content: flex-start; }
 
   /* Raised a little, and pulled toward the quarter the lead figure now
      occupies. Still two very wide fields, so no edge resolves. */

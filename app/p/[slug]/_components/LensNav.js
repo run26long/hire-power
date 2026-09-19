@@ -256,7 +256,7 @@ function RailSteps({ count, activeIndex, overflows, onSelect }) {
   )
 }
 
-export function LensStage({ lenses, activeIndex, onSelect, reducedMotion }) {
+export function LensStage({ lenses, activeIndex, onSelect, reducedMotion, ghosts = [], onActivate, activating }) {
   const trackRef = useRef(null)
   const itemRefs = useRef([])
 
@@ -266,10 +266,15 @@ export function LensStage({ lenses, activeIndex, onSelect, reducedMotion }) {
   // scrolling affordance and no fade.
   const rail = useDirectionRail({ trackRef, itemRefs, activeIndex, reducedMotion })
 
-  if (lenses.length === 0) return null
+  if (lenses.length === 0 && ghosts.length === 0) return null
 
   // One direction is a statement about this person, not a choice to make.
-  if (lenses.length === 1) {
+  //
+  // Unless there is one on offer beside it. Then the rail comes back, because
+  // the offer needs a position to sit in and a statement has none. That only
+  // happens in Edit: ghosts are empty everywhere else, so a reader with one
+  // direction still sees the statement.
+  if (lenses.length === 1 && ghosts.length === 0) {
     return (
       <div className="hp-invite">
         <span className="hp-direction-single">
@@ -304,6 +309,31 @@ export function LensStage({ lenses, activeIndex, onSelect, reducedMotion }) {
             >
               <span className="hp-direction-label" data-label={lens.name}>{lens.name}</span>
               <span className="hp-direction-mark" aria-hidden="true" />
+            </button>
+          )
+        })}
+
+        {/* Directions this person has but has not put on the profile, in the
+            positions the active ones have not filled. Drawn back rather than
+            dressed as a tab: it is an offer, and it should not read as a
+            chapter that already exists. Edit only - `ghosts` is empty in
+            Preview and on the public page, so nothing here can reach a
+            reader. */}
+        {ghosts.map(lens => {
+          const working = activating === lens.id
+          return (
+            <button
+              key={lens.id}
+              type="button"
+              className="hp-direction"
+              data-ghost="true"
+              disabled={Boolean(activating)}
+              onClick={() => onActivate?.(lens.id)}
+              title={`Add ${lens.name} to your profile`}
+            >
+              <span className="hp-direction-label" data-label={`+ ${lens.name}`}>
+                {working ? `Adding ${lens.name}…` : `+ ${lens.name}`}
+              </span>
             </button>
           )
         })}

@@ -12,6 +12,7 @@ import { usePrefersReducedMotion } from '../_lib/motion'
 import { ProfileEditProvider } from '../_lib/editContext'
 import {
   BIO_COLLAPSE_AT,
+  LENS_RAIL_SLOTS,
   groupSkills,
   orderTestimonials,
   resolveSkillProof,
@@ -80,6 +81,13 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const [resumeError, setResumeError] = useState(null)
   const [bioExpanded, setBioExpanded] = useState(false)
   const [imowExpanded, setImowExpanded] = useState(false)
+  // A direction being turned on from the rail, so its tab can say so while the
+  // write and the reload are in flight.
+  const [activating, setActivating] = useState(null)
+  // Which direction to land on once the reload brings it into the list. Held
+  // by id rather than by index, because the index it will take is not known
+  // until the new list arrives.
+  const [pendingSelect, setPendingSelect] = useState(null)
   const [expandedRole, setExpandedRole] = useState(null)
 
   // Which field has its editor open, and what the last write did. Held here
@@ -133,6 +141,63 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     // mid-transition restarts it cleanly.
     setGlowKey(key => key + 1)
   }
+
+  // A direction turned on from the rail arrives here, once the reload has put
+  // it in the list. Cleared either way, so a direction that never appears -
+  // the write failed, or the rail holds three already - does not leave this
+  // waiting for it.
+  useEffect(() => {
+    if (!pendingSelect) return
+    const index = lenses.findIndex(l => l.id === pendingSelect)
+    if (index === -1) return
+    setPendingSelect(null)
+    if (index === activeIndex) return
+    setActiveIndex(index)
+    setGlowKey(key => key + 1)
+  }, [pendingSelect, lenses, activeIndex])
+
+  // ---- DIRECTIONS NOT YET ON THE PROFILE ----
+  //
+  // Edit only, and never anywhere else: these are offers, and an offer on a
+  // page a recruiter is reading would look like a direction this person has.
+  // Preview renders with no edit context at all, so the guard is the context
+  // rather than a flag that could be passed wrongly.
+  //
+  // The rail holds three. Whatever the active directions do not fill is
+  // offered, in the order the management record lists them, and an account
+  // already showing three is offered nothing because there is nowhere to put
+  // it. The suggestions come from the management record, which is the only one
+  // carrying rows the public payload deliberately leaves out.
+  const ghostLenses = useMemo(() => {
+    if (!edit?.editing || !edit?.canCustomise) return []
+    const room = LENS_RAIL_SLOTS - lenses.length
+    if (room <= 0) return []
+    const known = new Set(lenses.map(l => l.id))
+    return (edit.allLenses || [])
+      .filter(l => l.status === 'suggested' && !known.has(l.id))
+      .slice(0, room)
+  }, [edit?.editing, edit?.canCustomise, edit?.allLenses, lenses])
+
+  // Turning one on from the rail. The same write the Settings drawer makes, so
+  // the two cannot disagree about what a direction's state is, and the page
+  // reloads from it rather than patching a row in locally.
+  const activateLens = useCallback(async (lensId) => {
+    if (!edit?.onLensVisibility || activating) return
+    setActivating(lensId)
+    try {
+      await edit.onLensVisibility(lensId, true)
+      // Show what was just turned on. The reload has replaced the list by now,
+      // so the new direction is in it and this finds where it landed.
+      setPendingSelect(lensId)
+    } catch (err) {
+      edit.notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't add that direction. Please try again."
+      })
+    } finally {
+      setActivating(null)
+    }
+  }, [edit, activating])
 
   const selectedLens = lenses[contentIndex] || null
   const proofPoints = Array.isArray(selectedLens?.proof_points) ? selectedLens.proof_points : []
@@ -438,6 +503,11 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onDeleteEvidence: edit.onDeleteEvidence,
       onGenerateImow: edit.onGenerateImow,
       onStrengthenImow: edit.onStrengthenImow,
+      // Every direction on the management record, including the ones the
+      // profile is not showing. `lenses` above is what the page renders; this
+      // is what it could render, and it is what the rail's offers come from.
+      allLenses: edit.allLenses,
+      onLensVisibility: edit.onLensVisibility,
       testimonials: edit.testimonials,
       earned360: edit.earned360,
       onRequestTestimonial: edit.onRequestTestimonial,
@@ -475,6 +545,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate,
     edit?.onGenerateImow, edit?.onStrengthenImow,
+    edit?.allLenses, edit?.onLensVisibility,
     edit?.testimonials, edit?.earned360, edit?.onRequestTestimonial,
     edit?.onPublishTestimonial, edit?.onDeleteTestimonial, edit?.onDownloadReferenceSheet,
     edit?.onCategoriseTestimonial, edit?.getAuthHeaders, slug, imowHasVideo,
@@ -526,6 +597,9 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
             activeIndex={activeIndex}
             onSelect={selectLens}
             reducedMotion={reducedMotion}
+            ghosts={ghostLenses}
+            onActivate={activateLens}
+            activating={activating}
           />
         }
       />

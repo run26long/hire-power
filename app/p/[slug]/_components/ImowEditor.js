@@ -122,31 +122,44 @@ export default function ImowEditor({ value }) {
   // What a polish was made from, kept so that asking for another one goes back
   // to the owner's words rather than polishing the last polish.
   const [polishSource, setPolishSource] = useState(null)
-  // The polished version, held beside the draft rather than over it. Non-null
-  // is the whole compare state: the textarea stands down and the two readings
-  // are shown until one of them is chosen.
+
+  // ---- THE TWO READINGS ----
+  //
+  // A polish used to stand the textarea down and put the two versions side by
+  // side, each with its own button. That made choosing a separate act from
+  // editing: you picked a side, and only then could you change a word in it.
+  //
+  // They are now two buffers behind one editable area, with a toggle above it
+  // saying which is in there. Both stay editable, both keep whatever was typed
+  // into them, and Save takes whichever is on screen. Nothing is chosen; one is
+  // simply showing.
+  //
+  // mine is null until a polish exists, and that is still what says whether
+  // there is anything to toggle between.
+  const [mine, setMine] = useState(null)
   const [polished, setPolished] = useState(null)
+  const [view, setView] = useState('polished')
   const [note, setNote] = useState(null)
   const ref = useRef(null)
 
   const isOpen = editor?.isOpen === true
 
-  useAutoGrow(ref, draft, MIN_ROWS, MAX_ROWS, isOpen && !polished, true)
+  useAutoGrow(ref, draft, MIN_ROWS, MAX_ROWS, isOpen, true)
 
   // Also the way back from the compare view: the textarea is unmounted while
   // the two versions are up, so nothing can focus it until React has put it
   // back, and calling focus() from the button handler would reach a ref that
   // is still null.
   useEffect(() => {
-    if (!isOpen || polished) return
+    if (!isOpen) return
     const node = ref.current
     if (!node) return
-    // preventScroll, because this also runs on the way back from the compare
-    // view and after every AI action, and none of those is a reason to move
-    // the page. The editor is already where the owner is looking.
+    // preventScroll, because this runs after every AI action and none of them
+    // is a reason to move the page. The editor is already where the owner is
+    // looking.
     node.focus({ preventScroll: true })
     node.setSelectionRange(node.value.length, node.value.length)
-  }, [isOpen, polished])
+  }, [isOpen])
 
   // Nothing on a locked plan can open this, because the pencil and the
   // empty state are both gone. Guarded here too, so the editor cannot be
@@ -155,9 +168,14 @@ export default function ImowEditor({ value }) {
 
   const trimmed = draft.trim()
   const busy = Boolean(editor.busy || running)
-  // A decision is on screen and has not been made. Nothing that would change
-  // the draft underneath it should be reachable while it is.
-  const choosing = Boolean(polished)
+  // Two readings exist, so the toggle is up. Nothing is disabled by it: Save
+  // takes whatever is on screen, and asking for another version is still
+  // allowed.
+  const comparing = Boolean(polished && mine !== null)
+
+  // Something has been written for them since this opened, generated or
+  // polished. What Save leads from.
+  const written = Boolean(origin) || comparing
 
   // What the one AI control is for at this moment. Derived rather than held,
   // so it cannot fall out of step with the text it describes.
@@ -178,9 +196,34 @@ export default function ImowEditor({ value }) {
   // Typing makes it theirs again. Which is not only a label change: the next
   // polish starts from what they have just written rather than from whatever
   // we handed them before they changed it.
+  // Typing makes it theirs again. Which is not only a label change: the next
+  // polish starts from what they have just written rather than from whatever
+  // we handed them before they changed it.
+  //
+  // While two readings are up the edit also lands in whichever buffer is
+  // showing, so switching away and back does not lose it. Origin is left alone
+  // there: the toggle is still naming two things, and a typo fixed in the
+  // polished one does not make it stop being the polished one.
   function onType(next) {
     setDraft(next)
+    if (comparing) {
+      if (view === 'polished') setPolished(next)
+      else setMine(next)
+      setNote(null)
+      return
+    }
     if (origin) { setOrigin(null); setPolishSource(null) }
+    setNote(null)
+  }
+
+  // Store what is on screen, then show the other one. Nothing is discarded and
+  // nothing is chosen: this only changes which of the two is in the box.
+  function show(next) {
+    if (next === view) return
+    if (view === 'polished') setPolished(draft)
+    else setMine(draft)
+    setView(next)
+    setDraft(next === 'polished' ? polished : mine)
     setNote(null)
   }
 
@@ -219,8 +262,16 @@ export default function ImowEditor({ value }) {
         setNote('This already reads well. Nothing worth changing.')
         return
       }
+      // Both readings, and the polished one showing. Their words are kept in
+      // full rather than as a source string, because the toggle makes them
+      // editable again and Save may well take them.
       setPolishSource(from)
+      setMine(from)
       setPolished(next)
+      setView('polished')
+      setDraft(next)
+      setOrigin('polished')
+      setNote('Two readings of the same thing. Switch between them, change either, then save.')
     } catch (err) {
       notifyFailure(err?.message || "We couldn't do that just now. Please try again.")
     } finally {
@@ -232,25 +283,13 @@ export default function ImowEditor({ value }) {
   // is `intent`, and "again" repeats whichever of the other two produced the
   // words now on screen.
   function runAi() {
-    if (busy || choosing) return
+    if (busy) return
     if (intent === 'generate') return generate('generate')
     if (intent === 'polish') return polish(trimmed, 'polish')
     if (origin === 'generated') return generate('again')
-    return polish(polishSource || trimmed, 'again')
-  }
-
-  function keepPolished() {
-    setDraft(polished)
-    setPolished(null)
-    setOrigin('polished')
-    setNote('Using the tightened version. Change anything, then save.')
-  }
-
-  // The draft is untouched, so where it came from is untouched with it: a
-  // polish they declined leaves a generated draft generated, and their own
-  // words their own.
-  function keepOriginal() {
-    setPolished(null)
+    // Another reading is made from their words, never from the last polish,
+    // whichever of the two happens to be on screen when the button is pressed.
+    return polish(polishSource || mine || trimmed, 'again')
   }
 
   // Unchanged in order and in treatment. Only where it lives has changed.
@@ -259,13 +298,18 @@ export default function ImowEditor({ value }) {
       {/* One control, leading the bar and carrying the page's primary
           treatment: it is the only thing here that does any work, and Save
           and Cancel are found by people already looking for them. */}
+      {/* Which of the two leads. Before anything has been written the AI
+          control is the only thing on this bar that does any work. Once there
+          is a draft on screen the decision has moved: what is left to do is
+          keep it, so Save takes the primary treatment and asking for another
+          version steps back. */}
       {aiOffered ? (
         <button
           type="button"
           className="hp-ed-action"
-          data-primary="true"
+          data-primary={written ? undefined : 'true'}
           onClick={runAi}
-          disabled={busy || choosing}
+          disabled={busy}
           data-working={running ? 'true' : undefined}
           title={AI_TITLE[intent]}
         >
@@ -277,8 +321,9 @@ export default function ImowEditor({ value }) {
       <button
         type="button"
         className="hp-ed-action"
+        data-primary={written ? 'true' : undefined}
         onClick={() => editor.save({ imow_text: trimmed })}
-        disabled={!trimmed || trimmed === (value || '').trim() || busy || choosing}
+        disabled={!trimmed || trimmed === (value || '').trim() || busy}
       >
         {editor.saving ? 'Saving…' : 'Save'}
       </button>
@@ -310,50 +355,44 @@ export default function ImowEditor({ value }) {
 
       <p className="hp-ed-field-label" data-accent="true">Write it</p>
 
-      {polished ? (
-        <div className="hp-ed-compare">
-          <p className="hp-ed-compare-lede">
-            The same thing you wrote, read back tighter. Nothing has been added, and
-            nothing is saved until you choose.
-          </p>
-
-          <div className="hp-ed-compare-pair">
-            <section className="hp-ed-compare-side">
-              <h4 className="hp-ed-compare-title">What you wrote</h4>
-              <p className="hp-ed-compare-text">{polishSource || draft}</p>
-              <button type="button" className="hp-ed-action" onClick={keepOriginal}>
-                Keep what I wrote
-              </button>
-            </section>
-
-            <section className="hp-ed-compare-side" data-suggested="true">
-              <h4 className="hp-ed-compare-title">Tightened</h4>
-              <p className="hp-ed-compare-text">{polished}</p>
-              <button
-                type="button"
-                className="hp-ed-action"
-                data-primary="true"
-                onClick={keepPolished}
-              >
-                Use this
-              </button>
-            </section>
-          </div>
+      {/* Which reading is in the box. Only up when there are two, and it names
+          them rather than asking a question: nothing here is being chosen, one
+          of them is simply showing, and either can be edited and saved. */}
+      {comparing ? (
+        <div className="hp-ed-versions" role="group" aria-label="Which version to show">
+          <button
+            type="button"
+            className="hp-ed-version"
+            data-on={view === 'mine' ? 'true' : 'false'}
+            aria-pressed={view === 'mine'}
+            onClick={() => show('mine')}
+          >
+            Your words
+          </button>
+          <button
+            type="button"
+            className="hp-ed-version"
+            data-on={view === 'polished' ? 'true' : 'false'}
+            aria-pressed={view === 'polished'}
+            onClick={() => show('polished')}
+          >
+            Polished version
+          </button>
         </div>
-      ) : (
-        <textarea
-          ref={ref}
-          className="hp-ed-textarea"
-          data-size="body"
-          rows={ROWS}
-          value={draft}
-          maxLength={MAX}
-          onChange={e => onType(e.target.value)}
-          aria-label="In My Own Words"
-          placeholder={PLACEHOLDER}
-          spellCheck="true"
-        />
-      )}
+      ) : null}
+
+      <textarea
+        ref={ref}
+        className="hp-ed-textarea"
+        data-size="body"
+        rows={ROWS}
+        value={draft}
+        maxLength={MAX}
+        onChange={e => onType(e.target.value)}
+        aria-label={comparing && view === 'mine' ? 'In My Own Words, your words' : 'In My Own Words'}
+        placeholder={PLACEHOLDER}
+        spellCheck="true"
+      />
 
       {/* What the section is for comes first, because somebody looking at an
           empty box needs the reason before the ceiling. The count is last and

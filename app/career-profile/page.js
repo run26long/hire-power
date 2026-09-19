@@ -890,6 +890,12 @@ export default function CareerProfileEditorPage() {
           onSaveImow: saveImow,
           onGenerateImow: generateImow,
           onStrengthenImow: strengthenImow,
+          // The whole set, so the rail can offer a direction the profile is
+          // not showing. The document's own `lenses` is the recruiter's list
+          // and carries only what is active, which is the right list to render
+          // and the wrong one to ask what else exists.
+          allLenses: manage?.lenses || [],
+          onLensVisibility: setLensVisibility,
           testimonials: manage?.testimonials || [],
           earned360: manage?.earned360 || null,
           onRequestTestimonial: requestTestimonial,

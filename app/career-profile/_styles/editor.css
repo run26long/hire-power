@@ -1684,6 +1684,53 @@ html:has(.hp-ed) {
    asking the viewport how much room there is gives the wrong answer at every
    width: at 1440 the columns went side by side in 510px and read as two
    gutters. The panel measures itself instead. */
+/* ---- Which reading is in the box ----
+   Two segments over one editable area, replacing the pair of read-only columns
+   that used to stand in its place. The toggle names the two readings rather
+   than asking which to keep: both stay editable, both keep what was typed into
+   them, and Save takes whichever is showing. */
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-versions {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 2px;
+  border-radius: 9px;
+  border: 1px solid var(--ed-line);
+  background: rgb(var(--profile-void-rgb) / 0.35);
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-version {
+  appearance: none;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 12px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ed-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-version[data-on="true"] {
+  background: rgb(var(--profile-accent-rgb) / 0.16);
+  color: var(--ed-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.hp-profile, .hp-ed-portal) .hp-ed-version[data-on="false"]:hover {
+    color: var(--ed-ink);
+  }
+}
+
+:is(.hp-profile, .hp-ed-portal) .hp-ed-version:focus-visible {
+  outline: 2px solid var(--ed-accent);
+  outline-offset: 2px;
+}
+
 :is(.hp-profile, .hp-ed-portal) .hp-ed-compare {
   margin-bottom: 12px;
   container-type: inline-size;

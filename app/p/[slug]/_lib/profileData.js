@@ -218,6 +218,12 @@ export function splitLeadSentence(text) {
 // null when there is no sentence break to cut on so nothing is ever mangled.
 export const BIO_COLLAPSE_AT = 600
 
+// How many directions the rail holds. The public route caps what it sends to
+// the same number, so this is not the thing enforcing it - what it decides is
+// how many positions are left for the ghost tabs that offer a direction the
+// owner has not turned on yet.
+export const LENS_RAIL_SLOTS = 3
+
 export function truncateAtSentence(text, limit) {
   const full = String(text || '')
   if (full.length <= limit) return null
