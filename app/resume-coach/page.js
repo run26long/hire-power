@@ -8,6 +8,7 @@ import AppShell from '../components/AppShell';
 import UpgradeModal from '../components/UpgradeModal';
 import ErrorToast from '../components/ErrorToast';
 import { getJobSources } from '../utils/getJobSources';
+import { directionFromLabel } from '@/lib/resumeLabel';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
 import ResumeContent from '../components/ResumeContent';
@@ -2067,7 +2068,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div className="min-w-0">
-                            <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{data.coreResume.display_name || 'Your Core Resume'}</div>
+                            {/* The direction alone, the way every other tile in
+                                this row already names itself. The row is three
+                                tiles wide and the full "Core Resume - Athletic
+                                Coaching" clips in it; the card above, which has
+                                the width, carries the whole name. A core with no
+                                direction falls back to the label it has. */}
+                            <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{directionFromLabel(data.coreResume.display_name) || data.coreResume.display_name || 'Your Core Resume'}</div>
                             <div className="text-xs md:text-[10px] text-purple-600">{selectedCore?.id === data.coreResume.id ? 'Current core' : 'Switch to this core'}</div>
                           </div>
                         </div>
