@@ -227,14 +227,15 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   const bioToShow = collapsedBio && !bioExpanded ? collapsedBio : fullBio
 
   const imowText = data?.profile?.imow_text || null
-  // The same collapse the About column gets, at the same length. A saved
-  // passage may be up to 2,000 characters and a reader meeting a wall of text
-  // in the one section written in somebody's own voice stops reading it, which
-  // is the opposite of what the section is for. Cut at a sentence end or not at
-  // all: truncateAtSentence returns null when there is no full stop to cut on,
-  // and a passage that cannot be cut cleanly is shown whole.
-  const collapsedImow = useMemo(() => truncateAtSentence(imowText || '', BIO_COLLAPSE_AT), [imowText])
-  const imowToShow = collapsedImow && !imowExpanded ? collapsedImow : imowText
+  // No character cut here any more. This used to borrow About's 600, which is a
+  // number tuned for About's type: this section sets the same words at 22px in
+  // a narrower column, so the same count came out at half again the height and
+  // the two halves of the spread stopped balancing. A count that produced the
+  // right height for one of them could not produce it for the other.
+  //
+  // The section clamps itself by line instead, in CSS, and the card measures
+  // whether it actually overflowed. What is passed down is the whole passage,
+  // every time.
   const imowType = data?.profile?.imow_type || null
   // Whether a video exists, never where it is. The path stays server-side and
   // the player asks the signing route for a link when it is about to play.
@@ -621,8 +622,6 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
         bioExpanded={bioExpanded}
         onToggleBio={() => setBioExpanded(value => !value)}
         imowText={imowText}
-        imowToShow={imowToShow}
-        isImowCollapsible={Boolean(collapsedImow)}
         imowExpanded={imowExpanded}
         onToggleImow={() => setImowExpanded(value => !value)}
         imowType={imowType}

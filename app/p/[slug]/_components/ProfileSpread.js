@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import { splitLeadSentence } from '../_lib/profileData'
 import { EditPencil, SlotGuide, GuideAction, useEditSlot, UpgradeNote } from './EditAffordance'
@@ -56,8 +56,6 @@ export default function ProfileSpread({
   bioExpanded,
   onToggleBio,
   imowText,
-  imowToShow,
-  isImowCollapsible,
   imowExpanded,
   onToggleImow,
   imowType,
@@ -79,6 +77,39 @@ export default function ProfileSpread({
   // the section closes - the same rule every other empty section follows.
   const [videoGone, setVideoGone] = useState(false)
   const onVideoGone = useCallback(() => setVideoGone(true), [])
+
+  // ---- WHETHER THE PASSAGE IS ACTUALLY LONGER THAN ITS CLAMP ----
+  //
+  // The clamp is a line count in CSS, so only the rendered box knows whether it
+  // cut anything off. A character count could be asked in advance and was what
+  // this used to do; it could not answer the question the control depends on,
+  // because the same number of characters is a different number of lines at
+  // every width and every one of this section's three type sizes.
+  //
+  // Measured while clamped, which is the only state where the two heights can
+  // differ. Once expanded the clamp is off and they agree again, so the last
+  // answer stands - which is what keeps Show less on screen.
+  const voiceRef = useRef(null)
+  const [imowOverflows, setImowOverflows] = useState(false)
+
+  useEffect(() => {
+    const node = voiceRef.current
+    if (!node || imowExpanded) return undefined
+
+    const measure = () => {
+      // A pixel of slack: sub-pixel line heights make scrollHeight exceed
+      // clientHeight by a fraction on text that fits perfectly.
+      setImowOverflows(node.scrollHeight > node.clientHeight + 1)
+    }
+    measure()
+
+    // Re-asked when the column changes width, because a passage that fits at
+    // one width wraps to another line at the next.
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [imowText, imowExpanded])
   const hasVideo = imowType === 'video' && imowHasVideo === true && !videoGone
   const hasVoice = Boolean(imowText) || hasVideo
   const canShowEmpty = useCanShowEmpty()
@@ -208,15 +239,25 @@ export default function ProfileSpread({
               {/* Video first, then the words, when there are both: the point
                   of this section is hearing them say it, and the text is what
                   somebody reads when they will not play a video on a train. */}
+              {/* The whole passage, always. Collapsing is the clamp in CSS and
+                  not a shorter string, so expanding reveals what is already
+                  here rather than swapping the text for a longer copy of
+                  itself. */}
               {imowText && (
-                <blockquote className="hp-voice-text">{imowToShow || imowText}</blockquote>
+                <blockquote
+                  ref={voiceRef}
+                  className="hp-voice-text"
+                  data-clamped={imowExpanded ? 'false' : 'true'}
+                >
+                  {imowText}
+                </blockquote>
               )}
 
               {/* The About column's control, reused rather than restated, so
                   the two sides of the spread open the same way. It sits inside
                   the Reveal and under the words, which keeps it inside the card
                   and clear of the closing quotation mark below. */}
-              {imowText && isImowCollapsible && (
+              {imowText && (imowOverflows || imowExpanded) && (
                 <button
                   type="button"
                   className="hp-more"

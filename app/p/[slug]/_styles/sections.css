@@ -232,6 +232,26 @@
   color: var(--profile-text);
 }
 
+/* ---- The collapsed passage ----
+   Seven lines, counted rather than measured in characters. This section sets
+   its words at 22px and rises to 24px on the widest frame, in a column narrower
+   than About's, so About's character count came out here at half again the
+   height and the spread stopped balancing. Lines are the thing the eye is
+   actually judging, and they hold at every width and every one of the three
+   sizes without a number per breakpoint.
+
+   -webkit-line-clamp is the only one of these with support worth relying on,
+   and it needs the box model beneath it, so all four declarations belong
+   together. Nothing is removed from the document: the whole passage is in the
+   blockquote and the clamp only decides how much of it is on screen, so Read
+   more has nothing to fetch and the text stays selectable and findable. */
+.hp-voice-text[data-clamped="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;
+  overflow: hidden;
+}
+
 /* ---- Tablet: the field has not arrived yet, so the asymmetry is an indent --
    About stays flush to the frame and holds a shorter measure than the column
    it sits in. The statement is pushed off that edge so the two passages read
