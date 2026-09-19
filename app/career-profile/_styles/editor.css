@@ -700,6 +700,13 @@ html:has(.hp-ed) {
 
 .hp-ed-switch:disabled { opacity: 0.55; cursor: wait; }
 
+/* Disabled for a reason that will not pass on its own. `wait` above is for the
+   half second a write is in flight; a full profile stays full until the owner
+   turns something off, and a cursor promising otherwise would be saying the
+   wrong one of the two. */
+.hp-ed-switch:disabled[data-blocked="true"],
+.hp-ed-lens-add:disabled[data-blocked="true"] { cursor: not-allowed; }
+
 .hp-ed-switch-knob {
   width: 17px;
   height: 17px;
@@ -742,6 +749,16 @@ html:has(.hp-ed) {
   border-top: 1px solid var(--ed-line);
 }
 
+/* The name, and under it the reason a row has no switch. A column so the note
+   sits under the name rather than pushing the control along the row, and
+   min-width:0 so the name can still ellipse inside it. */
+.hp-ed-lens-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .hp-ed-lens-name {
   font-size: 13px;
   font-weight: 600;
@@ -752,18 +769,39 @@ html:has(.hp-ed) {
   white-space: nowrap;
 }
 
+/* Where a locked direction comes off, and why a disabled one cannot go on.
+   Wraps: it is a sentence, not a label, and clipping the half that says what
+   to do would leave only the half that says no. */
+.hp-ed-lens-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ed-muted);
+}
+
 /* A direction that is only offered has not been written yet, so its name is
    set back from the ones that have. */
 .hp-ed-lens-row[data-state="offered"] .hp-ed-lens-name { color: var(--ed-muted); }
 
-/* The primary says what it is rather than showing a control that refuses. */
+/* The primary says what it is rather than showing a control that refuses, and
+   so does a direction with a resume behind it. */
 .hp-ed-lens-fixed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ed-muted);
+}
+
+/* Sized against the 11px beside it rather than in pixels, so the two stay in
+   proportion wherever the drawer's type ends up. */
+.hp-ed-lens-lock {
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
 }
 
 .hp-ed-lens-add {

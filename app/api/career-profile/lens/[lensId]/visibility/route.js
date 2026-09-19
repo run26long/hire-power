@@ -34,6 +34,24 @@ import { requireCustomise } from '../../../_lib/requireCustomise'
 // new up. Gating the way out would leave a direction published on somebody's
 // page behind a paywall, which is the one outcome the gate exists to prevent.
 // So activation asks the gate and hiding does not.
+//
+// A DIRECTION WITH A RESUME BEHIND IT CANNOT BE HIDDEN
+// Building a core resume for a direction is the strongest statement anybody
+// makes about it, and it is made on the other page. The two pages share this
+// table, so a direction with a core stays on the profile until the core is
+// deleted from the Resume Writer - that deletion is the control, and this
+// route is not it.
+//
+// The pointer alone is not enough to lock a row. A core that has been archived
+// still leaves its id on the lens, and trusting the id would lock a direction
+// to a resume that no longer exists, with the only way out on a page that no
+// longer lists it. So the resume is read, and only a live one locks.
+//
+// THREE AT A TIME
+// The page renders three directions and the public route already slices to
+// three. Without a limit here a fourth could be turned on, be written into the
+// payload, and then simply not appear - a switch that goes on and does
+// nothing. Refused with a reason instead.
 // ============================================================================
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -42,6 +60,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // below so the three cannot drift apart.
 const VISIBLE = 'active'
 const HIDDEN = 'hidden'
+
+// What the public page renders, and so what this will let anybody turn on.
+// The same number the public route slices to; they are the same rule read
+// from two ends.
+const MAX_ACTIVE = 3
 
 // source 'user' with sort_order 0 is the pair ensurePrimaryLens uses as the
 // primary's identity, so this asks the same question the writer answers.
@@ -83,7 +106,7 @@ export async function PATCH(request, { params }) {
     // writes to whoever's lens was named, and the owner alone has no lens.
     const { data: lens, error: lensError } = await supabase
       .from('profile_lenses')
-      .select('id, name, status, source, sort_order')
+      .select('id, name, status, source, sort_order, core_resume_id')
       .eq('id', lensId)
       .eq('user_id', user.id)
       .maybeSingle()
@@ -114,6 +137,62 @@ export async function PATCH(request, { params }) {
         { error: 'That direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
         { status: 400 }
       )
+    }
+
+    // A direction somebody built a resume for. Read rather than inferred from
+    // the pointer: a lens whose core was archived keeps the id, and locking on
+    // the id alone would strand the row - the resume it names is no longer on
+    // the Resume Writer page, so the one control that could unlock it is gone.
+    // Deleting a core releases the lens, and a pointer that outlives its
+    // resume is a bug to be survived here rather than obeyed.
+    if (!visible && lens.core_resume_id) {
+      const { data: core, error: coreError } = await supabase
+        .from('resumes')
+        .select('id')
+        .eq('id', lens.core_resume_id)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (coreError) {
+        console.error('[career-profile] Lens core lookup failed:', coreError)
+        return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
+      }
+      if (core) {
+        return Response.json(
+          {
+            error: 'This direction has a core resume. Delete it from your Resume Writer to take the direction off your Career Profile.',
+            code: 'LOCKED_CORE'
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Counted excluding this one, so re-activating something already active
+    // cannot refuse itself, and so the count is of what would be on the page
+    // afterwards rather than before.
+    if (visible && lens.status !== VISIBLE) {
+      const { count, error: countError } = await supabase
+        .from('profile_lenses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', VISIBLE)
+        .neq('id', lens.id)
+
+      if (countError) {
+        console.error('[career-profile] Active lens count failed:', countError)
+        return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
+      }
+      if ((count ?? 0) >= MAX_ACTIVE) {
+        return Response.json(
+          {
+            error: `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add this one.`,
+            code: 'LENS_LIMIT'
+          },
+          { status: 400 }
+        )
+      }
     }
 
     if (visible) {

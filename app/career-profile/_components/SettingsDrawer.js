@@ -58,24 +58,52 @@ function Value({ children, empty }) {
 }
 
 // ---------------------------------------------------------------------------
-// WHAT A DIRECTION IS DOING ON THE PROFILE
+// WHAT A DIRECTION IS DOING ON THE CAREER PROFILE
 //
-// Four states, and only three of them have a control. The primary is the one
-// the page is written around and cannot be taken off it; a dismissed direction
-// is not offered back here, because putting something back that somebody threw
-// away is a different decision from un-hiding something they kept.
+// Five states, and only two of them have a control. A dismissed direction is
+// not offered back here, because putting something back that somebody threw
+// away is a different decision from un-hiding something they kept; it is
+// offered back on the Resume Writer hub, which is where it was thrown away.
+//
+// PRIMARY is asked before the core. Nine of ten primaries have a core resume
+// behind them, so testing the core first would put "Built core" on almost
+// every primary and leave "Always on" for nobody - and of the two things true
+// of that row, the one worth saying is the one that never changes.
+//
+// LOCKED is a direction somebody built a resume for. It comes off the Career
+// Profile by deleting that resume from the Resume Writer and by no other
+// means, so the row says what is true and where to go, rather than offering a
+// switch that would refuse.
 // ---------------------------------------------------------------------------
 const PRIMARY = 'primary'
+const LOCKED = 'locked'
 const SHOWING = 'showing'
 const HIDDEN_STATE = 'hidden'
 const OFFERED = 'offered'
 
+// What the public page renders. The visibility route enforces the same number
+// and is the one that actually decides; this is here so the drawer can say
+// which controls will work before anybody presses one.
+const MAX_ACTIVE = 3
+
 function lensState(lens) {
   if (lens?.source === 'user' && lens?.sort_order === 0) return PRIMARY
+  if (lens?.core_resume_id) return LOCKED
   if (lens?.status === 'active') return SHOWING
   if (lens?.status === 'hidden') return HIDDEN_STATE
   if (lens?.status === 'suggested') return OFFERED
   return null
+}
+
+// Drawn rather than typed. The emoji renders at a different weight on every
+// platform, and beside 11px uppercase it reads as a picture stuck to the text.
+function LockIcon() {
+  return (
+    <svg className="hp-ed-lens-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+      <rect x="4" y="11" width="16" height="10" rx="2" strokeWidth="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 export default function SettingsDrawer({
@@ -100,6 +128,17 @@ export default function SettingsDrawer({
   const directions = (Array.isArray(lenses) ? lenses : [])
     .map(lens => ({ lens, state: lensState(lens) }))
     .filter(row => row.state !== null)
+
+  // How many of the three the page is showing, and so whether there is
+  // anywhere to put another. Counted from status rather than from the states
+  // above, because that is what the route will count when it decides.
+  //
+  // A locked direction whose status is not active is possible and is counted
+  // honestly: building a core while the profile was already full sets the core
+  // without promoting the row, so it is locked, buildable, and waiting.
+  const activeCount = (Array.isArray(lenses) ? lenses : [])
+    .filter(l => l?.status === 'active').length
+  const slotsFull = activeCount >= MAX_ACTIVE
 
   async function setLensVisible(lens, visible) {
     if (!onLensVisibility || lensBusy) return
@@ -325,33 +364,67 @@ export default function SettingsDrawer({
           </Group>
 
           {/* ---- Directions ----
-              What the profile shows, rather than what exists. Hiding one keeps
-              everything written for it, so the switch is reversible in both
-              directions and nothing has to be generated again to come back. */}
+              What the Career Profile shows, rather than what exists. Hiding one
+              keeps everything written for it, so the switch is reversible in
+              both directions and nothing has to be generated again to come
+              back.
+
+              The count in the label is the point of the section as much as the
+              rows are: three is the whole allowance, and an owner deciding
+              whether to turn something on needs to know what it costs before
+              they press a control that refuses. */}
           {directions.length > 0 && (
-            <Group label="Directions">
+            <Group label={`Directions · ${activeCount} of ${MAX_ACTIVE} active`}>
               <div className="hp-ed-lenses">
                 {directions.map(({ lens, state }) => {
                   const busy = lensBusy === lens.id
-                  const showing = state === PRIMARY || state === SHOWING
+                  const showing = state === SHOWING
+                  // Only a coreless direction that is off needs a free slot.
+                  // Turning one off never does, and the two states that have no
+                  // switch never ask.
+                  const blocked = slotsFull && !showing
                   return (
                     <div className="hp-ed-lens-row" key={lens.id} data-state={state}>
-                      <span className="hp-ed-lens-name">{lens.name}</span>
+                      <span className="hp-ed-lens-label">
+                        <span className="hp-ed-lens-name">{lens.name}</span>
+                        {state === LOCKED && (
+                          <span className="hp-ed-lens-note">
+                            Built core &mdash; remove it from your Resume Writer to hide this
+                          </span>
+                        )}
+                        {state === OFFERED && blocked && canCustomise && (
+                          <span className="hp-ed-lens-note">
+                            {MAX_ACTIVE} of {MAX_ACTIVE} active
+                          </span>
+                        )}
+                      </span>
 
                       {state === PRIMARY ? (
                         // No switch at all. A disabled one would say this is
                         // yours to change and that it is currently refused,
                         // and only the second of those is true.
                         <span className="hp-ed-lens-fixed">Always on</span>
+                      ) : state === LOCKED ? (
+                        // Same reasoning, a different reason. This one can come
+                        // off, just not from here, and the note beside the name
+                        // says where.
+                        <span className="hp-ed-lens-fixed">
+                          <LockIcon />
+                          Built core
+                        </span>
                       ) : state === OFFERED ? (
                         canCustomise ? (
                           <button
                             type="button"
                             className="hp-ed-lens-add"
                             onClick={() => setLensVisible(lens, true)}
-                            disabled={busy}
+                            disabled={busy || blocked}
+                            data-blocked={blocked && !busy ? 'true' : undefined}
+                            title={blocked
+                              ? `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add this one.`
+                              : undefined}
                           >
-                            {busy ? 'Adding…' : 'Add to profile'}
+                            {busy ? 'Adding…' : 'Add to Career Profile'}
                           </button>
                         ) : (
                           <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
@@ -362,11 +435,17 @@ export default function SettingsDrawer({
                           className="hp-ed-switch"
                           role="switch"
                           aria-checked={showing}
-                          aria-label={`Show ${lens.name} on your profile`}
+                          aria-label={`Show ${lens.name} on your Career Profile`}
                           onClick={() => setLensVisible(lens, !showing)}
-                          // Turning one off is never gated. A lapsed account
-                          // must always be able to take something down.
-                          disabled={busy || (!showing && !canCustomise)}
+                          // Turning one off is never gated and never blocked. A
+                          // lapsed account must always be able to take
+                          // something down, and taking one down is what frees
+                          // the slot the other rows are waiting for.
+                          disabled={busy || (!showing && (!canCustomise || blocked))}
+                          data-blocked={blocked && !showing && !busy ? 'true' : undefined}
+                          title={blocked && !showing
+                            ? `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add this one.`
+                            : undefined}
                           data-on={showing ? 'true' : 'false'}
                         >
                           <span className="hp-ed-switch-knob" aria-hidden="true" />
@@ -377,9 +456,11 @@ export default function SettingsDrawer({
                 })}
               </div>
               <p className="hp-ed-soon">
-                {canCustomise
-                  ? 'Your main direction always shows. Turning another one off keeps everything written for it, ready to put back.'
-                  : upgradeCopyFor('lenses')}
+                {!canCustomise
+                  ? upgradeCopyFor('lenses')
+                  : slotsFull
+                    ? `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add another — everything written for it is kept.`
+                    : 'Your main direction always shows. Turning another one off keeps everything written for it, ready to put back.'}
               </p>
             </Group>
           )}

@@ -1261,6 +1261,35 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         .eq('id', resumeId)
         .eq('user_id', user.id);
       if (error) throw error;
+
+      // Let go of the direction this resume was standing for, if it was
+      // standing for one. Deleting a core is the only way to unlock a
+      // direction on the Career Profile, so without this the lens keeps
+      // pointing at an archived resume and stays locked to a page that no
+      // longer lists it.
+      //
+      // After the archive, never before: releasing first and then failing to
+      // archive would leave a direction offering to build a core it already
+      // has. This order's failure is the older one, which a re-delete or the
+      // reconcile script can still clear.
+      //
+      // Not fatal to the delete. The resume is gone either way, and a lens
+      // still holding the id is recoverable; refusing to close the dialog over
+      // it would only make the user delete it twice.
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch('/api/profile-lenses/release', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ resumeId })
+        });
+      } catch (releaseErr) {
+        console.error('Lens release failed (non-blocking):', releaseErr);
+      }
+
       setConfirmDeleteId(null);
       await loadData();
       setErrorToast("Job-specific resume deleted. Restart it anytime from your Job Tracker.");

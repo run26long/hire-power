@@ -11,6 +11,9 @@ import { apiError } from '@/lib/apiError'
 // Request body: { lensId: string }
 // ============================================================================
 
+// The same three the Career Profile shows and its visibility route enforces.
+const MAX_ACTIVE_LENSES = 3
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -46,13 +49,24 @@ export async function POST(request) {
     }
 
     // ---- LENS ----
-    // Only a suggestion this account owns, and only one still unbuilt.
+    // One of theirs with no core behind it yet. What makes a direction
+    // buildable is the absence of a resume, not its status: the hub offers a
+    // Build tile for every coreless direction it shows, which is 'suggested',
+    // 'hidden', and 'active' alike. Asking for 'suggested' here meant two of
+    // those three tiles could only fail - a direction turned on from the
+    // Career Profile, or one taken off it, had a button that answered
+    // LENS_NOT_FOUND about a lens plainly on the screen.
+    //
+    // Dismissed is the one status that is still refused, because a dismissed
+    // direction is not on the hub to be clicked; restoring it is what puts it
+    // back, and that is a different route.
     const { data: lens, error: lensError } = await supabase
       .from('profile_lenses')
       .select('id, name')
       .eq('id', lensId)
       .eq('user_id', userId)
-      .eq('status', 'suggested')
+      .in('status', ['suggested', 'hidden', 'active'])
+      .is('core_resume_id', null)
       .maybeSingle()
 
     if (lensError) {
@@ -114,10 +128,34 @@ export async function POST(request) {
     // Non-blocking: the resume exists and is the thing the user is waiting for.
     // A lens left on 'suggested' shows one stale tile, which is recoverable;
     // failing the request after creating the resume is not.
+    //
+    // Building normally puts the direction on the Career Profile as well, and
+    // locks it there - a resume is the strongest thing anybody says about a
+    // direction, and the profile should not be quieter about it than the hub.
+    //
+    // Except when the profile is already showing its three. The page renders
+    // three and the public route slices to three, so a fourth would be written
+    // active and then not appear: the direction would read as published on the
+    // management page and be absent from the page itself. The core is still
+    // built - that is what was asked for and paid for - and the direction waits
+    // as it was until a slot is free. `profileFull` says so, so the hub can
+    // tell them rather than leaving them to notice.
+    const { count: activeCount, error: countError } = await supabase
+      .from('profile_lenses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .neq('id', lens.id)
+
+    if (countError) {
+      console.error('Active lens count failed (non-blocking):', countError)
+    }
+    const profileFull = (activeCount ?? 0) >= MAX_ACTIVE_LENSES
+
     const { error: lensUpdateError } = await supabase
       .from('profile_lenses')
       .update({
-        status: 'active',
+        ...(profileFull ? {} : { status: 'active' }),
         core_resume_id: newResume.id,
         updated_at: new Date().toISOString()
       })
@@ -128,7 +166,7 @@ export async function POST(request) {
       console.error('Lens status update failed (non-blocking):', lensUpdateError)
     }
 
-    return Response.json({ resumeId: newResume.id })
+    return Response.json({ resumeId: newResume.id, profileFull })
 
   } catch (error) {
     return apiError(error, "We couldn't start this core resume. Please try again.")

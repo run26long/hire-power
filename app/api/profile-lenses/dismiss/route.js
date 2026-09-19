@@ -45,12 +45,21 @@ export async function POST(request) {
     // The source test does not move with it. A direction the user built or
     // named themselves is still not this endpoint's to remove, whatever its
     // status, and hiding one does not make it so.
+    //
+    // Neither is one with a core resume behind it, whatever its status. The
+    // status test used to cover this by accident - building a core sets the
+    // lens active, and active never matched here - but only by accident: a row
+    // that acquired a core without acquiring the status, which the backfills
+    // produced, could be dismissed out of both pages while its resume went on
+    // existing. The pointer is the thing that matters, so the pointer is what
+    // is asked. Deleting the core releases the lens and this accepts it again.
     const { data: updated, error: updateError } = await supabase
       .from('profile_lenses')
       .update({ status: 'dismissed', updated_at: new Date().toISOString() })
       .eq('id', lensId)
       .eq('user_id', userId)
       .in('status', ['suggested', 'hidden'])
+      .is('core_resume_id', null)
       .eq('source', 'coaching_extraction')
       .select('id')
       .maybeSingle()
