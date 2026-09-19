@@ -169,6 +169,11 @@ export async function ensurePrimaryLens({ userId, displayName, supabase, nameOve
         .maybeSingle(),
       // Ordering rather than a strict is_priority_core filter: the column
       // defaults false, so an account that predates it would match nothing.
+      //
+      // Every active core, not just the first. The first is still the one a
+      // primary lens is pointed at, but knowing the whole set is what lets the
+      // binding below tell "not pointed anywhere yet" from "pointed at a resume
+      // that has since been archived", and heal the second as well as the first.
       supabaseWrite
         .from('resumes')
         .select('id')
@@ -176,8 +181,7 @@ export async function ensurePrimaryLens({ userId, displayName, supabase, nameOve
         .eq('resume_type', 'core')
         .eq('is_active', true)
         .order('is_priority_core', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(1),
+        .order('created_at', { ascending: false }),
       supabaseWrite
         .from('profile_lenses')
         .select('id, name, core_resume_id')
@@ -211,7 +215,18 @@ export async function ensurePrimaryLens({ userId, displayName, supabase, nameOve
     if (existing) {
       const patch = {}
       if (existing.name !== name) { patch.name = name; patch.slug = slug }
-      if (!existing.core_resume_id && coreResumeId) patch.core_resume_id = coreResumeId
+
+      // Bound when it points at nothing, and re-bound when what it points at is
+      // no longer one of this account's active cores - a core that was archived
+      // or deleted leaves a pointer behind, and a lens pointing at a resume that
+      // is gone names nothing and reads as a lens with no core.
+      //
+      // A pointer at a different but still active core is left alone. That is
+      // somebody's own arrangement, not a fault to correct.
+      const activeCoreIds = new Set((coreRes.data || []).map(row => row.id))
+      const boundToLiveCore = existing.core_resume_id && activeCoreIds.has(existing.core_resume_id)
+      if (!boundToLiveCore && coreResumeId) patch.core_resume_id = coreResumeId
+
       if (Object.keys(patch).length === 0) return
 
       patch.updated_at = new Date().toISOString()
