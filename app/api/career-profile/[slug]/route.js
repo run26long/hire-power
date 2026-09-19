@@ -105,11 +105,16 @@ export async function GET(request, { params }) {
       lensRes, personRes, contextRes, coreRes, testimonialRes,
       evidenceRes, placementRes, impactRes, skillProofRes
     ] = await Promise.all([
+      // Active only. This used to read suggestions too, which meant a profile
+      // published directions its owner had never chosen: Coach proposes a
+      // direction in the background, and it appeared on the page beside the one
+      // they actually wrote. A direction reaches this page because somebody
+      // turned it on, and comes off it the moment they turn it off.
       supabase
         .from('profile_lenses')
         .select(LENS_FULL)
         .eq('profile_id', profile.id)
-        .in('status', ['active', 'suggested'])
+        .eq('status', 'active')
         .order('sort_order', { ascending: true }),
       // The tier travels only as far as the boolean below. It is selected here
       // because this query is already being made, and it is read once and
@@ -210,7 +215,7 @@ export async function GET(request, { params }) {
         .from('profile_lenses')
         .select(LENS_BASE)
         .eq('profile_id', profile.id)
-        .in('status', ['active', 'suggested'])
+        .eq('status', 'active')
         .order('sort_order', { ascending: true })
       lenses = baseLenses
     } else if (lensRes.error) {
@@ -218,9 +223,11 @@ export async function GET(request, { params }) {
       return Response.json({ error: 'PROFILE_LOAD_FAILED' }, { status: 500 })
     }
 
-    // A built core outranks a suggestion, because it is a direction the person
-    // has actually committed to. Within a status the profile keeps the order the
-    // hub gave it. Anything past the third is not shown.
+    // Everything reaching here is active now, so this ranks nothing in practice
+    // and is kept as a floor: a row arriving in some other state through a path
+    // this route does not know about sorts last rather than first. The order
+    // that does the work is sort_order, which is the one the hub gave them.
+    // Anything past the third is not shown.
     const orderRank = (lens) => (lens?.status === 'active' ? 0 : 1)
     const sortWeight = (lens) => (Number.isFinite(lens?.sort_order) ? lens.sort_order : Number.MAX_SAFE_INTEGER)
 

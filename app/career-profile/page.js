@@ -684,6 +684,34 @@ export default function CareerProfileEditorPage() {
     } : prev)
   }
 
+  // Whether a direction is on the public profile.
+  //
+  // Both records are re-read afterwards, which is the rule every management
+  // write here follows. It matters more than usual for this one: the document
+  // is the recruiter's payload and now carries only the directions that are
+  // showing, so it is what proves the change landed - while the drawer's own
+  // list comes from the management record, which is the only one holding the
+  // hidden and the merely suggested rows, and the column saying which is
+  // primary. Feeding the drawer from the document would have shown a switch
+  // against the primary and no suggestions at all.
+  const setLensVisibility = useCallback(async (lensId, visible) => {
+    const res = await fetch(`/api/career-profile/lens/${lensId}/visibility`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ visible })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        payload?.code === 'UPGRADE_REQUIRED'
+          ? 'Adding another direction is part of Vault and Pro.'
+          : payload?.error || "We couldn't change that direction. Please try again."
+      )
+    }
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
   // ---- states before there is a document ----
   if (loadState === 'loading') {
     return (
@@ -887,6 +915,8 @@ export default function CareerProfileEditorPage() {
         onProfileChanged={handleProfileChanged}
         canCustomise={manage?.canCustomise === true}
         notify={notify}
+        lenses={manage?.lenses || []}
+        onLensVisibility={setLensVisibility}
       />
 
       {/* Last in the tree and fixed to the viewport, so nothing above has to

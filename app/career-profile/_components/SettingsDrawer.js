@@ -57,6 +57,27 @@ function Value({ children, empty }) {
   return <p className="hp-ed-value">{children}</p>
 }
 
+// ---------------------------------------------------------------------------
+// WHAT A DIRECTION IS DOING ON THE PROFILE
+//
+// Four states, and only three of them have a control. The primary is the one
+// the page is written around and cannot be taken off it; a dismissed direction
+// is not offered back here, because putting something back that somebody threw
+// away is a different decision from un-hiding something they kept.
+// ---------------------------------------------------------------------------
+const PRIMARY = 'primary'
+const SHOWING = 'showing'
+const HIDDEN_STATE = 'hidden'
+const OFFERED = 'offered'
+
+function lensState(lens) {
+  if (lens?.source === 'user' && lens?.sort_order === 0) return PRIMARY
+  if (lens?.status === 'active') return SHOWING
+  if (lens?.status === 'hidden') return HIDDEN_STATE
+  if (lens?.status === 'suggested') return OFFERED
+  return null
+}
+
 export default function SettingsDrawer({
   open,
   onClose,
@@ -66,9 +87,37 @@ export default function SettingsDrawer({
   getAuthHeaders,
   onProfileChanged,
   canCustomise,
-  notify
+  notify,
+  lenses,
+  onLensVisibility
 }) {
   const closeRef = useRef(null)
+
+  // Which row is mid-write, so one toggle disables itself without freezing the
+  // rest of the list.
+  const [lensBusy, setLensBusy] = useState(null)
+
+  const directions = (Array.isArray(lenses) ? lenses : [])
+    .map(lens => ({ lens, state: lensState(lens) }))
+    .filter(row => row.state !== null)
+
+  async function setLensVisible(lens, visible) {
+    if (!onLensVisibility || lensBusy) return
+    setLensBusy(lens.id)
+    try {
+      await onLensVisibility(lens.id, visible)
+    } catch (err) {
+      // Every other control in this drawer reports through the same toast, and
+      // this one is no different: the row snaps back to what it was, and the
+      // message says why rather than leaving a switch that did not move.
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't change that direction. Please try again."
+      })
+    } finally {
+      setLensBusy(null)
+    }
+  }
 
   const published = profile?.is_published === true
   const currentSlug = profile?.slug || ''
@@ -274,6 +323,66 @@ export default function SettingsDrawer({
                 : 'Only you can open this Career Profile. The link returns nothing for everybody else.'}
             </p>
           </Group>
+
+          {/* ---- Directions ----
+              What the profile shows, rather than what exists. Hiding one keeps
+              everything written for it, so the switch is reversible in both
+              directions and nothing has to be generated again to come back. */}
+          {directions.length > 0 && (
+            <Group label="Directions">
+              <div className="hp-ed-lenses">
+                {directions.map(({ lens, state }) => {
+                  const busy = lensBusy === lens.id
+                  const showing = state === PRIMARY || state === SHOWING
+                  return (
+                    <div className="hp-ed-lens-row" key={lens.id} data-state={state}>
+                      <span className="hp-ed-lens-name">{lens.name}</span>
+
+                      {state === PRIMARY ? (
+                        // No switch at all. A disabled one would say this is
+                        // yours to change and that it is currently refused,
+                        // and only the second of those is true.
+                        <span className="hp-ed-lens-fixed">Always on</span>
+                      ) : state === OFFERED ? (
+                        canCustomise ? (
+                          <button
+                            type="button"
+                            className="hp-ed-lens-add"
+                            onClick={() => setLensVisible(lens, true)}
+                            disabled={busy}
+                          >
+                            {busy ? 'Adding…' : 'Add to profile'}
+                          </button>
+                        ) : (
+                          <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          className="hp-ed-switch"
+                          role="switch"
+                          aria-checked={showing}
+                          aria-label={`Show ${lens.name} on your profile`}
+                          onClick={() => setLensVisible(lens, !showing)}
+                          // Turning one off is never gated. A lapsed account
+                          // must always be able to take something down.
+                          disabled={busy || (!showing && !canCustomise)}
+                          data-on={showing ? 'true' : 'false'}
+                        >
+                          <span className="hp-ed-switch-knob" aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="hp-ed-soon">
+                {canCustomise
+                  ? 'Your main direction always shows. Turning another one off keeps everything written for it, ready to put back.'
+                  : upgradeCopyFor('lenses')}
+              </p>
+            </Group>
+          )}
 
           {/* ---- Link ---- */}
           <Group label="Link">
