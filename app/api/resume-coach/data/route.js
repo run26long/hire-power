@@ -403,11 +403,16 @@ export async function GET(req) {
     // one tile and looked like an account with one. The page decides what each
     // lens is by whether it has a core behind it, which is the question that
     // actually distinguishes a tile you switch to from one you build.
+    //
+    // Dismissed ones travel too, for the row that offers them back. They are
+    // not tiles and the page must not treat them as any: what separates a
+    // suggestion from a discarded one is the status, and the split on the page
+    // tests for 'suggested' by name rather than for "not active" because of it.
     const { data: profileLenses, error: lensesError } = await supabase
       .from('profile_lenses')
       .select('id, name, slug, evidence_summary, status, source, core_resume_id')
       .eq('user_id', user.id)
-      .in('status', ['suggested', 'active'])
+      .in('status', ['suggested', 'active', 'dismissed'])
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
 

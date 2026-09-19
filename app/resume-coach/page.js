@@ -740,19 +740,30 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     }
   }
 
-  async function dismissLens(lens) {
+  // Dismissing and restoring are one move in two directions, so they are one
+  // function. Optimistic either way: the status flips now and goes back if the
+  // write does not land.
+  //
+  // The status is changed rather than the row removed. It used to be filtered
+  // out of the list entirely, which was right while dismissed rows never
+  // reached this page - now they do, and dropping it would take the direction
+  // off the row without putting it in the section that offers it back, until a
+  // reload put it there.
+  async function setLensDismissed(lens, dismissed) {
     setConfirmingLensId(null);
 
-    // Optimistic: the tile goes now and comes back if the write does not land.
     const previous = data?.profileLenses || [];
+    const next = dismissed ? 'dismissed' : 'suggested';
     setData(prev => prev ? {
       ...prev,
-      profileLenses: (prev.profileLenses || []).filter(l => l.id !== lens.id)
+      profileLenses: (prev.profileLenses || []).map(l => (
+        l.id === lens.id ? { ...l, status: next } : l
+      ))
     } : prev);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/profile-lenses/dismiss', {
+      const res = await fetch(`/api/profile-lenses/${dismissed ? 'dismiss' : 'restore'}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -760,13 +771,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         },
         body: JSON.stringify({ lensId: lens.id })
       });
-      if (!res.ok) throw new Error('Dismiss failed');
+      if (!res.ok) throw new Error(dismissed ? 'Dismiss failed' : 'Restore failed');
     } catch (err) {
-      console.error('Lens dismiss failed:', err);
+      console.error(dismissed ? 'Lens dismiss failed:' : 'Lens restore failed:', err);
       setData(prev => prev ? { ...prev, profileLenses: previous } : prev);
-      setErrorToast("We couldn't remove that suggestion. Please try again.");
+      setErrorToast(dismissed
+        ? "We couldn't remove that suggestion. Please try again."
+        : "We couldn't bring that suggestion back. Please try again.");
     }
   }
+
+  const dismissLens = (lens) => setLensDismissed(lens, true);
+  const restoreLens = (lens) => setLensDismissed(lens, false);
 
   async function commitLensRename(lens) {
     if (cancelLensRenameRef.current) {
@@ -1623,7 +1639,6 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
   const profileLenses = data?.profileLenses || [];
-  const hasLensCard = profileLenses.length > 0;
   // A lens with a core behind it is one to switch to. One without is still an
   // offer. What splits them is the core, not the status: a direction can be
   // 'suggested' and already have a resume built for it, and offering to build
@@ -1645,7 +1660,22 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     l.core_resume_id !== data?.coreResume?.id &&
     switchableCoreIds.has(l.core_resume_id)
   );
-  const suggestedLenses = profileLenses.filter(l => l.status !== 'active' && !l.core_resume_id);
+  // 'suggested' by name, not "anything that is not active". Dismissed rows now
+  // travel in the same payload, and a "not active" test would put a direction
+  // somebody deliberately threw away back on the row as an offer to build it.
+  const suggestedLenses = profileLenses.filter(l => l.status === 'suggested' && !l.core_resume_id);
+
+  // The ones they turned down. Offered back below the row rather than in it:
+  // these are not choices competing with the live tiles, they are things
+  // already declined once, kept because dismissing never deleted them.
+  const dismissedLenses = profileLenses.filter(l => l.status === 'dismissed');
+
+  // Whether there is a tile row at all, which is a question about tiles and not
+  // about rows in the table. It used to count profileLenses, and that was the
+  // same thing until dismissed ones started travelling in the payload: an
+  // account whose only direction had been thrown away would have opened a
+  // selector card holding nothing but the core it already had.
+  const hasLensCard = builtLenses.length > 0 || suggestedLenses.length > 0;
 
   // The row is three tiles wide and never scrolls, so the core on screen leaves two
   // slots. Cores the user has built claim them first because those already exist;
@@ -2233,6 +2263,43 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           );
                         })}
 
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ---- Previously suggested ----
+                      Directions Coach found and the user turned down. Its own
+                      quiet row under the card rather than a fourth tile inside
+                      it: these are not competing with the live ones, and a
+                      discarded direction sharing a box with current ones would
+                      read as another thing to do rather than as an archive.
+
+                      Only here when there is something in it, so an account
+                      that has never dismissed anything never learns the row
+                      exists. Restoring is ungated - it puts the offer back, and
+                      building the core behind it is what costs. */}
+                  {dismissedLenses.length > 0 && (
+                    <div className="mt-2 px-3 md:px-5 py-2.5 rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                      <p className="text-xs md:text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                        Previously suggested
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {dismissedLenses.map((lens) => (
+                          <div
+                            key={lens.id}
+                            className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white"
+                          >
+                            <span className="text-sm md:text-xs text-gray-500 truncate max-w-[180px]">{lens.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => restoreLens(lens)}
+                              title={`Bring ${lens.name} back as a suggestion`}
+                              className="text-xs md:text-[10px] font-semibold text-purple-600 hover:text-purple-800 transition-colors"
+                            >
+                              Restore
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
