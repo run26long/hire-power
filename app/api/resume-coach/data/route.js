@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import puppeteer from 'puppeteer';
 import { normalizeSkillCategories } from '@/lib/resumeText'
 import { coreResumeLabel } from '@/lib/resumeLabel'
+import { isRealCore } from '@/lib/coreResumes'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -293,7 +294,11 @@ export async function GET(req) {
     
     const allCore = coreResumes || [];
     const activeChatResume = allCore.find(r => r.created_via === 'resume_chat' && !r.coaching_complete) || null;
-    const coreResume = allCore.find(r => r.created_via !== 'resume_chat' || r.coaching_complete) || null;
+    // isRealCore is this same test, lifted into lib so the build limit counts
+    // the resumes this picks from. They were written twice and disagreed: the
+    // limit read coaching_complete alone, which is false on most people's main
+    // core, so an account holding three was counted as holding one.
+    const coreResume = allCore.find(isRealCore) || null;
     
     // Generate thumbnail if core resume exists and doesn't have one
     let thumbnailUrl = coreResume?.thumbnail_url;

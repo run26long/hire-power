@@ -53,12 +53,44 @@ export async function POST(request) {
     // produced, could be dismissed out of both pages while its resume went on
     // existing. The pointer is the thing that matters, so the pointer is what
     // is asked. Deleting the core releases the lens and this accepts it again.
+    // ---- WHERE IT LANDS ----
+    // Last. The hub decides which directions get tiles by rank and offers the
+    // rest from the "Additional suggestions" menu, so moving a direction to the
+    // end of the rank is what takes it off the row - the status says it is put
+    // away, the rank says where it now sits among everything else put away.
+    //
+    // Read before the write rather than folded into it, because this has to
+    // know the largest rank the account is using and no update can ask that of
+    // itself.
+    const { data: ranks, error: rankError } = await supabase
+      .from('profile_lenses')
+      .select('sort_order')
+      .eq('user_id', userId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+
+    if (rankError) {
+      console.error('Lens rank lookup failed:', rankError)
+      return Response.json({ error: 'DISMISS_FAILED' }, { status: 500 })
+    }
+    const lastRank = (ranks?.[0]?.sort_order ?? 0) + 1
+
+    // 'active' is accepted as well now. A direction turned on from the Career
+    // Profile that has no resume yet still holds a tile on the hub, and a tile
+    // that offers to be dismissed has to have a route that will take it. What
+    // it costs is the thing the status already said: the direction comes off
+    // the public page. It is not lost - it is in the menu, and picking it there
+    // brings it back.
     const { data: updated, error: updateError } = await supabase
       .from('profile_lenses')
-      .update({ status: 'dismissed', updated_at: new Date().toISOString() })
+      .update({
+        status: 'dismissed',
+        sort_order: lastRank,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', lensId)
       .eq('user_id', userId)
-      .in('status', ['suggested', 'hidden'])
+      .in('status', ['suggested', 'hidden', 'active'])
       .is('core_resume_id', null)
       .eq('source', 'coaching_extraction')
       .select('id')

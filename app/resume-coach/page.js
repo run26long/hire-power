@@ -607,6 +607,10 @@ export default function MyResumesPage() {
   // otherwise.
   const [restoreMenuOpen, setRestoreMenuOpen] = useState(false);
   const restoreMenuRef = useRef(null);
+  // Which direction is being moved onto the row. The whole menu waits on it
+  // rather than one entry, because the swap re-sorts the row and a second pick
+  // mid-flight would be choosing against a layout that is about to change.
+  const [promotingLensId, setPromotingLensId] = useState(null);
 
   // Same dismissal the breadcrumb switcher uses: any click outside, or Escape.
   // A menu left hanging open would float over the tiles while the user is
@@ -768,7 +772,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
       router.push(`/resume/${resumeId}`);
     } catch (err) {
       console.error('Build lens core failed:', err);
-      setBuildCoreError("We couldn't start this core resume. Please try again.");
+      // The limit is a fact about their account, not a failure, and the route
+      // words it. Saying "please try again" to somebody holding three cores
+      // would send them round the same refusal.
+      setBuildCoreError(
+        err?.code === 'CORE_LIMIT'
+          ? err.message
+          : "We couldn't start this core resume. Please try again."
+      );
       setBuildingCore(false);
     }
   }
@@ -815,7 +826,41 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   }
 
   const dismissLens = (lens) => setLensDismissed(lens, true);
-  const restoreLens = (lens) => setLensDismissed(lens, false);
+
+  // Bringing one back out of the menu. Not the inverse of dismissing and not
+  // built from it: dismissing changes a status, this takes a place on the row,
+  // and the direction being picked may never have been dismissed at all - it
+  // may just have come fourth.
+  //
+  // Not optimistic either. Dismissing flips one field and the tile leaves the
+  // row; this swaps two ranks and re-sorts the row around them, and guessing
+  // that locally means duplicating the slot arithmetic in two places that would
+  // then have to agree forever. The reload is one request and the row is small.
+  async function promoteLens(lens, displaced) {
+    if (promotingLensId) return;
+    setPromotingLensId(lens.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/profile-lenses/promote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          lensId: lens.id,
+          ...(displaced ? { displacedLensId: displaced.id } : {})
+        })
+      });
+      if (!res.ok) throw new Error('Promote failed');
+      await loadData();
+    } catch (err) {
+      console.error('Lens promote failed:', err);
+      setErrorToast("We couldn't show that direction. Please try again.");
+    } finally {
+      setPromotingLensId(null);
+    }
+  }
 
   async function commitLensRename(lens) {
     if (cancelLensRenameRef.current) {
@@ -1717,11 +1762,25 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     ...(data?.coreResumes || []).map(c => c.id),
     ...(data?.coreResume ? [data.coreResume.id] : [])
   ]);
+  // ---- RANK ----
+  // Which directions get the three tiles, and which are offered from the menu
+  // instead. sort_order is dense and unique per account now, so it is a real
+  // ordering rather than a column of zeroes broken by whatever created_at
+  // happened to be - which is what it was, and why there was no way to put a
+  // chosen direction into a chosen slot.
+  //
+  // The created_at fallback stays as a floor. Two rows can share a rank for as
+  // long as it takes the second half of a swap to land, and the row should
+  // render in a stable order rather than flicker while it does.
+  const rankOf = (l) => (Number.isFinite(l?.sort_order) ? l.sort_order : Number.MAX_SAFE_INTEGER);
+  const byRank = (a, b) =>
+    rankOf(a) - rankOf(b) || String(a?.created_at || '').localeCompare(String(b?.created_at || ''));
+
   const builtLenses = profileLenses.filter(l =>
     l.core_resume_id &&
     l.core_resume_id !== data?.coreResume?.id &&
     switchableCoreIds.has(l.core_resume_id)
-  );
+  ).sort(byRank);
   // A direction with no core behind it needs one built, and that is true
   // whether it is merely suggested or already on the profile. Testing for
   // 'suggested' left a hole exactly the size of the difference: a lens turned
@@ -1730,14 +1789,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // absent from the hub, with no way to build the core it was missing.
   //
   // Dismissed is still excluded by name. A direction somebody threw away must
-  // not come back on the row as an offer; it belongs in the section below,
-  // which is the one place it is offered back.
-  const suggestedLenses = profileLenses.filter(l => l.status !== 'dismissed' && !l.core_resume_id);
+  // not come back on the row as an offer; it belongs in the menu, which is the
+  // one place it is offered back.
+  const suggestedLenses = profileLenses
+    .filter(l => l.status !== 'dismissed' && !l.core_resume_id)
+    .sort(byRank);
 
   // The ones they turned down, kept because dismissing never deleted them.
-  // Offered back from the menu in the card's top corner rather than from the
-  // row itself: these are not choices competing with the live tiles.
-  const dismissedLenses = profileLenses.filter(l => l.status === 'dismissed');
+  // They rank last, which is what the dismiss route does to them, so they sit
+  // under the overflow in the menu rather than among it.
+  const dismissedLenses = profileLenses
+    .filter(l => l.status === 'dismissed' && !l.core_resume_id)
+    .sort(byRank);
 
   // Whether there is a tile row at all, which is a question about tiles and not
   // about rows in the table. It used to count profileLenses, and that was the
@@ -1752,18 +1815,56 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // missing in exactly the case it exists for.
   const hasLensCard = builtLenses.length > 0 || suggestedLenses.length > 0 || dismissedLenses.length > 0;
 
-  // The row is three tiles wide and never scrolls, so the core on screen leaves two
-  // slots. Cores the user has built claim them first because those already exist;
-  // suggestions fill whatever is left, in the order the route returned them. Anything
-  // past that is simply not shown.
-  const LENS_TILE_SLOTS = 2;
-  const visibleBuiltLenses = builtLenses.slice(0, LENS_TILE_SLOTS);
-  const visibleSuggestedLenses = suggestedLenses.slice(0, LENS_TILE_SLOTS - visibleBuiltLenses.length);
+  // ---- THE THREE SLOTS ----
+  // The row is three tiles wide and never scrolls. The core on screen holds the
+  // first, cores the user has built claim what is left because those already
+  // exist, and coreless directions fill whatever remains, by rank.
+  const LENS_TILE_SLOTS = 3;
+  const coreTileCount = data?.coreResume ? 1 : 0;
+  const visibleBuiltLenses = builtLenses.slice(0, LENS_TILE_SLOTS - coreTileCount);
+  const visibleSuggestedLenses = suggestedLenses
+    .slice(0, LENS_TILE_SLOTS - coreTileCount - visibleBuiltLenses.length);
+
+  // Every slot holding a resume. Three of them means there is nothing on the
+  // row to trade: no tile can be dismissed, nothing can be swapped in, and the
+  // only way to change what is here is to delete a core from its thumbnail.
+  const builtTileCount = coreTileCount + visibleBuiltLenses.length;
+  const allSlotsBuilt = builtTileCount >= LENS_TILE_SLOTS;
+
+  // ---- ADDITIONAL SUGGESTIONS ----
+  // Every direction with no resume that is not on the row: the ones past the
+  // third slot, and the ones dismissed off it. They are the same offer from
+  // here, which is the point - a direction the user turned down and one that
+  // merely came fourth are both just directions they are not looking at, and
+  // neither is gone.
+  //
+  // The last coreless tile is what a pick from the menu trades places with. A
+  // built core is never it, and neither is the primary: the row keeps the
+  // direction the whole Career Profile is written around.
+  const tiledSuggestionIds = new Set(visibleSuggestedLenses.map(l => l.id));
+  const additionalSuggestions = [
+    ...suggestedLenses.filter(l => !tiledSuggestionIds.has(l.id)),
+    ...dismissedLenses
+  ];
+  const displaceable = visibleSuggestedLenses.filter(
+    l => !(l.source === 'user' && l.sort_order === 0)
+  );
+  const hasFreeSlot = visibleBuiltLenses.length + visibleSuggestedLenses.length
+    < LENS_TILE_SLOTS - coreTileCount;
+  // Offered only when it can do something. With every slot built there is
+  // nowhere to put a pick, and a menu that opens onto a choice that cannot be
+  // honoured is worse than no menu.
+  const canSwapIn = hasFreeSlot || displaceable.length > 0;
+  const showAdditional = additionalSuggestions.length > 0 && !allSlotsBuilt && canSwapIn;
 
   // Caption for the core-resume selector. builtCount counts the priority core plus
   // every lens core built from it, so all three lines are reachable: nothing left to
   // build, more than one core in hand, or suggestions still waiting.
-  function lensCaptionFor({ builtCount, suggestionCount }) {
+  function lensCaptionFor({ builtCount, suggestionCount, allSlotsBuilt }) {
+    // Three cores is the ceiling, so this row is finished. Said plainly,
+    // because the alternative is an owner hunting for the control that would
+    // add a fourth.
+    if (allSlotsBuilt) return `Switch between your ${LENS_TILE_SLOTS} Core Resumes. Delete one to build a different direction.`;
     // One core and nothing suggested is a state the card only reaches now that
     // dismissed directions open it, and "switch between" is the wrong thing to
     // say about a single resume.
@@ -2184,13 +2285,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           you, and the corner is where a card keeps what it
                           offers rather than what it is showing. */}
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-sm text-gray-500">{lensCaptionFor({ builtCount: 1 + visibleBuiltLenses.length, suggestionCount: visibleSuggestedLenses.length })}</p>
+                        <p className="text-sm text-gray-500">{lensCaptionFor({ builtCount: builtTileCount, suggestionCount: visibleSuggestedLenses.length, allSlotsBuilt })}</p>
 
-                        {/* Nothing dismissed, no control. An account that has
-                            never turned a direction down never learns it is
-                            here, which is the right amount of attention for an
-                            archive. */}
-                        {dismissedLenses.length > 0 && (
+                        {/* Nothing waiting, or nowhere to put it, and there is
+                            no control. An account whose directions all fit on
+                            the row never learns the menu exists, and one whose
+                            three slots all hold resumes is shown no offer it
+                            could not honour. */}
+                        {showAdditional && (
                           <div className="relative flex-shrink-0" ref={restoreMenuRef}>
                             <button
                               type="button"
@@ -2199,7 +2301,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                               aria-expanded={restoreMenuOpen}
                               className="inline-flex items-center gap-1 text-xs md:text-[11px] font-semibold text-gray-500 hover:text-purple-600 transition-colors whitespace-nowrap"
                             >
-                              Restore a suggestion
+                              Additional suggestions
                               <span
                                 aria-hidden="true"
                                 className={`text-sm leading-none transition-transform ${restoreMenuOpen ? 'rotate-180' : ''}`}
@@ -2217,13 +2319,23 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 it past the screen. */}
                             {restoreMenuOpen && (
                               <div className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-md shadow-lg py-1">
-                                {dismissedLenses.map((lens) => (
+                                {additionalSuggestions.map((lens) => (
                                   <button
                                     key={lens.id}
                                     type="button"
-                                    onClick={() => { setRestoreMenuOpen(false); restoreLens(lens); }}
-                                    title={`Bring ${lens.name} back as a suggestion`}
-                                    className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-purple-600 truncate"
+                                    // The last coreless tile is the one that
+                                    // gives up its place, and only when there is
+                                    // no empty one to take instead. It is not
+                                    // dismissed for it - it trades ranks and
+                                    // lands in this menu, where the direction
+                                    // being picked has been sitting.
+                                    onClick={() => {
+                                      setRestoreMenuOpen(false);
+                                      promoteLens(lens, hasFreeSlot ? null : displaceable[displaceable.length - 1]);
+                                    }}
+                                    disabled={Boolean(promotingLensId)}
+                                    title={`Show ${lens.name} on the row`}
+                                    className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 hover:text-purple-600 truncate disabled:opacity-50"
                                   >
                                     {lens.name}
                                   </button>
@@ -2297,18 +2409,26 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           // and a hidden one is off the profile with its resume
                           // intact. Both belong here; neither is a suggestion.
                           //
-                          // Dismiss takes a hidden direction as well as a
-                          // suggested one, so a direction taken off the profile
-                          // can be retired from the hub without going back to
-                          // Settings first. Rename does not: it exists to name
-                          // a suggestion before a core is built from it, and a
-                          // hidden direction is past that point.
+                          // Dismiss takes any coreless direction on this row,
+                          // whatever its status - suggested, hidden, or turned
+                          // on from the Career Profile. Every tile here is an
+                          // offer to build, and an offer you cannot decline is
+                          // not one. What it costs differs by status and the
+                          // status already says so: an active direction comes
+                          // off the public page with it. Nothing is lost either
+                          // way; it moves to the menu above and can be picked
+                          // back out of it.
+                          //
+                          // Rename does not follow. It exists to name a
+                          // suggestion before a core is built from it, and a
+                          // direction already on the profile is past that.
                           //
                           // Both still require the coaching extraction to have
-                          // written it. A direction the user named themselves
-                          // is not either route's to change.
+                          // written it, which is also what keeps them off the
+                          // primary: the direction the whole Career Profile is
+                          // written around is not this row's to retire.
                           const fromCoaching = lens.source === 'coaching_extraction';
-                          const canRetire = fromCoaching && (lens.status === 'suggested' || lens.status === 'hidden');
+                          const canRetire = fromCoaching && !lens.core_resume_id;
                           const canRename = fromCoaching && lens.status === 'suggested';
                           // Dashed and greyed: a suggestion is an offer, not a core. Only
                           // the sub-label carries colour, so it reads as the call to action.

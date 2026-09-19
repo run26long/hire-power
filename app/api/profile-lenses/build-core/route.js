@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { isRealCore, MAX_CORES } from '@/lib/coreResumes'
 
 // ============================================================================
 // POST /api/profile-lenses/build-core
@@ -10,9 +11,6 @@ import { apiError } from '@/lib/apiError'
 //
 // Request body: { lensId: string }
 // ============================================================================
-
-// The same three the Career Profile shows and its visibility route enforces.
-const MAX_ACTIVE_LENSES = 3
 
 export async function POST(request) {
   try {
@@ -46,6 +44,38 @@ export async function POST(request) {
     }
     if (profile?.subscription_tier !== 'pro') {
       return Response.json({ error: 'PRO_REQUIRED' }, { status: 403 })
+    }
+
+    // ---- HOW MANY CORES THEY ALREADY HAVE ----
+    // Counted through isRealCore, the same test the hub applies when it picks
+    // the core to open with, so the limit counts exactly the resumes the page
+    // shows. Counting every core row instead would count what nobody can see:
+    // seven accounts carry three or more, and most of those are chat-flow
+    // attempts abandoned months ago that have never appeared on the hub.
+    //
+    // Rows rather than a head count, because the test is a disjunction and
+    // expressing it as a filter invites the NULL semantics to differ from the
+    // JavaScript. There are at most a handful of core rows per account.
+    const { data: coreRows, error: coreCountError } = await supabase
+      .from('resumes')
+      .select('id, created_via, coaching_complete')
+      .eq('user_id', userId)
+      .eq('resume_type', 'core')
+      .eq('is_active', true)
+
+    if (coreCountError) {
+      console.error('Build core count failed:', coreCountError)
+      return Response.json({ error: 'BUILD_FAILED' }, { status: 500 })
+    }
+    const coreCount = (coreRows || []).filter(isRealCore).length
+    if (coreCount >= MAX_CORES) {
+      return Response.json(
+        {
+          error: `You can keep ${MAX_CORES} core resumes. Delete one to build another.`,
+          code: 'CORE_LIMIT'
+        },
+        { status: 400 }
+      )
     }
 
     // ---- LENS ----
@@ -129,33 +159,18 @@ export async function POST(request) {
     // A lens left on 'suggested' shows one stale tile, which is recoverable;
     // failing the request after creating the resume is not.
     //
-    // Building normally puts the direction on the Career Profile as well, and
-    // locks it there - a resume is the strongest thing anybody says about a
-    // direction, and the profile should not be quieter about it than the hub.
+    // Building puts the direction on the Career Profile as well, and locks it
+    // there - a resume is the strongest thing anybody says about a direction,
+    // and the profile should not be quieter about it than the hub.
     //
-    // Except when the profile is already showing its three. The page renders
-    // three and the public route slices to three, so a fourth would be written
-    // active and then not appear: the direction would read as published on the
-    // management page and be absent from the page itself. The core is still
-    // built - that is what was asked for and paid for - and the direction waits
-    // as it was until a slot is free. `profileFull` says so, so the hub can
-    // tell them rather than leaving them to notice.
-    const { count: activeCount, error: countError } = await supabase
-      .from('profile_lenses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .neq('id', lens.id)
-
-    if (countError) {
-      console.error('Active lens count failed (non-blocking):', countError)
-    }
-    const profileFull = (activeCount ?? 0) >= MAX_ACTIVE_LENSES
-
+    // It can always go on. Three cores is the ceiling and three directions is
+    // the ceiling, and the check above means a build that gets this far is at
+    // most the third of either. There is no arrangement left where a direction
+    // earns a resume and the profile has nowhere to show it.
     const { error: lensUpdateError } = await supabase
       .from('profile_lenses')
       .update({
-        ...(profileFull ? {} : { status: 'active' }),
+        status: 'active',
         core_resume_id: newResume.id,
         updated_at: new Date().toISOString()
       })
@@ -166,7 +181,7 @@ export async function POST(request) {
       console.error('Lens status update failed (non-blocking):', lensUpdateError)
     }
 
-    return Response.json({ resumeId: newResume.id, profileFull })
+    return Response.json({ resumeId: newResume.id })
 
   } catch (error) {
     return apiError(error, "We couldn't start this core resume. Please try again.")
