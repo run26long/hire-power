@@ -2160,20 +2160,30 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           const failed = lensRenameError === lens.id;
                           const isConfirming = confirmingLensId === lens.id;
                           // Whether this tile's two small controls have a route
-                          // that will take them. Both /profile-lenses/dismiss
-                          // and /profile-lenses/rename match on a suggestion
-                          // the coaching extraction wrote, and nothing else, so
-                          // a tile that is not one has an X and a pencil that
-                          // can only fail.
+                          // that will take them, asked separately because the
+                          // two routes no longer accept the same thing.
                           //
-                          // Every tile in this row used to be a suggestion, and
-                          // the controls needed no test. They stopped being one
-                          // when the row started offering a core for any
-                          // direction that lacks one: a direction turned on
-                          // from the profile is active, has no resume yet, and
-                          // belongs here - it simply cannot be retired or
-                          // renamed from here.
-                          const isOffer = lens.status === 'suggested' && lens.source === 'coaching_extraction';
+                          // Every tile in this row used to be a suggestion, so
+                          // the controls needed no test at all. They stopped
+                          // being one when the row started offering a core for
+                          // any direction that lacks one: a direction turned on
+                          // from the profile is active and has no resume yet,
+                          // and a hidden one is off the profile with its resume
+                          // intact. Both belong here; neither is a suggestion.
+                          //
+                          // Dismiss takes a hidden direction as well as a
+                          // suggested one, so a direction taken off the profile
+                          // can be retired from the hub without going back to
+                          // Settings first. Rename does not: it exists to name
+                          // a suggestion before a core is built from it, and a
+                          // hidden direction is past that point.
+                          //
+                          // Both still require the coaching extraction to have
+                          // written it. A direction the user named themselves
+                          // is not either route's to change.
+                          const fromCoaching = lens.source === 'coaching_extraction';
+                          const canRetire = fromCoaching && (lens.status === 'suggested' || lens.status === 'hidden');
+                          const canRename = fromCoaching && lens.status === 'suggested';
                           // Dashed and greyed: a suggestion is an offer, not a core. Only
                           // the sub-label carries colour, so it reads as the call to action.
                           // Hover fills the tile in for a Pro user, who can actually build
@@ -2190,7 +2200,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                           >
                             {/* Only a suggestion can be dismissed, so this lives here
                                 and not on the core tile or a built one. */}
-                            {isOffer && !isEditing && !isConfirming && (
+                            {canRetire && !isEditing && !isConfirming && (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setConfirmingLensId(lens.id); }}
@@ -2269,7 +2279,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                 {failed ? "Couldn't rename" : 'Build this core'}
                               </div>
                             </div>
-                            {isOffer && !isEditing && !isConfirming && (
+                            {canRename && !isEditing && !isConfirming && (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); setLensRenameError(null); setEditingLensName(lens.name); setEditingLensId(lens.id); }}

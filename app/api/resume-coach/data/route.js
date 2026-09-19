@@ -404,15 +404,22 @@ export async function GET(req) {
     // lens is by whether it has a core behind it, which is the question that
     // actually distinguishes a tile you switch to from one you build.
     //
-    // Dismissed ones travel too, for the row that offers them back. They are
+    // Hidden ones travel as well. Hiding takes a direction off the public
+    // profile and changes nothing about the resume behind it, so the hub still
+    // has a core to offer or to switch to - the two pages are answering
+    // different questions, and a direction being unpublished is no reason for
+    // the one about resumes to forget it exists.
+    //
+    // Dismissed ones travel too, for the row that offers them back. Those are
     // not tiles and the page must not treat them as any: what separates a
-    // suggestion from a discarded one is the status, and the split on the page
-    // tests for 'suggested' by name rather than for "not active" because of it.
+    // direction still in play from a discarded one is the status, and the split
+    // on the page names 'dismissed' rather than testing for "not active"
+    // because of it.
     const { data: profileLenses, error: lensesError } = await supabase
       .from('profile_lenses')
       .select('id, name, slug, evidence_summary, status, source, core_resume_id')
       .eq('user_id', user.id)
-      .in('status', ['suggested', 'active', 'dismissed'])
+      .in('status', ['suggested', 'active', 'hidden', 'dismissed'])
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
 

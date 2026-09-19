@@ -36,12 +36,21 @@ export async function POST(request) {
 
     // Ownership and eligibility ride on the update itself: an active lens or a
     // user-created one matches nothing here and comes back as not found.
+    //
+    // Hidden counts as well as suggested. A hidden direction is one taken off
+    // the profile and kept, and it still shows on the resume hub as a core that
+    // could be built - so the hub offers to retire it, and this is the route
+    // that has to accept it. Without it the control could only fail.
+    //
+    // The source test does not move with it. A direction the user built or
+    // named themselves is still not this endpoint's to remove, whatever its
+    // status, and hiding one does not make it so.
     const { data: updated, error: updateError } = await supabase
       .from('profile_lenses')
       .update({ status: 'dismissed', updated_at: new Date().toISOString() })
       .eq('id', lensId)
       .eq('user_id', userId)
-      .eq('status', 'suggested')
+      .in('status', ['suggested', 'hidden'])
       .eq('source', 'coaching_extraction')
       .select('id')
       .maybeSingle()
