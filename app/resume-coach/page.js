@@ -1660,10 +1660,17 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
     l.core_resume_id !== data?.coreResume?.id &&
     switchableCoreIds.has(l.core_resume_id)
   );
-  // 'suggested' by name, not "anything that is not active". Dismissed rows now
-  // travel in the same payload, and a "not active" test would put a direction
-  // somebody deliberately threw away back on the row as an offer to build it.
-  const suggestedLenses = profileLenses.filter(l => l.status === 'suggested' && !l.core_resume_id);
+  // A direction with no core behind it needs one built, and that is true
+  // whether it is merely suggested or already on the profile. Testing for
+  // 'suggested' left a hole exactly the size of the difference: a lens turned
+  // on from the profile has no resume yet, so it matched neither this list nor
+  // the one above, and rendered no tile at all - present on the public page,
+  // absent from the hub, with no way to build the core it was missing.
+  //
+  // Dismissed is still excluded by name. A direction somebody threw away must
+  // not come back on the row as an offer; it belongs in the section below,
+  // which is the one place it is offered back.
+  const suggestedLenses = profileLenses.filter(l => l.status !== 'dismissed' && !l.core_resume_id);
 
   // The ones they turned down. Offered back below the row rather than in it:
   // these are not choices competing with the live tiles, they are things
