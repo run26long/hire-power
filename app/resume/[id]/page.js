@@ -1124,25 +1124,27 @@ if (data.ai_analysis) {
 
   // Breadcrumb dropdown targets. A job-specific resume points at the user's other
   // job-specific resumes and at this job's cover letter. A core resume points at
-  // the user's other finished cores, so a lens core and the one it was cloned from
-  // can switch between each other without a trip back to the hub. A core still being
-  // coached is not a destination yet, so it stays out of the list.
+  // the user's other cores, so a lens core and the one it was cloned from can
+  // switch between each other without a trip back to the hub.
   async function loadBreadcrumbLinks(resumeRow, userId) {
     try {
       if (resumeRow?.resume_type === 'core') {
-        // The switcher list is the finished cores. The lens rows and the core
-        // count are for the titles, and the count deliberately is not the
-        // switcher's: that one is narrowed to coaching_complete, and counting
-        // only those would call a second core unambiguous while another still
-        // being coached sits beside it.
+        // Every active core, narrowed below to the ones the hub would let you
+        // land on. It used to ask for coaching_complete cores only, on the rule
+        // that a core still being coached is not a destination yet - but the hub
+        // opens on exactly such a core whenever it is the priority one, so the
+        // breadcrumb was refusing to list a resume the user had just arrived
+        // from. Twelve of the thirteen accounts holding more than one core had
+        // no switcher at all because of it.
+        //
+        // The lens rows and the total are for the titles rather than the list.
         const [{ data: cores }, { data: lenses }, { count: coreTotal }] = await Promise.all([
           supabase
             .from('resumes')
-            .select('id, display_name')
+            .select('id, display_name, coaching_complete, is_priority_core')
             .eq('user_id', userId)
             .eq('resume_type', 'core')
             .eq('is_active', true)
-            .eq('coaching_complete', true)
             .order('is_priority_core', { ascending: false })
             .order('created_at', { ascending: true }),
           supabase
@@ -1157,7 +1159,22 @@ if (data.ai_analysis) {
             .eq('is_active', true)
         ])
 
-        setCoreResumes(cores || [])
+        // The hub's own rule for which cores it will switch between: the ones
+        // that have finished coaching, plus the one it opens on. Keeping the
+        // two in step means a core you can reach from the hub is a core the
+        // breadcrumb will list, and one it will not is one you cannot land on
+        // there either.
+        //
+        // The opening core is the flagged priority core where there is one and
+        // the newest otherwise, which is what the ordering above already puts
+        // first, so it is simply the head of the list.
+        const all = cores || []
+        const opening = all[0] || null
+        const switchable = all.filter(
+          c => c.coaching_complete === true || (opening && c.id === opening.id)
+        )
+
+        setCoreResumes(switchable)
         setNamingLenses(lenses || [])
         setActiveCoreCount(typeof coreTotal === 'number' ? coreTotal : null)
         return
@@ -2558,7 +2575,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                     if (index >= maxStepIndex || index === displayIndex) return
                     setViewingStep(step)
                   }}
-                 className={`text-sm md:text-xs mt-1 capitalize ${
+                 className={`text-sm mt-1 capitalize ${
                     index === displayIndex ? 'text-purple-600 font-semibold' :
                     index <= maxStepIndex ? 'text-purple-600 cursor-pointer hover:underline' :
                     'text-gray-400'
@@ -2575,12 +2592,12 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
         <>
           <h3 className="font-semibold text-lg -mt-3 mb-3">📝 Review Your Resume</h3>
           
-          <p className="text-sm md:text-xs text-gray-700 mb-3">
+          <p className="text-sm text-gray-700 mb-3">
             AI parsing isn't perfect, so things occasionally land in the wrong spot. Take a quick look at your resume, and make sure everything's where it should be. Click any section to edit or move content around.
           </p>
 
           <div className="bg-purple-50 border-l-4 border-purple-500 p-3 mb-4">
-            <div className="text-sm md:text-xs text-purple-900 space-y-2">
+            <div className="text-sm text-purple-900 space-y-2">
               <div><strong>✓ Check contact info</strong></div>
               <div><strong>✓ Verify job titles and dates</strong></div>
               <div><strong>✓ Review bullet points</strong></div>
@@ -2643,7 +2660,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
   {userTier === 'free' ? (
       <>
         {(matchedCount || missingCount) ? (
-          <p className="text-sm md:text-xs text-gray-700 text-center -mt-1">
+          <p className="text-sm text-gray-700 text-center -mt-1">
             You meet <span className="font-semibold text-gray-900">{matchedCount} of {matchedCount + missingCount}</span> requirements for this role.
           </p>
         ) : null}
@@ -2655,13 +2672,13 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
           return (
             <ul className="space-y-1.5 text-left">
               {visible.map((sentence, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm md:text-xs text-gray-700">
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
                   <span className="text-purple-600 mt-0.5 flex-shrink-0">✓</span>
                   <span>{sentence.slice(1).trim()}</span>
                 </li>
               ))}
               {hasMore && (
-               <li className="flex items-start gap-2 text-sm md:text-xs text-gray-700">
+               <li className="flex items-start gap-2 text-sm text-gray-700">
                   <span className="mt-0.5 flex-shrink-0">⚠️</span>
                  <span className="text-purple-600 font-semibold">Additional strengths and opportunities identified — upgrade to reveal</span>
                 </li>
@@ -2671,10 +2688,10 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
         })()}
 
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <p className="text-sm md:text-xs font-semibold text-purple-800 mb-2">
+          <p className="text-sm font-semibold text-purple-800 mb-2">
             🔒 {matchedCount} skills matched · {missingCount} to address
           </p>
-          <p className="text-sm md:text-xs text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap so your resume becomes a stronger match for this specific job.</p>
+          <p className="text-sm text-gray-600 mb-3">Upgrade to Pro to see exactly what's missing and get personalized coaching to close the gap so your resume becomes a stronger match for this specific job.</p>
           <button
             onClick={() => setShowUpgradeModal(true)}
             className="block mx-auto text-white rounded-lg py-2 px-8 text-sm md:text-xs font-semibold transition-opacity hover:opacity-90"
@@ -2691,7 +2708,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
               : <>Pro users who coach low-match resumes see an average <span className="font-semibold">12-point score improvement.</span></>
            return (
               <div className="border-l-4 border-purple-400 pl-2 mt-3">
-                <p className="text-sm md:text-xs text-gray-500 italic leading-snug">{msg}</p>
+                <p className="text-sm text-gray-500 italic leading-snug">{msg}</p>
               </div>
             )
           })()}
@@ -2711,7 +2728,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
         <ul className="space-y-1.5 text-left">
           {(Array.isArray(analysisResults?.analysis?.summary) ? analysisResults.analysis.summary : [])
             .map((sentence, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm md:text-xs text-gray-600">
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
                 <span className={`mt-0.5 flex-shrink-0 ${sentence.startsWith('○') ? 'text-gray-400' : 'text-purple-600'}`}>
                   {sentence.startsWith('○') ? '○' : '✓'}
                 </span>
@@ -2748,7 +2765,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
         <div className="space-y-4 pt-2">
           <div className="text-center">
             <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-1">More to add?</p>
-            <p className="text-sm md:text-xs text-gray-600 mb-2 leading-snug">
+            <p className="text-sm text-gray-600 mb-2 leading-snug">
               Tell us about the extra skills and experience, and we'll use it to strengthen your resume.
             </p>
             <button
@@ -2780,7 +2797,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
 
           <div className="text-center">
             <p className="text-xs md:text-[10px] text-purple-600 font-semibold uppercase tracking-wide mb-1">Nothing more to add?</p>
-            <p className="text-sm md:text-xs text-gray-600 mb-2 leading-snug">
+            <p className="text-sm text-gray-600 mb-2 leading-snug">
               We'll use your existing content to tailor your resume as well as possible for this job.
             </p>
             <button
@@ -2847,7 +2864,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                     <span className="font-semibold text-gray-900 text-sm">Impact</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 25}/50</span>
                   </div>
-                 <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
+                 <div className="text-sm text-gray-500 leading-tight mb-1.5">
                     {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
                     {detectedLevel === 'mid' && 'Specificity, scope, scale & results'}
                     {detectedLevel === 'senior' && 'Specificity, scope, scale & organizational impact'}
@@ -2871,7 +2888,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                     <span className="font-semibold text-gray-900 text-sm">Clarity</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 18}/30</span>
                   </div>
-                  <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
+                  <div className="text-sm text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
   className="h-full"
@@ -2891,7 +2908,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                     <span className="font-semibold text-gray-900 text-sm">Keywords</span>
                     <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 14}/20</span>
                   </div>
-                 <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
+                 <div className="text-sm text-gray-500 leading-tight mb-1.5">
                   {detectedLevel === 'entry' && 'Field vocabulary, tools, and software names'}
 {detectedLevel === 'mid' && 'Field vocabulary, tools, and software names'}
 {detectedLevel === 'senior' && 'Field vocabulary, tools, methodologies, and systems'}
@@ -2922,7 +2939,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 "Professional formatting maintains clear, readable structure.",
                 "Skills section includes relevant technical and soft skills."
               ]).map((strength, i) => (
-                <li key={i} className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+                <li key={i} className="text-sm text-gray-700 flex gap-2 leading-snug">
                   <span className="text-green-600 flex-shrink-0">•</span>
                   <span>{strength}</span>
                 </li>
@@ -2954,7 +2971,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 "Education section could benefit from relevant coursework or academic honors.",
                 "Event coordination lacks scope indicators such as event count or budget details."
              ]).map((weakness, i) => (
-                <li key={i} className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+                <li key={i} className="text-sm text-gray-700 flex gap-2 leading-snug">
                   <span className="text-red-600 flex-shrink-0">•</span>
                   <span>{weakness}</span>
                 </li>
@@ -2986,7 +3003,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 "Strengthen education section: include GPA if above 3.5, relevant coursework, or academic honors.",
                 "Replace weak verbs like 'helped' and 'responsible for' with action verbs showing direct impact."
               ]).map((suggestion, i) => (
-                <li key={i} className="text-sm md:text-xs text-gray-700 flex gap-2 leading-snug">
+                <li key={i} className="text-sm text-gray-700 flex gap-2 leading-snug">
                   <span className="text-yellow-600 flex-shrink-0">•</span>
                   <span>{suggestion}</span>
                 </li>

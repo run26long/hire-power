@@ -887,7 +887,7 @@ export default function InterviewDetailPage() {
                         }`} style={unlocked ? { background: 'linear-gradient(to bottom right, #667eea, #764ba2)' } : {}}>
                           {current ? '●' : unlocked ? '✓' : '○'}
                         </div>
-                        <span className={`text-sm md:text-xs mt-1 ${
+                        <span className={`text-sm mt-1 ${
                           current ? 'text-purple-600 font-semibold' :
                           unlocked ? 'text-purple-600 cursor-pointer hover:underline' :
                           'text-gray-400'
@@ -993,7 +993,7 @@ function BucketColumn({
         </div>
       </div>
       {items.length === 0 ? (
-        <p className={`text-sm md:text-xs ${c.emptyText} italic`}>{emptyText}</p>
+        <p className={`text-sm ${c.emptyText} italic`}>{emptyText}</p>
       ) : (
         <ul className="space-y-2">
           {items.map((item, i) => (
@@ -1006,7 +1006,7 @@ function BucketColumn({
                   <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {getNameField(item)}</p>
                 </div>
                 {getTextField(item) && (
-                  <p className="text-sm md:text-xs text-gray-700 leading-snug">{getTextField(item)}</p>
+                  <p className="text-sm text-gray-700 leading-snug">{getTextField(item)}</p>
                 )}
                 {getSourceField && getSourceField(item) && (
                   <p className="text-xs md:text-[9px] text-gray-400 mt-1 italic">{getSourceField(item)}</p>
@@ -1052,30 +1052,30 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+      <p className="text-sm text-gray-600 leading-relaxed">
         Your Power Analysis shows you where to focus so you can walk into your interview ready.
       </p>
       <ul className="space-y-2">
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">✅</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          <p className="text-sm text-gray-600 leading-relaxed">
             <span className="font-bold text-purple-800">Core Power:</span> Your strongest matches for this role. These are the skills and experiences to include in your answers.
           </p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">💡</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          <p className="text-sm text-gray-600 leading-relaxed">
             <span className="font-bold text-green-800">Hidden Power:</span> Strengths you already have, even if they don’t look like an obvious match. We’ll show you how to connect the dots and make them work for you.
           </p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">⚠️</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+          <p className="text-sm text-gray-600 leading-relaxed">
             <span className="font-bold text-amber-800">Power Gaps:</span> Skills the job calls for that you may not have yet. Don&apos;t panic. We’ll help you prepare in case they come up.
           </p>
         </li>
       </ul>
-      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+      <p className="text-sm text-gray-500 leading-relaxed">
         Next step? We&apos;ll help you research the company.
       </p>
       {/* First step, so no back link. Completion lives in the strip's purple
@@ -1143,7 +1143,7 @@ function ResearchCard({ title, color, isEmpty, emptyText = 'No information avail
       ) : (
         <CardHeading color={color}>{title}</CardHeading>
       )}
-      {isEmpty ? <p className="text-sm md:text-xs text-gray-400">{emptyText}</p> : children}
+      {isEmpty ? <p className="text-sm text-gray-400">{emptyText}</p> : children}
     </div>
   );
 }
@@ -1152,7 +1152,7 @@ function DotList({ items, color }) {
   return (
     <ul className="space-y-1.5">
       {items.map((item, i) => (
-        <li key={i} className="text-sm md:text-xs text-gray-700 leading-snug flex items-start gap-2">
+        <li key={i} className="text-sm text-gray-700 leading-snug flex items-start gap-2">
           <span
             className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
             style={{ backgroundColor: color }}
@@ -1172,7 +1172,7 @@ function ResearchEmptyState({ emoji, heading, children }) {
     <div className="bg-white shadow-sm rounded-lg p-8 text-center">
       <div className="text-3xl mb-2">{emoji}</div>
       <p className="text-base font-semibold text-gray-900 mb-1">{heading}</p>
-      <p className="text-sm md:text-xs text-gray-500">{children}</p>
+      <p className="text-sm text-gray-500">{children}</p>
     </div>
   );
 }
@@ -1194,7 +1194,7 @@ function Stat({ label, value, bullets, color = DOT_PURPLE }) {
       {parts ? (
         <DotList items={parts} color={DOT_PURPLE} />
       ) : (
-        <p className="text-sm md:text-xs text-gray-700 leading-snug">{value}</p>
+        <p className="text-sm text-gray-700 leading-snug">{value}</p>
       )}
     </div>
   );
@@ -1310,7 +1310,7 @@ function ResearchStepContent({ jobCard }) {
       {researchLoading && (
         <div className="flex flex-col items-center justify-center py-12 gap-4">
           <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
-          <p className="text-sm md:text-xs text-gray-600">
+          <p className="text-sm text-gray-600">
             Researching {jobCard?.company || 'this company'}...
           </p>
         </div>
@@ -1352,9 +1352,9 @@ function ResearchStepContent({ jobCard }) {
           <div className="md:col-span-2 bg-purple-50 border border-purple-200 rounded-lg p-4">
             <CardHeading color={HEADING_DARK}>🏢 Company Overview</CardHeading>
             {research.what_they_do ? (
-              <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{research.what_they_do}</p>
+              <p className="text-sm text-gray-600 leading-relaxed">{research.what_they_do}</p>
             ) : (
-              <p className="text-sm md:text-xs text-gray-400">No information available.</p>
+              <p className="text-sm text-gray-400">No information available.</p>
             )}
             {(research.size_and_location || research.hiring_context) && (
               <div className="mt-3 pt-3 border-t border-purple-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1371,7 +1371,7 @@ function ResearchStepContent({ jobCard }) {
           <ResearchCard title="📰 Recent News" color={DOT_PURPLE} isEmpty={news.length === 0}>
             <ul className="space-y-2">
               {news.map((item, i) => (
-                <li key={i} className="text-sm md:text-xs text-gray-700 leading-snug flex items-start gap-2">
+                <li key={i} className="text-sm text-gray-700 leading-snug flex items-start gap-2">
                   <span
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
                     style={{ backgroundColor: DOT_PURPLE }}
@@ -1391,7 +1391,7 @@ function ResearchStepContent({ jobCard }) {
             isEmpty={!culture?.mission && !culture?.values?.length}
           >
             {culture?.mission && (
-              <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-3">{culture.mission}</p>
+              <p className="text-sm text-gray-600 leading-relaxed mb-3">{culture.mission}</p>
             )}
             {Array.isArray(culture?.values) && culture.values.length > 0 && (
               <div className="flex flex-col items-start gap-1">
@@ -1430,7 +1430,7 @@ function ResearchStepContent({ jobCard }) {
               </span>
             }
           >
-            <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{style?.likely_format}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{style?.likely_format}</p>
           </ResearchCard>
 
           <ResearchCard
@@ -1470,18 +1470,18 @@ function ResearchIdlePanel({ onGoToPrepare, onBack }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">🔍 Company Research</h3>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+      <p className="text-sm text-gray-600 leading-relaxed">
         Get to know the company before your interview so that you can ask thoughtful questions. We&apos;ve gotten you started with the following info:
       </p>
       <ul className="space-y-1.5 pl-3">
         {RESEARCH_TOPICS.map(({ icon, label }) => (
           <li key={label} className="flex items-start gap-2">
             <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">{icon}</span>
-            <p className="text-sm md:text-xs text-gray-600 leading-relaxed">{label}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{label}</p>
           </li>
         ))}
       </ul>
-      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+      <p className="text-sm text-gray-500 leading-relaxed">
         Next step? Print your interview toolkit.
       </p>
       {/* One flex item, so the row gap above the button doesn't also open
@@ -1581,7 +1581,7 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
             <div className="h-4 w-4 animate-spin border-2 border-purple-600 border-t-transparent rounded-full"></div>
           </div>
         ) : questionsError ? (
-          <p className="text-sm md:text-xs text-gray-600">{questionsError}</p>
+          <p className="text-sm text-gray-600">{questionsError}</p>
         ) : questions.length > 0 ? (
           <div className="space-y-4">
             {questions.map((q, i) => (
@@ -1589,11 +1589,11 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
                 <div className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-1.5"></span>
                   <div className="min-w-0">
-                    <p className="text-sm md:text-xs font-semibold text-gray-900 leading-snug">
+                    <p className="text-sm font-semibold text-gray-900 leading-snug">
                       {q.tailored_text || q.original_text}
                     </p>
                     {q.rationale && (
-                      <p className="text-sm md:text-xs text-gray-600 leading-snug mt-0.5">
+                      <p className="text-sm text-gray-600 leading-snug mt-0.5">
                         {q.rationale}
                       </p>
                     )}
@@ -1603,7 +1603,7 @@ function PrepareLeftColumn({ jobCard, powerAnalysisId, candidateName }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm md:text-xs text-gray-400">No questions available.</p>
+          <p className="text-sm text-gray-400">No questions available.</p>
         )}
       </div>
 
@@ -1628,32 +1628,32 @@ function PrepareStepContent({ hasActiveSession = false, onGoToPractice, onBack }
   return (
     <div className="px-5 py-4 space-y-2 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">📋 Interview Prep</h3>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+      <p className="text-sm text-gray-600 leading-relaxed">
         Of course you&apos;re thinking about what they&apos;re going to ask you. But have you thought about what you want to ask them?
             
       </p>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed">
+      <p className="text-sm text-gray-600 leading-relaxed">
         Great questions show that you&apos;re prepared, engaged, and seriously considering whether the role is right for you, too. We&apos;ve put together a few ideas to get you started - plus an Interview Toolkit you can print as a reference. It includes:
       </p>
       <ul className="space-y-1 pl-3">
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">📊</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Your Power Analysis</p>
+          <p className="text-sm text-gray-600 leading-relaxed">Your Power Analysis</p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">💡</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Questions for your interviewer</p>
+          <p className="text-sm text-gray-600 leading-relaxed">Questions for your interviewer</p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">🏢</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">Company highlights</p>
+          <p className="text-sm text-gray-600 leading-relaxed">Company highlights</p>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-sm w-5 text-center flex-shrink-0 leading-none mt-0.5">📄</span>
-          <p className="text-sm md:text-xs text-gray-600 leading-relaxed">The job description</p>
+          <p className="text-sm text-gray-600 leading-relaxed">The job description</p>
         </li>
       </ul>
-      <p className="text-sm md:text-xs text-gray-500 leading-relaxed">
+      <p className="text-sm text-gray-500 leading-relaxed">
         Ready to practice? Your mock interview is ready!
       </p>
       {/* One flex item, so the row gap above the button doesn't also open
@@ -1779,7 +1779,7 @@ function InterviewToolkit({ jobCardId, powerAnalysisId, candidateName, company }
   return (
     <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
       <CardHeading color={DOT_PURPLE}>📋 Printable Interview Toolkit</CardHeading>
-      <p className="text-sm md:text-xs text-gray-600 leading-relaxed mb-2">
+      <p className="text-sm text-gray-600 leading-relaxed mb-2">
         Select what you want to include and print it to take with you.
       </p>
 
