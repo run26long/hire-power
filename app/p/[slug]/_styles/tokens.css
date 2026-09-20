@@ -588,3 +588,779 @@
   --profile-ok-rgb: 24 121 78;
   --profile-info-rgb: 91 60 196;
 }
+
+/* ===========================================================================
+   THE NINE PALETTES
+
+   A palette is not an accent. Each one re-grounds the whole page: the void
+   the hero sits on, the page, the cards, the raised surfaces, the ink, the
+   rules, the category tones, the filled action and the band above the
+   document - all of it in one hue, in both modes.
+
+   HOW THESE VALUES WERE ARRIVED AT
+   Mechanically, and then written down. The grounds are the palette's stored
+   colour laid over a near-black at four depths in dark, and over white at
+   three in light. Everything else keeps the lightness the file was authored
+   with and trades the purple's hue for the palette's, with the chroma scaled
+   by how saturated that palette is beside the purple - which is why
+   Monochrome resolves to greys and Emerald to greens without either being
+   written by hand. The filled action is the palette's hue taken down until
+   white clears 4.5:1 on its lighter stop.
+
+   They are stored as resolved values rather than color-mix() on purpose: a
+   token a browser has to compute is a token that cannot be read back, and
+   these are read back - by the contrast checks, and by anybody asking what
+   colour a published profile actually is.
+
+   Semantics are not in here. Success is green, a warning is amber and an
+   error is red on every palette, because they mean something and a hue that
+   agrees with the page is a hue that has stopped saying it.
+
+   The purple's blocks are copied out of the two authored blocks above rather
+   than derived from them, so "Hire Power Purple is unchanged" is something
+   this file can be diffed to prove.
+
+   Generated. The recipe lives in the scratchpad script that wrote it, and the
+   palette list it reads is lib/profileAppearance.js.
+   =========================================================================== */
+
+/* ---- purple ---- */
+
+:root[data-hp-profile-accent="purple"],
+[data-hp-profile-accent="purple"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #09060f;
+  --profile-ground: #0d0916;
+  --profile-surface: #14101f;
+  --profile-surface-2: #1b1629;
+  --profile-body: #cfc9dd;
+  --profile-meta: #9a93ae;
+  --profile-voice: #e0d7dc;
+  --profile-text: #ffffff;
+  --profile-line: rgba(255, 255, 255, 0.09);
+  --profile-line-strong: rgba(255, 255, 255, 0.14);
+  --profile-ink-soft-rgb: 244 242 248;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(16 12 26 / 0.9);
+  --profile-glass-bottom: rgb(14 11 22 / 0.82);
+  --profile-info-rgb: 196 181 253;
+  --profile-tone-a-rgb: 167 139 250;
+  --profile-tone-b-rgb: 186 140 186;
+  --profile-tone-c-rgb: 142 160 226;
+  --profile-accent: #a78bfa;
+  --profile-accent-soft: #c4b5fd;
+  --profile-accent-rgb: 167 139 250;
+  --profile-action: #7c5cf5;
+  --profile-action-rgb: 124 92 245;
+  --profile-action-lift: #6e4ce6;
+  --profile-action-deep: #5335ab;
+  --profile-void-rgb: 9 6 15;
+  --profile-ground-rgb: 13 9 22;
+  --profile-scrim-rgb: 9 6 15;
+  --profile-primary-fill: linear-gradient(to right, var(--profile-action-lift), var(--profile-action-deep));
+  --profile-intro-ground: #120d1c;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="purple"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="purple"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #f6f2fa;
+  --profile-ground: #fbf9ff;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #f3effb;
+  --profile-body: #4d4559;
+  --profile-meta: #716a7d;
+  --profile-voice: #31283d;
+  --profile-text: #241d30;
+  --profile-line: #e3dced;
+  --profile-line-strong: #cbbddc;
+  --profile-ink-soft-rgb: 36 29 48;
+  --profile-on-rgb: 36 29 48;
+  --profile-shade-rgb: 36 29 48;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 91 60 196;
+  --profile-tone-a-rgb: 109 75 209;
+  --profile-tone-b-rgb: 125 74 122;
+  --profile-tone-c-rgb: 74 91 176;
+  --profile-accent: #6d4bd1;
+  --profile-accent-soft: #8b70dc;
+  --profile-accent-rgb: 109 75 209;
+  --profile-action: #6d4bd1;
+  --profile-action-rgb: 109 75 209;
+  --profile-action-lift: #6d4bd1;
+  --profile-action-deep: #5533b3;
+  --profile-void-rgb: 246 242 250;
+  --profile-scrim-rgb: 36 29 48;
+  --profile-primary-fill: linear-gradient(to right, #566bd5, #764ba2);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- emerald ---- */
+
+:root[data-hp-profile-accent="emerald"],
+[data-hp-profile-accent="emerald"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #081818;
+  --profile-ground: #0b181c;
+  --profile-surface: #112025;
+  --profile-surface-2: #17262d;
+  --profile-void-rgb: 8 24 24;
+  --profile-ground-rgb: 11 24 28;
+  --profile-scrim-rgb: 8 24 24;
+  --profile-accent: #72c8ae;
+  --profile-accent-soft: #a1dac9;
+  --profile-accent-rgb: 114 200 174;
+  --profile-body: #b2d2d1;
+  --profile-meta: #789e9c;
+  --profile-voice: #dad8e2;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 235 245 245;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(6 16 16 / 0.9);
+  --profile-glass-bottom: rgb(6 14 14 / 0.82);
+  --profile-info-rgb: 0 214 190;
+  --profile-tone-a-rgb: 0 176 163;
+  --profile-tone-b-rgb: 139 155 191;
+  --profile-tone-c-rgb: 35 186 105;
+  --profile-action: #1b836b;
+  --profile-action-rgb: 27 131 107;
+  --profile-action-lift: #1b836b;
+  --profile-action-deep: #0d3f34;
+  --profile-intro-ground: #112025;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="emerald"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="emerald"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #e6f0ed;
+  --profile-ground: #f1f7f5;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #e3eeec;
+  --profile-void-rgb: 230 240 237;
+  --profile-accent: #18745f;
+  --profile-accent-soft: #25b494;
+  --profile-accent-rgb: 24 116 95;
+  --profile-body: #3a4c4d;
+  --profile-meta: #5e7172;
+  --profile-voice: #1e2f31;
+  --profile-text: #142324;
+  --profile-line: #cae4e6;
+  --profile-line-strong: #9ecad1;
+  --profile-ink-soft-rgb: 20 35 36;
+  --profile-on-rgb: 20 35 36;
+  --profile-shade-rgb: 20 35 36;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 23 97 90;
+  --profile-scrim-rgb: 20 35 36;
+  --profile-tone-a-rgb: 21 112 106;
+  --profile-tone-b-rgb: 74 91 136;
+  --profile-tone-c-rgb: 40 110 76;
+  --profile-action: #1b826a;
+  --profile-action-rgb: 27 130 106;
+  --profile-action-lift: #1b826a;
+  --profile-action-deep: #125546;
+  --profile-primary-fill: linear-gradient(to right, #1b826a, #125546);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- cobalt ---- */
+
+:root[data-hp-profile-accent="cobalt"],
+[data-hp-profile-accent="cobalt"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #0e132b;
+  --profile-ground: #10142c;
+  --profile-surface: #171b38;
+  --profile-surface-2: #1d2042;
+  --profile-void-rgb: 14 19 43;
+  --profile-ground-rgb: 16 20 44;
+  --profile-scrim-rgb: 14 19 43;
+  --profile-accent: #8ea6ff;
+  --profile-accent-soft: #b3c3ff;
+  --profile-accent-rgb: 142 166 255;
+  --profile-body: #cacbde;
+  --profile-meta: #9395ae;
+  --profile-voice: #e0d7df;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 242 242 248;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(12 13 27 / 0.9);
+  --profile-glass-bottom: rgb(11 12 22 / 0.82);
+  --profile-info-rgb: 177 187 253;
+  --profile-tone-a-rgb: 138 148 251;
+  --profile-tone-b-rgb: 174 144 189;
+  --profile-tone-c-rgb: 107 169 218;
+  --profile-action: #4e6ed0;
+  --profile-action-rgb: 78 110 208;
+  --profile-action-lift: #4e6ed0;
+  --profile-action-deep: #2b48a1;
+  --profile-intro-ground: #171b38;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="cobalt"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="cobalt"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #e9edf9;
+  --profile-ground: #f3f5fc;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #e7ebf8;
+  --profile-void-rgb: 233 237 249;
+  --profile-accent: #3559c7;
+  --profile-accent-soft: #5e7bd4;
+  --profile-accent-rgb: 53 89 199;
+  --profile-body: #48465b;
+  --profile-meta: #6c6b7f;
+  --profile-voice: #2b2940;
+  --profile-text: #1f1e33;
+  --profile-line: #deddee;
+  --profile-line-strong: #c3bfde;
+  --profile-ink-soft-rgb: 31 30 51;
+  --profile-on-rgb: 31 30 51;
+  --profile-shade-rgb: 31 30 51;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 57 73 193;
+  --profile-scrim-rgb: 31 30 51;
+  --profile-tone-a-rgb: 75 87 210;
+  --profile-tone-b-rgb: 116 77 131;
+  --profile-tone-c-rgb: 59 101 141;
+  --profile-action: #4d6dcf;
+  --profile-action-rgb: 77 109 207;
+  --profile-action-lift: #4d6dcf;
+  --profile-action-deep: #3051b6;
+  --profile-primary-fill: linear-gradient(to right, #4d6dcf, #3051b6);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- espresso ---- */
+
+:root[data-hp-profile-accent="espresso"],
+[data-hp-profile-accent="espresso"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #171112;
+  --profile-ground: #191216;
+  --profile-surface: #20181e;
+  --profile-surface-2: #281d26;
+  --profile-void-rgb: 23 17 18;
+  --profile-ground-rgb: 25 18 22;
+  --profile-scrim-rgb: 23 17 18;
+  --profile-accent: #c89d87;
+  --profile-accent-soft: #dabdaf;
+  --profile-accent-rgb: 200 157 135;
+  --profile-body: #d1cbc5;
+  --profile-meta: #9d958e;
+  --profile-voice: #d7dad5;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 244 243 241;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(16 14 11 / 0.9);
+  --profile-glass-bottom: rgb(14 12 10 / 0.82);
+  --profile-info-rgb: 220 184 157;
+  --profile-tone-a-rgb: 198 146 100;
+  --profile-tone-b-rgb: 152 158 130;
+  --profile-tone-c-rgb: 199 151 151;
+  --profile-action: #976953;
+  --profile-action-rgb: 151 105 83;
+  --profile-action-lift: #976953;
+  --profile-action-deep: #624436;
+  --profile-intro-ground: #20181e;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="espresso"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="espresso"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #efebe9;
+  --profile-ground: #f6f4f3;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #ede9e7;
+  --profile-void-rgb: 239 235 233;
+  --profile-accent: #6b4a3b;
+  --profile-accent-soft: #9a6a55;
+  --profile-accent-rgb: 107 74 59;
+  --profile-body: #4c4842;
+  --profile-meta: #706d67;
+  --profile-voice: #2f2c26;
+  --profile-text: #23201b;
+  --profile-line: #e2ded7;
+  --profile-line-strong: #c9c2b5;
+  --profile-ink-soft-rgb: 35 32 27;
+  --profile-on-rgb: 35 32 27;
+  --profile-shade-rgb: 35 32 27;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 107 82 61;
+  --profile-scrim-rgb: 35 32 27;
+  --profile-tone-a-rgb: 125 95 67;
+  --profile-tone-b-rgb: 88 94 73;
+  --profile-tone-c-rgb: 129 87 85;
+  --profile-action: #996a55;
+  --profile-action-rgb: 153 106 85;
+  --profile-action-lift: #996a55;
+  --profile-action-deep: #775241;
+  --profile-primary-fill: linear-gradient(to right, #996a55, #775241);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- sage ---- */
+
+:root[data-hp-profile-accent="sage"],
+[data-hp-profile-accent="sage"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #1a1e1d;
+  --profile-ground: #1b1d20;
+  --profile-surface: #23252a;
+  --profile-surface-2: #2a2c33;
+  --profile-void-rgb: 26 30 29;
+  --profile-ground-rgb: 27 29 32;
+  --profile-scrim-rgb: 26 30 29;
+  --profile-accent: #a9c4a8;
+  --profile-accent-soft: #c5d7c5;
+  --profile-accent-rgb: 169 196 168;
+  --profile-body: #c9cdca;
+  --profile-meta: #939894;
+  --profile-voice: #d8d9da;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 242 243 242;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(13 15 13 / 0.9);
+  --profile-glass-bottom: rgb(12 13 12 / 0.82);
+  --profile-info-rgb: 172 197 177;
+  --profile-tone-a-rgb: 129 166 137;
+  --profile-tone-b-rgb: 147 157 157;
+  --profile-tone-c-rgb: 151 167 146;
+  --profile-action: #607b63;
+  --profile-action-rgb: 96 123 99;
+  --profile-action-lift: #607b63;
+  --profile-action-deep: #3c4d3e;
+  --profile-intro-ground: #23252a;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="sage"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="sage"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #f0f3f0;
+  --profile-ground: #f7f8f7;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #eff2ef;
+  --profile-void-rgb: 240 243 240;
+  --profile-accent: #526b55;
+  --profile-accent-soft: #6f9173;
+  --profile-accent-rgb: 82 107 85;
+  --profile-body: #464947;
+  --profile-meta: #6b6e6c;
+  --profile-voice: #292d2b;
+  --profile-text: #1e211f;
+  --profile-line: #dce0dd;
+  --profile-line-strong: #bdc4c0;
+  --profile-ink-soft-rgb: 30 33 31;
+  --profile-on-rgb: 30 33 31;
+  --profile-shade-rgb: 30 33 31;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 74 91 78;
+  --profile-scrim-rgb: 30 33 31;
+  --profile-tone-a-rgb: 85 106 90;
+  --profile-tone-b-rgb: 85 93 94;
+  --profile-tone-c-rgb: 89 101 87;
+  --profile-action: #607a62;
+  --profile-action-rgb: 96 122 98;
+  --profile-action-lift: #607a62;
+  --profile-action-deep: #485c4a;
+  --profile-primary-fill: linear-gradient(to right, #607a62, #485c4a);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- navy ---- */
+
+:root[data-hp-profile-accent="navy"],
+[data-hp-profile-accent="navy"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #0a0f18;
+  --profile-ground: #0d101c;
+  --profile-surface: #131625;
+  --profile-surface-2: #191b2d;
+  --profile-void-rgb: 10 15 24;
+  --profile-ground-rgb: 13 16 28;
+  --profile-scrim-rgb: 10 15 24;
+  --profile-accent: #86a9ce;
+  --profile-accent-soft: #aec5de;
+  --profile-accent-rgb: 134 169 206;
+  --profile-body: #c7ccd8;
+  --profile-meta: #9097a7;
+  --profile-voice: #ded7df;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 242 243 247;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(11 14 21 / 0.9);
+  --profile-glass-bottom: rgb(10 13 18 / 0.82);
+  --profile-info-rgb: 162 192 243;
+  --profile-tone-a-rgb: 118 156 235;
+  --profile-tone-b-rgb: 164 149 184;
+  --profile-tone-c-rgb: 89 174 196;
+  --profile-action: #4176af;
+  --profile-action-rgb: 65 118 175;
+  --profile-action-lift: #4176af;
+  --profile-action-deep: #2a4e73;
+  --profile-intro-ground: #131625;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="navy"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="navy"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #e7eaed;
+  --profile-ground: #f2f4f5;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #e5e8ec;
+  --profile-void-rgb: 231 234 237;
+  --profile-accent: #31577a;
+  --profile-accent-soft: #457bad;
+  --profile-accent-rgb: 49 87 122;
+  --profile-body: #454855;
+  --profile-meta: #6a6d79;
+  --profile-voice: #292b39;
+  --profile-text: #1d202b;
+  --profile-line: #dcdeea;
+  --profile-line-strong: #bec1d8;
+  --profile-ink-soft-rgb: 29 32 43;
+  --profile-on-rgb: 29 32 43;
+  --profile-shade-rgb: 29 32 43;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 56 86 142;
+  --profile-scrim-rgb: 29 32 43;
+  --profile-tone-a-rgb: 62 98 175;
+  --profile-tone-b-rgb: 104 83 126;
+  --profile-tone-c-rgb: 60 103 119;
+  --profile-action: #4178b2;
+  --profile-action-rgb: 65 120 178;
+  --profile-action-lift: #4178b2;
+  --profile-action-deep: #335d8a;
+  --profile-primary-fill: linear-gradient(to right, #4178b2, #335d8a);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- crimson ---- */
+
+:root[data-hp-profile-accent="crimson"],
+[data-hp-profile-accent="crimson"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #220e15;
+  --profile-ground: #221019;
+  --profile-surface: #2b1622;
+  --profile-surface-2: #341b2a;
+  --profile-void-rgb: 34 14 21;
+  --profile-ground-rgb: 34 16 25;
+  --profile-scrim-rgb: 34 14 21;
+  --profile-accent: #f08a98;
+  --profile-accent-soft: #f5b1ba;
+  --profile-accent-rgb: 240 138 152;
+  --profile-body: #d9c8c7;
+  --profile-meta: #a89291;
+  --profile-voice: #d9dad2;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 247 242 241;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(21 12 11 / 0.9);
+  --profile-glass-bottom: rgb(18 11 11 / 0.82);
+  --profile-info-rgb: 244 172 175;
+  --profile-tone-a-rgb: 236 124 123;
+  --profile-tone-b-rgb: 166 155 120;
+  --profile-tone-c-rgb: 215 141 175;
+  --profile-action: #bf5061;
+  --profile-action-rgb: 191 80 97;
+  --profile-action-lift: #bf5061;
+  --profile-action-deep: #8a3340;
+  --profile-intro-ground: #2b1622;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="crimson"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="crimson"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #f5eaeb;
+  --profile-ground: #faf3f4;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #f4e8ea;
+  --profile-void-rgb: 245 234 235;
+  --profile-accent: #a63d4d;
+  --profile-accent-soft: #c35c6b;
+  --profile-accent-rgb: 166 61 77;
+  --profile-body: #534643;
+  --profile-meta: #776a68;
+  --profile-voice: #362926;
+  --profile-text: #2a1d1c;
+  --profile-line: #e9dcda;
+  --profile-line-strong: #d4beb8;
+  --profile-ink-soft-rgb: 42 29 28;
+  --profile-on-rgb: 42 29 28;
+  --profile-shade-rgb: 42 29 28;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 146 58 59;
+  --profile-scrim-rgb: 42 29 28;
+  --profile-tone-a-rgb: 175 62 61;
+  --profile-tone-b-rgb: 98 92 65;
+  --profile-tone-c-rgb: 147 74 104;
+  --profile-action: #be4f60;
+  --profile-action-rgb: 190 79 96;
+  --profile-action-lift: #be4f60;
+  --profile-action-deep: #9d3a49;
+  --profile-primary-fill: linear-gradient(to right, #be4f60, #9d3a49);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- slate ---- */
+
+:root[data-hp-profile-accent="slate"],
+[data-hp-profile-accent="slate"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #15171d;
+  --profile-ground: #171720;
+  --profile-surface: #1e1e2a;
+  --profile-surface-2: #252433;
+  --profile-void-rgb: 21 23 29;
+  --profile-ground-rgb: 23 23 32;
+  --profile-scrim-rgb: 21 23 29;
+  --profile-accent: #abb5c3;
+  --profile-accent-soft: #c7cdd7;
+  --profile-accent-rgb: 171 181 195;
+  --profile-body: #cbccd0;
+  --profile-meta: #95979b;
+  --profile-voice: #dbd9db;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 243 243 244;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(14 14 16 / 0.9);
+  --profile-glass-bottom: rgb(12 13 14 / 0.82);
+  --profile-info-rgb: 183 191 208;
+  --profile-tone-a-rgb: 146 157 183;
+  --profile-tone-b-rgb: 158 153 164;
+  --profile-tone-c-rgb: 147 166 172;
+  --profile-action: #697687;
+  --profile-action-rgb: 105 118 135;
+  --profile-action-lift: #697687;
+  --profile-action-deep: #454e59;
+  --profile-intro-ground: #1e1e2a;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="slate"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="slate"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #edeff0;
+  --profile-ground: #f5f6f7;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #ecedef;
+  --profile-void-rgb: 237 239 240;
+  --profile-accent: #5f6b7a;
+  --profile-accent-soft: #7d8a9a;
+  --profile-accent-rgb: 95 107 122;
+  --profile-body: #48484c;
+  --profile-meta: #6c6d70;
+  --profile-voice: #2b2c2f;
+  --profile-text: #202023;
+  --profile-line: #dedfe2;
+  --profile-line-strong: #c1c2c9;
+  --profile-ink-soft-rgb: 32 32 35;
+  --profile-on-rgb: 32 32 35;
+  --profile-shade-rgb: 32 32 35;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 80 87 101;
+  --profile-scrim-rgb: 32 32 35;
+  --profile-tone-a-rgb: 93 101 120;
+  --profile-tone-b-rgb: 95 90 100;
+  --profile-tone-c-rgb: 87 99 105;
+  --profile-action: #687586;
+  --profile-action-rgb: 104 117 134;
+  --profile-action-lift: #687586;
+  --profile-action-deep: #515b68;
+  --profile-primary-fill: linear-gradient(to right, #687586, #515b68);
+  --profile-intro-ground: #ffffff;
+}
+
+/* ---- monochrome ---- */
+
+:root[data-hp-profile-accent="monochrome"],
+[data-hp-profile-accent="monochrome"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #0f0e13;
+  --profile-ground: #111017;
+  --profile-surface: #181620;
+  --profile-surface-2: #1f1b28;
+  --profile-void-rgb: 15 14 19;
+  --profile-ground-rgb: 17 16 23;
+  --profile-scrim-rgb: 15 14 19;
+  --profile-accent: #c9c9d0;
+  --profile-accent-soft: #dbdbe0;
+  --profile-accent-rgb: 201 201 208;
+  --profile-body: #cccccd;
+  --profile-meta: #979699;
+  --profile-voice: #dad9da;
+  --profile-text: #ffffff;
+  --profile-ink-soft-rgb: 243 243 243;
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+  --profile-glass-top: rgb(14 14 15 / 0.9);
+  --profile-glass-bottom: rgb(13 13 13 / 0.82);
+  --profile-info-rgb: 191 190 199;
+  --profile-tone-a-rgb: 157 155 169;
+  --profile-tone-b-rgb: 158 154 158;
+  --profile-tone-c-rgb: 160 163 169;
+  --profile-action: #70708f;
+  --profile-action-rgb: 112 112 143;
+  --profile-action-lift: #70708f;
+  --profile-action-deep: #4c4c61;
+  --profile-intro-ground: #181620;
+}
+
+:root[data-hp-profile-mode="light"][data-hp-profile-accent="monochrome"],
+[data-hp-profile-mode="light"][data-hp-profile-accent="monochrome"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  --profile-void: #eaeaea;
+  --profile-ground: #f3f3f4;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #e8e8e8;
+  --profile-void-rgb: 234 234 234;
+  --profile-accent: #4b4b52;
+  --profile-accent-soft: #6e6e79;
+  --profile-accent-rgb: 75 75 82;
+  --profile-body: #49484a;
+  --profile-meta: #6d6d6e;
+  --profile-voice: #2c2c2d;
+  --profile-text: #202021;
+  --profile-line: #dfdfe0;
+  --profile-line-strong: #c3c2c5;
+  --profile-ink-soft-rgb: 32 32 33;
+  --profile-on-rgb: 32 32 33;
+  --profile-shade-rgb: 32 32 33;
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+  --profile-info-rgb: 87 86 94;
+  --profile-scrim-rgb: 32 32 33;
+  --profile-tone-a-rgb: 101 99 110;
+  --profile-tone-b-rgb: 94 91 95;
+  --profile-tone-c-rgb: 96 97 102;
+  --profile-action: #727290;
+  --profile-action-rgb: 114 114 144;
+  --profile-action-lift: #727290;
+  --profile-action-deep: #5a5a73;
+  --profile-primary-fill: linear-gradient(to right, #727290, #5a5a73);
+  --profile-intro-ground: #ffffff;
+}

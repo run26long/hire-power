@@ -3463,7 +3463,7 @@ html:has(.hp-ed) {
    hairline so the profile itself visibly starts below it. No new purple: the
    ground and the rule are both existing palette values. */
 .hp-ed-guide-intro {
-  background: var(--profile-surface);
+  background: var(--profile-intro-ground, var(--profile-surface));
   border-bottom: 1px solid var(--profile-line-strong);
 }
 
@@ -4090,4 +4090,238 @@ html:has(.hp-ed) {
       rgb(var(--profile-accent-rgb) / 0.1)
     ),
     var(--profile-surface-2);
+}
+
+/* ---- The accent picker -------------------------------------------------
+   Three across, because nine in a row is a scroll and nine in a column is a
+   drawer with nothing else in it. Each option is the colour and its name
+   together: a grid of unlabelled squares asks the owner to remember which
+   green was Sage, and the names are the part they will say out loud.
+
+   The swatch carries the stored value, which is the middle of the palette's
+   three. Neither of the two the page paints is shown here on purpose - one
+   of them would be wrong in whichever mode the drawer is not in. */
+
+.hp-ed-accents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-accent {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 1px solid var(--ed-line, var(--profile-line-strong));
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ed-body, var(--profile-body));
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-accent:hover:not(:disabled) {
+  border-color: var(--ed-line-strong, var(--profile-line-strong));
+  background: var(--profile-fill-4);
+}
+
+/* Chosen: the outline the eye finds first, and the tick inside the colour
+   for anybody who cannot tell one dark square from another. */
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-accent[data-on="true"] {
+  border-color: var(--profile-accent);
+  box-shadow: inset 0 0 0 1px var(--profile-accent);
+  color: var(--ed-ink, var(--profile-text));
+}
+
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-accent:disabled { opacity: 0.6; cursor: default; }
+
+:is(.hp-profile, .hp-ed, .hp-ed-portal) .hp-ed-accent:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+}
+
+.hp-ed-accent-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  /* A hairline of the page's own ink, so a chip close to the drawer's ground
+     still reads as a square rather than as a smudge. */
+  box-shadow: inset 0 0 0 1px rgb(var(--profile-on-rgb) / 0.22);
+  color: #fff;
+}
+
+.hp-ed-accent-tick { width: 13px; height: 13px; }
+
+.hp-ed-accent-name {
+  min-width: 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+/* On a phone the names need the width more than the grid needs three
+   columns, and two across still fits every label without truncation. */
+@media (max-width: 520px) {
+  .hp-ed-accents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The introduction's own ground, in dark only.
+   A shade above the page rather than the surface token it shared with cards,
+   so the band reads as the frame around the document rather than as the first
+   card in it, and the rule below it is where the profile starts. Light keeps
+   the white panel and the hairline it already had; the published page never
+   renders this band at all.
+
+   Keyed on the resolved mode, which is what the attribute always carries, so
+   a profile set to System is painted by this whenever System is dark. */
+[data-hp-profile-mode="dark"] .hp-ed-guide-intro {
+  border-bottom-color: rgb(var(--profile-accent-rgb) / 0.14);
+}
+
+/* ---- The chrome's own literals, per palette ----------------------------
+   Almost everything in here maps from --profile-*, so a palette reaches it
+   without being told. These five do not: two greys with a cast, the violet
+   the introduction names itself in, and the switch's off state. Re-tinted by
+   the same rule the profile tokens were - luminance held, hue traded - so
+   the drawer stops being lavender on a green profile.
+
+   The purple's values are the ones authored above, written out again rather
+   than derived, so this palette is provably the chrome as it shipped.
+
+   Generated alongside the palettes in tokens.css. */
+
+[data-hp-profile-accent="purple"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #a5a5b4;
+  --ed-url-ink: #8b8b9a;
+  --ed-intro-rgb: 124 58 237;
+  --ed-intro-cta-ink: #e9e5f5;
+  --ed-switch-off: #e9e9f0;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="purple"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #6b6478;
+  --ed-url-ink: #5f5869;
+  --ed-intro-rgb: 109 75 209;
+}
+
+[data-hp-profile-accent="emerald"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #97aba4;
+  --ed-url-ink: #7d908a;
+  --ed-intro-rgb: 3 114 120;
+  --ed-intro-cta-ink: #cbeeec;
+  --ed-switch-off: #e1ece9;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="emerald"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #576b6b;
+  --ed-url-ink: #4e5e5f;
+  --ed-intro-rgb: 21 112 106;
+}
+
+[data-hp-profile-accent="cobalt"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #a1a6b1;
+  --ed-url-ink: #878c97;
+  --ed-intro-rgb: 82 77 240;
+  --ed-intro-cta-ink: #e5e6f5;
+  --ed-switch-off: #e7eaef;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="cobalt"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #66657a;
+  --ed-url-ink: #5a596b;
+  --ed-intro-rgb: 75 87 210;
+}
+
+[data-hp-profile-accent="espresso"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #aba5a3;
+  --ed-url-ink: #918b89;
+  --ed-intro-rgb: 128 97 52;
+  --ed-intro-cta-ink: #ece6e1;
+  --ed-switch-off: #ece9e8;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="espresso"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #6b6761;
+  --ed-url-ink: #5e5b56;
+  --ed-intro-rgb: 125 95 67;
+}
+
+[data-hp-profile-accent="sage"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #a4a7a4;
+  --ed-url-ink: #8a8d8a;
+  --ed-intro-rgb: 80 109 90;
+  --ed-intro-cta-ink: #e4e8e5;
+  --ed-switch-off: #e8eae8;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="sage"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #656866;
+  --ed-url-ink: #595c5a;
+  --ed-intro-rgb: 85 106 90;
+}
+
+[data-hp-profile-accent="navy"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #a0a7ad;
+  --ed-url-ink: #868d93;
+  --ed-intro-rgb: 58 91 216;
+  --ed-intro-cta-ink: #e2e7f2;
+  --ed-switch-off: #e6eaed;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="navy"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #636773;
+  --ed-url-ink: #585a66;
+  --ed-intro-rgb: 62 98 175;
+}
+
+[data-hp-profile-accent="crimson"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #b0a3a6;
+  --ed-url-ink: #96898c;
+  --ed-intro-rgb: 187 55 36;
+  --ed-intro-cta-ink: #f2e4e4;
+  --ed-switch-off: #eee8ea;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="crimson"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #726462;
+  --ed-url-ink: #645956;
+  --ed-intro-rgb: 175 62 61;
+}
+
+[data-hp-profile-accent="slate"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #a5a6a8;
+  --ed-url-ink: #8b8c8e;
+  --ed-intro-rgb: 94 101 135;
+  --ed-intro-cta-ink: #e6e7ea;
+  --ed-switch-off: #e9eaea;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="slate"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #66676a;
+  --ed-url-ink: #5a5b5e;
+  --ed-intro-rgb: 93 101 120;
+}
+
+[data-hp-profile-accent="monochrome"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #a6a6a7;
+  --ed-url-ink: #8c8c8d;
+  --ed-intro-rgb: 105 100 115;
+  --ed-intro-cta-ink: #e7e7e9;
+  --ed-switch-off: #e9e9ea;
+}
+
+[data-hp-profile-mode="light"][data-hp-profile-accent="monochrome"] :is(.hp-ed, .hp-ed-portal) {
+  --ed-quiet: #676768;
+  --ed-url-ink: #5b5b5c;
+  --ed-intro-rgb: 101 99 110;
 }

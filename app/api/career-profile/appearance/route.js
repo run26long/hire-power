@@ -1,15 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
-import { COLOR_MODES } from '@/lib/profileAppearance'
+import { ACCENT_VALUES, COLOR_MODES, normalizeAccent } from '@/lib/profileAppearance'
 
 // ============================================================================
 // PATCH /api/career-profile/appearance
 //
-// How the owner's Career Profile is painted. One field so far - color_mode -
-// and the route is named for the group rather than for the field because
-// template and accent are the other two columns on the same row and will be
-// written here when they become settable.
+// How the owner's Career Profile is painted. Two fields - color_mode and
+// accent - and the route is named for the group rather than for either,
+// because template is the third column on the same row and will be written
+// here when it becomes settable.
 //
-// Body: { color_mode: 'system' | 'light' | 'dark' }
+// Body: { color_mode?: 'system' | 'light' | 'dark', accent?: <one of nine> }
+//
+// Either field, or both. The two controls in the drawer send one each, and a
+// body carrying neither is a request that asks for nothing and is refused as
+// one rather than written as an empty update.
 //
 // WHOSE PROFILE THIS WRITES TO
 // The token's, never the body's. This takes no slug and no profile id: the
@@ -19,9 +23,16 @@ import { COLOR_MODES } from '@/lib/profileAppearance'
 // contact and slug routes do it.
 //
 // WHAT IT WILL NOT WRITE
-// `template` and `accent`. They travel in the same group in the interface and
-// they are read-only there; a route that quietly accepted them would be a
-// way to set, from the browser, two things no control can yet set.
+// `template`. It travels in the same group in the interface and it is still
+// read-only there; a route that quietly accepted it would be a way to set,
+// from the browser, something no control can yet set.
+//
+// THE ACCENT IS A CHOICE FROM A LIST, NOT A COLOUR
+// Nine stored values, checked against lib/profileAppearance here rather than
+// against a hex pattern. A pattern would accept #ffffff, which is an accent
+// nobody can see on paper and an unreadable page nobody meant to publish.
+// The list is the same one the picker renders, so what the browser can offer
+// and what this will store cannot drift apart.
 //
 // NOT GATED ON TIER
 // Choosing light or dark is not customisation in the sense the paywall means.
@@ -59,8 +70,33 @@ export async function PATCH(request) {
       return Response.json({ error: 'Invalid request.' }, { status: 400 })
     }
 
-    const colorMode = body?.color_mode
-    if (!COLOR_MODES.includes(colorMode)) {
+    const values = {}
+
+    if (body?.color_mode !== undefined) {
+      if (!COLOR_MODES.includes(body.color_mode)) {
+        return Response.json(
+          { error: "We couldn't save that appearance setting.", code: 'INVALID' },
+          { status: 400 }
+        )
+      }
+      values.color_mode = body.color_mode
+    }
+
+    if (body?.accent !== undefined) {
+      // Compared case-insensitively and stored in the list's own spelling, so
+      // the column only ever holds one of nine exact strings.
+      const accent = normalizeAccent(body.accent)
+      const offered = String(body.accent || '').trim().toLowerCase()
+      if (!ACCENT_VALUES.some(v => v.toLowerCase() === offered)) {
+        return Response.json(
+          { error: "We couldn't save that accent.", code: 'INVALID' },
+          { status: 400 }
+        )
+      }
+      values.accent = accent
+    }
+
+    if (Object.keys(values).length === 0) {
       return Response.json(
         { error: "We couldn't save that appearance setting.", code: 'INVALID' },
         { status: 400 }
@@ -69,7 +105,7 @@ export async function PATCH(request) {
 
     const { data: updated, error: updateError } = await supabase
       .from('career_profiles')
-      .update({ color_mode: colorMode, updated_at: new Date().toISOString() })
+      .update({ ...values, updated_at: new Date().toISOString() })
       .eq('user_id', user.id)
       .select(RETURNED)
       .maybeSingle()
@@ -80,8 +116,9 @@ export async function PATCH(request) {
       // say it and the symptom is otherwise a control that will not stay put.
       if (updateError.code === '23514') {
         console.error(
-          '[career-profile] career_profiles.color_mode refused a value. ' +
-          'Does its CHECK allow system/light/dark?', updateError
+          '[career-profile] career_profiles refused an appearance value. ' +
+          'Does color_mode allow system/light/dark, and accent this hex?',
+          values, updateError
         )
       } else {
         console.error('[career-profile] Appearance write failed:', updateError)

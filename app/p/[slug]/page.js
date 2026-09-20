@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useProfileColorMode } from '@/lib/profileColorMode'
+import { useProfileAccent } from '@/lib/profileAccent'
 
 import ProfileDocument, { ProfileState } from './_components/ProfileDocument'
 
@@ -40,6 +41,7 @@ export default function CareerProfilePage() {
   // profiles should get each one's own answer on its first paint rather than
   // whichever they looked at last.
   useProfileColorMode(data ? (data?.profile?.color_mode ?? null) : undefined, slug || 'p')
+  useProfileAccent(data ? (data?.profile?.accent ?? null) : undefined)
 
   useEffect(() => {
     if (!slug) return

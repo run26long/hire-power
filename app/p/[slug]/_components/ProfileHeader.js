@@ -58,12 +58,27 @@ function downloadTitleFor(resume, downloading, offersChoice) {
 // AND more than one file behind them. One direction, or one file, and the
 // button stays the plain button it has always been.
 //
-// This is the same rule that already hides the picker for a single direction,
-// applied to what the picker is actually for.
+// WHAT COUNTS AS A DIFFERENT FILE
+// Not whether the column is filled in. Counting a null as its own answer made
+// a profile with one core show a menu of three the moment one direction was
+// pointed at that very core: two nulls and an id read as two files when they
+// were one. So each direction is resolved the way the download route resolves
+// it - its own core when it has one the server can still serve, the priority
+// core otherwise - and the menu appears only if those resolutions differ.
+//
+// A direction pointing at a resume that is gone, deactivated or somebody
+// else's is not in lensResumes, which is exactly the case the route falls back
+// on, so it resolves here to the same core the route would send.
 // ---------------------------------------------------------------------------
-function offersRealChoice(lenses) {
+function resolveResumeId(lens, lensResumes, coreResumeId) {
+  const own = lens?.core_resume_id
+  if (own && lensResumes && lensResumes[own]) return own
+  return coreResumeId || 'CORE'
+}
+
+function offersRealChoice(lenses, lensResumes, coreResumeId) {
   if (!Array.isArray(lenses) || lenses.length < 2) return false
-  const targets = new Set(lenses.map(lens => lens?.core_resume_id || 'CORE'))
+  const targets = new Set(lenses.map(lens => resolveResumeId(lens, lensResumes, coreResumeId)))
   return targets.size > 1
 }
 
@@ -74,10 +89,17 @@ export function ProfileActionButtons({
   downloadError,
   onDownload,
   lenses,
+  // What each direction would actually hand over: the resumes the server was
+  // able to resolve, and the core everything else falls back to.
+  lensResumes,
+  coreResumeId,
   selectedLensId
 }) {
   const directions = useMemo(() => (Array.isArray(lenses) ? lenses : []), [lenses])
-  const offersChoice = useMemo(() => offersRealChoice(directions), [directions])
+  const offersChoice = useMemo(
+    () => offersRealChoice(directions, lensResumes, coreResumeId),
+    [directions, lensResumes, coreResumeId]
+  )
 
   const [menuOpen, setMenuOpen] = useState(false)
   // Held per instance, deliberately. This component is built once by the page

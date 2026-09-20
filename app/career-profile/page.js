@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { fetchJSON } from '@/lib/fetchJSON'
 import { useProfileColorMode } from '@/lib/profileColorMode'
+import { useProfileAccent } from '@/lib/profileAccent'
 
 import MainNav from '../components/MainNav'
 import ErrorToast from '../components/ErrorToast'
@@ -261,6 +262,9 @@ export default function CareerProfileEditorPage() {
   // flip once the answer arrives. The drawer patches `manage` to preview a
   // change, so previewing and storing are the same read.
   useProfileColorMode(manage ? (profile?.color_mode ?? null) : undefined, 'owner')
+  // The same read for the same reason: the drawer patches `manage` to
+  // preview a palette, so choosing one and storing it paint identically.
+  useProfileAccent(manage ? (profile?.accent ?? null) : undefined)
   const published = profile?.is_published === true
   const publicPath = profile?.slug ? `/p/${profile.slug}` : null
 
