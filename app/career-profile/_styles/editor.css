@@ -76,13 +76,17 @@
   --ed-surface: var(--profile-surface);
   --ed-raised: var(--profile-surface-2);
 
-  /* ---- The chrome's own greys ----
-     Three steps that are not the document's --profile-meta and were three
-     literals until now: the field label, the hint or note under a control,
-     and the public address. They are survivors of the light palette this
-     shell used to carry, kept at their measured values and given names so
-     the mode work can see them. */
-  --ed-label-ink: #9b9baa;
+  /* ---- The chrome's own inks ----
+     The section heading, the hint or note under a control, and the public
+     address. The last two are survivors of the light palette this shell used
+     to carry, kept at their measured values and given names so the mode work
+     can see them.
+
+     The heading is not one of those any more. It was a fourth grey, close
+     enough to the note under it that a section had no visible top edge; it
+     follows the accent now, which is the one colour the rest of the chrome
+     already uses to mark something as structure rather than content. */
+  --ed-label-ink: var(--profile-accent);
   --ed-quiet: #a5a5b4;
   --ed-url-ink: #8b8b9a;
 
@@ -548,6 +552,12 @@ html:has(.hp-ed) {
 .hp-ed-group { margin-bottom: 22px; }
 .hp-ed-group:last-child { margin-bottom: 0; }
 
+/* The section headings, and the one thing in the drawer set in the accent.
+   They were the same quiet grey as the notes underneath them, which left the
+   panel as one undifferentiated column: nothing said where a section began
+   except a gap. Colour does that work here rather than more size or more
+   weight, both of which this label already has as much of as it can carry at
+   10.5px. */
 .hp-ed-label {
   margin: 0 0 5px;
   font-size: 10.5px;
@@ -621,6 +631,21 @@ html:has(.hp-ed) {
   border-color: var(--ed-accent);
 }
 
+/* The two fields in the settings drawer sit in a column of 13 and 14px
+   information, and at 16 they were the largest type in it - the address and
+   the contact line read as the subject of the panel rather than as two of its
+   settings. They are set to the same 14px as .hp-ed-value here.
+   Above 768 only, and that is the whole of the reason for the query: below it
+   globals.css holds every input at 16px !important, because a text control
+   under 16 makes iOS Safari zoom the page the moment it takes focus. The
+   breakpoint here is that rule's complement, so this never argues with it and
+   the phone keeps the size that stops the zoom.
+   Scoped to the drawer. .hp-ed-input dresses the editors and managers in the
+   document as well, and those are not this panel's to resize. */
+@media (min-width: 769px) {
+  .hp-ed-drawer .hp-ed-input { font-size: 14px; }
+}
+
 /* The address, shown as the address it will be. The prefix is part of the
    control rather than a label above it, because /p/ is not something the
    owner is choosing and should not look editable. */
@@ -644,7 +669,9 @@ html:has(.hp-ed) {
   align-items: center;
   padding: 0 2px 0 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+  /* The same size as the field it prefixes, because /p/jessica-long is one
+     address and not a label beside a value. */
+  font-size: 14px;
   color: var(--ed-quiet);
   flex-shrink: 0;
   user-select: none;
@@ -756,9 +783,12 @@ html:has(.hp-ed) {
 
 .hp-ed-switch[data-on="true"] .hp-ed-switch-knob { transform: translateX(17px); }
 
+/* Medium rather than semibold. With the heading above it now carrying the
+   accent, a bold state word competed with it for the top of the section, and
+   the two together read as two headings. */
 .hp-ed-switch-label {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ed-ink);
 }
 
@@ -799,7 +829,7 @@ html:has(.hp-ed) {
 
 .hp-ed-lens-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ed-ink);
   min-width: 0;
   overflow: hidden;
@@ -1507,7 +1537,7 @@ html:has(.hp-ed) {
   --ed-surface: var(--profile-surface);
   --ed-raised: var(--profile-surface-2);
 
-  --ed-label-ink: #9b9baa;
+  --ed-label-ink: var(--profile-accent);
   --ed-quiet: #a5a5b4;
   --ed-url-ink: #8b8b9a;
 

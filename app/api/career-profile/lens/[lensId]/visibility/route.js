@@ -121,7 +121,7 @@ export async function PATCH(request, { params }) {
     if (!visible && isPrimary(lens)) {
       return Response.json(
         {
-          error: 'Your main direction stays on your profile. Choose a different one first.',
+          error: 'Your primary career direction stays on your profile. Choose a different one first.',
           code: 'PRIMARY_LENS'
         },
         { status: 400 }
@@ -134,7 +134,7 @@ export async function PATCH(request, { params }) {
     // deliberately got rid of.
     if (lens.status === 'dismissed') {
       return Response.json(
-        { error: 'That direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
+        { error: 'That career direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
         { status: 400 }
       )
     }
@@ -161,7 +161,7 @@ export async function PATCH(request, { params }) {
       if (core) {
         return Response.json(
           {
-            error: 'This direction has a core resume. Delete it from your Resume Writer to take the direction off your Career Profile.',
+            error: 'This career direction has a core resume. Delete it from Resume Writer to take it off your Career Profile.',
             code: 'LOCKED_CORE'
           },
           { status: 400 }
@@ -187,7 +187,7 @@ export async function PATCH(request, { params }) {
       if ((count ?? 0) >= MAX_ACTIVE) {
         return Response.json(
           {
-            error: `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add this one.`,
+            error: `Your Career Profile shows three career directions at a time. Turn one off to add this one.`,
             code: 'LENS_LIMIT'
           },
           { status: 400 }

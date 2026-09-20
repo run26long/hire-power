@@ -314,7 +314,7 @@ export default function CareerProfileEditorPage() {
     if (!res.ok) {
       throw new Error(
         payload?.error === 'PRO_REQUIRED'
-          ? 'Regenerating a direction is a Pro feature.'
+          ? 'Regenerating a career direction is a Pro feature.'
           : "We couldn't rewrite that just now. Please try again."
       )
     }
@@ -729,8 +729,8 @@ export default function CareerProfileEditorPage() {
     if (!res.ok) {
       throw new Error(
         payload?.code === 'UPGRADE_REQUIRED'
-          ? 'Adding another direction is part of Vault and Pro.'
-          : payload?.error || "We couldn't change that direction. Please try again."
+          ? 'Adding another career direction is part of Vault and Pro.'
+          : payload?.error || "We couldn't change that career direction. Please try again."
       )
     }
     await Promise.all([reloadDocument(), reloadManage()])

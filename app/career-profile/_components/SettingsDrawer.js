@@ -86,6 +86,10 @@ const OFFERED = 'offered'
 // which controls will work before anybody presses one.
 const MAX_ACTIVE = 3
 
+// The same number as a word, because the sentences below read it rather than
+// count with it. Kept beside the number so the two cannot say different things.
+const MAX_ACTIVE_WORD = 'three'
+
 function lensState(lens) {
   if (lens?.source === 'user' && lens?.sort_order === 0) return PRIMARY
   if (lens?.core_resume_id) return LOCKED
@@ -151,7 +155,7 @@ export default function SettingsDrawer({
       // message says why rather than leaving a switch that did not move.
       notify?.({
         type: 'error',
-        message: err?.message || "We couldn't change that direction. Please try again."
+        message: err?.message || "We couldn't change that career direction. Please try again."
       })
     } finally {
       setLensBusy(null)
@@ -389,7 +393,7 @@ export default function SettingsDrawer({
                         <span className="hp-ed-lens-name">{lens.name}</span>
                         {state === LOCKED && (
                           <span className="hp-ed-lens-note">
-                            Built core &mdash; remove it from your Resume Writer to hide this
+                            Built core. Remove it from Resume Writer to hide this career direction.
                           </span>
                         )}
                         {state === OFFERED && blocked && canCustomise && (
@@ -421,7 +425,7 @@ export default function SettingsDrawer({
                             disabled={busy || blocked}
                             data-blocked={blocked && !busy ? 'true' : undefined}
                             title={blocked
-                              ? `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add this one.`
+                              ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
                               : undefined}
                           >
                             {busy ? 'Adding…' : 'Add to Career Profile'}
@@ -444,7 +448,7 @@ export default function SettingsDrawer({
                           disabled={busy || (!showing && (!canCustomise || blocked))}
                           data-blocked={blocked && !showing && !busy ? 'true' : undefined}
                           title={blocked && !showing
-                            ? `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add this one.`
+                            ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
                             : undefined}
                           data-on={showing ? 'true' : 'false'}
                         >
@@ -459,8 +463,8 @@ export default function SettingsDrawer({
                 {!canCustomise
                   ? upgradeCopyFor('lenses')
                   : slotsFull
-                    ? `Your Career Profile shows ${MAX_ACTIVE} directions at a time. Turn one off to add another — everything written for it is kept.`
-                    : 'Your main direction always shows. Turning another one off keeps everything written for it, ready to put back.'}
+                    ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add another. Everything written for it stays ready to restore.`
+                    : 'Your primary career direction always shows. Turn another one off anytime. Everything written for it stays ready to restore.'}
               </p>
             </Group>
           )}
@@ -556,13 +560,13 @@ export default function SettingsDrawer({
           )}
 
           {/* ---- Appearance: still read-only ---- */}
-          <Group label="Template" note="Template and colour choices arrive with appearance settings.">
+          <Group label="Template" note="Template and color choices arrive with appearance settings.">
             {humanize(profile?.template)
               ? <Value>{humanize(profile.template)}</Value>
               : <Value empty="Default." />}
           </Group>
 
-          <Group label="Colour mode">
+          <Group label="Color mode">
             {humanize(profile?.color_mode)
               ? <Value>{humanize(profile.color_mode)}</Value>
               : <Value empty="Default." />}
