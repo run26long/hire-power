@@ -805,7 +805,7 @@ export default function CareerVaultPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-base md:text-sm font-bold text-gray-900 truncate">{currentJobEntry.title}</p>
-                            <p className="text-sm md:text-xs text-gray-500 truncate">{currentJobEntry.company}</p>
+                            <p className="text-sm text-gray-500 truncate">{currentJobEntry.company}</p>
                           </div>
                           <span className="text-gray-300 group-hover:text-purple-400 text-sm transition-colors flex-shrink-0">→</span>
                         </button>
@@ -875,7 +875,7 @@ export default function CareerVaultPage() {
                           key={acc.id}
                           onClick={() => { setSelectedWin(acc); setWinCopied(false); }}
                           className="flex items-start gap-2.5 p-2 bg-gray-50 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
-                          style={{ height: '52px' }}
+                          style={{ minHeight: '52px' }}
                         >
                           <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
                           <div className="flex-1 min-w-0">
@@ -897,14 +897,14 @@ export default function CareerVaultPage() {
                       <div className="text-4xl mb-2">🏆</div>
                       {!currentJobEntry ? (
                         <>
-                          <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">No current job set</p>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">No current job set</p>
                           <p className="text-sm text-gray-400 text-center leading-relaxed">
                             Mark a job as Hired and wins you log will attach to that role automatically.
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="text-base md:text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
+                          <p className="text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
                           <p className="text-sm text-gray-400 text-center leading-relaxed">
                             The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
                           </p>
@@ -957,8 +957,8 @@ export default function CareerVaultPage() {
                         }`}>
                         <span className="text-base md:text-sm">📋</span>
                         <div className="flex-1">
-                          <p className="text-base md:text-xs font-semibold text-gray-800">Prepare for My Review</p>
-                          <p className="text-sm md:text-[10px] text-gray-400">
+                          <p className="text-sm font-semibold text-gray-800">Prepare for My Review</p>
+                          <p className="text-sm text-gray-400">
                             {accomplishments.length > 0
                               ? `Turn your ${accomplishments.length} win${accomplishments.length !== 1 ? 's' : ''} into a review document`
                               : 'Log wins to unlock your review document'}
@@ -972,8 +972,8 @@ export default function CareerVaultPage() {
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-base md:text-sm">📄</span>
                         <div className="flex-1">
-                          <p className="text-base md:text-xs font-semibold text-gray-800">Resume Writer</p>
-                          <p className="text-sm md:text-[10px] text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
+                          <p className="text-sm font-semibold text-gray-800">Resume Writer</p>
+                          <p className="text-sm text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
                         </div>
                         <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
                       </button>
@@ -981,8 +981,8 @@ export default function CareerVaultPage() {
                         className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
                         <span className="text-base md:text-sm">📁</span>
                         <div className="flex-1">
-                          <p className="text-base md:text-xs font-semibold text-gray-800">View Archive</p>
-                          <p className="text-sm md:text-[10px] text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
+                          <p className="text-sm font-semibold text-gray-800">View Archive</p>
+                          <p className="text-sm text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
                         </div>
                         <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
                       </button>
@@ -1002,7 +1002,7 @@ export default function CareerVaultPage() {
                         </div>
                         <button
                           onClick={() => setShowNewSearchModal(true)}
-                          className="block mx-auto text-white rounded-lg py-2 px-8 text-base md:text-xs font-semibold hover:opacity-90 transition-opacity"
+                          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm font-semibold hover:opacity-90 transition-opacity"
                           style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                         >
                           Start new search →
@@ -1019,7 +1019,7 @@ export default function CareerVaultPage() {
                         </div>
                        <button
                           onClick={() => setShowUpgradeModal(true)}
-                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-base md:text-xs font-semibold hover:bg-purple-700 transition-colors"
+                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-purple-700 transition-colors"
                         >
                           Upgrade to Pro — $29.99/mo
                         </button>
