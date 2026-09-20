@@ -307,7 +307,7 @@ export default function RoleBriefOverlay({
               under the report rather than beside the download, so it is the
               last thing read and never the first. */}
           <footer className="hp-rt-brand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <ProfileMark className="hp-rt-brand-mark" />
             <span className="hp-rt-brand-text">
               Take your career beyond the page.{' '}

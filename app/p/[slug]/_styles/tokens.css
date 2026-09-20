@@ -191,6 +191,14 @@
      is its own name rather than a second use of --profile-text. */
   --profile-on-action: #ffffff;
 
+  /* The fill on a filled primary action. In this mode it is the sweep the
+     tour's Next button already draws. The two buttons in the document keep
+     their own angles and are deliberately not named here, because pointing
+     them at this would change how they look in dark. In light this becomes
+     the gradient the rest of Hire Power uses, which is the whole point of
+     the name: one place decides what a primary action is made of. */
+  --profile-primary-fill: linear-gradient(to right, var(--profile-action-lift), var(--profile-action-deep));
+
   /* Near-white, one notch off --profile-text. The editor introduction sits on
      it and so does the native select popup, which cannot be reached any other
      way. Declared here rather than with the editor chrome because the rules
@@ -460,6 +468,18 @@
   --profile-action-lift: #6d4bd1;
   --profile-action-deep: #5533b3;
   --profile-on-action: #ffffff;
+
+  /* The established Hire Power primary: the same indigo-to-purple the Resume
+     Writer and Interview Practice buttons are painted in, so a filled action
+     on a light Career Profile is the same object it is everywhere else in
+     the product.
+
+     The near stop is #566bd5 rather than the product's #667eea. White on
+     #667eea is 3.66:1 and a button label is normal-size text, so the stock
+     pair does not clear AA at the left-hand end; this one is the same hue
+     taken down until it does, at 4.75:1, and the far stop is untouched. The
+     difference is visible side by side and not otherwise. */
+  --profile-primary-fill: linear-gradient(to right, #566bd5, #764ba2);
 
   /* ---- Channels ----
      --profile-on and --profile-shade both become the ink, because on a light

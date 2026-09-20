@@ -82,7 +82,7 @@ export default function ProfileResolution({ readyTags, location, actions, animat
             beside it rather than to its own idea of a size. */}
         <p className="hp-foot-mark">
           <span className="hp-foot-mark-by">Powered by</span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          { }
           <ProfileMark className="hp-foot-mark-logo" />
         </p>
       </div>

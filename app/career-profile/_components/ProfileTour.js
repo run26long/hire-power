@@ -381,7 +381,7 @@ export default function ProfileTour({ onStepChange, onClose }) {
                 // rather than to the profile underneath it. It is the Profile's
                 // primary action now, the same sweep every other button on this
                 // page is painted in.
-                background: 'linear-gradient(to right, var(--profile-action-lift), var(--profile-action-deep))',
+                background: 'var(--profile-primary-fill)',
                 border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >

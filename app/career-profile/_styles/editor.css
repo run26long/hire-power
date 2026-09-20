@@ -3986,3 +3986,25 @@ html:has(.hp-ed) {
 [data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-compare-side {
   background: rgb(var(--profile-shade-rgb) / 0.02);
 }
+
+/* The owner's filled actions take the same primary as the document's, for
+   the same reason: one button in one product. Dark keeps the two angled
+   sweeps it already had. */
+[data-hp-profile-mode="light"] .hp-ed-action[data-primary="true"],
+[data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"] {
+  background: var(--profile-primary-fill);
+  color: var(--profile-on-action);
+  transition: opacity 160ms ease, border-color 160ms ease;
+}
+
+[data-hp-profile-mode="light"] .hp-ed-action[data-primary="true"]:hover:not(:disabled),
+[data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"]:hover:not(:disabled) {
+  background: var(--profile-primary-fill);
+  opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hp-profile-mode="light"] .hp-ed-action[data-primary="true"],
+  [data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"] { transition: none; }
+}
+

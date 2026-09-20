@@ -232,7 +232,7 @@ export default function ProfileHeader({
 }) {
   return (
     <div className="hp-header">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
+      { }
       <ProfileMark className="hp-header-mark" />
 
       <div className="hp-header-actions">

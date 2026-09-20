@@ -286,7 +286,9 @@
 .hp-header .hp-btn-primary,
 .hp-bar .hp-btn-primary,
 .hp-foot .hp-btn-primary {
-  color: var(--profile-text);
+  /* The ink that goes ON an action, not the page's own. Both are white in
+     dark, which is how this came to read the wrong one unnoticed. */
+  color: var(--profile-on-action);
   background: linear-gradient(158deg, var(--profile-action-lift) 0%, var(--profile-action-deep) 100%);
   border: 1px solid transparent;
 }
@@ -360,7 +362,7 @@
 .hp-owner-action {
   font-size: 13px;
   font-weight: 600;
-  color: var(--profile-text);
+  color: var(--profile-on-action);
   background: var(--profile-action);
   border-radius: var(--profile-radius-pill);
   padding: 9px 18px;
@@ -1550,3 +1552,52 @@
 /* The dark mark is ink on paper, not a white mark asked to sit quietly on a
    dark one, so it is shown at full strength. */
 [data-hp-profile-mode="light"] .hp-header-mark { opacity: 1; }
+
+/* ---- Filled primary actions, in light ----------------------------------
+   The product has one primary button and the Career Profile now draws it:
+   indigo to purple, white label, and a dip in opacity on hover. That is the
+   treatment on every Resume Writer and Interview Practice CTA, and a reader
+   who came from one of those pages should not meet a second kind of button
+   here.
+
+   Dark is untouched. There the Profile keeps its own two-stop sweep, which
+   is tuned to its own ground and is not this gradient.
+
+   The hover is opacity rather than a second gradient, which is what the rest
+   of the product does. It also means the base rule below is the only place
+   the fill is stated - the hover cannot drift away from it. */
+[data-hp-profile-mode="light"] .hp-header .hp-btn-primary,
+[data-hp-profile-mode="light"] .hp-bar .hp-btn-primary,
+[data-hp-profile-mode="light"] .hp-foot .hp-btn-primary,
+[data-hp-profile-mode="light"] .hp-owner-action {
+  background: var(--profile-primary-fill);
+  color: var(--profile-on-action);
+  /* The properties the base rule already animates, plus opacity. Listed in
+     full because a transition cannot be added to, only replaced. */
+  transition:
+    background var(--profile-move-ms) var(--profile-ease-in),
+    border-color var(--profile-move-ms) var(--profile-ease-in),
+    color var(--profile-move-ms) var(--profile-ease-in),
+    transform var(--profile-move-ms) var(--profile-ease-in),
+    opacity 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* The gradient stays put and the whole button lifts off slightly. Stated
+     against the same specificity as the base swap it replaces, so the
+     document's own hover does not win in this mode. */
+  [data-hp-profile-mode="light"] .hp-header .hp-btn-primary:not(:disabled):hover,
+  [data-hp-profile-mode="light"] .hp-bar .hp-btn-primary:not(:disabled):hover,
+  [data-hp-profile-mode="light"] .hp-foot .hp-btn-primary:not(:disabled):hover,
+  [data-hp-profile-mode="light"] .hp-owner-action:not(:disabled):hover {
+    background: var(--profile-primary-fill);
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hp-profile-mode="light"] .hp-header .hp-btn-primary,
+  [data-hp-profile-mode="light"] .hp-bar .hp-btn-primary,
+  [data-hp-profile-mode="light"] .hp-foot .hp-btn-primary,
+  [data-hp-profile-mode="light"] .hp-owner-action { transition: none; }
+}

@@ -3977,3 +3977,81 @@
 [data-hp-profile-mode="light"] .hp-voice-item::before {
   color: rgb(var(--profile-accent-rgb) / 0.55);
 }
+
+/* ---- Depth, in light ----------------------------------------------------
+   On the dark ground a card separates from the page by being lighter than
+   it. On paper it cannot: a white card on a near-white page has nothing but
+   its hairline, and the page reads as one flat sheet with rules drawn on it.
+   So the contained cards get a shadow - a hair of lavender at the edge to
+   keep the border from going grey, and one soft drop beneath.
+
+   This list is deliberately short. It is the cards somebody would point at
+   and call a card: a role, a skills group, the owner's own words, the
+   collective impact panel. Not the sections that hold them, not the chips
+   inside them, and not the page. A shadow on everything is the same as a
+   shadow on nothing, and costs a repaint besides.
+
+   The skills measuring layer is excluded by name. It is a hidden copy of
+   every card used to take their natural widths, and it should carry as
+   little as possible. */
+[data-hp-profile-mode="light"] .hp-role,
+[data-hp-profile-mode="light"] .hp-card:not([data-measure-card]),
+[data-hp-profile-mode="light"] .hp-voice,
+[data-hp-profile-mode="light"] .hp-impact-synthesis {
+  box-shadow:
+    0 0 0 1px rgb(109 75 209 / 0.035),
+    0 10px 28px rgb(56 39 82 / 0.07);
+}
+
+/* ---- The portfolio grid, in light --------------------------------------
+   Six square cards on the page. Only these: the full gallery is the same
+   component portalled onto the body, outside .hp-profile, and it is not part
+   of this change.
+
+   The mat behind each picture was the shade ramp, which on paper is a grey
+   square inside a white card - the card looked like it had a hole in it. It
+   is the surface now, so card, mat and caption are one sheet, and the sheet
+   is told apart from the page by its outline and its shadow rather than by
+   being a different colour.
+
+   Nothing here touches the geometry. The frame keeps aspect-ratio 1, the
+   picture keeps object-fit: contain, the caption keeps its place under the
+   frame, and a border-colour and a box-shadow occupy no layout. */
+[data-hp-profile-mode="light"] .hp-profile .hp-pf-mat {
+  border-color: var(--profile-line-strong);
+  box-shadow:
+    0 0 0 1px rgb(109 75 209 / 0.04),
+    0 14px 34px rgb(56 39 82 / 0.09);
+}
+
+[data-hp-profile-mode="light"] .hp-profile .hp-pf-mat-frame {
+  background: var(--profile-surface);
+}
+
+/* ---- View full portfolio, in light -------------------------------------
+   The control overhangs the grid's lower-right corner, and at rest it is
+   transparent - on the dark ground that reads as a pill cut out of the page,
+   because there is nothing behind it but ground. In light there is now a
+   card behind it, and its outline and its shadow ran straight through the
+   pill.
+
+   So it gets a ground of its own. The hover tint is layered over that ground
+   rather than replacing it, which keeps the tint exactly the colour it was
+   over white and keeps the button opaque while somebody is pointing at it -
+   a fix that only held until the pointer arrived would not be one.
+
+   Border, type, placement, the 19px overhang, the arrow and its nudge are
+   all untouched, and so is dark. */
+[data-hp-profile-mode="light"] .hp-profile .hp-pf-all {
+  background: var(--profile-surface);
+}
+
+[data-hp-profile-mode="light"] .hp-profile .hp-pf-all:hover,
+[data-hp-profile-mode="light"] .hp-profile .hp-pf-all:focus-visible {
+  background:
+    linear-gradient(
+      rgb(var(--profile-accent-rgb) / 0.08),
+      rgb(var(--profile-accent-rgb) / 0.08)
+    ),
+    var(--profile-surface);
+}
