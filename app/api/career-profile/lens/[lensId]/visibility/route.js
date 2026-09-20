@@ -35,17 +35,18 @@ import { requireCustomise } from '../../../_lib/requireCustomise'
 // page behind a paywall, which is the one outcome the gate exists to prevent.
 // So activation asks the gate and hiding does not.
 //
-// A DIRECTION WITH A RESUME BEHIND IT CANNOT BE HIDDEN
-// Building a core resume for a direction is the strongest statement anybody
-// makes about it, and it is made on the other page. The two pages share this
-// table, so a direction with a core stays on the profile until the core is
-// deleted from the Resume Writer - that deletion is the control, and this
-// route is not it.
+// A RESUME BEHIND A DIRECTION DOES NOT PIN IT TO THE PAGE
+// It used to. Building a core resume put the direction on the Career Profile
+// and held it there, on the reasoning that a resume is the strongest thing
+// anybody says about a direction. The reasoning was sound and the rule was
+// still wrong: it made the owner's own page the one place they could not
+// decide what to show. Somebody who has built a Business Development resume
+// may simply not want to lead with it this month, and taking it off the page
+// says nothing about the resume, which stays in the Resume Writer either way.
 //
-// The pointer alone is not enough to lock a row. A core that has been archived
-// still leaves its id on the lens, and trusting the id would lock a direction
-// to a resume that no longer exists, with the only way out on a page that no
-// longer lists it. So the resume is read, and only a live one locks.
+// So the only thing this route refuses to hide is the primary. That is a
+// structural rule - a profile with no direction is not a profile - rather
+// than an inference about what somebody must have meant by building a file.
 //
 // THREE AT A TIME
 // The page renders three directions and the public route already slices to
@@ -137,36 +138,6 @@ export async function PATCH(request, { params }) {
         { error: 'That career direction was dismissed. Restore it from your suggestions first.', code: 'DISMISSED' },
         { status: 400 }
       )
-    }
-
-    // A direction somebody built a resume for. Read rather than inferred from
-    // the pointer: a lens whose core was archived keeps the id, and locking on
-    // the id alone would strand the row - the resume it names is no longer on
-    // the Resume Writer page, so the one control that could unlock it is gone.
-    // Deleting a core releases the lens, and a pointer that outlives its
-    // resume is a bug to be survived here rather than obeyed.
-    if (!visible && lens.core_resume_id) {
-      const { data: core, error: coreError } = await supabase
-        .from('resumes')
-        .select('id')
-        .eq('id', lens.core_resume_id)
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle()
-
-      if (coreError) {
-        console.error('[career-profile] Lens core lookup failed:', coreError)
-        return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
-      }
-      if (core) {
-        return Response.json(
-          {
-            error: 'This career direction has a core resume. Delete it from Resume Writer to take it off your Career Profile.',
-            code: 'LOCKED_CORE'
-          },
-          { status: 400 }
-        )
-      }
     }
 
     // Counted excluding this one, so re-activating something already active

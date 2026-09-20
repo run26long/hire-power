@@ -9,11 +9,12 @@
  * THREE THINGS IT FIXES
  *
  * 1. A lens holding a LIVE core resume that is not active.
- *    Building a core is supposed to put the direction on the Career Profile
- *    and lock it there. Rows predating that rule - the backfill scripts made
- *    some - hold a real resume while sitting on 'suggested', which means the
- *    public route's status filter leaves them off the page entirely. The
- *    direction has a resume behind it and shows nowhere.
+ *    Building a core puts the direction on the Career Profile. Rows predating
+ *    that - the backfill scripts made some - hold a real resume while sitting
+ *    on 'suggested', which means the public route's status filter leaves them
+ *    off the page entirely. The direction has a resume behind it and shows
+ *    nowhere. (It is no longer held there once active: hiding a direction
+ *    with a core is the owner's to do.)
  *
  *    Never past three. The page renders three, so a promotion that would make
  *    a fourth is reported and not made: it would be written active and then

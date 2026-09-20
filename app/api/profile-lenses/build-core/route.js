@@ -159,9 +159,9 @@ export async function POST(request) {
     // A lens left on 'suggested' shows one stale tile, which is recoverable;
     // failing the request after creating the resume is not.
     //
-    // Building puts the direction on the Career Profile as well, and locks it
-    // there - a resume is the strongest thing anybody says about a direction,
-    // and the profile should not be quieter about it than the hub.
+    // Building puts the direction on the Career Profile as well. It does not
+    // hold it there: the owner can take it off again from their settings, and
+    // doing so leaves this resume exactly where it is.
     //
     // It can always go on. Three cores is the ceiling and three directions is
     // the ceiling, and the check above means a build that gets this far is at

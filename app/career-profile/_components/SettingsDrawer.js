@@ -61,23 +61,22 @@ function Value({ children, empty }) {
 // ---------------------------------------------------------------------------
 // WHAT A DIRECTION IS DOING ON THE CAREER PROFILE
 //
-// Five states, and only two of them have a control. A dismissed direction is
+// Four states, and only one of them has no control. A dismissed direction is
 // not offered back here, because putting something back that somebody threw
 // away is a different decision from un-hiding something they kept; it is
 // offered back on the Resume Writer hub, which is where it was thrown away.
 //
-// PRIMARY is asked before the core. Nine of ten primaries have a core resume
-// behind them, so testing the core first would put "Built core" on almost
-// every primary and leave "Always on" for nobody - and of the two things true
-// of that row, the one worth saying is the one that never changes.
+// PRIMARY is the only row without a switch, and it is first in the ladder
+// because it is the only fact about a row that the owner cannot change from
+// anywhere.
 //
-// LOCKED is a direction somebody built a resume for. It comes off the Career
-// Profile by deleting that resume from the Resume Writer and by no other
-// means, so the row says what is true and where to go, rather than offering a
-// switch that would refuse.
+// There used to be a fifth, LOCKED: a direction with a core resume behind it,
+// shown with no switch and a note pointing at the Resume Writer. Having built
+// a resume for a direction is not the same as wanting it on the page this
+// month, and the page is the owner's. It has an ordinary switch now, and
+// hiding it leaves the resume exactly where it was.
 // ---------------------------------------------------------------------------
 const PRIMARY = 'primary'
-const LOCKED = 'locked'
 const SHOWING = 'showing'
 const HIDDEN_STATE = 'hidden'
 const OFFERED = 'offered'
@@ -93,7 +92,6 @@ const MAX_ACTIVE_WORD = 'three'
 
 function lensState(lens) {
   if (lens?.source === 'user' && lens?.sort_order === 0) return PRIMARY
-  if (lens?.core_resume_id) return LOCKED
   if (lens?.status === 'active') return SHOWING
   if (lens?.status === 'hidden') return HIDDEN_STATE
   if (lens?.status === 'suggested') return OFFERED
@@ -105,13 +103,15 @@ function lensState(lens) {
 // naturally as the pair after it.
 const COLOR_MODE_LABEL = { system: 'System', light: 'Light', dark: 'Dark' }
 
-// Drawn rather than typed. The emoji renders at a different weight on every
-// platform, and beside 11px uppercase it reads as a picture stuck to the text.
-function LockIcon() {
+// Three bars, drawn rather than typed for the reason the lock was: a glyph
+// renders at a different weight on every platform and this one sits beside
+// 13px text.
+function GripIcon() {
   return (
-    <svg className="hp-ed-lens-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2" strokeWidth="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeWidth="2" strokeLinecap="round" />
+    <svg className="hp-ed-grip-mark" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="3" y="4" width="10" height="1.4" rx="0.7" />
+      <rect x="3" y="7.3" width="10" height="1.4" rx="0.7" />
+      <rect x="3" y="10.6" width="10" height="1.4" rx="0.7" />
     </svg>
   )
 }
@@ -127,7 +127,8 @@ export default function SettingsDrawer({
   canCustomise,
   notify,
   lenses,
-  onLensVisibility
+  onLensVisibility,
+  onLensReorder
 }) {
   const closeRef = useRef(null)
 
@@ -149,6 +150,118 @@ export default function SettingsDrawer({
   const activeCount = (Array.isArray(lenses) ? lenses : [])
     .filter(l => l?.status === 'active').length
   const slotsFull = activeCount >= MAX_ACTIVE
+
+  // ---- THE ORDER, AND DRAGGING IT ----
+  //
+  // Three groups out of one list. On the profile and arrangeable, off the
+  // profile and not, and not on it yet. The first group is the only one with
+  // an order, because it is the only one a visitor sees: a direction that is
+  // hidden has no position to hold and a direction that has never been added
+  // has nothing to hold a position in.
+  //
+  // Primary is read from the first row of that group rather than from the
+  // stored source/sort_order pair. The two agree once a write has landed;
+  // between the drop and the reload only the position is true, and the label
+  // has to follow the thing the owner just did rather than the thing the
+  // database has not been told yet.
+  const [dragId, setDragId] = useState(null)
+  const [dropId, setDropId] = useState(null)
+  const [reordering, setReordering] = useState(false)
+  // The arrangement as the owner left it, held only until the reload brings
+  // it back from the table. Cleared on failure, which is what puts the rows
+  // back where they were.
+  const [draftOrder, setDraftOrder] = useState(null)
+
+  const rows = Array.isArray(lenses) ? lenses : []
+  const activeRows = (() => {
+    const live = rows.filter(l => l?.status === 'active')
+    if (!draftOrder) return live.map((lens, index) => ({ lens, index }))
+    const byId = new Map(live.map(l => [l.id, l]))
+    const arranged = draftOrder.map(id => byId.get(id)).filter(Boolean)
+    // Anything that appeared since the drag - another tab, a toggle - goes on
+    // the end rather than vanishing from the list.
+    for (const l of live) if (!draftOrder.includes(l.id)) arranged.push(l)
+    return arranged.map((lens, index) => ({ lens, index }))
+  })()
+  const hiddenRows = rows.filter(l => l?.status === 'hidden').map(lens => ({ lens }))
+  const offeredRows = rows.filter(l => l?.status === 'suggested').map(lens => ({ lens }))
+
+  // Nothing to arrange with one row, and nothing to arrange with if the
+  // account cannot customise its profile at all.
+  const canReorder = Boolean(onLensReorder) && canCustomise && activeRows.length > 1
+
+  async function commitOrder(ids) {
+    if (!onLensReorder || reordering) return
+    const previous = draftOrder
+    setDraftOrder(ids)
+    setReordering(true)
+    try {
+      await onLensReorder(ids)
+      // The reload has the stored order now, so the draft stops speaking for
+      // it. Left in place it would out-rank the table on the next render.
+      setDraftOrder(null)
+    } catch (err) {
+      setDraftOrder(previous)
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't save that order. Please try again."
+      })
+    } finally {
+      setReordering(false)
+    }
+  }
+
+  function moveTo(fromIndex, toIndex) {
+    const ids = activeRows.map(r => r.lens.id)
+    if (toIndex < 0 || toIndex >= ids.length || fromIndex === toIndex) return
+    const next = ids.slice()
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+    commitOrder(next)
+  }
+
+  function startDrag(event, id) {
+    if (!canReorder) return
+    setDragId(id)
+    event.dataTransfer.effectAllowed = 'move'
+    try {
+      // Firefox will not start a drag without payload on the transfer.
+      event.dataTransfer.setData('text/plain', id)
+    } catch {
+      // Some browsers refuse this outside a user gesture they recognise. The
+      // drag still works from component state.
+    }
+  }
+
+  function overRow(event, id) {
+    if (!canReorder || !dragId) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    if (id !== dropId) setDropId(id)
+  }
+
+  function dropOn(event, id) {
+    if (!canReorder || !dragId) return
+    event.preventDefault()
+    const ids = activeRows.map(r => r.lens.id)
+    const from = ids.indexOf(dragId)
+    const to = ids.indexOf(id)
+    setDragId(null)
+    setDropId(null)
+    if (from === -1 || to === -1) return
+    moveTo(from, to)
+  }
+
+  function endDrag() {
+    setDragId(null)
+    setDropId(null)
+  }
+
+  function nudge(event, index) {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+    event.preventDefault()
+    moveTo(index, index + (event.key === 'ArrowUp' ? -1 : 1))
+  }
 
   async function setLensVisible(lens, visible) {
     if (!onLensVisibility || lensBusy) return
@@ -430,78 +543,69 @@ export default function SettingsDrawer({
               they press a control that refuses. */}
           {directions.length > 0 && (
             <Group label={`Career Directions · ${activeCount} of ${MAX_ACTIVE} active`}>
+              {/* Two groups, never mixed. Above the rule, the directions that
+                  are on the profile or could be turned back on with a switch;
+                  below it, the ones that have not been put on it yet and are
+                  added rather than toggled. A switch and an Add button answer
+                  different questions and a single list of both reads as one
+                  control that changes its mind. */}
               <div className="hp-ed-lenses">
-                {directions.map(({ lens, state }) => {
+                {activeRows.map(({ lens, index }) => {
                   const busy = lensBusy === lens.id
-                  const showing = state === SHOWING
-                  // Only a coreless direction that is off needs a free slot.
-                  // Turning one off never does, and the two states that have no
-                  // switch never ask.
-                  const blocked = slotsFull && !showing
+                  const isPrimary = index === 0
                   return (
-                    <div className="hp-ed-lens-row" key={lens.id} data-state={state}>
+                    <div
+                      className="hp-ed-lens-row"
+                      key={lens.id}
+                      data-state={isPrimary ? PRIMARY : SHOWING}
+                      data-dragging={dragId === lens.id ? 'true' : undefined}
+                      data-dropping={dropId === lens.id && dragId !== lens.id ? 'true' : undefined}
+                      draggable={canReorder}
+                      onDragStart={e => startDrag(e, lens.id)}
+                      onDragOver={e => overRow(e, lens.id)}
+                      onDrop={e => dropOn(e, lens.id)}
+                      onDragEnd={endDrag}
+                    >
+                      {canReorder ? (
+                        // The handle is a button so a keyboard has the same
+                        // move a pointer does: the arrows walk the direction
+                        // up and down the list. A drag with no keyboard
+                        // equivalent is a control half the people who need it
+                        // cannot reach.
+                        <button
+                          type="button"
+                          className="hp-ed-lens-grip"
+                          aria-label={`Reorder ${lens.name}. Position ${index + 1} of ${activeRows.length}. Use the up and down arrow keys to move it.`}
+                          disabled={reordering}
+                          onKeyDown={e => nudge(e, index)}
+                        >
+                          <GripIcon />
+                        </button>
+                      ) : null}
+
                       <span className="hp-ed-lens-label">
                         <span className="hp-ed-lens-name">{lens.name}</span>
-                        {state === LOCKED && (
-                          <span className="hp-ed-lens-note">
-                            Built core. Remove it from Resume Writer to hide this career direction.
-                          </span>
-                        )}
-                        {state === OFFERED && blocked && canCustomise && (
-                          <span className="hp-ed-lens-note">
-                            {MAX_ACTIVE} of {MAX_ACTIVE} active
-                          </span>
-                        )}
                       </span>
 
-                      {state === PRIMARY ? (
+                      {isPrimary ? (
                         // No switch at all. A disabled one would say this is
                         // yours to change and that it is currently refused,
                         // and only the second of those is true.
                         <span className="hp-ed-lens-fixed">Always on</span>
-                      ) : state === LOCKED ? (
-                        // Same reasoning, a different reason. This one can come
-                        // off, just not from here, and the note beside the name
-                        // says where.
-                        <span className="hp-ed-lens-fixed">
-                          <LockIcon />
-                          Built core
-                        </span>
-                      ) : state === OFFERED ? (
-                        canCustomise ? (
-                          <button
-                            type="button"
-                            className="hp-ed-lens-add"
-                            onClick={() => setLensVisible(lens, true)}
-                            disabled={busy || blocked}
-                            data-blocked={blocked && !busy ? 'true' : undefined}
-                            title={blocked
-                              ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
-                              : undefined}
-                          >
-                            {busy ? 'Adding…' : 'Add to Career Profile'}
-                          </button>
-                        ) : (
-                          <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
-                        )
                       ) : (
                         <button
                           type="button"
                           className="hp-ed-switch"
                           role="switch"
-                          aria-checked={showing}
+                          aria-checked="true"
                           aria-label={`Show ${lens.name} on your Career Profile`}
-                          onClick={() => setLensVisible(lens, !showing)}
+                          onClick={() => setLensVisible(lens, false)}
                           // Turning one off is never gated and never blocked. A
                           // lapsed account must always be able to take
                           // something down, and taking one down is what frees
                           // the slot the other rows are waiting for.
-                          disabled={busy || (!showing && (!canCustomise || blocked))}
-                          data-blocked={blocked && !showing && !busy ? 'true' : undefined}
-                          title={blocked && !showing
-                            ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
-                            : undefined}
-                          data-on={showing ? 'true' : 'false'}
+                          disabled={busy || reordering}
+                          data-on="true"
                         >
                           <span className="hp-ed-switch-knob" aria-hidden="true" />
                         </button>
@@ -509,7 +613,88 @@ export default function SettingsDrawer({
                     </div>
                   )
                 })}
+
+                {/* Off the profile, so it has no position on it and no handle.
+                    It keeps its switch: turning it back on puts it at the end
+                    of the order, where the owner can drag it wherever they
+                    meant it to go. */}
+                {hiddenRows.map(({ lens }) => {
+                  const busy = lensBusy === lens.id
+                  const blocked = slotsFull
+                  return (
+                    <div className="hp-ed-lens-row" key={lens.id} data-state={HIDDEN_STATE}>
+                      {canReorder ? <span className="hp-ed-lens-grip-gap" aria-hidden="true" /> : null}
+                      <span className="hp-ed-lens-label">
+                        <span className="hp-ed-lens-name">{lens.name}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="hp-ed-switch"
+                        role="switch"
+                        aria-checked="false"
+                        aria-label={`Show ${lens.name} on your Career Profile`}
+                        onClick={() => setLensVisible(lens, true)}
+                        disabled={busy || reordering || !canCustomise || blocked}
+                        data-blocked={blocked && !busy ? 'true' : undefined}
+                        title={blocked
+                          ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
+                          : undefined}
+                        data-on="false"
+                      >
+                        <span className="hp-ed-switch-knob" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
+
+              {canReorder ? (
+                <p className="hp-ed-soon">
+                  Drag to reorder. The first career direction is your primary and loads first for visitors.
+                </p>
+              ) : null}
+
+              {offeredRows.length > 0 && (
+                <>
+                  <hr className="hp-ed-lens-split" />
+                  <div className="hp-ed-lenses">
+                    {offeredRows.map(({ lens }) => {
+                      const busy = lensBusy === lens.id
+                      const blocked = slotsFull
+                      return (
+                        <div className="hp-ed-lens-row" key={lens.id} data-state={OFFERED}>
+                          <span className="hp-ed-lens-label">
+                            <span className="hp-ed-lens-name">{lens.name}</span>
+                            {blocked && canCustomise && (
+                              <span className="hp-ed-lens-note">
+                                {MAX_ACTIVE} of {MAX_ACTIVE} active
+                              </span>
+                            )}
+                          </span>
+
+                          {canCustomise ? (
+                            <button
+                              type="button"
+                              className="hp-ed-lens-add"
+                              onClick={() => setLensVisible(lens, true)}
+                              disabled={busy || blocked || reordering}
+                              data-blocked={blocked && !busy ? 'true' : undefined}
+                              title={blocked
+                                ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
+                                : undefined}
+                            >
+                              {busy ? 'Adding…' : 'Add to Career Profile'}
+                            </button>
+                          ) : (
+                            <a className="hp-ed-lens-add" href={UPGRADE_HREF}>{UPGRADE_LABEL}</a>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
               <p className="hp-ed-soon">
                 {!canCustomise
                   ? upgradeCopyFor('lenses')

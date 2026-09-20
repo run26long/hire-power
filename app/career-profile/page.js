@@ -745,6 +745,24 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, reloadDocument, reloadManage])
 
+  // The order the directions are read in, and so which one a visitor lands
+  // on. Sends the whole arrangement rather than a move: see the note on the
+  // route. Reloads both halves, because the order is on the document as well
+  // as in the drawer - the lens rail is drawn from it.
+  const reorderLenses = useCallback(async (order) => {
+    const res = await fetch('/api/career-profile/lens/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ order })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(payload?.error || "We couldn't save that order. Please try again.")
+    }
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
   // ---- states before there is a document ----
   if (loadState === 'loading') {
     return (
@@ -956,6 +974,7 @@ export default function CareerProfileEditorPage() {
         notify={notify}
         lenses={manage?.lenses || []}
         onLensVisibility={setLensVisibility}
+        onLensReorder={reorderLenses}
       />
 
       {/* Inside .hp-ed, which is where the workspace's colour tokens live: the

@@ -89,5 +89,5 @@ export default function CareerProfilePage() {
 
   if (loadState !== 'ready') return <ProfileState state={loadState} />
 
-  return <ProfileDocument data={data} slug={slug} onLensUpdated={handleLensUpdated} />
+  return <ProfileDocument data={data} slug={slug} onLensUpdated={handleLensUpdated} deepLinkLens />
 }

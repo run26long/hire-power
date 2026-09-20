@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
 import '../_styles/tokens.css'
@@ -66,7 +66,11 @@ import ProfileResolution from './ProfileResolution'
 const OUT_MS = 180
 const RESOLVE_MS = 670
 
-export default function ProfileDocument({ data, slug, onLensUpdated, edit = null }) {
+// The query parameter a shared link carries its direction in. One letter
+// because it sits in a URL somebody pastes into a message.
+const LENS_PARAM = 'd'
+
+export default function ProfileDocument({ data, slug, onLensUpdated, edit = null, deepLinkLens = false }) {
   const reducedMotion = usePrefersReducedMotion()
 
   const [activeIndex, setActiveIndex] = useState(0)
@@ -134,12 +138,69 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     return () => clearTimeout(settle)
   }, [phase])
 
+  // ---- THE DIRECTION IN THE ADDRESS ----
+  //
+  // ?d=<direction slug>, so somebody can send a link that opens on the
+  // direction they want read rather than on the one that happens to be
+  // first. The recruiter who follows it still has the whole profile: every
+  // other direction is one click away, exactly as if they had arrived with
+  // no parameter at all.
+  //
+  // Read from window rather than through useSearchParams, which would put
+  // this page behind a Suspense boundary for a value it only needs once,
+  // after its own fetch has already resolved.
+  //
+  // Only on the public page. The owner's workspace renders this same
+  // component and its address is not a thing anybody shares.
+  const readDeepLink = useCallback(() => {
+    if (!deepLinkLens || typeof window === 'undefined') return null
+    const value = new URLSearchParams(window.location.search).get(LENS_PARAM)
+    return typeof value === 'string' && value ? value : null
+  }, [deepLinkLens])
+
+  // Before paint, once, and both indices together. Setting only activeIndex
+  // would start the refocus - the page would open on the primary and
+  // transition to the asked-for direction, which is the reload this
+  // component exists to avoid. Setting both leaves them equal, so the
+  // transition effect returns early and the deep-linked direction is simply
+  // what the page opens as.
+  const deepLinkDone = useRef(false)
+  useLayoutEffect(() => {
+    if (deepLinkDone.current || !lenses.length) return
+    deepLinkDone.current = true
+    const wanted = readDeepLink()
+    if (!wanted) return
+    const index = lenses.findIndex(l => l?.slug === wanted)
+    // -1 is a slug that is not on this profile, or is on it but not among the
+    // directions it shows. 0 is already where the page opens. Either way the
+    // primary stands, which is what an absent parameter does too.
+    if (index <= 0) return
+    setActiveIndex(index)
+    setContentIndex(index)
+  }, [lenses, readDeepLink])
+
   function selectLens(index) {
     if (index === activeIndex) return
     setActiveIndex(index)
     // Replays the focus glow. Keyed rather than toggled so a second change
     // mid-transition restarts it cleanly.
     setGlowKey(key => key + 1)
+
+    // replaceState rather than pushState: moving between directions is
+    // reading one profile, not visiting five pages, and a back button that
+    // walked every direction somebody glanced at would be a worse way out of
+    // this page than the one the browser already has.
+    if (!deepLinkLens || typeof window === 'undefined') return
+    const wanted = lenses[index]?.slug
+    if (!wanted) return
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set(LENS_PARAM, wanted)
+      window.history.replaceState(null, '', url)
+    } catch {
+      // A browser that will not take the rewrite still gets the direction it
+      // was asked for; only the address stays behind.
+    }
   }
 
   // A direction turned on from the rail arrives here, once the reload has put

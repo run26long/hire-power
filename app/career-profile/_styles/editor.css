@@ -921,6 +921,9 @@ html:has(.hp-ed) {
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  /* Takes the slack, so the name sits against the handle rather than being
+     centred by space-between once a third child joined the row. */
+  flex: 1 1 auto;
 }
 
 .hp-ed-lens-name {
@@ -958,14 +961,6 @@ html:has(.hp-ed) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ed-muted);
-}
-
-/* Sized against the 11px beside it rather than in pixels, so the two stay in
-   proportion wherever the drawer's type ends up. */
-.hp-ed-lens-lock {
-  width: 1.05em;
-  height: 1.05em;
-  flex-shrink: 0;
 }
 
 .hp-ed-lens-add {
@@ -4008,3 +4003,72 @@ html:has(.hp-ed) {
   [data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"] { transition: none; }
 }
 
+/* ---- Arranging the directions -----------------------------------------
+   The handle, the two states a row takes while it is being moved, and the
+   rule between the directions that are on the profile and the ones that are
+   only offered.
+
+   The handle is a real button rather than a decorative grip, because the
+   arrows move the row and a span cannot be focused to press them. It is the
+   width it would be either way, so the rows below it - the hidden ones, which
+   have no handle - are indented to match rather than sitting a grip's width
+   to the left of everything above them. */
+.hp-ed-lens-grip {
+  appearance: none;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ed-muted);
+  cursor: grab;
+  transition: color var(--profile-move-ms) var(--profile-ease-in),
+              background var(--profile-move-ms) var(--profile-ease-in);
+}
+
+.hp-ed-lens-grip:hover:not(:disabled) {
+  color: var(--ed-ink);
+  background: var(--profile-accent-wash);
+}
+
+.hp-ed-lens-grip:focus-visible {
+  outline: 2px solid var(--ed-accent);
+  outline-offset: 1px;
+  color: var(--ed-ink);
+}
+
+.hp-ed-lens-grip:active:not(:disabled) { cursor: grabbing; }
+.hp-ed-lens-grip:disabled { cursor: default; opacity: 0.5; }
+
+.hp-ed-grip-mark { width: 14px; height: 14px; fill: currentColor; }
+
+/* The same width as the handle plus the row gap, so a hidden direction lines
+   its name up with the arrangeable ones above it. */
+.hp-ed-lens-grip-gap { flex-shrink: 0; width: 22px; }
+
+/* The row being carried, and the row it would land on. Opacity for the first
+   because it is the one under the pointer, and a line for the second because
+   it is a position rather than an object. */
+.hp-ed-lens-row[data-dragging="true"] { opacity: 0.45; }
+
+.hp-ed-lens-row[data-dropping="true"] {
+  box-shadow: inset 0 2px 0 -1px var(--ed-accent);
+}
+
+/* Between the directions that are on the profile and the ones that are only
+   offered. The two groups take different controls and the rule is what says
+   the switch above it and the button below it are not the same decision. */
+.hp-ed-lens-split {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--ed-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-ed-lens-grip { transition: none; }
+}
