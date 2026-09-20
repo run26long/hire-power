@@ -891,7 +891,7 @@
   border-radius: 12px;
   background: var(--profile-surface-2);
   border: 1px solid var(--profile-line-strong);
-  box-shadow: 0 18px 40px rgb(var(--profile-void-rgb) / 0.55);
+  box-shadow: 0 18px 40px rgb(var(--profile-scrim-rgb) / 0.55);
 }
 
 /* The resolution is the last thing on the page, so its menu opens upward
@@ -1546,3 +1546,7 @@
 
   .hp-reveal { opacity: 1; transform: none; transition: none; }
 }
+
+/* The dark mark is ink on paper, not a white mark asked to sit quietly on a
+   dark one, so it is shown at full strength. */
+[data-hp-profile-mode="light"] .hp-header-mark { opacity: 1; }

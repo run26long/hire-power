@@ -98,6 +98,21 @@
   --profile-on-rgb: 255 255 255;
   --profile-shade-rgb: 0 0 0;
 
+  /* The lit top edge has its own channel because it is the one wash that does
+     not flip with the ground: a highlight is white on a dark surface and still
+     white on a light one, it just gets quieter. Identical to --profile-on-rgb
+     in this mode, which is why it was folded into it until there was a second
+     mode to tell them apart. */
+  --profile-lift-rgb: 255 255 255;
+
+  /* And scrims and cast shadows have theirs. --profile-void-rgb was doing two
+     opposite jobs: it tinted the translucent chips and bars that sit ON the
+     page, and it also darkened the backdrops and shadows that sit UNDER things.
+     On a dark ground those want the same colour. On a light one they want
+     opposite ends of the ramp - a light chip and a dark shadow - so the two
+     are separate names now. Identical to the void in this mode. */
+  --profile-scrim-rgb: 9 6 15;
+
   /* Faint fills over a surface, weakest first. */
   --profile-fill-1: rgb(var(--profile-on-rgb) / 0.012);
   --profile-fill-2: rgb(var(--profile-on-rgb) / 0.015);
@@ -151,11 +166,11 @@
      surface is catching light from above. It is the ramp most likely to
      change sign in a light mode rather than change strength, which is why it
      is not folded into the fills it shares values with. */
-  --profile-lift-1: rgb(var(--profile-on-rgb) / 0.05);
-  --profile-lift-2: rgb(var(--profile-on-rgb) / 0.06);
-  --profile-lift-3: rgb(var(--profile-on-rgb) / 0.07);
-  --profile-lift-4: rgb(var(--profile-on-rgb) / 0.08);
-  --profile-lift-5: rgb(var(--profile-on-rgb) / 0.1);
+  --profile-lift-1: rgb(var(--profile-lift-rgb) / 0.05);
+  --profile-lift-2: rgb(var(--profile-lift-rgb) / 0.06);
+  --profile-lift-3: rgb(var(--profile-lift-rgb) / 0.07);
+  --profile-lift-4: rgb(var(--profile-lift-rgb) / 0.08);
+  --profile-lift-5: rgb(var(--profile-lift-rgb) / 0.1);
 
   /* Shade: drop shadows, sunken field grounds, the mats behind media. */
   --profile-shade-1: rgb(var(--profile-shade-rgb) / 0.2);
@@ -190,8 +205,8 @@
 
   /* The scrim the settings drawer lays over the page, and the shadow the
      drawer itself casts. Both were the void at two alphas, spelled out. */
-  --profile-scrim: rgb(var(--profile-void-rgb) / 0.5);
-  --profile-drawer-shadow: rgb(var(--profile-void-rgb) / 0.24);
+  --profile-scrim: rgb(var(--profile-scrim-rgb) / 0.5);
+  --profile-drawer-shadow: rgb(var(--profile-scrim-rgb) / 0.24);
 
   /* The blurred glass a floating panel is made of - the skill popover and the
      Q&A answer surface, which had each been carrying their own copy of this
@@ -199,6 +214,12 @@
      to sit on, not a tint of the ground. */
   --profile-glass-top: rgb(16 12 26 / 0.9);
   --profile-glass-bottom: rgb(14 11 22 / 0.82);
+
+  /* The body of a glass card - the lead evidence tile - as opposed to the two
+     stops above, which are the gradient on a floating panel. Translucent so
+     the blur behind it shows through, and dark here because the card is
+     darker than the page it sits on. In light it is the other way round. */
+  --profile-glass-body: rgb(var(--profile-void-rgb) / 0.46);
 
   /* The portfolio overlay's gallery scroller. Every other scrollbar on the
      Profile is drawn in the accent; this one is neutral because it runs
@@ -370,4 +391,180 @@
   --profile-pad: 22px;
   --profile-gutter: 72px;
   --profile-read: 62ch;
+
+  /* The Profile scopes declare their own scheme so native controls,
+     scrollbars and form widgets inside them are painted to match. Declared
+     here and nowhere higher: the application around this page is light and
+     stays light. */
+  color-scheme: dark;
+}
+
+/* ===========================================================================
+   Signature Lavender - LIGHT
+
+   The same palette in the other mode. Nothing below is a new idea: every name
+   here is declared above in dark, and a component that reads the semantic
+   names gets this for free. If a rule needs a `[data-hp-profile-mode="light"]`
+   selector of its own, that rule is reading a value instead of a name and the
+   fix is upstairs, not here.
+
+   The attribute lives on <html> rather than on .hp-profile, and that is the
+   one thing about this block worth knowing. Four of the six scopes below are
+   portalled onto document.body - the evidence viewer, the recruiter surface,
+   the portfolio overlay, and the owner's dialogs - so nothing on the document
+   can reach them by descent. An attribute at the root reaches all six. It
+   styles nothing on its own: only the Profile's own selectors read it, and
+   MainNav, the toasts and the rest of the application are untouched by it.
+
+   WHAT THE ACCENT IS FOR HERE
+   Punctuation. On the dark ground a lavender wash reads as depth; on a near
+   white one it reads as a tinted page, which is the look this mode is trying
+   not to have. So the atmosphere is off, the washes are thin, and the accent
+   does its work in small places: a selected tab, a rule, an eyebrow, a button,
+   a focus ring, a quote mark, an icon well.
+   =========================================================================== */
+
+[data-hp-profile-mode="light"] :is(
+  .hp-profile,
+  .hp-ed,
+  .hp-ev-backdrop,
+  .hp-rt-backdrop,
+  .hp-pf-box,
+  .hp-tm
+) {
+  color-scheme: light;
+
+  /* ---- The ramp ---- */
+  --profile-void: #f6f2fa;
+  --profile-ground: #fbf9ff;
+  --profile-surface: #ffffff;
+  --profile-surface-2: #f3effb;
+
+  --profile-line: #e3dced;
+  --profile-line-strong: #cbbddc;
+
+  --profile-text: #241d30;
+  --profile-body: #4d4559;
+  --profile-meta: #716a7d;
+  --profile-voice: #31283d;
+
+  --profile-accent: #6d4bd1;
+  --profile-accent-soft: #8b70dc;
+  --profile-action: #6d4bd1;
+  --profile-status: #18794e;
+
+  /* The two stops of the primary action. --profile-action-lift is the light
+     end of the sweep and --profile-action-deep the dark one; white clears
+     5.9:1 on the first and 8.3:1 on the second, so the label holds anywhere
+     along it. */
+  --profile-action-lift: #6d4bd1;
+  --profile-action-deep: #5533b3;
+  --profile-on-action: #ffffff;
+
+  /* ---- Channels ----
+     --profile-on and --profile-shade both become the ink, because on a light
+     ground everything laid over the page and everything cast under it is a
+     dilution of the same near black. --profile-lift stays white: a highlight
+     is still a highlight. --profile-void keeps following the page, because
+     what it tints is the translucent chips and bars sitting on it, and
+     --profile-scrim stays dark, because what it darkens is underneath. */
+  --profile-void-rgb: 246 242 250;
+  --profile-accent-rgb: 109 75 209;
+  --profile-action-rgb: 109 75 209;
+  --profile-status-rgb: 24 121 78;
+  --profile-on-rgb: 36 29 48;
+  --profile-shade-rgb: 36 29 48;
+  --profile-lift-rgb: 255 255 255;
+  --profile-scrim-rgb: 36 29 48;
+
+  --profile-notice: #b42318;
+
+  /* Near-black now rather than near-white: the same "one notch off the ink"
+     it always was, read from the other end. */
+  --profile-ink-soft-rgb: 36 29 48;
+  --profile-ink-soft: rgb(var(--profile-ink-soft-rgb));
+
+  /* Still the fifth red, still unresolved, still its own name. */
+  --profile-remove-ink: #b42318;
+
+  /* ---- The muted ink ramp, retuned ----
+     The one ramp whose alphas cannot carry over. Everything else - the fills,
+     the edges, the lift, the shade - keeps the steps the foundation set,
+     because a dilution of near-black on white is if anything more visible
+     than the same dilution of white on near-black. Ink is the exception, and
+     it is the exception because it is the only ramp that has to pass a
+     contrast threshold rather than just be seen.
+
+     White at 0.5 on the dark ground is comfortably readable. Near-black at
+     0.5 on paper is 3.1:1 and is not. So each step is lifted to where it sits
+     in the same place in the order and clears 4.5:1 from step 3 up, which is
+     where this ramp stops being a decorative mark and starts being a word
+     somebody has to read. Steps 1 and 2 stay under it on purpose: they are a
+     disabled star and a placeholder, and they are quiet by intent. */
+  --profile-ink-1: rgb(var(--profile-on-rgb) / 0.38);
+  --profile-ink-2: rgb(var(--profile-on-rgb) / 0.55);
+  --profile-ink-3: rgb(var(--profile-on-rgb) / 0.66);
+  --profile-ink-4: rgb(var(--profile-on-rgb) / 0.68);
+  --profile-ink-5: rgb(var(--profile-on-rgb) / 0.7);
+  --profile-ink-6: rgb(var(--profile-on-rgb) / 0.72);
+  --profile-ink-7: rgb(var(--profile-on-rgb) / 0.75);
+  --profile-ink-8: rgb(var(--profile-on-rgb) / 0.78);
+  --profile-ink-9: rgb(var(--profile-on-rgb) / 0.8);
+  --profile-ink-10: rgb(var(--profile-on-rgb) / 0.83);
+  --profile-ink-11: rgb(var(--profile-on-rgb) / 0.85);
+  --profile-ink-12: rgb(var(--profile-on-rgb) / 0.92);
+  --profile-ink-13: rgb(var(--profile-on-rgb) / 0.94);
+  --profile-ink-14: rgb(var(--profile-on-rgb) / 0.95);
+  --profile-ink-15: rgb(var(--profile-on-rgb) / 0.97);
+  --profile-ink-16: rgb(var(--profile-on-rgb) / 1);
+
+  /* ---- The category tones ----
+     The same three hues as the dark set - the accent, a smoky plum and a
+     muted periwinkle - taken down far enough to clear 4.5:1 as headings on
+     white rather than up to clear it on black. 5.9, 6.7 and 6.1 to one. */
+  --profile-tone-a-rgb: 109 75 209;
+  --profile-tone-b-rgb: 125 74 122;
+  --profile-tone-c-rgb: 74 91 176;
+
+  /* ---- Atmosphere ----
+     Off. Both fields are wide low washes of the accent, which is exactly the
+     page-tinting this mode avoids; the hero is a clean canvas and the
+     composition carries itself. The beam and the glow stay, at a third of
+     their strength: they exist for the length of a direction change and the
+     eye needs something to follow back up into the identity. */
+  --profile-atmosphere: none;
+  --profile-atmosphere-wide: none;
+
+  --profile-glow: radial-gradient(
+    ellipse at top center,
+    rgb(var(--profile-accent-rgb) / 0.07) 0%,
+    rgb(var(--profile-accent-rgb) / 0.03) 28%,
+    rgb(var(--profile-accent-rgb) / 0) 68%
+  );
+
+  --profile-beam: radial-gradient(
+    ellipse 70% 100% at 50% 0%,
+    rgb(var(--profile-accent-rgb) / 0.07) 0%,
+    rgb(var(--profile-accent-rgb) / 0.03) 34%,
+    rgb(var(--profile-accent-rgb) / 0) 72%
+  );
+
+  /* ---- Glass ----
+     White rather than eggplant, so a panel floating over the page reads as
+     frosted paper and not as a hole in it. */
+  --profile-glass-top: rgb(255 255 255 / 0.97);
+  --profile-glass-bottom: rgb(255 255 255 / 0.94);
+
+  /* White and nearly opaque, so the card reads as a raised sheet on the page
+     rather than the hole in it that a tinted panel would be. */
+  --profile-glass-body: rgb(255 255 255 / 0.72);
+
+  /* ---- Status ----
+     The alpha structure above is untouched: an ink, a ground at 0.12 and an
+     edge. Only the four hues move, to the darker set a white ground needs.
+     6.7, 6.8, 5.4 and 7.2 to one. */
+  --profile-error-rgb: 180 35 24;
+  --profile-warn-rgb: 138 75 8;
+  --profile-ok-rgb: 24 121 78;
+  --profile-info-rgb: 91 60 196;
 }

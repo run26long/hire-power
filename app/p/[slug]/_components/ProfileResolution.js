@@ -1,5 +1,6 @@
 'use client'
 
+import ProfileMark from './ProfileMark'
 import Reveal from './Reveal'
 import { EditPencil, useEditSlot, UpgradeNote } from './EditAffordance'
 import { TagsEditor } from './EditFields'
@@ -82,7 +83,7 @@ export default function ProfileResolution({ readyTags, location, actions, animat
         <p className="hp-foot-mark">
           <span className="hp-foot-mark-by">Powered by</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="hp-foot-mark-logo" src="/images/hire-power-logo-white-v2.png" alt="Hire Power" />
+          <ProfileMark className="hp-foot-mark-logo" />
         </p>
       </div>
     </footer>

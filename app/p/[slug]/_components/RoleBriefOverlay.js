@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import ProfileMark from './ProfileMark'
+
 // ============================================================================
 // THE ROLE ALIGNMENT BRIEF
 //
@@ -306,7 +308,7 @@ export default function RoleBriefOverlay({
               last thing read and never the first. */}
           <footer className="hp-rt-brand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="hp-rt-brand-mark" src="/images/hire-power-logo-white-v2.png" alt="Hire Power" />
+            <ProfileMark className="hp-rt-brand-mark" />
             <span className="hp-rt-brand-text">
               Take your career beyond the page.{' '}
               <a

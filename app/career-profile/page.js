@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { fetchJSON } from '@/lib/fetchJSON'
+import { useProfileColorMode } from '@/lib/profileColorMode'
 
 import MainNav from '../components/MainNav'
 import ErrorToast from '../components/ErrorToast'
@@ -253,6 +254,13 @@ export default function CareerProfileEditorPage() {
   }, [loadState, mode])
 
   const profile = manage?.profile || null
+
+  // The workspace and the document it renders are painted the same way, and
+  // both read it from here. `undefined` until the record lands is deliberate:
+  // it tells the hook to paint its cached guess rather than commit to dark and
+  // flip once the answer arrives. The drawer patches `manage` to preview a
+  // change, so previewing and storing are the same read.
+  useProfileColorMode(manage ? (profile?.color_mode ?? null) : undefined, 'owner')
   const published = profile?.is_published === true
   const publicPath = profile?.slug ? `/p/${profile.slug}` : null
 

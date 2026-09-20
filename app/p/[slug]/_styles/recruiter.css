@@ -709,7 +709,7 @@
   display: grid;
   place-items: center;
   padding: clamp(0px, 3vw, 36px);
-  background: rgb(var(--profile-void-rgb) / 0.84);
+  background: rgb(var(--profile-scrim-rgb) / 0.84);
   backdrop-filter: blur(10px);
   animation: hp-rt-fade 180ms ease both;
 }
@@ -727,7 +727,7 @@
   background:
     radial-gradient(90% 60% at 50% -10%, rgb(var(--profile-accent-rgb) / 0.16), transparent 64%),
     var(--profile-surface);
-  box-shadow: 0 50px 110px rgb(var(--profile-void-rgb) / 0.75);
+  box-shadow: 0 50px 110px rgb(var(--profile-scrim-rgb) / 0.75);
   overflow: hidden;
 }
 
@@ -1465,3 +1465,5 @@
 @media (prefers-reduced-motion: reduce) {
   .hp-rt-pill-tip { transition: none; transform: translate(-50%, 0); }
 }
+
+[data-hp-profile-mode="light"] .hp-rt-brand-mark { opacity: 0.9; }

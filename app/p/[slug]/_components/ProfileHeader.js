@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import ProfileMark from './ProfileMark'
+
 // ============================================================================
 // The masthead, and the pair of actions it owns.
 //
@@ -231,7 +233,7 @@ export default function ProfileHeader({
   return (
     <div className="hp-header">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/images/hire-power-logo-white-v2.png" alt="Hire Power" className="hp-header-mark" />
+      <ProfileMark className="hp-header-mark" />
 
       <div className="hp-header-actions">
         {generateError && <span className="hp-owner-note" role="alert">{generateError}</span>}

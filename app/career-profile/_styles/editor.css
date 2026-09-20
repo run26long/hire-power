@@ -133,6 +133,37 @@
   min-height: 100vh;
 }
 
+/* ---- The chrome, in light -----------------------------------------------
+   Only the --ed-* values that were literals rather than aliases. Everything
+   mapped onto a --profile-* name follows the palette on its own and is
+   deliberately absent from this block: --ed-ink, --ed-body, --ed-muted,
+   --ed-line, --ed-line-strong, --ed-accent, --ed-surface, --ed-raised, the
+   two accent washes and all twelve status tokens. If something in the chrome
+   is wrong in light and is not named here, it is reading a value somewhere
+   instead of a name. */
+[data-hp-profile-mode="light"] :is(.hp-ed, .hp-ed-portal) {
+  /* The three greys, read from the other end of the ramp. */
+  --ed-quiet: #6b6478;
+  --ed-url-ink: #5f5869;
+
+  /* The introduction's own violet, matched to the light accent rather than
+     left on the app's #7c3aed, which is too light to sit on white behind
+     text. Its call to action takes the deep stop: the accent itself lands on
+     4.5:1 against its own 18% tint, which is the line and not a margin. */
+  --ed-intro-rgb: 109 75 209;
+  --ed-intro-cta-ink: var(--profile-action-deep);
+
+  /* The publication switch. Off is the page's own strong rule rather than a
+     pale grey nobody would see on white; on is the success green. */
+  --ed-switch-off: var(--profile-line-strong);
+  --ed-go-rgb: 24 121 78;
+
+  /* One step deeper than --profile-ok-ink, because this ink sits on a 26%
+     wash of itself rather than on the surface, and at #18794e that composite
+     is 4.0:1. At this value it is 5.9:1. */
+  --ed-live-ink: #0f5c3a;
+}
+
 /* The one value handed down into the Profile's system: the Profile's own
    sticky lens bar takes hold below the nav and this toolbar together instead
    of underneath them. */
@@ -584,6 +615,71 @@ html:has(.hp-ed) {
   border: 1px solid var(--ed-line);
   vertical-align: -2px;
   margin-right: 7px;
+}
+
+/* The palette's own accent rather than a stored hex, so the swatch beside a
+   palette's name is whatever that palette currently resolves to. */
+.hp-ed-swatch[data-palette="true"] { background: var(--profile-accent); }
+
+/* ---- The colour mode control ----
+   Three equal columns in one track. A grid rather than flex because the three
+   words are different lengths and the control should not be: System is twice
+   Dark, and a row that sized itself to its labels would put the divider in a
+   different place on every palette that renames them.
+   Every value here is one the drawer already uses. The selected option is the
+   accent three ways - a wash, an edge and the ink - which is the same figure
+   the rest of the Profile uses for a thing that is currently chosen. */
+.hp-ed-seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid var(--ed-line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--ed-surface);
+}
+
+.hp-ed-seg-opt {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ed-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--profile-move-ms) var(--profile-ease-in),
+              color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+/* Between the options rather than around them, so the control keeps one
+   outer edge instead of three. */
+.hp-ed-seg-opt + .hp-ed-seg-opt { border-left: 1px solid var(--ed-line); }
+
+.hp-ed-seg-opt:hover:not([data-on="true"]):not(:disabled) { color: var(--ed-ink); }
+
+.hp-ed-seg-opt[data-on="true"] {
+  background: var(--profile-accent-wash-strong);
+  color: var(--ed-accent);
+  /* An inset ring rather than a border, so the selected option does not
+     change width and shift the two beside it. */
+  box-shadow: inset 0 0 0 1px var(--profile-accent-edge);
+}
+
+.hp-ed-seg-opt:focus-visible {
+  outline: 2px solid var(--ed-accent);
+  outline-offset: -2px;
+}
+
+/* Saving, not refused: the whole row goes quiet for the length of one write
+   rather than the pressed option looking broken. */
+.hp-ed-seg-opt:disabled { cursor: default; }
+.hp-ed-seg:has(.hp-ed-seg-opt:disabled) { opacity: 0.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-ed-seg-opt { transition: none; }
 }
 
 /* The line under a control: what it does, or what it is still waiting for. */
@@ -3853,3 +3949,40 @@ html:has(.hp-ed) {
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide .hp-ed-action,
 :is(.hp-profile, .hp-ed-portal) .hp-ed-guide-tile .hp-ed-guide-locked { margin-top: 24px; }
+
+/* The chrome's own accent-family type, at full strength in light for the
+   reason the document's is: see the note in sections.css. These are the
+   pencils, the ranks, the grips and the indices - all small, all lavender,
+   all diluted on the dark ground and none of them able to afford it on the
+   light one. */
+[data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed, .hp-ed-portal) :is(
+  .hp-ed-pencil,
+  .hp-ed-proof-rank,
+  .hp-ed-grip,
+  .hp-ed-elsewhere,
+  .hp-ed-locked-mark,
+  .hp-ed-guide-index,
+  .hp-ed-guide-step-index,
+  .hp-ed-pill
+) {
+  color: rgb(var(--profile-accent-rgb));
+}
+
+/* ---- Sunken wells, in light --------------------------------------------
+   --profile-shade is doing the same double duty --profile-void was: it casts
+   the drop shadows AND it hollows out the recessed grounds - the mode
+   switch's track, a textarea, the comparison panes. On the dark ground both
+   are the same darkening. On paper a shadow still has to be dark and a well
+   has to be a faint grey, not the mid grey that 22 to 28 percent of near
+   black comes out as; at that strength the Preview label on the mode switch
+   drops to 2.6:1.
+
+   Four selectors rather than a second ramp, because four is all there are.
+   The ramp itself keeps the alphas the foundation set, which is what every
+   shadow in the system is still reading. */
+[data-hp-profile-mode="light"] .hp-ed-modes,
+[data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-textarea,
+[data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-input,
+[data-hp-profile-mode="light"] :is(.hp-profile, .hp-ed-portal) .hp-ed-compare-side {
+  background: rgb(var(--profile-shade-rgb) / 0.02);
+}

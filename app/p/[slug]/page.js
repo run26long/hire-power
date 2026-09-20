@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { useProfileColorMode } from '@/lib/profileColorMode'
 
 import ProfileDocument, { ProfileState } from './_components/ProfileDocument'
 
@@ -33,6 +34,12 @@ export default function CareerProfilePage() {
 
   const [data, setData] = useState(null)
   const [loadState, setLoadState] = useState('loading')
+
+  // The mode the owner chose, applied to the document and to everything it
+  // portals onto the body. Keyed by slug, because a reader who opens two
+  // profiles should get each one's own answer on its first paint rather than
+  // whichever they looked at last.
+  useProfileColorMode(data ? (data?.profile?.color_mode ?? null) : undefined, slug || 'p')
 
   useEffect(() => {
     if (!slug) return

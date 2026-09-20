@@ -2311,7 +2311,7 @@
     var(--profile-surface-2);
   box-shadow:
     inset 0 1px 0 var(--profile-lift-3),
-    0 6px 18px rgb(var(--profile-void-rgb) / 0.4);
+    0 6px 18px rgb(var(--profile-scrim-rgb) / 0.4);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -2332,7 +2332,7 @@
   color: var(--profile-text);
   box-shadow:
     inset 0 1px 0 var(--profile-lift-5),
-    0 8px 22px rgb(var(--profile-void-rgb) / 0.5);
+    0 8px 22px rgb(var(--profile-scrim-rgb) / 0.5);
 }
 
 .hp-profile .hp-ev-all:hover .hp-ev-all-arrow { transform: translateX(3px); }
@@ -2435,7 +2435,7 @@
       rgb(var(--ev-tone) / 0.05) 52%,
       rgb(var(--ev-tone) / 0.09) 100%
     ),
-    rgb(var(--profile-void-rgb) / 0.46);
+    var(--profile-glass-body);
   border-color: rgb(var(--ev-tone) / 0.38);
   -webkit-backdrop-filter: blur(16px) saturate(118%);
   backdrop-filter: blur(16px) saturate(118%);
@@ -2443,7 +2443,7 @@
     inset 0 1px 0 var(--profile-lift-4),
     inset 0 0 40px rgb(var(--ev-tone) / 0.05),
     0 0 0 1px rgb(var(--ev-tone) / 0.07),
-    0 30px 70px rgb(var(--profile-void-rgb) / 0.5);
+    0 30px 70px rgb(var(--profile-scrim-rgb) / 0.5);
 }
 
 /* The edge brightens rather than the card lifting: a pane of glass does not
@@ -2454,7 +2454,7 @@
     inset 0 1px 0 var(--profile-lift-5),
     inset 0 0 40px rgb(var(--ev-tone) / 0.08),
     0 0 0 1px rgb(var(--ev-tone) / 0.12),
-    0 30px 70px rgb(var(--profile-void-rgb) / 0.5);
+    0 30px 70px rgb(var(--profile-scrim-rgb) / 0.5);
 }
 
 /* The artifact area is where the lamp is brightest, so the canvas inside the
@@ -2694,7 +2694,7 @@
   display: grid;
   place-items: center;
   padding: clamp(12px, 4vw, 40px);
-  background: rgb(var(--profile-void-rgb) / 0.82);
+  background: rgb(var(--profile-scrim-rgb) / 0.82);
   backdrop-filter: blur(8px);
   animation: hp-ev-fade 160ms ease both;
 }
@@ -2712,7 +2712,7 @@
   border: 1px solid var(--profile-line-strong);
   border-radius: 18px;
   background: var(--profile-surface);
-  box-shadow: 0 40px 90px rgb(var(--profile-void-rgb) / 0.7);
+  box-shadow: 0 40px 90px rgb(var(--profile-scrim-rgb) / 0.7);
   overflow: hidden;
 }
 
@@ -2821,7 +2821,7 @@
   border-radius: 6px;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 6px 20px rgb(var(--profile-void-rgb) / 0.55);
+  box-shadow: 0 6px 20px rgb(var(--profile-scrim-rgb) / 0.55);
 }
 
 /* Laid out at the container's width; the backing store is larger by the device
@@ -3600,7 +3600,7 @@
      makes the page behind unreadable rather than merely dimmer: over a page
      this dark, opacity alone still leaves a headline legible through it, and
      a legible page behind a lightbox is two things competing to be read. */
-  background: rgb(var(--profile-void-rgb) / 0.82);
+  background: rgb(var(--profile-scrim-rgb) / 0.82);
   backdrop-filter: blur(8px);
   animation: hp-ev-fade 160ms ease both;
   overscroll-behavior: contain;
@@ -3909,4 +3909,71 @@
      top: 50% with the -50% translate above still centres them. */
   .hp-pf-box .hp-pf-step[data-step="prev"] { left: 12px; }
   .hp-pf-box .hp-pf-step[data-step="next"] { right: 12px; }
+}
+
+[data-hp-profile-mode="light"] .hp-foot-mark-logo { opacity: 0.9; }
+
+/* ---- The portfolio overlay, in light ------------------------------------
+   The one surface in this system whose role genuinely differs by mode rather
+   than whose value does, which is why it gets a block and the rest of the
+   Profile does not.
+
+   Every other overlay here is a scrim with a panel on it: the evidence viewer
+   and the recruiter surface both dim the page and then put a card in front of
+   it, so the scrim stays dark in both modes and the card carries the palette.
+   This one has no card. The pictures and their captions sit straight on the
+   backdrop, so on a light page the backdrop has to be the light one or the
+   captions are dark ink on a dark wash - which is exactly what they were.
+
+   The chips over the pictures themselves are deliberately absent from this
+   block. A play button and a duration sit on somebody's photograph, not on
+   the page, and a photograph is not light or dark on our say-so. */
+[data-hp-profile-mode="light"] .hp-pf-box {
+  background: rgb(var(--profile-void-rgb) / 0.94);
+}
+
+/* The mat behind the full-size picture, and the two step buttons beside it.
+   Their ink and their edges already follow the mode; only the grounds were
+   still cast as shade, which on a light page is a dark chip with dark type. */
+[data-hp-profile-mode="light"] .hp-pf-box-img,
+[data-hp-profile-mode="light"] .hp-pf-box-video {
+  background: var(--profile-surface-2);
+}
+
+[data-hp-profile-mode="light"] .hp-pf-box .hp-pf-step {
+  background: rgb(255 255 255 / 0.86);
+}
+
+[data-hp-profile-mode="light"] .hp-pf-box .hp-pf-step:focus-visible {
+  background: rgb(255 255 255 / 0.96);
+}
+
+/* ---- Accent-family type, in light ---------------------------------------
+   Several small labels are set in the accent at part strength: an eyebrow at
+   0.82, the quoted one at 0.68, the evidence type lines at 0.85 and 0.92.
+   On the dark ground that is how a lavender label is made quiet, and it costs
+   nothing because the accent there is far brighter than its ground.
+
+   On a near-white one it costs everything. #6d4bd1 is 5.9:1 on white at full
+   strength, which is the whole margin AA allows; diluting it to 0.68 lands at
+   3.0:1 and the label stops being readable rather than becoming quiet. So in
+   this mode the same labels are set at full strength, which on a light page
+   is already the quiet end - they are 9.5 to 12px and they are the only
+   lavender in their section. */
+[data-hp-profile-mode="light"] .hp-spread .hp-eyebrow,
+[data-hp-profile-mode="light"] .hp-voice .hp-eyebrow {
+  color: rgb(var(--profile-accent-rgb));
+}
+
+[data-hp-profile-mode="light"] .hp-ev-tile-type,
+[data-hp-profile-mode="light"] .hp-ev-card-type,
+[data-hp-profile-mode="light"] .hp-ev-tile[data-role='rest'] .hp-ev-tile-mark,
+[data-hp-profile-mode="light"] .hp-ev-tile[data-role='rest'] .hp-ev-tile-type {
+  color: rgb(var(--ev-tone));
+}
+
+/* The opening quote mark. Decorative rather than read, so it keeps a dilution
+   - just not one that disappears into the paper. */
+[data-hp-profile-mode="light"] .hp-voice-item::before {
+  color: rgb(var(--profile-accent-rgb) / 0.55);
 }

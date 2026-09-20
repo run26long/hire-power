@@ -1,6 +1,7 @@
 'use client'
 
 import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { COLOR_MODES, normalizeColorMode } from '@/lib/profileColorMode'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ============================================================================
@@ -99,6 +100,11 @@ function lensState(lens) {
   return null
 }
 
+// The three words, in the order the control shows them. System first because
+// it is the one that defers rather than decides, and the two that decide read
+// naturally as the pair after it.
+const COLOR_MODE_LABEL = { system: 'System', light: 'Light', dark: 'Dark' }
+
 // Drawn rather than typed. The emoji renders at a different weight on every
 // platform, and beside 11px uppercase it reads as a picture stuck to the text.
 function LockIcon() {
@@ -176,6 +182,7 @@ export default function SettingsDrawer({
     : profile.contact_email
 
   const [publishing, setPublishing] = useState(false)
+  const [colorModeSaving, setColorModeSaving] = useState(false)
 
   const [slug, setSlug] = useState(currentSlug)
   const [slugCheck, setSlugCheck] = useState(null)   // { available, reason, current }
@@ -322,9 +329,53 @@ export default function SettingsDrawer({
     }
   }
 
+  // ---- COLOUR MODE ----
+  //
+  // Previewed before it is saved and saved without being asked. The mode is
+  // the one setting in this drawer whose result is the drawer itself, so the
+  // page behind the control answers the question "what would that look like"
+  // faster than any confirmation could, and a Save button would only stand
+  // between somebody and the thing they are trying to see.
+  //
+  // The preview is not a separate code path: patching the record is what the
+  // page reads to decide the mode, so showing it and storing it are the same
+  // state written at two different times. A failed write puts the old value
+  // back the same way, which is why there is no local copy of the selection
+  // to fall out of step with the record.
+  async function chooseColorMode(next) {
+    if (colorModeSaving) return
+    if (next === normalizeColorMode(profile?.color_mode)) return
+
+    const previous = profile?.color_mode ?? null
+    setColorModeSaving(true)
+    onProfileChanged({ color_mode: next })
+
+    try {
+      const res = await fetch('/api/career-profile/appearance', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ color_mode: next })
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+      // The stored value rather than the requested one, so what the page shows
+      // next is what the database holds.
+      onProfileChanged({ color_mode: payload?.profile?.color_mode ?? next })
+    } catch (err) {
+      onProfileChanged({ color_mode: previous })
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't change the color mode. Please try again."
+      })
+    } finally {
+      setColorModeSaving(false)
+    }
+  }
+
   if (!open) return null
 
   const accent = profile?.accent || null
+  const colorMode = normalizeColorMode(profile?.color_mode)
   const slugDirty = candidate !== currentSlug && candidate.length > 0
   const slugUsable = slugDirty && slugCheck?.available === true && !slugChecking
   const emailDirty = email.trim() !== currentEmail
@@ -567,11 +618,33 @@ export default function SettingsDrawer({
           </Group>
 
           <Group label="Color mode">
-            {humanize(profile?.color_mode)
-              ? <Value>{humanize(profile.color_mode)}</Value>
-              : <Value empty="Default." />}
+            {/* aria-pressed on plain buttons rather than a radiogroup, which
+                is what the Edit/Preview control in the toolbar already does.
+                A radiogroup owes the keyboard arrow-key navigation and a
+                single tab stop; three buttons that each say whether they are
+                pressed owe nothing and behave the way the rest of this page
+                already behaves. */}
+            <div className="hp-ed-seg" role="group" aria-label="Color mode">
+              {COLOR_MODES.map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  className="hp-ed-seg-opt"
+                  aria-pressed={colorMode === mode}
+                  data-on={colorMode === mode ? 'true' : 'false'}
+                  disabled={colorModeSaving}
+                  onClick={() => chooseColorMode(mode)}
+                >
+                  {COLOR_MODE_LABEL[mode]}
+                </button>
+              ))}
+            </div>
           </Group>
 
+          {/* One palette so far, so this names it rather than showing the
+              hex of a value nothing can set. A profile carrying a stored
+              accent is not on that palette and still shows what it carries,
+              which is the only case the swatch was ever for. */}
           <Group label="Accent">
             {accent ? (
               <p className="hp-ed-value">
@@ -582,7 +655,12 @@ export default function SettingsDrawer({
                 />
                 {accent}
               </p>
-            ) : <Value empty="Default." />}
+            ) : (
+              <p className="hp-ed-value">
+                <span className="hp-ed-swatch" data-palette="true" aria-hidden="true" />
+                Signature Lavender
+              </p>
+            )}
           </Group>
         </div>
       </aside>
