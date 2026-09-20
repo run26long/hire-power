@@ -133,7 +133,7 @@
       180deg,
       rgb(var(--profile-accent-rgb) / 0.055) 0%,
       rgb(var(--profile-accent-rgb) / 0.022) 46%,
-      rgb(255 255 255 / 0.012) 100%
+      var(--profile-fill-1) 100%
     );
   overflow: hidden;
 }
@@ -423,7 +423,7 @@
 
 .hp-role {
   background: rgb(var(--profile-accent-rgb) / 0.035);
-  border: 1px solid rgb(255 255 255 / 0.07);
+  border: 1px solid var(--profile-edge-1);
   border-radius: 16px;
   transition: background-color var(--profile-move-ms) var(--profile-ease),
               border-color var(--profile-move-ms) var(--profile-ease),
@@ -529,7 +529,7 @@
 @media (hover: hover) and (pointer: fine) {
   .hp-role:has(.hp-role-head:not([disabled]):hover) {
     background: rgb(var(--profile-accent-rgb) / 0.055);
-    border-color: rgb(255 255 255 / 0.11);
+    border-color: var(--profile-edge-5);
   }
   .hp-role .hp-role-head:not([disabled]):hover .hp-role-toggle {
     border-color: var(--profile-accent-edge);
@@ -1362,15 +1362,15 @@
       165deg,
       rgb(var(--profile-accent-rgb) / 0.16) 0%,
       rgb(var(--profile-accent-rgb) / 0.07) 46%,
-      rgb(16 12 26 / 0.9) 100%
+      var(--profile-glass-top) 100%
     ),
-    rgb(14 11 22 / 0.82);
+    var(--profile-glass-bottom);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
   box-shadow:
     0 26px 70px -18px rgb(var(--profile-accent-rgb) / 0.4),
-    0 10px 46px rgb(0 0 0 / 0.5),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
+    0 10px 46px var(--profile-shade-10),
+    inset 0 1px 0 var(--profile-lift-2);
 }
 
 /* The head stays put; only the body travels, so the title and the close never
@@ -1467,7 +1467,7 @@
   flex-direction: column;
   gap: 4px;
   padding-top: 14px;
-  border-top: 1px solid rgb(255 255 255 / 0.08);
+  border-top: 1px solid var(--profile-edge-2);
 }
 
 .hp-proof-item:first-child { padding-top: 0; border-top: 0; }
@@ -2060,7 +2060,7 @@
 .hp-ev-backdrop .hp-ev-chip[aria-pressed='true'] {
   background: var(--profile-action-lift);
   border-color: var(--profile-action-lift);
-  color: #ffffff;
+  color: var(--profile-on-action);
 }
 
 .hp-ev-backdrop .hp-ev-chip[aria-pressed='true']:hover {
@@ -2310,7 +2310,7 @@
     linear-gradient(180deg, rgb(var(--profile-accent-rgb) / 0.19), rgb(var(--profile-accent-rgb) / 0.09)),
     var(--profile-surface-2);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    inset 0 1px 0 var(--profile-lift-3),
     0 6px 18px rgb(var(--profile-void-rgb) / 0.4);
   font-size: 14px;
   font-weight: 600;
@@ -2331,7 +2331,7 @@
     var(--profile-surface-2);
   color: var(--profile-text);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    inset 0 1px 0 var(--profile-lift-5),
     0 8px 22px rgb(var(--profile-void-rgb) / 0.5);
 }
 
@@ -2440,7 +2440,7 @@
   -webkit-backdrop-filter: blur(16px) saturate(118%);
   backdrop-filter: blur(16px) saturate(118%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 1px 0 var(--profile-lift-4),
     inset 0 0 40px rgb(var(--ev-tone) / 0.05),
     0 0 0 1px rgb(var(--ev-tone) / 0.07),
     0 30px 70px rgb(var(--profile-void-rgb) / 0.5);
@@ -2451,7 +2451,7 @@
 .hp-profile .hp-ev-tile[data-role='lead']:hover {
   border-color: rgb(var(--ev-tone) / 0.55);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    inset 0 1px 0 var(--profile-lift-5),
     inset 0 0 40px rgb(var(--ev-tone) / 0.08),
     0 0 0 1px rgb(var(--ev-tone) / 0.12),
     0 30px 70px rgb(var(--profile-void-rgb) / 0.5);
@@ -2469,7 +2469,7 @@
         rgb(var(--ev-tone) / 0.09) 52%,
         rgb(var(--ev-tone) / 0.02) 78%
       );
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+    box-shadow: inset 0 1px 0 var(--profile-lift-1);
   }
 }
 
@@ -2764,7 +2764,7 @@
   height: 34px;
   border: 1px solid var(--profile-line);
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.03);
+  background: var(--profile-fill-4);
   font-size: 19px;
   line-height: 1;
   color: var(--profile-meta);
@@ -2838,7 +2838,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: rgb(255 255 255 / 0.9);
+  color: var(--profile-ink-13);
   pointer-events: none;
 }
 
@@ -3084,7 +3084,7 @@
   padding: 5px 12px 5px 9px;
   border: 1px solid var(--profile-line);
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.03);
+  background: var(--profile-fill-4);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -3228,7 +3228,7 @@
   margin: 14px 0 0;
   border-radius: 10px;
   overflow: hidden;
-  background: rgb(0 0 0 / 0.42);
+  background: var(--profile-shade-8);
   border: 1px solid rgb(var(--profile-accent-rgb) / 0.22);
 }
 
@@ -3247,7 +3247,7 @@
 
 /* Holds the shape while the signed link is fetched, so the column does not
    jump when it arrives. */
-.hp-voice-video-wait { background: rgb(255 255 255 / 0.03); }
+.hp-voice-video-wait { background: var(--profile-fill-4); }
 
 /* With a video above it the passage is a caption rather than the subject, so
    it steps down and the display scale comes off. */
@@ -3384,7 +3384,7 @@
   overflow: hidden;
   background:
     linear-gradient(150deg, rgb(var(--pf-tone) / 0.10) 0%, rgb(var(--pf-tone) / 0) 62%),
-    rgb(0 0 0 / 0.22);
+    var(--profile-shade-2);
 }
 
 .hp-pf-mat-img {
@@ -3415,8 +3415,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid rgb(255 255 255 / 0.5);
-  background: rgb(0 0 0 / 0.42);
+  border: 1px solid var(--profile-edge-12);
+  background: var(--profile-shade-8);
   pointer-events: none;
 }
 
@@ -3427,7 +3427,7 @@
   margin-left: 3px;
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
-  border-left: 13px solid rgb(255 255 255 / 0.92);
+  border-left: 13px solid var(--profile-ink-14);
 }
 
 .hp-pf-time {
@@ -3436,8 +3436,8 @@
   bottom: 8px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgb(0 0 0 / 0.62);
-  color: rgb(255 255 255 / 0.92);
+  background: var(--profile-shade-12);
+  color: var(--profile-ink-14);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
@@ -3638,7 +3638,7 @@
       rgb(var(--profile-accent-rgb) / 0.012) 100%
     ),
     var(--profile-ground);
-  box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
+  box-shadow: 0 30px 80px var(--profile-shade-11);
 }
 
 @media (min-width: 768px) {
@@ -3655,7 +3655,7 @@
 
 .hp-pf-box-count {
   font-size: 13px;
-  color: rgb(255 255 255 / 0.62);
+  color: var(--profile-ink-9);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3687,7 +3687,7 @@
   font-weight: 700;
   line-height: 1.16;
   letter-spacing: -0.02em;
-  color: rgb(255 255 255 / 0.94);
+  color: var(--profile-ink-15);
 }
 
 .hp-pf-box-heading-title .hp-pf-box-count { font-weight: 400; }
@@ -3708,12 +3708,12 @@
   background: none;
   font-size: 13px;
   font-weight: 600;
-  color: rgb(255 255 255 / 0.66);
+  color: var(--profile-ink-10);
   cursor: pointer;
 }
 
 .hp-pf-box .hp-pf-back:hover,
-.hp-pf-box .hp-pf-back:focus-visible { color: rgb(255 255 255 / 0.95); }
+.hp-pf-box .hp-pf-back:focus-visible { color: var(--profile-ink-16); }
 
 .hp-pf-back-arrow { transition: transform 180ms ease; }
 .hp-pf-box .hp-pf-back:hover .hp-pf-back-arrow { transform: translateX(-3px); }
@@ -3728,16 +3728,16 @@
   overscroll-behavior: contain;
   padding: 2px 4px 4px 0;
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+  scrollbar-color: var(--profile-scrollbar-thumb) transparent;
 }
 
 .hp-pf-box-gallery::-webkit-scrollbar { width: 6px; }
 .hp-pf-box-gallery::-webkit-scrollbar-track { background: transparent; }
 .hp-pf-box-gallery::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 0.22);
+  background: var(--profile-scrollbar-thumb);
   border-radius: 3px;
 }
-.hp-pf-box-gallery::-webkit-scrollbar-thumb:hover { background: rgb(255 255 255 / 0.34); }
+.hp-pf-box-gallery::-webkit-scrollbar-thumb:hover { background: var(--profile-scrollbar-thumb-hover); }
 
 .hp-pf-box-grid {
   display: grid;
@@ -3762,10 +3762,10 @@
   width: 38px;
   height: 38px;
   padding: 0;
-  border: 1px solid rgb(255 255 255 / 0.26);
+  border: 1px solid var(--profile-edge-11);
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.06);
-  color: rgb(255 255 255 / 0.92);
+  background: var(--profile-fill-7);
+  color: var(--profile-ink-14);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -3773,8 +3773,8 @@
 
 .hp-pf-box .hp-pf-box-close:hover,
 .hp-pf-box .hp-pf-box-close:focus-visible {
-  border-color: rgb(255 255 255 / 0.55);
-  background: rgb(255 255 255 / 0.12);
+  border-color: var(--profile-edge-13);
+  background: var(--profile-fill-10);
 }
 
 /* The stage takes what the bar and the foot leave, and the picture is bounded
@@ -3803,7 +3803,7 @@
   height: auto;
   object-fit: contain;
   border-radius: 8px;
-  background: rgb(0 0 0 / 0.4);
+  background: var(--profile-shade-7);
 }
 
 /* A video does not. Until its metadata arrives a <video> is 300 by 150, and
@@ -3819,7 +3819,7 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: 8px;
-  background: rgb(0 0 0 / 0.4);
+  background: var(--profile-shade-7);
 }
 
 .hp-pf-box-wait,
@@ -3832,13 +3832,13 @@
   width: min(420px, 80vw);
   aspect-ratio: 4 / 3;
   max-width: 100%;
-  border: 1px solid rgb(255 255 255 / 0.14);
+  border: 1px solid var(--profile-edge-7);
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.04);
-  color: rgb(255 255 255 / 0.6);
+  background: var(--profile-fill-5);
+  color: var(--profile-ink-8);
 }
 
-.hp-pf-box-gone-mark { color: rgb(255 255 255 / 0.5); }
+.hp-pf-box-gone-mark { color: var(--profile-ink-6); }
 .hp-pf-box-gone-note { margin: 0; font-size: 14px; }
 
 /* ---- Moving through ----
@@ -3855,10 +3855,10 @@
   width: 42px;
   height: 42px;
   padding: 0;
-  border: 1px solid rgb(255 255 255 / 0.24);
+  border: 1px solid var(--profile-edge-10);
   border-radius: 50%;
-  background: rgb(0 0 0 / 0.5);
-  color: rgb(255 255 255 / 0.92);
+  background: var(--profile-shade-10);
+  color: var(--profile-ink-14);
   line-height: 1;
   cursor: pointer;
 }
@@ -3868,13 +3868,13 @@
 
 .hp-pf-box .hp-pf-step:hover,
 .hp-pf-box .hp-pf-step:focus-visible {
-  border-color: rgb(255 255 255 / 0.55);
-  background: rgb(0 0 0 / 0.72);
+  border-color: var(--profile-edge-13);
+  background: var(--profile-shade-13);
 }
 
 .hp-pf-box-foot {
   flex: none;
-  color: rgb(255 255 255 / 0.86);
+  color: var(--profile-ink-12);
 }
 
 .hp-pf-box-title {
@@ -3888,7 +3888,7 @@
   margin: 6px 0 0;
   font-size: 14px;
   line-height: 1.45;
-  color: rgb(255 255 255 / 0.68);
+  color: var(--profile-ink-11);
 }
 
 .hp-pf-box-meta {
@@ -3896,7 +3896,7 @@
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgb(255 255 255 / 0.5);
+  color: var(--profile-ink-6);
 }
 
 @media (min-width: 768px) {

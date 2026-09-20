@@ -374,7 +374,7 @@ export default function SettingsDrawer({
               whether to turn something on needs to know what it costs before
               they press a control that refuses. */}
           {directions.length > 0 && (
-            <Group label={`Directions · ${activeCount} of ${MAX_ACTIVE} active`}>
+            <Group label={`Career Directions · ${activeCount} of ${MAX_ACTIVE} active`}>
               <div className="hp-ed-lenses">
                 {directions.map(({ lens, state }) => {
                   const busy = lensBusy === lens.id

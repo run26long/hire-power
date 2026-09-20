@@ -49,21 +49,21 @@
      box and a bare line of text are recognisably the same state. Contrast
      on this page's surfaces: error 6.3:1, warning 12.2:1, success 9.3:1,
      informational 10.1:1 - all clear AA for normal text. */
-  --ed-error-ink: #e57373;
-  --ed-error-ground: rgb(229 115 115 / 0.12);
-  --ed-error-edge: rgb(229 115 115 / 0.34);
+  --ed-error-ink: var(--profile-error-ink);
+  --ed-error-ground: var(--profile-error-ground);
+  --ed-error-edge: var(--profile-error-edge);
 
-  --ed-warn-ink: #ffc870;
-  --ed-warn-ground: rgb(255 200 112 / 0.12);
-  --ed-warn-edge: rgb(255 200 112 / 0.32);
+  --ed-warn-ink: var(--profile-warn-ink);
+  --ed-warn-ground: var(--profile-warn-ground);
+  --ed-warn-edge: var(--profile-warn-edge);
 
-  --ed-ok-ink: #81c784;
-  --ed-ok-ground: rgb(129 199 132 / 0.12);
-  --ed-ok-edge: rgb(129 199 132 / 0.32);
+  --ed-ok-ink: var(--profile-ok-ink);
+  --ed-ok-ground: var(--profile-ok-ground);
+  --ed-ok-edge: var(--profile-ok-edge);
 
-  --ed-info-ink: #c4b5fd;
-  --ed-info-ground: rgb(196 181 253 / 0.12);
-  --ed-info-edge: rgb(196 181 253 / 0.3);
+  --ed-info-ink: var(--profile-info-ink);
+  --ed-info-ground: var(--profile-info-ground);
+  --ed-info-edge: var(--profile-info-edge);
 
   --ed-ink: var(--profile-text);
   --ed-body: var(--profile-body);
@@ -75,6 +75,44 @@
   --ed-accent-edge: rgb(var(--profile-accent-rgb) / 0.34);
   --ed-surface: var(--profile-surface);
   --ed-raised: var(--profile-surface-2);
+
+  /* ---- The chrome's own greys ----
+     Three steps that are not the document's --profile-meta and were three
+     literals until now: the field label, the hint or note under a control,
+     and the public address. They are survivors of the light palette this
+     shell used to carry, kept at their measured values and given names so
+     the mode work can see them. */
+  --ed-label-ink: #9b9baa;
+  --ed-quiet: #a5a5b4;
+  --ed-url-ink: #8b8b9a;
+
+  /* Near-white, one notch off --ed-ink. The introduction's lead sits on it,
+     and so does the native select popup, which cannot be styled any other
+     way. */
+  --ed-ink-soft-rgb: var(--profile-ink-soft-rgb);
+  --ed-ink-soft: var(--profile-ink-soft);
+
+  /* The introduction banner is drawn in a violet of its own rather than the
+     Profile's --profile-action, which is a difference worth being able to
+     see rather than one buried in five rgb() literals. */
+  --ed-intro-rgb: 124 58 237;
+  --ed-intro-body: rgb(var(--ed-ink-soft-rgb) / 0.66);
+  --ed-intro-close-ink: rgb(var(--ed-ink-soft-rgb) / 0.7);
+  --ed-intro-cta-ink: #e9e5f5;
+
+  /* The publication switch and the live badge share one green, which is a
+     third green next to --ed-ok-ink and --profile-status. Also named rather
+     than resolved: this pass gives the values handles, it does not decide
+     which of the three should survive. */
+  --ed-go-rgb: 5 150 105;
+  --ed-switch-off: #e9e9f0;
+  --ed-switch-on: rgb(var(--ed-go-rgb));
+  --ed-switch-knob: #fff;
+  --ed-live-ground: rgb(var(--ed-go-rgb) / 0.26);
+  --ed-live-ink: #86efac;
+
+  /* Dropping a tag. A fifth red, still, and now at least it has a name. */
+  --ed-remove-ink: var(--profile-remove-ink);
 
   /* MainNav's own height. The document is told to hold its sticky bar below
      the nav and this bar together. */
@@ -173,7 +211,7 @@ html:has(.hp-ed) {
   padding: 3px;
   border-radius: 9px;
   border: 1px solid var(--ed-line);
-  background: rgb(0 0 0 / 0.28);
+  background: var(--profile-shade-3);
   flex-shrink: 0;
 }
 
@@ -286,7 +324,7 @@ html:has(.hp-ed) {
   padding: 0 13px;
   border-radius: 8px;
   border: 1px solid var(--ed-line-strong);
-  background: rgb(255 255 255 / 0.04);
+  background: var(--profile-fill-5);
   color: var(--ed-ink);
   cursor: pointer;
   white-space: nowrap;
@@ -315,13 +353,13 @@ html:has(.hp-ed) {
 .hp-ed-action[data-primary="true"] {
   background: linear-gradient(135deg, var(--profile-action) 0%, var(--profile-action-deep) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--profile-on-action);
 }
 
 .hp-ed-action[data-primary="true"]:hover {
   background: linear-gradient(135deg, var(--profile-action-lift) 0%, var(--profile-action) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--profile-on-action);
 }
 
 @media (max-width: 1100px) {
@@ -358,8 +396,8 @@ html:has(.hp-ed) {
 .hp-ed-intro {
   position: relative;
   padding: 26px 24px 24px;
-  border-bottom: 1px solid rgb(255 255 255 / 0.07);
-  background: linear-gradient(180deg, rgb(124 58 237 / 0.10) 0%, rgb(124 58 237 / 0) 100%);
+  border-bottom: 1px solid var(--profile-edge-1);
+  background: linear-gradient(180deg, rgb(var(--ed-intro-rgb) / 0.10) 0%, rgb(var(--ed-intro-rgb) / 0) 100%);
 }
 
 .hp-ed-intro-inner {
@@ -374,14 +412,14 @@ html:has(.hp-ed) {
   line-height: 1.32;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #f4f2f8;
+  color: var(--ed-ink-soft);
 }
 
 .hp-ed-intro-body {
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
-  color: rgb(244 242 248 / 0.66);
+  color: var(--ed-intro-body);
 }
 
 /* The way in. Lavender on the document's own ground rather than the chrome's
@@ -397,16 +435,16 @@ html:has(.hp-ed) {
   font-weight: 600;
   padding: 9px 16px;
   border-radius: 9px;
-  border: 1px solid rgb(124 58 237 / 0.45);
-  background: rgb(124 58 237 / 0.18);
-  color: #e9e5f5;
+  border: 1px solid rgb(var(--ed-intro-rgb) / 0.45);
+  background: rgb(var(--ed-intro-rgb) / 0.18);
+  color: var(--ed-intro-cta-ink);
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
 }
 
 .hp-ed-intro-cta:hover {
-  background: rgb(124 58 237 / 0.3);
-  border-color: rgb(124 58 237 / 0.7);
+  background: rgb(var(--ed-intro-rgb) / 0.3);
+  border-color: rgb(var(--ed-intro-rgb) / 0.7);
 }
 
 .hp-ed-intro-cta-arrow {
@@ -426,16 +464,16 @@ html:has(.hp-ed) {
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  background: rgb(255 255 255 / 0.04);
-  color: rgb(244 242 248 / 0.7);
+  border: 1px solid var(--profile-edge-6);
+  background: var(--profile-fill-5);
+  color: var(--ed-intro-close-ink);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
 }
 
-.hp-ed-intro-close:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+.hp-ed-intro-close:hover { background: var(--profile-fill-9); color: var(--ed-ink); }
 
 @media (max-width: 560px) {
   .hp-ed-intro { padding: 20px 16px 18px; }
@@ -450,7 +488,7 @@ html:has(.hp-ed) {
   position: fixed;
   inset: 0;
   z-index: 54;
-  background: rgb(9 6 15 / 0.5);
+  background: var(--profile-scrim);
   border: 0;
   padding: 0;
   cursor: default;
@@ -467,7 +505,7 @@ html:has(.hp-ed) {
   flex-direction: column;
   background: var(--ed-surface);
   border-left: 1px solid var(--ed-line);
-  box-shadow: -12px 0 40px rgb(9 6 15 / 0.24);
+  box-shadow: -12px 0 40px var(--profile-drawer-shadow);
   /* 10. The same UI sans the toolbar uses, set once on the drawer so the
      title, labels, values, placeholders, helper copy, buttons and the
      template, colour mode and accent values all inherit it. Without it the
@@ -516,7 +554,7 @@ html:has(.hp-ed) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9b9baa;
+  color: var(--ed-label-ink);
 }
 
 .hp-ed-value {
@@ -526,7 +564,7 @@ html:has(.hp-ed) {
   overflow-wrap: anywhere;
 }
 
-.hp-ed-value[data-empty="true"] { color: #a5a5b4; }
+.hp-ed-value[data-empty="true"] { color: var(--ed-quiet); }
 
 .hp-ed-swatch {
   display: inline-block;
@@ -543,7 +581,7 @@ html:has(.hp-ed) {
   margin: 6px 0 0;
   font-size: 11.5px;
   line-height: 1.5;
-  color: #a5a5b4;
+  color: var(--ed-quiet);
 }
 
 /* The address gets its own line. Set inline it runs straight into the sentence
@@ -553,7 +591,7 @@ html:has(.hp-ed) {
   margin-bottom: 3px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
-  color: #8b8b9a;
+  color: var(--ed-url-ink);
   overflow-wrap: anywhere;
 }
 
@@ -607,7 +645,7 @@ html:has(.hp-ed) {
   padding: 0 2px 0 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
-  color: #a5a5b4;
+  color: var(--ed-quiet);
   flex-shrink: 0;
   user-select: none;
 }
@@ -652,7 +690,7 @@ html:has(.hp-ed) {
 .hp-ed-hint {
   font-size: 11.5px;
   line-height: 1.4;
-  color: #a5a5b4;
+  color: var(--ed-quiet);
 }
 
 /* #047857 was green-800 on a dark drawer: 3.4:1, under AA. The platform's
@@ -686,7 +724,7 @@ html:has(.hp-ed) {
   padding: 2px;
   border-radius: 999px;
   border: 1px solid var(--ed-line);
-  background: #e9e9f0;
+  background: var(--ed-switch-off);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -694,8 +732,8 @@ html:has(.hp-ed) {
 }
 
 .hp-ed-switch[data-on="true"] {
-  background: #059669;
-  border-color: #059669;
+  background: var(--ed-switch-on);
+  border-color: var(--ed-switch-on);
 }
 
 .hp-ed-switch:disabled { opacity: 0.55; cursor: wait; }
@@ -711,8 +749,8 @@ html:has(.hp-ed) {
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  background: var(--ed-switch-knob);
+  box-shadow: 0 1px 2px var(--profile-shade-1);
   transition: transform 160ms ease;
 }
 
@@ -1101,8 +1139,8 @@ html:has(.hp-ed) {
   width: 100%;
   font: inherit;
   color: var(--profile-text);
-  background: rgb(0 0 0 / 0.28);
-  border: 1px solid rgb(255 255 255 / 0.14);
+  background: var(--profile-shade-3);
+  border: 1px solid var(--profile-edge-7);
   border-radius: 8px;
   padding: 10px 12px;
   /* No drag handle on any of the owner's fields. Every one of them is either
@@ -1137,14 +1175,14 @@ html:has(.hp-ed) {
   font: inherit;
   font-size: 13.5px;
   color: var(--profile-text);
-  background: rgb(0 0 0 / 0.28);
-  border: 1px solid rgb(255 255 255 / 0.14);
+  background: var(--profile-shade-3);
+  border: 1px solid var(--profile-edge-7);
   border-radius: 7px;
   padding: 7px 10px;
   min-width: 0;
 }
 
-:is(.hp-profile, .hp-ed-portal) .hp-ed-input::placeholder { color: rgb(255 255 255 / 0.3); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-input::placeholder { color: var(--profile-ink-2); }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-input:focus-visible {
   outline: 2px solid rgb(var(--profile-accent-rgb) / 0.75);
@@ -1193,8 +1231,8 @@ html:has(.hp-ed) {
   font-weight: 600;
   padding: 7px 13px;
   border-radius: 7px;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  background: rgb(255 255 255 / 0.05);
+  border: 1px solid var(--profile-edge-8);
+  background: var(--profile-fill-6);
   color: var(--profile-text);
   cursor: pointer;
   white-space: nowrap;
@@ -1211,8 +1249,8 @@ html:has(.hp-ed) {
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-action:hover:not(:disabled) {
-  background: rgb(255 255 255 / 0.1);
-  border-color: rgb(255 255 255 / 0.26);
+  background: var(--profile-fill-9);
+  border-color: var(--profile-edge-11);
 }
 
 /* The same declaration the Settings button carries, not a second purple.
@@ -1222,7 +1260,7 @@ html:has(.hp-ed) {
 :is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"] {
   background: linear-gradient(135deg, var(--profile-action) 0%, var(--profile-action-deep) 100%);
   border-color: transparent;
-  color: #fff;
+  color: var(--profile-on-action);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-action[data-primary="true"]:hover:not(:disabled) {
@@ -1329,8 +1367,8 @@ html:has(.hp-ed) {
   gap: 2px;
   padding: 3px 4px 3px 6px;
   border-radius: 999px;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  background: rgb(255 255 255 / 0.05);
+  border: 1px solid var(--profile-edge-8);
+  background: var(--profile-fill-6);
 }
 
 .hp-ed-tag-text {
@@ -1354,24 +1392,24 @@ html:has(.hp-ed) {
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  color: rgb(255 255 255 / 0.5);
+  color: var(--profile-ink-6);
   cursor: pointer;
   padding: 0;
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-tag-move:hover:not(:disabled),
 :is(.hp-profile, .hp-ed-portal) .hp-ed-tag-drop:hover {
-  background: rgb(255 255 255 / 0.1);
+  background: var(--profile-fill-9);
   color: var(--profile-text);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-tag-move:disabled { opacity: 0.25; cursor: default; }
-:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-drop { color: rgb(252 165 165 / 0.75); }
+:is(.hp-profile, .hp-ed-portal) .hp-ed-tag-drop { color: var(--profile-remove-ink); }
 
 .hp-ed-tags-none {
   font-size: 12.5px;
   font-style: italic;
-  color: rgb(255 255 255 / 0.4);
+  color: var(--profile-ink-3);
 }
 
 .hp-ed-tag-add {
@@ -1424,7 +1462,7 @@ html:has(.hp-ed) {
 .hp-ed-proof-note {
   margin: 9px 0 0;
   font-size: 11.5px;
-  color: rgb(255 255 255 / 0.4);
+  color: var(--profile-ink-3);
 }
 
 @media (max-width: 640px) {
@@ -1448,23 +1486,63 @@ html:has(.hp-ed) {
    and the way to add more belongs after what is already there. */
 
 /* The dialog renders onto document.body, outside .hp-ed, so the tokens it
-   uses have to be declared on it as well as on the shell. */
+   uses have to be declared on it as well as on the shell.
+
+   The status four were all this carried, and the rest of the set was simply
+   missing: the version toggle inside the "Tell your story" dialog asks for
+   --ed-line, --ed-muted, --ed-ink and --ed-accent, none of which resolved
+   out here, so its rule fell back to currentColor and its labels to whatever
+   they inherited. The whole mapped set is declared here now, so a control is
+   dressed the same whether it is standing in the document or in a dialog
+   over it. */
 .hp-ed-portal {
-  --ed-error-ink: #e57373;
-  --ed-error-ground: rgb(229 115 115 / 0.12);
-  --ed-error-edge: rgb(229 115 115 / 0.34);
+  --ed-ink: var(--profile-text);
+  --ed-body: var(--profile-body);
+  --ed-muted: var(--profile-meta);
+  --ed-line: var(--profile-line);
+  --ed-line-strong: var(--profile-line-strong);
+  --ed-accent: var(--profile-accent);
+  --ed-accent-soft: rgb(var(--profile-accent-rgb) / 0.13);
+  --ed-accent-edge: rgb(var(--profile-accent-rgb) / 0.34);
+  --ed-surface: var(--profile-surface);
+  --ed-raised: var(--profile-surface-2);
 
-  --ed-warn-ink: #ffc870;
-  --ed-warn-ground: rgb(255 200 112 / 0.12);
-  --ed-warn-edge: rgb(255 200 112 / 0.32);
+  --ed-label-ink: #9b9baa;
+  --ed-quiet: #a5a5b4;
+  --ed-url-ink: #8b8b9a;
 
-  --ed-ok-ink: #81c784;
-  --ed-ok-ground: rgb(129 199 132 / 0.12);
-  --ed-ok-edge: rgb(129 199 132 / 0.32);
+  --ed-ink-soft-rgb: var(--profile-ink-soft-rgb);
+  --ed-ink-soft: var(--profile-ink-soft);
 
-  --ed-info-ink: #c4b5fd;
-  --ed-info-ground: rgb(196 181 253 / 0.12);
-  --ed-info-edge: rgb(196 181 253 / 0.3);
+  --ed-intro-rgb: 124 58 237;
+  --ed-intro-body: rgb(var(--ed-ink-soft-rgb) / 0.66);
+  --ed-intro-close-ink: rgb(var(--ed-ink-soft-rgb) / 0.7);
+  --ed-intro-cta-ink: #e9e5f5;
+
+  --ed-go-rgb: 5 150 105;
+  --ed-switch-off: #e9e9f0;
+  --ed-switch-on: rgb(var(--ed-go-rgb));
+  --ed-switch-knob: #fff;
+  --ed-live-ground: rgb(var(--ed-go-rgb) / 0.26);
+  --ed-live-ink: #86efac;
+
+  --ed-remove-ink: var(--profile-remove-ink);
+
+  --ed-error-ink: var(--profile-error-ink);
+  --ed-error-ground: var(--profile-error-ground);
+  --ed-error-edge: var(--profile-error-edge);
+
+  --ed-warn-ink: var(--profile-warn-ink);
+  --ed-warn-ground: var(--profile-warn-ground);
+  --ed-warn-edge: var(--profile-warn-edge);
+
+  --ed-ok-ink: var(--profile-ok-ink);
+  --ed-ok-ground: var(--profile-ok-ground);
+  --ed-ok-edge: var(--profile-ok-edge);
+
+  --ed-info-ink: var(--profile-info-ink);
+  --ed-info-ground: var(--profile-info-ground);
+  --ed-info-edge: var(--profile-info-edge);
 }
 
 /* ---- No prohibition cursors anywhere on this page --------------------- */
@@ -1658,8 +1736,8 @@ html:has(.hp-ed) {
   text-align: left;
   padding: 14px;
   border-radius: 9px;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  background: rgb(255 255 255 / 0.04);
+  border: 1px solid var(--profile-edge-7);
+  background: var(--profile-fill-5);
   cursor: pointer;
   font: inherit;
   transition: border-color 150ms ease, background 150ms ease;
@@ -1681,7 +1759,7 @@ html:has(.hp-ed) {
 .hp-ed-add-choice-note {
   font-size: 12px;
   line-height: 1.45;
-  color: rgb(255 255 255 / 0.5);
+  color: var(--profile-ink-6);
 }
 
 /* Said once, above the form, when the page would not give up its own title. */
@@ -1805,8 +1883,8 @@ html:has(.hp-ed) {
   gap: 10px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  background: rgb(0 0 0 / 0.22);
+  border: 1px solid var(--profile-edge-6);
+  background: var(--profile-shade-2);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-compare-side[data-suggested="true"] {
@@ -1846,7 +1924,7 @@ html:has(.hp-ed) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgb(255 255 255 / 0.42);
+  color: var(--profile-ink-4);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-block { display: block; width: 100%; }
@@ -1865,8 +1943,8 @@ html:has(.hp-ed) {
   gap: 10px;
   padding: 8px;
   border-radius: 8px;
-  background: rgb(255 255 255 / 0.04);
-  border: 1px solid rgb(255 255 255 / 0.1);
+  background: var(--profile-fill-5);
+  border: 1px solid var(--profile-edge-4);
 }
 
 .hp-ed-add-preview-img {
@@ -1875,13 +1953,13 @@ html:has(.hp-ed) {
   object-fit: cover;
   border-radius: 5px;
   flex-shrink: 0;
-  background: rgb(0 0 0 / 0.3);
+  background: var(--profile-shade-4);
 }
 
 .hp-ed-add-preview-note {
   font-size: 11.5px;
   line-height: 1.45;
-  color: rgb(255 255 255 / 0.45);
+  color: var(--profile-ink-5);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-lens-picks {
@@ -1899,8 +1977,8 @@ html:has(.hp-ed) {
   gap: 7px;
   padding: 6px 11px;
   border-radius: 999px;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  background: rgb(255 255 255 / 0.04);
+  border: 1px solid var(--profile-edge-8);
+  background: var(--profile-fill-5);
   font-size: 12.5px;
   color: var(--profile-text);
   cursor: pointer;
@@ -1915,15 +1993,15 @@ html:has(.hp-ed) {
 .hp-profile select.hp-ed-input {
   appearance: none;
   background-image:
-    linear-gradient(45deg, transparent 50%, rgb(255 255 255 / 0.5) 50%),
-    linear-gradient(135deg, rgb(255 255 255 / 0.5) 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, var(--profile-ink-6) 50%),
+    linear-gradient(135deg, var(--profile-ink-6) 50%, transparent 50%);
   background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
   padding-right: 30px;
 }
 
-.hp-profile select.hp-ed-input option { background: #14101f; color: #f4f2f8; }
+.hp-profile select.hp-ed-input option { background: var(--profile-surface); color: var(--profile-ink-soft); }
 
 /* The handle on a reorderable tile. Same inert treatment. */
 :is(.hp-profile, .hp-ed-portal) .hp-ed-grip {
@@ -2063,8 +2141,8 @@ html:has(.hp-ed) {
   margin: 0;
   padding: 9px 10px;
   border-radius: 8px;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  background: rgb(255 255 255 / 0.04);
+  border: 1px solid var(--profile-edge-7);
+  background: var(--profile-fill-5);
 }
 
 .hp-ed-file-name {
@@ -2077,7 +2155,7 @@ html:has(.hp-ed) {
 
 .hp-ed-file-meta {
   font-size: 11.5px;
-  color: rgb(255 255 255 / 0.45);
+  color: var(--profile-ink-5);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -2093,7 +2171,7 @@ html:has(.hp-ed) {
   margin: 30px auto 0;
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid rgb(255 255 255 / 0.1);
+  border: 1px solid var(--profile-edge-4);
   background: rgb(var(--profile-void-rgb) / 0.5);
 }
 
@@ -2103,7 +2181,7 @@ html:has(.hp-ed) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgb(255 255 255 / 0.4);
+  color: var(--profile-ink-3);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-mrows {
@@ -2118,8 +2196,8 @@ html:has(.hp-ed) {
 .hp-ed-mrow {
   padding: 10px 12px;
   border-radius: 9px;
-  border: 1px solid rgb(255 255 255 / 0.09);
-  background: rgb(255 255 255 / 0.03);
+  border: 1px solid var(--profile-edge-3);
+  background: var(--profile-fill-4);
 }
 
 .hp-ed-mrow[data-open="true"] {
@@ -2150,8 +2228,8 @@ html:has(.hp-ed) {
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.07);
-  color: rgb(255 255 255 / 0.62);
+  background: var(--profile-fill-8);
+  color: var(--profile-ink-9);
   white-space: nowrap;
 }
 
@@ -2173,7 +2251,7 @@ html:has(.hp-ed) {
   line-height: 1;
   padding: 2px 4px;
   cursor: pointer;
-  color: rgb(255 255 255 / 0.22);
+  color: var(--profile-ink-1);
   transition: color 140ms ease;
 }
 
@@ -2198,9 +2276,9 @@ html:has(.hp-ed) {
   font-size: 11.5px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px dashed rgb(255 255 255 / 0.18);
+  border: 1px dashed var(--profile-edge-9);
   background: transparent;
-  color: rgb(255 255 255 / 0.5);
+  color: var(--profile-ink-6);
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
@@ -2225,7 +2303,7 @@ html:has(.hp-ed) {
 .hp-ed-mrow-edit {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgb(255 255 255 / 0.09);
+  border-top: 1px solid var(--profile-edge-3);
 }
 
 
@@ -2238,7 +2316,7 @@ html:has(.hp-ed) {
 .hp-ed-imow-video {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgb(255 255 255 / 0.09);
+  border-top: 1px solid var(--profile-edge-3);
 }
 
 .hp-ed-imow-video .hp-ed-add-choice { width: 100%; }
@@ -2257,12 +2335,12 @@ html:has(.hp-ed) {
 
 .hp-ed-pro-tag {
   background: rgb(var(--profile-accent-rgb) / 0.9);
-  color: #fff;
+  color: var(--profile-on-action);
 }
 
 .hp-ed-soon-tag {
-  background: rgb(255 255 255 / 0.1);
-  color: rgb(255 255 255 / 0.55);
+  background: var(--profile-fill-9);
+  color: var(--profile-ink-7);
 }
 
 
@@ -2293,7 +2371,7 @@ html:has(.hp-ed) {
   .hp-impact-flow > .hp-ed-tm { margin-top: 30px; }
 }
 
-.hp-ed-tm-role { font-weight: 400; color: rgb(255 255 255 / 0.5); }
+.hp-ed-tm-role { font-weight: 400; color: var(--profile-ink-6); }
 
 .hp-ed-tm-quote {
   margin: 10px 0 0;
@@ -2304,7 +2382,7 @@ html:has(.hp-ed) {
   font-style: italic;
   line-height: 1.55;
   color: var(--profile-text);
-  background: rgb(255 255 255 / 0.03);
+  background: var(--profile-fill-4);
   border-radius: 0 7px 7px 0;
 }
 
@@ -2312,11 +2390,11 @@ html:has(.hp-ed) {
   margin: 0;
   font-size: 13px;
   line-height: 1.6;
-  color: rgb(255 255 255 / 0.62);
+  color: var(--profile-ink-9);
   white-space: pre-wrap;
 }
 
-.hp-ed-mrow-badge[data-tone="live"] { background: rgb(5 150 105 / 0.26); color: #86efac; }
+.hp-ed-mrow-badge[data-tone="live"] { background: var(--ed-live-ground); color: var(--ed-live-ink); }
 
 /* The tag, and what it would take to earn it. Shown either way: one more kind
    of person is more useful to somebody than silence. */
@@ -2328,8 +2406,8 @@ html:has(.hp-ed) {
   margin: 0 0 14px;
   padding: 10px 14px;
   border-radius: 9px;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  background: rgb(255 255 255 / 0.03);
+  border: 1px solid var(--profile-edge-4);
+  background: var(--profile-fill-4);
 }
 
 .hp-ed-360[data-earned="true"] {
@@ -2342,7 +2420,7 @@ html:has(.hp-ed) {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgb(255 255 255 / 0.45);
+  color: var(--profile-ink-5);
   white-space: nowrap;
 }
 
@@ -2351,7 +2429,7 @@ html:has(.hp-ed) {
 .hp-ed-360-note {
   font-size: 12.5px;
   line-height: 1.5;
-  color: rgb(255 255 255 / 0.55);
+  color: var(--profile-ink-7);
   flex: 1 1 240px;
 }
 
@@ -2390,11 +2468,11 @@ html:has(.hp-ed) {
   object-fit: contain;
   background: #000;
   border-radius: 9px;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  border: 1px solid var(--profile-edge-6);
   margin-bottom: 10px;
 }
 
-.hp-ed-vid-preview[data-waiting="true"] { background: rgb(255 255 255 / 0.04); }
+.hp-ed-vid-preview[data-waiting="true"] { background: var(--profile-fill-5); }
 
 /* The picker is a label wrapping a real file input, so the click that says
    "upload" is the click that opens the dialog. Taken out of sight rather than
@@ -2432,7 +2510,7 @@ html:has(.hp-ed) {
   aspect-ratio: 16 / 9;
   object-fit: contain;
   border-radius: 10px;
-  background: rgb(0 0 0 / 0.5);
+  background: var(--profile-shade-10);
 }
 
 .hp-ed-frame-chosen {
@@ -2445,7 +2523,7 @@ html:has(.hp-ed) {
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--profile-muted, rgb(255 255 255 / 0.55));
+  color: var(--profile-meta);
 }
 
 /* Square, because the gallery mat is square: what is previewed here is the
@@ -2457,20 +2535,20 @@ html:has(.hp-ed) {
   flex: none;
   object-fit: contain;
   border-radius: 8px;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  background: rgb(0 0 0 / 0.35);
+  border: 1px solid var(--profile-edge-7);
+  background: var(--profile-shade-6);
 }
 
 .hp-ed-frame-at {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--profile-muted, rgb(255 255 255 / 0.55));
+  color: var(--profile-meta);
 }
 
 .hp-ed-frame-time {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--profile-muted, rgb(255 255 255 / 0.55));
+  color: var(--profile-meta);
 }
 
 @media (min-width: 768px) {
@@ -2600,21 +2678,21 @@ html:has(.hp-ed) {
 .hp-profile[data-mode="edit"] .hp-practice-part > /* The dialog renders onto document.body, outside .hp-ed, so the tokens it
    uses have to be declared on it as well as on the shell. */
 .hp-ed-portal {
-  --ed-error-ink: #e57373;
-  --ed-error-ground: rgb(229 115 115 / 0.12);
-  --ed-error-edge: rgb(229 115 115 / 0.34);
+  --ed-error-ink: var(--profile-error-ink);
+  --ed-error-ground: var(--profile-error-ground);
+  --ed-error-edge: var(--profile-error-edge);
 
-  --ed-warn-ink: #ffc870;
-  --ed-warn-ground: rgb(255 200 112 / 0.12);
-  --ed-warn-edge: rgb(255 200 112 / 0.32);
+  --ed-warn-ink: var(--profile-warn-ink);
+  --ed-warn-ground: var(--profile-warn-ground);
+  --ed-warn-edge: var(--profile-warn-edge);
 
-  --ed-ok-ink: #81c784;
-  --ed-ok-ground: rgb(129 199 132 / 0.12);
-  --ed-ok-edge: rgb(129 199 132 / 0.32);
+  --ed-ok-ink: var(--profile-ok-ink);
+  --ed-ok-ground: var(--profile-ok-ground);
+  --ed-ok-edge: var(--profile-ok-edge);
 
-  --ed-info-ink: #c4b5fd;
-  --ed-info-ground: rgb(196 181 253 / 0.12);
-  --ed-info-edge: rgb(196 181 253 / 0.3);
+  --ed-info-ink: var(--profile-info-ink);
+  --ed-info-ground: var(--profile-info-ground);
+  --ed-info-edge: var(--profile-info-edge);
 }
 
 /* ---- No prohibition cursors anywhere on this page --------------------- */
@@ -2802,21 +2880,21 @@ html:has(.hp-ed) {
   .hp-profile[data-mode="edit"] .hp-practice-part > /* The dialog renders onto document.body, outside .hp-ed, so the tokens it
    uses have to be declared on it as well as on the shell. */
 .hp-ed-portal {
-  --ed-error-ink: #e57373;
-  --ed-error-ground: rgb(229 115 115 / 0.12);
-  --ed-error-edge: rgb(229 115 115 / 0.34);
+  --ed-error-ink: var(--profile-error-ink);
+  --ed-error-ground: var(--profile-error-ground);
+  --ed-error-edge: var(--profile-error-edge);
 
-  --ed-warn-ink: #ffc870;
-  --ed-warn-ground: rgb(255 200 112 / 0.12);
-  --ed-warn-edge: rgb(255 200 112 / 0.32);
+  --ed-warn-ink: var(--profile-warn-ink);
+  --ed-warn-ground: var(--profile-warn-ground);
+  --ed-warn-edge: var(--profile-warn-edge);
 
-  --ed-ok-ink: #81c784;
-  --ed-ok-ground: rgb(129 199 132 / 0.12);
-  --ed-ok-edge: rgb(129 199 132 / 0.32);
+  --ed-ok-ink: var(--profile-ok-ink);
+  --ed-ok-ground: var(--profile-ok-ground);
+  --ed-ok-edge: var(--profile-ok-edge);
 
-  --ed-info-ink: #c4b5fd;
-  --ed-info-ground: rgb(196 181 253 / 0.12);
-  --ed-info-edge: rgb(196 181 253 / 0.3);
+  --ed-info-ink: var(--profile-info-ink);
+  --ed-info-ground: var(--profile-info-ground);
+  --ed-info-edge: var(--profile-info-edge);
 }
 
 /* ---- No prohibition cursors anywhere on this page --------------------- */
@@ -3010,7 +3088,7 @@ html:has(.hp-ed) {
       rgb(var(--profile-accent-rgb) / 0.008) 100%
     ),
     var(--profile-surface);
-  box-shadow: 0 18px 44px rgb(0 0 0 / 0.34);
+  box-shadow: 0 18px 44px var(--profile-shade-5);
 }
 
 :is(.hp-profile, .hp-ed-portal) .hp-ed-add { margin-top: 22px; padding: 22px; }
@@ -3237,7 +3315,7 @@ html:has(.hp-ed) {
   padding: 7px 12px;
   border-radius: 8px;
   border: 1px solid var(--profile-line-strong);
-  background: rgb(255 255 255 / 0.03);
+  background: var(--profile-fill-4);
   color: var(--profile-body);
   cursor: pointer;
 }

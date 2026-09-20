@@ -727,7 +727,7 @@
   transition: border-color var(--profile-move-ms) var(--profile-ease-in);
 }
 
-.hp-bar[data-stuck="true"] { border-bottom-color: rgb(255 255 255 / 0.07); }
+.hp-bar[data-stuck="true"] { border-bottom-color: var(--profile-edge-1); }
 
 .hp-bar-inner {
   display: flex;

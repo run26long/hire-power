@@ -24,6 +24,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 // still inherits custom properties down the DOM, so position does not matter
 // but ancestry does.
 //
+// There are no hex fallbacks on those reads any more, and no rgb triple held
+// in this file. A fallback that spells out the dark value is a second copy of
+// the palette living where nobody looks for it, and it is the copy that would
+// still be lavender on the day the page is not.
+//
 // Geometry, navigation, filtering, persistence and the 300ms entry are the
 // other two engines' behaviour unchanged.
 // ============================================================================
@@ -33,10 +38,6 @@ const TIP_WIDTH = 320
 const SPOT_PAD = 8
 const TIP_GAP = 16
 const VIEWPORT_MARGIN = 16
-
-// The lavender the profile accents everything else with, as an rgb triple so
-// the spotlight can lay it down at several opacities.
-const ACCENT_RGB = '167, 139, 250'
 
 const TOUR_STEPS = [
   {
@@ -261,8 +262,8 @@ export default function ProfileTour({ onStepChange, onClose }) {
 
   if (!step) return null
 
-  const CARD_BG = 'var(--ed-raised, #1b1629)'
-  const CARD_EDGE = 'var(--ed-accent-edge, rgba(167, 139, 250, 0.34))'
+  const CARD_BG = 'var(--ed-raised)'
+  const CARD_EDGE = 'var(--ed-accent-edge)'
   const arrow = tip ? arrowStyles(tip.placement, tip.arrow, CARD_EDGE, CARD_BG) : null
 
   return (
@@ -280,19 +281,19 @@ export default function ProfileTour({ onStepChange, onClose }) {
             width: rect.width + SPOT_PAD * 2,
             height: rect.height + SPOT_PAD * 2,
             borderRadius: 12,
-            border: `2px solid rgba(${ACCENT_RGB}, 0.5)`,
-            // The page underneath is already dark, so the veil is heavier than
-            // the light pages' 0.5 - at that strength the dimmed profile and
-            // the lit hole read as nearly the same surface and the spotlight
-            // stops being one.
-            boxShadow: `0 0 0 4px rgba(${ACCENT_RGB}, 0.14), 0 0 30px rgba(${ACCENT_RGB}, 0.22), 0 0 0 9999px rgba(0, 0, 0, 0.72)`,
+            border: '2px solid var(--profile-tour-ring)',
+            // The veil's own strength lives with the rest of the palette now:
+            // the page underneath is already dark, so it is heavier than the
+            // light pages' 0.5, and that is a fact about this mode rather than
+            // about this component.
+            boxShadow: '0 0 0 4px var(--profile-tour-ring-inner), 0 0 30px var(--profile-tour-ring-glow), 0 0 0 9999px var(--profile-tour-veil)',
             pointerEvents: 'none',
             zIndex: 9999,
             transition: 'top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease'
           }}
         />
       ) : (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', pointerEvents: 'none', zIndex: 9999 }} />
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--profile-tour-veil)', pointerEvents: 'none', zIndex: 9999 }} />
       )}
 
       <div
@@ -308,7 +309,7 @@ export default function ProfileTour({ onStepChange, onClose }) {
           background: CARD_BG,
           border: `1px solid ${CARD_EDGE}`,
           borderRadius: 12,
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.4)',
+          boxShadow: 'var(--profile-tour-card-shadow)',
           opacity: tip ? 1 : 0,
           transition: 'top 0.3s ease, left 0.3s ease, opacity 0.2s ease'
         }}
@@ -319,7 +320,7 @@ export default function ProfileTour({ onStepChange, onClose }) {
         <div
           style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
-            background: 'var(--ed-accent, #a78bfa)',
+            background: 'var(--ed-accent)',
             borderTopLeftRadius: 12, borderBottomLeftRadius: 12
           }}
         />
@@ -332,20 +333,20 @@ export default function ProfileTour({ onStepChange, onClose }) {
         )}
 
         <div style={{ padding: '16px 18px 14px 20px' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--ed-accent, #a78bfa)', marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--ed-accent)', marginBottom: 6 }}>
             Step {index + 1} of {steps.length}
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ed-ink, #ffffff)', marginBottom: 6 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ed-ink)', marginBottom: 6 }}>
             {step.title}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--ed-muted, #9a93ae)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: 'var(--ed-muted)', lineHeight: 1.6 }}>
             {step.body}
           </div>
         </div>
 
         <div
           style={{
-            borderTop: '1px solid var(--ed-line, rgba(255, 255, 255, 0.09))',
+            borderTop: '1px solid var(--ed-line)',
             padding: '10px 18px 12px 20px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
           }}
@@ -357,8 +358,8 @@ export default function ProfileTour({ onStepChange, onClose }) {
                 style={{
                   width: 7, height: 7, borderRadius: '50%', display: 'block',
                   background: i === index
-                    ? 'var(--ed-accent, #a78bfa)'
-                    : i < index ? `rgba(${ACCENT_RGB}, 0.55)` : 'var(--ed-line-strong, rgba(255, 255, 255, 0.14))'
+                    ? 'var(--ed-accent)'
+                    : i < index ? 'var(--profile-tour-dot-past)' : 'var(--ed-line-strong)'
                 }}
               />
             ))}
@@ -367,15 +368,20 @@ export default function ProfileTour({ onStepChange, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={finish}
-              style={{ fontSize: 12, color: 'var(--ed-muted, #9a93ae)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ fontSize: 12, color: 'var(--ed-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               Skip tour
             </button>
             <button
               onClick={() => { if (isLast) finish(); else setIndex(index + 1) }}
               style={{
-                fontSize: 13, fontWeight: 600, color: '#ffffff',
-                background: 'linear-gradient(to right, #667eea, #764ba2)',
+                fontSize: 13, fontWeight: 600, color: 'var(--profile-on-action)',
+                // The app's own indigo-to-purple brand gradient until now, which
+                // is the one thing on this card that belonged to Hire Power
+                // rather than to the profile underneath it. It is the Profile's
+                // primary action now, the same sweep every other button on this
+                // page is painted in.
+                background: 'linear-gradient(to right, var(--profile-action-lift), var(--profile-action-deep))',
                 border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >

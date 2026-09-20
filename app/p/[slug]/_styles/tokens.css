@@ -82,6 +82,171 @@
   --profile-accent-halo: rgb(var(--profile-accent-rgb) / 0.38);
   --profile-notice: #f2a0a8;
 
+  /* ---- The scaffolding channels ----
+     Nearly everything below this line used to be a literal: a white at some
+     alpha for a wash, a rule or a quiet label, a black at some alpha for a
+     shadow or a recessed ground. They are declared here as two channels and
+     five ramps instead, so a light mode has two triplets to move rather than
+     two hundred literals to find. The ramps are ordinal, not named after
+     their alphas: the step order is what stays true across modes, the alpha
+     is only what this mode happens to need.
+
+     --profile-on is what is laid OVER the ground - washes, rules, muted ink,
+     the lit top edge. --profile-shade is what is cast UNDER things - drop
+     shadows, sunken field grounds, scrims. On a light ground the two swap
+     roles, which is exactly why they are separate names and not one. */
+  --profile-on-rgb: 255 255 255;
+  --profile-shade-rgb: 0 0 0;
+
+  /* Faint fills over a surface, weakest first. */
+  --profile-fill-1: rgb(var(--profile-on-rgb) / 0.012);
+  --profile-fill-2: rgb(var(--profile-on-rgb) / 0.015);
+  --profile-fill-3: rgb(var(--profile-on-rgb) / 0.02);
+  --profile-fill-4: rgb(var(--profile-on-rgb) / 0.03);
+  --profile-fill-5: rgb(var(--profile-on-rgb) / 0.04);
+  --profile-fill-6: rgb(var(--profile-on-rgb) / 0.05);
+  --profile-fill-7: rgb(var(--profile-on-rgb) / 0.06);
+  --profile-fill-8: rgb(var(--profile-on-rgb) / 0.07);
+  --profile-fill-9: rgb(var(--profile-on-rgb) / 0.1);
+  --profile-fill-10: rgb(var(--profile-on-rgb) / 0.12);
+
+  /* Rules and edges. --profile-line and --profile-line-strong above are the
+     two the document proper uses; these are the rest of the range the chrome
+     and the overlays had grown. */
+  --profile-edge-1: rgb(var(--profile-on-rgb) / 0.07);
+  --profile-edge-2: rgb(var(--profile-on-rgb) / 0.08);
+  --profile-edge-3: rgb(var(--profile-on-rgb) / 0.09);
+  --profile-edge-4: rgb(var(--profile-on-rgb) / 0.1);
+  --profile-edge-5: rgb(var(--profile-on-rgb) / 0.11);
+  --profile-edge-6: rgb(var(--profile-on-rgb) / 0.12);
+  --profile-edge-7: rgb(var(--profile-on-rgb) / 0.14);
+  --profile-edge-8: rgb(var(--profile-on-rgb) / 0.16);
+  --profile-edge-9: rgb(var(--profile-on-rgb) / 0.18);
+  --profile-edge-10: rgb(var(--profile-on-rgb) / 0.24);
+  --profile-edge-11: rgb(var(--profile-on-rgb) / 0.26);
+  --profile-edge-12: rgb(var(--profile-on-rgb) / 0.5);
+  --profile-edge-13: rgb(var(--profile-on-rgb) / 0.55);
+
+  /* Muted ink on a surface, faintest first. --profile-body and
+     --profile-meta stay the document's two reading greys; this ramp is the
+     chrome's - disabled marks, counts, placeholders, overlay captions. */
+  --profile-ink-1: rgb(var(--profile-on-rgb) / 0.22);
+  --profile-ink-2: rgb(var(--profile-on-rgb) / 0.3);
+  --profile-ink-3: rgb(var(--profile-on-rgb) / 0.4);
+  --profile-ink-4: rgb(var(--profile-on-rgb) / 0.42);
+  --profile-ink-5: rgb(var(--profile-on-rgb) / 0.45);
+  --profile-ink-6: rgb(var(--profile-on-rgb) / 0.5);
+  --profile-ink-7: rgb(var(--profile-on-rgb) / 0.55);
+  --profile-ink-8: rgb(var(--profile-on-rgb) / 0.6);
+  --profile-ink-9: rgb(var(--profile-on-rgb) / 0.62);
+  --profile-ink-10: rgb(var(--profile-on-rgb) / 0.66);
+  --profile-ink-11: rgb(var(--profile-on-rgb) / 0.68);
+  --profile-ink-12: rgb(var(--profile-on-rgb) / 0.86);
+  --profile-ink-13: rgb(var(--profile-on-rgb) / 0.9);
+  --profile-ink-14: rgb(var(--profile-on-rgb) / 0.92);
+  --profile-ink-15: rgb(var(--profile-on-rgb) / 0.94);
+  --profile-ink-16: rgb(var(--profile-on-rgb) / 0.95);
+
+  /* The lit top edge: inset 0 1px 0, the one-pixel highlight that says a
+     surface is catching light from above. It is the ramp most likely to
+     change sign in a light mode rather than change strength, which is why it
+     is not folded into the fills it shares values with. */
+  --profile-lift-1: rgb(var(--profile-on-rgb) / 0.05);
+  --profile-lift-2: rgb(var(--profile-on-rgb) / 0.06);
+  --profile-lift-3: rgb(var(--profile-on-rgb) / 0.07);
+  --profile-lift-4: rgb(var(--profile-on-rgb) / 0.08);
+  --profile-lift-5: rgb(var(--profile-on-rgb) / 0.1);
+
+  /* Shade: drop shadows, sunken field grounds, the mats behind media. */
+  --profile-shade-1: rgb(var(--profile-shade-rgb) / 0.2);
+  --profile-shade-2: rgb(var(--profile-shade-rgb) / 0.22);
+  --profile-shade-3: rgb(var(--profile-shade-rgb) / 0.28);
+  --profile-shade-4: rgb(var(--profile-shade-rgb) / 0.3);
+  --profile-shade-5: rgb(var(--profile-shade-rgb) / 0.34);
+  --profile-shade-6: rgb(var(--profile-shade-rgb) / 0.35);
+  --profile-shade-7: rgb(var(--profile-shade-rgb) / 0.4);
+  --profile-shade-8: rgb(var(--profile-shade-rgb) / 0.42);
+  --profile-shade-9: rgb(var(--profile-shade-rgb) / 0.45);
+  --profile-shade-10: rgb(var(--profile-shade-rgb) / 0.5);
+  --profile-shade-11: rgb(var(--profile-shade-rgb) / 0.55);
+  --profile-shade-12: rgb(var(--profile-shade-rgb) / 0.62);
+  --profile-shade-13: rgb(var(--profile-shade-rgb) / 0.72);
+
+  /* White on a saturated action stays white when the page goes light, so it
+     is its own name rather than a second use of --profile-text. */
+  --profile-on-action: #ffffff;
+
+  /* Near-white, one notch off --profile-text. The editor introduction sits on
+     it and so does the native select popup, which cannot be reached any other
+     way. Declared here rather than with the editor chrome because the rules
+     that read it are scoped to the document as well as to the shell. */
+  --profile-ink-soft-rgb: 244 242 248;
+  --profile-ink-soft: rgb(var(--profile-ink-soft-rgb));
+
+  /* Dropping a tag. A fifth red next to the four status inks, unresolved on
+     purpose in this pass: it is given a name so the palette work can see it,
+     not folded into --profile-error-ink, which is a different colour. */
+  --profile-remove-ink: rgb(252 165 165 / 0.75);
+
+  /* The scrim the settings drawer lays over the page, and the shadow the
+     drawer itself casts. Both were the void at two alphas, spelled out. */
+  --profile-scrim: rgb(var(--profile-void-rgb) / 0.5);
+  --profile-drawer-shadow: rgb(var(--profile-void-rgb) / 0.24);
+
+  /* The blurred glass a floating panel is made of - the skill popover and the
+     Q&A answer surface, which had each been carrying their own copy of this
+     pair. Hand-composited rather than derived: they are what the blur needed
+     to sit on, not a tint of the ground. */
+  --profile-glass-top: rgb(16 12 26 / 0.9);
+  --profile-glass-bottom: rgb(14 11 22 / 0.82);
+
+  /* The portfolio overlay's gallery scroller. Every other scrollbar on the
+     Profile is drawn in the accent; this one is neutral because it runs
+     alongside the owner's own pictures. */
+  --profile-scrollbar-thumb: rgb(var(--profile-on-rgb) / 0.22);
+  --profile-scrollbar-thumb-hover: rgb(var(--profile-on-rgb) / 0.34);
+
+  /* ---- Status ----
+     The four states, as channels so a mode can move them together. These are
+     the platform's own values, not this page's: #e57373 and #81c784 are what
+     ErrorToast and SuccessToast are built from, #ffc870 is DOT_AMBER from the
+     interview score bands, and #c4b5fd is the Profile's own soft accent. They
+     live here rather than in editor.css because the editor chrome, the
+     document's own edit affordances and the portalled dialogs all need them,
+     and those are three scopes with one palette between them. */
+  --profile-error-rgb: 229 115 115;
+  --profile-warn-rgb: 255 200 112;
+  --profile-ok-rgb: 129 199 132;
+  --profile-info-rgb: 196 181 253;
+
+  --profile-error-ink: rgb(var(--profile-error-rgb));
+  --profile-error-ground: rgb(var(--profile-error-rgb) / 0.12);
+  --profile-error-edge: rgb(var(--profile-error-rgb) / 0.34);
+  --profile-warn-ink: rgb(var(--profile-warn-rgb));
+  --profile-warn-ground: rgb(var(--profile-warn-rgb) / 0.12);
+  --profile-warn-edge: rgb(var(--profile-warn-rgb) / 0.32);
+  --profile-ok-ink: rgb(var(--profile-ok-rgb));
+  --profile-ok-ground: rgb(var(--profile-ok-rgb) / 0.12);
+  --profile-ok-edge: rgb(var(--profile-ok-rgb) / 0.32);
+  --profile-info-ink: rgb(var(--profile-info-rgb));
+  --profile-info-ground: rgb(var(--profile-info-rgb) / 0.12);
+  --profile-info-edge: rgb(var(--profile-info-rgb) / 0.3);
+
+  /* ---- The first-visit tour ----
+     ProfileTour paints itself with inline styles, so these are the only
+     handles it has. The veil is heavier than the light pages' 0.5 because the
+     page underneath is already dark - at that strength the dimmed profile and
+     the lit hole read as nearly the same surface and the spotlight stops
+     being one. That number is the first thing a light mode has to revisit. */
+  --profile-tour-veil: rgb(var(--profile-shade-rgb) / 0.72);
+  --profile-tour-ring: rgb(var(--profile-accent-rgb) / 0.5);
+  --profile-tour-ring-inner: rgb(var(--profile-accent-rgb) / 0.14);
+  --profile-tour-ring-glow: rgb(var(--profile-accent-rgb) / 0.22);
+  --profile-tour-dot-past: rgb(var(--profile-accent-rgb) / 0.55);
+  --profile-tour-card-shadow:
+    0 20px 60px rgb(var(--profile-shade-rgb) / 0.55),
+    0 4px 16px rgb(var(--profile-shade-rgb) / 0.4);
+
   /* ---- The category tones ----
      Three neighbours in the same lavender world, not three unrelated hues, so
      a set of category cards reads as one family with boundaries rather than as
