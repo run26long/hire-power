@@ -77,7 +77,7 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="px-4 md:px-6 py-2 flex items-center justify-between">
 
-          {/* Logo + tagline */}
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate(userProfile ? '/dashboard' : '/landing')}
@@ -89,9 +89,6 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                 className="h-8 w-auto"
               />
             </button>
-            <span className="hidden md:block text-sm text-gray-500 border-l border-gray-300 pl-3">
-              The operating system for your career
-            </span>
           </div>
 
           <div className="hidden md:flex items-center gap-6">
