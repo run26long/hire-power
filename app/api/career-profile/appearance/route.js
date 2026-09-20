@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { COLOR_MODES } from '@/lib/profileColorMode'
+import { COLOR_MODES } from '@/lib/profileAppearance'
 
 // ============================================================================
 // PATCH /api/career-profile/appearance
