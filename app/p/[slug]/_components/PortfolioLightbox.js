@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+
 import StrokeIcon, { ICON_MEDIA, ICON_ARROW_LEFT, ICON_ARROW_RIGHT } from './StrokeIcon'
 import PortfolioMat from './PortfolioMat'
 import { formatDuration } from '@/lib/portfolio'
@@ -52,14 +53,21 @@ const SWIPE_MIN_PX = 48
 const SWIPE_MAX_DRIFT = 0.8
 
 export default function PortfolioLightbox({
-  mode,          // 'grid' | 'item' | null
+  mode,          // 'grid' | 'item' | 'manage' | null
   items,
   startIndex,
   slug,
   lensId,
   onOpenItem,    // grid -> item, by index
   onBack,        // item -> grid, only when the reader came that way
-  onClose
+  onClose,
+  // ---- management mode ----
+  // The same surface the full gallery uses, with the owner's controls in it
+  // instead of the mats. The section passes the whole body: see the note on
+  // EvidenceOverlay.
+  manageTitle,
+  manageCount,
+  manageBody
 }) {
   const [index, setIndex] = useState(startIndex || 0)
 
@@ -196,7 +204,7 @@ export default function PortfolioLightbox({
 
   return createPortal(
     <div
-      className="hp-pf-box"
+      className="hp-pf-box hp-ed-portal"
       data-mode={mode}
       role="presentation"
       onMouseDown={event => { if (event.target === event.currentTarget) onClose?.() }}
@@ -220,7 +228,17 @@ export default function PortfolioLightbox({
               </button>
             )}
 
-            {mode === 'grid' ? (
+            {mode === 'manage' ? (
+              <>
+                <span className="hp-pf-box-eyebrow">Portfolio</span>
+                <h2 className="hp-pf-box-heading-title" id={titleId}>
+                  {manageTitle || 'Manage portfolio'}
+                  {typeof manageCount === 'number'
+                    ? <> <span className="hp-pf-box-count">({manageCount})</span></>
+                    : null}
+                </h2>
+              </>
+            ) : mode === 'grid' ? (
               <>
                 <span className="hp-pf-box-eyebrow">Portfolio</span>
                 <h2 className="hp-pf-box-heading-title" id={titleId}>
@@ -245,7 +263,9 @@ export default function PortfolioLightbox({
           </button>
         </div>
 
-        {mode === 'grid' ? (
+        {mode === 'manage' ? (
+          <div className="hp-pf-box-gallery" data-manage="true">{manageBody}</div>
+        ) : mode === 'grid' ? (
           <div className="hp-pf-box-gallery" ref={scrollerRef}>
             <ul className="hp-pf-box-grid">
               {items.map((one, at) => (

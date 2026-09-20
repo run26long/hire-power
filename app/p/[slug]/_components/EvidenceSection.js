@@ -8,8 +8,11 @@ import EvidenceOverlay from './EvidenceOverlay'
 import { glyphFor } from './EvidenceViewer'
 import { EditGrip, SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
 import AddEvidence from './AddEvidence'
-import EvidenceManager from './EvidenceManager'
-import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
+import { isEvidenceItem } from '@/lib/portfolio'
+import ManageList from './ManageList'
+import { EvidenceEditPane } from './ManagePanes'
+import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
+import { directionPlacements } from '../_lib/profileData'
 
 // ============================================================================
 // EVIDENCE
@@ -70,7 +73,11 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   const [visit, setVisit] = useState(0)
   // Opened from the guidance tile, and from the heading control.
   const [openAdd, setOpenAdd] = useState(0)
-  const [manageOpen, setManageOpen] = useState(false)
+  // Which row has a write in flight, so one switch can go quiet without
+  // freezing the list around it.
+  const [busyId, setBusyId] = useState(null)
+  // Which item's fields have taken the modal over, if any. null is the list.
+  const [editingId, setEditingId] = useState(null)
 
   // A direction change replaces the whole collection. Whatever was open
   // belonged to the direction that is leaving, and so did every bit of state
@@ -109,6 +116,85 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
   const slot = useEditSlot()
   const backToGallery = useCallback(() => setOverlay({ mode: 'gallery' }), [])
   const close = useCallback(() => setOverlay(null), [])
+
+  // ---- MANAGING WHAT THIS DIRECTION SHOWS ----
+  //
+  // The list is this direction's placements, shown and hidden together, and
+  // never the whole collection: an item nobody has placed anywhere is not
+  // something to un-hide, it is something to add.
+  const edit = useProfileEdit()
+  const openManage = useCallback(() => {
+    setVisit(n => n + 1)
+    setEditingId(null)
+    setOverlay({ mode: 'manage' })
+  }, [])
+
+  const manageItems = useMemo(() => {
+    const byId = new Map((edit?.allEvidence || []).map(one => [one.id, one]))
+    return directionPlacements(edit?.allPlacements, lensId)
+      .map(place => {
+        const item = byId.get(place.evidence_id)
+        // Portfolio takes the visual uploads; this section is everything
+        // else, and the management list has to agree with what it renders.
+        if (!item || !isEvidenceItem(item)) return null
+        return {
+          id: item.id,
+          title: item.title || typeLabel(item),
+          meta: metaOf(item) || typeLabel(item),
+          hidden: place.hidden === true
+        }
+      })
+      .filter(Boolean)
+  }, [edit?.allEvidence, edit?.allPlacements, lensId])
+
+  // Every write reports through the page's own toast, the way the rest of
+  // the owner's controls do, and leaves the row it was on unlocked either
+  // way.
+  const run = useCallback(async (id, work) => {
+    if (busyId) return
+    setBusyId(id)
+    try {
+      await work()
+    } catch (err) {
+      edit?.notify?.({ type: 'error', message: err?.message || "We couldn't save that. Please try again." })
+    } finally {
+      setBusyId(null)
+    }
+  }, [busyId, edit])
+
+  const toggleItem = useCallback(
+    (id, nextHidden) => run(id, () => edit?.onHideEvidence?.(id, lensId, nextHidden)),
+    [run, edit, lensId]
+  )
+  // A drop is however many single steps it takes to get there, sent one at a
+  // time: the route moves an item by one place, and a drag is not a different
+  // kind of move, only a longer one.
+  // The item whose fields are showing, resolved from the record rather than
+  // held in state: an edit that lands changes the record, and the pane has
+  // to be looking at what was actually saved.
+  const editingItem = useMemo(
+    () => (editingId ? (edit?.allEvidence || []).find(one => one.id === editingId) || null : null),
+    [editingId, edit?.allEvidence]
+  )
+
+  // Which item leads this direction, for the switch inside the pane.
+  const featuredId = useMemo(() => {
+    const here = directionPlacements(edit?.allPlacements, lensId)
+    return here.find(place => place.featured)?.evidence_id || null
+  }, [edit?.allPlacements, lensId])
+
+  const dropItem = useCallback((fromId, toId) => {
+    const ids = manageItems.map(one => one.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1 || from === to) return
+    const by = to > from ? 1 : -1
+    return run(fromId, async () => {
+      for (let at = from; at !== to; at += by) {
+        await edit?.onReorderEvidence?.(fromId, lensId, by)
+      }
+    })
+  }, [manageItems, run, edit, lensId])
 
   // Empty, this section is not on the public page at all. The owner has to
   // see it to put anything in it.
@@ -155,18 +241,14 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
           <p className="hp-practice-line">Credentials, recognition, and documents that back it up.</p>
         </Reveal>
 
-        {/* One compact control, in the heading row, secondary to the headline
-            beside it. Nothing about the section's geometry changes while it is
-            closed. */}
-        {canEdit && items.length > 0 ? (
+        {/* One control for the whole section, at the top right, and it opens
+            the modal the section already had. Adding is in there too: a second
+            button out here was the owner being asked the same question in two
+            places. */}
+        {canEdit ? (
           <div className="hp-ed-manage-row">
-            <button
-              type="button"
-              className="hp-ed-manage"
-              aria-expanded={manageOpen}
-              onClick={() => setManageOpen(v => !v)}
-            >
-              {manageOpen ? 'Done managing' : 'Manage evidence'}
+            <button type="button" className="hp-ed-manage" onClick={openManage} aria-haspopup="dialog">
+              Manage evidence
             </button>
           </div>
         ) : null}
@@ -240,14 +322,9 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         </Reveal>
         )}
 
-        {/* On request, not by default. This list used to stand open under the
-            section permanently, which meant the owner met a management table
-            every time they scrolled past their own evidence. It opens from the
-            control beside the heading, in flow, and pushes what follows down. */}
-        {canEdit && manageOpen ? <EvidenceManager /> : null}
-
+        {/* The add flow itself, with no trigger of its own: Manage opens it. */}
         {canEdit
-          ? <AddEvidence openSignal={openAdd} trigger={items.length > 0} />
+          ? <AddEvidence openSignal={openAdd} trigger={false} />
           : items.length > 0 ? <UpgradeNote feature="evidence" /> : null}
 
       <EvidenceOverlay
@@ -261,6 +338,28 @@ export default function EvidenceSection({ items, slug, lensId, animate, directio
         onOpenItem={fromGallery}
         onBack={overlay?.fromGallery ? backToGallery : null}
         onClose={close}
+        manageTitle={editingItem ? 'Edit evidence' : 'Manage evidence'}
+        manageCount={editingItem ? undefined : manageItems.length}
+        manageBody={editingItem ? (
+          <EvidenceEditPane
+            item={editingItem}
+            lensId={lensId}
+            isFeatured={featuredId === editingItem.id}
+            onBack={() => setEditingId(null)}
+          />
+        ) : (
+          <ManageList
+            items={manageItems}
+            busyId={busyId}
+            onToggle={toggleItem}
+            onDrop={dropItem}
+            onEdit={setEditingId}
+            onAdd={() => { close(); setOpenAdd(n => n + 1) }}
+            addLabel="Add evidence"
+            onDone={close}
+            emptyNote="Nothing is placed on this career direction yet. Add evidence to start."
+          />
+        )}
       />
     </div>
   )

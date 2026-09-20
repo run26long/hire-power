@@ -488,6 +488,43 @@ export default function CareerProfileEditorPage() {
     [placementOp]
   )
 
+  // Off this direction, without being taken out of it. The placement keeps
+  // its position and its lead status, so putting it back is the same control
+  // again rather than a guess at where it used to sit.
+  const hideEvidence = useCallback(
+    (evidenceId, lensId, hidden) => placementOp({ op: 'hide', evidence_id: evidenceId, lens_id: lensId, hidden }),
+    [placementOp]
+  )
+
+  // ---- TESTIMONIAL PLACEMENTS ----
+  //
+  // The same two operations over the other collection. Its own route because
+  // it is its own table, and there is no assign and no delete on it: a
+  // testimonial is somebody else's words, given once on request, and nothing
+  // in this product removes one.
+  const testimonialPlacementOp = useCallback(async (body) => {
+    const res = await fetch('/api/career-profile/testimonials/placements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify(body)
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't save that.")
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
+  const hideTestimonial = useCallback(
+    (testimonialId, lensId, hidden) =>
+      testimonialPlacementOp({ op: 'hide', testimonial_id: testimonialId, lens_id: lensId, hidden }),
+    [testimonialPlacementOp]
+  )
+  const reorderTestimonial = useCallback(
+    (testimonialId, lensId, by) =>
+      testimonialPlacementOp({ op: 'reorder', testimonial_id: testimonialId, lens_id: lensId, by }),
+    [testimonialPlacementOp]
+  )
+
   const editEvidence = useCallback(async (evidenceId, values) => {
     const res = await fetch(`/api/career-profile/evidence/${encodeURIComponent(evidenceId)}`, {
       method: 'PATCH',
@@ -936,6 +973,10 @@ export default function CareerProfileEditorPage() {
           onAssignEvidence: assignEvidence,
           onFeatureEvidence: featureEvidence,
           onReorderEvidence: reorderEvidence,
+          onHideEvidence: hideEvidence,
+          allTestimonialPlacements: manage?.testimonialPlacements || [],
+          onHideTestimonial: hideTestimonial,
+          onReorderTestimonial: reorderTestimonial,
           onEditEvidence: editEvidence,
           onDeleteEvidence: deleteEvidence,
           onSaveImow: saveImow,

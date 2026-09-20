@@ -61,7 +61,11 @@ const EVIDENCE_COLS =
   'mime_type, file_size, privacy, status, sort_order, storage_path, ' +
   'thumbnail_path, created_at, updated_at'
 
-const PLACEMENT_COLS = 'id, evidence_id, lens_id, sort_order, featured'
+const PLACEMENT_COLS = 'id, evidence_id, lens_id, sort_order, featured, hidden'
+
+// The same shape over the other collection. No featured: a set of quotations
+// has no item that leads it.
+const TESTIMONIAL_PLACEMENT_COLS = 'id, testimonial_id, lens_id, sort_order, hidden'
 
 // raw_text is here as well as polished_text: the owner deciding whether to
 // publish should be able to see what the person actually wrote, not only what
@@ -145,7 +149,7 @@ export async function GET(request) {
     // Every piece of evidence except the deleted ones. `deleted_at` is a soft
     // delete and means the owner removed it; bringing those back into the
     // manager would undo that decision on their behalf.
-    const [lensRes, evidenceRes, placementRes, testimonialRes] = await Promise.all([
+    const [lensRes, evidenceRes, placementRes, testimonialRes, testimonialPlacementRes] = await Promise.all([
       supabase
         .from('profile_lenses')
         .select(LENS_COLS)
@@ -166,10 +170,50 @@ export async function GET(request) {
         .from('profile_testimonials')
         .select(TESTIMONIAL_COLS)
         .eq('profile_id', profile.id)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+      // Where each direction puts them, and which of them it is currently
+      // showing. The management modal needs the hidden ones as much as the
+      // shown: hiding is a state to be undone, not a disappearance.
+      supabase
+        .from('profile_testimonial_placements')
+        .select(TESTIMONIAL_PLACEMENT_COLS)
+        .eq('profile_id', profile.id)
+        .order('sort_order', { ascending: true })
     ])
 
-    const failed = [lensRes, evidenceRes, placementRes, testimonialRes].find(r => r.error)
+    // The testimonial placement table is newer than some deployments. A
+    // profile whose database has not had the migration run yet loads with no
+    // testimonial curation rather than failing to load at all, which is the
+    // same tolerance the collective impacts already get.
+    if (testimonialPlacementRes.error) {
+      console.error(
+        '[career-profile/manage] Testimonial placement lookup failed (non-fatal). ' +
+        'Has scripts/create-testimonial-placements.sql been run?',
+        testimonialPlacementRes.error
+      )
+    }
+
+    // Same tolerance as the public route: without the migration the hidden
+    // column is not there, and a management page that will not load at all is
+    // a worse answer than one that loads without a column nothing has written
+    // to yet.
+    let placementRows = placementRes.error ? [] : (placementRes.data || [])
+    let placementFailed = placementRes.error || null
+    if (placementRes.error && /column .* does not exist|hidden/i.test(String(placementRes.error.message || ''))) {
+      console.warn(
+        '[career-profile/manage] profile_evidence_placements has no hidden column, reading without it. ' +
+        'Has scripts/create-testimonial-placements.sql been run?'
+      )
+      const retry = await supabase
+        .from('profile_evidence_placements')
+        .select('id, evidence_id, lens_id, sort_order, featured')
+        .eq('profile_id', profile.id)
+        .order('sort_order', { ascending: true })
+      placementRows = retry.data || []
+      placementFailed = retry.error || null
+    }
+
+    const failed = [lensRes, evidenceRes, testimonialRes].find(r => r.error) || placementFailed
     if (failed) {
       console.error('[career-profile/manage] Section load failed:', failed.error)
       return Response.json({ error: 'LOAD_FAILED' }, { status: 500 })
@@ -199,7 +243,10 @@ export async function GET(request) {
       profile: { ...profileRest, imow_has_video: Boolean(imow_video_path) },
       lenses: lensRes.data || [],
       evidence,
-      placements: placementRes.data || [],
+      placements: placementRows,
+      testimonialPlacements: testimonialPlacementRes.error
+        ? []
+        : (testimonialPlacementRes.data || []),
       testimonials,
       // Counted here rather than stored, so it cannot drift: a stored tag
       // survives the unpublish that should have taken it away.

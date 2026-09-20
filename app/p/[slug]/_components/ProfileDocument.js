@@ -15,6 +15,7 @@ import {
   LENS_RAIL_SLOTS,
   groupSkills,
   orderTestimonials,
+  selectTestimonials,
   resolveSkillProof,
   truncateAtSentence
 } from '../_lib/profileData'
@@ -364,10 +365,27 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
   // One shared, privacy-filtered collection, read in this direction's order.
   // The canonical list is what proof resolves against, so reordering here
   // changes what Firsthand shows first and nothing else.
-  const orderedTestimonials = useMemo(
-    () => orderTestimonials(testimonials, impact?.testimonialOrder),
-    [testimonials, impact]
-  )
+  // The owner's own arrangement for THIS direction, where they have made one.
+  // It both picks and orders, so it answers the whole question and the
+  // generated ranking is not consulted.
+  //
+  // Deliberately not falling back to the shared layer. Every testimonial is
+  // in that layer and always has been; reading it as an order would replace
+  // the synthesis's ranking for every profile at once. Where a direction has
+  // no list of its own the synthesis still decides, which is what this page
+  // has always done.
+  const curatedTestimonials = data?.testimonialPlacements?.[selectedLens?.id] || null
+  const hiddenTestimonials = data?.testimonialHidden
+
+  const orderedTestimonials = useMemo(() => {
+    const curated = selectTestimonials(testimonials, curatedTestimonials)
+    if (curated) return curated
+    // The one thing the shared layer does say: an item hidden there is off
+    // every direction. A filter, never a position.
+    const hidden = new Set(Array.isArray(hiddenTestimonials) ? hiddenTestimonials : [])
+    const visible = hidden.size ? testimonials.filter(t => !hidden.has(t?.id)) : testimonials
+    return orderTestimonials(visible, impact?.testimonialOrder)
+  }, [testimonials, curatedTestimonials, hiddenTestimonials, impact])
 
   // References become renderable proof here, against the evidence and
   // testimonials this page was already given and the resume it is showing.
@@ -561,6 +579,10 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onAssignEvidence: edit.onAssignEvidence,
       onFeatureEvidence: edit.onFeatureEvidence,
       onReorderEvidence: edit.onReorderEvidence,
+      onHideEvidence: edit.onHideEvidence,
+      allTestimonialPlacements: edit.allTestimonialPlacements,
+      onHideTestimonial: edit.onHideTestimonial,
+      onReorderTestimonial: edit.onReorderTestimonial,
       onEditEvidence: edit.onEditEvidence,
       onDeleteEvidence: edit.onDeleteEvidence,
       onGenerateImow: edit.onGenerateImow,
@@ -604,6 +626,8 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
+    edit?.onHideEvidence, edit?.allTestimonialPlacements,
+    edit?.onHideTestimonial, edit?.onReorderTestimonial,
     lenses, editLensId, openField, busy, busyKind, writeError, errorField,
     runWrite, runDraft, editSave, editSaveImow, editRegenerate,
     edit?.onGenerateImow, edit?.onStrengthenImow,

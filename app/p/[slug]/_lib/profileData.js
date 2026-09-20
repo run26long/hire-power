@@ -175,6 +175,61 @@ export function resolveSkillProof(skillProofs, { evidence, testimonials, resumeD
 // still appears - just not ahead of the ranking. No order at all means the
 // shared order, unchanged.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// WHAT THE OWNER CHOSE, WHERE THEY CHOSE ANYTHING
+//
+// A direction's testimonial placements are a curation: which of them this
+// direction shows and in what order. Unlike the generated ranking above it
+// both selects and orders, so a testimonial the owner hid is not here at all
+// rather than sorted to the back.
+//
+// Returns null when there is no curation to apply, which is how the caller
+// knows to fall back to the generated ranking rather than to an empty page.
+// An empty array of placements means the same thing as none: a database that
+// has not had the placement migration run has no rows, and a profile that
+// reads as having hidden everything everywhere is far likelier to be that
+// than to be somebody's intent.
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// WHAT THIS DIRECTION HAS PLACED, SHOWN AND HIDDEN TOGETHER
+//
+// The management list's source. A direction's own placements where it has
+// any, the shared layer where it has none - the same fallback the public
+// route resolves with, so the modal opens on exactly what the page is
+// showing rather than on some other reading of the same table.
+//
+// Hidden rows are kept. They are the whole reason the list exists: an item
+// off this direction is a switch to turn back on, and it can only be turned
+// back on if it is in front of somebody.
+// ---------------------------------------------------------------------------
+export function directionPlacements(placements, lensId) {
+  const rows = Array.isArray(placements) ? placements : []
+  const own = lensId ? rows.filter(r => r?.lens_id === lensId) : []
+  const use = own.length ? own : rows.filter(r => r?.lens_id === null)
+  return [...use].sort((x, y) => (x?.sort_order ?? 0) - (y?.sort_order ?? 0))
+}
+
+export function selectTestimonials(testimonials, placements) {
+  const list = Array.isArray(testimonials) ? testimonials : []
+  const placed = Array.isArray(placements) ? placements : []
+  if (placed.length === 0) return null
+
+  const byId = new Map(list.map(item => [item?.id, item]))
+  const out = []
+  const seen = new Set()
+  for (const place of placed) {
+    const id = place?.testimonial_id
+    if (!id || seen.has(id)) continue
+    const item = byId.get(id)
+    // An id that is unknown, withdrawn or unpublished resolves to nothing and
+    // is dropped, the same way the ranking above drops one.
+    if (!item) continue
+    out.push(item)
+    seen.add(id)
+  }
+  return out
+}
+
 export function orderTestimonials(testimonials, order) {
   const list = Array.isArray(testimonials) ? testimonials : []
   const ranking = Array.isArray(order) ? order : []

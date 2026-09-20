@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+
 import StrokeIcon from './StrokeIcon'
 import { EvidenceStage, EvidenceFoot, glyphFor, metaLine } from './EvidenceViewer'
 
@@ -30,7 +31,7 @@ const FAMILY_LABEL = { work: 'Work', credentials: 'Credentials', recognition: 'R
 const FAMILY_ORDER = ['work', 'credentials', 'recognition']
 
 export default function EvidenceOverlay({
-  mode,          // 'gallery' | 'detail'
+  mode,          // 'gallery' | 'detail' | 'manage'
   item,          // the item, in detail mode
   items,         // everything this direction carries, in placement order
   leadId,        // which one leads, so the gallery can mark it quietly
@@ -38,7 +39,16 @@ export default function EvidenceOverlay({
   lensId,
   onOpenItem,    // gallery -> detail
   onBack,        // detail -> gallery, only when the reader came that way
-  onClose
+  onClose,
+  // ---- management mode ----
+  // The same surface the reader's gallery uses, with the owner's controls in
+  // it instead of the tiles. The section passes the whole body, because it is
+  // the section that knows whether the owner is looking at the list or at one
+  // item's fields - and a pane that replaces the list is still this modal
+  // rather than a second one stacked on it.
+  manageTitle,
+  manageCount,
+  manageBody
 }) {
   const [family, setFamily] = useState('all')
 
@@ -151,7 +161,7 @@ export default function EvidenceOverlay({
   const titleId = 'hp-ev-overlay-title'
 
   return createPortal(
-    <div className="hp-ev-backdrop" onMouseDown={onBackdrop}>
+    <div className="hp-ev-backdrop hp-ed-portal" onMouseDown={onBackdrop}>
       <div
         className="hp-ev-surface"
         ref={surfaceRef}
@@ -161,7 +171,22 @@ export default function EvidenceOverlay({
         data-mode={mode}
         data-media={mode === 'detail' ? item?.media_class : undefined}
       >
-        {mode === 'gallery' ? (
+        {mode === 'manage' ? (
+          <div className="hp-ev-head">
+            <div className="hp-ev-heading">
+              <span className="hp-ev-family">Evidence</span>
+              <h2 className="hp-ev-title" id={titleId}>
+                {manageTitle || 'Manage evidence'}
+                {typeof manageCount === 'number'
+                  ? <> <span className="hp-ev-count">({manageCount})</span></>
+                  : null}
+              </h2>
+            </div>
+            <button type="button" className="hp-ev-close" ref={closeRef} aria-label="Close" onClick={onClose}>
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        ) : mode === 'gallery' ? (
           <div className="hp-ev-head">
             <div className="hp-ev-heading">
               <span className="hp-ev-family">Evidence</span>
@@ -192,7 +217,9 @@ export default function EvidenceOverlay({
           </div>
         )}
 
-        {mode === 'gallery' ? (
+        {mode === 'manage' ? (
+          <div className="hp-ev-stage" data-manage="true">{manageBody}</div>
+        ) : mode === 'gallery' ? (
           <>
             {/* Offered only where there is a boundary to draw. One family is
                 not a choice, it is a label on everything. */}

@@ -7,8 +7,11 @@ import PortfolioLightbox from './PortfolioLightbox'
 import PortfolioMat from './PortfolioMat'
 import AddEvidence from './AddEvidence'
 import { SlotGuide, SlotGhost, UpgradeNote, useEditSlot } from './EditAffordance'
-import { useCanShowEmpty, useCanEdit } from '../_lib/editContext'
-import { PORTFOLIO_PREVIEW_DESKTOP } from '@/lib/portfolio'
+import { useCanShowEmpty, useCanEdit, useProfileEdit } from '../_lib/editContext'
+import { directionPlacements } from '../_lib/profileData'
+import { PORTFOLIO_PREVIEW_DESKTOP, isPortfolioItem } from '@/lib/portfolio'
+import ManageList from './ManageList'
+import { EvidenceEditPane } from './ManagePanes'
 
 // ============================================================================
 // PORTFOLIO
@@ -44,6 +47,11 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   const [visit, setVisit] = useState(0)
   // Bumped by the guidance mat to open the add panel that lives below.
   const [openAdd, setOpenAdd] = useState(0)
+  // Which row has a write in flight, so one switch can go quiet without
+  // freezing the list around it.
+  const [busyId, setBusyId] = useState(null)
+  // Which item's fields have taken the modal over, if any. null is the list.
+  const [editingId, setEditingId] = useState(null)
 
   // A direction change replaces the collection. Anything open belonged to the
   // direction that is leaving.
@@ -85,6 +93,80 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
   const backToGrid = useCallback(() => setOverlay({ mode: 'grid' }), [])
   const close = useCallback(() => setOverlay(null), [])
 
+  // ---- MANAGING WHAT THIS DIRECTION SHOWS ----
+  //
+  // This direction's placements, shown and hidden together, and never the
+  // whole collection: work nobody has placed anywhere is not something to
+  // un-hide, it is something to add.
+  const edit = useProfileEdit()
+  const openManage = useCallback(() => {
+    setVisit(n => n + 1)
+    setEditingId(null)
+    setOverlay({ mode: 'manage' })
+  }, [])
+
+  const manageItems = useMemo(() => {
+    const byId = new Map((edit?.allEvidence || []).map(one => [one.id, one]))
+    return directionPlacements(edit?.allPlacements, lensId)
+      .map(place => {
+        const item = byId.get(place.evidence_id)
+        // Portfolio is the visual half of the same collection, so the list
+        // is filtered to what this section actually renders.
+        if (!item || !isPortfolioItem(item)) return null
+        return {
+          id: item.id,
+          title: item.title || 'Untitled',
+          meta: [item.organization, item.date_label].filter(Boolean).join(' · '),
+          hidden: place.hidden === true
+        }
+      })
+      .filter(Boolean)
+  }, [edit?.allEvidence, edit?.allPlacements, lensId])
+
+  const run = useCallback(async (id, work) => {
+    if (busyId) return
+    setBusyId(id)
+    try {
+      await work()
+    } catch (err) {
+      edit?.notify?.({ type: 'error', message: err?.message || "We couldn't save that. Please try again." })
+    } finally {
+      setBusyId(null)
+    }
+  }, [busyId, edit])
+
+  const toggleItem = useCallback(
+    (id, nextHidden) => run(id, () => edit?.onHideEvidence?.(id, lensId, nextHidden)),
+    [run, edit, lensId]
+  )
+  // A drop is however many single steps it takes to get there, sent one at a
+  // time: the route moves an item by one place, and a drag is not a different
+  // kind of move, only a longer one.
+  // Resolved from the record rather than held in state: an edit that lands
+  // changes the record, and the pane has to be looking at what was saved.
+  const editingItem = useMemo(
+    () => (editingId ? (edit?.allEvidence || []).find(one => one.id === editingId) || null : null),
+    [editingId, edit?.allEvidence]
+  )
+
+  const featuredId = useMemo(() => {
+    const here = directionPlacements(edit?.allPlacements, lensId)
+    return here.find(place => place.featured)?.evidence_id || null
+  }, [edit?.allPlacements, lensId])
+
+  const dropItem = useCallback((fromId, toId) => {
+    const ids = manageItems.map(one => one.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1 || from === to) return
+    const by = to > from ? 1 : -1
+    return run(fromId, async () => {
+      for (let at = from; at !== to; at += by) {
+        await edit?.onReorderEvidence?.(fromId, lensId, by)
+      }
+    })
+  }, [manageItems, run, edit, lensId])
+
   // Empty, this section is not on the public page at all - the same rule every
   // other section follows. The owner still sees it, because an absence they
   // cannot see is an absence they cannot fill.
@@ -101,6 +183,18 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           <h3 className="hp-practice-sub">Portfolio</h3>
           <p className="hp-practice-line">The work, in frame and in motion.</p>
         </Reveal>
+
+        {/* One control for the whole section, at the top right, and it opens
+            the gallery the section already had. Adding is in there too: a
+            second button out here was the owner being asked the same question
+            in two places. */}
+        {canEdit ? (
+          <div className="hp-ed-manage-row">
+            <button type="button" className="hp-ed-manage" onClick={openManage} aria-haspopup="dialog">
+              Manage portfolio
+            </button>
+          </div>
+        ) : null}
 
         {ordered.length === 0 && canShowEmpty ? (
           // The public grid, with the guidance living in the first mat.
@@ -213,10 +307,9 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
           </Reveal>
         )}
 
-        {/* The heading-row trigger stands down while the grid has a guidance
-            mat of its own: one invitation per section. */}
+        {/* The add flow itself, with no trigger of its own: Manage opens it. */}
         {canEdit
-          ? <AddEvidence only="visual" openSignal={openAdd} trigger={ordered.length >= PORTFOLIO_PREVIEW_DESKTOP} />
+          ? <AddEvidence only="visual" openSignal={openAdd} trigger={false} />
           : ordered.length > 0 ? <UpgradeNote feature="portfolio" /> : null}
 
       <PortfolioLightbox
@@ -229,6 +322,28 @@ export default function PortfolioSection({ items, slug, lensId, animate, directi
         onOpenItem={fromGrid}
         onBack={overlay?.fromGrid ? backToGrid : null}
         onClose={close}
+        manageTitle={editingItem ? 'Edit work' : 'Manage portfolio'}
+        manageCount={editingItem ? undefined : manageItems.length}
+        manageBody={editingItem ? (
+          <EvidenceEditPane
+            item={editingItem}
+            lensId={lensId}
+            isFeatured={featuredId === editingItem.id}
+            onBack={() => setEditingId(null)}
+          />
+        ) : (
+          <ManageList
+            items={manageItems}
+            busyId={busyId}
+            onToggle={toggleItem}
+            onDrop={dropItem}
+            onEdit={setEditingId}
+            onAdd={() => { close(); setOpenAdd(n => n + 1) }}
+            addLabel="Add to portfolio"
+            onDone={close}
+            emptyNote="Nothing is placed on this career direction yet. Add work to start."
+          />
+        )}
       />
     </div>
   )

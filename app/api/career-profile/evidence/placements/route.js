@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { evidencePlacements } from '../../_lib/placements'
 
 // ============================================================================
 // POST /api/career-profile/evidence/placements
@@ -11,8 +12,22 @@ import { createClient } from '@supabase/supabase-js'
 // reorder can still read.
 //
 //   assign   - put an item in a direction, or take it out
+//   hide     - stop a direction showing an item, without moving or losing it
 //   feature  - decide which item leads a direction, or that none does
 //   reorder  - move an item up or down within a direction
+//
+// HIDE IS NOT ASSIGN-OFF
+// assign-off deletes the placement: the item leaves the direction, its
+// position is renumbered away and its lead status goes with it. That is the
+// right write for "this does not belong here" and the wrong one for "not on
+// this direction just now", which is what the management modal asks for. hide
+// leaves the row where it is and stops it rendering, so restoring puts the
+// item back in its old place rather than at the end.
+//
+// EDITING A DIRECTION THAT HAS NO LIST OF ITS OWN
+// A direction with no placements falls back to the shared layer, so there is
+// no row for a per-direction edit to change. hide and reorder therefore copy
+// the shared list into the direction first - see the note in _lib/placements.
 //
 // WHOSE PLACEMENTS THESE ARE
 // The token's. Every id in the body is checked against the profile the token
@@ -91,21 +106,10 @@ async function belongsHere(supabase, profile, evidenceId, lensId) {
 }
 
 // Every placement in one direction, in the order the profile reads them.
-async function placementsFor(supabase, profileId, lensId) {
-  const query = supabase
-    .from('profile_evidence_placements')
-    .select('id, evidence_id, lens_id, sort_order, featured')
-    .eq('profile_id', profileId)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true })
-
-  const { data, error } = lensId === null
-    ? await query.is('lens_id', null)
-    : await query.eq('lens_id', lensId)
-
-  if (error) throw error
-  return data || []
-}
+// Hidden rows included: they hold positions, and anything renumbering or
+// moving within a direction has to see them.
+const placementsFor = (supabase, profileId, lensId) =>
+  evidencePlacements.listFor(supabase, profileId, lensId)
 
 // 0..n-1, and only the rows whose number actually changed are written.
 async function renumber(supabase, rows) {
@@ -151,7 +155,10 @@ export async function POST(request) {
         return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
       }
 
-      const rows = await placementsFor(supabase, profile.id, lensId)
+      // Materialised for the same reason: adding one item to a direction that
+      // was following the shared layer would otherwise give it a list of one
+      // and silently drop everything else it had been showing.
+      const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
       const existing = rows.find(r => r.evidence_id === evidenceId)
 
       if (body.on) {
@@ -179,6 +186,37 @@ export async function POST(request) {
         // does not keep pointing at something that is no longer in it.
         await renumber(supabase, rows.filter(r => r.id !== existing.id))
       }
+
+      return Response.json({ placements: await placementsFor(supabase, profile.id, lensId) })
+    }
+
+    // ---- HIDE ----
+    //
+    // The row stays. Its sort_order stays, its featured flag stays, the
+    // evidence record and its file and its placements in every other
+    // direction stay. All that changes is whether this direction renders it.
+    if (op === 'hide') {
+      if (!evidenceId) return Response.json({ error: 'Not found.' }, { status: 404 })
+      if (typeof body?.hidden !== 'boolean') {
+        return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
+      }
+
+      const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
+      const existing = rows.find(r => r.evidence_id === evidenceId)
+      // Nothing to hide is not an error the owner can act on: the item is
+      // already not in this direction, which is what they asked for.
+      if (!existing) {
+        return Response.json({ placements: rows })
+      }
+      if (existing.hidden === body.hidden) {
+        return Response.json({ placements: rows, unchanged: true })
+      }
+
+      const { error } = await supabase
+        .from('profile_evidence_placements')
+        .update({ hidden: body.hidden, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+      if (error) throw error
 
       return Response.json({ placements: await placementsFor(supabase, profile.id, lensId) })
     }
@@ -211,7 +249,9 @@ export async function POST(request) {
         return Response.json({ error: 'Invalid request.', code: 'INVALID' }, { status: 400 })
       }
 
-      const rows = await placementsFor(supabase, profile.id, lensId)
+      // A direction with no list of its own gets one before it is reordered,
+      // or there is nothing here to move and the control does nothing.
+      const rows = await evidencePlacements.materialise(supabase, profile.id, lensId)
       const from = rows.findIndex(r => r.evidence_id === evidenceId)
       if (from === -1) return Response.json({ error: 'Not found.' }, { status: 404 })
 

@@ -4072,3 +4072,22 @@ html:has(.hp-ed) {
 @media (prefers-reduced-motion: reduce) {
   .hp-ed-lens-grip { transition: none; }
 }
+
+/* Dark: the three Manage buttons take the same raised eggplant the View
+   control beside them uses, so the owner's controls read as one set standing
+   on the page. Light keeps the 3% wash above. Everything but the ground is
+   unchanged, hover included - it is the same accent wash, now over eggplant
+   rather than over the page. */
+[data-hp-profile-mode="dark"] :is(.hp-profile, .hp-ed-portal) .hp-ed-manage {
+  background: var(--profile-surface-2);
+}
+
+[data-hp-profile-mode="dark"] :is(.hp-profile, .hp-ed-portal) .hp-ed-manage:hover,
+[data-hp-profile-mode="dark"] :is(.hp-profile, .hp-ed-portal) .hp-ed-manage:focus-visible {
+  background:
+    linear-gradient(
+      rgb(var(--profile-accent-rgb) / 0.1),
+      rgb(var(--profile-accent-rgb) / 0.1)
+    ),
+    var(--profile-surface-2);
+}

@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Reveal from './Reveal'
 import { GhostText, useEditSlot } from './EditAffordance'
-import TestimonialManager from './TestimonialManager'
+import ProfileModal from './ProfileModal'
+import ManageList from './ManageList'
+import { TestimonialEditPane, TestimonialRequestPane } from './ManagePanes'
 import { useCanShowEmpty, useProfileEdit } from '../_lib/editContext'
+import { directionPlacements } from '../_lib/profileData'
 
 // ============================================================================
 // COLLECTIVE IMPACT + FIRSTHAND ACCOUNTS
@@ -45,11 +48,81 @@ export default function CollectiveImpact({
   // The management list opens on request, from the heading control or from the
   // invitation in the first quote position.
   const [manageOpen, setManageOpen] = useState(false)
+  // Which row has a write in flight, so one switch can go quiet without
+  // freezing the list around it.
+  const [busyId, setBusyId] = useState(null)
+  // What has taken the modal over: null is the list, an id is that
+  // testimonial's own controls, 'request' is the form that asks for a new one.
+  const [pane, setPane] = useState(null)
 
   // Every testimonial row the owner has, at any status, which is what there is
   // to manage. The published ones are a subset and are what the column shows.
   const edit = useProfileEdit()
-  const recordCount = Array.isArray(edit?.testimonials) ? edit.testimonials.length : 0
+  // The direction being read, from the context rather than a prop: this
+  // section is handed an impact and some quotations, never a lens.
+  const lensId = edit?.lensId || null
+
+  // ---- MANAGING WHAT THIS DIRECTION SHOWS ----
+  //
+  // This direction's placements, shown and hidden together. There is no Add
+  // here and no delete anywhere: a testimonial arrives because somebody was
+  // asked for one and wrote it, which is the Request flow, and it never
+  // leaves. Hiding is the whole of what this list can do to one.
+  const closeManage = useCallback(() => { setManageOpen(false); setPane(null) }, [])
+
+  // Resolved from the record rather than held in state, so publishing or
+  // categorising is reflected in the pane that did it.
+  const paneItem = useMemo(
+    () => (pane && pane !== 'request'
+      ? (edit?.testimonials || []).find(one => one.id === pane) || null
+      : null),
+    [pane, edit?.testimonials]
+  )
+
+  const manageItems = useMemo(() => {
+    const byId = new Map((edit?.testimonials || []).map(one => [one.id, one]))
+    return directionPlacements(edit?.allTestimonialPlacements, lensId)
+      .map(place => {
+        const item = byId.get(place.testimonial_id)
+        if (!item) return null
+        return {
+          id: item.id,
+          title: item.recipient_name || 'A referee',
+          meta: [item.recipient_title, item.relationship].filter(Boolean).join(' · '),
+          hidden: place.hidden === true
+        }
+      })
+      .filter(Boolean)
+  }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId])
+
+  const run = useCallback(async (id, work) => {
+    if (busyId) return
+    setBusyId(id)
+    try {
+      await work()
+    } catch (err) {
+      edit?.notify?.({ type: 'error', message: err?.message || "We couldn't save that. Please try again." })
+    } finally {
+      setBusyId(null)
+    }
+  }, [busyId, edit])
+
+  const toggleItem = useCallback(
+    (id, nextHidden) => run(id, () => edit?.onHideTestimonial?.(id, lensId, nextHidden)),
+    [run, edit, lensId]
+  )
+  const dropItem = useCallback((fromId, toId) => {
+    const ids = manageItems.map(one => one.id)
+    const from = ids.indexOf(fromId)
+    const to = ids.indexOf(toId)
+    if (from === -1 || to === -1 || from === to) return
+    const by = to > from ? 1 : -1
+    return run(fromId, async () => {
+      for (let at = from; at !== to; at += by) {
+        await edit?.onReorderTestimonial?.(fromId, lensId, by)
+      }
+    })
+  }, [manageItems, run, edit, lensId])
 
   const bodyRefs = useRef(new Map())
   const scrollRef = useRef(null)
@@ -138,19 +211,19 @@ export default function CollectiveImpact({
           <h2 className="hp-impact-headline">What others see.</h2>
         </Reveal>
 
-        {/* One compact control beside the headline, and only where the column
-            below carries none of its own. The empty state has its own Request
-            and Manage buttons directly under its copy, so a third control up
-            here would be a second way to say the same thing. */}
-        {canShowEmpty && hasQuotes ? (
+        {/* One control for the whole section, at the top right, the same one
+            the other two sections carry. Asking somebody for a testimonial is
+            inside it, so the empty column below no longer carries buttons of
+            its own. */}
+        {canShowEmpty ? (
           <div className="hp-ed-manage-row">
             <button
               type="button"
               className="hp-ed-manage"
-              aria-expanded={manageOpen}
-              onClick={() => setManageOpen(v => !v)}
+              aria-haspopup="dialog"
+              onClick={() => setManageOpen(true)}
             >
-              {manageOpen ? 'Done managing' : 'Manage testimonials'}
+              Manage testimonials
             </button>
           </div>
         ) : null}
@@ -243,26 +316,6 @@ export default function CollectiveImpact({
                 close to share a few sentences. They review the polished version,
                 and you decide whether it appears here.
               </p>
-
-              <div className="hp-ed-voices-actions">
-                <button
-                  type="button"
-                  className="hp-ed-action"
-                  data-primary="true"
-                  onClick={() => setManageOpen(true)}
-                >
-                  Request a new testimonial
-                </button>
-                <button
-                  type="button"
-                  className="hp-ed-action"
-                  disabled={recordCount === 0}
-                  aria-expanded={manageOpen}
-                  onClick={() => setManageOpen(v => !v)}
-                >
-                  Manage existing testimonials
-                </button>
-              </div>
 
               <div className="hp-voices-scroll hp-ed-ghost-voices">
                 <ul className="hp-voices">
@@ -369,7 +422,36 @@ export default function CollectiveImpact({
               On request now, not by default. It used to stand open under every
               visit to this act, which meant the owner met a management table
               instead of the section they had come to read. */}
-          {canShowEmpty && manageOpen ? <TestimonialManager /> : null}
+          {canShowEmpty && manageOpen ? (
+            <ProfileModal
+              open
+              eyebrow="Testimonials"
+              title="Manage testimonials"
+              titleId="hp-manage-testimonials"
+              portalClass="hp-ed-portal"
+              onClose={closeManage}
+            >
+              {pane === 'request' ? (
+                <TestimonialRequestPane onBack={() => setPane(null)} />
+              ) : paneItem ? (
+                <TestimonialEditPane item={paneItem} onBack={() => setPane(null)} />
+              ) : (
+                <ManageList
+                  items={manageItems}
+                  busyId={busyId}
+                  onToggle={toggleItem}
+                  onDrop={dropItem}
+                  onEdit={setPane}
+                  onAdd={() => setPane('request')}
+                  addLabel="Request a testimonial"
+                  secondaryLabel="Download reference sheet"
+                  onSecondary={() => edit?.onDownloadReferenceSheet?.()}
+                  onDone={closeManage}
+                  emptyNote="No testimonials are placed on this career direction yet."
+                />
+              )}
+            </ProfileModal>
+          ) : null}
         </div>
       </div>
     </section>

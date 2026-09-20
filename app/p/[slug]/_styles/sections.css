@@ -3625,7 +3625,7 @@
    read as one thing standing over the page rather than as tiles scattered on
    the backdrop, so it takes a ground, an edge and a radius. Only in that mode:
    a panel behind a single photograph would be a frame nobody asked for. */
-.hp-pf-box-surface[data-mode="grid"] {
+.hp-pf-box-surface:is([data-mode="grid"], [data-mode="manage"]) {
   height: min(100%, 860px);
   padding: 18px;
   border: 1px solid rgb(var(--profile-accent-rgb) / 0.2);
@@ -3642,7 +3642,7 @@
 }
 
 @media (min-width: 768px) {
-  .hp-pf-box-surface[data-mode="grid"] { padding: 22px; }
+  .hp-pf-box-surface:is([data-mode="grid"], [data-mode="manage"]) { padding: 22px; }
 }
 
 .hp-pf-box-bar {
@@ -4043,7 +4043,9 @@
    Border, type, placement, the 19px overhang, the arrow and its nudge are
    all untouched, and so is dark. */
 [data-hp-profile-mode="light"] .hp-profile .hp-pf-all {
-  background: var(--profile-surface);
+  background:
+    linear-gradient(var(--profile-fill-4), var(--profile-fill-4)),
+    var(--profile-ground);
 }
 
 [data-hp-profile-mode="light"] .hp-profile .hp-pf-all:hover,
@@ -4053,5 +4055,360 @@
       rgb(var(--profile-accent-rgb) / 0.08),
       rgb(var(--profile-accent-rgb) / 0.08)
     ),
-    var(--profile-surface);
+    linear-gradient(var(--profile-fill-4), var(--profile-fill-4)),
+    var(--profile-ground);
+}
+
+/* ---- Managing what a direction shows -----------------------------------
+   One list, used by all three collections, inside whichever modal they
+   already had. Scoped to the three modal roots rather than to .hp-profile:
+   every one of them is portalled onto the body, so nothing on the document
+   reaches them by descent.
+
+   Every value here is a --profile-* token, because these roots carry the
+   palette but not the editor's --ed-* aliases, which are declared on .hp-ed
+   and on .hp-ed-portal only. */
+.hp-manage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.hp-manage-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.hp-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-manage-row:last-child { border-bottom: 0; }
+
+/* A hidden row is still a row. It goes quiet rather than going away, because
+   the whole point of it being here is that it can come back. */
+.hp-manage-row[data-hidden="true"] .hp-manage-title,
+.hp-manage-row[data-hidden="true"] .hp-manage-meta { opacity: 0.5; }
+
+.hp-manage-row[data-dragging="true"] { opacity: 0.45; }
+.hp-manage-row[data-dropping="true"] { box-shadow: inset 0 2px 0 -1px var(--profile-accent); }
+
+.hp-manage-grip {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--profile-meta);
+  cursor: grab;
+}
+
+.hp-manage-row:active .hp-manage-grip { cursor: grabbing; }
+.hp-manage-grip-mark { width: 14px; height: 14px; fill: currentColor; }
+
+.hp-manage-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.hp-manage-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--profile-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hp-manage-meta {
+  font-size: 12px;
+  color: var(--profile-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The same switch the settings drawer uses, rebuilt on profile tokens
+   because the editor's own aliases do not reach these portals. */
+:is(.hp-manage, .hp-manage-pane) .hp-manage-switch {
+  appearance: none;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--profile-line-strong);
+  /* The same off-state the settings drawer switch uses. A 4% wash reads as
+     almost nothing on paper, and an off switch nobody can see is an on
+     switch as far as the eye is concerned. */
+  background: var(--profile-line-strong);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background var(--profile-move-ms) var(--profile-ease-in),
+              border-color var(--profile-move-ms) var(--profile-ease-in);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-switch[data-on="true"] {
+  background: var(--profile-action);
+  border-color: var(--profile-action);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-switch:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-switch:disabled { opacity: 0.55; cursor: default; }
+
+.hp-manage-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--profile-on-action);
+  box-shadow: 0 1px 2px var(--profile-shade-1);
+  transition: transform var(--profile-move-ms) var(--profile-ease-in);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-switch[data-on="true"] .hp-manage-knob { transform: translateX(16px); }
+
+.hp-manage-empty {
+  margin: 0;
+  padding: 18px 2px;
+  font-size: 13px;
+  color: var(--profile-meta);
+}
+
+.hp-manage-note {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--profile-meta);
+  flex-shrink: 0;
+}
+
+/* Add and Done belong to the modal, not to the page behind it: the whole
+   point of the one Manage button is that everything it opens is finished in
+   one place. */
+.hp-manage-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--profile-line);
+  flex-shrink: 0;
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-add,
+:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane) .hp-manage-done {
+  appearance: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Everything in this footer is a button, and the filled one is the thing this
+   modal is for: adding. Done and the reference sheet are both ways of leaving
+   with what you came for, and they are outlined. */
+:is(.hp-manage, .hp-manage-pane) .hp-manage-add {
+  border: 1px solid transparent;
+  background: var(--profile-primary-fill);
+  color: var(--profile-on-action);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-add:hover { opacity: 0.9; }
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary,
+:is(.hp-manage, .hp-manage-pane) .hp-manage-done {
+  border: 1px solid var(--profile-line-strong);
+  background: transparent;
+  color: var(--profile-body);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary:hover,
+:is(.hp-manage, .hp-manage-pane) .hp-manage-done:hover { color: var(--profile-text); border-color: var(--profile-accent-edge); }
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-add:focus-visible,
+:is(.hp-manage, .hp-manage-pane) .hp-manage-secondary:focus-visible,
+:is(.hp-manage, .hp-manage-pane) .hp-manage-done:focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .hp-manage-row { gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.hp-manage, .hp-manage-pane) .hp-manage-switch,
+  .hp-manage-knob { transition: none; }
+}
+
+/* ---- The row's own Edit, and the pane behind it ------------------------
+   Edit takes the modal over rather than opening a second one. A dialog on a
+   dialog is two Escape keys and two places focus can be, and neither is
+   where anybody expects it. */
+:is(.hp-manage, .hp-manage-pane) .hp-manage-edit {
+  appearance: none;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border: 1px solid var(--profile-line-strong);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--profile-body);
+  cursor: pointer;
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-edit:hover:not(:disabled) {
+  color: var(--profile-text);
+  border-color: var(--profile-accent-edge);
+  background: var(--profile-accent-wash);
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-edit:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 1px; }
+:is(.hp-manage, .hp-manage-pane) .hp-manage-edit:disabled { opacity: 0.45; cursor: default; }
+
+.hp-manage-pane { display: flex; flex-direction: column; }
+
+.hp-manage-pane-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-manage-pane-title {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--profile-text);
+}
+
+.hp-manage-pane-note { margin: 0; font-size: 12px; color: var(--profile-meta); }
+
+/* A property of the direction rather than of the record - the lead item, and
+   whether the item is private - set apart from the fields below it. */
+.hp-manage-pane-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--profile-line);
+  margin-bottom: 4px;
+}
+
+.hp-manage-pane-label { font-size: 13px; color: var(--profile-body); }
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish {
+  appearance: none;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--profile-accent);
+  cursor: pointer;
+}
+
+:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:hover { text-decoration: underline; }
+:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:disabled { opacity: 0.5; cursor: default; }
+:is(.hp-manage, .hp-manage-pane) .hp-manage-linkish:focus-visible { outline: 2px solid var(--profile-accent); outline-offset: 2px; }
+
+/* Two actions on the left rather than one: asking for a testimonial and
+   taking the reference sheet away are both things done from here. Same gap
+   as the one between the left pair and Done, so the row reads evenly. */
+.hp-manage-foot-left { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 520px) {
+  /* The row is already carrying a grip and a toggle at this width. */
+  :is(.hp-manage, .hp-manage-pane) .hp-manage-edit { padding: 5px 8px; }
+}
+
+/* Both galleries centre their one child, so the list and a pane would each be
+   as wide as whatever text happened to be in them, and switching between them
+   would move the whole modal. One measure for both instead. */
+.hp-manage,
+.hp-manage-pane {
+  width: 100%;
+  max-width: 600px;
+  justify-self: center;
+}
+
+/* Managing is a list, not a wall of mats: the panel takes the measure of the
+   evidence modal beside it and only as much height as the rows need, so the
+   two Manage buttons open the same kind of thing. */
+.hp-pf-box-surface[data-mode="manage"] {
+  width: min(100%, 720px);
+  height: auto;
+  max-height: min(100%, 860px);
+}
+
+/* The lightbox is portalled onto the body like the evidence viewer, and in
+   management mode it carries the same controls - so it needs the same resets
+   the viewer gets, or every one of them arrives wearing the browser's chrome.
+   Scoped to the mode: the reader's gallery keeps exactly what it had. */
+.hp-pf-box[data-mode="manage"],
+.hp-pf-box[data-mode="manage"] *,
+.hp-pf-box[data-mode="manage"] *::before,
+.hp-pf-box[data-mode="manage"] *::after { box-sizing: border-box; }
+
+.hp-pf-box[data-mode="manage"] {
+  font-family: var(--profile-font-ui);
+  color: var(--profile-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+:where(.hp-pf-box[data-mode="manage"]) button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: inherit;
+}
+
+:where(.hp-pf-box[data-mode="manage"]) a { color: inherit; text-decoration: none; }
+
+:where(.hp-pf-box[data-mode="manage"]) :focus-visible {
+  outline: 2px solid var(--profile-accent);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* Dark: the way into the rest of the portfolio sits on the raised eggplant
+   the surfaces above it use, rather than on the field itself. The accent
+   wash on hover is unchanged - it now lands on that ground instead of on
+   nothing, so the control stays opaque through the whole interaction.
+   Border, type, size, position, radius and the arrow are untouched. */
+[data-hp-profile-mode="dark"] .hp-profile .hp-pf-all {
+  background: var(--profile-surface-2);
+}
+
+[data-hp-profile-mode="dark"] .hp-profile .hp-pf-all:hover,
+[data-hp-profile-mode="dark"] .hp-profile .hp-pf-all:focus-visible {
+  background:
+    linear-gradient(
+      rgb(var(--profile-accent-rgb) / 0.08),
+      rgb(var(--profile-accent-rgb) / 0.08)
+    ),
+    var(--profile-surface-2);
 }
