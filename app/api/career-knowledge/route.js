@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { bumpVaultCount } from '@/lib/vaultCount'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -916,6 +917,13 @@ Return the JSON object now.`
       '| improved:', improved,
       '| conflicts:', conflicts
     )
+    // What the owner will be told about. Rows that only matched or improved
+    // an existing fact are not new things in the Vault, so they are not
+    // counted: the badge says how much arrived, not how much was thought
+    // about. Coaching and interview practice both reach the knowledge base
+    // through this route, so both are covered by this one call.
+    await bumpVaultCount(supabase, user.id, extracted + conflicts)
+
     return NextResponse.json({ success: true, extracted, matched, improved, conflicts })
 
   } catch (error) {

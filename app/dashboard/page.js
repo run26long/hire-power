@@ -374,7 +374,7 @@ function DashboardContent() {
   // ── Derived state ──
   const tier = userProfile?.subscription_tier;
   const isPro = tier === 'pro';
-  const isVaultTier = tier === 'vault' || tier === 'maintenance' || (tier === 'pro' && userProfile?.search_status === 'hired');
+  const unseenVault = Number(userProfile?.unseen_vault_count) || 0;
 
   const resumeCompleted = !!coreResume?.completed_at;
   const resumeInProgress = !!coreResume && !resumeCompleted;
@@ -391,12 +391,6 @@ function DashboardContent() {
     ? 'Finish your resume first'
     : 'Start interview prep';
 
-  const c4label = isVaultTier ? 'Career Vault' : 'Job Tracker';
-  const c4path  = isVaultTier ? '/career-vault' : '/job-tracker';
-  const c4desc  = isVaultTier
-    ? "Three years from now you won't remember what you accomplished today. Hire Power will. Log wins between job searches, so your resume is ready when opportunities arise."
-    : 'Easily track all applications with job cards that store: resume, cover letter, job description, interview times and practice. Schedule automated follows ups and messages!';
-  const c4cta = isVaultTier ? 'Log a win' : 'Track your first application';
 
   const firstName = userProfile?.display_name
     ? userProfile.display_name.split(' ')[0]
@@ -673,7 +667,7 @@ function DashboardContent() {
         </div>
 
         {/* CARDS */}
-        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', overflow: 'hidden' }}>
+        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
 
           {/* 01 CAREER COACH — HIDDEN: comment block below, restore num="01" and re-add to grid to re-enable */}
           {false && (
@@ -724,20 +718,36 @@ function DashboardContent() {
             )}
           </HomeCard>
 
-          {/* 03 JOB TRACKER / CAREER VAULT */}
-          <HomeCard
-            onClick={() => router.push(c4path)}
-            num="03"
-          >
+          {/* 03 JOB TRACKER */}
+          <HomeCard onClick={() => router.push('/job-tracker')} num="03">
             {(lit) => (
               <>
                 <span style={{ ...SP.base, ...(applicationCount > 0 ? SP.prog : SP.start) }}>
                   {applicationCount > 0 ? `${applicationCount} Application${applicationCount !== 1 ? 's' : ''}` : 'Not Started'}
                 </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>{c4label}</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>{c4desc}</p>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Job Tracker</div>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Easily track all applications with job cards that store: resume, cover letter, job description, interview times and practice. Schedule automated follows ups and messages!</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>Track your first application</span>
+                  <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
+                </div>
+              </>
+            )}
+          </HomeCard>
+
+          {/* 04 CAREER VAULT — beside the Tracker rather than instead of it.
+              The two answer different questions: what am I applying to, and
+              what have I done. Somebody mid-search needs both. */}
+          <HomeCard onClick={() => router.push('/career-vault')} num="04">
+            {(lit) => (
+              <>
+                <span style={{ ...SP.base, ...(unseenVault > 0 ? SP.prog : SP.start) }}>
+                  {unseenVault > 0 ? `${unseenVault} New` : 'Not Started'}
+                </span>
+                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Vault</div>
+                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Three years from now you won&apos;t remember what you accomplished today. Hire Power will. Log wins between job searches, so your resume is ready when opportunities arise.</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', borderRight: 'none' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{c4cta}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>Log a win</span>
                   <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
                 </div>
               </>

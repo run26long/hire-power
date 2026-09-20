@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { RELATIONSHIP_TYPES } from '@/lib/testimonialTypes'
+import { bumpVaultCount } from '@/lib/vaultCount'
 
 // ============================================================================
 // PATCH  /api/career-profile/testimonials/[testimonialId]  - publish, or not
@@ -157,6 +158,13 @@ export async function PATCH(request, { params }) {
       return Response.json({ error: "We couldn't save that. Please try again." }, { status: 500 })
     }
     if (!updated) return Response.json({ error: 'Not found.' }, { status: 404 })
+
+    // Somebody's words arriving on the profile is a thing in the Vault. Only
+    // the crossing counts: publishing a row that was already published, or
+    // renaming how you worked together, adds nothing.
+    if (patch.status === 'published' && row.status !== 'published') {
+      await bumpVaultCount(supabase, user.id, 1)
+    }
 
     return Response.json({ testimonial: updated })
   } catch (error) {

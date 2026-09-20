@@ -7,6 +7,7 @@ import MainNav from '../components/MainNav';
 import AppShell from '../components/AppShell';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
+import SuccessToast from '../components/SuccessToast';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { coreResumeLabel } from '@/lib/resumeLabel';
@@ -218,6 +219,7 @@ export default function CareerVaultPage() {
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, type: 'card' | 'core' }
   const [archiveActionLoading, setArchiveActionLoading] = useState(false);
   const [errorToast, setErrorToast] = useState(null);
+  const [successToast, setSuccessToast] = useState(null);
 
   const logInputRef = useRef(null);
 
@@ -245,6 +247,30 @@ export default function CareerVaultPage() {
         if (profileError) throw profileError;
         setUserProfile(profile);
         setTier(profile?.subscription_tier || 'vault');
+
+        // What landed while they were somewhere else. Said once, in their
+        // own words - "items", not "knowledge entries" - and then the count
+        // goes back to zero, which is what makes the badge in the nav
+        // disappear. Local state is cleared too, so the badge goes on this
+        // render rather than on the next load.
+        const unseen = Number(profile?.unseen_vault_count) || 0;
+        if (unseen > 0) {
+          setSuccessToast(
+            unseen === 1
+              ? '1 new item added to your Career Vault'
+              : `${unseen} new items added to your Career Vault`
+          );
+          setUserProfile({ ...profile, unseen_vault_count: 0 });
+          const { error: clearError } = await supabase
+            .from('profiles')
+            .update({ unseen_vault_count: 0 })
+            .eq('id', user.id);
+          if (clearError) {
+            // Not worth stopping the page for: they have seen the number, and
+            // the worst case is seeing it again next time.
+            console.error('Career vault count reset failed (non-fatal):', clearError);
+          }
+        }
 
         // Load hired card first so we can filter accomplishments by it
         const { data: hiredCard, error: hiredError } = await supabase
@@ -1996,6 +2022,7 @@ export default function CareerVaultPage() {
     )}
 
     <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
+    <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
 
       {/* NEW SEARCH MODAL */}
       {showNewSearchModal && (

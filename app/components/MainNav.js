@@ -25,7 +25,10 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
   };
 
  const tier = userProfile?.subscription_tier;
-  const isVaultTier = tier === 'vault' || tier === 'maintenance' || (tier === 'pro' && userProfile?.search_status === 'hired');
+
+  // How many things have landed in the Vault since it was last opened. The
+  // nav already has the profile row, so this costs nothing to read.
+  const unseenVault = Number(userProfile?.unseen_vault_count) || 0;
 
   const pendingChangeType = userProfile?.pending_change_type;
   const pendingChangeDate = userProfile?.pending_change_date;
@@ -46,9 +49,13 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
     // Profile is built from the Core Resume, and the two are read together.
     { id: 'career-profile',  label: 'Career Profile',  path: '/career-profile' },
     { id: 'interview-coach', label: 'Interview Practice', path: '/interview-coach' },
-    isVaultTier
-      ? { id: 'career-vault', label: 'Career Vault', path: '/career-vault' }
-      : { id: 'job-tracker',  label: 'Job Tracker',  path: '/job-tracker' },
+    // Both, for everybody. These used to swap on tier and on whether a job
+    // card had reached Hired, which meant the Vault was invisible to the
+    // people still filling it and the Tracker disappeared from under anybody
+    // who got hired and then started looking again. They are two different
+    // places and both are always there.
+    { id: 'job-tracker',  label: 'Job Tracker',  path: '/job-tracker' },
+    { id: 'career-vault', label: 'Career Vault', path: '/career-vault', badge: unseenVault },
   ];
 
   const handleNavClick = (path) => {
@@ -106,6 +113,14 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                     disabled={item.disabled}
                   >
                     {item.label}
+                    {item.badge > 0 ? (
+                      <span
+                        className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-purple-600 text-white text-[10px] font-bold leading-none align-middle"
+                        aria-label={`${item.badge} new item${item.badge === 1 ? '' : 's'}`}
+                      >
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </nav>
@@ -221,9 +236,19 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                 >
                   {item.label}
                 </span>
-                {currentPage === item.id && (
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed' }} />
-                )}
+                <span className="flex items-center gap-2">
+                  {item.badge > 0 ? (
+                    <span
+                      className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-purple-600 text-white text-[10px] font-bold leading-none"
+                      aria-label={`${item.badge} new item${item.badge === 1 ? '' : 's'}`}
+                    >
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  ) : null}
+                  {currentPage === item.id && (
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed' }} />
+                  )}
+                </span>
               </button>
             ))}
             {userProfile && (

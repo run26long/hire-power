@@ -1,4 +1,5 @@
 import { requireCustomise } from '../_lib/requireCustomise'
+import { bumpVaultCount } from '@/lib/vaultCount'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../_lib/recruiterContext'
 import { canonicalType, familyForType, providerForUrl } from '@/lib/evidenceTypes'
@@ -277,6 +278,10 @@ export async function POST(request) {
       }
       placements = madePlacements || []
     }
+
+    // A new piece of proof is a new thing in the Vault, whether or not it
+    // reached a career direction.
+    await bumpVaultCount(supabase, user.id, 1)
 
     return Response.json({ evidence: created, placements })
   } catch (error) {

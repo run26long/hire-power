@@ -1,4 +1,5 @@
 import { requireCustomise } from '../../_lib/requireCustomise'
+import { bumpVaultCount } from '@/lib/vaultCount'
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
@@ -666,6 +667,9 @@ export async function PUT(request) {
       }
       placements = madePlacements || []
     }
+
+    // A new piece of work is a new thing in the Vault.
+    await bumpVaultCount(supabase, user.id, 1)
 
     // storage_path and thumbnail_path are not in RETURNED, so what goes back
     // says an upload exists without saying where it is.
