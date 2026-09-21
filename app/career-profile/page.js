@@ -272,10 +272,16 @@ export default function CareerProfileEditorPage() {
     ? `${(process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/+$/, '')}${publicPath}`
     : null
 
+  // The address of the direction on screen, not of the profile in general.
+  // The document writes its selection into this page's query string, so the
+  // link somebody is handed opens on what its owner was reading when they
+  // copied it. The primary carries no parameter, which is what an address
+  // with none already opens on.
   async function copyLink() {
     if (!publicUrl) return
+    const search = typeof window !== 'undefined' ? window.location.search : ''
     try {
-      await navigator.clipboard.writeText(publicUrl)
+      await navigator.clipboard.writeText(`${publicUrl}${search}`)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -961,6 +967,10 @@ export default function CareerProfileEditorPage() {
         data={document_}
         slug={profile?.slug}
         onLensUpdated={handleLensUpdated}
+        // The workspace address tracks the direction on screen for the same
+        // reason the public one does, and for one more: Copy link is up in the
+        // bar above, and it copies what the owner is looking at.
+        deepLinkLens
         edit={editing ? {
           editing: true,
           isPro: manage?.isPro === true,

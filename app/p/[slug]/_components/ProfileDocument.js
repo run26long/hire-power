@@ -196,7 +196,12 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     if (!wanted) return
     try {
       const url = new URL(window.location.href)
-      url.searchParams.set(LENS_PARAM, wanted)
+      // The primary is what an address with no parameter opens on, so going
+      // back to it takes the parameter off rather than naming it. Otherwise
+      // the address - and a link copied from it - would say ?d=<primary> for
+      // the one direction that never needed asking for.
+      if (index === 0) url.searchParams.delete(LENS_PARAM)
+      else url.searchParams.set(LENS_PARAM, wanted)
       window.history.replaceState(null, '', url)
     } catch {
       // A browser that will not take the rewrite still gets the direction it
