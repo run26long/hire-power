@@ -12,7 +12,7 @@ import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { coreResumeLabel } from '@/lib/resumeLabel';
-import { canLogWins, canUseReviewPrep } from '@/lib/tiers';
+import { canLogWins, canUseReviewPrep, canCreateResumes } from '@/lib/tiers';
 
 // ---- LOGGING A WIN ----
 // Through the route rather than straight into the table. The insert used to
@@ -732,6 +732,11 @@ export default function CareerVaultPage() {
   // and is offered the plan when it tries to add to it.
   const mayLogWins = canLogWins(tier);
   const mayPrepReview = canUseReviewPrep(tier);
+  // Starting a new search ends in the Resume Writer, so the question the
+  // module asks is whether this account may build a resume - not whether it is
+  // on one particular plan. Same answer today; the difference is that this one
+  // follows the rule if the rule moves.
+  const mayStartNewSearch = canCreateResumes(tier);
   const openLogWin = () => {
     if (!mayLogWins) {
       setVaultPrompt({
@@ -1381,7 +1386,7 @@ export default function CareerVaultPage() {
                 className="cv-span min-w-0"
                 style={{ background: '#F7F4FC', border: '1px solid #E7DFF1', borderRadius: 16, padding: '22px 26px' }}
               >
-                {isPro ? (
+                {mayStartNewSearch ? (
                   <>
                     <h2 style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: '#17132a' }}>Ready to search again?</h2>
                     <p style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: '#6b6580', maxWidth: '72ch' }}>
