@@ -52,6 +52,11 @@ export default function ManageList({
   onDone,
   emptyNote,
   notice,           // optional; a line confirming what just happened, above the rows
+  // What this particular list is for. Defaulted to the drag-and-toggle
+  // sentence the evidence and portfolio lists are described by, because that
+  // is all those two do; testimonials pass their own, since that list also
+  // carries requests nobody has answered and answers nobody has decided on.
+  note = 'Drag to reorder. Toggle an item off to remove it from this career direction. It stays saved, and you can turn it back on anytime.',
 }) {
   const [dragId, setDragId] = useState(null)
   const [overId, setOverId] = useState(null)
@@ -95,10 +100,7 @@ export default function ManageList({
 
   return (
     <div className="hp-manage">
-      <p className="hp-manage-note">
-        Drag to reorder. Toggle an item off to remove it from this career
-        direction. It stays saved, and you can turn it back on anytime.
-      </p>
+      <p className="hp-manage-note">{note}</p>
 
       {notice ? <p className="hp-manage-notice" role="status">{notice}</p> : null}
 

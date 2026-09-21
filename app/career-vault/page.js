@@ -123,8 +123,9 @@ function StatusBadge({ status }) {
 // ---- WHAT A LOCK LOOKS LIKE ----
 // One mark for every gated control on this page, so a free account learns the
 // shape once rather than four times. Small enough to sit inside a row title
-// without moving it, and it names the plan rather than only showing a padlock:
-// a padlock says "no", and this says what the answer costs.
+// without moving it, and it names the plans rather than only showing a padlock:
+// a padlock says "no", and this says what the answer costs. Both plans, because
+// both open every one of these and the prompt behind the click offers each.
 function VaultLock({ compact = false }) {
   return (
     <span
@@ -146,7 +147,7 @@ function VaultLock({ compact = false }) {
       }}
     >
       <span aria-hidden="true" style={{ fontSize: compact ? 8 : 9 }}>🔒</span>
-      Vault
+      Vault + Pro
     </span>
   );
 }

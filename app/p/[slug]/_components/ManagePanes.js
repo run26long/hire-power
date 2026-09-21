@@ -237,9 +237,19 @@ export function TestimonialEditPane({ item, onBack }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [busy, setBusy] = useState(null)
+  // Permanent and unrecoverable, so it is asked for twice. The second press is
+  // a different button in the same place rather than a dialog over the pane:
+  // the thing being deleted is on screen behind it and should stay readable
+  // while the owner decides.
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const published = item.status === 'published'
   const ready = Boolean(item.polished_text)
+  // Whether anything has come back at all. The status alone does not say:
+  // a row carries the referee's words long before anybody decides about them,
+  // which is how "No response yet" came to sit over a paragraph they had
+  // already written.
+  const answered = Boolean(item.polished_text || item.raw_text)
 
   async function run(key, work) {
     if (busy) return
@@ -289,9 +299,9 @@ export function TestimonialEditPane({ item, onBack }) {
         <blockquote className="hp-ed-tm-quote">{item.polished_text}</blockquote>
       ) : (
         <p className="hp-ed-proof-note">
-          {item.status === 'requested'
-            ? 'No response yet. The request link is still active.'
-            : 'Received, but we could not shorten it. Their own words are below.'}
+          {answered
+            ? 'Received, but we could not shorten it. Their own words are below.'
+            : 'No response yet. The request link is still active.'}
         </p>
       )}
 
@@ -302,19 +312,88 @@ export function TestimonialEditPane({ item, onBack }) {
         </div>
       ) : null}
 
-      <div className="hp-ed-editor-bar">
-        {ready ? (
+      {/* ---- SHOW ON PROFILE ----
+          A switch rather than a button, because it is a state the owner can
+          read at a glance and change in either direction as often as they
+          like, not an action they perform once. Off is where a new answer
+          arrives: nothing anybody wrote about them goes onto their profile
+          until they say so. Off later keeps the row here in full - the words
+          stay, and turning it back on puts them back. */}
+      {answered ? (
+        <div className="hp-ed-tm-show">
+          <span className="hp-ed-tm-show-label">
+            <span className="hp-ed-field-label">Show on profile</span>
+            <span className="hp-ed-hint">
+              {busy === 'pub'
+                ? 'Saving…'
+                : published
+                ? 'Visible to anyone who opens your profile.'
+                : ready
+                ? 'Saved here. Nobody else can see it yet.'
+                : 'Needs a tidied version before it can go on your profile.'}
+            </span>
+          </span>
           <button
             type="button"
-            className="hp-ed-action"
-            data-primary={published ? undefined : 'true'}
-            disabled={Boolean(busy)}
+            className="hp-manage-switch"
+            role="switch"
+            aria-checked={published}
+            aria-label="Show this testimonial on my profile"
+            data-on={published ? 'true' : 'false'}
+            // A row with no polished text cannot be published: the route
+            // refuses it, and a switch that flicks back is worse than one that
+            // will not move.
+            disabled={Boolean(busy) || !ready}
             onClick={() => run('pub',
               () => edit?.onPublishTestimonial?.(item.id, published ? 'polished' : 'published'))}
           >
-            {busy === 'pub' ? 'Saving…' : published ? 'Take it down' : 'Put it on my profile'}
+            <span className="hp-manage-knob" aria-hidden="true" />
           </button>
-        ) : null}
+        </div>
+      ) : null}
+
+      <div className="hp-ed-editor-bar">
+        {/* Cancelling a request and removing an answer are the same delete:
+            the row is the request, and the token lives on it, so leaving a
+            withdrawn one in place would leave its referee a working link. */}
+        {confirmingDelete ? (
+          <>
+            <span className="hp-ed-hint">
+              {answered
+                ? 'Delete this testimonial and their words for good?'
+                : 'Cancel this request? Their link stops working.'}
+            </span>
+            <button
+              type="button"
+              className="hp-ed-action"
+              data-primary="true"
+              disabled={Boolean(busy)}
+              onClick={() => run('del', async () => {
+                await edit?.onDeleteTestimonial?.(item.id)
+                onBack()
+              })}
+            >
+              {busy === 'del' ? 'Deleting…' : 'Delete for good'}
+            </button>
+            <button
+              type="button"
+              className="hp-ed-action"
+              disabled={Boolean(busy)}
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Keep it
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="hp-ed-action"
+            disabled={Boolean(busy)}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            {answered ? 'Delete' : 'Cancel request'}
+          </button>
+        )}
         <span className="hp-ed-editor-gap" />
         <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
           Back to list
@@ -409,8 +488,8 @@ export function TestimonialRequestPane({ onBack, onSent }) {
       </div>
 
       <p className="hp-ed-proof-note">
-        They get one email with a link. They write a few sentences, see a tidied version straight
-        away, and you decide whether it goes on your profile.
+        They&rsquo;ll get a private link to share what it was like to work with you, and you decide
+        whether it appears on your profile.
       </p>
 
       <div className="hp-ed-editor-bar">

@@ -4077,6 +4077,34 @@
   background: rgb(var(--profile-accent-rgb) / 0.1);
 }
 
+/* On the profile. Stated in the text colour rather than in the accent, which
+   is reserved here for the one state that is asking for something. */
+.hp-manage-status[data-tone="live"] {
+  color: var(--profile-text);
+  border-color: var(--profile-line-strong);
+}
+
+/* ---- SHOW ON PROFILE ----
+   The one control in the pane that is a state rather than an action, so it
+   gets a row of its own with the switch at the end of it. */
+.hp-ed-tm-show {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--profile-line);
+  border-bottom: 1px solid var(--profile-line);
+}
+
+.hp-ed-tm-show-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
 /* A receipt for the thing that just happened, above the rows it happened to. */
 .hp-manage-notice {
   margin: 0 0 12px;

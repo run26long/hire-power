@@ -102,24 +102,44 @@ export default function CollectiveImpact({
     const places = directionPlacements(edit?.allTestimonialPlacements, lensId)
     const placeOf = new Map(places.map((place, at) => [place.testimonial_id, { place, at }]))
 
+    // ---- THE FOUR STATES ----
+    //
+    // Requested       nobody has written anything yet
+    // Ready to review they have, and the owner has not put it on the profile
+    // Published       it is on the profile
+    // Hidden          it is on the profile's list but turned off here
+    //
+    // The first two are told apart by whether there is any text on the row, and
+    // by nothing else. Reading the status alone is what produced "No response
+    // yet" over a paragraph somebody had already written and sent.
     const rowFor = (item) => {
       const found = placeOf.get(item.id)
       const published = item.status === 'published'
-      const awaiting = Boolean(item.polished_text || item.raw_text) && !published
+      const answered = Boolean(item.polished_text || item.raw_text)
+      const hidden = found ? found.place.hidden === true : false
+
+      const state = !answered ? 'Requested'
+        : !published ? 'Ready to review'
+        : hidden ? 'Hidden'
+        : 'Published'
+
       return {
         id: item.id,
         title: item.recipient_name || 'A referee',
         meta: [item.recipient_title, item.relationship].filter(Boolean).join(' · '),
-        hidden: found ? found.place.hidden === true : false,
-        // Placed means there is something on this direction to show or hide.
-        // Nothing else in the row implies it: a published testimonial the owner
-        // has never placed on this direction is still not placed on it.
-        placed: Boolean(found),
-        status: published ? null : awaiting ? 'Ready to review' : 'Requested',
-        statusTone: published ? undefined : awaiting ? 'review' : 'wait',
-        // Two orders in one list, and the sort below reads both.
+        hidden,
+        // Placed means there is something on this direction to order and to
+        // show or hide, which only what is on the profile has. A placement row
+        // can exist for an unpublished one - the direction materialises them in
+        // a batch - and it still has no place in the profile's order.
+        placed: published && Boolean(found),
+        status: state,
+        statusTone: state === 'Published' ? 'live' : state === 'Ready to review' ? 'review' : 'wait',
+        // Only what is on the profile takes part in the profile's order.
         rank: published && found ? found.at : -1,
-        at: item.created_at || ''
+        at: item.created_at || '',
+        // What the badge on the section's control counts.
+        toReview: answered && !published
       }
     }
 
@@ -129,10 +149,11 @@ export default function CollectiveImpact({
     return [...pending, ...placed]
   }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId])
 
-  // Whether anybody has been asked yet, at any status. What splits the two
-  // states of the section's control: an invitation before the first request,
-  // and a way in to the list after it.
-  const hasAnyRequest = (edit?.testimonials || []).length > 0
+  // How many are waiting on the owner rather than on the person who was asked.
+  // A request nobody has answered is not work for them and is deliberately not
+  // counted: a badge that never cleared until somebody else acted would be a
+  // number they could do nothing about.
+  const toReviewCount = manageItems.filter(row => row.toReview).length
 
   const run = useCallback(async (id, work) => {
     if (busyId) return
@@ -257,20 +278,27 @@ export default function CollectiveImpact({
             the other two sections carry. Asking somebody for a testimonial is
             inside it, so the empty column below no longer carries buttons of
             its own. */}
-        {/* One control, and which one depends on whether anybody has been asked
-            yet. Before the first request there is nothing to manage and the
-            control invites; after it there is, and the invitation lives inside
-            the list as Request a testimonial. Both at once asked the owner to
-            choose between two doors into the same room. */}
+        {/* One control, always the same words, and everything it opens is
+            finished inside it - asking, reviewing, and deciding what shows.
+            The badge is the only thing that changes, and it counts what is
+            waiting on the owner. */}
         {canShowEmpty ? (
           <div className="hp-ed-manage-row">
             <button
               type="button"
               className="hp-ed-manage"
               aria-haspopup="dialog"
-              onClick={() => { setPane(hasAnyRequest ? null : 'request'); setManageOpen(true) }}
+              onClick={() => { setPane(null); setManageOpen(true) }}
             >
-              {hasAnyRequest ? 'Manage testimonials' : 'Invite testimonials'}
+              Manage testimonials
+              {toReviewCount > 0 ? (
+                <span
+                  className="hp-ed-manage-count"
+                  aria-label={`${toReviewCount} ready to review`}
+                >
+                  {toReviewCount}
+                </span>
+              ) : null}
             </button>
           </div>
         ) : null}
@@ -352,12 +380,6 @@ export default function CollectiveImpact({
                   under it. Kept in flow rather than positioned, so the copy
                   below still runs the column's full width without anything
                   sitting on its first line. */}
-              {/* The section's own control above already says Invite
-                  testimonials before anybody has been asked, and says Manage
-                  once somebody has. Repeating the invitation here put both
-                  words on the screen at once, so this pill now only ever
-                  reports where the asking has got to. */}
-              {hasAnyRequest ? <span className="hp-ed-pill">Awaiting responses</span> : null}
               <div className="hp-voices-head">
                 <h3 className="hp-voices-title">Firsthand Accounts</h3>
               </div>
@@ -507,6 +529,7 @@ export default function CollectiveImpact({
                   onDone={closeManage}
                   emptyNote="Nobody has been asked yet. Request a testimonial to start."
                   notice={sentTo ? `Request sent to ${sentTo}. It is in the list below, waiting on them.` : null}
+                  note="Manage requests, review what people have shared, and choose what appears on your profile. You can show, hide, or re-order testimonials anytime."
                 />
               )}
             </ProfileModal>
