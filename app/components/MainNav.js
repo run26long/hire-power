@@ -129,13 +129,13 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                 className="flex items-center gap-2 text-gray-700 hover:text-purple-600"
               >
                 {tier === 'pro' && (
-                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>PRO</span>
                 )}
                 {tier === 'vault' && (
-                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>VAULT</span>
                 )}
                 {tier === 'maintenance' && (
-                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-gray-500 px-2 py-0.5 rounded-full">VAULT</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>VAULT</span>
                 )}
                 {(!tier || tier === 'free') && (
                   <span
@@ -176,10 +176,10 @@ export default function MainNav({ currentPage, userProfile, onBeforeNavigate }) 
                   </span>
                 )}
                 {(tier === 'pro') && (
-                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">PRO</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>PRO</span>
                 )}
                 {(tier === 'vault' || tier === 'maintenance') && (
-                  <span title={tierTooltip} className="text-[10px] font-bold text-white bg-purple-600 px-2 py-0.5 rounded-full">VAULT</span>
+                  <span title={tierTooltip} className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}>VAULT</span>
                 )}
               </>
             )}

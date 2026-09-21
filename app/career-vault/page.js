@@ -12,7 +12,7 @@ import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { coreResumeLabel } from '@/lib/resumeLabel';
-import { canLogWins, canUseReviewPrep, canCreateResumes } from '@/lib/tiers';
+import { canLogWins, canUseReviewPrep, canCreateResumes, canAccessBuiltWork, UPGRADE_HREF } from '@/lib/tiers';
 
 // ---- LOGGING A WIN ----
 // Through the route rather than straight into the table. The insert used to
@@ -737,6 +737,11 @@ export default function CareerVaultPage() {
   // on one particular plan. Same answer today; the difference is that this one
   // follows the rule if the rule moves.
   const mayStartNewSearch = canCreateResumes(tier);
+  // Vault and maintenance: everything they built is theirs to use, and
+  // building a new one is not. Asked as the two questions lib/tiers names
+  // rather than by listing the two plan names, which is the same rule written
+  // somewhere it can fall out of date.
+  const isKeepingRatherThanBuilding = canAccessBuiltWork(tier) && !mayStartNewSearch;
   const openLogWin = () => {
     if (!mayLogWins) {
       setVaultPrompt({
@@ -758,6 +763,11 @@ export default function CareerVaultPage() {
   // The page's own reading first; the endpoint's is the fallback for a
   // render where the profile has not been read yet.
   const sinceLastVisit = arrivedSinceLastVisit || (summary?.knowledge?.sinceLastVisit ?? 0);
+
+  // Read once, and only to be ghosted behind the panel. It is the size of the
+  // whole knowledge base, which is the atmosphere of the scorecard rather than
+  // one of its figures.
+  const knowledgeTotal = summary?.knowledge?.total ?? 0;
 
   // "1 license", "3 licenses". The detail lines are sentences, so they count
   // the way a sentence does.
@@ -837,7 +847,10 @@ export default function CareerVaultPage() {
       key: 'evidence',
       value: evidenceItems + portfolioItems,
       label: 'Evidence and portfolio',
-      detail: `${plural(evidenceItems, 'evidence item', 'evidence items')} · ${plural(portfolioItems, 'portfolio piece', 'portfolio pieces')}`,
+      detail: [
+        evidenceItems > 0 ? plural(evidenceItems, 'evidence item', 'evidence items') : null,
+        portfolioItems > 0 ? plural(portfolioItems, 'portfolio piece', 'portfolio pieces') : null,
+      ].filter(Boolean).join(' · '),
     },
   ].filter(category => category.value > 0);
 
@@ -847,18 +860,21 @@ export default function CareerVaultPage() {
   const growthActions = [
     {
       num: '01',
+      eyebrow: 'Profile',
       title: 'Build your Career Profile',
       desc: 'Add the story, context, and perspective a résumé can’t hold.',
       onClick: () => router.push('/career-profile'),
     },
     {
       num: '02',
+      eyebrow: 'Testimonials',
       title: 'Collect testimonials',
       desc: 'Bring in the voices of people who have seen your work firsthand.',
       onClick: () => router.push('/career-profile'),
     },
     {
       num: '03',
+      eyebrow: 'Evidence',
       title: 'Add evidence',
       desc: 'Back the story with work samples, credentials, and proof.',
       onClick: () => router.push('/career-profile'),
@@ -934,6 +950,54 @@ export default function CareerVaultPage() {
       onClick: () => setShowArchiveModal(true),
     },
   ];
+
+  // ---- WHERE "START MY NEXT RÉSUMÉ" GOES ----
+  // The Resume Writer, which is where every other route into resume building
+  // in this file already goes. The Vault-to-résumé workflow this button is
+  // eventually for has not been built; when it is, this function is the only
+  // thing that changes.
+  const startNextResume = () => router.push('/resume-coach');
+
+  // ---- WHAT THE SEARCH MODULE SAYS, AND TO WHOM ----
+  //
+  // Three plans, three things worth saying, and one module in the page that
+  // says whichever applies. Resolved here as data rather than as three blocks
+  // of markup, because three blocks with two hidden are still three blocks in
+  // the document somebody reads with a screen reader, and an upgrade pitch
+  // addressed to a plan you are not on is worse read aloud than seen.
+  //
+  // Pro can build, so it is offered the build. Vault and maintenance have
+  // everything saved and need the plan that turns it into a résumé. Free has
+  // not started keeping it yet, so the offer is the Vault, not Pro: the
+  // cheaper plan is the honest answer to "your career data is already here".
+  const searchModule = mayStartNewSearch
+    ? {
+        title: 'Ready to search again?',
+        body: 'Everything in your Vault is ready to work for you. Turn what Hire Power has learned into your next résumé and job search.',
+        cta: 'Start my next résumé →',
+        onClick: startNextResume,
+      }
+    : isKeepingRatherThanBuilding
+    ? {
+        title: 'Ready to search again?',
+        body: 'Everything you’ve saved is ready to work for you. Restart with Pro and turn your Vault into your next résumé, applications, and interview prep.',
+        cta: 'Restart with Pro →',
+        // The Pro upgrade this page already carries, which is also how a
+        // lapsed subscription is restarted: one checkout, one price, and no
+        // second billing path to keep in step with it.
+        onClick: () => setShowUpgradeModal(true),
+      }
+    : {
+        title: 'Your career data is already here.',
+        body: 'Hire Power has started remembering your experience. Unlock Career Vault to keep it growing with new wins, testimonials, evidence, review prep, and your professional reference sheet.',
+        cta: 'Unlock Career Vault →',
+        // Straight to the plan page's Vault deep link - the same address
+        // VaultUpgradeModal's own button pushes. That modal is for being
+        // stopped at something; this is somebody choosing to go, and an
+        // interstitial repeating the sentence they just clicked is a step
+        // rather than an explanation.
+        onClick: () => router.push(UPGRADE_HREF),
+      };
 
   // The current role's tenure, as the header of the wins panel reads it.
   // Empty when there is no date to count from, which is not the same as
@@ -1059,366 +1123,443 @@ export default function CareerVaultPage() {
 
             {/* ================================================================
                 THE VAULT GRID
-                Two columns on a desktop: the scorecard and the current job on
-                the left, the three ways to grow and the six things the Vault
-                hands back on the right, and the way back into a search across
-                the foot of both. Below 1024px the same five modules in the
-                same order, one under another.
+                Two columns on a desktop: the reveal and the current job on the
+                left, the ways to enrich it and the ways to spend it on the
+                right, and the way back into a search across the foot of both.
+                Below 1024px the same five panels in the same order, one under
+                another.
                 ================================================================ */}
             <style>{`
-              .cv-grid { display: grid; grid-template-columns: 64fr 36fr; column-gap: 24px; row-gap: 24px; align-items: start; }
-              .cv-grid > .cv-span { grid-column: 1 / -1; }
-              .cv-hero { padding: 34px 36px 32px; }
+              .cv-grid { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(320px, 0.88fr); column-gap: 22px; row-gap: 22px; align-items: start; }
+              /* The left column is one grid cell holding two panels, so the
+                 wins panel can grow as long as it likes and the search band
+                 simply travels down with it. Neither column is stretched to
+                 the other. */
+              .cv-stack { display: flex; flex-direction: column; gap: 22px; }
+              /* The rail stretches to whatever the reveal beside it comes to,
+                 and its three rows take up the difference between them, so it
+                 aligns without ever ending in a slab of nothing. The reveal is
+                 never stretched to the rail: the scorecard sets the height. */
+              .cv-richer { align-self: stretch; display: flex; flex-direction: column; }
+              .cv-richer > .cv-action { flex: 1 1 auto; }
+              .cv-hero { padding: 30px 34px 28px; }
               .cv-hero-h1 { font-size: 38px; }
-              .cv-cats { display: grid; grid-template-columns: 1fr 1fr; column-gap: 0; row-gap: 0; }
-              .cv-cat-num { font-size: 48px; line-height: 0.95; font-weight: 700; letter-spacing: -0.04em; color: #5F43BA; font-variant-numeric: tabular-nums; }
+              .cv-cats { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, auto); column-gap: 0; row-gap: 0; }
+              .cv-cat { position: relative; }
+              .cv-cat-num { font-size: 62px; line-height: 0.88; font-weight: 700; letter-spacing: -0.055em; color: #5D3FC2; font-variant-numeric: tabular-nums; }
               /* Base and hover both live here rather than inline, because an
                  inline background would outrank the :hover rule. */
-              .cv-action { background: #FBF9FE; border: 1px solid #EAE4F3; transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease; }
-              .cv-action:hover { background: #F7F3FC; border-color: #DCD1ED; transform: translateY(-1px); }
-              .cv-job-company { color: #17132a; transition: color 160ms ease; }
-              .cv-job:hover .cv-job-company { color: #6D4BD1; }
+              .cv-action { background: transparent; transition: background 160ms ease; }
+              .cv-action:hover { background: linear-gradient(90deg, rgba(109,75,209,0.035), rgba(109,75,209,0)); }
+              .cv-job-title { color: #171426; transition: color 160ms ease; }
+              .cv-job:hover .cv-job-title { color: #6D4BD1; }
               @media (max-width: 1023px) {
                 .cv-grid { grid-template-columns: 1fr; }
+                /* In one column the left column's two panels become grid items
+                   in their own right, which is the only way the search band can
+                   be ordered past Use Your Vault without leaving the panel it
+                   sits under on a desktop. */
+                .cv-stack { display: contents; }
+                .cv-ready { order: 1; }
               }
-              @media (max-width: 767px) {
-                .cv-hero { padding: 24px 20px; }
+              @media (max-width: 640px) {
+                .cv-hero { padding: 22px 18px; }
                 .cv-hero-h1 { font-size: 31px; }
                 .cv-cats { grid-template-columns: 1fr; }
-                .cv-cat { border-left: 0 !important; padding-left: 0 !important; }
-                .cv-cat + .cv-cat { border-top: 1px solid #ECE7F3 !important; padding-top: 24px !important; }
-                .cv-cat-num { font-size: 44px; }
+                .cv-cat { padding-left: 0 !important; }
+                .cv-cat-num { font-size: 48px; }
+                /* One column has no columns to rule off, and the run of
+                   horizontal rules is the same rule for every cell. */
+                .cv-div-v { display: none !important; }
+                .cv-div-h { display: none !important; }
+                .cv-cat + .cv-cat { border-top: 1px solid #E9E3F0; }
               }
             `}</style>
 
             <div className="cv-grid">
 
-              {/* ================ TOP LEFT: THE SCORECARD ================
-                  The centrepiece. One composition rather than six cards: a
-                  headline, a sentence, and then the six shelves of the Vault
-                  ruled off from one another, nothing scored out of a maximum,
-                  because there is no such thing as a complete career. */}
+              {/* ================ ROW 1 LEFT: THE CAREER MEMORY REVEAL ========
+                  The centrepiece. One composition rather than six cards: the
+                  size of the whole knowledge base ghosted behind it, and in
+                  front the six shelves of the Vault, ruled off from one
+                  another and nothing scored out of a maximum, because there is
+                  no such thing as a complete career. */}
               <section
                 className="cv-hero min-w-0 relative overflow-hidden"
                 style={{
                   background:
-                    'radial-gradient(circle at 88% 10%, rgba(109, 75, 209, 0.12) 0%, rgba(109, 75, 209, 0.045) 26%, rgba(109, 75, 209, 0) 54%), #FFFFFF',
-                  border: '1px solid #E8E2F1',
-                  borderRadius: 20,
-                  boxShadow: '0 14px 38px rgba(45, 32, 74, 0.07)',
+                    'radial-gradient(circle at 88% 8%, rgba(112, 77, 211, 0.16) 0%, rgba(112, 77, 211, 0.06) 26%, rgba(112, 77, 211, 0) 52%), #FFFFFF',
+                  border: '1px solid #E7E1F0',
+                  borderRadius: 22,
+                  boxShadow: '0 18px 50px rgba(38, 27, 62, 0.075)',
                 }}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                    Career memory
-                  </p>
-                  <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
-                </div>
-
-                <h1
-                  className="cv-hero-h1"
-                  style={{ marginTop: 10, fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.025em', color: '#17132a', maxWidth: 520 }}
-                >
-                  Your career, remembered.
-                </h1>
-                <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: '#6b6580', maxWidth: 610 }}>
-                  Hire Power has been paying attention. Everything it learns about you makes the next résumé, interview, and job search easier.
-                </p>
-
-                {sinceLastVisit > 0 && (
+                {summaryState === 'ready' && knowledgeTotal > 0 && (
                   <span
+                    aria-hidden="true"
                     style={{
-                      display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 11px',
-                      borderRadius: 999, background: '#F1ECFB', color: '#6D4BD1',
-                      fontSize: 12, fontWeight: 700, marginTop: 16,
+                      position: 'absolute', top: -38, right: 20, pointerEvents: 'none',
+                      fontSize: 190, fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.07em',
+                      color: 'rgba(89, 62, 170, 0.045)', fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    +{sinceLastVisit} since your last visit
+                    {knowledgeTotal}
                   </span>
                 )}
 
-                {/* Six categories, two columns, thin rules between them. A
-                    category with nothing in it is not drawn — no zero, no
-                    dash, no empty box — and what is left reflows through the
-                    same grid, which is why the rules are drawn off the index
-                    rather than off the category. */}
-                {summaryState === 'ready' && categories.length > 0 && (
-                  <div className="cv-cats" style={{ marginTop: 30 }}>
-                    {categories.map((category, i) => (
-                      <div
-                        key={category.key}
-                        className="cv-cat min-w-0"
-                        style={{
-                          padding: '24px 28px 22px 0',
-                          paddingLeft: i % 2 === 1 ? 30 : 0,
-                          borderLeft: i % 2 === 1 ? '1px solid #ECE7F3' : undefined,
-                          borderTop: i >= 2 ? '1px solid #ECE7F3' : undefined,
-                        }}
-                      >
-                        <p className="cv-cat-num">{category.value}</p>
-                        <p style={{ marginTop: 10, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6F657E' }}>
-                          {category.label}
-                        </p>
-                        {category.detail && (
-                          <p style={{ marginTop: 7, fontSize: 14, lineHeight: 1.45, color: '#4E4659' }}>
-                            {category.detail}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                <div className="relative">
+                  <div className="flex items-center justify-between gap-3" style={{ marginBottom: 10 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                      Career memory
+                    </p>
+                    <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
                   </div>
-                )}
 
-                {summaryState === 'ready' && categories.length === 0 && (
-                  <p style={{ marginTop: 30, fontSize: 14, color: '#8b849c' }}>
-                    Nothing saved yet. Your first coaching session, practice interview or logged win starts it off.
+                  <h1
+                    className="cv-hero-h1"
+                    style={{ fontWeight: 700, lineHeight: 1.04, letterSpacing: '-0.035em', color: '#171426', maxWidth: 520 }}
+                  >
+                    Your career, remembered.
+                  </h1>
+                  <p style={{ marginTop: 12, fontSize: 15, lineHeight: 1.55, color: '#665E73', maxWidth: 610 }}>
+                    Hire Power has been paying attention. Everything it learns about you makes the next résumé, interview, and job search easier.
                   </p>
-                )}
-                {summaryState === 'loading' && (
-                  <p style={{ marginTop: 30, fontSize: 14, color: '#a09aae' }}>Counting what it knows&hellip;</p>
-                )}
-                {summaryState === 'failed' && (
-                  <p style={{ marginTop: 30, fontSize: 14, color: '#a09aae' }}>
-                    We couldn&apos;t count your Vault just now. Everything in it is still there — refresh to try again.
-                  </p>
-                )}
+
+                  {sinceLastVisit > 0 && (
+                    <span
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 10px',
+                        borderRadius: 999, background: '#F1ECFB', color: '#6946C6',
+                        fontSize: 11, fontWeight: 700, marginTop: 14,
+                      }}
+                    >
+                      +{sinceLastVisit} since your last visit
+                    </span>
+                  )}
+
+                  {/* Three across, two down. A category with nothing in it is
+                      not drawn at all — no zero, no dash, no empty box — so the
+                      rules are worked out from the position a category ends up
+                      in rather than from which category it is, and the ends
+                      that meet the outside of the scorecard stop short of it. */}
+                  {summaryState === 'ready' && categories.length > 0 && (
+                    <div className="cv-cats" style={{ marginTop: 26 }}>
+                      {categories.map((category, i) => {
+                        const column = i % 3;
+                        const row = Math.floor(i / 3);
+                        const lastRow = row === Math.ceil(categories.length / 3) - 1;
+                        return (
+                          <div
+                            key={category.key}
+                            className="cv-cat min-w-0"
+                            style={{
+                              padding: row === 0 ? '22px 24px 20px 0' : '22px 24px 4px 0',
+                              paddingLeft: column > 0 ? 24 : 0,
+                            }}
+                          >
+                            {column > 0 && (
+                              <span
+                                aria-hidden="true"
+                                className="cv-div-v"
+                                style={{ position: 'absolute', left: 0, top: row === 0 ? 8 : 0, bottom: lastRow ? 8 : 0, width: 1, background: '#E9E3F0' }}
+                              />
+                            )}
+                            {row > 0 && (
+                              <span
+                                aria-hidden="true"
+                                className="cv-div-h"
+                                style={{ position: 'absolute', top: 0, left: column === 0 ? 8 : 0, right: column === 2 ? 8 : 0, height: 1, background: '#E9E3F0' }}
+                              />
+                            )}
+                            <p className="cv-cat-num">{category.value}</p>
+                            <p style={{ marginTop: 12, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#756C83' }}>
+                              {category.label}
+                            </p>
+                            {category.detail && (
+                              <p style={{ marginTop: 7, fontSize: 13.5, lineHeight: 1.42, color: '#4E4759', maxWidth: 210 }}>
+                                {category.detail}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {summaryState === 'ready' && categories.length === 0 && (
+                    <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>
+                      Nothing saved yet. Your first coaching session, practice interview or logged win starts it off.
+                    </p>
+                  )}
+                  {summaryState === 'loading' && (
+                    <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>Counting what it knows&hellip;</p>
+                  )}
+                  {summaryState === 'failed' && (
+                    <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>
+                      We couldn&apos;t count your Vault just now. Everything in it is still there — refresh to try again.
+                    </p>
+                  )}
+                </div>
               </section>
 
-              {/* ================ TOP RIGHT: THREE WAYS TO GROW ================
-                  Three panels, each one somewhere that already exists. Logging
-                  a win is not among them: it belongs beside the wins. */}
-              <div className="min-w-0 flex flex-col" style={{ gap: 14 }}>
-                {growthActions.map(action => (
+              {/* ================ ROW 1 RIGHT: MAKE IT RICHER ================
+                  One panel, three rows, ruled apart rather than boxed. Logging
+                  a win is not among them: it belongs beside the wins, where its
+                  result is visible. */}
+              <section
+                className="cv-richer min-w-0"
+                style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #E7E1F0',
+                  borderRadius: 22,
+                  padding: '24px 26px 18px',
+                  boxShadow: '0 12px 34px rgba(38, 27, 62, 0.05)',
+                }}
+              >
+                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                  Make it richer
+                </p>
+                <h2 style={{ marginTop: 8, marginBottom: 18, fontSize: 24, fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.02em', color: '#171426' }}>
+                  Keep building the story.
+                </h2>
+
+                {growthActions.map((action, i) => (
                   <button
                     key={action.num}
                     onClick={action.onClick}
-                    className="cv-action w-full text-left relative overflow-hidden"
+                    className="cv-action w-full text-left relative block"
                     style={{
-                      borderRadius: 16,
-                      minHeight: 126,
-                      padding: '20px 22px',
+                      minHeight: 118,
+                      padding: '20px 34px 18px 68px',
+                      borderTop: i === 0 ? undefined : '1px solid #EAE5F0',
                     }}
                   >
                     <span
                       aria-hidden="true"
-                      style={{ position: 'absolute', top: 10, right: 16, fontSize: 54, fontWeight: 700, lineHeight: 1, color: 'rgba(109,75,209,0.075)' }}
+                      style={{ position: 'absolute', left: 0, top: 18, fontSize: 42, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.04em', color: 'rgba(109, 75, 209, 0.14)' }}
                     >
                       {action.num}
                     </span>
-                    <span className="relative block" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                      {action.num}
+                    <span className="block" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#8067C7' }}>
+                      {action.eyebrow}
                     </span>
-                    <span className="relative block" style={{ marginTop: 7, fontSize: 18, fontWeight: 700, lineHeight: 1.2, color: '#17132a' }}>
+                    <span className="block" style={{ marginTop: 4, fontSize: 17, fontWeight: 700, lineHeight: 1.2, color: '#1B1727' }}>
                       {action.title}
                     </span>
-                    <span className="relative block" style={{ marginTop: 7, fontSize: 13, lineHeight: 1.45, color: '#6b6580', maxWidth: 270 }}>
+                    <span className="block" style={{ marginTop: 6, fontSize: 13, lineHeight: 1.45, color: '#71687D' }}>
                       {action.desc}
                     </span>
-                    <span aria-hidden="true" style={{ position: 'absolute', bottom: 14, right: 18, fontSize: 14, color: '#6D4BD1' }}>→</span>
+                    <span aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 22, fontSize: 14, color: '#6D4BD1' }}>→</span>
                   </button>
                 ))}
-              </div>
-
-              {/* ================ SECOND ROW LEFT: THE JOB AND ITS WINS ========
-                  The role everything new attaches to, and under it the wins
-                  themselves — not a count of them. Seeing what you logged is
-                  the whole point of logging it. */}
-              <section
-                className="min-w-0"
-                style={{ background: '#FFFFFF', border: '1px solid #E8E2F1', borderRadius: 18, padding: '28px 30px' }}
-              >
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  {currentJobEntry ? (
-                    <button
-                      onClick={() => setShowJobModal(true)}
-                      className="cv-job min-w-0 text-left"
-                    >
-                      <span className="block" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                        Current job
-                      </span>
-                      <span className="cv-job-company block" style={{ marginTop: 7, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                        {currentJobEntry.company}
-                      </span>
-                      <span className="block" style={{ marginTop: 3, fontSize: 14, color: '#6b6580' }}>
-                        {currentJobEntry.title}
-                      </span>
-                      {currentJobTenure && (
-                        <span className="block" style={{ marginTop: 3, fontSize: 13, color: '#8b849c' }}>
-                          {currentJobTenure}
-                        </span>
-                      )}
-                    </button>
-                  ) : (
-                    <div className="min-w-0">
-                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                        Current job
-                      </p>
-                      <p style={{ marginTop: 7, fontSize: 14, lineHeight: 1.5, color: '#6b6580', maxWidth: '54ch' }}>
-                        No current job set. Mark a job card as Hired and it appears here automatically.
-                      </p>
-                      <button
-                        onClick={() => setShowSetJobModal(true)}
-                        className="font-semibold text-purple-600 hover:text-purple-700 transition-colors"
-                        style={{ marginTop: 8, fontSize: 13 }}
-                      >
-                        Set current job manually →
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Locked rather than hidden. A free account should be able
-                      to see that its Vault takes wins; what it cannot do is
-                      add one, and the click says why. */}
-                  <button
-                    onClick={() => openLogWin()}
-                    title={mayLogWins ? undefined : 'Logging wins is part of Vault'}
-                    className="bg-purple-600 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-purple-700 transition-colors whitespace-nowrap flex-shrink-0"
-                  >
-                    {mayLogWins ? 'Log a Win' : '🔒 Log a Win'}
-                  </button>
-                </div>
-
-                {/* ---- The wins ---- */}
-                <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #ECE7F3' }}>
-                  <div className="flex items-baseline gap-3 flex-wrap">
-                    <h2 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                      Accomplishments
-                    </h2>
-                    <span style={{ fontSize: 13, color: '#8b849c' }}>{accomplishments.length} logged</span>
-                  </div>
-
-                  {accomplishments.length > 0 ? (
-                    <div className="space-y-1" style={{ marginTop: 14 }}>
-                      {accomplishments.slice(0, 4).map((acc) => (
-                        <div
-                          key={acc.id}
-                          onClick={() => { setSelectedWin(acc); setWinCopied(false); }}
-                          className="flex items-start gap-2.5 p-2 bg-gray-50 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
-                          style={{ minHeight: '52px' }}
-                        >
-                          <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
-                          </div>
-                        </div>
-                      ))}
-                      {accomplishments.length > 4 && (
-                        <button
-                          onClick={() => setShowOlderWinsModal(true)}
-                          className="w-full text-center pt-4 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
-                        >
-                          See {accomplishments.length - 4} more win{accomplishments.length - 4 > 1 ? 's' : ''} →
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-4" style={{ marginTop: 16 }}>
-                      <span
-                        aria-hidden="true"
-                        className="flex items-center justify-center flex-shrink-0"
-                        style={{ width: 38, height: 38, borderRadius: '50%', fontSize: 16, background: 'linear-gradient(180deg, #faf8ff, #f4f0fd)', border: '1px solid #ebe5fb' }}
-                      >
-                        🏆
-                      </span>
-                      <div className="min-w-0">
-                        {!currentJobEntry ? (
-                          <>
-                            <p style={{ fontSize: 15, fontWeight: 650, color: '#17132a' }}>No current job set</p>
-                            <p style={{ marginTop: 4, fontSize: 14, lineHeight: 1.5, color: '#6b6580', maxWidth: '54ch' }}>
-                              Mark a job as Hired and wins you log will attach to that role automatically.
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p style={{ fontSize: 15, fontWeight: 650, color: '#17132a' }}>Nothing logged yet</p>
-                            <p style={{ marginTop: 4, fontSize: 14, lineHeight: 1.5, color: '#6b6580', maxWidth: '54ch' }}>
-                              The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
               </section>
 
-              {/* ================ SECOND ROW RIGHT: WHAT IT HANDS BACK ========
+              {/* ================ ROW 2 LEFT: THE JOB AND ITS WINS ============
+                  The role everything new attaches to, and under it the wins
+                  themselves — not a count of them. Seeing what you logged is
+                  the whole point of logging it. The way back out into a search
+                  sits beneath them, so it moves down the page as the wins
+                  accumulate rather than holding a place of its own. */}
+              <div className="cv-stack min-w-0">
+                <section
+                  className="min-w-0"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E7E1F0',
+                    borderRadius: 20,
+                    padding: '26px 30px',
+                    boxShadow: '0 10px 30px rgba(38,27,62,0.045)',
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    {currentJobEntry ? (
+                      <button onClick={() => setShowJobModal(true)} className="cv-job min-w-0 text-left">
+                        <span className="block" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                          Current job
+                        </span>
+                        <span className="block" style={{ marginTop: 10, fontSize: 13, color: '#746B80' }}>
+                          {currentJobEntry.company}
+                        </span>
+                        <span className="cv-job-title block" style={{ marginTop: 5, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+                          {currentJobEntry.title}
+                        </span>
+                        {currentJobTenure && (
+                          <span className="block" style={{ marginTop: 4, fontSize: 13, color: '#8A8195' }}>
+                            {currentJobTenure}
+                          </span>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="min-w-0" style={{ maxHeight: 260 }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                          Current job
+                        </p>
+                        <p style={{ marginTop: 10, fontSize: 13.5, lineHeight: 1.45, color: '#665E73', maxWidth: '54ch' }}>
+                          No current job set. Mark a job card as Hired and it appears here automatically.
+                        </p>
+                        <button
+                          onClick={() => setShowSetJobModal(true)}
+                          className="font-semibold text-purple-600 hover:text-purple-700 transition-colors"
+                          style={{ marginTop: 8, fontSize: 13 }}
+                        >
+                          Set current job manually →
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Locked rather than hidden. A free account should be able
+                        to see that its Vault takes wins; what it cannot do is
+                        add one, and the click says why. */}
+                    <button
+                      onClick={() => openLogWin()}
+                      title={mayLogWins ? undefined : 'Logging wins is part of Vault'}
+                      className="text-white rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap flex-shrink-0"
+                      style={{ height: 42, padding: '0 18px', background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                    >
+                      {mayLogWins ? 'Log a Win' : '🔒 Log a Win'}
+                    </button>
+                  </div>
+
+                  {/* ---- The wins ---- */}
+                  <div style={{ marginTop: 22, paddingTop: 22, borderTop: '1px solid #ECE7F2' }}>
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <h2 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                        Accomplishments
+                      </h2>
+                      <span style={{ fontSize: 13, color: '#8A8195' }}>{accomplishments.length} logged</span>
+                    </div>
+
+                    {accomplishments.length > 0 ? (
+                      <div className="space-y-1" style={{ marginTop: 14 }}>
+                        {accomplishments.slice(0, 4).map((acc) => (
+                          <div
+                            key={acc.id}
+                            onClick={() => { setSelectedWin(acc); setWinCopied(false); }}
+                            className="flex items-start gap-2.5 p-2 bg-gray-50 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+                            style={{ minHeight: '52px' }}
+                          >
+                            <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0 mt-1.5"></div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-800 leading-snug line-clamp-2">{acc.raw_description}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {accomplishments.length > 4 && (
+                          <button
+                            onClick={() => setShowOlderWinsModal(true)}
+                            className="w-full text-center pt-4 text-sm text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                          >
+                            See {accomplishments.length - 4} more win{accomplishments.length - 4 > 1 ? 's' : ''} →
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3" style={{ marginTop: 14, maxHeight: 90 }}>
+                        <span
+                          aria-hidden="true"
+                          className="flex items-center justify-center flex-shrink-0"
+                          style={{ width: 32, height: 32, borderRadius: '50%', fontSize: 14, background: '#F3EEFB' }}
+                        >
+                          🏆
+                        </span>
+                        <div className="min-w-0">
+                          {!currentJobEntry ? (
+                            <>
+                              <p style={{ fontSize: 14, fontWeight: 700, color: '#1B1727' }}>No current job set</p>
+                              <p style={{ marginTop: 2, fontSize: 12.5, lineHeight: 1.35, color: '#81778C' }}>
+                                Mark a job as Hired and wins you log will attach to that role automatically.
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p style={{ fontSize: 14, fontWeight: 700, color: '#1B1727' }}>Nothing logged yet</p>
+                              <p style={{ marginTop: 2, fontSize: 12.5, lineHeight: 1.35, color: '#81778C' }}>
+                                The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* ---- And the way back out into a search ---- */}
+                <section
+                  className="cv-ready min-w-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #F5F1FC 0%, #FAF8FE 100%)',
+                    border: '1px solid #E4DBF1',
+                    borderRadius: 18,
+                    padding: '22px 24px',
+                  }}
+                >
+                  <h2 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.15, color: '#171426' }}>{searchModule.title}</h2>
+                  <p style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5, color: '#6E657A' }}>
+                    {searchModule.body}
+                  </p>
+                  <button
+                    onClick={searchModule.onClick}
+                    className="text-white rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+                    style={{ marginTop: 16, height: 42, padding: '0 18px', background: 'linear-gradient(to right, #667eea, #764ba2)' }}
+                  >
+                    {searchModule.cta}
+                  </button>
+                </section>
+              </div>
+
+              {/* ================ ROW 2 RIGHT: USE YOUR VAULT =================
                   Six rows in one panel rather than six cards, because they are
                   one menu, and every one of them goes somewhere that already
                   exists. */}
               <section
                 className="min-w-0"
-                style={{ background: '#FFFFFF', border: '1px solid #E8E2F1', borderRadius: 18, padding: '8px 22px' }}
+                style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #E7E1F0',
+                  borderRadius: 20,
+                  padding: '22px 24px 10px',
+                  boxShadow: '0 10px 30px rgba(38,27,62,0.04)',
+                }}
               >
-                <h2 style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6D4BD1', paddingTop: 16, paddingBottom: 9 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
                   Use your Vault
+                </p>
+                <h2 style={{ marginTop: 8, marginBottom: 14, fontSize: 22, fontWeight: 700, lineHeight: 1.1, color: '#171426' }}>
+                  Useful now. Valuable later.
                 </h2>
+
                 {vaultTools.map(tool => (
                   <button
                     key={tool.title}
                     onClick={tool.disabled ? undefined : tool.onClick}
                     disabled={tool.disabled === true}
-                    className={`w-full text-left flex items-center transition-colors ${
-                      tool.disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#faf8ff]'
+                    className={`w-full text-left transition-colors ${
+                      tool.disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#FBF9FE]'
                     }`}
-                    style={{ minHeight: 68, gap: 14, borderTop: '1px solid #EEEAF3' }}
+                    style={{
+                      minHeight: 64,
+                      display: 'grid',
+                      gridTemplateColumns: '34px 1fr 18px',
+                      alignItems: 'center',
+                      columnGap: 12,
+                      borderTop: '1px solid #EEE9F2',
+                    }}
                   >
                     <span
                       aria-hidden="true"
-                      className="flex items-center justify-center flex-shrink-0"
-                      style={{ width: 36, height: 36, borderRadius: 10, background: '#F3EEFB', color: '#6D4BD1', fontSize: 16 }}
+                      className="flex items-center justify-center"
+                      style={{ width: 34, height: 34, borderRadius: 9, background: '#F3EEFB', color: '#6D4BD1', fontSize: 15 }}
                     >
                       {tool.icon}
                     </span>
-                    <span className="flex-1 min-w-0 block">
-                      <span className="block" style={{ fontSize: 14, fontWeight: 700, color: '#17132a' }}>{tool.title}</span>
-                      <span className="block" style={{ marginTop: 2, fontSize: 12, lineHeight: 1.35, color: '#6b6580' }}>{tool.desc}</span>
+                    <span className="min-w-0 block">
+                      <span className="block" style={{ fontSize: 14, fontWeight: 700, color: '#1B1727' }}>{tool.title}</span>
+                      <span className="block" style={{ marginTop: 2, fontSize: 12, lineHeight: 1.35, color: '#81778C' }}>{tool.desc}</span>
                     </span>
-                    <span aria-hidden="true" className="flex-shrink-0" style={{ fontSize: 13, color: '#8A7E98' }}>→</span>
+                    <span aria-hidden="true" style={{ fontSize: 13, color: '#9A8EA7', textAlign: 'right' }}>→</span>
                   </button>
                 ))}
-              </section>
-
-              {/* ================ THE WAY BACK OUT INTO A SEARCH ================
-                  Across the foot of both columns, and quieter than the
-                  scorecard above it. */}
-              <section
-                className="cv-span min-w-0"
-                style={{ background: '#F7F4FC', border: '1px solid #E7DFF1', borderRadius: 16, padding: '22px 26px' }}
-              >
-                {mayStartNewSearch ? (
-                  <>
-                    <h2 style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: '#17132a' }}>Ready to search again?</h2>
-                    <p style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: '#6b6580', maxWidth: '72ch' }}>
-                      Update your résumé in minutes using everything in here. You&apos;ve logged{' '}
-                      <strong style={{ color: '#6d28d9', fontWeight: 700 }}>{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong>{' '}
-                      in your current job, and your coach remembers all of it.
-                    </p>
-                    <button
-                      onClick={() => setShowNewSearchModal(true)}
-                      className="text-white rounded-lg px-5 py-2 text-sm font-semibold hover:opacity-90 transition-opacity"
-                      style={{ marginTop: 14, background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-                    >
-                      Start new search →
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <h2 style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: '#17132a' }}>Ready to job search again?</h2>
-                    <p style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: '#6b6580', maxWidth: '72ch' }}>
-                      Upgrade to Pro and we&apos;ll coach everything you&apos;ve logged into a stronger résumé. You&apos;ve logged{' '}
-                      <strong style={{ color: '#6d28d9', fontWeight: 700 }}>{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong>{' '}
-                      in your current job.
-                    </p>
-                    <button
-                      onClick={() => setShowUpgradeModal(true)}
-                      className="bg-purple-600 text-white rounded-lg px-5 py-2 text-sm font-semibold hover:bg-purple-700 transition-colors"
-                      style={{ marginTop: 14 }}
-                    >
-                      Upgrade to Pro — $29.99/mo
-                    </button>
-                  </>
-                )}
               </section>
             </div>
           </div>
