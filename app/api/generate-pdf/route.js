@@ -3,6 +3,8 @@ import { renderToBuffer, Font } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import path from 'path'
 import { apiError } from '@/lib/apiError'
+import { canOpenResume } from '@/lib/resumeAccess'
+import { UPGRADE_REQUIRED } from '@/lib/tiers'
 import ResumePDFCurrent from '../../templates/pdf/ResumePDF-Current'
 import ResumePDFCommand from '../../templates/pdf/ResumePDF-Command'
 import ResumePDFCrisp from '../../templates/pdf/ResumePDF-Crisp'
@@ -84,11 +86,13 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
+    let caller = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { createClient: createAuthClient } = await import('@supabase/supabase-js')
       const authSupabase = createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       const { data: { user }, error: authError } = await authSupabase.auth.getUser(token)
       if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      caller = user
     }
 
     const {
@@ -105,6 +109,54 @@ export async function POST(request) {
       isJobVersion,
       userId
     } = await request.json()
+
+    // ---- WHOSE RESUME, AND MAY THEY HAVE IT ----
+    //
+    // This route used to take resumeData straight out of the body and render
+    // it. Not the resume with that id - the JSON in the request. So it never
+    // asked whose resume it was, and never asked what plan the caller was on:
+    // a free account could download every core it held and every job-specific
+    // resume it had ever built by posting the data it could already read.
+    //
+    // A document handed back - the PDF itself, or a public URL to one - is
+    // now checked. 'check' returns a page count and nothing else, so it stays
+    // open; an id supplied alongside it is still checked for ownership,
+    // because there is no reason to accept one that is not the caller's.
+    //
+    // The internal-secret caller is exempt. It is this server talking to
+    // itself, and it has no user to have a plan.
+    if (caller) {
+      const handsBackDocument = action === 'download' || action === 'preview-url'
+
+      if (handsBackDocument && !resumeId) {
+        return Response.json({ error: 'resumeId is required.' }, { status: 400 })
+      }
+
+      if (resumeId) {
+        const gate = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+        const [{ data: subject, error: subjectError }, { data: cores }, { data: account }] = await Promise.all([
+          gate.from('resumes').select('id, user_id, resume_type').eq('id', resumeId).maybeSingle(),
+          gate.from('resumes')
+            .select('id, resume_type, is_active, is_priority_core, created_at')
+            .eq('user_id', caller.id).eq('resume_type', 'core').eq('is_active', true),
+          gate.from('profiles').select('subscription_tier').eq('id', caller.id).maybeSingle()
+        ])
+
+        if (subjectError) {
+          console.error('[generate-pdf] Resume lookup failed:', subjectError)
+          return Response.json({ error: "We couldn't check that resume just now." }, { status: 500 })
+        }
+        // Not found and not yours are the same answer on purpose: the second
+        // one would confirm that an id exists.
+        if (!subject || subject.user_id !== caller.id) {
+          return Response.json({ error: 'Resume not found.' }, { status: 404 })
+        }
+
+        if (handsBackDocument && !canOpenResume(account?.subscription_tier, subject, cores || [])) {
+          return Response.json(UPGRADE_REQUIRED, { status: 403 })
+        }
+      }
+    }
 
     const fontMap = {
       'Lato': 'Lato',

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { apiError } from '@/lib/apiError'
 import { normalizeSkillCategories } from '@/lib/resumeText'
+import { isRealCore, MAX_CORES } from '@/lib/coreResumes'
+import { canCreateResumes } from '@/lib/tiers'
 
 // ─────────────────────────────────────────────
 // Convert structured resume_data → plain text
@@ -1251,18 +1253,42 @@ export async function POST(request) {
 
     const userTier = tier || 'pro'
 
-    // One core resume per free user. Recoach modes and job-specific sessions both
-    // run against a resume that already exists, so neither is a second core.
-    if (authenticatedUserId && !isJobSpecific && tier !== 'conversational_fix' && tier !== 'targeted') {
+    // ---- WHAT MAY BE STARTED, AND HOW MANY ----
+    //
+    // Recoach modes run against a resume that already exists, so they are
+    // never a new anything and are the one thing excluded here.
+    //
+    // What this used to exclude as well was every job-specific session, on
+    // the reasoning that a job-specific resume is not a core. True, and it
+    // left the hole: a free account could not start a second core but could
+    // start unlimited job-specific ones, which it is not entitled to at all.
+    // So the question is now asked per kind.
+    //
+    //   free   one core, no job-specific resumes
+    //   vault  neither - Vault keeps a career, it does not grow one
+    //   pro    job-specific freely, and up to MAX_CORES cores
+    //
+    // The Pro ceiling was enforced only in /api/profile-lenses/build-core,
+    // which is one of two ways to get a core; this is the other one, and it
+    // counted nothing.
+    const isRecoach = tier === 'conversational_fix' || tier === 'targeted'
+    if (authenticatedUserId && !isRecoach) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier')
         .eq('id', authenticatedUserId)
         .maybeSingle()
 
-      const isFree = !profile?.subscription_tier || profile.subscription_tier === 'free'
+      const accountTier = profile?.subscription_tier || 'free'
 
-      if (isFree) {
+      if (isJobSpecific) {
+        if (!canCreateResumes(accountTier)) {
+          return NextResponse.json({ error: 'UPGRADE_REQUIRED', code: 'UPGRADE_REQUIRED' }, { status: 403 })
+        }
+      } else if (!canCreateResumes(accountTier)) {
+        // Below Pro the allowance is the one core they already keep. A free
+        // account with none yet is starting it; one with a finished core is
+        // asking for a second.
         const { data: completedCore } = await supabase
           .from('resumes')
           .select('id')
@@ -1275,6 +1301,26 @@ export async function POST(request) {
 
         if (completedCore) {
           return NextResponse.json({ error: 'CORE_LIMIT_REACHED' }, { status: 403 })
+        }
+      } else {
+        // Pro. Counted with isRealCore, the same test build-core uses, so an
+        // abandoned chat attempt does not spend one of the three.
+        const { data: cores } = await supabase
+          .from('resumes')
+          .select('id, created_via, coaching_complete')
+          .eq('user_id', authenticatedUserId)
+          .eq('resume_type', 'core')
+          .eq('is_active', true)
+
+        const real = (cores || []).filter(isRealCore)
+        // The session may be a recoach of a core that already exists, which
+        // is not a new one however many there are.
+        const existing = resumeId && real.some(c => c.id === resumeId)
+        if (!existing && real.length >= MAX_CORES) {
+          return NextResponse.json(
+            { error: `You can keep ${MAX_CORES} core resumes. Delete one to build another.`, code: 'CORE_LIMIT' },
+            { status: 403 }
+          )
         }
       }
     }

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { RELATIONSHIP_TYPES } from '@/lib/testimonialTypes'
 import { bumpVaultCount } from '@/lib/vaultCount'
+import { requireCustomise } from '../../_lib/requireCustomise'
 
 // ============================================================================
 // PATCH  /api/career-profile/testimonials/[testimonialId]  - publish, or not
@@ -76,6 +77,11 @@ export async function PATCH(request, { params }) {
     const ctx = await owned(request, testimonialId)
     if (ctx.error) return ctx.error
     const { supabase, user, row } = ctx
+
+    // Publishing a testimonial, or editing its text, puts words on the
+    // profile. Taking one down is the DELETE below and is never gated.
+    const gate = await requireCustomise(user.id)
+    if (gate) return gate
 
     let body
     try {

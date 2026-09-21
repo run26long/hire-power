@@ -8,6 +8,7 @@ import AppShell from '../components/AppShell';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 import { fetchJSON } from '@/lib/fetchJSON';
+import { canAccessBuiltWork } from '@/lib/tiers';
 
 async function fireJT3OnOptIn(supabase, cardId) {
   try {
@@ -813,6 +814,10 @@ export default function JobTrackerPage() {
 
   const tier = userProfile?.subscription_tier;
   const isPro = tier === 'pro';
+  // The hired panel offers the Vault to people who do not have it and opens
+  // it for people who do. Asking isPro sold a Vault subscriber the plan they
+  // were already paying for.
+  const hasVault = canAccessBuiltWork(tier);
   const totalActive = applications.length;
   const totalInterviews = applications.filter(a => a.application_status === 'interview').length;
 
@@ -1359,7 +1364,7 @@ export default function JobTrackerPage() {
                 <div style={{ width: '32px', height: '1px', background: 'rgba(147,51,234,0.4)', marginBottom: '16px' }} />
 
                 {/* Body copy */}
-                {isPro ? (
+                {hasVault ? (
                   <>
                     <p style={{
                       fontFamily: "'DM Sans', sans-serif",

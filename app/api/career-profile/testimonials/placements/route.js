@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { isUuid, testimonialPlacements } from '../../_lib/placements'
+import { requireCustomise } from '../../_lib/requireCustomise'
 
 // ============================================================================
 // POST /api/career-profile/testimonials/placements
@@ -57,7 +58,7 @@ async function context(request) {
     .maybeSingle()
   if (!profile) return { error: Response.json({ error: 'Not found.' }, { status: 404 }) }
 
-  return { supabase, profile }
+  return { supabase, user, profile }
 }
 
 // A testimonial id and a lens id are only usable once they are known to
@@ -122,7 +123,12 @@ export async function POST(request) {
   try {
     const ctx = await context(request)
     if (ctx.error) return ctx.error
-    const { supabase, profile } = ctx
+    const { supabase, user, profile } = ctx
+
+    // Putting owner-authored content on the profile is customising it, and
+    // the rule is the same one every other write route here follows.
+    const gate = await requireCustomise(user.id)
+    if (gate) return gate
 
     let body
     try {

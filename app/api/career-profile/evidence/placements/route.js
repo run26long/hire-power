@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { evidencePlacements } from '../../_lib/placements'
+import { requireCustomise } from '../../_lib/requireCustomise'
 
 // ============================================================================
 // POST /api/career-profile/evidence/placements
@@ -131,6 +132,11 @@ export async function POST(request) {
     const ctx = await context(request)
     if (ctx.error) return ctx.error
     const { supabase, user, profile } = ctx
+
+    // Putting owner-authored content on the profile is customising it, and
+    // the rule is the same one every other write route here follows.
+    const gate = await requireCustomise(user.id)
+    if (gate) return gate
 
     let body
     try {

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { noEmDash } from '../../_lib/recruiterContext'
+import { requireCustomise } from '../../_lib/requireCustomise'
 
 // ============================================================================
 // PATCH /api/career-profile/lens/[lensId]
@@ -180,6 +181,10 @@ export async function PATCH(request, { params }) {
     const { data: { user }, error: authError } =
       await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Naming a direction is writing on the profile.
+    const gate = await requireCustomise(user.id)
+    if (gate) return gate
 
     let body
     try {

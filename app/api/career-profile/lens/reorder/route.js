@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireCustomise } from '../../_lib/requireCustomise'
 
 // ============================================================================
 // PATCH /api/career-profile/lens/reorder
@@ -70,6 +71,11 @@ export async function PATCH(request) {
     const { data: { user }, error: authError } =
       await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Which direction a visitor lands on is a decision about the profile.
+    // lens/[lensId]/visibility has always asked this; reordering did not.
+    const gate = await requireCustomise(user.id)
+    if (gate) return gate
 
     let body
     try {

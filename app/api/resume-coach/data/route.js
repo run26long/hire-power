@@ -3,6 +3,8 @@ import puppeteer from 'puppeteer';
 import { normalizeSkillCategories } from '@/lib/resumeText'
 import { coreResumeLabel } from '@/lib/resumeLabel'
 import { isRealCore } from '@/lib/coreResumes'
+import { canAccessBuiltWork } from '@/lib/tiers'
+import { freeCoreId } from '@/lib/resumeAccess'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -488,7 +490,10 @@ export async function GET(req) {
       journey_step: v.journey_step,
       current_score: v.current_score,
       thumbnail_url: v.thumbnail_url,
-      customized_resume_data: userTier === 'pro' ? v.resume_data : null,
+      // Vault keeps what it built, so the payload keeps it too. This read
+      // 'pro' and nothing else, which is why a Vault account's job-specific
+      // resumes came back as empty shells it could not preview or open.
+      customized_resume_data: canAccessBuiltWork(userTier) ? v.resume_data : null,
       analysis: v.ai_analysis
     })) || [];
     
@@ -506,6 +511,10 @@ export async function GET(req) {
       },
       coreResume: coreResumeData,
       coreResumes: allCoreData,
+      // Which single core a free account keeps. Computed here, from the full
+      // set of rows, so the hub and the resume page lock the same one rather
+      // than each picking from whatever subset it happens to hold.
+      accessibleCoreId: freeCoreId(allCore),
       resumeVersions: resumeVersionsData,
       coverLetters: coverLetters || [],
       profileLenses: profileLenses || [],

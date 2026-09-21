@@ -3,6 +3,8 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { createClient } from '@supabase/supabase-js'
 import ReviewPrepPDF from '../../templates/pdf/ReviewPrepPDF'
 import { apiError } from '@/lib/apiError'
+import { requireTier } from '@/lib/requireTier'
+import { canUseReviewPrep } from '@/lib/tiers'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,7 +23,15 @@ export async function POST(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
     const { data: { user }, error: authError } = await authSupabase.auth.getUser(token)
-    if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // ---- REVIEW PREP IS A VAULT FEATURE ----
+    //
+    // It turns the wins in somebody's Vault into a document for their
+    // performance review, which is the Vault paying out. A free account can
+    // see the wins it has; making the document out of them is the plan.
+    const gate = await requireTier(user.id, canUseReviewPrep)
+    if (gate) return gate
 
     const { documentText, fileName, userId } = await request.json()
 

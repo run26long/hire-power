@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { requireCustomise } from '../_lib/requireCustomise'
 
 // ============================================================================
 // POST /api/career-profile/contact
@@ -45,6 +46,12 @@ export async function POST(request) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // A contact address is something the owner writes, so it is gated like
+    // everything else they write. The management page already says so -
+    // UPGRADE_COPY.contact - and this is where it is enforced.
+    const gate = await requireCustomise(user.id)
+    if (gate) return gate
 
     let body
     try {

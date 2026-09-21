@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import ErrorToast from '../components/ErrorToast';
+import { canAccessBuiltWork } from '@/lib/tiers';
 
 // ── Module-level components (no hooks inside render functions) ──
 
@@ -385,7 +386,18 @@ function DashboardContent() {
   let rcStatus = 'not-started';
   if (hasBuildProgress) { rcCta = 'Continue in builder'; rcStatus = 'in-progress'; }
   else if (resumeInProgress)  { rcCta = 'Continue coaching'; rcStatus = 'in-progress'; }
-  else if (resumeCompleted) { rcCta = isPro ? 'Build a job-specific version' : 'View your resume'; rcStatus = 'done'; }
+  // Three answers, not two. Pro is invited to build another; Vault, which
+  // keeps what it built but does not build more, is pointed at what it has;
+  // free gets the one resume it keeps. The middle case used to fall into the
+  // free copy because the only question asked was isPro.
+  else if (resumeCompleted) {
+    rcCta = isPro
+      ? 'Build a job-specific version'
+      : canAccessBuiltWork(tier)
+      ? 'Open your resumes'
+      : 'View your resume';
+    rcStatus = 'done';
+  }
 
   const icCta = !resumeCompleted
     ? 'Finish your resume first'

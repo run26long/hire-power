@@ -6,11 +6,14 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import AppShell from '../components/AppShell';
 import UpgradeModal from '../components/UpgradeModal';
+import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import ErrorToast from '../components/ErrorToast';
 import { getJobSources } from '../utils/getJobSources';
 import { directionFromLabel } from '@/lib/resumeLabel';
 import { track } from '../utils/analytics';
 import { TIERS } from '@/lib/subscription';
+import { canAccessBuiltWork, canCreateResumes } from '@/lib/tiers';
+import { LOCK_COPY } from '@/lib/resumeAccess';
 import ResumeContent from '../components/ResumeContent';
 import Breadcrumb from '../components/Breadcrumb';
 import { fetchJSON } from '@/lib/fetchJSON';
@@ -1045,6 +1048,9 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
   // Modal state and handlers
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // The Vault prompt, which is a different offer from the Pro one above:
+  // opening a resume you already built is $4.99, not $29.99.
+  const [vaultPrompt, setVaultPrompt] = useState(null);
   const [errorToast, setErrorToast] = useState(null);
 
   // Tour handlers
@@ -1200,11 +1206,31 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   };
 
   // Button handlers
+  // Both of these are reached from six places between them - the card, the
+  // mobile row, the thumbnail, the menu - so the gate lives here rather than
+  // on each button. The buttons show the lock; this refuses the action.
+  // True when the account may not have this resume, and shows the offer as a
+  // side effect. Returns a boolean so a handler reads `if (lockedResume(id))
+  // return` and cannot fall through to the thing it was guarding.
+  const lockedResume = (resumeId) => {
+    if (canAccessBuiltWork(data?.userTier)) return false;
+    const keptCore = data?.accessibleCoreId ?? data?.coreResume?.id ?? null;
+    if (resumeId === keptCore) return false;
+    const isVersion = (data?.resumeVersions || []).some(v => v.id === resumeId);
+    setVaultPrompt({
+      title: isVersion ? 'Your job-specific resumes are still here.' : 'Your other core resumes are still here.',
+      message: isVersion ? LOCK_COPY.job_specific : LOCK_COPY.extra_core,
+    });
+    return true;
+  };
+
   const handleOpenResume = (resumeId) => {
+    if (lockedResume(resumeId)) return;
     router.push(`/resume/${resumeId}`);
   };
 
   const handleDownloadResume = async (resumeId) => {
+    if (lockedResume(resumeId)) return;
     try {
       setDownloadingResumeId(resumeId); // Mark this resume as downloading
       
@@ -1743,6 +1769,18 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   // matches a core (one just deleted, say) falls back to the route's own pick.
   const selectedCore = (data?.coreResumes || []).find(c => c.id === selectedCoreId) || data?.coreResume || null;
   const isPro = data?.userTier === TIERS.PRO;
+  // ---- TWO QUESTIONS, NOT ONE ----
+  // mayCreate is "may this account build something new" and is Pro. mayAccess
+  // is "may this account use what it already built" and includes Vault, which
+  // is the whole point of the plan. This card used to ask isPro for both, so a
+  // Vault subscriber was shown the free account's Job Match Scores panel and
+  // had no route at all to the job-specific resumes it had paid to keep.
+  const mayCreate = canCreateResumes(data?.userTier);
+  const mayAccess = canAccessBuiltWork(data?.userTier);
+  // The one core a free account keeps, decided by the route so the hub, the
+  // resume page and the PDF route all lock the same one.
+  const openCoreId = data?.accessibleCoreId ?? data?.coreResume?.id ?? null;
+  const coreLocked = (id) => !mayAccess && id !== openCoreId;
   const clLimitReached = !isPro && (data?.userProfile?.cl_count ?? 0) >= 3;
   const jmsLimitReached = !isPro && (data?.userProfile?.jms_count ?? 0) >= 3;
   const profileLenses = data?.profileLenses || [];
@@ -2379,8 +2417,19 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             key={lens.id}
                             role="button"
                             tabIndex={0}
-                            onClick={() => setSelectedCoreId(lens.core_resume_id)}
-                            title={`Show your ${lens.name} core resume`}
+                            onClick={() => {
+                              if (coreLocked(lens.core_resume_id)) {
+                                setVaultPrompt({
+                                  title: 'Your other core resumes are still here.',
+                                  message: LOCK_COPY.extra_core,
+                                });
+                                return;
+                              }
+                              setSelectedCoreId(lens.core_resume_id);
+                            }}
+                            title={coreLocked(lens.core_resume_id)
+                              ? 'This core resume is part of Vault and Pro'
+                              : `Show your ${lens.name} core resume`}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-purple-300 transition-colors flex-1 min-w-0 text-left ${selectedCore?.id === lens.core_resume_id ? 'bg-purple-50' : 'bg-white hover:bg-purple-50 hover:border-purple-400'}`}
                           >
                             <svg className="w-5 h-5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2388,7 +2437,11 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </svg>
                             <div className="min-w-0">
                               <div className="text-sm md:text-xs font-semibold text-gray-900 truncate">{lens.name}</div>
-                              <div className="text-xs md:text-[10px] text-purple-600">{selectedCore?.id === lens.core_resume_id ? 'Current core' : 'Switch to this core'}</div>
+                              <div className={`text-xs md:text-[10px] ${coreLocked(lens.core_resume_id) ? 'text-gray-400' : 'text-purple-600'}`}>
+                                {coreLocked(lens.core_resume_id)
+                                  ? '🔒 Part of Vault'
+                                  : selectedCore?.id === lens.core_resume_id ? 'Current core' : 'Switch to this core'}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2551,12 +2604,15 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                   {/* Card 1: job specific Resumes (Pro) / Job Match Scores (Free) */}
                   <div data-tour="job-specific" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden md:flex-1" style={{ marginBottom: '16px' }}>
-                    {isPro ? (
+                    {mayAccess ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
                         <p className="text-sm text-gray-500 mb-2">Tailored versions for specific applications</p>
                       <div>
                         <div className="space-y-2">
+                          {/* Vault reaches this panel to use what is in it.
+                              Making another one is Pro. */}
+                          {mayCreate && (
                           <button
                             onClick={handleCreateNew}
                             className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
@@ -2568,6 +2624,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                             </div>
                             <div className="text-sm font-semibold text-gray-900">Create New</div>
                           </button>
+                          )}
 
                           {data.resumeVersions && data.resumeVersions.length > 0 ? (
                             <>
@@ -2747,22 +2804,37 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
 
                  {/* Card 2: Cover Letters */}
                   <div data-tour="cover-letters" className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col overflow-hidden md:flex-1">
-                    {isPro ? (
+                    {mayAccess ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Cover Letters</h2>
                         <p className="text-sm text-gray-500 mb-2">Written for this job, not every job.</p>
                         <div>
                           <div className="space-y-2">
+                            {/* Vault reaches this card because the letters in
+                                it are its own, and it keeps the same three-letter
+                                allowance a free account has. Past the third, the
+                                button offers the plan that lifts the ceiling
+                                rather than opening a flow the route will refuse. */}
                             <button
-                              onClick={() => setShowCLModal(true)}
-                              className="w-full border-2 border-dashed border-gray-300 rounded-lg p-2.5 hover:border-purple-400 hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                              onClick={() => clLimitReached ? setShowUpgradeModal(true) : setShowCLModal(true)}
+                              className={`w-full border-2 border-dashed rounded-lg p-2.5 transition-all flex items-center justify-center gap-2 ${
+                                clLimitReached
+                                  ? 'border-purple-200 hover:border-purple-400 hover:bg-purple-50'
+                                  : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                              }`}
                             >
                               <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
-                                <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
+                                {clLimitReached ? (
+                                  <span className="text-[10px]">🔒</span>
+                                ) : (
+                                  <svg className="w-2.5 h-2.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                )}
                               </div>
-                              <div className="text-sm font-semibold text-gray-900 ">Create New</div>
+                              <div className={`text-sm font-semibold ${clLimitReached ? 'text-purple-600' : 'text-gray-900'}`}>
+                                {clLimitReached ? 'Go Pro for unlimited cover letters' : 'Create New'}
+                              </div>
                             </button>
 
                             {data.coverLetters && data.coverLetters.length > 0 ? (
@@ -3095,7 +3167,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                 {/* Right Column: job specific Resumes + Cover Letters (empty state) */}
                 <div className="col-span-1 md:col-span-4 flex flex-col">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:flex-1" style={{ marginBottom: '16px' }}>
-                    {isPro ? (
+                    {mayAccess ? (
                       <>
                         <h2 className="text-base font-semibold text-gray-900">Job-Specific Resumes</h2>
                         <p className="text-sm text-gray-500 mb-4">Tailored versions for specific applications</p>
@@ -3771,6 +3843,13 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
           </div>
         </div>
       )}
+
+      <VaultUpgradeModal
+        isOpen={Boolean(vaultPrompt)}
+        onClose={() => setVaultPrompt(null)}
+        title={vaultPrompt?.title}
+        message={vaultPrompt?.message}
+      />
 
       <UpgradeModal
         isOpen={showUpgradeModal}

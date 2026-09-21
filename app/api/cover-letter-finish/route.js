@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
+import { coverLetterLimit } from '@/lib/tiers'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -968,7 +969,13 @@ export async function POST(request) {
       )
     }
 
-    // Free tier CL limit check
+    // ---- THE COVER LETTER ALLOWANCE ----
+    //
+    // Three for the life of the account on every plan but Pro. It used to
+    // read `subscription_tier === 'free'`, which let Vault write unlimited
+    // ones: writing a fourth letter is building, and Vault keeps rather than
+    // builds. The three it already has stay readable and downloadable, which
+    // is a different route and deliberately ungated.
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -980,8 +987,7 @@ export async function POST(request) {
       return apiError(profileError, "We couldn't load your account. Please try again.")
     }
 
-    const isFree = !profile?.subscription_tier || profile?.subscription_tier === 'free'
-    if (isFree && (profile?.cl_count ?? 0) >= 3) {
+    if ((profile?.cl_count ?? 0) >= coverLetterLimit(profile?.subscription_tier)) {
       return NextResponse.json({ error: 'CL_LIMIT_REACHED' }, { status: 403 })
     }
 
@@ -1107,7 +1113,9 @@ TODAY'S DATE: ${today}`
     coverLetterData.closing = stripColonsInProse(stripEmDashes(coverLetterData.closing))
     coverLetterData.bullets = coverLetterData.bullets?.map(b => stripColonsInBullets(stripEmDashes(b)))
 
-    if (isFree && userId) {
+    // Counted on every plan that has a ceiling, which is every plan but Pro.
+    // Pro has no ceiling, so counting there would be a write for nothing.
+    if (userId && Number.isFinite(coverLetterLimit(profile?.subscription_tier))) {
       await supabase
         .from('profiles')
         .update({ cl_count: (profile.cl_count ?? 0) + 1 })

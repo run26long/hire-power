@@ -6,6 +6,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import MainNav from '@/app/components/MainNav'
 import UpgradeModal from '@/app/components/UpgradeModal'
+import { canOpenResume, lockReason, LOCK_COPY } from '@/lib/resumeAccess'
+import { UPGRADE_HREF, UPGRADE_LABEL } from '@/lib/tiers'
 import { getTemplateStyles } from '../../templates/getTemplateStyles'
 import Breadcrumb from '@/app/components/Breadcrumb'
 import ResumeContent from '../../components/ResumeContent'
@@ -134,6 +136,10 @@ export default function ResumePage() {
   const [resume, setResume] = useState(null)
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
+  // Every active core the account holds. Needed only to answer which single
+  // one a free account keeps, which is a question about the set and not about
+  // the resume on screen.
+  const [ownedCores, setOwnedCores] = useState(null)
   const [siblingResumes, setSiblingResumes] = useState([])
   const [linkedCoverLetter, setLinkedCoverLetter] = useState(null)
   const [coreResumes, setCoreResumes] = useState([])
@@ -1063,6 +1069,17 @@ function formatDate(dateString, format = dateFormat) {
       setResume(data)
       loadBreadcrumbLinks(data, user.id)
 
+      // Which cores exist decides which one is unlocked below. Read here
+      // rather than in loadBreadcrumbLinks, which only runs this query for a
+      // core resume and so would leave a job-specific page unable to answer.
+      const { data: cores } = await supabase
+        .from('resumes')
+        .select('id, resume_type, is_active, is_priority_core, created_at')
+        .eq('user_id', user.id)
+        .eq('resume_type', 'core')
+        .eq('is_active', true)
+      setOwnedCores(cores || [])
+
     // Restore the persisted pre-coaching baseline so the before/after reveal
     // survives a reload. Without this the only baseline is in-memory and a
     // refresh after coaching would report the post-coaching score as "before".
@@ -1346,6 +1363,54 @@ if (data.ai_analysis) {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading resume...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ---- LOCKED ----
+  //
+  // A free account that was once on Pro can hold three cores and any number
+  // of job-specific resumes. It keeps one core; the rest are visible in the
+  // hub and open to this, which is where the door is.
+  //
+  // Rendered instead of the editor rather than over it: an editor behind a
+  // dialog is still an editor, and the save handlers underneath it would
+  // still work. The tier is read straight off the profile row, and a profile
+  // that has not loaded yet is not permission - ownedCores null holds the
+  // spinner above until both are in.
+  if (resume && ownedCores && !canOpenResume(userProfile?.subscription_tier, resume, ownedCores)) {
+    const reason = lockReason(resume)
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <MainNav currentPage="resume-coach" userProfile={userProfile} />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl border border-[#ece9f6] max-w-md w-full p-7 text-center"
+            style={{ boxShadow: '0 18px 40px -28px rgba(76,49,150,0.28)' }}>
+            <div className="text-3xl mb-3">🔒</div>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#7c3aed' }}>
+              Part of Vault
+            </p>
+            <h1 style={{ marginTop: 10, fontSize: 21, fontWeight: 650, letterSpacing: '-0.02em', color: '#17132a' }}>
+              {resume.display_name || 'This resume'} is still here.
+            </h1>
+            <p style={{ marginTop: 8, fontSize: 14, lineHeight: 1.55, color: '#5f5a72' }}>
+              {LOCK_COPY[reason]} Nothing has been deleted, and it opens again the moment you upgrade.
+            </p>
+            <button
+              onClick={() => router.push(UPGRADE_HREF)}
+              className="w-full text-white rounded-lg py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+              style={{ marginTop: 20, background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+            >
+              {UPGRADE_LABEL} — $4.99/mo
+            </button>
+            <button
+              onClick={() => router.push('/resume-coach')}
+              className="w-full mt-2 py-2.5 rounded-lg text-sm font-semibold text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              Back to your resumes
+            </button>
+          </div>
         </div>
       </div>
     )

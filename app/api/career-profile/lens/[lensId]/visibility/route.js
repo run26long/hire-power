@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { requireCustomise } from '../../../_lib/requireCustomise'
+import { canCreateResumes } from '@/lib/tiers'
 
 // ============================================================================
 // PATCH /api/career-profile/lens/[lensId]/visibility
@@ -169,6 +170,39 @@ export async function PATCH(request, { params }) {
     if (visible) {
       const gate = await requireCustomise(user.id, supabase)
       if (gate) return gate
+
+      // ---- ADDING A DIRECTION IS BUILDING ----
+      //
+      // requireCustomise lets Vault through, and that is right for every
+      // other write here: Vault pays to keep a career on file and edit it.
+      // But a direction that has never been on the page is a new one, and
+      // building new things is what Vault does not do.
+      //
+      // The line is drawn where the status already draws it. 'hidden' is a
+      // direction they had and took down, so putting it back is restoring
+      // their own work. 'suggested' has never been published, so turning it
+      // on is adding a fourth thing to a career that was closed.
+      if (lens.status !== HIDDEN) {
+        const { data: account, error: tierError } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (tierError) {
+          console.error('[career-profile] Tier lookup failed:', tierError)
+          return Response.json({ error: "We couldn't check your plan just now." }, { status: 500 })
+        }
+        if (!canCreateResumes(account?.subscription_tier)) {
+          return Response.json(
+            {
+              error: 'Adding a new career direction is part of Pro. The directions already on your profile stay yours.',
+              code: 'PRO_REQUIRED'
+            },
+            { status: 403 }
+          )
+        }
+      }
     }
 
     const next = visible ? VISIBLE : HIDDEN

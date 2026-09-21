@@ -8,9 +8,36 @@ import AppShell from '../components/AppShell';
 import JobCardModal from '../components/JobCardModal';
 import ErrorToast from '../components/ErrorToast';
 import SuccessToast from '../components/SuccessToast';
+import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { coreResumeLabel } from '@/lib/resumeLabel';
+import { canLogWins, canUseReviewPrep } from '@/lib/tiers';
+
+// ---- LOGGING A WIN ----
+// Through the route rather than straight into the table. The insert used to
+// go from here to Supabase with the user's own client, which left nowhere to
+// ask what plan the account was on - a disabled button is not a gate. The
+// route answers that, and hands back the row the list renders.
+//
+// UPGRADE_REQUIRED comes back as a value rather than a throw, because the
+// caller shows an upgrade prompt for it and an error message for everything
+// else, and those are two different things to do.
+async function logWin(supabase, { description, applicationId, occurredAt }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch('/api/career-vault/win', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token}`,
+    },
+    body: JSON.stringify({ description, applicationId: applicationId || null, occurredAt: occurredAt || null }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 403) return { upgrade: true };
+  if (!res.ok) return { error: body?.error || 'Something went wrong. Please try again.' };
+  return { achievement: body.achievement };
+}
 
 // Status badge colors — muted to avoid clashing with HP purple
 function GapWinLogger({ gapText, currentJobEntry, supabase, user, onSaved, onDismiss, onRegenerate }) {
@@ -23,20 +50,19 @@ function GapWinLogger({ gapText, currentJobEntry, supabase, user, onSaved, onDis
     setSaving(true)
     setError(null)
     try {
-      const { data, error: saveError } = await supabase
-        .from('achievements')
-        .insert({
-          user_id: user.id,
-          source: 'career_archive',
-          raw_description: text.trim(),
-          status: 'approved',
-          application_id: currentJobEntry?.id || null,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
-      if (saveError) throw saveError
-      onSaved(data)
+      const result = await logWin(supabase, {
+        description: text.trim(),
+        applicationId: currentJobEntry?.id || null,
+      })
+      if (result.upgrade) {
+        setError('Logging wins is part of Vault and Pro.')
+        return
+      }
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+      onSaved(result.achievement)
       setText('')
       onDismiss()
       onRegenerate()
@@ -100,11 +126,19 @@ export default function CareerVaultPage() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tier, setTier] = useState('vault');
+  const [tier, setTier] = useState('free');
+  // handleOpenReviewPrep is defined above the render body and is handed to
+  // modals that outlive a render, so it reads the tier through a ref rather
+  // than closing over whatever it was at definition.
+  const tierRef = useRef('free');
 
   // Accomplishments
   const [accomplishments, setAccomplishments] = useState([]);
   const [showLogModal, setShowLogModal] = useState(false);
+  // What the Vault prompt is currently explaining, or null. One piece of
+  // state rather than one flag per locked control, so two of them can never
+  // be open at once.
+  const [vaultPrompt, setVaultPrompt] = useState(null);
   const [logText, setLogText] = useState('');
   const [logDate, setLogDate] = useState('');
   const [logSaving, setLogSaving] = useState(false);
@@ -126,6 +160,18 @@ export default function CareerVaultPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Review Prep
+  // What the Vault knows, counted by the summary endpoint. 'loading' until
+  // it answers and 'failed' if it does not: a scorecard that says zero when
+  // the request fell over is a lie about somebody's career, so the numbers
+  // are simply absent instead.
+  const [summary, setSummary] = useState(null)
+  const [summaryState, setSummaryState] = useState('loading')
+  // What was waiting when this visit began. Held here because opening the
+  // page sets the stored count back to zero: by the time the summary answers
+  // it has nothing left to report, and the scorecard would say "+0" about a
+  // visit that had four new things in it.
+  const [arrivedSinceLastVisit, setArrivedSinceLastVisit] = useState(0)
+
   const [showOlderWinsModal, setShowOlderWinsModal] = useState(false)
   const [selectedWin, setSelectedWin] = useState(null)
   const [winCopied, setWinCopied] = useState(false)
@@ -246,7 +292,8 @@ export default function CareerVaultPage() {
           .from('profiles').select('*').eq('id', user.id).maybeSingle();
         if (profileError) throw profileError;
         setUserProfile(profile);
-        setTier(profile?.subscription_tier || 'vault');
+        setTier(profile?.subscription_tier || 'free');
+        tierRef.current = profile?.subscription_tier || 'free';
 
         // What landed while they were somewhere else. Said once, in their
         // own words - "items", not "knowledge entries" - and then the count
@@ -254,6 +301,7 @@ export default function CareerVaultPage() {
         // disappear. Local state is cleared too, so the badge goes on this
         // render rather than on the next load.
         const unseen = Number(profile?.unseen_vault_count) || 0;
+        setArrivedSinceLastVisit(unseen);
         if (unseen > 0) {
           setSuccessToast(
             unseen === 1
@@ -380,6 +428,21 @@ export default function CareerVaultPage() {
         if (jsResumesError) throw jsResumesError;
         setJsResumes(jsResumesData || []);
 
+        // The scorecard's own read. Deliberately after everything above and
+        // deliberately swallowed: the Vault has to render whether or not the
+        // summary answers.
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const counted = await fetchJSON('/api/career-vault/summary', {
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+          });
+          setSummary(counted);
+          setSummaryState('ready');
+        } catch (summaryError) {
+          console.error('Career vault summary failed (non-fatal):', summaryError);
+          setSummaryState('failed');
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('openArchive') === 'true') {
           setShowArchiveModal(true);
@@ -407,6 +470,13 @@ export default function CareerVaultPage() {
   }, [showLogModal]);
 
   function handleOpenReviewPrep() {
+    if (!canUseReviewPrep(tierRef.current)) {
+      setVaultPrompt({
+        title: 'Walk into your review with the receipts.',
+        message: 'Review Prep turns the wins in your Vault into a document you can take into a performance review. It is part of Vault.',
+      });
+      return;
+    }
     const displayName = userProfile?.display_name || `${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || ''
     setRpName(displayName)
     setRpTitle(currentJobEntry?.title || '')
@@ -463,22 +533,29 @@ export default function CareerVaultPage() {
     setLogSaving(true);
     setLogError(null);
     try {
-      const { data, error } = await supabase
-        .from('achievements')
-        .insert({
-          user_id: user.id,
-          source: 'career_archive',
-          raw_description: logText.trim(),
-          status: 'approved',
-          application_id: currentJobEntry?.id || null,
-          created_at: logDate
-            ? new Date(logDate).toISOString()
-            : new Date().toISOString(),
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      setAccomplishments(prev => [data, ...prev]);
+      const result = await logWin(supabase, {
+        description: logText.trim(),
+        applicationId: currentJobEntry?.id || null,
+        occurredAt: logDate || null,
+      });
+      // The route refused. The modal should not have opened - openLogWin
+      // checks the same thing - so this is the case where the plan changed
+      // under an open tab. Swap the modal for the explanation rather than
+      // leaving a dead Save button behind.
+      if (result.upgrade) {
+        setLogSaving(false);
+        setShowLogModal(false);
+        setVaultPrompt({
+          title: 'Log wins as they happen.',
+          message: 'Your Vault keeps every promotion, project and metric you add, and writes them into your next resume. Adding to it is part of Vault.',
+        });
+        return;
+      }
+      if (result.error) {
+        setLogError(result.error);
+        return;
+      }
+      setAccomplishments(prev => [result.achievement, ...prev]);
       setLogText('');
       setLogDate('');
       setShowLogModal(false);
@@ -650,7 +727,138 @@ export default function CareerVaultPage() {
   }
 
   const isPro = tier === 'pro';
+  // Logging a win and preparing for a review are the two things the Vault
+  // does rather than shows. A free account sees everything already in here
+  // and is offered the plan when it tries to add to it.
+  const mayLogWins = canLogWins(tier);
+  const mayPrepReview = canUseReviewPrep(tier);
+  const openLogWin = () => {
+    if (!mayLogWins) {
+      setVaultPrompt({
+        title: 'Log wins as they happen.',
+        message: 'Your Vault keeps every promotion, project and metric you add, and writes them into your next resume. Adding to it is part of Vault.',
+      });
+      return;
+    }
+    setShowLogModal(true);
+  };
   const firstName = userProfile?.first_name || userProfile?.display_name?.split(' ')[0] || '';
+  // ---- WHAT THE SCORECARD READS ------------------------------------------
+  //
+  // All of it out of /api/career-vault/summary. Nothing here counts anything
+  // itself: the endpoint owns the arithmetic, and this turns its numbers into
+  // labels, widths and colours. A missing block resolves to zero rather than
+  // to a crash, because a summary that lost one query still has the rest.
+
+  const knowledgeTotal = summary?.knowledge?.total ?? 0;
+  // The page's own reading first; the endpoint's is the fallback for a
+  // render where the profile has not been read yet.
+  const sinceLastVisit = arrivedSinceLastVisit || (summary?.knowledge?.sinceLastVisit ?? 0);
+
+  // The eight kinds the extractor writes, in the order the bar should read:
+  // most of the vault first. Only the kinds that exist are drawn, so an
+  // account with three kinds of detail gets three segments and three labels.
+  const TYPE_LABEL = {
+    experience: 'Experience',
+    skill: 'Skills',
+    achievement: 'Achievements',
+    tool: 'Tools',
+    methodology: 'Methods',
+    credential: 'Credentials',
+    industry: 'Industry',
+    relationship: 'People',
+  };
+  // One violet ramp rather than eight hues, laid on in rank order so the
+  // ribbon reads darkest-first: the kind there is most of leads it.
+  const TYPE_RAMP = ['#6d28d9', '#8b5cf6', '#a78bfa', '#bda9f7', '#cfc1fa', '#ded3fc', '#e9e1fd', '#f1ebff'];
+  const knowledgeSegments = Object.entries(summary?.knowledge?.byType || {})
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type, count], rank) => ({
+      type,
+      color: TYPE_RAMP[Math.min(rank, TYPE_RAMP.length - 1)],
+      count,
+      label: TYPE_LABEL[type] || type,
+      share: knowledgeTotal > 0 ? (count / knowledgeTotal) * 100 : 0,
+    }));
+
+  const SOURCE_LABEL = {
+    conversation: 'coaching',
+    uploaded_resume: 'your résumés',
+    interview_practice: 'interview practice',
+  };
+  const builtFrom = Object.entries(summary?.knowledge?.bySource || {})
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([source, count]) => ({ count, label: SOURCE_LABEL[source] || source }));
+
+  // Four cards, each one a thing the account has done rather than a thing it
+  // is holding. The note under each says what the number is worth.
+  const proofTotal = (summary?.evidence?.total ?? 0) + (summary?.testimonials?.total ?? 0);
+  const intelligenceCards = [
+    {
+      label: 'Coaching completed',
+      value: summary?.coaching?.total ?? 0,
+      note: (summary?.coaching?.total ?? 0) > 0
+        ? 'Conversations your résumés are written from'
+        : 'Your first session teaches it the most',
+    },
+    {
+      label: 'Interview practice',
+      value: summary?.interviews?.completed ?? 0,
+      note: summary?.interviews?.averageScore != null
+        ? `Averaging ${summary.interviews.averageScore} readiness`
+        : 'Sessions finished and scored',
+    },
+    {
+      label: 'Résumés created',
+      value: summary?.resumes?.total ?? 0,
+      note: (summary?.resumes?.core ?? 0) > 0
+        ? `${summary.resumes.core} core · ${summary?.resumes?.jobSpecific ?? 0} job-specific`
+        : 'Core and job-specific versions',
+    },
+    {
+      label: 'Proof collected',
+      value: proofTotal,
+      note: proofTotal > 0
+        ? `${summary?.evidence?.total ?? 0} piece${(summary?.evidence?.total ?? 0) === 1 ? '' : 's'} of evidence · ${summary?.testimonials?.total ?? 0} testimonial${(summary?.testimonials?.total ?? 0) === 1 ? '' : 's'}`
+        : 'Evidence and testimonials on your profile',
+    },
+  ];
+
+  const careerHistory = Array.isArray(summary?.careerHistory) ? summary.careerHistory : [];
+
+  // The four ways in, all of them somewhere that already exists: the win
+  // modal on this page, and the Career Profile, which is where proof and
+  // testimonials are added.
+  const growthActions = [
+    {
+      icon: '🏆',
+      title: 'Log a win',
+      desc: 'Capture projects, promotions, metrics, recognition, and new skills while they’re fresh.',
+      onClick: () => openLogWin(),
+    },
+    {
+      icon: '📇',
+      title: 'Build your Career Profile',
+      desc: 'Add the story, proof, and context that do not fit on a résumé.',
+      onClick: () => router.push('/career-profile'),
+    },
+    {
+      icon: '💬',
+      title: 'Collect testimonials',
+      desc: 'Ask people who know your work to add perspective and credibility.',
+      onClick: () => router.push('/career-profile'),
+    },
+    {
+      icon: '📎',
+      title: 'Add evidence',
+      desc: 'Upload work samples, certifications, presentations, awards, and other proof.',
+      onClick: () => router.push('/career-profile'),
+    },
+  ];
+
+
 
   return (
     <AppShell sidebar={<>
@@ -673,41 +881,41 @@ export default function CareerVaultPage() {
           {/* Steps */}
           <div style={{ marginBottom: 16 }}>
             {[
-              { 
-                num: '1', 
-                title: 'Save Your Current Job', 
-                desc: 'Your title, company, and start date. The saved job description becomes foundation for your next resume.' 
+              {
+                num: '1',
+                title: 'Hire Power remembers for you',
+                desc: 'Coaching, interviews, résumés, testimonials, and evidence all add to your Vault.',
               },
-              { 
-                num: '2', 
-                title: 'Log Wins as They Happen', 
-                desc: 'Promotions, projects, metrics, skills. Takes 30 seconds. Saves hours later.' 
+              {
+                num: '2',
+                title: 'See what’s building',
+                desc: 'Your Vault shows the experience, skills, proof, and stories Hire Power has learned about you.',
               },
-              { 
-                num: '3', 
-                title: 'Prepare for Your Review', 
-                desc: 'Your logged wins organized by category, ready to reference during performance reviews.' 
+              {
+                num: '3',
+                title: 'Log wins as they happen',
+                desc: 'Add projects, promotions, metrics, skills, and accomplishments while they’re fresh.',
               },
-              { 
-                num: '4', 
-                title: 'Access All Your Resumes', 
-                desc: 'All in one place. Any time you need them.' 
+              {
+                num: '4',
+                title: 'Build the bigger picture',
+                desc: 'Add evidence, collect testimonials, and expand your Career Profile beyond the résumé.',
               },
-              { 
-                num: '5', 
-                title: 'Browse Your Archive', 
-                desc: 'Every resume you\'ve ever built, saved and searchable.' 
+              {
+                num: '5',
+                title: 'Use it when it matters',
+                desc: 'Everything in your Vault makes future résumés, interviews, reviews, and negotiations easier.',
               },
-              { 
-                num: '6', 
-                title: 'When You\'re Ready to Search', 
-                desc: 'Five minutes with your coach and your resume updates itself.' 
+              {
+                num: '6',
+                title: 'Never start from scratch again',
+                desc: 'When your next opportunity comes, your career story is already waiting.',
               },
-            ].map(({ num, title, desc, tag }) => (
+            ].map(({ num, title, desc }) => (
               <div key={num} style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                <div style={{ 
-                  width: 20, height: 20, borderRadius: '50%', 
-                  border: '1.5px solid rgba(255,255,255,0.4)', 
+                <div style={{
+                  width: 20, height: 20, borderRadius: '50%',
+                  border: '1.5px solid rgba(255,255,255,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
                   flexShrink: 0, marginTop: 1
@@ -721,15 +929,11 @@ export default function CareerVaultPage() {
                   <p style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', lineHeight: 1.35, marginBottom: 0 }}>
                     {desc}
                   </p>
-                  {tag && (
-                    <span style={{ fontSize: 9, fontWeight: 700, fontStyle: 'italic', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.02em', display: 'block', marginTop: -2 }}>
-                      {tag}
-                    </span>
-                  )}
                 </div>
               </div>
             ))}
           </div>
+
 
           {/* Bottom section */}
           <div className="mt-auto mb-4">
@@ -750,126 +954,200 @@ export default function CareerVaultPage() {
         <MainNav currentPage="career-vault" userProfile={userProfile} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="px-8 py-4 max-w-[1400px] mx-auto w-full">
+          <div className="px-6 lg:px-8 py-5 max-w-[1400px] mx-auto w-full">
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+            {/* ================================================================
+                TWO COLUMNS
+                The left is the story the Vault tells — what it holds, where it
+                came from, and the wins only the owner can add. The right is the
+                instrument panel beside it: counts, the ways to add more, and
+                the things the Vault can hand back. They stack on a phone in
+                that same order.
+                ================================================================ */}
+            <div className="grid grid-cols-1 lg:grid-cols-[64fr_36fr] gap-5 items-start">
 
-              {/* LEFT: Accomplishments (8 cols) */}
-             <div className="col-span-1 md:col-span-8 flex flex-col gap-4">
+              {/* ============================ LEFT ============================ */}
+              <div className="min-w-0 flex flex-col gap-5">
 
-                {/* Current Job Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                  <div className="flex items-center justify-between mb-1 gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <h2 className="text-lg font-semibold text-gray-900 whitespace-nowrap">Current Job</h2>
-                      {currentJobEntry && <StatusBadge status="hired" />}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {!currentJobEntry && <span className="text-xs md:text-[10px] text-gray-400 font-medium">Not set</span>}
+                {/* ---- Career memory ----
+                    The centrepiece, set the way the light Career Profile sets
+                    its cover: an oversized numeral against white, a pale
+                    lavender atmosphere rather than a fill, thin rules instead
+                    of boxes, and nothing scored out of a maximum, because
+                    there is no such thing as a complete career. */}
+                <section
+                  className="relative overflow-hidden bg-white rounded-2xl border border-[#ece9f6]"
+                  style={{ boxShadow: '0 1px 2px rgba(23,16,48,0.04), 0 18px 40px -28px rgba(76,49,150,0.28)' }}
+                >
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        'radial-gradient(115% 85% at 86% -22%, rgba(124,58,237,0.10), rgba(124,58,237,0) 62%),' +
+                        'radial-gradient(85% 70% at -8% 118%, rgba(99,102,241,0.06), rgba(99,102,241,0) 58%)',
+                    }}
+                  />
+
+                  <div className="relative px-6 sm:px-9 pt-7 pb-7">
+                    <div className="flex items-center justify-between gap-3">
+                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7c3aed' }}>
+                        Career memory
+                      </p>
                       <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
                     </div>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-4">
-                    The saved job description and any wins you log here attach to this job to create your next resume.
-                  </p>
 
-                  {currentJobEntry ? (() => {
-                    const start = currentJobEntry.hired_at
-                      ? new Date(currentJobEntry.hired_at)
-                      : currentJobEntry.application_date
-                      ? new Date(currentJobEntry.application_date)
-                      : null;
-                    let tenureStr = '';
-                    let sinceStr = '';
-                    if (start) {
-                      const now = new Date();
-                      const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-                      const years = Math.floor(totalMonths / 12);
-                      const months = totalMonths % 12;
-                      if (years > 0 && months > 0) tenureStr = `${years} yr ${months} mo`;
-                      else if (years > 0) tenureStr = `${years} yr`;
-                      else if (months > 0) tenureStr = `${months} mo`;
-                      else tenureStr = 'Just started';
-                      sinceStr = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    }
-                    return (
-                      <div className="flex flex-col gap-3 w-full md:flex-row">
-                        {/* Job card */}
-                        <button
-                          onClick={() => setShowJobModal(true)}
-                          className="w-full md:w-1/2 bg-gray-50 rounded-lg border border-gray-200 p-3 hover:border-purple-300 hover:shadow-sm transition-all text-left group flex items-center gap-3"
-                        >
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '2px solid #86efac' }}>
-                            <span className="text-xl">🏆</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-base md:text-sm font-bold text-gray-900 truncate">{currentJobEntry.title}</p>
-                            <p className="text-sm text-gray-500 truncate">{currentJobEntry.company}</p>
-                          </div>
-                          <span className="text-gray-300 group-hover:text-purple-400 text-sm transition-colors flex-shrink-0">→</span>
-                        </button>
-
-                        {/* Tenure + Wins */}
-                        <div className="flex gap-3 items-stretch flex-1">
-                          {/* Tenure card */}
-                          <div className="bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center text-center flex-1">
-                           {sinceStr && (
-                              <>
-                                <p className="text-xs md:text-[10px] font-bold text-purple-600 uppercase tracking-wider leading-none">Since</p>
-                                <p className="text-base md:text-sm font-bold text-gray-700 mt-1 whitespace-nowrap">{sinceStr}</p>
-                                {tenureStr && tenureStr !== 'Just started' && (
-                                  <p className="text-xs md:text-[10px] text-gray-400 mt-1 whitespace-nowrap">{tenureStr} in role</p>
-                                )}
-                              </>
-                            )}
-                          </div>
-
-                          {/* Wins card */}
-                          <div className="bg-gray-50 rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center text-center flex-1">
-                            <p className="text-3xl font-bold text-purple-600 leading-none">{accomplishments.length}</p>
-                            <p className="text-xs md:text-[10px] text-gray-500 uppercase tracking-wide mt-1">Wins Logged</p>
-                          </div>
-                        </div>
-
-                        </div>
-                    );
-                  })() : (
-                    <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50">
-                      <p className="text-sm text-gray-500 mb-2">
-                        No current job set. Mark a job card as Hired and it appears here automatically.
-                      </p>
-                      <button
-                        onClick={() => setShowSetJobModal(true)}
-                        className="text-sm text-purple-600 font-semibold hover:text-purple-700"
-                      >
-                        Set current job manually →
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Accomplishments Log */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 pt-4 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <h2 className="text-lg font-semibold text-gray-900 truncate">Accomplishments</h2>
-                        <span className="text-sm text-gray-400 flex-shrink-0">{accomplishments.length} logged</span>
+                    {/* Headline left, figure right: the composition is deliberately
+                        off-centre, and the figure is the thing the eye lands on. */}
+                    <div className="flex items-start justify-between gap-6 flex-wrap" style={{ marginTop: 18 }}>
+                      <div className="min-w-0" style={{ flex: '1 1 320px' }}>
+                        <h1 style={{ fontSize: 'clamp(30px, 3.1vw, 44px)', fontWeight: 650, lineHeight: 1.02, letterSpacing: '-0.035em', color: '#17132a' }}>
+                          Your career, remembered.
+                        </h1>
+                        <p style={{ marginTop: 14, fontSize: 15, lineHeight: 1.55, color: '#5f5a72', maxWidth: '46ch' }}>
+                          Hire Power has been paying attention. Everything it learns about you makes the next résumé, interview, and job search easier.
+                        </p>
                       </div>
-                      <button
-                        onClick={() => setShowLogModal(true)}
-                        className="text-sm font-semibold px-3 py-1.5 rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 transition-colors whitespace-nowrap flex-shrink-0"
-                      >
-                        + Log a Win
-                      </button>
-                    </div>
-                  <p className="text-sm text-gray-500 mb-2">
-                    Log wins as they happen: promotions, projects, metrics, skills, anything worth remembering.
-                  </p>
 
-                  {/* Accomplishment List */}
+                      <div className="flex-shrink-0 text-right" style={{ minWidth: 150 }}>
+                        {summaryState === 'ready' ? (
+                          <>
+                            <p style={{ fontSize: 'clamp(62px, 7.2vw, 104px)', fontWeight: 650, lineHeight: 0.82, letterSpacing: '-0.055em', color: '#17132a', fontVariantNumeric: 'tabular-nums' }}>
+                              {knowledgeTotal}
+                            </p>
+                            <p style={{ marginTop: 13, fontSize: 11, fontWeight: 700, letterSpacing: '0.17em', textTransform: 'uppercase', color: '#8b849c' }}>
+                              career detail{knowledgeTotal === 1 ? '' : 's'} saved
+                            </p>
+                            {sinceLastVisit > 0 && (
+                              <p style={{ marginTop: 9, fontSize: 13, fontWeight: 600, color: '#7c3aed' }}>
+                                +{sinceLastVisit} since your last visit
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p style={{ fontSize: 'clamp(62px, 7.2vw, 104px)', fontWeight: 650, lineHeight: 0.82, letterSpacing: '-0.055em', color: '#ece9f6' }}>
+                            &mdash;
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* The ribbon: one sliver per kind of detail, widths as shares
+                        of what is there. A single violet ramp, darkest first, so
+                        it reads as one measure rather than as a chart. */}
+                    {summaryState === 'ready' && knowledgeTotal > 0 && (
+                      <div style={{ marginTop: 32 }}>
+                        <div aria-hidden="true" style={{ height: 1, background: '#f0edf9' }} />
+                        <div className="flex w-full" style={{ gap: 4, marginTop: 22 }}>
+                          {knowledgeSegments.map(seg => (
+                            <div
+                              key={seg.type}
+                              title={`${seg.label}: ${seg.count}`}
+                              style={{ width: `${seg.share}%`, height: 6, borderRadius: 3, background: seg.color }}
+                            />
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap" style={{ gap: '8px 24px', marginTop: 16 }}>
+                          {knowledgeSegments.map(seg => (
+                            <div key={seg.type} className="flex items-center" style={{ gap: 7 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: seg.color, flexShrink: 0 }} />
+                              <span style={{ fontSize: 13, color: '#6b6580' }}>{seg.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#17132a', fontVariantNumeric: 'tabular-nums' }}>{seg.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {builtFrom.length > 0 && (
+                          <p style={{ marginTop: 18, fontSize: 12, color: '#a09aae' }}>
+                            Built from {builtFrom.map(s => `${s.count} from ${s.label}`).join('  ·  ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {summaryState === 'ready' && knowledgeTotal === 0 && (
+                      <p style={{ marginTop: 28, fontSize: 14, color: '#8b849c' }}>
+                        Nothing saved yet. Your first coaching session, practice interview or logged win starts it off.
+                      </p>
+                    )}
+                    {summaryState === 'loading' && (
+                      <p style={{ marginTop: 28, fontSize: 14, color: '#a09aae' }}>Counting what it knows&hellip;</p>
+                    )}
+                    {summaryState === 'failed' && (
+                      <p style={{ marginTop: 28, fontSize: 14, color: '#a09aae' }}>
+                        We couldn&apos;t count your Vault just now. Everything in it is still there — refresh to try again.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                {/* ---- Where it all came from ---- */}
+                {careerHistory.length > 0 && (
+                  <section className="bg-white rounded-2xl border border-[#ece9f6] px-6 sm:px-9 py-7" style={{ boxShadow: '0 1px 2px rgba(23,16,48,0.04)' }}>
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <h2 style={{ fontSize: 20, fontWeight: 650, letterSpacing: '-0.02em', color: '#17132a' }}>Career History</h2>
+                      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a09aae' }}>
+                        {careerHistory.length} role{careerHistory.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                    <p style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#6b6580' }}>
+                      The roles your saved details came from, most recent first.
+                    </p>
+
+                    <div style={{ marginTop: 24, position: 'relative', paddingLeft: 22 }}>
+                      <div aria-hidden="true" style={{ position: 'absolute', left: 3, top: 7, bottom: 7, width: 1, background: 'linear-gradient(180deg, #e2dbf6, #f3effc)' }} />
+                      {careerHistory.map((role, index) => (
+                        <div
+                          key={`${role.title}-${role.company}-${index}`}
+                          style={{ position: 'relative', paddingBottom: index === careerHistory.length - 1 ? 0 : 20 }}
+                        >
+                          <span aria-hidden="true" style={{ position: 'absolute', left: -22, top: 5, width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 0 3px #fff' }} />
+                          <div className="flex items-baseline justify-between gap-4">
+                            <div className="min-w-0">
+                              <p style={{ fontSize: 15, fontWeight: 650, color: '#17132a', lineHeight: 1.3 }}>{role.title || 'Role not named'}</p>
+                              {role.company && <p style={{ marginTop: 2, fontSize: 13.5, color: '#7d7690' }}>{role.company}</p>}
+                            </div>
+                            <span style={{ fontSize: 12.5, color: '#a09aae', flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                              {role.entries} detail{role.entries === 1 ? '' : 's'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* ---- The wins themselves, which are the part only they can add ---- */}
+                <section className="bg-white rounded-2xl border border-[#ece9f6] px-6 sm:px-9 py-7" style={{ boxShadow: '0 1px 2px rgba(23,16,48,0.04)' }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-3 flex-wrap">
+                        <h2 style={{ fontSize: 20, fontWeight: 650, letterSpacing: '-0.02em', color: '#17132a' }}>Accomplishments</h2>
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a09aae' }}>
+                          {accomplishments.length} logged
+                        </span>
+                      </div>
+                      <p style={{ marginTop: 6, fontSize: 14, lineHeight: 1.5, color: '#6b6580' }}>
+                        Log wins as they happen: promotions, projects, metrics, skills, anything worth remembering.
+                      </p>
+                    </div>
+                    {/* Locked rather than hidden. A free account should be
+                        able to see that its Vault takes wins; what it cannot
+                        do is add one, and the click says why. */}
+                    <button
+                      onClick={() => openLogWin()}
+                      title={mayLogWins ? undefined : 'Logging wins is part of Vault'}
+                      className={`text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors whitespace-nowrap flex-shrink-0 ${
+                        mayLogWins
+                          ? 'border-purple-300 text-purple-600 hover:bg-purple-50'
+                          : 'border-gray-200 text-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      {mayLogWins ? '+ Log a Win' : '🔒 Log a Win'}
+                    </button>
+                  </div>
+
                   {accomplishments.length > 0 ? (
-                    <div className="space-y-1">
+                    <div className="space-y-1" style={{ marginTop: 18 }}>
                       {accomplishments.slice(0, 4).map((acc) => (
                         <div
                           key={acc.id}
@@ -893,141 +1171,274 @@ export default function CareerVaultPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-3 border border-dashed border-gray-200 rounded-lg bg-gray-50">
-                      <div className="text-4xl mb-2">🏆</div>
-                      {!currentJobEntry ? (
-                        <>
-                          <p className="text-sm font-semibold text-gray-600 mb-1">No current job set</p>
-                          <p className="text-sm text-gray-400 text-center leading-relaxed">
-                            Mark a job as Hired and wins you log will attach to that role automatically.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm font-semibold text-gray-600 mb-1">Nothing logged yet</p>
-                          <p className="text-sm text-gray-400 text-center leading-relaxed">
-                            The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
-                          </p>
-                        </>
-                      )}
+                    /* Not a blank container with a dashed edge round it. A thin
+                       rule, a small mark, and a sentence that says what goes
+                       here — the same furniture as a filled section. */
+                    <div style={{ marginTop: 22, borderTop: '1px solid #f0edf9', paddingTop: 22 }}>
+                      <div className="flex items-start gap-4">
+                        <span
+                          aria-hidden="true"
+                          className="flex items-center justify-center flex-shrink-0"
+                          style={{ width: 38, height: 38, borderRadius: '50%', fontSize: 16, background: 'linear-gradient(180deg, #faf8ff, #f4f0fd)', border: '1px solid #ebe5fb' }}
+                        >
+                          🏆
+                        </span>
+                        <div className="min-w-0">
+                          {!currentJobEntry ? (
+                            <>
+                              <p style={{ fontSize: 15, fontWeight: 650, color: '#17132a' }}>No current job set</p>
+                              <p style={{ marginTop: 4, fontSize: 14, lineHeight: 1.5, color: '#6b6580', maxWidth: '54ch' }}>
+                                Mark a job as Hired and wins you log will attach to that role automatically.
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p style={{ fontSize: 15, fontWeight: 650, color: '#17132a' }}>Nothing logged yet</p>
+                              <p style={{ marginTop: 4, fontSize: 14, lineHeight: 1.5, color: '#6b6580', maxWidth: '54ch' }}>
+                                The next time something good happens, log it here. Takes 30 seconds. Saves hours later.
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
-                </div>
-
+                </section>
               </div>
 
-             {/* RIGHT: Compact status + actions + upgrade (4 cols) */}
-                <div className="col-span-1 md:col-span-4 flex flex-col gap-3">
+              {/* ============================ RIGHT ============================ */}
+              <div className="min-w-0 flex flex-col gap-4">
 
-                  {/* Stats + Quick Actions combined */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="mb-3">
-                      <h2 className="text-lg md:text-sm font-semibold text-gray-900">Your Career Vault</h2>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      {[
-                        { label: 'Logged',   value: accomplishments.length, icon: '🏆', onClick: null },
-                        { label: 'Resumes',  value: resumeCount,            icon: '📄', onClick: resumeCount > 0 ? () => setShowResumeListModal(true) : null },
-                        { label: 'Archived', value: archivedCards.length + archivedCoreResumes.length, icon: '📁', onClick: (archivedCards.length + archivedCoreResumes.length) > 0 ? () => setShowArchiveModal(true) : null },
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          onClick={item.onClick || undefined}
-                          className={`text-center p-2 bg-gray-50 rounded-lg border border-gray-200 select-none ${item.onClick ? 'cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors' : ''}`}
-                        >
-                          <div className="text-2xl md:text-base">{item.icon}</div>
-                          <div className="text-2xl md:text-lg font-bold text-gray-700">{item.value}</div>
-                          <div className="text-xs md:text-[9px] text-gray-400 uppercase tracking-wide">{item.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-t border-gray-100 pt-1 mt-1 mb-2 text-center">
-                      <p className="text-sm md:text-xs font-bold text-gray-500 uppercase tracking-wide">
-                        {isPro ? 'Quick Actions' : 'Quick Actions Still Available in Vault'}
-                      </p>
-                    </div>
-                    <div className="space-y-1.5">
-                      <button
-                        onClick={accomplishments.length > 0 ? handleOpenReviewPrep : null}
-                        disabled={accomplishments.length === 0}
-                        className={`w-full flex items-center gap-2 p-2 rounded-lg border transition-colors text-left group shadow-sm ${
-                          accomplishments.length > 0
-                            ? 'bg-purple-50 border-purple-200 hover:bg-purple-100 hover:border-purple-400'
-                            : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
-                        }`}>
-                        <span className="text-base md:text-sm">📋</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-800">Prepare for My Review</p>
-                          <p className="text-sm text-gray-400">
-                            {accomplishments.length > 0
-                              ? `Turn your ${accomplishments.length} win${accomplishments.length !== 1 ? 's' : ''} into a review document`
-                              : 'Log wins to unlock your review document'}
-                          </p>
-                        </div>
-                        {accomplishments.length > 0 && (
-                          <span className="text-purple-400 group-hover:text-purple-600 text-base md:text-xs transition-colors">→</span>
+                {/* ---- What the knowing adds up to ----
+                    Four figures in one card rather than four cards, because
+                    they are one reading. Thin rules between them, no boxes. */}
+                <section className="bg-white rounded-xl border border-[#ece9f6] overflow-hidden" style={{ boxShadow: '0 1px 2px rgba(23,16,48,0.04)' }}>
+                  <div className="px-5 pt-4 pb-3">
+                    <h2 style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.005em', color: '#17132a' }}>
+                      What&rsquo;s building in your Vault
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-2" style={{ borderTop: '1px solid #f0edf9' }}>
+                    {intelligenceCards.map((card, i) => (
+                      <div
+                        key={card.label}
+                        className="px-5 py-4"
+                        style={{
+                          borderRight: i % 2 === 0 ? '1px solid #f0edf9' : undefined,
+                          borderBottom: i < 2 ? '1px solid #f0edf9' : undefined,
+                        }}
+                      >
+                        <p style={{ fontSize: 30, fontWeight: 650, lineHeight: 1, letterSpacing: '-0.035em', color: '#17132a', fontVariantNumeric: 'tabular-nums' }}>
+                          {card.value}
+                        </p>
+                        <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 650, lineHeight: 1.25, color: '#453f55' }}>{card.label}</p>
+                        {card.note && (
+                          <p style={{ marginTop: 4, fontSize: 12, lineHeight: 1.35, color: '#9a94a8' }}>{card.note}</p>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* ================================================================
+                    KEEP IT GROWING
+                    The current job anchors it, because a win belongs to a role,
+                    and the four ways in are the ones that already exist.
+                    ================================================================ */}
+                <section className="bg-white rounded-xl border border-[#ece9f6] p-5" style={{ boxShadow: '0 1px 2px rgba(23,16,48,0.04)' }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 650, letterSpacing: '-0.015em', color: '#17132a' }}>Keep it growing.</h2>
+                  <p style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: '#6b6580' }}>
+                    Your Vault gets stronger every time you add a win, a voice, or a piece of proof.
+                  </p>
+
+                  {/* The role everything new attaches to. */}
+                  {currentJobEntry ? (() => {
+                    const start = currentJobEntry.hired_at
+                      ? new Date(currentJobEntry.hired_at)
+                      : currentJobEntry.application_date
+                      ? new Date(currentJobEntry.application_date)
+                      : null;
+                    let tenureStr = '';
+                    let sinceStr = '';
+                    if (start) {
+                      const now = new Date();
+                      const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+                      const years = Math.floor(totalMonths / 12);
+                      const months = totalMonths % 12;
+                      if (years > 0 && months > 0) tenureStr = `${years} yr ${months} mo`;
+                      else if (years > 0) tenureStr = `${years} yr`;
+                      else if (months > 0) tenureStr = `${months} mo`;
+                      else tenureStr = 'Just started';
+                      sinceStr = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    }
+                    const meta = [sinceStr ? `Since ${sinceStr}` : '', tenureStr && tenureStr !== 'Just started' ? `${tenureStr} in role` : '']
+                      .filter(Boolean).join(' · ');
+                    return (
+                      <button
+                        onClick={() => setShowJobModal(true)}
+                        className="w-full text-left group flex items-center gap-3 transition-colors hover:border-[#ddd2fa]"
+                        style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(180deg, #faf8ff, #f6f2fe)', border: '1px solid #ece5fc' }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex items-center justify-center flex-shrink-0"
+                          style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff', border: '1px solid #e7dffb', fontSize: 15 }}
+                        >
+                          🏆
+                        </span>
+                        <span className="flex-1 min-w-0 block">
+                          <span className="block" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7c3aed' }}>
+                            Current job
+                          </span>
+                          <span className="block truncate" style={{ fontSize: 13.5, fontWeight: 700, color: '#17132a', marginTop: 1 }}>{currentJobEntry.title}</span>
+                          <span className="block truncate" style={{ fontSize: 12.5, color: '#7d7690' }}>{currentJobEntry.company}</span>
+                          {meta && (
+                            <span className="block truncate" style={{ marginTop: 2, fontSize: 11.5, color: '#a09aae' }}>{meta}</span>
+                          )}
+                        </span>
+                        <span className="flex-shrink-0 text-[#c9c2dc] group-hover:text-[#8b5cf6] transition-colors" style={{ fontSize: 13 }}>→</span>
                       </button>
-                      <button onClick={() => router.push('/resume-coach')}
-                        className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
-                        <span className="text-base md:text-sm">📄</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-800">Resume Writer</p>
-                          <p className="text-sm text-gray-400">{isPro ? 'Build, coach, and download' : 'View, format, download'}</p>
-                        </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
-                      </button>
-                      <button onClick={() => setShowArchiveModal(true)}
-                        className="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-purple-50 border border-gray-200 hover:border-purple-300 transition-colors text-left group shadow-sm">
-                        <span className="text-base md:text-sm">📁</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-800">View Archive</p>
-                          <p className="text-sm text-gray-400">{archivedCards.length + archivedCoreResumes.length} archived items</p>
-                        </div>
-                        <span className="text-gray-300 group-hover:text-purple-400 text-base md:text-xs transition-colors">→</span>
+                    );
+                  })() : (
+                    <div style={{ marginTop: 14, padding: '12px', borderRadius: 10, background: '#faf9fc', border: '1px solid #f0edf9' }}>
+                      <p style={{ fontSize: 13, lineHeight: 1.45, color: '#6b6580' }}>
+                        No current job set. Mark a job card as Hired and it appears here automatically.
+                      </p>
+                      <button
+                        onClick={() => setShowSetJobModal(true)}
+                        className="font-semibold text-purple-600 hover:text-purple-700 transition-colors"
+                        style={{ marginTop: 8, fontSize: 13 }}
+                      >
+                        Set current job manually →
                       </button>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Upgrade CTA */}
-                  <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-3 pb-6">
-                  {isPro ? (
-                      <>
-                        <h2 className="text-lg md:text-sm font-semibold text-gray-900 mb-0.5">Ready to search again?</h2>
-                        <p className="text-sm text-gray-500 mb-1.5">Update your resume in minutes using your logged wins.</p>
-                        <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                          <p className="text-sm text-gray-700 leading-snug">
-                            You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Your coach remembers all of it.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setShowNewSearchModal(true)}
-                          className="block mx-auto text-white rounded-lg py-2 px-8 text-sm font-semibold hover:opacity-90 transition-opacity"
-                          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-                        >
-                          Start new search →
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="text-lg md:text-sm font-semibold text-gray-900 mb-0.5">Ready to job search again?</h2>
-                        <p className="text-sm text-gray-500 mb-1.5">Upgrade to Pro and we'll coach everything you've logged into a stronger resume.</p>
-                        <div className="bg-purple-50 border-l-4 border-purple-600 p-1.5 rounded-r mb-2">
-                          <p className="text-sm text-gray-700 leading-snug">
-                            You've logged <strong className="text-purple-700">{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong> in your current job. Upgrade so your coach can apply them to your resume.
-                          </p>
-                        </div>
-                       <button
-                          onClick={() => setShowUpgradeModal(true)}
-                          className="w-full bg-purple-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-purple-700 transition-colors"
-                        >
-                          Upgrade to Pro — $29.99/mo
-                        </button>
-                      </>
+                  <div style={{ marginTop: 14 }}>
+                    {growthActions.map((action, i) => (
+                      <button
+                        key={action.title}
+                        onClick={action.onClick}
+                        className="w-full text-left group flex items-start gap-3 transition-colors hover:bg-[#faf8ff]"
+                        style={{ padding: '11px 8px', borderTop: i === 0 ? undefined : '1px solid #f3f0fa', borderRadius: 8 }}
+                      >
+                        <span aria-hidden="true" className="flex-shrink-0" style={{ fontSize: 14, marginTop: 1 }}>{action.icon}</span>
+                        <span className="flex-1 min-w-0 block">
+                          <span className="block" style={{ fontSize: 13.5, fontWeight: 650, color: '#221d33' }}>{action.title}</span>
+                          <span className="block" style={{ marginTop: 2, fontSize: 12.5, lineHeight: 1.4, color: '#837c96' }}>{action.desc}</span>
+                        </span>
+                        <span className="flex-shrink-0 text-[#cdc6de] group-hover:text-[#8b5cf6] transition-colors" style={{ fontSize: 13, marginTop: 2 }}>→</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* ---- What the Vault can hand back ---- */}
+                <section className="bg-white rounded-xl border border-[#ece9f6] px-5 py-2" style={{ boxShadow: '0 1px 2px rgba(23,16,48,0.04)' }}>
+                  {/* Two different reasons this can be unavailable, and they
+                      are not the same sentence. With no wins there is nothing
+                      to make a document out of; on a free plan there is, and
+                      the plan is what unlocks it - so that one stays clickable
+                      and explains itself. */}
+                  <button
+                    onClick={accomplishments.length > 0 ? handleOpenReviewPrep : undefined}
+                    disabled={accomplishments.length === 0}
+                    className={`w-full text-left group flex items-start gap-3 transition-colors rounded-lg ${
+                      accomplishments.length > 0 ? 'hover:bg-[#faf8ff]' : 'opacity-60 cursor-not-allowed'
+                    }`}
+                    style={{ padding: '11px 6px' }}
+                  >
+                    <span aria-hidden="true" className="flex-shrink-0" style={{ fontSize: 14, marginTop: 1 }}>
+                      {mayPrepReview ? '📋' : '🔒'}
+                    </span>
+                    <span className="flex-1 min-w-0 block">
+                      <span className="block" style={{ fontSize: 13.5, fontWeight: 650, color: '#221d33' }}>Prepare for My Review</span>
+                      <span className="block" style={{ marginTop: 2, fontSize: 12.5, lineHeight: 1.4, color: '#837c96' }}>
+                        {accomplishments.length === 0
+                          ? 'Log wins to unlock your review document'
+                          : mayPrepReview
+                          ? `Turn your ${accomplishments.length} win${accomplishments.length !== 1 ? 's' : ''} into a review document`
+                          : 'Part of Vault — turn your wins into a review document'}
+                      </span>
+                    </span>
+                    {accomplishments.length > 0 && (
+                      <span className="flex-shrink-0 text-[#cdc6de] group-hover:text-[#8b5cf6] transition-colors" style={{ fontSize: 13, marginTop: 2 }}>→</span>
                     )}
-                  </div>
+                  </button>
 
-                </div>
+                  <button
+                    onClick={() => resumeCount > 0 ? setShowResumeListModal(true) : router.push('/resume-coach')}
+                    className="w-full text-left group flex items-start gap-3 transition-colors hover:bg-[#faf8ff] rounded-lg"
+                    style={{ padding: '11px 6px', borderTop: '1px solid #f3f0fa' }}
+                  >
+                    <span aria-hidden="true" className="flex-shrink-0" style={{ fontSize: 14, marginTop: 1 }}>📄</span>
+                    <span className="flex-1 min-w-0 block">
+                      <span className="block" style={{ fontSize: 13.5, fontWeight: 650, color: '#221d33' }}>Your résumés</span>
+                      <span className="block" style={{ marginTop: 2, fontSize: 12.5, lineHeight: 1.4, color: '#837c96' }}>
+                        {resumeCount > 0
+                          ? `${resumeCount} saved and ready to reuse`
+                          : (isPro ? 'Build, coach, and download' : 'View, format, download')}
+                      </span>
+                    </span>
+                    <span className="flex-shrink-0 text-[#cdc6de] group-hover:text-[#8b5cf6] transition-colors" style={{ fontSize: 13, marginTop: 2 }}>→</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowArchiveModal(true)}
+                    className="w-full text-left group flex items-start gap-3 transition-colors hover:bg-[#faf8ff] rounded-lg"
+                    style={{ padding: '11px 6px', borderTop: '1px solid #f3f0fa' }}
+                  >
+                    <span aria-hidden="true" className="flex-shrink-0" style={{ fontSize: 14, marginTop: 1 }}>📁</span>
+                    <span className="flex-1 min-w-0 block">
+                      <span className="block" style={{ fontSize: 13.5, fontWeight: 650, color: '#221d33' }}>View Archive</span>
+                      <span className="block" style={{ marginTop: 2, fontSize: 12.5, lineHeight: 1.4, color: '#837c96' }}>
+                        {archivedCards.length + archivedCoreResumes.length} archived items
+                      </span>
+                    </span>
+                    <span className="flex-shrink-0 text-[#cdc6de] group-hover:text-[#8b5cf6] transition-colors" style={{ fontSize: 13, marginTop: 2 }}>→</span>
+                  </button>
+                </section>
+
+                {/* ---- And the way back out into a search ---- */}
+                <section
+                  className="rounded-xl border p-5"
+                  style={{ borderColor: '#e4daf9', background: 'linear-gradient(180deg, #fdfcff, #f9f6fe)' }}
+                >
+                  {isPro ? (
+                    <>
+                      <h2 style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: '#17132a' }}>Ready to search again?</h2>
+                      <p style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: '#6b6580' }}>
+                        Update your résumé in minutes using everything in here. You&apos;ve logged{' '}
+                        <strong style={{ color: '#6d28d9', fontWeight: 700 }}>{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong>{' '}
+                        in your current job, and your coach remembers all of it.
+                      </p>
+                      <button
+                        onClick={() => setShowNewSearchModal(true)}
+                        className="w-full text-white rounded-lg py-2 text-sm font-semibold hover:opacity-90 transition-opacity"
+                        style={{ marginTop: 14, background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                      >
+                        Start new search →
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <h2 style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: '#17132a' }}>Ready to job search again?</h2>
+                      <p style={{ marginTop: 5, fontSize: 13, lineHeight: 1.45, color: '#6b6580' }}>
+                        Upgrade to Pro and we&apos;ll coach everything you&apos;ve logged into a stronger résumé. You&apos;ve logged{' '}
+                        <strong style={{ color: '#6d28d9', fontWeight: 700 }}>{accomplishments.length} win{accomplishments.length !== 1 ? 's' : ''}</strong>{' '}
+                        in your current job.
+                      </p>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="w-full bg-purple-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-purple-700 transition-colors"
+                        style={{ marginTop: 14 }}
+                      >
+                        Upgrade to Pro — $29.99/mo
+                      </button>
+                    </>
+                  )}
+                </section>
+              </div>
             </div>
           </div>
         </div>
@@ -1047,7 +1458,7 @@ export default function CareerVaultPage() {
             }
             setCurrentJobEntry(prev => ({ ...prev, notes }));
           }}
-          onLogWin={() => { setShowJobModal(false); setShowLogModal(true); }}
+          onLogWin={() => { setShowJobModal(false); openLogWin(); }}
           onLinkResume={async (cardId, resumeId) => {
             const { error } = await supabase.from('applications').update({ resume_id: resumeId }).eq('id', cardId);
             if (error) {
@@ -2102,6 +2513,13 @@ export default function CareerVaultPage() {
           </div>
         </div>
       )}
+
+   <VaultUpgradeModal
+        isOpen={Boolean(vaultPrompt)}
+        onClose={() => setVaultPrompt(null)}
+        title={vaultPrompt?.title}
+        message={vaultPrompt?.message}
+      />
 
    <UpgradeModal
         isOpen={showUpgradeModal}

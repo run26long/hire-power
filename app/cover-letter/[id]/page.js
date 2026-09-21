@@ -419,6 +419,7 @@ export default function CoverLetterPage() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${checkSession.access_token}` },
           body: JSON.stringify({
             coverLetterData: coverLetter.cover_letter_data,
+          coverLetterId: coverLetter.id,
             templateName: templateForApi,
             fontSize: selectedSize,
             font: selectedFont,
@@ -453,6 +454,7 @@ export default function CoverLetterPage() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${autoFitSession.access_token}` },
           body: JSON.stringify({
             coverLetterData: coverLetter.cover_letter_data,
+          coverLetterId: coverLetter.id,
             templateName: templateForApi,
             fontSize: size,
             font: selectedFont,
@@ -537,6 +539,7 @@ export default function CoverLetterPage() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${dlSession.access_token}` },
         body: JSON.stringify({
           coverLetterData: coverLetter.cover_letter_data,
+          coverLetterId: coverLetter.id,
           templateName: templateForApi,
           fontSize: selectedSize,
           font: selectedFont,
@@ -582,6 +585,7 @@ export default function CoverLetterPage() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${prevSession.access_token}` },
         body: JSON.stringify({
           coverLetterData: coverLetter.cover_letter_data,
+          coverLetterId: coverLetter.id,
           templateName: templateForApi,
           fontSize: selectedSize,
           font: selectedFont,

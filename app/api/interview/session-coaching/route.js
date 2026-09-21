@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { convertResumeToText } from '@/lib/resumeText';
 import { apiError } from '@/lib/apiError';
+import { requireTier } from '@/lib/requireTier';
+import { canAccessBuiltWork } from '@/lib/tiers';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -244,6 +246,16 @@ export async function POST(request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const userId = user.id;
+
+    // ---- WHO MAY READ A SESSION BACK ----
+    //
+    // A free account gets three practice sessions and the score at the end of
+    // each. Reading one back afterwards - every question, every answer, and
+    // the coaching written over them - is the part that keeps paying out, and
+    // it is what Vault is for. So it is gated here, where it is produced,
+    // rather than only in the panel that displays it.
+    const gate = await requireTier(userId, canAccessBuiltWork, { supabase });
+    if (gate) return gate;
 
     // ---- INPUT ----
     const { session_id } = await request.json();

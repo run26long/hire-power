@@ -72,15 +72,18 @@ export async function POST(request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return Response.json({ error: 'Unauthorized' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
+    let caller = null
     if (token !== process.env.INTERNAL_API_SECRET) {
       const { createClient: createAuthClient } = await import('@supabase/supabase-js')
       const authSupabase = createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
       const { data: { user }, error: authError } = await authSupabase.auth.getUser(token)
       if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      caller = user
     }
 
     const {
       coverLetterData,
+      coverLetterId,
       templateName,
       fontSize,
       font,
@@ -88,6 +91,27 @@ export async function POST(request) {
       action,
       userId
     } = await request.json()
+
+    // ---- WHOSE COVER LETTER ----
+    //
+    // No tier question here: three letters is the whole allowance below Pro,
+    // the cap is taken at the point one is written, and a letter somebody
+    // already has is theirs to download on any plan. What was missing was the
+    // ownership check - the route rendered whatever JSON the body carried and
+    // never asked whose it was.
+    if (caller && coverLetterId) {
+      const gate = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: subject, error: subjectError } = await gate
+        .from('cover_letters').select('id, user_id').eq('id', coverLetterId).maybeSingle()
+
+      if (subjectError) {
+        console.error('[generate-cover-letter-pdf] Lookup failed:', subjectError)
+        return Response.json({ error: "We couldn't check that cover letter just now." }, { status: 500 })
+      }
+      if (!subject || subject.user_id !== caller.id) {
+        return Response.json({ error: 'Cover letter not found.' }, { status: 404 })
+      }
+    }
 
     const fontMap = {
       'Lato': 'Lato',

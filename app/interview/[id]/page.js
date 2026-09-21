@@ -8,6 +8,8 @@ import Breadcrumb from '../../components/Breadcrumb';
 import ErrorToast from '../../components/ErrorToast';
 import SuccessToast from '../../components/SuccessToast';
 import UpgradeModal from '../../components/UpgradeModal';
+import VaultUpgradeModal from '../../components/VaultUpgradeModal';
+import { canAccessBuiltWork } from '@/lib/tiers';
 import PracticeView from '../../components/interview/PracticeView';
 import PracticeLeftPanel from '../../components/interview/PracticeLeftPanel';
 
@@ -79,6 +81,7 @@ export default function InterviewDetailPage() {
   // pastPracticeSessions, which is the completed history the left panel lists.
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [reviewSessionId, setReviewSessionId] = useState(null);
+  const [vaultPrompt, setVaultPrompt] = useState(false);
   // A paused session clicked in the history, to be picked back up rather than
   // read back. Separate from reviewSessionId because they end in different
   // states: one resumes the interview, the other opens its results.
@@ -787,10 +790,21 @@ export default function InterviewDetailPage() {
                     if (s.status === 'in_progress') {
                       setReviewSessionId(null);
                       setResumeSessionId(s.id);
-                    } else {
-                      setResumeSessionId(null);
-                      setReviewSessionId(s.id);
+                      return;
                     }
+                    // ---- THE SCORE IS FREE, THE TRANSCRIPT IS NOT ----
+                    // Three practice sessions come with the free plan and so
+                    // does the score at the end of each. Reading one back -
+                    // every question, every answer, and the coaching written
+                    // over them - is the part that keeps paying out later,
+                    // and it is what the Vault plan is for. The list still
+                    // shows the session and its score either way.
+                    if (!canAccessBuiltWork(userProfile?.subscription_tier)) {
+                      setVaultPrompt(true);
+                      return;
+                    }
+                    setResumeSessionId(null);
+                    setReviewSessionId(s.id);
                   }}
                   onSessionDeleted={handleSessionDeleted}
                   canDelete={isPro}
@@ -964,6 +978,13 @@ export default function InterviewDetailPage() {
       <ErrorToast message={errorToast} onClose={() => setErrorToast(null)} />
       <SuccessToast message={successToast} onClose={() => setSuccessToast(null)} />
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+
+      <VaultUpgradeModal
+        isOpen={vaultPrompt}
+        onClose={() => setVaultPrompt(false)}
+        title="Read your practice back."
+        message="Your scores are yours on any plan. The full transcript of each session, with the coaching written over your answers, is part of Vault."
+      />
     </div>
   );
 }
