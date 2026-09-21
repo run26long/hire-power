@@ -630,8 +630,7 @@ const supabase = createClient();
                           'Unlimited interview prep for every job',
                           'Unlimited AI editing tools',
                           'Career Profile with recruiter tools',
-                          'Up to 3 career directions',
-                          'Hiring Brief and Career Q&A for recruiters',
+                          
                         ].map((item) => (
                           <div key={item} className="flex items-start gap-2 text-xs text-purple-900">
                             <span className="text-purple-500 flex-shrink-0 mt-0.5">✓</span>
@@ -1276,7 +1275,11 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Company research integration</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Profile</li>
                 <li><span className="check">✓</span> Career Profile with 3 career directions</li>
+                <li><span className="check">✓</span> In My Own Words (text and video)</li>
+                <li><span className="check">✓</span> Testimonials and reference sheet</li>
+                <li><span className="check">✓</span> Evidence and portfolio uploads</li>
                 <li><span className="check">✓</span> Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
+                <li><span className="check">✓</span> Privacy controls</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Vault</li>
                 <li><span className="check">✓</span> Career Vault with win logging</li>
               </ul>
@@ -1367,7 +1370,11 @@ const supabase = createClient();
                   'Company research integration',
                   '## Career Profile',
                   'Career Profile with 3 career directions',
+                  'In My Own Words (text and video)',
+                  'Testimonials and reference sheet',
+                  'Evidence and portfolio uploads',
                   'Recruiter tools (Career Q&A and Hiring Brief)',
+                  'Privacy controls',
                   '## Career Vault',
                   'Career Vault with win logging',
                 ]

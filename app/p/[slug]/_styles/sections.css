@@ -1154,6 +1154,7 @@
 
   /* The tone, cycled by the category's position in the payload. */
   --tone-rgb: var(--profile-tone-a-rgb);
+  --tone-ink-rgb: var(--profile-tone-a-ink-rgb);
 
   flex: 0 0 auto;
   padding: var(--card-pad);
@@ -1169,8 +1170,8 @@
     var(--profile-surface);
 }
 
-.hp-card[data-tone="1"] { --tone-rgb: var(--profile-tone-b-rgb); }
-.hp-card[data-tone="2"] { --tone-rgb: var(--profile-tone-c-rgb); }
+.hp-card[data-tone="1"] { --tone-rgb: var(--profile-tone-b-rgb); --tone-ink-rgb: var(--profile-tone-b-ink-rgb); }
+.hp-card[data-tone="2"] { --tone-rgb: var(--profile-tone-c-rgb); --tone-ink-rgb: var(--profile-tone-c-ink-rgb); }
 
 /* Until the plan lands the card has no width of its own, so its skills sit in
    one wrapping run rather than jumping between two layouts. */
@@ -1200,7 +1201,7 @@
   letter-spacing: 0.17em;
   text-transform: uppercase;
   line-height: 1.35;
-  color: rgb(var(--tone-rgb) / 0.94);
+  color: rgb(var(--tone-ink-rgb) / 0.94);
 }
 
 /* ---- The mosaic ---- */
@@ -2101,12 +2102,12 @@
   transition: border-color 180ms ease, transform 180ms ease, background-color 180ms ease;
 }
 
-.hp-ev-tile[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); }
-.hp-ev-tile[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); }
-.hp-ev-tile[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); }
-.hp-ev-chip[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); }
-.hp-ev-chip[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); }
-.hp-ev-chip[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); }
+.hp-ev-tile[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); --ev-tone-ink: var(--profile-tone-a-ink-rgb); }
+.hp-ev-tile[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); --ev-tone-ink: var(--profile-tone-c-ink-rgb); }
+.hp-ev-tile[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); --ev-tone-ink: var(--profile-tone-b-ink-rgb); }
+.hp-ev-chip[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); --ev-tone-ink: var(--profile-tone-a-ink-rgb); }
+.hp-ev-chip[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); --ev-tone-ink: var(--profile-tone-c-ink-rgb); }
+.hp-ev-chip[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); --ev-tone-ink: var(--profile-tone-b-ink-rgb); }
 
 .hp-profile .hp-ev-tile:hover {
   border-color: rgb(var(--ev-tone) / 0.38);
@@ -2130,7 +2131,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgb(var(--ev-tone) / 0.92);
+  color: rgb(var(--ev-tone-ink) / 0.92);
 }
 
 .hp-ev-tile-title {
@@ -2179,9 +2180,6 @@
     min-height: 110px;
     margin-bottom: 22px;
     border-radius: 14px;
-    background:
-      radial-gradient(circle at 50% 44%, rgb(var(--ev-tone) / 0.2), rgb(var(--ev-tone) / 0.04) 72%);
-    border: 1px solid rgb(var(--ev-tone) / 0.14);
   }
 
   .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark svg {
@@ -2212,14 +2210,12 @@
   color: var(--profile-meta);
 }
 
-/* The lead, wherever the arrangement puts it. */
+/* The lead, wherever the arrangement puts it. Size and padding only: the
+   colour comes from .hp-ev-tile above, the same wash and the same edge every
+   other card in its family gets. */
 .hp-ev-tile[data-role='lead'] {
   min-height: 220px;
   padding: 26px;
-  background:
-    linear-gradient(150deg, rgb(var(--ev-tone) / 0.13) 0%, rgb(var(--ev-tone) / 0.02) 52%, rgb(var(--ev-tone) / 0) 78%),
-    var(--profile-surface-2);
-  border-color: rgb(var(--ev-tone) / 0.26);
 }
 
 .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark { width: 44px; height: 44px; border-radius: 13px; }
@@ -2376,45 +2372,20 @@
   .hp-profile .hp-ev-all:hover .hp-ev-all-arrow { transform: none; }
 }
 
-/* ---- The featured item, lit from behind ----
-   The v10 composition exactly: same proportions, same icon area, same order
+/* ---- The featured item ----
+   The composition is unchanged: same proportions, same icon area, same order
    of type, title, description and source, same corner for the action. What
-   changes is what the card is made of.
+   it is made of is no longer special. It was glass over a lamp - a light
+   painted behind the slot, a translucent body that read through it and a
+   luminous edge - which made the first card a different material from the
+   rest of the section and, being the brightest thing in it, an argument
+   about hierarchy rather than about the work. It is an ordinary card now,
+   in its own evidence family's colour, at the size the arrangement gives it.
 
-   It was an opaque slab the same colour as every other panel on the page.
-   Now it is glass over a light: a lamp painted behind it on the slot, a
-   translucent lavender surface that the lamp reads through, and a fine
-   luminous edge around the whole thing.
-
-   The order matters. The glow is on the slot rather than the tile because
-   the tile clips its own overflow, and a light that cannot leave the box it
-   is inside is not a light. The tile's backdrop-filter then blurs whatever
-   is behind it - which is that glow - so the card is genuinely lit through
-   rather than painted to look it. */
+   The slot keeps its stacking context: the action that sits on the card
+   corner is positioned against it. */
 .hp-ev-lead-slot { position: relative; isolation: isolate; }
 
-/* The lamp. Centred on the artifact area near the top of the card, reaching
-   past the card on every side and a little further to the right, so the haze
-   carries toward the contact sheet instead of stopping at an edge. It is
-   drawn behind everything in the slot and catches no pointer. */
-.hp-ev-lead-slot::before {
-  content: '';
-  position: absolute;
-  z-index: 0;
-  top: -70px;
-  bottom: -60px;
-  left: -70px;
-  right: -130px;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      52% 38% at 46% 30%,
-      rgb(var(--profile-accent-rgb) / 0.17) 0%,
-      rgb(var(--profile-accent-rgb) / 0.08) 38%,
-      rgb(var(--profile-accent-rgb) / 0.025) 64%,
-      rgb(var(--profile-accent-rgb) / 0) 82%
-    );
-}
 
 .hp-ev-lead-slot .hp-ev-tile[data-role='lead'] { position: relative; z-index: 1; }
 
@@ -2423,78 +2394,18 @@
    have taken that corner away from it. */
 .hp-ev-lead-slot .hp-ev-all { z-index: 1; }
 
-/* The glass. The dark is translucent rather than solid, so the lamp behind
-   it comes through as light rather than as a painted highlight, and the
-   lavender gradient over it is shallow enough that the type keeps the same
-   contrast it had on the opaque card. */
-.hp-profile .hp-ev-tile[data-role='lead'] {
-  background:
-    linear-gradient(
-      158deg,
-      rgb(var(--ev-tone) / 0.15) 0%,
-      rgb(var(--ev-tone) / 0.05) 52%,
-      rgb(var(--ev-tone) / 0.09) 100%
-    ),
-    var(--profile-glass-body);
-  border-color: rgb(var(--ev-tone) / 0.38);
-  -webkit-backdrop-filter: blur(16px) saturate(118%);
-  backdrop-filter: blur(16px) saturate(118%);
-  box-shadow:
-    inset 0 1px 0 var(--profile-lift-4),
-    inset 0 0 40px rgb(var(--ev-tone) / 0.05),
-    0 0 0 1px rgb(var(--ev-tone) / 0.07),
-    0 30px 70px rgb(var(--profile-scrim-rgb) / 0.5);
-}
 
-/* The edge brightens rather than the card lifting: a pane of glass does not
-   hop when you point at it. The translate stays, because it is v10's. */
-.hp-profile .hp-ev-tile[data-role='lead']:hover {
-  border-color: rgb(var(--ev-tone) / 0.55);
-  box-shadow:
-    inset 0 1px 0 var(--profile-lift-5),
-    inset 0 0 40px rgb(var(--ev-tone) / 0.08),
-    0 0 0 1px rgb(var(--ev-tone) / 0.12),
-    0 30px 70px rgb(var(--profile-scrim-rgb) / 0.5);
-}
 
 /* The artifact area is where the lamp is brightest, so the canvas inside the
    card carries a little more of it and its own hairline reads as lit. */
 @media (min-width: 1200px) {
-  .hp-ev-grid[data-count='5'] .hp-ev-tile[data-role='lead'] .hp-ev-tile-mark {
-    border-color: rgb(var(--ev-tone) / 0.26);
-    background:
-      radial-gradient(
-        circle at 50% 42%,
-        rgb(var(--ev-tone) / 0.26) 0%,
-        rgb(var(--ev-tone) / 0.09) 52%,
-        rgb(var(--ev-tone) / 0.02) 78%
-      );
-    box-shadow: inset 0 1px 0 var(--profile-lift-1);
-  }
 }
 
 /* On a phone the same glass, with the lamp pulled in close. A halo sized for
    a half-width card would reach most of the screen at this width, which is
    atmosphere turning into fog. */
 @media (max-width: 767px) {
-  .hp-ev-lead-slot::before {
-    top: -34px;
-    bottom: -30px;
-    left: -30px;
-    right: -30px;
-    background:
-      radial-gradient(
-        58% 34% at 50% 27%,
-        rgb(var(--profile-accent-rgb) / 0.15) 0%,
-        rgb(var(--profile-accent-rgb) / 0.06) 42%,
-        rgb(var(--profile-accent-rgb) / 0) 78%
-      );
-  }
 
-  .hp-profile .hp-ev-tile[data-role='lead'] {
-    -webkit-backdrop-filter: blur(12px) saturate(114%);
-    backdrop-filter: blur(12px) saturate(114%);
-  }
 }
 
 /* ---- Squared off, and closed with one line ----
@@ -3011,9 +2922,9 @@
   transition: border-color 160ms ease, transform 160ms ease;
 }
 
-.hp-ev-card[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); }
-.hp-ev-card[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); }
-.hp-ev-card[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); }
+.hp-ev-card[data-family='work'] { --ev-tone: var(--profile-tone-a-rgb); --ev-tone-ink: var(--profile-tone-a-ink-rgb); }
+.hp-ev-card[data-family='credentials'] { --ev-tone: var(--profile-tone-c-rgb); --ev-tone-ink: var(--profile-tone-c-ink-rgb); }
+.hp-ev-card[data-family='recognition'] { --ev-tone: var(--profile-tone-b-rgb); --ev-tone-ink: var(--profile-tone-b-ink-rgb); }
 
 .hp-ev-backdrop .hp-ev-card:hover {
   border-color: rgb(var(--ev-tone) / 0.4);
@@ -3043,7 +2954,7 @@
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: rgb(var(--ev-tone) / 0.92);
+  color: rgb(var(--ev-tone-ink) / 0.92);
 }
 
 .hp-ev-card-lead {
@@ -3994,13 +3905,24 @@
    The skills measuring layer is excluded by name. It is a hidden copy of
    every card used to take their natural widths, and it should carry as
    little as possible. */
+[data-hp-profile-mode="light"] .hp-impact-synthesis {
+  background:
+    linear-gradient(
+      158deg,
+      rgb(var(--profile-accent-rgb) / 0.07) 0%,
+      rgb(var(--profile-accent-rgb) / 0.03) 54%,
+      rgb(var(--profile-accent-rgb) / 0.015) 100%
+    ),
+    var(--profile-surface);
+}
+
 [data-hp-profile-mode="light"] .hp-role,
 [data-hp-profile-mode="light"] .hp-card:not([data-measure-card]),
 [data-hp-profile-mode="light"] .hp-voice,
 [data-hp-profile-mode="light"] .hp-impact-synthesis {
   box-shadow:
-    0 0 0 1px rgb(109 75 209 / 0.035),
-    0 10px 28px rgb(56 39 82 / 0.07);
+    0 0 0 1px rgb(var(--profile-accent-rgb) / 0.035),
+    0 10px 28px rgb(var(--profile-card-shadow-rgb) / 0.07);
 }
 
 /* ---- The portfolio grid, in light --------------------------------------
@@ -4020,8 +3942,8 @@
 [data-hp-profile-mode="light"] .hp-profile .hp-pf-mat {
   border-color: var(--profile-line-strong);
   box-shadow:
-    0 0 0 1px rgb(109 75 209 / 0.04),
-    0 14px 34px rgb(56 39 82 / 0.09);
+    0 0 0 1px rgb(var(--profile-accent-rgb) / 0.04),
+    0 14px 34px rgb(var(--profile-card-shadow-rgb) / 0.09);
 }
 
 [data-hp-profile-mode="light"] .hp-profile .hp-pf-mat-frame {

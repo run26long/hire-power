@@ -549,6 +549,19 @@ html:has(.hp-ed) {
   font-family: var(--profile-font-ui);
 }
 
+/* ---- The drawer, standing over a dark page ----------------------------
+   A darker backdrop than the scrim token gives on a dark ground, an edge
+   that can be seen against it, and a shadow deep enough to read as depth
+   rather than as a smudge. Geometry, width and behaviour are untouched. */
+[data-hp-profile-mode="dark"] .hp-ed-scrim {
+  background: rgb(0 0 0 / 0.46);
+}
+
+[data-hp-profile-mode="dark"] .hp-ed-drawer {
+  border-left: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow: -16px 0 48px rgb(0 0 0 / 0.55);
+}
+
 /* Inputs and buttons do not inherit the page font on their own. */
 .hp-ed-drawer input,
 .hp-ed-drawer select,

@@ -5,30 +5,49 @@ import { useResolvedProfileMode } from '@/lib/profileColorMode'
 // ============================================================================
 // THE HIRE POWER WORDMARK, ON WHICHEVER GROUND IT LANDS ON
 //
-// The one mark on the Career Profile that cannot be a token. It is a raster,
-// a raster cannot be recoloured by CSS without turning it into a silhouette,
-// and the white one is invisible the moment the page is not dark. So the mode
-// picks the file.
+// One asset, two treatments. The white wordmark is the shape in both modes:
+// on a dark page it is drawn as the image it is, and on a light one it is
+// used as a mask over a flat charcoal, which is the same mark in one colour
+// without a second file to keep in step with the first.
 //
-// Both files already existed. Nothing here was generated: the white mark is
-// the one the Profile has always used, and the dark one is the wordmark the
-// rest of the application uses on its own light pages.
+// WHY A MASK AND NOT A FILTER
+// The source is a raster. A filter chain can push white toward a colour but
+// only approximately, and the approximations are unreadable in the source;
+// a mask takes the alpha channel and lets the element paint whatever colour
+// it is told to, exactly. The charcoal is one value for every palette on
+// purpose: the mark is Hire Power's, not the profile's, and a wordmark that
+// changed hue with the owner's colour would be nine logos.
 //
-// The two are not the same shape - the white file is trimmed tighter, so at a
-// fixed height the dark mark renders a few pixels narrower. Both sit at the
-// end of a flex row with nothing depending on their width, so the difference
-// shows as a slightly different mark and not as a moved layout.
-//
-// One component rather than the three copies of this decision it replaces, so
-// a third asset or a third mode is one edit.
+// WHY THE SPAN CARRIES AN ASPECT RATIO
+// The image sized itself; a masked box cannot. The three places this renders
+// set one dimension and leave the other automatic - two set a height, one a
+// width - so the ratio of the asset is declared here and both directions
+// resolve to the size they always had.
 // ============================================================================
 
-const MARK = {
-  dark: '/images/hire-power-logo-white-v2.png',
-  light: '/images/HIRE_POWER_LOGO.png',
-}
+const WHITE_MARK = '/images/hire-power-logo-white-v2.png'
+
+// The asset's own pixels: 7016 x 1608.
+const MARK_RATIO = '7016 / 1608'
 
 export default function ProfileMark({ className }) {
   const mode = useResolvedProfileMode()
-  return <img className={className} src={MARK[mode]} alt="Hire Power" />
+
+  if (mode === 'light') {
+    return (
+      <span
+        className={className}
+        role="img"
+        aria-label="Hire Power"
+        data-mark="mono"
+        style={{
+          aspectRatio: MARK_RATIO,
+          WebkitMaskImage: `url(${WHITE_MARK})`,
+          maskImage: `url(${WHITE_MARK})`,
+        }}
+      />
+    )
+  }
+
+  return <img className={className} src={WHITE_MARK} alt="Hire Power" />
 }

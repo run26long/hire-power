@@ -9,7 +9,7 @@ import { ACCENT_VALUES, COLOR_MODES, normalizeAccent } from '@/lib/profileAppear
 // because template is the third column on the same row and will be written
 // here when it becomes settable.
 //
-// Body: { color_mode?: 'system' | 'light' | 'dark', accent?: <one of nine> }
+// Body: { color_mode?: 'light' | 'dark', accent?: <one of nine> }
 //
 // Either field, or both. The two controls in the drawer send one each, and a
 // body carrying neither is a request that asks for nothing and is refused as

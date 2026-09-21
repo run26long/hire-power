@@ -177,7 +177,7 @@
 
 .hp-act1 {
   position: relative;
-  background: var(--profile-void);
+  background: var(--profile-ground);
   overflow: hidden;
 }
 
@@ -1600,4 +1600,22 @@
   [data-hp-profile-mode="light"] .hp-bar .hp-btn-primary,
   [data-hp-profile-mode="light"] .hp-foot .hp-btn-primary,
   [data-hp-profile-mode="light"] .hp-owner-action { transition: none; }
+}
+
+/* ---- The wordmark in light -------------------------------------------
+   The white asset used as a mask, painted in one charcoal. Same box as the
+   image it replaces: the component declares the asset's aspect ratio, the
+   three call sites keep the height or width they always set, and nothing
+   about placement or spacing moves. One colour for every palette - the mark
+   belongs to Hire Power, not to the profile it sits on. */
+.hp-profile [data-mark="mono"],
+.hp-rt-backdrop [data-mark="mono"] {
+  display: inline-block;
+  background-color: #20242a;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }

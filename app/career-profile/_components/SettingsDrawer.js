@@ -2,7 +2,7 @@
 
 import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
 import { COLOR_MODES, normalizeColorMode } from '@/lib/profileColorMode'
-import { ACCENTS, DEFAULT_ACCENT, accentFor } from '@/lib/profileAccent'
+import { ACCENTS, DEFAULT_ACCENT, OFFERED_ACCENTS, accentFor } from '@/lib/profileAccent'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ============================================================================
@@ -100,7 +100,7 @@ function lensState(lens) {
 // The three words, in the order the control shows them. System first because
 // it is the one that defers rather than decides, and the two that decide read
 // naturally as the pair after it.
-const COLOR_MODE_LABEL = { system: 'System', light: 'Light', dark: 'Dark' }
+const COLOR_MODE_LABEL = { light: 'Light', dark: 'Dark' }
 
 // Three bars, drawn rather than typed for the reason the lock was: a glyph
 // renders at a different weight on every platform and this one sits beside
@@ -608,7 +608,14 @@ export default function SettingsDrawer({
               repeats it for anybody who cannot see which square went dark. */}
           <Group label="Color palette">
             <div className="hp-ed-accents" role="group" aria-label="Color palette">
-              {ACCENTS.map(palette => {
+              {/* The palettes on offer, and - if this profile is painted in
+                  one that has been withdrawn - the one it is actually using,
+                  so the picker never shows nine squares with none of them
+                  chosen. */}
+              {(OFFERED_ACCENTS.some(p => p.stored === accent)
+                ? OFFERED_ACCENTS
+                : ACCENTS.filter(p => !p.hidden || p.stored === accent)
+              ).map(palette => {
                 const on = accent === palette.stored
                 return (
                   <button
