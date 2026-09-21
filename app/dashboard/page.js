@@ -6,72 +6,58 @@ import { createClient } from '@/utils/supabase/client';
 import MainNav from '../components/MainNav';
 import ErrorToast from '../components/ErrorToast';
 import { canAccessBuiltWork } from '@/lib/tiers';
+import { fetchJSON } from '@/lib/fetchJSON';
 
 // ── Module-level components (no hooks inside render functions) ──
 
-function WhereBadge() {
-  return (
-    <div style={{
-      position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-      background: 'linear-gradient(to right,#667eea,#764ba2)',
-      color: 'white', fontSize: 12, fontWeight: 700,
-      padding: '5px 20px 7px', borderRadius: '0 0 12px 12px',
-      display: 'flex', alignItems: 'center', gap: 7,
-      whiteSpace: 'nowrap', letterSpacing: '0.02em', zIndex: 2,
-    }}>
-      <span style={{
-        width: 8, height: 8, borderRadius: '50%',
-        background: 'rgba(255,255,255,0.7)', flexShrink: 0,
-        animation: 'hp-pulse 2s ease-in-out infinite',
-      }} />
-      Where you left off
-    </div>
-  );
-}
-
-function HomeCard({ active, onClick, num, numColor, children }) {
-  const [hovered, setHovered] = useState(false);
-  const lit = active || hovered;
-  return (
-    <div
-      className="hp-card"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        borderRight: '1px solid rgba(0,0,0,0.06)',
-        padding: '20px 28px 16px',
-        cursor: 'pointer',
-        display: 'flex', flexDirection: 'column',
-        position: 'relative',
-        background: lit ? '#faf9ff' : 'white',
-        transition: 'background 0.18s',
-        overflow: 'visible',
-      }}
-    >
-      {active && <WhereBadge />}
-      <div className="hp-card-num" style={{
-        fontFamily: "'Fraunces', serif", fontWeight: 900,
-        fontSize: 'clamp(80px,8vw,108px)',
-        lineHeight: 1, letterSpacing: '-7px',
-        color: hovered ? '#9333ea' : '#ddd6fe',
-        marginBottom: 0, transition: 'color 0.2s',
-      }}>
-        {num}
-      </div>
-      {children(lit)}
-    </div>
-  );
-}
-
 // ── Pill helper ──
 const SP = {
-  base: { fontSize: 10, fontWeight: 600, padding: '2px 10px', borderRadius: 20, display: 'inline-block', alignSelf: 'flex-start', marginBottom: 14, letterSpacing: '0.02em' },
+  base: { fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, display: 'inline-block', letterSpacing: '0.02em', whiteSpace: 'nowrap' },
   free:  { background: '#f5f3ff', border: '1px solid #e9d5ff', color: '#7c3aed' },
   start: { background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#9ca3af' },
   prog:  { background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' },
   done:  { background: '#f0fdf4', border: '1px solid #d1fae5', color: '#166534' },
 };
+
+// The two states this design names its own colours for. Everything else -
+// "Not started", "Completed" - keeps the pill it already had.
+const PILL_PROGRESS = { fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 999, display: 'inline-block', whiteSpace: 'nowrap', color: '#9A5B00', background: '#FFF8E8', border: '1px solid #F4C866' };
+const PILL_PUBLISHED = { ...PILL_PROGRESS, color: '#137A3A', background: '#ECFDF3', border: '1px solid #C7F0D5' };
+
+// ── The primary panel ──
+//
+// The numeral and the badge share the first line and are part of the flow
+// rather than laid over it, so the heading beneath them starts at the same
+// height in both panels whatever the badge says.
+function PrimaryPanel({ onClick, numeral, heading, lead, copy, copyWidth, badge, cta }) {
+  return (
+    <div className="hp-panel" onClick={onClick}>
+      <span className="hp-panel-wash" aria-hidden="true" />
+      {badge ? <span className="hp-panel-badge">{badge}</span> : null}
+      <span className="hp-numeral" aria-hidden="true">{numeral}</span>
+      <div className="hp-panel-body">
+        <p className="hp-name">{heading}</p>
+        <p className="hp-lead">{lead}</p>
+        <p className="hp-copy" style={{ maxWidth: copyWidth }}>{copy}</p>
+        <span className="hp-cta">{cta}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── The tool column ──
+function ToolColumn({ onClick, numeral, name, lead, copy, copyWidth = 320, cta }) {
+  return (
+    <div className="hp-col" onClick={onClick}>
+      <span className="hp-numeral" aria-hidden="true">{numeral}</span>
+      <p className="hp-col-name">{name}</p>
+      <p className="hp-col-lead">{lead}</p>
+      <p className="hp-col-copy" style={{ maxWidth: copyWidth }}>{copy}</p>
+      <span className="hp-cta hp-cta-sm">{cta}</span>
+    </div>
+  );
+}
+
 
 // ── Main page ──
 
@@ -96,7 +82,6 @@ function DashboardContent() {
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
   const [toast, setToast] = useState(null);
-  const [applicationCount, setApplicationCount] = useState(0);
   const [hasBuildProgress, setHasBuildProgress] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -106,6 +91,10 @@ function DashboardContent() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [archivedCoreCount, setArchivedCoreCount] = useState(0);
+  // The one thing the page still asks about beyond the account itself:
+  // whether there is a Career Profile, and whether it is published. Optional,
+  // like everything else here - the panel renders either way.
+  const [profileSignals, setProfileSignals] = useState(null);
 
   const searchParams = useSearchParams();
 
@@ -206,11 +195,15 @@ function DashboardContent() {
         });
         if (meaningfulResume) setCoreResume(meaningfulResume);
 
-        const { count: appCount } = await supabase
-          .from('applications')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-        if (appCount) setApplicationCount(appCount);
+        // Deliberately swallowed and deliberately not awaited with the rest:
+        // the dashboard has to render whether or not it answers, and a panel
+        // without its badge is worth more than a page that will not load.
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = { Authorization: `Bearer ${session?.access_token}` };
+
+        fetchJSON('/api/career-profile/manage', { headers })
+          .then(setProfileSignals)
+          .catch(err => console.warn('Dashboard profile signals failed (non-fatal):', err));
 
         if (searchParams.get('cancelled') === 'true') {
           setToast("Your subscription has been cancelled. You'll keep access until the end of your current billing period.");
@@ -375,12 +368,9 @@ function DashboardContent() {
   // ── Derived state ──
   const tier = userProfile?.subscription_tier;
   const isPro = tier === 'pro';
-  const unseenVault = Number(userProfile?.unseen_vault_count) || 0;
 
   const resumeCompleted = !!coreResume?.completed_at;
   const resumeInProgress = !!coreResume && !resumeCompleted;
-
-  const ccCta = !coreResume ? 'Start the conversation' : 'Update your direction';
 
   let rcCta = 'Upload your resume';
   let rcStatus = 'not-started';
@@ -399,9 +389,12 @@ function DashboardContent() {
     rcStatus = 'done';
   }
 
-  const icCta = !resumeCompleted
-    ? 'Finish your resume first'
-    : 'Start interview prep';
+  // A profile exists once there is a row for it. The management route
+  // answers with profile: null for an account that has never generated one,
+  // which is the same question the Career Profile page asks. These two are
+  // the whole of what this page reads from it.
+  const hasProfile = Boolean(profileSignals?.profile);
+  const profilePublished = profileSignals?.profile?.is_published === true;
 
 
   const firstName = userProfile?.display_name
@@ -409,7 +402,7 @@ function DashboardContent() {
     : userProfile?.email?.split('@')[0] || null;
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#f7f6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #ede9fe', borderTopColor: '#9333ea', animation: 'hp-spin 0.8s linear infinite' }} />
       <style>{`@keyframes hp-spin{to{transform:rotate(360deg)}} @keyframes hp-pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </div>
@@ -418,38 +411,130 @@ function DashboardContent() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,900;1,9..144,900&family=DM+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,700;1,9..144,900&family=DM+Sans:wght@400;500;600;700;800&display=swap');
         @keyframes hp-pulse{0%,100%{opacity:1}50%{opacity:0.3}}
         @keyframes hp-spin{to{transform:rotate(360deg)}}
-        @media (max-width: 768px) {
-          .hp-page { height: auto !important; min-height: calc(100vh - 56px); overflow: auto !important; grid-template-rows: auto auto !important; }
-          .hp-welcome { padding: 4px 20px 0 !important; }
-          .hp-hero-grid { grid-template-columns: 1fr !important; padding: 20px 20px 0 !important; }
-          .hp-hero-left { padding-bottom: 0 !important; padding-right: 0 !important; }
-          .hp-hero-right { padding-bottom: 20px !important; }
-          .hp-italic { font-size: 42px !important; letter-spacing: -2px !important; }
-          .hp-quote-box { margin-top: 14px !important; }
-          .hp-quote-p1 { display: inline !important; margin-bottom: 0 !important; }
-          .hp-quote-p2 { display: inline !important; }
-          .hp-cards-grid { grid-template-columns: 1fr !important; overflow: auto !important; }
-          .hp-card { display: grid !important; grid-template-columns: 1fr auto !important; grid-template-rows: auto auto auto auto !important; gap: 0 !important; border-right: none !important; border-bottom: 1px solid rgba(0,0,0,0.06) !important; padding: 14px 24px 12px !important; }
-          .hp-card-num { grid-column: 1 !important; grid-row: 1 !important; font-size: 64px !important; letter-spacing: -4px !important; line-height: 0.9 !important; margin-bottom: 0 !important; align-self: end; }
-          .hp-card > span { grid-column: 2 !important; grid-row: 1 !important; align-self: start !important; justify-self: end !important; margin-bottom: 0 !important; padding-top: 4px; }
-          .hp-card-title { grid-column: 1 / -1 !important; grid-row: 2 !important; margin-bottom: 0 !important; padding-top: 4px; padding-bottom: 8px; }
-          .hp-card > p { grid-column: 1 / -1 !important; grid-row: 3 !important; margin-top: 0 !important; }
-          .hp-card > div:last-of-type { grid-column: 1 / -1 !important; grid-row: 4 !important; }
-          /* Mobile font-size bumps — desktop unaffected (rules only apply <=768px) */
-          .hp-welcome { font-size: 12px !important; }
-          .hp-quote-p2 { font-size: 16px !important; }
-          .hp-card > span { font-size: 12px !important; }
-          .hp-card > p { font-size: 16px !important; }
-          .hp-card > div:last-of-type > span:first-child { font-size: 14px !important; }
-          .hp-card > div:last-of-type > span:last-child { font-size: 16px !important; }
+        /* ── THE SHELL ──
+           One screen. The hero, the pair of panels and the three tools are
+           each held to a stated height, and they add up to less than a
+           desktop viewport at 1440. */
+        .hp-shell { max-width: 1440px; margin: 0 auto; padding: 0 64px 20px; }
+
+        /* ── THE HERO ──
+           The title, the greeting opposite it, and one rule with the thesis
+           under it. The callout that used to stand beside the title is gone:
+           the sentence it held now runs the width of the page, which is both
+           a plainer way to say it and what makes the hero short enough for
+           the rest of the dashboard to fit under it. */
+        .hp-hero-wrap { padding: 14px 0 12px; }
+        .hp-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+        .hp-welcome { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #9333EA; opacity: 0.65; white-space: nowrap; padding-top: 4px; }
+        .hp-hero-1 { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; line-height: 1; color: #17131D; display: block; }
+        .hp-hero-2 { font-family: 'Fraunces', serif; font-size: 43px; font-weight: 700; font-style: italic; line-height: 0.95; color: #9333EA; display: block; }
+
+        /* ── THE PRIMARY ROW ── */
+        .hp-row-lg { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+
+        .hp-panel {
+          height: 250px; background: #FBF9FD; border: 1px solid #E8E1F0; border-radius: 18px;
+          padding: 28px 30px; position: relative; overflow: hidden;
+          display: flex; flex-direction: column; cursor: pointer;
+          transition: border-color 160ms ease, background 160ms ease;
         }
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .hp-cards-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .hp-hero-grid { padding: 24px 32px 0 !important; grid-template-columns: 1fr 1fr !important; }
-          .hp-welcome { padding: 4px 32px 0 !important; }
+        .hp-panel:hover { border-color: #D8C8EC; background: #FAF7FD; }
+        /* The rail the status and the numeral stand in. A wash rather than a
+           rule: it gives the right of the card a weight of its own without
+           cutting the card in two. */
+        .hp-panel-wash {
+          position: absolute; top: 0; right: 0; bottom: 0; width: 190px; pointer-events: none;
+          background: linear-gradient(
+            90deg,
+            rgba(147,51,234,0) 0%,
+            rgba(147,51,234,0.025) 35%,
+            rgba(147,51,234,0.07) 100%
+          );
+        }
+        .hp-panel-badge { position: absolute; top: 24px; right: 28px; z-index: 2; }
+
+        /* Every word of the panel lives here, and it is the width of the card
+           less the rail. Nothing can run under the numeral, whatever it says. */
+        .hp-panel-body {
+          width: calc(100% - 190px); max-width: 480px; height: 100%;
+          display: flex; flex-direction: column; position: relative; z-index: 2;
+        }
+
+        .hp-name { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.025em; color: #17131D; margin: 0; white-space: nowrap; }
+        .hp-lead { font-size: 17px; font-weight: 700; line-height: 1.25; color: #2E2834; margin: 14px 0 0; max-width: 420px; }
+        .hp-copy { font-size: 14px; font-weight: 400; line-height: 1.45; color: #77707E; margin: 8px 0 0; }
+
+        /* ── THE SECONDARY ROW ── */
+        .hp-tools {
+          margin-top: 16px; height: 178px; background: #FFFFFF;
+          border-top: 1px solid #ECE8F0; border-bottom: 1px solid #ECE8F0;
+          display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .hp-col { height: 178px; padding: 22px 28px; display: flex; flex-direction: column; position: relative; cursor: pointer; }
+        .hp-col + .hp-col { border-left: 1px solid #ECE8F0; }
+        .hp-col-name { font-size: 27px; font-weight: 800; line-height: 1; letter-spacing: -0.025em; color: #17131D; margin: 0; }
+        .hp-col-lead { font-size: 14px; font-weight: 700; color: #302A36; margin: 10px 0 0; }
+        .hp-col-copy { font-size: 13px; line-height: 1.4; color: #7A7480; margin: 6px 0 0; }
+
+        /* ── THE NUMERALS ──
+           In the tools they sit in the upper right over the column. In the
+           panels they lead the first line instead, so the heading under them
+           starts level in both. */
+        .hp-numeral { font-family: 'Fraunces', serif; font-size: 50px; font-weight: 700; line-height: 0.8; color: #E7D9FA; }
+        .hp-col .hp-numeral { position: absolute; right: 26px; top: 22px; pointer-events: none; }
+        .hp-panel .hp-numeral {
+          position: absolute; top: 67px; right: 27px; z-index: 1; pointer-events: none;
+          font-size: 88px; letter-spacing: -0.035em; color: #E3D2FA;
+        }
+
+        /* ── THE WAY ON ──
+           A line of text, not a button, on all five. It sits at the foot of
+           its column, so the five of them line up within their row. */
+        .hp-cta {
+          align-self: flex-start; margin-top: auto;
+          font-size: 13.5px; font-weight: 700; color: #7C3AED;
+          transition: color 160ms ease;
+        }
+        .hp-panel .hp-cta { font-size: 14px; margin-bottom: 2px; }
+        .hp-cta-sm { font-size: 13px; }
+
+        /* A band rather than a line of type on the page: the sentence is the
+           last thing read and it closes the dashboard off, so it is given a
+           surface of its own to sit in. */
+        .hp-thesis {
+          margin: 0; height: 52px; padding: 0 24px;
+          background: #FBF8FE;
+          border-top: 1px solid #EEE7F6; border-bottom: 1px solid #EEE7F6;
+          display: flex; align-items: center; justify-content: center; text-align: center;
+          font-size: 14px; line-height: 20px; font-weight: 500; color: #6F6878;
+        }
+        .hp-thesis strong { font-weight: 700; color: #7C3AED; }
+        .hp-panel:hover .hp-cta, .hp-col:hover .hp-cta { color: #5B21B6; text-decoration: underline; }
+
+        @media (max-width: 1100px) {
+          .hp-shell { padding: 0 32px 20px; }
+          .hp-hero-top { flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+          .hp-welcome { padding-top: 0; }
+          .hp-row-lg { grid-template-columns: minmax(0, 1fr); }
+          .hp-panel { height: auto; min-height: 0; }
+          .hp-tools { grid-template-columns: minmax(0, 1fr); height: auto; }
+          .hp-col { height: auto; }
+          .hp-col + .hp-col { border-left: 0; border-top: 1px solid #ECE8F0; }
+        }
+        @media (max-width: 768px) {
+          .hp-shell { padding: 0 20px 20px; }
+          .hp-thesis { height: auto; padding: 14px 24px; }
+          .hp-panel-wash { display: none; }
+          .hp-panel-body { width: 100%; max-width: none; padding-right: 64px; padding-top: 40px; }
+          .hp-panel .hp-numeral { font-size: 50px; top: 56px; }
+          .hp-hero-2 { font-size: 38px; }
+          .hp-panel { padding: 22px; }
+          .hp-col { padding: 22px; }
+          .hp-name { font-size: 32px; }
+          .hp-col-name { font-size: 24px; }
         }
       `}</style>
 
@@ -650,122 +735,103 @@ function DashboardContent() {
 
       <MainNav currentPage="dashboard" userProfile={userProfile} />
 
-      {/* PAGE */}
-      <div className="hp-page" style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: 'calc(100vh - 56px)', fontFamily: "'DM Sans', sans-serif", background: '#f7f6ff', overflow: 'hidden' }}>
+      {/* PAGE
+          One screen at 1440. The hero, the pair of panels and the three
+          tools are each held to a stated height, so the five places a person
+          can go are all in front of them without scrolling. */}
+      <div className="hp-page" style={{ fontFamily: "'DM Sans', sans-serif", background: '#FFFFFF' }}>
+        <div className="hp-shell">
 
-       {/* HERO */}
-        <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'white', flexShrink: 0 }}>
-          <div className="hp-welcome" style={{ padding: '12px 56px 0', textAlign: 'right', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9333ea', opacity: 0.65 }}>
-            {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
-          </div>
-          <div className="hp-hero-grid" style={{ padding: '32px 56px 0', display: 'grid', gridTemplateColumns: 'calc(50vw - 56px) 1fr', gap: 0, alignItems: 'end' }}>
-            <div className="hp-hero-left" style={{ paddingBottom: 20, paddingRight: 48 }}>
-              <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, lineHeight: 1.0 }}>
-                <span style={{ fontSize: 'clamp(32px,3.2vw,46px)', color: '#0D0D0D', display: 'block', marginBottom: 2, letterSpacing: '-2px' }}>One platform.</span>
-                <em className="hp-italic" style={{ fontStyle: 'italic', color: '#9333ea', fontSize: 'clamp(52px,5.2vw,76px)', letterSpacing: '-3.5px' }}>Your whole career.</em>
+          {/* ================= HERO ================= */}
+          <div className="hp-hero-wrap">
+            <div className="hp-hero-top">
+              <h1 style={{ margin: 0 }}>
+                <span className="hp-hero-1">One platform.</span>
+                <em className="hp-hero-2">Your whole career.</em>
               </h1>
-            </div>
-            <div className="hp-hero-right" style={{ paddingBottom: 32 }}>
-              <div className="hp-quote-box" style={{ background: 'rgba(147,51,234,0.05)', borderRadius: '0 12px 12px 0', padding: '16px 20px', borderLeft: '3px solid rgba(147,51,234,0.45)' }}>
-                <p className="hp-quote-p1" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontStyle: 'italic', fontSize: 'clamp(16px,1.5vw,18px)', color: '#0D0D0D', lineHeight: 1.25, letterSpacing: '-0.3px', marginBottom: 6 }}>
-                  Most tools help you find a job. Hire Power helps you build a career. 
-                </p>
-                <p className="hp-quote-p2" style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.25 }}>
-                   {' '}Stay ready for any opportunity, and never start from scratch again.
-                </p>
-              </div>
+              <p className="hp-welcome">{firstName ? `Welcome back, ${firstName}` : 'Welcome back'}</p>
             </div>
           </div>
-        </div>
 
-        {/* CARDS */}
-        <div className="hp-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden' }}>
+          {/* ================= PRIMARY ROW ================= */}
+          <div className="hp-row-lg">
 
-          {/* 01 CAREER COACH — HIDDEN: comment block below, restore num="01" and re-add to grid to re-enable */}
-          {false && (
-          <HomeCard active={activeCard === 'career'} onClick={() => router.push('/career-coach')} num="01">
-            {(lit) => (
-              <>
-                <span style={{ ...SP.base, ...SP.free }}>Set Your Direction</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Coach</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>The best 5-minute investment you can make in your career. Same field, new field, or figuring it out. The more know about your goals, the stronger your resume becomes.</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', justifyContent: 'flex-end', gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{ccCta}</span>
-                  <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
-                </div>
-              </>
-            )}
-          </HomeCard>
-          )}
-
-          {/* 01 RESUME COACH */}
-          <HomeCard onClick={() => router.push(hasBuildProgress ? '/build?from=resume-coach' : '/resume-coach')} num="01">
-            {(lit) => (
-              <>
-                <span style={{ ...SP.base, ...(rcStatus === 'not-started' ? SP.start : rcStatus === 'in-progress' ? SP.prog : SP.done) }}>
-                  {rcStatus === 'not-started' ? 'Not Started' : rcStatus === 'in-progress' ? 'In Progress' : 'Completed'}
+            <PrimaryPanel
+              onClick={() => router.push(hasBuildProgress ? '/build?from=resume-coach' : '/resume-coach')}
+              numeral="01"
+              heading="Resume Writer"
+              lead="Build the strongest version of your story."
+              copy="Hire Power finds what’s missing and turns your real experience into a résumé that sounds like you."
+              copyWidth={430}
+              cta="Open Resume Writer →"
+              badge={
+                <span style={rcStatus === 'in-progress'
+                  ? PILL_PROGRESS
+                  : { ...SP.base, ...(rcStatus === 'not-started' ? SP.start : SP.done) }}>
+                  {rcStatus === 'not-started' ? 'Not started' : rcStatus === 'in-progress' ? 'In progress' : 'Completed'}
                 </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Resume Writer</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Most AI tools only work with what's on the page. Hire Power asks what's missing, just like a $500 resume writer would.</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{rcCta}</span>
-                  <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
-                </div>
-              </>
-            )}
-          </HomeCard>
+              }
+            />
 
-          {/* 02 INTERVIEW COACH */}
-          <HomeCard onClick={() => router.push('/interview-coach')} num="02">
-            {(lit) => (
-              <>
-                <span style={{ ...SP.base, ...SP.start }}>Not Started</span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Interview Practice</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>AI-spoken practice that mimics a real interview using your resume and the job description. Prepare with a Power Analysis, research, and practice questions for each job.</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>{icCta}</span>
-                  <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
-                </div>
-              </>
-            )}
-          </HomeCard>
-
-          {/* 03 JOB TRACKER */}
-          <HomeCard onClick={() => router.push('/job-tracker')} num="03">
-            {(lit) => (
-              <>
-                <span style={{ ...SP.base, ...(applicationCount > 0 ? SP.prog : SP.start) }}>
-                  {applicationCount > 0 ? `${applicationCount} Application${applicationCount !== 1 ? 's' : ''}` : 'Not Started'}
+            <PrimaryPanel
+              onClick={() => router.push('/career-profile')}
+              numeral="02"
+              heading="Career Profile"
+              lead="Your career deserves more than one page."
+              copy="Bring together the story, proof, and perspective a résumé can’t hold — and show employers the fuller picture of who you are."
+              copyWidth={445}
+              cta="Open Career Profile →"
+              badge={hasProfile ? (
+                <span style={profilePublished ? PILL_PUBLISHED : { ...SP.base, ...SP.prog }}>
+                  {profilePublished ? 'Published' : 'Draft'}
                 </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Job Tracker</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Easily track all applications with job cards that store: resume, cover letter, job description, interview times and practice. Schedule automated follows ups and messages!</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>Track your first application</span>
-                  <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
-                </div>
-              </>
-            )}
-          </HomeCard>
+              ) : null}
+            />
 
-          {/* 04 CAREER VAULT — beside the Tracker rather than instead of it.
-              The two answer different questions: what am I applying to, and
-              what have I done. Somebody mid-search needs both. */}
-          <HomeCard onClick={() => router.push('/career-vault')} num="04">
-            {(lit) => (
-              <>
-                <span style={{ ...SP.base, ...(unseenVault > 0 ? SP.prog : SP.start) }}>
-                  {unseenVault > 0 ? `${unseenVault} New` : 'Not Started'}
-                </span>
-                <div className="hp-card-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 26, color: '#0D0D0D', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: 10 }}>Career Vault</div>
-                <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6, flex: 1 }}>Three years from now you won&apos;t remember what you accomplished today. Hire Power will. Log wins between job searches, so your resume is ready when opportunities arise.</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.05)', borderRight: 'none' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s' }}>Log a win</span>
-                  <span style={{ fontSize: 14, color: lit ? '#9333ea' : '#7c3aed', transition: 'color 0.15s, transform 0.15s', display: 'inline-block', transform: lit ? 'translateX(4px)' : 'none' }}>→</span>
-                </div>
-              </>
-            )}
-          </HomeCard>
+          </div>
 
+          {/* ================= SECONDARY ROW ================= */}
+          <div className="hp-tools">
+
+            {/* The way in is the same one the nav offers. What a résumé is
+                needed for is Interview Practice's own question to ask on the
+                page where it can be answered, not a door held shut here. */}
+            <ToolColumn
+              onClick={() => router.push('/interview-coach')}
+              numeral="03"
+              name="Interview Practice"
+              lead="Be ready to say it out loud."
+              copy="Practice with your résumé and target job in context."
+              cta="Open Interview Practice →"
+            />
+
+            <ToolColumn
+              onClick={() => router.push('/job-tracker')}
+              numeral="04"
+              name="Job Tracker"
+              lead="Keep the search moving."
+              copy="Keep applications, interviews, follow-ups, and next steps in one place."
+              cta="Open Job Tracker →"
+            />
+
+            <ToolColumn
+              onClick={() => router.push('/career-vault')}
+              numeral="05"
+              name="Career Vault"
+              lead="Never start from scratch again."
+              copy="Everything Hire Power learns about your career makes the next résumé, interview, and job search easier."
+              copyWidth={360}
+              cta="Open Career Vault →"
+            />
+
+          </div>
+
+          <p className="hp-thesis">
+            <span>
+              Most tools help you find a job. <strong>Hire Power helps you build a career.</strong>{' '}
+              Stay ready for any opportunity, and never start from scratch again.
+            </span>
+          </p>
         </div>
       </div>
 
