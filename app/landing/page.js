@@ -1245,8 +1245,9 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Practice</li>
                 <li><span className="check">✓</span> 1 Power Analysis, Research and Prep, 3 practice sessions</li>
-                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Career Profile and Vault</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Career Profile</li>
                 <li><span className="check">✓</span> Career Profile (auto-generated, single career direction)</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Career Vault</li>
                 <li><span className="check">✓</span> Career Vault (view your career data)</li>
               </ul>
               <div className="tier-cta">
@@ -1273,9 +1274,10 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Unlimited interview practice</li>
                 <li><span className="check">✓</span> Post-practice performance feedback</li>
                 <li><span className="check">✓</span> Company research integration</li>
-                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Profile and Vault</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Profile</li>
                 <li><span className="check">✓</span> Career Profile with 3 career directions</li>
                 <li><span className="check">✓</span> Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Vault</li>
                 <li><span className="check">✓</span> Career Vault with win logging</li>
               </ul>
               <div className="tier-cta">
@@ -1336,7 +1338,9 @@ const supabase = createClient();
                   '3 custom cover letters',
                   'Job application tracking',
                   'Interview Practice: 1 Power Analysis, Research and Prep, 3 practice sessions',
+                  '## Career Profile',
                   'Career Profile (auto-generated, single career direction)',
+                  '## Career Vault',
                   'Career Vault (view your career data)',
                 ]
               },
@@ -1361,8 +1365,10 @@ const supabase = createClient();
                   'Unlimited interview practice',
                   'Post-practice performance feedback',
                   'Company research integration',
+                  '## Career Profile',
                   'Career Profile with 3 career directions',
                   'Recruiter tools (Career Q&A and Hiring Brief)',
+                  '## Career Vault',
                   'Career Vault with win logging',
                 ]
               },
@@ -1440,7 +1446,17 @@ const supabase = createClient();
                   {isOpen && (
                     <div style={{padding:'0 20px 20px',borderTop:tier.featured?'1px solid rgba(255,255,255,0.1)':'1px solid rgba(0,0,0,0.06)',paddingTop:'16px'}}>
                       <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:'10px'}}>
-                        {tier.features.map((f,i) => (
+                        {/* A feature starting with '## ' is a section heading
+                            rather than a feature: no tick, and the rule above
+                            it that the desktop card draws. The desktop grid
+                            has always grouped these lists; the accordion ran
+                            them together, so Career Profile and Career Vault
+                            read as one thing on a phone and two on a laptop. */}
+                        {tier.features.map((f,i) => f.startsWith('## ') ? (
+                          <li key={i} style={{marginTop:'8px',paddingTop:'8px',borderTop:tier.featured?'1px solid rgba(255,255,255,0.1)':'1px solid rgba(0,0,0,0.06)',fontSize:'13px',fontWeight:600,color:tier.featured?'white':'#0D0D0D',lineHeight:1.4}}>
+                            {f.slice(3)}
+                          </li>
+                        ) : (
                           <li key={i} style={{display:'flex',alignItems:'flex-start',gap:'8px',fontSize:'13px',color:tier.featured?'rgba(255,255,255,0.75)':'#374151',lineHeight:1.4}}>
                             <span style={{color:'#10b981',flexShrink:0,marginTop:'1px'}}>✓</span>
                             {f}

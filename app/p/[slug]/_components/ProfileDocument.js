@@ -647,7 +647,6 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       onDownload={handleDownloadResume}
       lenses={lenses}
       lensResumes={data?.lensResumes || null}
-      coreResumeId={data?.coreResume?.id || null}
       selectedLensId={selectedLens?.id || null}
     />
   )

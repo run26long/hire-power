@@ -19,11 +19,11 @@ import ProfileMark from './ProfileMark'
 // Both actions are live now. Download builds the PDF on the server from the
 // direction being read; Contact is a mailto: to the address the owner set.
 //
-// Download carries a menu when, and only when, the profile's directions
-// actually resolve to more than one file - see offersRealChoice below. Picking
-// one downloads it and nothing else: the page stays on the direction the reader
-// was reading, because choosing a file to take away is not the same gesture as
-// changing what you are looking at.
+// Download carries a menu when, and only when, more than one direction has a
+// résumé of its own - see hasOwnResume below. Picking one downloads it and
+// nothing else: the page stays on the direction the reader was reading,
+// because choosing a file to take away is not the same gesture as changing
+// what you are looking at.
 //
 // Contact does not render at all when no address is set. A disabled button
 // would tell a recruiter that there is a way to reach this person and that it
@@ -44,42 +44,34 @@ function downloadTitleFor(resume, downloading, offersChoice) {
 }
 
 // ---------------------------------------------------------------------------
-// WHETHER THE CHOICE IS WORTH OFFERING
+// WHICH DIRECTIONS THE MENU MAY LIST
 //
-// A direction downloads its own résumé only when it has built one. Every
-// direction that has not falls back to the same priority core, which the
-// download route resolves on its side - so a profile can show five directions
-// and hand over one file for all of them.
+// Only the ones with a résumé of their own. A direction that has never had a
+// core built for it falls back to the priority core, which the download route
+// resolves on its side - so listing it offers the reader a name that hands
+// over somebody else's file.
 //
-// A menu there would be a menu of one answer wearing five names. The reader
-// would pick "Executive Leadership", get the same PDF they would have got
-// anyway, and have no way to know that was the whole truth. So the menu appears
-// only when the choice actually changes what arrives: more than one direction,
-// AND more than one file behind them. One direction, or one file, and the
-// button stays the plain button it has always been.
+// That is what this used to do. The rule was "show the menu when the
+// directions resolve to more than one file", which is true of a profile with
+// three directions where two have cores: the two cores and the fallback are
+// three different resolutions, so the menu opened - and listed all three,
+// including the one whose entry was the fallback wearing its name. A reader
+// picking "Executive Leadership" got the priority core with no way to know.
 //
-// WHAT COUNTS AS A DIFFERENT FILE
-// Not whether the column is filled in. Counting a null as its own answer made
-// a profile with one core show a menu of three the moment one direction was
-// pointed at that very core: two nulls and an id read as two files when they
-// were one. So each direction is resolved the way the download route resolves
-// it - its own core when it has one the server can still serve, the priority
-// core otherwise - and the menu appears only if those resolutions differ.
+// So the question is no longer how many files the set resolves to. It is
+// which directions actually have one, and only those are listed. Fewer than
+// two and there is nothing to choose between, so the control stays the plain
+// button it has always been and downloads whatever the direction on screen
+// resolves to - unchanged, and still the right answer for a reader who never
+// opened a menu.
 //
-// A direction pointing at a resume that is gone, deactivated or somebody
-// else's is not in lensResumes, which is exactly the case the route falls back
-// on, so it resolves here to the same core the route would send.
+// A direction pointing at a résumé that is gone, deactivated or somebody
+// else's is not in lensResumes. The route falls back to the priority core for
+// exactly that case, so it is not its own answer here either.
 // ---------------------------------------------------------------------------
-function resolveResumeId(lens, lensResumes, coreResumeId) {
+function hasOwnResume(lens, lensResumes) {
   const own = lens?.core_resume_id
-  if (own && lensResumes && lensResumes[own]) return own
-  return coreResumeId || 'CORE'
-}
-
-function offersRealChoice(lenses, lensResumes, coreResumeId) {
-  if (!Array.isArray(lenses) || lenses.length < 2) return false
-  const targets = new Set(lenses.map(lens => resolveResumeId(lens, lensResumes, coreResumeId)))
-  return targets.size > 1
+  return Boolean(own && lensResumes && lensResumes[own])
 }
 
 export function ProfileActionButtons({
@@ -89,17 +81,18 @@ export function ProfileActionButtons({
   downloadError,
   onDownload,
   lenses,
-  // What each direction would actually hand over: the resumes the server was
-  // able to resolve, and the core everything else falls back to.
+  // The résumés the server was able to resolve, keyed by id. A direction's
+  // own core counts only if it is in here.
   lensResumes,
-  coreResumeId,
   selectedLensId
 }) {
-  const directions = useMemo(() => (Array.isArray(lenses) ? lenses : []), [lenses])
-  const offersChoice = useMemo(
-    () => offersRealChoice(directions, lensResumes, coreResumeId),
-    [directions, lensResumes, coreResumeId]
+  // Only the directions with a résumé of their own; see the note above. The
+  // menu is built from this rather than from every direction on the profile.
+  const directions = useMemo(
+    () => (Array.isArray(lenses) ? lenses : []).filter(lens => hasOwnResume(lens, lensResumes)),
+    [lenses, lensResumes]
   )
+  const offersChoice = directions.length > 1
 
   const [menuOpen, setMenuOpen] = useState(false)
   // Held per instance, deliberately. This component is built once by the page
