@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
@@ -43,6 +43,117 @@ function PaneHead({ title, note }) {
     <div className="hp-manage-pane-head">
       <p className="hp-manage-pane-title">{title}</p>
       {note ? <p className="hp-manage-pane-note">{note}</p> : null}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// A DROPDOWN THAT BELONGS TO THE MODAL
+//
+// A native select took the dark surface and then drew the platform's own
+// control over it: on some engines a second chevron beside the one CSS had
+// drawn, and on every one of them a menu in the platform's colours with the
+// platform's blue bar across the highlighted row. Neither the menu nor the bar
+// is reachable from a stylesheet, so the menu has to be ours.
+//
+// The listbox pattern rather than a prettier select, because a button and a
+// list can be painted and a native popup cannot. The keyboard does what a
+// select's keyboard does - arrows to move, Enter or Space to take, Escape to
+// leave, Home and End to the ends - and aria-activedescendant tells a screen
+// reader which row is current without moving focus off the control.
+// ---------------------------------------------------------------------------
+function BrandSelect({ id, value, options, onChange, placeholder = 'Choose one…', disabled = false }) {
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(0)
+  const rootRef = useRef(null)
+  const fieldRef = useRef(null)
+
+  const rows = [{ value: '', label: placeholder }, ...options.map(one => ({ value: one, label: one }))]
+  const chosenAt = Math.max(0, rows.findIndex(row => row.value === (value || '')))
+  const chosen = rows[chosenAt]
+
+  // Opening starts on what is already chosen, so the first arrow press moves
+  // from where the reader is rather than from the top of the list.
+  useEffect(() => { if (open) setActive(chosenAt) }, [open, chosenAt])
+
+  // A click anywhere else is a dismissal. Pointer-down rather than click, so
+  // the menu is gone before whatever was clicked underneath reacts.
+  useEffect(() => {
+    if (!open) return
+    const away = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false) }
+    document.addEventListener('mousedown', away)
+    return () => document.removeEventListener('mousedown', away)
+  }, [open])
+
+  const take = (next) => {
+    setOpen(false)
+    fieldRef.current?.focus()
+    if (next !== (value || '')) onChange(next)
+  }
+
+  function onKeyDown(event) {
+    if (disabled) return
+    if (!open) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        setOpen(true)
+      }
+      return
+    }
+    if (event.key === 'Escape') { event.preventDefault(); setOpen(false); fieldRef.current?.focus() }
+    else if (event.key === 'ArrowDown') { event.preventDefault(); setActive(at => Math.min(at + 1, rows.length - 1)) }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(at => Math.max(at - 1, 0)) }
+    else if (event.key === 'Home') { event.preventDefault(); setActive(0) }
+    else if (event.key === 'End') { event.preventDefault(); setActive(rows.length - 1) }
+    else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); take(rows[active]?.value ?? '') }
+    else if (event.key === 'Tab') setOpen(false)
+  }
+
+  return (
+    <div className="hp-ed-select" ref={rootRef}>
+      <button
+        type="button"
+        id={id}
+        ref={fieldRef}
+        className="hp-ed-select-field"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={`${id}-list`}
+        aria-activedescendant={open ? `${id}-opt-${active}` : undefined}
+        data-empty={chosen.value ? undefined : 'true'}
+        disabled={disabled}
+        onClick={() => setOpen(was => !was)}
+        onKeyDown={onKeyDown}
+      >
+        <span className="hp-ed-select-value">{chosen.label}</span>
+        <svg className="hp-ed-select-chevron" viewBox="0 0 12 8" aria-hidden="true">
+          <path d="M1 1.5 6 6.5l5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open ? (
+        <ul className="hp-ed-select-list" id={`${id}-list`} role="listbox" tabIndex={-1}>
+          {rows.map((row, at) => (
+            <li
+              key={row.value || '_none'}
+              id={`${id}-opt-${at}`}
+              role="option"
+              aria-selected={row.value === chosen.value}
+              className="hp-ed-select-option"
+              data-active={at === active ? 'true' : undefined}
+              data-chosen={row.value === chosen.value ? 'true' : undefined}
+              data-empty={row.value ? undefined : 'true'}
+              onMouseEnter={() => setActive(at)}
+              // Keeps focus on the field, so the list never has to hand it back.
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => take(row.value)}
+            >
+              {row.label}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
@@ -242,6 +353,8 @@ export function TestimonialEditPane({ item, onBack }) {
   // the thing being deleted is on screen behind it and should stay readable
   // while the owner decides.
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // Deleting an answered testimonial is behind this rather than in the bar.
+  const [moreOpen, setMoreOpen] = useState(false)
 
   const published = item.status === 'published'
   const ready = Boolean(item.polished_text)
@@ -279,38 +392,40 @@ export function TestimonialEditPane({ item, onBack }) {
         <label className="hp-ed-field-label" htmlFor={`rel-${item.id}`}>
           How you worked together
         </label>
-        <select
+        <BrandSelect
           id={`rel-${item.id}`}
-          className="hp-ed-input"
           value={item.relationship_type || ''}
+          options={RELATIONSHIP_TYPES}
+          placeholder="Not said"
           disabled={Boolean(busy)}
-          onChange={e => run('rel', () => edit?.onCategoriseTestimonial?.(item.id, e.target.value || null))}
-        >
-          <option value="">Not said</option>
-          {RELATIONSHIP_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
+          onChange={next => run('rel', () => edit?.onCategoriseTestimonial?.(item.id, next || null))}
+        />
         {busy === 'rel' ? <span className="hp-ed-hint">Saving…</span> : null}
         {published && !item.relationship_type ? (
           <span className="hp-ed-hint">Counts toward the 360 view once you say.</span>
         ) : null}
       </div>
 
-      {ready ? (
-        <blockquote className="hp-ed-tm-quote">{item.polished_text}</blockquote>
+      {/* ---- ONE VERSION, THE ONE THEY APPROVED ----
+          The row keeps both what they typed and what came back from the
+          tidying, and this used to print each under its own heading. That is
+          the working of the thing rather than the thing: two texts saying
+          nearly the same, and nothing on screen to say which of them is the
+          one their profile would carry. It is the polished text, because that
+          is what the referee read and agreed to and what the profile prints -
+          and where the tidying never produced one, it is their own words,
+          which is what the approve step copies across in that case. Both are
+          still saved; only one is shown. */}
+      {answered ? (
+        <div className="hp-ed-tm-final">
+          <p className="hp-ed-field-label">Testimonial</p>
+          <blockquote className="hp-ed-tm-quote">{item.polished_text || item.raw_text}</blockquote>
+        </div>
       ) : (
         <p className="hp-ed-proof-note">
-          {answered
-            ? 'Received, but we could not shorten it. Their own words are below.'
-            : 'No response yet. The request link is still active.'}
+          No response yet. The request link is still active.
         </p>
       )}
-
-      {item.raw_text ? (
-        <div className="hp-ed-mrow-edit">
-          <p className="hp-ed-field-label">In their own words</p>
-          <p className="hp-ed-tm-raw">{item.raw_text}</p>
-        </div>
-      ) : null}
 
       {/* ---- SHOW ON PROFILE ----
           A switch rather than a button, because it is a state the owner can
@@ -352,17 +467,23 @@ export function TestimonialEditPane({ item, onBack }) {
         </div>
       ) : null}
 
-      <div className="hp-ed-editor-bar">
-        {/* Cancelling a request and removing an answer are the same delete:
-            the row is the request, and the token lives on it, so leaving a
-            withdrawn one in place would leave its referee a working link. */}
-        {confirmingDelete ? (
-          <>
-            <span className="hp-ed-hint">
-              {answered
-                ? 'Delete this testimonial and their words for good?'
-                : 'Cancel this request? Their link stops working.'}
-            </span>
+      {/* ---- THE WAY OUT OF EACH ONE ----
+          Two different acts wearing one word. Cancelling a request nobody has
+          answered costs nothing and belongs in the open, so it stands in the
+          bar. Deleting an answer destroys something a colleague wrote as a
+          favour, and Show on profile already does what an owner almost always
+          means - so it moves behind More, where it has to be asked for. Both
+          are the same delete underneath: the row is the request, and the token
+          lives on it, so a withdrawn one left in place would leave its referee
+          a working link. */}
+      {confirmingDelete ? (
+        <div className="hp-ed-tm-danger">
+          <p className="hp-ed-hint">
+            {answered
+              ? 'Delete this testimonial and their words for good? This cannot be undone.'
+              : 'Cancel this request? Their link stops working.'}
+          </p>
+          <div className="hp-ed-tm-danger-acts">
             <button
               type="button"
               className="hp-ed-action"
@@ -373,7 +494,7 @@ export function TestimonialEditPane({ item, onBack }) {
                 onBack()
               })}
             >
-              {busy === 'del' ? 'Deleting…' : 'Delete for good'}
+              {busy === 'del' ? 'Deleting…' : answered ? 'Delete for good' : 'Cancel the request'}
             </button>
             <button
               type="button"
@@ -383,17 +504,46 @@ export function TestimonialEditPane({ item, onBack }) {
             >
               Keep it
             </button>
-          </>
-        ) : (
+          </div>
+        </div>
+      ) : null}
+
+      <div className="hp-ed-editor-bar">
+        {!confirmingDelete && !answered ? (
           <button
             type="button"
             className="hp-ed-action"
             disabled={Boolean(busy)}
             onClick={() => setConfirmingDelete(true)}
           >
-            {answered ? 'Delete' : 'Cancel request'}
+            Cancel request
           </button>
-        )}
+        ) : null}
+
+        {!confirmingDelete && answered ? (
+          <>
+            <button
+              type="button"
+              className="hp-ed-action"
+              aria-expanded={moreOpen}
+              disabled={Boolean(busy)}
+              onClick={() => setMoreOpen(was => !was)}
+            >
+              More
+            </button>
+            {moreOpen ? (
+              <button
+                type="button"
+                className="hp-ed-action"
+                disabled={Boolean(busy)}
+                onClick={() => { setMoreOpen(false); setConfirmingDelete(true) }}
+              >
+                Delete permanently
+              </button>
+            ) : null}
+          </>
+        ) : null}
+
         <span className="hp-ed-editor-gap" />
         <button type="button" className="hp-ed-action" onClick={onBack} disabled={Boolean(busy)}>
           Back to list
@@ -454,21 +604,21 @@ export function TestimonialRequestPane({ onBack, onSent }) {
 
       <div className="hp-ed-add-grid">
         <div>
-          <label className="hp-ed-field-label" htmlFor="hp-tm-name">Their name</label>
+          <label className="hp-ed-field-label" htmlFor="hp-tm-name">Name</label>
           <input
             id="hp-tm-name" className="hp-ed-input hp-ed-block" type="text"
             value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)}
           />
         </div>
         <div>
-          <label className="hp-ed-field-label" htmlFor="hp-tm-email">Their email</label>
+          <label className="hp-ed-field-label" htmlFor="hp-tm-email">Email</label>
           <input
             id="hp-tm-email" className="hp-ed-input hp-ed-block" type="email" spellCheck="false"
             value={form.recipient_email} onChange={e => set('recipient_email', e.target.value)}
           />
         </div>
         <div>
-          <label className="hp-ed-field-label" htmlFor="hp-tm-title">Their title</label>
+          <label className="hp-ed-field-label" htmlFor="hp-tm-title">Title</label>
           <input
             id="hp-tm-title" className="hp-ed-input hp-ed-block" type="text"
             value={form.recipient_title} placeholder="Optional"
@@ -477,13 +627,12 @@ export function TestimonialRequestPane({ onBack, onSent }) {
         </div>
         <div>
           <label className="hp-ed-field-label" htmlFor="hp-tm-rel">How you worked together</label>
-          <select
-            id="hp-tm-rel" className="hp-ed-input hp-ed-block"
-            value={form.relationship_type} onChange={e => set('relationship_type', e.target.value)}
-          >
-            <option value="">Choose one…</option>
-            {RELATIONSHIP_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <BrandSelect
+            id="hp-tm-rel"
+            value={form.relationship_type}
+            options={RELATIONSHIP_TYPES}
+            onChange={next => set('relationship_type', next)}
+          />
         </div>
       </div>
 

@@ -751,46 +751,6 @@ html:has(.hp-ed) {
   border-color: var(--ed-accent);
 }
 
-/* ---- THE SELECTS ----------------------------------------------------------
-   A select took .hp-ed-input's surface, border and ink like every other field,
-   and then drew the browser's own control on top of it: a light grey button
-   face on some platforms, and a light grey menu on all of them. Against a dark
-   modal that reads as a field that failed to load rather than as a field.
-
-   appearance:none takes the native face off and the arrow is drawn back as a
-   background image, inline so there is no request for it and no file to keep
-   in step with the accent. The ink colour is repeated on the shorthand because
-   removing the appearance also removes the colour some engines were painting
-   the text with.
-
-   The menu itself is the browser's popup and only its colours can be reached,
-   through the options. Chromium and Firefox both honour these; Safari paints
-   its own and ignores them, which is why the field is styled to stand on its
-   own rather than relying on the menu matching it. */
-select.hp-ed-input {
-  appearance: none;
-  -webkit-appearance: none;
-  color: var(--ed-ink);
-  padding-right: 32px;
-  background-color: var(--ed-surface);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a9a2bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 11px center;
-  background-size: 11px 7px;
-  cursor: pointer;
-}
-
-select.hp-ed-input:focus-visible {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%237c5cd6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-select.hp-ed-input option {
-  background-color: var(--ed-surface);
-  color: var(--ed-ink);
-}
-
-/* The placeholder row reads as the prompt it is rather than as a value. */
-select.hp-ed-input option[value=""] { color: var(--ed-muted); }
 
 /* The two fields in the settings drawer sit in a column of 13 and 14px
    information, and at 16 they were the largest type in it - the address and
@@ -2632,15 +2592,6 @@ select.hp-ed-input option[value=""] { color: var(--ed-muted); }
 }
 
 .hp-ed-tm-rel .hp-ed-field-label { margin: 0; }
-
-/* Held at 16px with the rest of them. This select used to shrink to 12.5px to
-   sit tightly beside its label, which is the size that makes iOS Safari zoom
-   the page on focus. The row it sits in wraps, so it can afford the height. */
-:is(.hp-profile, .hp-ed-portal) .hp-ed-tm-rel select.hp-ed-input {
-  font-size: 16px;
-  padding: 6px 30px 6px 10px;
-  background-position: calc(100% - 13px) 50%, calc(100% - 8px) 50%;
-}
 
 
 /* ---- The video control in the editor ---------------------------------- */
