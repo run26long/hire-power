@@ -514,27 +514,52 @@ export async function POST(request, { params }) {
     }
 
     // ---- POLISH ----
+    //
+    // Three attempts, the way ./career-profile/imow/generate makes three, and
+    // for the reason that route gives: one call at temperature 0 means a
+    // refusal is permanent. The same prompt asked twice returns the same draft,
+    // so a first-person sentence or a length miss ended the referee's visit at
+    // "We could not prepare your draft" with no way past it - and they had done
+    // nothing wrong. The retry names what was refused, so the second call is
+    // the same request with one correction on the end rather than the same
+    // question asked again.
+    const prompt = buildPolishPrompt({
+      raw,
+      candidateName,
+      candidateFirst: candidateFirstName,
+      refereeName: row.recipient_name
+    })
+
     let polished = null
-    try {
-      const message = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 500,
-        temperature: TEMPERATURE,
-        messages: [{
-          role: 'user',
-          content: buildPolishPrompt({
-            raw,
-            candidateName,
-            candidateFirst: candidateFirstName,
-            refereeName: row.recipient_name
-          })
-        }]
-      })
-      const checked = validatePolished(message?.content?.[0]?.text, candidateName, row.recipient_name, raw)
-      if (checked.text) polished = checked.text
-      else console.error('[testimonial] Polish refused for row', row.id, checked.reason)
-    } catch (error) {
-      console.error('[testimonial] Polish errored for row', row.id, error?.message)
+    const refusals = []
+    for (let attempt = 0; attempt < 3 && !polished; attempt++) {
+      try {
+        const content = attempt === 0
+          ? prompt
+          : `${prompt}
+
+Your previous version was rejected: ${refusals[refusals.length - 1]}. Write it again, fixing only that and keeping everything else.
+
+It must still be third person throughout, written as ${row.recipient_name} describing ${candidateName}: never "I", never "my", and never ${row.recipient_name}'s own name inside the quotation.`
+
+        const message = await anthropic.messages.create({
+          model: MODEL,
+          max_tokens: 500,
+          temperature: TEMPERATURE,
+          messages: [{ role: 'user', content }]
+        })
+        const checked = validatePolished(message?.content?.[0]?.text, candidateName, row.recipient_name, raw)
+        if (checked.text) polished = checked.text
+        else {
+          refusals.push(checked.reason)
+          console.error('[testimonial] Polish refused for row', row.id, `attempt ${attempt + 1}:`, checked.reason)
+        }
+      } catch (error) {
+        // A transport failure is not a refusal and there is nothing to correct,
+        // so the next attempt repeats the request as it stands.
+        refusals.push('the request did not complete')
+        console.error('[testimonial] Polish errored for row', row.id, `attempt ${attempt + 1}:`, error?.message)
+      }
     }
 
     // The draft is stored so a referee who closes the tab comes back to it, and

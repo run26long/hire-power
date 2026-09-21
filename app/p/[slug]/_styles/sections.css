@@ -4049,6 +4049,47 @@
   white-space: nowrap;
 }
 
+/* Where a row has a state, it says so beside the name: waiting on the person
+   who was asked, or waiting on the owner. Two tones and no third, because a
+   row that is finished carries no status at all. */
+.hp-manage-status {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+.hp-manage-status[data-tone="wait"] {
+  color: var(--profile-meta);
+  border-color: var(--profile-line);
+}
+
+.hp-manage-status[data-tone="review"] {
+  color: var(--profile-accent);
+  border-color: rgb(var(--profile-accent-rgb) / 0.42);
+  background: rgb(var(--profile-accent-rgb) / 0.1);
+}
+
+/* A receipt for the thing that just happened, above the rows it happened to. */
+.hp-manage-notice {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--profile-accent-rgb) / 0.32);
+  background: rgb(var(--profile-accent-rgb) / 0.1);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--profile-text);
+  flex-shrink: 0;
+}
+
 .hp-manage-meta {
   font-size: 12px;
   color: var(--profile-meta);

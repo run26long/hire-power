@@ -334,7 +334,7 @@ const EMPTY_REQUEST = {
   relationship_type: '',
 }
 
-export function TestimonialRequestPane({ onBack }) {
+export function TestimonialRequestPane({ onBack, onSent }) {
   const edit = useProfileEdit()
   const notify = useNotify()
   const [form, setForm] = useState(EMPTY_REQUEST)
@@ -348,15 +348,20 @@ export function TestimonialRequestPane({ onBack }) {
   async function send() {
     if (!canSend) return
     setSending(true)
+    const askedName = form.recipient_name.trim()
     try {
       await edit?.onRequestTestimonial?.({
-        recipient_name: form.recipient_name.trim(),
+        recipient_name: askedName,
         recipient_email: form.recipient_email.trim(),
         recipient_title: form.recipient_title.trim() || null,
         relationship_type: form.relationship_type,
       })
       setForm(EMPTY_REQUEST)
-      onBack()
+      // Back to the list, which now holds the request, rather than to a blank
+      // form that looks like the send did not happen. The name goes with it so
+      // the list can say who was asked.
+      if (typeof onSent === 'function') onSent(askedName)
+      else onBack()
     } catch (err) {
       notify({ type: 'error', message: err?.message || "We couldn't send that request." })
     } finally {

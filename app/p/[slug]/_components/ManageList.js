@@ -51,6 +51,7 @@ export default function ManageList({
   onSecondary,
   onDone,
   emptyNote,
+  notice,           // optional; a line confirming what just happened, above the rows
 }) {
   const [dragId, setDragId] = useState(null)
   const [overId, setOverId] = useState(null)
@@ -99,6 +100,8 @@ export default function ManageList({
         direction. It stays saved, and you can turn it back on anytime.
       </p>
 
+      {notice ? <p className="hp-manage-notice" role="status">{notice}</p> : null}
+
       {list.length === 0 ? (
         <p className="hp-manage-empty">{emptyNote}</p>
       ) : (
@@ -113,7 +116,7 @@ export default function ManageList({
                 data-hidden={hidden ? 'true' : undefined}
                 data-dragging={dragId === row.id ? 'true' : undefined}
                 data-dropping={overId === row.id && dragId !== row.id ? 'true' : undefined}
-                draggable={canDrag}
+                draggable={canDrag && row.placed !== false}
                 onDragStart={e => startDrag(e, row.id)}
                 onDragOver={e => overRow(e, row.id)}
                 onDrop={e => dropOn(e, row.id)}
@@ -122,7 +125,17 @@ export default function ManageList({
                 <span className="hp-manage-grip" aria-hidden="true"><GripIcon /></span>
 
                 <span className="hp-manage-label">
-                  <span className="hp-manage-title">{row.title}</span>
+                  <span className="hp-manage-title">
+                    {row.title}
+                    {/* What state this one is in, where a row has states. A
+                        collection whose rows are simply on or off passes no
+                        status and nothing is drawn. */}
+                    {row.status ? (
+                      <span className="hp-manage-status" data-tone={row.statusTone || 'wait'}>
+                        {row.status}
+                      </span>
+                    ) : null}
+                  </span>
                   {row.meta ? <span className="hp-manage-meta">{row.meta}</span> : null}
                 </span>
 
@@ -139,19 +152,27 @@ export default function ManageList({
 
                 {/* aria-checked says what the switch means rather than what it
                     stores: on is "this direction shows it", which is the
-                    opposite of the hidden flag behind it. */}
-                <button
-                  type="button"
-                  className="hp-manage-switch"
-                  role="switch"
-                  aria-checked={!hidden}
-                  aria-label={`Show ${row.title} on this career direction`}
-                  data-on={hidden ? 'false' : 'true'}
-                  disabled={busy}
-                  onClick={() => onToggle?.(row.id, !hidden)}
-                >
-                  <span className="hp-manage-knob" aria-hidden="true" />
-                </button>
+                    opposite of the hidden flag behind it.
+
+                    A row marked `placed: false` has nothing on this direction
+                    to show or hide yet - a testimonial nobody has written, or
+                    one waiting on the owner - so there is no switch to offer.
+                    A switch that could not change anything would be a control
+                    that lies about what it does. */}
+                {row.placed === false ? null : (
+                  <button
+                    type="button"
+                    className="hp-manage-switch"
+                    role="switch"
+                    aria-checked={!hidden}
+                    aria-label={`Show ${row.title} on this career direction`}
+                    data-on={hidden ? 'false' : 'true'}
+                    disabled={busy}
+                    onClick={() => onToggle?.(row.id, !hidden)}
+                  >
+                    <span className="hp-manage-knob" aria-hidden="true" />
+                  </button>
+                )}
               </li>
             )
           })}

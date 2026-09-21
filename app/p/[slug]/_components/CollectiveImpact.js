@@ -54,6 +54,10 @@ export default function CollectiveImpact({
   // What has taken the modal over: null is the list, an id is that
   // testimonial's own controls, 'request' is the form that asks for a new one.
   const [pane, setPane] = useState(null)
+  // Who the last request went to, so the list can confirm it by name. Cleared
+  // when the modal closes: it is a receipt for the thing that just happened,
+  // not a standing banner.
+  const [sentTo, setSentTo] = useState(null)
 
   // Every testimonial row the owner has, at any status, which is what there is
   // to manage. The published ones are a subset and are what the column shows.
@@ -68,7 +72,7 @@ export default function CollectiveImpact({
   // here and no delete anywhere: a testimonial arrives because somebody was
   // asked for one and wrote it, which is the Request flow, and it never
   // leaves. Hiding is the whole of what this list can do to one.
-  const closeManage = useCallback(() => { setManageOpen(false); setPane(null) }, [])
+  const closeManage = useCallback(() => { setManageOpen(false); setPane(null); setSentTo(null) }, [])
 
   // Resolved from the record rather than held in state, so publishing or
   // categorising is reflected in the pane that did it.
@@ -79,21 +83,56 @@ export default function CollectiveImpact({
     [pane, edit?.testimonials]
   )
 
+  // ---- EVERY TESTIMONIAL, NOT EVERY PLACEMENT ----
+  //
+  // This list used to be built from the direction's placements, and a
+  // testimonial only gets a placement once it is published. So a request
+  // nobody had answered yet, and an answer the owner had not approved yet,
+  // were both invisible here - which also made the approve control
+  // unreachable, because the only way to it is this list. The thing the owner
+  // most needed to see after sending a request was the one thing the list
+  // could not show.
+  //
+  // So it is built from the testimonials themselves and the placements are
+  // merged in where they exist. Placed ones keep their placement order and
+  // their switch; the rest sit above, newest first, carrying the state they
+  // are actually in.
   const manageItems = useMemo(() => {
-    const byId = new Map((edit?.testimonials || []).map(one => [one.id, one]))
-    return directionPlacements(edit?.allTestimonialPlacements, lensId)
-      .map(place => {
-        const item = byId.get(place.testimonial_id)
-        if (!item) return null
-        return {
-          id: item.id,
-          title: item.recipient_name || 'A referee',
-          meta: [item.recipient_title, item.relationship].filter(Boolean).join(' · '),
-          hidden: place.hidden === true
-        }
-      })
-      .filter(Boolean)
+    const all = edit?.testimonials || []
+    const places = directionPlacements(edit?.allTestimonialPlacements, lensId)
+    const placeOf = new Map(places.map((place, at) => [place.testimonial_id, { place, at }]))
+
+    const rowFor = (item) => {
+      const found = placeOf.get(item.id)
+      const published = item.status === 'published'
+      const awaiting = Boolean(item.polished_text || item.raw_text) && !published
+      return {
+        id: item.id,
+        title: item.recipient_name || 'A referee',
+        meta: [item.recipient_title, item.relationship].filter(Boolean).join(' · '),
+        hidden: found ? found.place.hidden === true : false,
+        // Placed means there is something on this direction to show or hide.
+        // Nothing else in the row implies it: a published testimonial the owner
+        // has never placed on this direction is still not placed on it.
+        placed: Boolean(found),
+        status: published ? null : awaiting ? 'Ready to review' : 'Requested',
+        statusTone: published ? undefined : awaiting ? 'review' : 'wait',
+        // Two orders in one list, and the sort below reads both.
+        rank: published && found ? found.at : -1,
+        at: item.created_at || ''
+      }
+    }
+
+    const rows = all.map(rowFor)
+    const pending = rows.filter(row => row.rank === -1).sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    const placed = rows.filter(row => row.rank !== -1).sort((a, b) => a.rank - b.rank)
+    return [...pending, ...placed]
   }, [edit?.testimonials, edit?.allTestimonialPlacements, lensId])
+
+  // Whether anybody has been asked yet, at any status. What splits the two
+  // states of the section's control: an invitation before the first request,
+  // and a way in to the list after it.
+  const hasAnyRequest = (edit?.testimonials || []).length > 0
 
   const run = useCallback(async (id, work) => {
     if (busyId) return
@@ -112,7 +151,10 @@ export default function CollectiveImpact({
     [run, edit, lensId]
   )
   const dropItem = useCallback((fromId, toId) => {
-    const ids = manageItems.map(one => one.id)
+    // Only the placed rows have an order to change. The pending ones sit above
+    // them and are not draggable, and counting them here would offset every
+    // step the reorder walks.
+    const ids = manageItems.filter(one => one.placed).map(one => one.id)
     const from = ids.indexOf(fromId)
     const to = ids.indexOf(toId)
     if (from === -1 || to === -1 || from === to) return
@@ -215,15 +257,20 @@ export default function CollectiveImpact({
             the other two sections carry. Asking somebody for a testimonial is
             inside it, so the empty column below no longer carries buttons of
             its own. */}
+        {/* One control, and which one depends on whether anybody has been asked
+            yet. Before the first request there is nothing to manage and the
+            control invites; after it there is, and the invitation lives inside
+            the list as Request a testimonial. Both at once asked the owner to
+            choose between two doors into the same room. */}
         {canShowEmpty ? (
           <div className="hp-ed-manage-row">
             <button
               type="button"
               className="hp-ed-manage"
               aria-haspopup="dialog"
-              onClick={() => setManageOpen(true)}
+              onClick={() => { setPane(hasAnyRequest ? null : 'request'); setManageOpen(true) }}
             >
-              Manage testimonials
+              {hasAnyRequest ? 'Manage testimonials' : 'Invite testimonials'}
             </button>
           </div>
         ) : null}
@@ -305,7 +352,12 @@ export default function CollectiveImpact({
                   under it. Kept in flow rather than positioned, so the copy
                   below still runs the column's full width without anything
                   sitting on its first line. */}
-              <span className="hp-ed-pill">Invite testimonials</span>
+              {/* The section's own control above already says Invite
+                  testimonials before anybody has been asked, and says Manage
+                  once somebody has. Repeating the invitation here put both
+                  words on the screen at once, so this pill now only ever
+                  reports where the asking has got to. */}
+              {hasAnyRequest ? <span className="hp-ed-pill">Awaiting responses</span> : null}
               <div className="hp-voices-head">
                 <h3 className="hp-voices-title">Firsthand Accounts</h3>
               </div>
@@ -432,7 +484,13 @@ export default function CollectiveImpact({
               onClose={closeManage}
             >
               {pane === 'request' ? (
-                <TestimonialRequestPane onBack={() => setPane(null)} />
+                <TestimonialRequestPane
+                  onBack={() => setPane(null)}
+                  // Back to the list, and the list now has the new request in
+                  // it. The name comes back so the confirmation can say who was
+                  // asked rather than that something happened.
+                  onSent={(name) => { setPane(null); setSentTo(name) }}
+                />
               ) : paneItem ? (
                 <TestimonialEditPane item={paneItem} onBack={() => setPane(null)} />
               ) : (
@@ -447,7 +505,8 @@ export default function CollectiveImpact({
                   secondaryLabel="Download reference sheet"
                   onSecondary={() => edit?.onDownloadReferenceSheet?.()}
                   onDone={closeManage}
-                  emptyNote="No testimonials are placed on this career direction yet."
+                  emptyNote="Nobody has been asked yet. Request a testimonial to start."
+                  notice={sentTo ? `Request sent to ${sentTo}. It is in the list below, waiting on them.` : null}
                 />
               )}
             </ProfileModal>
