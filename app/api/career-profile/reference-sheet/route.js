@@ -48,7 +48,7 @@ export async function GET(request) {
 
     const { data: account } = await supabase
       .from('profiles')
-      .select('display_name')
+      .select('display_name, first_name, last_name')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -87,8 +87,18 @@ export async function GET(request) {
       React.createElement(ReferenceSheetPDF, { candidateName, issuedOn, references })
     )
 
-    const safeName = candidateName.replace(/[^\p{L}\p{N} .-]/gu, '').trim().replace(/\s+/g, '-') || 'Career-Profile'
-    const filename = `${safeName}-References.pdf`
+    // FirstName_LastName_References.pdf. The two name columns first, because
+    // they are already split the way the filename wants them; display_name is
+    // the fallback for an account that only has the one field, and it is split
+    // on whitespace rather than guessed at - "Daniel Mercer" gives the same
+    // answer either way, and a single-word name simply has no second part.
+    const parts = [account?.first_name, account?.last_name].map(v => (v || '').trim()).filter(Boolean)
+    const nameParts = parts.length ? parts : String(candidateName).trim().split(/\s+/)
+    const safeName = nameParts
+      .map(part => part.replace(/[^\p{L}\p{N}.-]/gu, ''))
+      .filter(Boolean)
+      .join('_') || 'Career_Profile'
+    const filename = `${safeName}_References.pdf`
 
     return new Response(buffer, {
       headers: {

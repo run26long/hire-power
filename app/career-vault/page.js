@@ -12,7 +12,8 @@ import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import UpgradeModal from '../components/UpgradeModal';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { coreResumeLabel } from '@/lib/resumeLabel';
-import { canLogWins, canUseReviewPrep, canCreateResumes, canAccessBuiltWork, UPGRADE_HREF } from '@/lib/tiers';
+import { canLogWins, canUseReviewPrep, canCreateResumes, canAccessBuiltWork, canCustomiseProfile } from '@/lib/tiers';
+import { canOpenResume, LOCK_COPY, lockReason } from '@/lib/resumeAccess';
 
 // ---- LOGGING A WIN ----
 // Through the route rather than straight into the table. The insert used to
@@ -115,6 +116,37 @@ function StatusBadge({ status }) {
     <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wide"
       style={{ background: c.bg, borderColor: c.border, color: c.text }}>
       {c.label}
+    </span>
+  );
+}
+
+// ---- WHAT A LOCK LOOKS LIKE ----
+// One mark for every gated control on this page, so a free account learns the
+// shape once rather than four times. Small enough to sit inside a row title
+// without moving it, and it names the plan rather than only showing a padlock:
+// a padlock says "no", and this says what the answer costs.
+function VaultLock({ compact = false }) {
+  return (
+    <span
+      title="Part of Vault and Pro"
+      className="inline-flex items-center flex-shrink-0"
+      style={{
+        gap: 4,
+        height: compact ? 16 : 18,
+        padding: compact ? '0 5px' : '0 6px',
+        borderRadius: 999,
+        background: '#F3EEFB',
+        border: '1px solid #E2D7F5',
+        color: '#6D4BD1',
+        fontSize: compact ? 8.5 : 9.5,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        lineHeight: 1,
+      }}
+    >
+      <span aria-hidden="true" style={{ fontSize: compact ? 8 : 9 }}>🔒</span>
+      Vault
     </span>
   );
 }
@@ -348,7 +380,11 @@ export default function CareerVaultPage() {
         // Load all active resumes (core + JS) for count and modal
         const { data: allActiveResumes, error: activeResumesError } = await supabase
           .from('resumes')
-          .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at')
+          // is_priority_core is read for freeCoreId in lib/resumeAccess: which
+          // core a free account keeps is decided by the flag first and the
+          // newest second, and without the flag this list would lock a
+          // different core than the hub does.
+          .select('id, display_name, current_score, resume_type, job_title, job_company, updated_at, created_at, is_priority_core')
           .eq('user_id', user.id)
           .eq('is_active', true)
           .order('updated_at', { ascending: false });
@@ -473,7 +509,7 @@ export default function CareerVaultPage() {
     if (!canUseReviewPrep(tierRef.current)) {
       setVaultPrompt({
         title: 'Walk into your review with the receipts.',
-        message: 'Review Prep turns the wins in your Vault into a document you can take into a performance review. It is part of Vault.',
+        message: 'Review Prep turns the wins in your Vault into a document you can take into a performance review. It is part of Vault and Pro.',
       });
       return;
     }
@@ -547,7 +583,7 @@ export default function CareerVaultPage() {
         setShowLogModal(false);
         setVaultPrompt({
           title: 'Log wins as they happen.',
-          message: 'Your Vault keeps every promotion, project and metric you add, and writes them into your next resume. Adding to it is part of Vault.',
+          message: 'Your Vault keeps every promotion, project and metric you add, and writes them into your next resume. Adding to it is part of Vault and Pro.',
         });
         return;
       }
@@ -742,12 +778,25 @@ export default function CareerVaultPage() {
   // rather than by listing the two plan names, which is the same rule written
   // somewhere it can fall out of date.
   const isKeepingRatherThanBuilding = canAccessBuiltWork(tier) && !mayStartNewSearch;
+  // The rest of what this page gates, each asked as the question lib/tiers
+  // names for it rather than as "is this account paying". They answer alike
+  // today; they are separate because they are separate questions and one of
+  // them could move without the others.
+  const mayCustomiseProfile = canCustomiseProfile(tier);
+  const mayOpenArchive = canAccessBuiltWork(tier);
+
+  // ---- WHAT A LOCKED CONTROL DOES ----
+  // Opens the prompt. It does not route first and gate on arrival: a free
+  // account sent into the Career Profile to be told no has lost its place on
+  // this page to read a refusal it could have been given here.
+  const promptUpgrade = (title, message) => setVaultPrompt({ title, message });
+
   const openLogWin = () => {
     if (!mayLogWins) {
-      setVaultPrompt({
-        title: 'Log wins as they happen.',
-        message: 'Your Vault keeps every promotion, project and metric you add, and writes them into your next resume. Adding to it is part of Vault.',
-      });
+      promptUpgrade(
+        'Log wins as they happen.',
+        'Your Vault keeps every promotion, project and metric you add, and writes them into your next resume. Adding to it is part of Vault and Pro.'
+      );
       return;
     }
     setShowLogModal(true);
@@ -857,27 +906,47 @@ export default function CareerVaultPage() {
   // Three ways to make the Vault bigger, all of them somewhere that already
   // exists. Logging a win is not one of them: that one lives beside the wins,
   // where its result is visible.
+  // All three put the owner's own words and files into a profile, which is one
+  // question with one answer, so all three lock together.
   const growthActions = [
     {
       num: '01',
       eyebrow: 'Profile',
       title: 'Build your Career Profile',
       desc: 'Add the story, context, and perspective a résumé can’t hold.',
-      onClick: () => router.push('/career-profile'),
+      locked: !mayCustomiseProfile,
+      onClick: () => (mayCustomiseProfile
+        ? router.push('/career-profile')
+        : promptUpgrade(
+            'Build the profile a résumé cannot hold.',
+            'Your Career Profile carries the story, context and perspective behind the work. Writing your own is part of Vault and Pro.'
+          )),
     },
     {
       num: '02',
       eyebrow: 'Testimonials',
       title: 'Collect testimonials',
       desc: 'Bring in the voices of people who have seen your work firsthand.',
-      onClick: () => router.push('/career-profile'),
+      locked: !mayCustomiseProfile,
+      onClick: () => (mayCustomiseProfile
+        ? router.push('/career-profile')
+        : promptUpgrade(
+            'Let other people say it.',
+            'Ask the people who have seen your work to put it in their own words, and keep their answers on your profile. Requesting testimonials is part of Vault and Pro.'
+          )),
     },
     {
       num: '03',
       eyebrow: 'Evidence',
       title: 'Add evidence',
       desc: 'Back the story with work samples, credentials, and proof.',
-      onClick: () => router.push('/career-profile'),
+      locked: !mayCustomiseProfile,
+      onClick: () => (mayCustomiseProfile
+        ? router.push('/career-profile')
+        : promptUpgrade(
+            'Show the work, not just the claim.',
+            'Work samples, certifications, awards and portfolio pieces sit alongside what you say about yourself. Adding evidence is part of Vault and Pro.'
+          )),
     },
   ];
 
@@ -885,7 +954,20 @@ export default function CareerVaultPage() {
   // The route the Career Profile already calls, fetched with the session
   // rather than linked, because it is a page of other people's phone numbers.
   // Opened rather than saved: the viewer it opens in is where print lives.
+  //
+  // The gate is the first thing here, before the session and before the
+  // request. Building the PDF and then refusing to show it would spend a
+  // render on somebody who cannot have it, and would put a page of other
+  // people's phone numbers a network tab away from an account that has not
+  // paid for it.
   const openReferenceSheet = async () => {
+    if (!mayCustomiseProfile) {
+      promptUpgrade(
+        'Hand over a reference sheet, not a promise.',
+        'The people who agreed to take the call, with their details and their words, on one page you can print or send. Your reference sheet is part of Vault and Pro.'
+      );
+      return;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/career-profile/reference-sheet', {
@@ -914,15 +996,19 @@ export default function CareerVaultPage() {
       icon: '🏆',
       title: 'Log a Win',
       desc: 'Capture an accomplishment while it’s fresh.',
+      locked: !mayLogWins,
       onClick: () => openLogWin(),
     },
     {
       icon: '📋',
       title: 'Prepare for My Review',
       desc: 'Turn your saved wins into review-ready talking points.',
+      locked: !mayPrepReview,
       // Nothing to make a document out of is a different thing from not being
-      // on the plan: the first disables the row, the second lets it explain.
-      disabled: accomplishments.length === 0,
+      // on the plan, and only the first disables the row. A locked row stays
+      // clickable however many wins there are, because the click is what
+      // explains the lock.
+      disabled: mayPrepReview && accomplishments.length === 0,
       onClick: handleOpenReviewPrep,
     },
     {
@@ -935,6 +1021,7 @@ export default function CareerVaultPage() {
       icon: '💬',
       title: 'Reference Sheet',
       desc: 'View, print, or save your professional reference sheet.',
+      locked: !mayCustomiseProfile,
       onClick: () => openReferenceSheet(),
     },
     {
@@ -947,7 +1034,13 @@ export default function CareerVaultPage() {
       icon: '📁',
       title: 'View Archive',
       desc: 'Access earlier career materials.',
-      onClick: () => setShowArchiveModal(true),
+      locked: !mayOpenArchive,
+      onClick: () => (mayOpenArchive
+        ? setShowArchiveModal(true)
+        : promptUpgrade(
+            'Nothing you built is thrown away.',
+            'Every résumé and job card you have archived stays here, ready to reopen. Reaching back into it is part of Vault and Pro.'
+          )),
     },
   ];
 
@@ -991,12 +1084,14 @@ export default function CareerVaultPage() {
         title: 'Your career data is already here.',
         body: 'Hire Power has started remembering your experience. Unlock Career Vault to keep it growing with new wins, testimonials, evidence, review prep, and your professional reference sheet.',
         cta: 'Unlock Career Vault →',
-        // Straight to the plan page's Vault deep link - the same address
-        // VaultUpgradeModal's own button pushes. That modal is for being
-        // stopped at something; this is somebody choosing to go, and an
-        // interstitial repeating the sentence they just clicked is a step
-        // rather than an explanation.
-        onClick: () => router.push(UPGRADE_HREF),
+        // Through the prompt rather than straight to the Vault deep link, so
+        // this CTA offers the same two plans every other gate on this page
+        // offers. Sending it to /profile?plan=vault would be the one upgrade
+        // on the page that decided for them which plan they wanted.
+        onClick: () => promptUpgrade(
+          'Your career data is already here.',
+          'Keep it growing with new wins, testimonials, evidence, review prep and your professional reference sheet. Vault keeps what you have built; Pro keeps building it.'
+        ),
       };
 
   // The current role's tenure, as the header of the wins panel reads it.
@@ -1130,18 +1225,16 @@ export default function CareerVaultPage() {
                 another.
                 ================================================================ */}
             <style>{`
-              .cv-grid { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(320px, 0.88fr); column-gap: 22px; row-gap: 22px; align-items: start; }
-              /* The left column is one grid cell holding two panels, so the
-                 wins panel can grow as long as it likes and the search band
-                 simply travels down with it. Neither column is stretched to
-                 the other. */
-              .cv-stack { display: flex; flex-direction: column; gap: 22px; }
-              /* The rail stretches to whatever the reveal beside it comes to,
-                 and its three rows take up the difference between them, so it
-                 aligns without ever ending in a slab of nothing. The reveal is
-                 never stretched to the rail: the scorecard sets the height. */
-              .cv-richer { align-self: stretch; display: flex; flex-direction: column; }
-              .cv-richer > .cv-action { flex: 1 1 auto; }
+              /* TWO COLUMNS, NOT A GRID OF ROWS
+                 The grid makes two columns and nothing else: one row, two
+                 cells, each cell a flex column that flows its own panels. A
+                 grid with panels in its rows ties their tops together, so the
+                 shorter one of any pair leaves the height of the taller one
+                 empty beneath it, and a wins panel that grows pushes a hole
+                 into the column beside it. Each column is its own run now, and
+                 every panel sits directly under the one above it. */
+              .cv-grid { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(320px, 0.88fr); column-gap: 22px; align-items: start; }
+              .cv-col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
               .cv-hero { padding: 30px 34px 28px; }
               .cv-hero-h1 { font-size: 38px; }
               .cv-cats { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, auto); column-gap: 0; row-gap: 0; }
@@ -1154,13 +1247,17 @@ export default function CareerVaultPage() {
               .cv-job-title { color: #171426; transition: color 160ms ease; }
               .cv-job:hover .cv-job-title { color: #6D4BD1; }
               @media (max-width: 1023px) {
-                .cv-grid { grid-template-columns: 1fr; }
-                /* In one column the left column's two panels become grid items
-                   in their own right, which is the only way the search band can
-                   be ordered past Use Your Vault without leaving the panel it
-                   sits under on a desktop. */
-                .cv-stack { display: contents; }
-                .cv-ready { order: 1; }
+                /* One column, and the two column wrappers stand aside so every
+                   panel becomes a grid item that can be ordered. Interleaving
+                   the columns is the whole point: on a phone the rail's panels
+                   belong between the left column's, not after all of them. */
+                .cv-grid { grid-template-columns: 1fr; row-gap: 22px; }
+                .cv-col { display: contents; }
+                .cv-hero { order: 1; }
+                .cv-richer { order: 2; }
+                .cv-job-panel { order: 3; }
+                .cv-tools { order: 4; }
+                .cv-ready { order: 5; }
               }
               @media (max-width: 640px) {
                 .cv-hero { padding: 22px 18px; }
@@ -1178,191 +1275,140 @@ export default function CareerVaultPage() {
 
             <div className="cv-grid">
 
-              {/* ================ ROW 1 LEFT: THE CAREER MEMORY REVEAL ========
-                  The centrepiece. One composition rather than six cards: the
-                  size of the whole knowledge base ghosted behind it, and in
-                  front the six shelves of the Vault, ruled off from one
-                  another and nothing scored out of a maximum, because there is
-                  no such thing as a complete career. */}
-              <section
-                className="cv-hero min-w-0 relative overflow-hidden"
-                style={{
-                  background:
-                    'radial-gradient(circle at 88% 8%, rgba(112, 77, 211, 0.16) 0%, rgba(112, 77, 211, 0.06) 26%, rgba(112, 77, 211, 0) 52%), #FFFFFF',
-                  border: '1px solid #E7E1F0',
-                  borderRadius: 22,
-                  boxShadow: '0 18px 50px rgba(38, 27, 62, 0.075)',
-                }}
-              >
-                {summaryState === 'ready' && knowledgeTotal > 0 && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute', top: -38, right: 20, pointerEvents: 'none',
-                      fontSize: 190, fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.07em',
-                      color: 'rgba(89, 62, 170, 0.045)', fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {knowledgeTotal}
-                  </span>
-                )}
-
-                <div className="relative">
-                  <div className="flex items-center justify-between gap-3" style={{ marginBottom: 10 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                      Career memory
-                    </p>
-                    <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
-                  </div>
-
-                  <h1
-                    className="cv-hero-h1"
-                    style={{ fontWeight: 700, lineHeight: 1.04, letterSpacing: '-0.035em', color: '#171426', maxWidth: 520 }}
-                  >
-                    Your career, remembered.
-                  </h1>
-                  <p style={{ marginTop: 12, fontSize: 15, lineHeight: 1.55, color: '#665E73', maxWidth: 610 }}>
-                    Hire Power has been paying attention. Everything it learns about you makes the next résumé, interview, and job search easier.
-                  </p>
-
-                  {sinceLastVisit > 0 && (
-                    <span
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 10px',
-                        borderRadius: 999, background: '#F1ECFB', color: '#6946C6',
-                        fontSize: 11, fontWeight: 700, marginTop: 14,
-                      }}
-                    >
-                      +{sinceLastVisit} since your last visit
-                    </span>
-                  )}
-
-                  {/* Three across, two down. A category with nothing in it is
-                      not drawn at all — no zero, no dash, no empty box — so the
-                      rules are worked out from the position a category ends up
-                      in rather than from which category it is, and the ends
-                      that meet the outside of the scorecard stop short of it. */}
-                  {summaryState === 'ready' && categories.length > 0 && (
-                    <div className="cv-cats" style={{ marginTop: 26 }}>
-                      {categories.map((category, i) => {
-                        const column = i % 3;
-                        const row = Math.floor(i / 3);
-                        const lastRow = row === Math.ceil(categories.length / 3) - 1;
-                        return (
-                          <div
-                            key={category.key}
-                            className="cv-cat min-w-0"
-                            style={{
-                              padding: row === 0 ? '22px 24px 20px 0' : '22px 24px 4px 0',
-                              paddingLeft: column > 0 ? 24 : 0,
-                            }}
-                          >
-                            {column > 0 && (
-                              <span
-                                aria-hidden="true"
-                                className="cv-div-v"
-                                style={{ position: 'absolute', left: 0, top: row === 0 ? 8 : 0, bottom: lastRow ? 8 : 0, width: 1, background: '#E9E3F0' }}
-                              />
-                            )}
-                            {row > 0 && (
-                              <span
-                                aria-hidden="true"
-                                className="cv-div-h"
-                                style={{ position: 'absolute', top: 0, left: column === 0 ? 8 : 0, right: column === 2 ? 8 : 0, height: 1, background: '#E9E3F0' }}
-                              />
-                            )}
-                            <p className="cv-cat-num">{category.value}</p>
-                            <p style={{ marginTop: 12, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#756C83' }}>
-                              {category.label}
-                            </p>
-                            {category.detail && (
-                              <p style={{ marginTop: 7, fontSize: 13.5, lineHeight: 1.42, color: '#4E4759', maxWidth: 210 }}>
-                                {category.detail}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {summaryState === 'ready' && categories.length === 0 && (
-                    <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>
-                      Nothing saved yet. Your first coaching session, practice interview or logged win starts it off.
-                    </p>
-                  )}
-                  {summaryState === 'loading' && (
-                    <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>Counting what it knows&hellip;</p>
-                  )}
-                  {summaryState === 'failed' && (
-                    <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>
-                      We couldn&apos;t count your Vault just now. Everything in it is still there — refresh to try again.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {/* ================ ROW 1 RIGHT: MAKE IT RICHER ================
-                  One panel, three rows, ruled apart rather than boxed. Logging
-                  a win is not among them: it belongs beside the wins, where its
-                  result is visible. */}
-              <section
-                className="cv-richer min-w-0"
-                style={{
-                  background: '#FFFFFF',
-                  border: '1px solid #E7E1F0',
-                  borderRadius: 22,
-                  padding: '24px 26px 18px',
-                  boxShadow: '0 12px 34px rgba(38, 27, 62, 0.05)',
-                }}
-              >
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                  Make it richer
-                </p>
-                <h2 style={{ marginTop: 8, marginBottom: 18, fontSize: 24, fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.02em', color: '#171426' }}>
-                  Keep building the story.
-                </h2>
-
-                {growthActions.map((action, i) => (
-                  <button
-                    key={action.num}
-                    onClick={action.onClick}
-                    className="cv-action w-full text-left relative block"
-                    style={{
-                      minHeight: 118,
-                      padding: '20px 34px 18px 68px',
-                      borderTop: i === 0 ? undefined : '1px solid #EAE5F0',
-                    }}
-                  >
+              {/* ---------------- LEFT COLUMN ---------------- */}
+              <div className="cv-col">
+                {/* ================ ROW 1 LEFT: THE CAREER MEMORY REVEAL ========
+                    The centrepiece. One composition rather than six cards: the
+                    size of the whole knowledge base ghosted behind it, and in
+                    front the six shelves of the Vault, ruled off from one
+                    another and nothing scored out of a maximum, because there is
+                    no such thing as a complete career. */}
+                <section
+                  className="cv-hero min-w-0 relative overflow-hidden"
+                  style={{
+                    background:
+                      'radial-gradient(circle at 88% 8%, rgba(112, 77, 211, 0.16) 0%, rgba(112, 77, 211, 0.06) 26%, rgba(112, 77, 211, 0) 52%), #FFFFFF',
+                    border: '1px solid #E7E1F0',
+                    borderRadius: 22,
+                    boxShadow: '0 18px 50px rgba(38, 27, 62, 0.075)',
+                  }}
+                >
+                  {summaryState === 'ready' && knowledgeTotal > 0 && (
                     <span
                       aria-hidden="true"
-                      style={{ position: 'absolute', left: 0, top: 18, fontSize: 42, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.04em', color: 'rgba(109, 75, 209, 0.14)' }}
+                      style={{
+                        position: 'absolute', top: -38, right: 20, pointerEvents: 'none',
+                        fontSize: 190, fontWeight: 700, lineHeight: 0.9, letterSpacing: '-0.07em',
+                        color: 'rgba(89, 62, 170, 0.045)', fontVariantNumeric: 'tabular-nums',
+                      }}
                     >
-                      {action.num}
+                      {knowledgeTotal}
                     </span>
-                    <span className="block" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#8067C7' }}>
-                      {action.eyebrow}
-                    </span>
-                    <span className="block" style={{ marginTop: 4, fontSize: 17, fontWeight: 700, lineHeight: 1.2, color: '#1B1727' }}>
-                      {action.title}
-                    </span>
-                    <span className="block" style={{ marginTop: 6, fontSize: 13, lineHeight: 1.45, color: '#71687D' }}>
-                      {action.desc}
-                    </span>
-                    <span aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 22, fontSize: 14, color: '#6D4BD1' }}>→</span>
-                  </button>
-                ))}
-              </section>
+                  )}
 
-              {/* ================ ROW 2 LEFT: THE JOB AND ITS WINS ============
-                  The role everything new attaches to, and under it the wins
-                  themselves — not a count of them. Seeing what you logged is
-                  the whole point of logging it. The way back out into a search
-                  sits beneath them, so it moves down the page as the wins
-                  accumulate rather than holding a place of its own. */}
-              <div className="cv-stack min-w-0">
+                  <div className="relative">
+                    <div className="flex items-center justify-between gap-3" style={{ marginBottom: 10 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                        Career memory
+                      </p>
+                      <span className="md:hidden text-xs font-semibold px-2 py-0.5 rounded-md whitespace-nowrap" style={{ backgroundColor: 'rgba(147, 51, 234, 0.08)', color: '#7e22ce' }}>Career Vault</span>
+                    </div>
+
+                    <h1
+                      className="cv-hero-h1"
+                      style={{ fontWeight: 700, lineHeight: 1.04, letterSpacing: '-0.035em', color: '#171426', maxWidth: 520 }}
+                    >
+                      Your career, remembered.
+                    </h1>
+                    <p style={{ marginTop: 12, fontSize: 15, lineHeight: 1.55, color: '#665E73', maxWidth: 610 }}>
+                      Hire Power has been paying attention. Everything it learns about you makes the next résumé, interview, and job search easier.
+                    </p>
+
+                    {sinceLastVisit > 0 && (
+                      <span
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', height: 27, padding: '0 10px',
+                          borderRadius: 999, background: '#F1ECFB', color: '#6946C6',
+                          fontSize: 11, fontWeight: 700, marginTop: 14,
+                        }}
+                      >
+                        +{sinceLastVisit} since your last visit
+                      </span>
+                    )}
+
+                    {/* Three across, two down. A category with nothing in it is
+                        not drawn at all — no zero, no dash, no empty box — so the
+                        rules are worked out from the position a category ends up
+                        in rather than from which category it is, and the ends
+                        that meet the outside of the scorecard stop short of it. */}
+                    {summaryState === 'ready' && categories.length > 0 && (
+                      <div className="cv-cats" style={{ marginTop: 26 }}>
+                        {categories.map((category, i) => {
+                          const column = i % 3;
+                          const row = Math.floor(i / 3);
+                          const lastRow = row === Math.ceil(categories.length / 3) - 1;
+                          return (
+                            <div
+                              key={category.key}
+                              className="cv-cat min-w-0"
+                              style={{
+                                padding: row === 0 ? '22px 24px 20px 0' : '22px 24px 4px 0',
+                                paddingLeft: column > 0 ? 24 : 0,
+                              }}
+                            >
+                              {column > 0 && (
+                                <span
+                                  aria-hidden="true"
+                                  className="cv-div-v"
+                                  style={{ position: 'absolute', left: 0, top: row === 0 ? 8 : 0, bottom: lastRow ? 8 : 0, width: 1, background: '#E9E3F0' }}
+                                />
+                              )}
+                              {row > 0 && (
+                                <span
+                                  aria-hidden="true"
+                                  className="cv-div-h"
+                                  style={{ position: 'absolute', top: 0, left: column === 0 ? 8 : 0, right: column === 2 ? 8 : 0, height: 1, background: '#E9E3F0' }}
+                                />
+                              )}
+                              <p className="cv-cat-num">{category.value}</p>
+                              <p style={{ marginTop: 12, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#756C83' }}>
+                                {category.label}
+                              </p>
+                              {category.detail && (
+                                <p style={{ marginTop: 7, fontSize: 13.5, lineHeight: 1.42, color: '#4E4759', maxWidth: 210 }}>
+                                  {category.detail}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {summaryState === 'ready' && categories.length === 0 && (
+                      <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>
+                        Nothing saved yet. Your first coaching session, practice interview or logged win starts it off.
+                      </p>
+                    )}
+                    {summaryState === 'loading' && (
+                      <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>Counting what it knows&hellip;</p>
+                    )}
+                    {summaryState === 'failed' && (
+                      <p style={{ marginTop: 26, fontSize: 13.5, color: '#8A8195' }}>
+                        We couldn&apos;t count your Vault just now. Everything in it is still there — refresh to try again.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                {/* ================ ROW 2 LEFT: THE JOB AND ITS WINS ============
+                    The role everything new attaches to, and under it the wins
+                    themselves — not a count of them. Seeing what you logged is
+                    the whole point of logging it. The way back out into a search
+                    sits beneath them, so it moves down the page as the wins
+                    accumulate rather than holding a place of its own. */}
                 <section
-                  className="min-w-0"
+                  className="cv-job-panel min-w-0"
                   style={{
                     background: '#FFFFFF',
                     border: '1px solid #E7E1F0',
@@ -1412,7 +1458,7 @@ export default function CareerVaultPage() {
                         add one, and the click says why. */}
                     <button
                       onClick={() => openLogWin()}
-                      title={mayLogWins ? undefined : 'Logging wins is part of Vault'}
+                      title={mayLogWins ? undefined : 'Logging wins is part of Vault and Pro'}
                       className="text-white rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 whitespace-nowrap flex-shrink-0"
                       style={{ height: 42, padding: '0 18px', background: 'linear-gradient(to right, #667eea, #764ba2)' }}
                     >
@@ -1508,59 +1554,120 @@ export default function CareerVaultPage() {
                 </section>
               </div>
 
-              {/* ================ ROW 2 RIGHT: USE YOUR VAULT =================
-                  Six rows in one panel rather than six cards, because they are
-                  one menu, and every one of them goes somewhere that already
-                  exists. */}
-              <section
-                className="min-w-0"
-                style={{
-                  background: '#FFFFFF',
-                  border: '1px solid #E7E1F0',
-                  borderRadius: 20,
-                  padding: '22px 24px 10px',
-                  boxShadow: '0 10px 30px rgba(38,27,62,0.04)',
-                }}
-              >
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
-                  Use your Vault
-                </p>
-                <h2 style={{ marginTop: 8, marginBottom: 14, fontSize: 22, fontWeight: 700, lineHeight: 1.1, color: '#171426' }}>
-                  Useful now. Valuable later.
-                </h2>
+              {/* ---------------- RIGHT COLUMN ---------------- */}
+              <div className="cv-col">
+                {/* ================ ROW 1 RIGHT: MAKE IT RICHER ================
+                    One panel, three rows, ruled apart rather than boxed. Logging
+                    a win is not among them: it belongs beside the wins, where its
+                    result is visible. */}
+                <section
+                  className="cv-richer min-w-0"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E7E1F0',
+                    borderRadius: 22,
+                    padding: '24px 26px 18px',
+                    boxShadow: '0 12px 34px rgba(38, 27, 62, 0.05)',
+                  }}
+                >
+                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                    Make it richer
+                  </p>
+                  <h2 style={{ marginTop: 8, marginBottom: 18, fontSize: 24, fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.02em', color: '#171426' }}>
+                    Keep building the story.
+                  </h2>
 
-                {vaultTools.map(tool => (
-                  <button
-                    key={tool.title}
-                    onClick={tool.disabled ? undefined : tool.onClick}
-                    disabled={tool.disabled === true}
-                    className={`w-full text-left transition-colors ${
-                      tool.disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#FBF9FE]'
-                    }`}
-                    style={{
-                      minHeight: 64,
-                      display: 'grid',
-                      gridTemplateColumns: '34px 1fr 18px',
-                      alignItems: 'center',
-                      columnGap: 12,
-                      borderTop: '1px solid #EEE9F2',
-                    }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="flex items-center justify-center"
-                      style={{ width: 34, height: 34, borderRadius: 9, background: '#F3EEFB', color: '#6D4BD1', fontSize: 15 }}
+                  {growthActions.map((action, i) => (
+                    <button
+                      key={action.num}
+                      onClick={action.onClick}
+                      className="cv-action w-full text-left relative block"
+                      style={{
+                        minHeight: 118,
+                        padding: '20px 34px 18px 68px',
+                        borderTop: i === 0 ? undefined : '1px solid #EAE5F0',
+                      }}
                     >
-                      {tool.icon}
-                    </span>
-                    <span className="min-w-0 block">
-                      <span className="block" style={{ fontSize: 14, fontWeight: 700, color: '#1B1727' }}>{tool.title}</span>
-                      <span className="block" style={{ marginTop: 2, fontSize: 12, lineHeight: 1.35, color: '#81778C' }}>{tool.desc}</span>
-                    </span>
-                    <span aria-hidden="true" style={{ fontSize: 13, color: '#9A8EA7', textAlign: 'right' }}>→</span>
-                  </button>
-                ))}
-              </section>
+                      <span
+                        aria-hidden="true"
+                        style={{ position: 'absolute', left: 0, top: 18, fontSize: 42, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.04em', color: 'rgba(109, 75, 209, 0.14)' }}
+                      >
+                        {action.num}
+                      </span>
+                      <span className="flex items-center" style={{ gap: 7 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#8067C7' }}>
+                          {action.eyebrow}
+                        </span>
+                        {action.locked && <VaultLock compact />}
+                      </span>
+                      <span className="block" style={{ marginTop: 4, fontSize: 17, fontWeight: 700, lineHeight: 1.2, color: '#1B1727' }}>
+                        {action.title}
+                      </span>
+                      <span className="block" style={{ marginTop: 6, fontSize: 13, lineHeight: 1.45, color: '#71687D' }}>
+                        {action.desc}
+                      </span>
+                      <span aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 22, fontSize: 14, color: '#6D4BD1' }}>→</span>
+                    </button>
+                  ))}
+                </section>
+
+                {/* ================ ROW 2 RIGHT: USE YOUR VAULT =================
+                    Six rows in one panel rather than six cards, because they are
+                    one menu, and every one of them goes somewhere that already
+                    exists. */}
+                <section
+                  className="cv-tools min-w-0"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E7E1F0',
+                    borderRadius: 20,
+                    padding: '22px 24px 10px',
+                    boxShadow: '0 10px 30px rgba(38,27,62,0.04)',
+                  }}
+                >
+                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6D4BD1' }}>
+                    Use your Vault
+                  </p>
+                  <h2 style={{ marginTop: 8, marginBottom: 14, fontSize: 22, fontWeight: 700, lineHeight: 1.1, color: '#171426' }}>
+                    Useful now. Valuable later.
+                  </h2>
+
+                  {vaultTools.map(tool => (
+                    <button
+                      key={tool.title}
+                      onClick={tool.disabled ? undefined : tool.onClick}
+                      disabled={tool.disabled === true}
+                      className={`w-full text-left transition-colors ${
+                        tool.disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#FBF9FE]'
+                      }`}
+                      style={{
+                        minHeight: 64,
+                        display: 'grid',
+                        gridTemplateColumns: '34px 1fr 18px',
+                        alignItems: 'center',
+                        columnGap: 12,
+                        borderTop: '1px solid #EEE9F2',
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex items-center justify-center"
+                        style={{ width: 34, height: 34, borderRadius: 9, background: '#F3EEFB', color: '#6D4BD1', fontSize: 15 }}
+                      >
+                        {tool.icon}
+                      </span>
+                      <span className="min-w-0 block">
+                        <span className="flex items-center flex-wrap" style={{ gap: 7 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#1B1727' }}>{tool.title}</span>
+                          {tool.locked && <VaultLock />}
+                        </span>
+                        <span className="block" style={{ marginTop: 2, fontSize: 12, lineHeight: 1.35, color: '#81778C' }}>{tool.desc}</span>
+                      </span>
+                      <span aria-hidden="true" style={{ fontSize: 13, color: '#9A8EA7', textAlign: 'right' }}>→</span>
+                    </button>
+                  ))}
+                </section>
+              </div>
             </div>
           </div>
         </div>
@@ -2391,7 +2498,14 @@ export default function CareerVaultPage() {
                 <p className="text-sm">No active resumes</p>
               </div>
             ) : (
-              activeResumes.map((resume) => (
+              activeResumes.map((resume) => {
+                // The same question the hub, the editor and the PDF route ask,
+                // through lib/resumeAccess rather than restated here: a free
+                // account keeps one specific core and everything else is
+                // visible and locked. `activeResumes` carries every core, so
+                // freeCoreId can pick the same one they all pick.
+                const openable = canOpenResume(tier, resume, activeResumes);
+                return (
                 <div key={resume.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-200 transition-colors">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -2414,16 +2528,26 @@ export default function CareerVaultPage() {
                         }}>
                           {resume.resume_type === 'core' ? 'Core' : 'Job-Specific'}
                         </span>
+                        {!openable && <VaultLock compact />}
                       </div>
                       <p className="text-[10px] text-gray-400">
-                        Updated {formatDate(resume.updated_at)}{resume.current_score ? ` · Score: ${resume.current_score}` : ''}
+                        {openable
+                          ? `Updated ${formatDate(resume.updated_at)}${resume.current_score ? ` · Score: ${resume.current_score}` : ''}`
+                          : LOCK_COPY[lockReason(resume)]}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* A locked resume is answered here rather than at
+                          /resume/[id]. That page still refuses a direct link,
+                          which is what it is for; walking somebody out of this
+                          modal to be told no would cost them the list they were
+                          reading to arrive at the same sentence. */}
                       <button
-                        onClick={() => { setShowResumeListModal(false); router.push(`/resume/${resume.id}`); }}
+                        onClick={() => (openable
+                          ? (() => { setShowResumeListModal(false); router.push(`/resume/${resume.id}`); })()
+                          : promptUpgrade('Your résumés stay yours.', LOCK_COPY[lockReason(resume)]))}
                         className="text-[10px] text-purple-600 font-semibold hover:text-purple-700"
-                      >View</button>
+                      >{openable ? 'View' : 'Unlock'}</button>
                       {resume.resume_type !== 'core' && (
                         <button
                           onClick={() => setConfirmArchiveResume(resume)}
@@ -2433,7 +2557,8 @@ export default function CareerVaultPage() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -2641,6 +2766,11 @@ export default function CareerVaultPage() {
         onClose={() => setVaultPrompt(null)}
         title={vaultPrompt?.title}
         message={vaultPrompt?.message}
+        // Every gate on this page opens on two plans rather than one. Vault is
+        // the cheaper answer to all of them and leads; Pro is the same door for
+        // somebody going back to searching, and it is the Pro checkout this
+        // page already mounts rather than a second one.
+        onChoosePro={() => { setVaultPrompt(null); setShowUpgradeModal(true); }}
       />
 
    <UpgradeModal
