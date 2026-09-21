@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
+import { noEmDash } from '../../_lib/recruiterContext'
+import { canUseProTools } from '@/lib/tiers'
 import { canonicalType, familyForType } from '@/lib/evidenceTypes'
 
 // ============================================================================
@@ -149,12 +150,12 @@ export async function PATCH(request, { params }) {
         .eq('id', user.id)
         .maybeSingle()
 
-      // Going private is the Pro half. Going back to public is always allowed,
-      // so an account that lapses is never left with evidence it cannot
-      // un-hide.
-      if (body.privacy === 'private' && !isEntitledTier(account?.subscription_tier)) {
+      // Going private is the paid half. Going back to public is always
+      // allowed, so an account that lapses is never left with evidence it
+      // cannot un-hide.
+      if (body.privacy === 'private' && !canUseProTools(account?.subscription_tier)) {
         return Response.json(
-          { error: 'Keeping evidence private is a Pro feature.', code: 'PRO_REQUIRED' },
+          { error: 'Keeping evidence private is part of Vault and Pro.', code: 'PRO_REQUIRED' },
           { status: 403 }
         )
       }

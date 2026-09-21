@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
+import { noEmDash } from '../../_lib/recruiterContext'
+import { canUseProTools } from '@/lib/tiers'
 
 // ============================================================================
 // POST /api/career-profile/imow/strengthen
@@ -195,7 +196,7 @@ export async function POST(request) {
       .eq('id', user.id)
       .maybeSingle()
 
-    if (!isEntitledTier(account?.subscription_tier)) {
+    if (!canUseProTools(account?.subscription_tier)) {
       const { count } = await supabase
         .from('profile_lenses')
         .select('id', { count: 'exact', head: true })

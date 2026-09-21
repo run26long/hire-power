@@ -128,10 +128,10 @@ export function useFieldEditor(field) {
     // happens to be open when it is read.
     error: edit.busyField === field || edit.errorField === field ? edit.error : null,
     // The same rule the generate route enforces, rather than a stricter guess
-    // at it: Pro, or a free account with only its one entitled direction. A
-    // free account with one direction can generate, so hiding the button from
-    // them was hiding a feature they have. The payload's lenses are already
-    // filtered to the statuses that route counts.
-    canRegenerate: edit.isPro === true || (edit.lenses?.length ?? 0) <= 1
+    // at it: a paid plan, or a free account with only its one entitled
+    // direction. A free account with one direction can generate, so hiding the
+    // button from them was hiding a feature they have. The payload's lenses are
+    // already filtered to the statuses that route counts.
+    canRegenerate: edit.canUseProfileTools === true || (edit.lenses?.length ?? 0) <= 1
   }
 }

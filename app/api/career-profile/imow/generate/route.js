@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
+import { noEmDash } from '../../_lib/recruiterContext'
+import { canUseProTools } from '@/lib/tiers'
 
 // ============================================================================
 // POST /api/career-profile/imow/generate
@@ -250,17 +251,16 @@ export async function POST(request) {
     if (!profile) return Response.json({ error: 'No profile to write for.' }, { status: 404 })
 
     // ---- TIER ----
-    // The same question the lens generator asks, and asked the same way: Pro,
-    // or a free account with only its one entitled direction. Two generators
-    // that disagreed about who may generate would be two answers to one
-    // product decision.
+    // A paid plan, or a free account with only its one entitled direction.
+    // Vault is in: a profile it keeps whole is one it can still write, and the
+    // direction count is what free is held to rather than what Vault is.
     const { data: account } = await supabase
       .from('profiles')
       .select('subscription_tier, display_name')
       .eq('id', user.id)
       .maybeSingle()
 
-    if (!isEntitledTier(account?.subscription_tier)) {
+    if (!canUseProTools(account?.subscription_tier)) {
       const { count } = await supabase
         .from('profile_lenses')
         .select('id', { count: 'exact', head: true })

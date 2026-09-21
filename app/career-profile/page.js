@@ -931,6 +931,15 @@ export default function CareerProfileEditorPage() {
             <span className="hp-ed-link-note">Publish to share</span>
           ) : null}
 
+          {/* What Copy link will actually copy. The address in the bar is the
+              profile's; the one on the clipboard is the direction on screen,
+              and nothing else here would say so. */}
+          {published && publicUrl ? (
+            <span className="hp-ed-link-note" data-share="true">
+              Select a career direction to share a link that opens directly to it.
+            </span>
+          ) : null}
+
           <div className="hp-ed-does" data-tour="profile-settings">
             {published && publicUrl ? (
               <button type="button" className="hp-ed-action" onClick={copyLink}>
@@ -973,11 +982,16 @@ export default function CareerProfileEditorPage() {
         deepLinkLens
         edit={editing ? {
           editing: true,
-          isPro: manage?.isPro === true,
-          // A second entitlement question, not a rename of the first. isPro
-          // governs the Pro tools; this governs whether the owner may put
-          // their own words and files into the profile at all, and Vault can.
+          // Whether the owner may put their own words and files into the
+          // profile at all, which Vault can.
           canCustomise: manage?.canCustomise === true,
+          // And whether they may use the profile's own tools - video, evidence
+          // privacy, regenerating In My Own Words - which Vault now also can.
+          // isPro is deliberately not passed down: nothing in the document is
+          // Pro-only any more, and the one thing that still is - adding a
+          // career direction - is in the settings drawer, which reads
+          // manage.isPro directly.
+          canUseProfileTools: manage?.canUseProfileTools === true,
           notify,
           onSaveLens: saveLens,
           onRegenerateLens: regenerateLens,

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { isEntitledTier } from '../_lib/recruiterContext'
 import { canCustomiseProfile } from '@/lib/profileTier'
+import { canUseProTools } from '@/lib/tiers'
 import { earned360 } from '@/lib/testimonialTypes'
 
 // ============================================================================
@@ -133,6 +134,7 @@ export async function GET(request) {
         accountEmail,
         isPro: isEntitledTier(userProfile.subscription_tier),
         canCustomise: canCustomiseProfile(userProfile.subscription_tier),
+        canUseProfileTools: canUseProTools(userProfile.subscription_tier),
         profile: null,
         lenses: [],
         evidence: [],
@@ -238,8 +240,16 @@ export async function GET(request) {
     return Response.json({
       userProfile,
       accountEmail,
+      // THREE QUESTIONS, NOT ONE
+      // isPro is Pro alone and is asked by one thing only: whether a new
+      // career direction may be added. canCustomise is whether this account
+      // may put its own words and files in at all. canUseProfileTools is the
+      // Career Profile's own tools - video, evidence privacy, the recruiter
+      // tools on the public page - which Vault now has. Collapsing the first
+      // and the third is what would hand Vault a fourth direction.
       isPro: isEntitledTier(userProfile.subscription_tier),
       canCustomise: canCustomiseProfile(userProfile.subscription_tier),
+      canUseProfileTools: canUseProTools(userProfile.subscription_tier),
       profile: { ...profileRest, imow_has_video: Boolean(imow_video_path) },
       lenses: lensRes.data || [],
       evidence,

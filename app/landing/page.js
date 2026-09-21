@@ -1298,8 +1298,10 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.1)',fontWeight:600,color:'var(--dark)'}}>Vault</li>
                 <li><span className="check">✓</span> Full Career Profile with all career directions you built</li>
+                <li><span className="check">✓</span> Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
+                <li><span className="check">✓</span> In My Own Words (text and video)</li>
                 <li><span className="check">✓</span> Request testimonials and build your reference sheet</li>
-                <li><span className="check">✓</span> Upload evidence and portfolio items</li>
+                <li><span className="check">✓</span> Upload evidence and portfolio items, with privacy controls</li>
                 <li><span className="check">✓</span> Log wins and track achievements in real time</li>
                 <li><span className="check">✓</span> Access all resumes and cover letters you created</li>
                 <li><span className="check">✓</span> Performance review preparation</li>
@@ -1393,8 +1395,10 @@ const supabase = createClient();
                 features: [
                   'Everything in Free, plus:',
                   'Full Career Profile with all career directions you built',
+                  'Recruiter tools (Career Q&A and Hiring Brief)',
+                  'In My Own Words (text and video)',
                   'Request testimonials and build your reference sheet',
-                  'Upload evidence and portfolio items',
+                  'Upload evidence and portfolio items, with privacy controls',
                   'Log wins and track achievements in real time',
                   'Access all resumes and cover letters you created',
                   'Performance review preparation',

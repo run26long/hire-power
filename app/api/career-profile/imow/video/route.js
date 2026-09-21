@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { issueTicket, ticketValid } from '../../_lib/uploadTicket'
+import { canUseProTools } from '@/lib/tiers'
 
 // ============================================================================
 // POST   /api/career-profile/imow/video  - somewhere to put it
@@ -74,15 +75,16 @@ async function owner(request) {
   return { supabase, user, profile }
 }
 
-// Pro only, the same question the rest of the product asks. Video is the one
-// half of this section that is gated; the text half never has been.
-async function isPro(supabase, userId) {
+// The Career Profile's own question, asked through the one predicate that
+// answers it, rather than by naming a plan here. Video is the one half of this
+// section that is gated; the text half never has been.
+async function mayRecord(supabase, userId) {
   const { data } = await supabase
     .from('profiles')
     .select('subscription_tier')
     .eq('id', userId)
     .maybeSingle()
-  return data?.subscription_tier === 'pro'
+  return canUseProTools(data?.subscription_tier)
 }
 
 export async function POST(request) {
@@ -91,8 +93,8 @@ export async function POST(request) {
     if (ctx.error) return ctx.error
     const { supabase, user } = ctx
 
-    if (!await isPro(supabase, user.id)) {
-      return Response.json({ error: 'Video is a Pro feature.', code: 'PRO_REQUIRED' }, { status: 403 })
+    if (!await mayRecord(supabase, user.id)) {
+      return Response.json({ error: 'Video is part of Vault and Pro.', code: 'PRO_REQUIRED' }, { status: 403 })
     }
 
     let body
@@ -143,8 +145,8 @@ export async function PUT(request) {
     if (ctx.error) return ctx.error
     const { supabase, user, profile } = ctx
 
-    if (!await isPro(supabase, user.id)) {
-      return Response.json({ error: 'Video is a Pro feature.', code: 'PRO_REQUIRED' }, { status: 403 })
+    if (!await mayRecord(supabase, user.id)) {
+      return Response.json({ error: 'Video is part of Vault and Pro.', code: 'PRO_REQUIRED' }, { status: 403 })
     }
 
     let body

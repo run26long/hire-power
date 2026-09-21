@@ -1152,6 +1152,8 @@ export default function Profile() {
                 <li>All resumes, cover letters, and coaching conversations</li>
                 <li>Full Career Profile with all career directions</li>
                 <li>Testimonials, evidence, and portfolio</li>
+                <li>Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
+                <li>Video In My Own Words and evidence privacy controls</li>
                 <li>Reference sheet access</li>
                 <li>Career Vault achievement tracking</li>
                 <li>Unlimited downloads and premium templates</li>
@@ -1161,8 +1163,6 @@ export default function Profile() {
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
                 <li>New resume coaching and generation</li>
                 <li>New interview practice sessions</li>
-                <li>Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
-                <li>Video IMOW</li>
               </ul>
 
               <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 18 }}>

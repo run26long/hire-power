@@ -104,7 +104,7 @@ export function EvidenceEditPane({ item, lensId, isFeatured, onBack }) {
           private, and a button that always answered PRO_REQUIRED would be
           worse than no button - but an already-private item keeps the way
           back, so a lapsed account is never stuck. */}
-      {edit?.isPro || isPrivate ? (
+      {edit?.canUseProfileTools || isPrivate ? (
         <div className="hp-manage-pane-row">
           <span className="hp-manage-pane-label">
             {isPrivate ? 'Private. Only you can see this.' : 'Public'}

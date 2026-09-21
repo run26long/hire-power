@@ -22,15 +22,16 @@ const EVALUATE_LIMIT = 3
 
 export const LIMITS = { ask: ASK_LIMIT, evaluate: EVALUATE_LIMIT }
 
-// Pro only. Vault is a separate tier rather than a larger one, so it is not
-// swept in here by accident - if it should have these tools, that is a product
-// decision and it belongs in this list explicitly.
+// Pro only, and now down to one question: may this account add a career
+// direction. It used to answer for the recruiter tools too, and for video, and
+// for evidence privacy - everything the Career Profile does that free cannot.
+// Vault has all of those now, so they ask canUseProTools in lib/tiers instead,
+// and this stays behind for the one thing Vault still does not get.
+//
+// Nothing in this file uses it any more. It is exported for the manage route,
+// which hands it to the settings drawer as `isPro`.
 const ENTITLED_TIERS = new Set(['pro'])
 
-// The public profile route asks the same question to decide whether to offer
-// the tools at all, and it asks it through here rather than writing the tier
-// name out a second time. Two places that both know what "entitled" means are
-// two places that can come to disagree about it.
 export const isEntitledTier = (tier) => ENTITLED_TIERS.has(tier)
 
 export const service = () =>

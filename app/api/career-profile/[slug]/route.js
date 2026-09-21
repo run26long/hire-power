@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { apiError } from '@/lib/apiError'
-import { isEntitledTier } from '../_lib/recruiterContext'
+import { canUseProTools } from '@/lib/tiers'
 
 // ============================================================================
 // GET /api/career-profile/[slug]
@@ -529,7 +529,7 @@ export async function GET(request, { params }) {
     // Whether this profile offers the recruiter tools. A boolean and nothing
     // more: no tier name, no billing state, and in particular no "free" - a
     // public page should not tell a visitor what its owner declined to buy.
-    const recruiterToolsEnabled = isEntitledTier(personRes.data?.subscription_tier)
+    const recruiterToolsEnabled = canUseProTools(personRes.data?.subscription_tier)
 
     // ---- WHICH ADDRESS THE CONTACT BUTTON OPENS ----
     //

@@ -2,7 +2,8 @@ import { requireCustomise } from '../../_lib/requireCustomise'
 import { bumpVaultCount } from '@/lib/vaultCount'
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
-import { noEmDash, isEntitledTier } from '../../_lib/recruiterContext'
+import { noEmDash } from '../../_lib/recruiterContext'
+import { canUseProTools } from '@/lib/tiers'
 import { canonicalType, familyForType } from '@/lib/evidenceTypes'
 import { MAX_UPLOAD_BYTES, uploadTypeFor } from '@/lib/evidenceUploads'
 import { FREE_VISUAL_UPLOADS } from '@/lib/portfolio'
@@ -105,7 +106,7 @@ async function isEntitled(supabase, userId) {
     .select('subscription_tier')
     .eq('id', userId)
     .maybeSingle()
-  return isEntitledTier(data?.subscription_tier)
+  return canUseProTools(data?.subscription_tier)
 }
 
 async function visualUploadCount(supabase, profileId) {

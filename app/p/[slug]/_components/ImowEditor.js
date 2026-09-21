@@ -416,11 +416,11 @@ export default function ImowEditor({ value }) {
       <div className="hp-ed-imow-video">
         <p className="hp-ed-field-label" data-accent="true">Or record it</p>
 
-        {edit.isPro ? <ImowVideoField /> : (
-          <button type="button" className="hp-ed-add-choice" disabled title="Video is a Pro feature">
+        {edit.canUseProfileTools ? <ImowVideoField /> : (
+          <button type="button" className="hp-ed-add-choice" disabled title="Video is part of Vault and Pro">
             <span className="hp-ed-add-choice-title">
               Record or upload video
-              <span className="hp-ed-pro-tag">Pro</span>
+              <span className="hp-ed-pro-tag">Vault</span>
             </span>
             <span className="hp-ed-add-choice-note">
               Prefer to speak directly to an employer? Upload a short video and let them

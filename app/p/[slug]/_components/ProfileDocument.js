@@ -568,10 +568,16 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     return {
       editing: true,
       lensId: editLensId,
-      isPro: edit.isPro === true,
-      // Whether this account may put its own words and files in at all. A
-      // different question from isPro, and the gates read this one.
+      // Whether this account may put its own words and files in at all.
       canCustomise: edit.canCustomise === true,
+      // And whether it may use the profile's own tools - video, evidence
+      // privacy, regenerating In My Own Words. Vault has these, so no gate in
+      // here asks isPro: the document carried that flag until Vault was given
+      // the tools, and a flag named for a plan is what sent three of these
+      // gates to the wrong answer in the first place. The one question that is
+      // still Pro alone - adding a career direction - is not asked in this
+      // document; it is asked in the settings drawer, off manage.isPro.
+      canUseProfileTools: edit.canUseProfileTools === true,
       notify: edit.notify,
       // Every direction, not just the one on screen: adding a piece of
       // evidence is where an owner decides which chapters it belongs to.
@@ -627,7 +633,7 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
       regenerate: (field) => runDraft(field, () => editRegenerate(editLensId, field))
     }
   }, [
-    edit?.editing, edit?.isPro, edit?.canCustomise, edit?.notify,
+    edit?.editing, edit?.canCustomise, edit?.canUseProfileTools, edit?.notify,
     edit?.onPreviewUrl, edit?.onCreateEvidence, edit?.onUploadEvidence,
     edit?.allEvidence, edit?.allPlacements, edit?.onAssignEvidence, edit?.onFeatureEvidence,
     edit?.onReorderEvidence, edit?.onEditEvidence, edit?.onDeleteEvidence,
