@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 import { useProfileEdit, useNotify } from '../_lib/editContext'
 import { EVIDENCE_TYPES, FAMILY_LABELS, familyForType } from '@/lib/evidenceTypes'
@@ -61,12 +62,33 @@ function PaneHead({ title, note }) {
 // select's keyboard does - arrows to move, Enter or Space to take, Escape to
 // leave, Home and End to the ends - and aria-activedescendant tells a screen
 // reader which row is current without moving focus off the control.
+//
+// WHY THE MENU IS NOT WHERE THE FIELD IS
+// The open list used to be an absolutely positioned child of the field, which
+// put it inside the dialog's scrolling body. That body clips what overflows it
+// and counts what does not, so a menu near the foot of a pane was cut off at
+// the edge of the dialog and, on the way there, lengthened the thing it stood
+// in - a second scrollbar appearing under the reader as they opened a five-row
+// list. The menu is mounted beside the dialog instead and placed against the
+// field's own box, so opening it moves nothing.
 // ---------------------------------------------------------------------------
+
+// Where the menu is mounted: the nearest thing above it that tokens.css
+// declares the --profile-* names on. A menu dropped straight onto the body
+// would be dressed by nothing, because the palette lives on these roots rather
+// than on :root.
+const PALETTE_ROOTS = '.hp-rt-backdrop, .hp-ev-backdrop, .hp-pf-box, .hp-profile, .hp-ed, .hp-tm'
+
 function BrandSelect({ id, value, options, onChange, placeholder = 'Choose oneâ€¦', disabled = false }) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
+  // Where the menu is mounted and where it stands, in viewport coordinates.
+  // Null until both have been worked out, so it is never painted anywhere but
+  // under the field.
+  const [box, setBox] = useState(null)
   const rootRef = useRef(null)
   const fieldRef = useRef(null)
+  const menuRef = useRef(null)
 
   const rows = [{ value: '', label: placeholder }, ...options.map(one => ({ value: one, label: one }))]
   const chosenAt = Math.max(0, rows.findIndex(row => row.value === (value || '')))
@@ -77,12 +99,42 @@ function BrandSelect({ id, value, options, onChange, placeholder = 'Choose oneâ€
   useEffect(() => { if (open) setActive(chosenAt) }, [open, chosenAt])
 
   // A click anywhere else is a dismissal. Pointer-down rather than click, so
-  // the menu is gone before whatever was clicked underneath reacts.
+  // the menu is gone before whatever was clicked underneath reacts. The menu
+  // is asked separately from the field: it no longer stands inside it, so the
+  // field alone would read a click on a row as a click away.
   useEffect(() => {
     if (!open) return
-    const away = (event) => { if (!rootRef.current?.contains(event.target)) setOpen(false) }
+    const away = (event) => {
+      if (rootRef.current?.contains(event.target)) return
+      if (menuRef.current?.contains(event.target)) return
+      setOpen(false)
+    }
     document.addEventListener('mousedown', away)
     return () => document.removeEventListener('mousedown', away)
+  }, [open])
+
+  // The menu is fixed to the field's box rather than laid out beneath it, which
+  // is what keeps it out of the dialog's scrolling. Measured before paint, and
+  // again on anything that could move the field under it - the capture phase
+  // because the scroll that matters is the dialog's own body, not the window's.
+  //
+  // Closing leaves the last measurement behind rather than clearing it: nothing
+  // reads it while the menu is shut, and the next opening measures again before
+  // the browser paints, so the stale numbers are never on screen.
+  useLayoutEffect(() => {
+    if (!open) return
+    const host = rootRef.current?.closest(PALETTE_ROOTS) || document.body
+    const place = () => {
+      const rect = fieldRef.current?.getBoundingClientRect()
+      if (rect) setBox({ host, top: rect.bottom + 4, left: rect.left, width: rect.width })
+    }
+    place()
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
   }, [open])
 
   const take = (next) => {
@@ -109,6 +161,36 @@ function BrandSelect({ id, value, options, onChange, placeholder = 'Choose oneâ€
     else if (event.key === 'Tab') setOpen(false)
   }
 
+  const menu = (
+    <ul
+      className="hp-ed-select-list"
+      id={`${id}-list`}
+      ref={menuRef}
+      role="listbox"
+      tabIndex={-1}
+      style={box ? { top: `${box.top}px`, left: `${box.left}px`, width: `${box.width}px` } : undefined}
+    >
+      {rows.map((row, at) => (
+        <li
+          key={row.value || '_none'}
+          id={`${id}-opt-${at}`}
+          role="option"
+          aria-selected={row.value === chosen.value}
+          className="hp-ed-select-option"
+          data-active={at === active ? 'true' : undefined}
+          data-chosen={row.value === chosen.value ? 'true' : undefined}
+          data-empty={row.value ? undefined : 'true'}
+          onMouseEnter={() => setActive(at)}
+          // Keeps focus on the field, so the list never has to hand it back.
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => take(row.value)}
+        >
+          {row.label}
+        </li>
+      ))}
+    </ul>
+  )
+
   return (
     <div className="hp-ed-select" ref={rootRef}>
       <button
@@ -132,28 +214,7 @@ function BrandSelect({ id, value, options, onChange, placeholder = 'Choose oneâ€
         </svg>
       </button>
 
-      {open ? (
-        <ul className="hp-ed-select-list" id={`${id}-list`} role="listbox" tabIndex={-1}>
-          {rows.map((row, at) => (
-            <li
-              key={row.value || '_none'}
-              id={`${id}-opt-${at}`}
-              role="option"
-              aria-selected={row.value === chosen.value}
-              className="hp-ed-select-option"
-              data-active={at === active ? 'true' : undefined}
-              data-chosen={row.value === chosen.value ? 'true' : undefined}
-              data-empty={row.value ? undefined : 'true'}
-              onMouseEnter={() => setActive(at)}
-              // Keeps focus on the field, so the list never has to hand it back.
-              onMouseDown={event => event.preventDefault()}
-              onClick={() => take(row.value)}
-            >
-              {row.label}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {open && box ? createPortal(menu, box.host) : null}
     </div>
   )
 }

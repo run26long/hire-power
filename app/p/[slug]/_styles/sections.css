@@ -4186,12 +4186,15 @@
   white-space: nowrap;
 }
 
+/* Fixed and mounted beside the dialog rather than absolute inside the field.
+   The field's box is measured and written onto this as top, left and width, so
+   it still opens directly under the control - but it is no longer part of what
+   the dialog's scrolling body clips or measures, which is what used to cut the
+   menu off at the edge of the modal and grow a second scrollbar under it.
+   Above the dialog surface, which is its sibling and carries no z-index. */
 .hp-ed-select-list {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
+  position: fixed;
+  z-index: 200;
   margin: 0;
   padding: 4px;
   list-style: none;
@@ -4202,6 +4205,36 @@
   background: var(--profile-surface);
   box-shadow: 0 18px 40px -16px var(--profile-shade-2);
 }
+
+/* ---- THE MENU'S OWN SCROLLBAR ----
+   Five rows fit and a sixth does not, so this list can scroll - and a list
+   that scrolls gets the platform's bar by default, which is a wide light
+   column standing in a dark menu. This is the treatment the editor already
+   uses on everything that scrolls inside the dialog: thin, dark, lavender,
+   and still visible, because hiding it takes away the only sign that there
+   is more to read. The track is the menu's own surface rather than
+   transparent, so no light gutter can show through at either end. */
+.hp-ed-select-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--profile-accent-rgb) / 0.34) var(--profile-surface);
+}
+
+.hp-ed-select-list::-webkit-scrollbar { width: 6px; }
+
+.hp-ed-select-list::-webkit-scrollbar-track { background: var(--profile-surface); }
+
+.hp-ed-select-list::-webkit-scrollbar-thumb {
+  background: rgb(var(--profile-accent-rgb) / 0.34);
+  border-radius: 3px;
+}
+
+.hp-ed-select-list::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--profile-accent-rgb) / 0.6);
+}
+
+/* No arrow buttons at either end, and no light gutter in the corner. */
+.hp-ed-select-list::-webkit-scrollbar-button { display: none; height: 0; }
+.hp-ed-select-list::-webkit-scrollbar-corner { background: var(--profile-surface); }
 
 .hp-ed-select-option {
   padding: 8px 10px;
