@@ -125,8 +125,11 @@ export default function UpgradeModal({ isOpen, onClose, resumeId, currentTier })
             {[
               { icon: '💬', title: 'Coaching conversation', desc: 'We interview you like a professional resume writer — uncovering achievements you forgot to include.' },
               { icon: '⚡', title: 'Improvements applied automatically', desc: 'No guessing how to rewrite bullets. Pro does it for you in under a minute.' },
-              { icon: '🎯', title: 'Tailored for every job', desc: 'Unlimited job-specific resumes and cover letters, optimized for each role.' },
-              { icon: '🎤', title: 'Interview Practice included', desc: 'Power Analysis + spoken practice using your resume and target job.' },
+              { icon: '🎯', title: 'Tailored for every job', desc: 'Up to 3 core resumes, and unlimited job-specific resumes and cover letters.' },
+              { icon: '🎤', title: 'Interview Practice included', desc: 'Unlimited Power Analysis and spoken practice against your resume and target job.' },
+              { icon: '📇', title: 'Career Profile with recruiter tools', desc: 'A page recruiters can read, with your evidence, testimonials and portfolio on it.' },
+              { icon: '🧭', title: 'Up to 3 career directions', desc: 'One profile, written three ways, so you are not one job title to everybody.' },
+              { icon: '🔎', title: 'Hiring Brief and Career Q&A', desc: 'Recruiters can ask your profile questions and get answers drawn only from your own material.' },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-3">
                 <span className="text-xl flex-shrink-0">{item.icon}</span>

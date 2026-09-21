@@ -124,6 +124,7 @@ export default function SettingsDrawer({
   getAuthHeaders,
   onProfileChanged,
   canCustomise,
+  isPro,
   notify,
   lenses,
   onLensVisibility,
@@ -808,12 +809,19 @@ export default function SettingsDrawer({
                 </>
               )}
 
+              {/* Three answers, because there are three situations. A free
+                  account is told what the section is and what adds to it; a
+                  Vault account is told that what it built stays and that
+                  adding is Pro, which is what the visibility route enforces;
+                  Pro is told about the three slots. */}
               <p className="hp-ed-soon">
                 {!canCustomise
                   ? upgradeCopyFor('lenses')
-                  : slotsFull
-                    ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add another. Everything written for it stays ready to restore.`
-                    : 'Your primary career direction always shows. Turn another one off anytime. Everything written for it stays ready to restore.'}
+                  : !isPro
+                    ? upgradeCopyFor('lenses_vault')
+                    : slotsFull
+                      ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add another. Everything written for it stays ready to restore.`
+                      : 'Your primary career direction always shows. Turn another one off anytime. Everything written for it stays ready to restore.'}
               </p>
             </Group>
           )}

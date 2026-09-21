@@ -629,6 +629,9 @@ const supabase = createClient();
                           'Unlimited job-specific resumes and cover letters',
                           'Unlimited interview prep for every job',
                           'Unlimited AI editing tools',
+                          'Career Profile with recruiter tools',
+                          'Up to 3 career directions',
+                          'Hiring Brief and Career Q&A for recruiters',
                         ].map((item) => (
                           <div key={item} className="flex items-start gap-2 text-xs text-purple-900">
                             <span className="text-purple-500 flex-shrink-0 mt-0.5">✓</span>
@@ -1235,13 +1238,16 @@ const supabase = createClient();
                 <li><span className="check">✓</span> Resume Power Score</li>
                 <li><span className="check">✓</span> Improvements applied automatically</li>
                 <li><span className="check">✓</span> ATS-optimized templates</li>
-                <li><span className="check">✓</span> Unlimited downloads</li>
+                <li><span className="check">✓</span> Unlimited downloads of your core resume</li>
                 <li><span className="check">✓</span> 3 reword, fix, and add edits</li>
                 <li><span className="check">✓</span> 3 job match scores</li>
                 <li><span className="check">✓</span> 3 custom cover letters</li>
                 <li><span className="check">✓</span> Job application tracking</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Interview Practice</li>
                 <li><span className="check">✓</span> 1 Power Analysis, Research and Prep, 3 practice sessions</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.06)',fontWeight:600,color:'var(--black)'}}>Career Profile and Vault</li>
+                <li><span className="check">✓</span> Career Profile (auto-generated, single career direction)</li>
+                <li><span className="check">✓</span> Career Vault (view your career data)</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => setShowSignupModal(true)} className="tier-btn ghost" style={{width:'100%',cursor:'pointer',border:'1.5px solid rgba(0,0,0,0.12)'}}>Get started free</button>
@@ -1258,15 +1264,19 @@ const supabase = createClient();
               <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Resume Writer</li>
+                <li><span className="check">✓</span> Up to 3 core resumes</li>
                 <li><span className="check">✓</span> Unlimited job-specific resumes</li>
                 <li><span className="check">✓</span> Unlimited reword, fix, and add edits</li>
                 <li><span className="check">✓</span> Unlimited cover letters and job match scores</li>
-                <li><span className="check">✓</span> Career Vault: log wins between searches</li>
                 <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Interview Practice</li>
                 <li><span className="check">✓</span> Power Analysis and full prep for every job</li>
                 <li><span className="check">✓</span> Unlimited interview practice</li>
                 <li><span className="check">✓</span> Post-practice performance feedback</li>
                 <li><span className="check">✓</span> Company research integration</li>
+                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(255,255,255,0.1)',fontWeight:600,color:'white'}}>Career Profile and Vault</li>
+                <li><span className="check">✓</span> Career Profile with 3 career directions</li>
+                <li><span className="check">✓</span> Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
+                <li><span className="check">✓</span> Career Vault with win logging</li>
               </ul>
               <div className="tier-cta">
                 <button onClick={() => { setSignupAsPro(true); setShowSignupModal(true); }} className="tier-btn solid" style={{width:'100%',cursor:'pointer',border:'none',background:'linear-gradient(to right, #667eea, #764ba2)'}}>Go Pro: $29.99/mo</button>
@@ -1282,12 +1292,13 @@ const supabase = createClient();
                <ul className="tier-features">
                 <li><span className="check">✓</span> Everything included in Free Tier PLUS:</li>
                <li style={{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid rgba(0,0,0,0.1)',fontWeight:600,color:'var(--dark)'}}>Vault</li>
-                <li><span className="check">✓</span> Save job description from the role you landed as the foundation of your next resume</li>
-                <li><span className="check">✓</span> Track achievements as they happen</li>
-                <li><span className="check">✓</span> Add new training, education, and skills in real time</li>
-                <li><span className="check">✓</span> Performance review preperation</li>
+                <li><span className="check">✓</span> Full Career Profile with all career directions you built</li>
+                <li><span className="check">✓</span> Request testimonials and build your reference sheet</li>
+                <li><span className="check">✓</span> Upload evidence and portfolio items</li>
+                <li><span className="check">✓</span> Log wins and track achievements in real time</li>
+                <li><span className="check">✓</span> Access all resumes and cover letters you created</li>
+                <li><span className="check">✓</span> Performance review preparation</li>
                 <li><span className="check">✓</span> Complete career archive access</li>
-                <li><span className="check">✓</span> Unlimited resume downloads</li>  
               </ul>
               <div style={{marginTop:'auto',paddingTop:'24px',fontSize:'13px',color:'var(--gray)',fontStyle:'italic',lineHeight:1.5}}>
                 Available after your job search, so you never have to start from scratch again.
@@ -1319,12 +1330,14 @@ const supabase = createClient();
                   'Resume Power Score',
                   'Improvements applied automatically',
                   'ATS-optimized templates',
-                  'Unlimited downloads',
+                  'Unlimited downloads of your core resume',
                   '3 reword, fix, and add edits',
                   '3 job match scores',
                   '3 custom cover letters',
                   'Job application tracking',
                   'Interview Practice: 1 Power Analysis, Research and Prep, 3 practice sessions',
+                  'Career Profile (auto-generated, single career direction)',
+                  'Career Vault (view your career data)',
                 ]
               },
               {
@@ -1340,14 +1353,17 @@ const supabase = createClient();
                 featured: true,
                 features: [
                   'Everything in Free, plus:',
+                  'Up to 3 core resumes',
                   'Unlimited job-specific resumes',
                   'Unlimited reword, fix, and add edits',
                   'Unlimited cover letters and job match scores',
-                  'Career Vault: log wins between searches',
                   'Power Analysis and full prep for every job',
                   'Unlimited interview practice',
                   'Post-practice performance feedback',
                   'Company research integration',
+                  'Career Profile with 3 career directions',
+                  'Recruiter tools (Career Q&A and Hiring Brief)',
+                  'Career Vault with win logging',
                 ]
               },
               {
@@ -1363,12 +1379,13 @@ const supabase = createClient();
                 featured: false,
                 features: [
                   'Everything in Free, plus:',
-                  'Save job description from your hired role',
-                  'Track achievements as they happen',
-                  'Add training, education, skills in real time',
+                  'Full Career Profile with all career directions you built',
+                  'Request testimonials and build your reference sheet',
+                  'Upload evidence and portfolio items',
+                  'Log wins and track achievements in real time',
+                  'Access all resumes and cover letters you created',
+                  'Performance review preparation',
                   'Complete career archive access',
-                  'Unlimited resume downloads',
-                  '5 premium templates',
                 ]
               }
             ].map(tier => {

@@ -552,7 +552,12 @@ export default function Profile() {
 
   const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }
   const modalBox     = { background: '#fff', borderRadius: 12, width: '100%', maxWidth: 420, boxShadow: '0 25px 50px rgba(0,0,0,0.2)', overflow: 'hidden' }
-  const modalHead    = (grad) => ({ background: grad || 'linear-gradient(135deg,#9333ea,#6b21a8)', padding: '18px 22px' })
+  // The app's standard purple, the one the landing page CTA, the Vault page
+  // and every upgrade prompt already use. This default was a different pair
+  // (#9333ea to #6b21a8), which made the four purple modals on this page the
+  // only place it appeared. The two delete-account modals pass their own red
+  // and are untouched.
+  const modalHead    = (grad) => ({ background: grad || 'linear-gradient(135deg,#667eea,#764ba2)', padding: '18px 22px' })
   const modalBody    = { padding: '20px 22px' }
   const modalTitle   = { fontSize: 16, fontWeight: 800, color: '#fff', margin: 0 }
   const modalSub     = { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 3 }
@@ -881,7 +886,7 @@ export default function Profile() {
                         </p>
                         <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
                           {tier === TIERS.FREE && 'Always free. Limited features'}
-                          {tier === TIERS.PRO && '$29.99/month · All features unlocked'}
+                          {tier === TIERS.PRO && '$29.99/month'}
                           {tier === TIERS.VAULT && (
                             subscriptionDetails?.price_id === process.env.NEXT_PUBLIC_STRIPE_VAULT_ANNUAL_PRICE_ID
                               ? '$49.99/year · Career Vault access'
@@ -898,6 +903,21 @@ export default function Profile() {
                         <button onClick={() => setShowUpgradeModal(true)} style={btnPurple}>Upgrade to Pro</button>
                       )}
                     </div>
+
+                    {/* What Pro actually includes.
+                        The badge above used to say "All features unlocked",
+                        which is a claim rather than an answer: somebody
+                        checking what they pay for got nothing to read. */}
+                    {tier === TIERS.PRO && (
+                      <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
+                        <li>Unlimited coaching and resume generation</li>
+                        <li>Up to 3 core resumes and career directions</li>
+                        <li>Unlimited job-specific resumes and cover letters</li>
+                        <li>Career Profile with recruiter tools</li>
+                        <li>Unlimited interview practice</li>
+                        <li>Career Vault with win logging</li>
+                      </ul>
+                    )}
 
                     {/* Pending change banner */}
                     {profile?.pending_change_type && profile?.pending_change_date && (
@@ -1129,16 +1149,20 @@ export default function Profile() {
 
               <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Switching to Vault, you'll keep:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 10, lineHeight: 1.8 }}>
-                <li>All resumes and coaching conversations</li>
+                <li>All resumes, cover letters, and coaching conversations</li>
+                <li>Full Career Profile with all career directions</li>
+                <li>Testimonials, evidence, and portfolio</li>
+                <li>Reference sheet access</li>
                 <li>Career Vault achievement tracking</li>
                 <li>Unlimited downloads and premium templates</li>
               </ul>
 
               <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>You just won't have access to:</p>
               <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 12, lineHeight: 1.8 }}>
-                <li>Resume coaching and job customization</li>
-                <li>Interview practice and AI feedback</li>
-                <li>New resume generation</li>
+                <li>New resume coaching and generation</li>
+                <li>New interview practice sessions</li>
+                <li>Recruiter tools (Career Q&amp;A and Hiring Brief)</li>
+                <li>Video IMOW</li>
               </ul>
 
               <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 18 }}>
@@ -1166,9 +1190,27 @@ export default function Profile() {
             <div style={modalBody}>
               {tier === TIERS.PRO && (
                 <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', marginBottom: 3 }}>Consider Vault instead ($4.99/month)</p>
-                 <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.4 }}>For less than a latte, never start from scratch again! Vault keeps your career history safe and lets you track wins in real time. This means while you're out building your career, we're already building your next resume.</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', marginBottom: 3 }}>Consider Vault instead — $4.99/month, or $49.99/year and save 2 months</p>
+                 <p style={{ fontSize: 11, color: '#7c3aed', lineHeight: 1.4 }}>For less than a latte, never start from scratch again. Vault keeps your full Career Profile, your testimonials, your evidence and your reference sheet, and lets you log wins in real time. While you're out building your career, we're already building your next resume.</p>
                 </div>
+              )}
+
+              {/* What going to Free actually costs.
+                  Nothing is deleted - everything stays visible and comes back
+                  on any paid plan - but a cancellation should say plainly
+                  which doors close, not leave somebody to find out later. */}
+              {tier === TIERS.PRO && (
+                <>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>On Free, you&apos;ll lose access to:</p>
+                  <ul style={{ fontSize: 12, color: '#6b7280', paddingLeft: 14, marginBottom: 14, lineHeight: 1.8 }}>
+                    <li>Job-specific resumes locked (visible but can&apos;t open)</li>
+                    <li>Additional core resumes locked</li>
+                    <li>Career Profile goes to single-direction read-only</li>
+                    <li>No testimonials, evidence, portfolio, or IMOW editing</li>
+                    <li>No win logging</li>
+                    <li>No interview practice beyond the free limit</li>
+                  </ul>
+                </>
               )}
               <p style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>Why are you cancelling? (optional)</p>
               <textarea

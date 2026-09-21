@@ -777,8 +777,12 @@ export default function CareerProfileEditorPage() {
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
       throw new Error(
+        // Turning a direction on is Pro, not Vault. The route says so itself
+        // when it refuses with PRO_REQUIRED, and that sentence is used as
+        // written; this branch is the free account's refusal, which comes
+        // from requireCustomise and needs naming the same plan.
         payload?.code === 'UPGRADE_REQUIRED'
-          ? 'Adding another career direction is part of Vault and Pro.'
+          ? 'Adding another career direction is part of Pro.'
           : payload?.error || "We couldn't change that career direction. Please try again."
       )
     }
@@ -1016,6 +1020,9 @@ export default function CareerProfileEditorPage() {
         getAuthHeaders={getAuthHeaders}
         onProfileChanged={handleProfileChanged}
         canCustomise={manage?.canCustomise === true}
+        // Adding a career direction is the one control in the drawer whose
+        // answer is Pro rather than Vault, so the drawer needs both.
+        isPro={manage?.isPro === true}
         notify={notify}
         lenses={manage?.lenses || []}
         onLensVisibility={setLensVisibility}
