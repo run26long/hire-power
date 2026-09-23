@@ -731,6 +731,30 @@
 
 .hp-bar[data-stuck="true"] { border-bottom-color: var(--profile-edge-1); }
 
+/* ---- When the blur is not there ----
+   The veil is 82% of the void, which is a wash over a blur rather than a
+   surface: it is legible because the 18px blur has already smeared the page
+   running under it into nothing. Take the blur away and the wash is all that
+   is left, and the page reads straight through the direction names.
+
+   It goes away more often than it looks. iOS before 15 never had it, a GPU
+   fallback drops it, and Reduce Transparency turns it off on a device that
+   supports it perfectly well. In each of those the bar needs to carry its own
+   opacity instead, so it is the void at full strength - the same colour the
+   veil is mixed from, so no palette needs a second value and the light modes
+   follow their own void without being named here. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .hp-bar { background: rgb(var(--profile-void-rgb)); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .hp-bar {
+    background: rgb(var(--profile-void-rgb));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 .hp-bar-inner {
   display: flex;
   align-items: center;

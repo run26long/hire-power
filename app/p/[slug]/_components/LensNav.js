@@ -33,11 +33,24 @@ const PROMPT = [
   'Choose a chapter to begin the story.'
 ]
 
-// A step control is 34px, and one has to sit clear of the longest name at each
-// end rather than on top of it. Below this much slack the rail does without
-// them: a control covering the name it is meant to help with is worse than no
-// control, and the rail still swipes and still fades.
-const STEP_CLEARANCE = 76
+// WHY THERE IS NO CLEARANCE TEST HERE ANY MORE
+//
+// There used to be one: the steps were withheld unless the track had 76px more
+// width than its longest name, so a control could not sit on top of the name it
+// was meant to help with. That test measured track.clientWidth - and
+// clientWidth is decided by the answer, because data-steps="true" puts 46px of
+// gutter on each end of the rail and takes 92px off the track. So the two
+// chased each other: unpadded there was room, which added the padding; padded
+// there was not, which took it away. ResizeObserver drops looping notifications,
+// so it settled wherever it happened to land and any scroll, tap or rotation
+// knocked it into the other state - the whole row of names jumping 92px
+// sideways, which is what a phone saw.
+//
+// The reason for the test is gone as well as the test. The controls sit in real
+// gutters at the ends of the rail, outside the track's scrolling viewport, so
+// they cannot cover a name whatever its length. What is left is whether the
+// rail overflows, which is monotonic in the padding - adding a gutter can only
+// make an overflow larger, never resolve it - so the answer is stable.
 
 // ----------------------------------------------------------------------------
 // The rail.
@@ -84,7 +97,7 @@ function railTarget(track, item) {
 }
 
 function useDirectionRail({ trackRef, itemRefs, activeIndex, reducedMotion, enabled = true }) {
-  const [edges, setEdges] = useState({ start: false, end: false, overflows: false, room: false })
+  const [edges, setEdges] = useState({ start: false, end: false, overflows: false })
   // The index the rail was last positioned for. Null until it has positioned
   // once. Deliberately not a "have we run yet" flag: a ref survives the double
   // mount React does in development, so a flag would report the first arrival
@@ -102,20 +115,13 @@ function useDirectionRail({ trackRef, itemRefs, activeIndex, reducedMotion, enab
       const max = track.scrollWidth - track.clientWidth
       // Sub-pixel widths mean scrollLeft rarely lands exactly on 0 or on max.
       const slack = 2
-      const widest = itemRefs.current.reduce(
-        (w, item) => (item ? Math.max(w, item.getBoundingClientRect().width) : w),
-        0
-      )
-      const room = track.clientWidth - widest >= STEP_CLEARANCE
-
       setEdges(
         max <= slack
-          ? { start: false, end: false, overflows: false, room }
+          ? { start: false, end: false, overflows: false }
           : {
               start: track.scrollLeft > slack,
               end: track.scrollLeft < max - slack,
-              overflows: true,
-              room
+              overflows: true
             }
       )
     }
@@ -202,7 +208,7 @@ function useDirectionRail({ trackRef, itemRefs, activeIndex, reducedMotion, enab
   }
 
   return {
-    overflows: edges.overflows && edges.room,
+    overflows: edges.overflows,
     track: {
       'data-fade-start': edges.start ? 'true' : 'false',
       'data-fade-end': edges.end ? 'true' : 'false',
