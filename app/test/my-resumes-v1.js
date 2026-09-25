@@ -212,11 +212,11 @@ export default function MyResumesPage() {
                               <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
                                 <div 
                                   className={`h-full transition-all duration-500 ${
-                                    (score || 62) >= 85 ? 'bg-green-500' :
-                                    (score || 62) >= 70 ? 'bg-yellow-500' :
+                                    score >= 85 ? 'bg-green-500' :
+                                    score >= 70 ? 'bg-yellow-500' :
                                     'bg-[#e57373]'
                                   }`}
-                                  style={{ width: `${score || 62}%` }}
+                                  style={{ width: `${score || 0}%` }}
                                 />
                               </div>
                               <div className="flex justify-between text-[9px] text-gray-500 mt-1">
@@ -225,10 +225,12 @@ export default function MyResumesPage() {
                                 <span>Excellent</span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-3xl font-bold text-gray-900">{score || 62}</div>
-                              <div className="text-xs text-gray-500">/100</div>
-                            </div>
+                            {score ? (
+                              <div className="text-right">
+                                <div className="text-3xl font-bold text-gray-900">{score}</div>
+                                <div className="text-xs text-gray-500">/100</div>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
 

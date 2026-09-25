@@ -2878,7 +2878,26 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
     )}
   </div>
 )}
- {displayStep === 'assess' && !isJobSpecific && (
+ {/* The step without its result yet. A resume can stand on Assess with no
+           score - one cleared after a bad write, or a scoring run that failed to
+           save - and the scorecard below announced "Assessment Complete!" over an
+           empty figure and a breakdown of invented numbers. This says the true
+           thing instead, and names the control that fixes it. */}
+      {displayStep === 'assess' && !isJobSpecific && !score && (
+        <div className="space-y-3">
+          <div className="text-center mt-1">
+            <div className="text-sm text-gray-900 font-semibold">Resume Power Score</div>
+            <div className="text-sm text-gray-600 leading-tight mt-1">
+              Not scored yet.
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 leading-tight text-center">
+            Run <span className="font-semibold">Re-assess</span> to score this resume and see the breakdown.
+          </p>
+        </div>
+      )}
+
+ {displayStep === 'assess' && !isJobSpecific && score && (
         <div className="space-y-3">
        {/* Header */}
         <div className="flex items-center justify-center gap-6 -mt-1">
@@ -2886,12 +2905,10 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 <div className="text-sm text-gray-600 leading-tight">Assessment Complete!</div>
                 <div className="text-sm text-gray-900 font-semibold">Resume Power Score</div>
               </div>
-              {score ? (
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-gray-900">{score}</span>
-                  <span className="text-lg text-gray-600">/100</span>
-                </div>
-              ) : null}
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold text-gray-900">{score}</span>
+                <span className="text-lg text-gray-600">/100</span>
+              </div>
             </div>
           
          {/* Progress Bar */}
@@ -2900,7 +2917,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
     <div 
       className="h-full transition-all duration-500"
       style={{ 
-        width: `${score || 0}%`,
+        width: `${score}%`,
         background: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373'
       }}
     />
