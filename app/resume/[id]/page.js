@@ -2886,10 +2886,12 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 <div className="text-sm text-gray-600 leading-tight">Assessment Complete!</div>
                 <div className="text-sm text-gray-900 font-semibold">Resume Power Score</div>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-gray-900">{score || 62}</span>
-                <span className="text-lg text-gray-600">/100</span>
-              </div>
+              {score ? (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-gray-900">{score}</span>
+                  <span className="text-lg text-gray-600">/100</span>
+                </div>
+              ) : null}
             </div>
           
          {/* Progress Bar */}
@@ -2898,8 +2900,8 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
     <div 
       className="h-full transition-all duration-500"
       style={{ 
-        width: `${score || 62}%`,
-        background: (score || 62) >= 85 ? '#9333ea' : (score || 62) >= 75 ? '#81c784' : (score || 62) >= 60 ? '#ffc870' : '#e57373'
+        width: `${score || 0}%`,
+        background: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373'
       }}
     />
   </div>

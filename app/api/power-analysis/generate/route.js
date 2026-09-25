@@ -483,7 +483,15 @@ export async function POST(request) {
     // ---- RESOLVE RESUME ----
     // Priority:
     //   1. If applications.resume_id is set, use that resume
-    //   2. Otherwise, find the user's active core resume and link it
+    //   2. Otherwise read the active core, for its text only
+    //
+    // The second case does not write anything back. It used to set
+    // applications.resume_id to the core it had borrowed, which made a passing
+    // read into a permanent link: the card was then answered by the core for
+    // every later call, and a job-specific resume made for that card afterwards
+    // had nowhere to attach. The analysis needs a resume to read and that is all
+    // it takes - which resume a card belongs to is the card's own decision, made
+    // where a resume is chosen for it.
     let resume = null;
 
     if (jobCard.resume_id) {
@@ -513,13 +521,6 @@ export async function POST(request) {
         return Response.json({ error: 'NO_RESUME_AVAILABLE' }, { status: 400 });
       }
       resume = coreResumes[0];
-
-      // Link core resume to this job card so future calls find it directly
-      await supabase
-        .from('applications')
-        .update({ resume_id: resume.id })
-        .eq('id', jobCardId)
-        .eq('user_id', userId);
     }
 
     if (!resume.resume_data) {
@@ -664,10 +665,23 @@ ${jobCard.description}`;
       }
     }
 
-    // ---- UPDATE RESUME'S JMS DATA ----
-    // PA ran the JMS rubric fresh, so we update the resume's ai_analysis
-    // to keep JMS and PA coherent. Future Pro 3 builds get this for free.
-    if (matchScore !== null) {
+    // ---- UPDATE A JOB-SPECIFIC RESUME'S JMS DATA, AND ONLY THAT ----
+    //
+    // PA runs the JMS rubric fresh, so a job-specific resume's ai_analysis is
+    // updated from it to keep the two coherent. A core's is not.
+    //
+    // current_score, ai_analysis, ai_analysis_date and last_assessed_at on a
+    // core resume belong to the quality assessment /api/analyze-resume writes:
+    // a score out of 100 for the document itself, with a breakdown the Assess
+    // step reads. What this route produces is a match against one job, and
+    // writing it there put job-match fields where core-shaped ones were
+    // expected and left journey_step behind - a core stamped while it was still
+    // on Review had a score, which is the one state the Review step has no
+    // control for, and the account was stuck.
+    //
+    // The analysis itself is not lost: it is in the power_analysis table, keyed
+    // by job card, which is where every reader of it already looks.
+    if (matchScore !== null && resume.resume_type !== 'core') {
       await supabase
         .from('resumes')
         .update({
@@ -686,8 +700,13 @@ ${jobCard.description}`;
         })
         .eq('id', resume.id)
         .eq('user_id', userId);
+    }
 
-      // Also update applications.match_score for hub-page display
+    // The job card's match score is the card's own, not the resume's, so it is
+    // written whichever kind of resume was read for it. Keeping it inside the
+    // guard above would have cost every card analysed against a core its score
+    // on the hub, which is most of them.
+    if (matchScore !== null) {
       await supabase
         .from('applications')
         .update({ match_score: matchScore })
