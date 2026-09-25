@@ -2563,6 +2563,10 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
   // displayStep is what the right panel renders. It prefers viewingStep
   // (in-memory backward navigation) and falls back to journeyStep (DB truth).
   const displayStep = viewingStep || journeyStep
+  // The scored breakdown, or nothing. Every reader below is behind a check for
+  // it: a breakdown drawn from defaults is three numbers the scorer never
+  // produced, sitting under a heading that says they are the score.
+  const breakdown = analysisResults?.analysis?.breakdown || null
   const displayIndex = steps.indexOf(displayStep)
   const panelRef = useRef(null)
   const visitedStepsRef = useRef(new Set())
@@ -2939,6 +2943,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
 </div>
           
          {/* Breakdown - RESTRUCTURED */}
+            {breakdown && (
             <div className="bg-white rounded-lg p-4">
               <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1.5">Breakdown</h3>
               
@@ -2946,7 +2951,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 <div>
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-semibold text-gray-900 text-sm">Impact</span>
-                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 25}/50</span>
+                    <span className="text-gray-700 font-medium text-sm">{breakdown.impact}/50</span>
                   </div>
                  <div className="text-sm text-gray-500 leading-tight mb-1.5">
                     {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
@@ -2957,10 +2962,10 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                     <div 
   className="h-full"
   style={{ 
-    width: `${((analysisResults?.analysis?.breakdown?.impact || 25)/50)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.85 ? '#9333ea' :
-            (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.75 ? '#81c784' :
-            (analysisResults?.analysis?.breakdown?.impact || 25)/50 >= 0.60 ? '#ffc870' :
+    width: `${((breakdown.impact)/50)*100}%`,
+    background: (breakdown.impact)/50 >= 0.85 ? '#9333ea' :
+            (breakdown.impact)/50 >= 0.75 ? '#81c784' :
+            (breakdown.impact)/50 >= 0.60 ? '#ffc870' :
             '#e57373'
   }}
 ></div>
@@ -2970,17 +2975,17 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 <div>
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-semibold text-gray-900 text-sm">Clarity</span>
-                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 18}/30</span>
+                    <span className="text-gray-700 font-medium text-sm">{breakdown.clarity}/30</span>
                   </div>
                   <div className="text-sm text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
   className="h-full"
   style={{ 
-    width: `${((analysisResults?.analysis?.breakdown?.clarity || 18)/30)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.85 ? '#9333ea' :
-            (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.75 ? '#81c784' :
-            (analysisResults?.analysis?.breakdown?.clarity || 18)/30 >= 0.60 ? '#ffc870' :
+    width: `${((breakdown.clarity)/30)*100}%`,
+    background: (breakdown.clarity)/30 >= 0.85 ? '#9333ea' :
+            (breakdown.clarity)/30 >= 0.75 ? '#81c784' :
+            (breakdown.clarity)/30 >= 0.60 ? '#ffc870' :
             '#e57373'
   }}
 ></div>
@@ -2990,7 +2995,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 <div>
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-semibold text-gray-900 text-sm">Keywords</span>
-                    <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 14}/20</span>
+                    <span className="text-gray-700 font-medium text-sm">{breakdown.keywords}/20</span>
                   </div>
                  <div className="text-sm text-gray-500 leading-tight mb-1.5">
                   {detectedLevel === 'entry' && 'Field vocabulary, tools, and software names'}
@@ -3001,10 +3006,10 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                    <div 
   className="h-full"
   style={{ 
-    width: `${((analysisResults?.analysis?.breakdown?.keywords || 14)/20)*100}%`,
-    background: (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.85 ? '#9333ea' :
-            (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.75 ? '#81c784' :
-            (analysisResults?.analysis?.breakdown?.keywords || 14)/20 >= 0.60 ? '#ffc870' :
+    width: `${((breakdown.keywords)/20)*100}%`,
+    background: (breakdown.keywords)/20 >= 0.85 ? '#9333ea' :
+            (breakdown.keywords)/20 >= 0.75 ? '#81c784' :
+            (breakdown.keywords)/20 >= 0.60 ? '#ffc870' :
             '#e57373'
   }}
 ></div>
@@ -3012,6 +3017,7 @@ function RightPanel({ journeyStep, score, analysisResults, setAnalysisResults, f
                 </div>
               </div>
             </div>
+            )}
           
          {/* Strengths */}
           <div className="pt-3 border-t border-gray-300">
@@ -4295,6 +4301,9 @@ const getMessageText = (msg) => {
 // IMPROVE STEP
 // ─────────────────────────────────────────────
 function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setResumeChanges, originalResumeData, resumeData, supabase, params, setResume, score, handleReassess, isAnalyzing, showRevealModal, setShowRevealModal, scoreBeforeCoaching, setScoreBeforeCoaching, scoreAfterCoaching, userTier, analysisResults, remainingGaps, setRemainingGaps, userName, userProfile, detectedLevel, recoachAttempts, setRecoachAttempts, setShowUpgradeModal, changesAccepted, coachingMessages, careerContext, isConversational, isLensCore = false, setReviseModalState, bulletSelectMode, setBulletSelectMode, setViewingStep }) {
+  // As in RightPanel: the breakdown toggle below offers nothing when there is
+  // no breakdown, rather than offering three zeros.
+  const breakdown = analysisResults?.analysis?.breakdown || null
   const [showConvTargetedRecoach, setShowConvTargetedRecoach] = useState(false)
   const [convTargetedMessages, setConvTargetedMessages] = useState([])
   const [accepting, setAccepting] = useState(false)
@@ -4383,6 +4392,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
                   <span className="text-xl text-gray-400">/100</span>
                 </div>
+                {breakdown && (
                 <button
                   onClick={() => setShowBreakdown(!showBreakdown)}
                   className="text-xs text-purple-600 hover:text-purple-700 font-medium mt-1 inline-flex items-center gap-1"
@@ -4390,13 +4400,14 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   {showBreakdown ? 'Hide score breakdown' : 'View score breakdown'}
                   <span className="text-[10px]">{showBreakdown ? '▲' : '▼'}</span>
                 </button>
-                {showBreakdown && (
+                )}
+                {breakdown && showBreakdown && (
                   <div className="mt-3 pt-3 border-t border-gray-100 text-left">
                     <div className="space-y-3">
                       <div>
                         <div className="flex justify-between items-baseline mb-0.5">
                           <span className="font-semibold text-gray-900 text-sm">Impact</span>
-                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 0}/50</span>
+                          <span className="text-gray-700 font-medium text-sm">{breakdown.impact}/50</span>
                         </div>
                         <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
@@ -4408,10 +4419,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <div
                             className="h-full"
                             style={{
-                              width: `${((analysisResults?.analysis?.breakdown?.impact || 0)/50)*100}%`,
-                              background: (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.85 ? '#9333ea' :
-                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.75 ? '#81c784' :
-                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.60 ? '#ffc870' :
+                              width: `${((breakdown.impact)/50)*100}%`,
+                              background: (breakdown.impact)/50 >= 0.85 ? '#9333ea' :
+                                      (breakdown.impact)/50 >= 0.75 ? '#81c784' :
+                                      (breakdown.impact)/50 >= 0.60 ? '#ffc870' :
                                       '#e57373'
                             }}
                           ></div>
@@ -4421,17 +4432,17 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       <div>
                         <div className="flex justify-between items-baseline mb-0.5">
                           <span className="font-semibold text-gray-900 text-sm">Clarity</span>
-                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 0}/30</span>
+                          <span className="text-gray-700 font-medium text-sm">{breakdown.clarity}/30</span>
                         </div>
                         <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full"
                             style={{
-                              width: `${((analysisResults?.analysis?.breakdown?.clarity || 0)/30)*100}%`,
-                              background: (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.85 ? '#9333ea' :
-                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.75 ? '#81c784' :
-                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.60 ? '#ffc870' :
+                              width: `${((breakdown.clarity)/30)*100}%`,
+                              background: (breakdown.clarity)/30 >= 0.85 ? '#9333ea' :
+                                      (breakdown.clarity)/30 >= 0.75 ? '#81c784' :
+                                      (breakdown.clarity)/30 >= 0.60 ? '#ffc870' :
                                       '#e57373'
                             }}
                           ></div>
@@ -4441,7 +4452,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       <div>
                         <div className="flex justify-between items-baseline mb-0.5">
                           <span className="font-semibold text-gray-900 text-sm">Keywords</span>
-                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 0}/20</span>
+                          <span className="text-gray-700 font-medium text-sm">{breakdown.keywords}/20</span>
                         </div>
                         <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'senior' ? 'Field vocabulary, tools, methodologies, and systems' : 'Field vocabulary, tools, and software names'}
@@ -4450,10 +4461,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <div
                             className="h-full"
                             style={{
-                              width: `${((analysisResults?.analysis?.breakdown?.keywords || 0)/20)*100}%`,
-                              background: (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.85 ? '#9333ea' :
-                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.75 ? '#81c784' :
-                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.60 ? '#ffc870' :
+                              width: `${((breakdown.keywords)/20)*100}%`,
+                              background: (breakdown.keywords)/20 >= 0.85 ? '#9333ea' :
+                                      (breakdown.keywords)/20 >= 0.75 ? '#81c784' :
+                                      (breakdown.keywords)/20 >= 0.60 ? '#ffc870' :
                                       '#e57373'
                             }}
                           ></div>
@@ -4513,6 +4524,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   <span className="text-5xl font-bold" style={{ color: score >= 85 ? '#9333ea' : score >= 75 ? '#81c784' : score >= 60 ? '#ffc870' : '#e57373' }}>{score}</span>
                   <span className="text-xl text-gray-400">/100</span>
                 </div>
+                {breakdown && (
                 <button
                   onClick={() => setShowBreakdown(!showBreakdown)}
                   className="text-xs text-purple-600 hover:text-purple-700 font-medium mt-1 inline-flex items-center gap-1"
@@ -4520,13 +4532,14 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                   {showBreakdown ? 'Hide score breakdown' : 'View score breakdown'}
                   <span className="text-[10px]">{showBreakdown ? '▲' : '▼'}</span>
                 </button>
-                {showBreakdown && (
+                )}
+                {breakdown && showBreakdown && (
                   <div className="mt-3 pt-3 border-t border-gray-100 text-left">
                     <div className="space-y-3">
                       <div>
                         <div className="flex justify-between items-baseline mb-0.5">
                           <span className="font-semibold text-gray-900 text-sm">Impact</span>
-                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.impact || 0}/50</span>
+                          <span className="text-gray-700 font-medium text-sm">{breakdown.impact}/50</span>
                         </div>
                         <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'entry' && 'Specificity, scope, and scale'}
@@ -4538,10 +4551,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <div
                             className="h-full"
                             style={{
-                              width: `${((analysisResults?.analysis?.breakdown?.impact || 0)/50)*100}%`,
-                              background: (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.85 ? '#9333ea' :
-                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.75 ? '#81c784' :
-                                      (analysisResults?.analysis?.breakdown?.impact || 0)/50 >= 0.60 ? '#ffc870' :
+                              width: `${((breakdown.impact)/50)*100}%`,
+                              background: (breakdown.impact)/50 >= 0.85 ? '#9333ea' :
+                                      (breakdown.impact)/50 >= 0.75 ? '#81c784' :
+                                      (breakdown.impact)/50 >= 0.60 ? '#ffc870' :
                                       '#e57373'
                             }}
                           ></div>
@@ -4551,17 +4564,17 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       <div>
                         <div className="flex justify-between items-baseline mb-0.5">
                           <span className="font-semibold text-gray-900 text-sm">Clarity</span>
-                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.clarity || 0}/30</span>
+                          <span className="text-gray-700 font-medium text-sm">{breakdown.clarity}/30</span>
                         </div>
                         <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">Active voice, strong verbs, concise language</div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
                             className="h-full"
                             style={{
-                              width: `${((analysisResults?.analysis?.breakdown?.clarity || 0)/30)*100}%`,
-                              background: (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.85 ? '#9333ea' :
-                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.75 ? '#81c784' :
-                                      (analysisResults?.analysis?.breakdown?.clarity || 0)/30 >= 0.60 ? '#ffc870' :
+                              width: `${((breakdown.clarity)/30)*100}%`,
+                              background: (breakdown.clarity)/30 >= 0.85 ? '#9333ea' :
+                                      (breakdown.clarity)/30 >= 0.75 ? '#81c784' :
+                                      (breakdown.clarity)/30 >= 0.60 ? '#ffc870' :
                                       '#e57373'
                             }}
                           ></div>
@@ -4571,7 +4584,7 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                       <div>
                         <div className="flex justify-between items-baseline mb-0.5">
                           <span className="font-semibold text-gray-900 text-sm">Keywords</span>
-                          <span className="text-gray-700 font-medium text-sm">{analysisResults?.analysis?.breakdown?.keywords || 0}/20</span>
+                          <span className="text-gray-700 font-medium text-sm">{breakdown.keywords}/20</span>
                         </div>
                         <div className="text-sm md:text-[11px] text-gray-500 leading-tight mb-1.5">
                           {detectedLevel === 'senior' ? 'Field vocabulary, tools, methodologies, and systems' : 'Field vocabulary, tools, and software names'}
@@ -4580,10 +4593,10 @@ function ImproveStep({ rewrittenResume, resumeChanges, setRewrittenResume, setRe
                           <div
                             className="h-full"
                             style={{
-                              width: `${((analysisResults?.analysis?.breakdown?.keywords || 0)/20)*100}%`,
-                              background: (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.85 ? '#9333ea' :
-                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.75 ? '#81c784' :
-                                      (analysisResults?.analysis?.breakdown?.keywords || 0)/20 >= 0.60 ? '#ffc870' :
+                              width: `${((breakdown.keywords)/20)*100}%`,
+                              background: (breakdown.keywords)/20 >= 0.85 ? '#9333ea' :
+                                      (breakdown.keywords)/20 >= 0.75 ? '#81c784' :
+                                      (breakdown.keywords)/20 >= 0.60 ? '#ffc870' :
                                       '#e57373'
                             }}
                           ></div>
