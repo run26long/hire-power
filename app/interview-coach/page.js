@@ -450,6 +450,11 @@ export default function MyInterviewsPage() {
   const [practiceJobDescription, setPracticeJobDescription] = useState('');
   const [creatingPractice, setCreatingPractice] = useState(false);
   const [practiceCreateError, setPracticeCreateError] = useState(null);
+  // Interview Practice is built out of the resume: the analysis reads it, the
+  // questions are generated from it. Without one the whole flow is a corridor
+  // of empty steps ending in a refusal at the last door, so the door is here
+  // instead, before a job card exists to be left behind.
+  const [needsResume, setNeedsResume] = useState(false);
 
   // Error toast
   const [errorToast, setErrorToast] = useState(null);
@@ -597,7 +602,24 @@ export default function MyInterviewsPage() {
     setPracticeJobCompany('');
     setPracticeJobDescription('');
     setPracticeCreateError(null);
+    setNeedsResume(false);
     setShowPracticeModal(true);
+  }
+
+  // An active core with something in it. The analysis falls back to the active
+  // core when a card has no resume of its own, and refuses a core whose
+  // resume_data is empty, so those are the two things worth asking about.
+  async function hasUsableResume(userId) {
+    const { data, error } = await supabase
+      .from('resumes')
+      .select('resume_data')
+      .eq('user_id', userId)
+      .eq('resume_type', 'core')
+      .eq('is_active', true);
+    // A lookup that failed is not an answer. Let the attempt through rather
+    // than refuse a resume the account may well have.
+    if (error) return true;
+    return (data || []).some(r => r.resume_data && Object.keys(r.resume_data).length > 0);
   }
 
   async function handleStartPractice() {
@@ -606,6 +628,13 @@ export default function MyInterviewsPage() {
     if (!isPro && (userProfile?.interview_samples_used ?? 0) >= 1) {
       setShowPracticeModal(false);
       setShowUpgradeModal(true);
+      return;
+    }
+
+    // Above both branches. The existing-card path inserts nothing, but it
+    // lands in the same place, so it is gated by the same question.
+    if (user?.id && !(await hasUsableResume(user.id))) {
+      setNeedsResume(true);
       return;
     }
 
@@ -1090,6 +1119,25 @@ export default function MyInterviewsPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               </div>
+
+              {needsResume && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base flex-shrink-0">⚠️</span>
+                    <div className="flex-1">
+                      <p className="text-sm text-purple-900 leading-snug mb-3">
+                        Upload or build a resume first. Interview Practice uses your resume to prepare you for the job.
+                      </p>
+                      <button
+                        onClick={() => router.push('/resume-coach')}
+                        className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+                      >
+                        Go to Resume Writer →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {practiceCreateError && (
                 <p className="text-sm text-red-600">{practiceCreateError}</p>

@@ -60,6 +60,11 @@ export default function InterviewDetailPage() {
 
   const [generating, setGenerating] = useState(false);
   const [paError, setPaError] = useState(null);
+  // A generic failure is a toast now rather than a card, so paError no longer
+  // stands as the record that an attempt was made and lost. This does: without
+  // it the auto-run below would be free to fire again the next time loading
+  // settles, and the reader would collect a second toast for the same failure.
+  const paFailedRef = useRef(false);
 
   // Step navigation: 'analyze' | 'research' | 'prepare' | 'practice'
   const [currentStep, setCurrentStep] = useState('analyze');
@@ -299,7 +304,7 @@ export default function InterviewDetailPage() {
 
   // Auto-generate Power Analysis on first landing if none exists
   useEffect(() => {
-    if (!loading && jobCard && !powerAnalysis && !paError && !generating) {
+    if (!loading && jobCard && !powerAnalysis && !paError && !generating && !paFailedRef.current) {
       // A free account that has already had its one analysis is shown the gate
       // here rather than sent to the route to be refused. The answer is the
       // same either way, and landing on a spinner first only delays it.
@@ -445,6 +450,10 @@ export default function InterviewDetailPage() {
           setPaError({ type: 'no_resume', message: "You need a resume on file before we can analyze this job. Head to Resume Writer to upload or build one." });
           return;
         }
+        if (data.error === 'RESUME_DATA_MISSING') {
+          setPaError({ type: 'resume_empty', message: "Your resume needs content before we can analyze this job. Head to Resume Writer to complete it." });
+          return;
+        }
         if (data.error === 'JOB_CARD_INCOMPLETE') {
           setPaError({ type: 'incomplete', message: "This job card is missing a title or job description. Add those in Job Tracker first." });
           return;
@@ -453,7 +462,8 @@ export default function InterviewDetailPage() {
           setPaError({ type: 'free_limit', message: FREE_PA_LIMIT_MESSAGE });
           return;
         }
-        setPaError({ type: 'generic', message: "We couldn't analyze this job right now. Try again in a moment." });
+        paFailedRef.current = true;
+        setErrorToast("We couldn't analyze this job right now.");
         return;
       }
 
@@ -461,7 +471,8 @@ export default function InterviewDetailPage() {
 
     } catch (err) {
       console.error('Generate PA error:', err);
-      setPaError({ type: 'generic', message: "We couldn't analyze this job right now. Try again in a moment." });
+      paFailedRef.current = true;
+      setErrorToast("We couldn't analyze this job right now.");
     } finally {
       setGenerating(false);
     }
@@ -548,7 +559,7 @@ export default function InterviewDetailPage() {
             <p className="text-sm text-gray-600 mb-6">{loadError}</p>
             <button
               onClick={() => { setLoadError(null); setRetryCount(0); setLoading(true); loadData(); }}
-              className="text-white px-6 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm md:text-xs"
+              className="text-white px-6 py-2 rounded-lg transition-opacity hover:opacity-90 font-medium text-sm"
               style={{ background: 'linear-gradient(to right, #667eea, #764ba2)' }}
             >
               Try Again
@@ -709,7 +720,7 @@ export default function InterviewDetailPage() {
               {!hasPA && generating && !paError && (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
-                  <p className="text-sm md:text-xs text-gray-600">Building your Power Analysis...</p>
+                  <p className="text-sm text-gray-600">Building your Power Analysis...</p>
                 </div>
               )}
 
@@ -721,7 +732,7 @@ export default function InterviewDetailPage() {
                   <div className="flex items-start gap-2">
                     <span className="text-base flex-shrink-0">🔒</span>
                     <div className="flex-1">
-                      <p className="text-sm md:text-xs text-purple-900 leading-snug mb-3">{paError.message}</p>
+                      <p className="text-sm text-purple-900 leading-snug mb-3">{paError.message}</p>
                       <button
                         onClick={() => setShowUpgradeModal(true)}
                         className={STEP_PRIMARY_CLASS}
@@ -734,26 +745,32 @@ export default function InterviewDetailPage() {
                 </div>
               )}
 
+              {/* Every refusal that survives to this point is a blocking one:
+                  there is no resume, or it is empty, or it does not match, or
+                  the card is missing its job description. None of them clear by
+                  being looked at, so none of them offer a Dismiss - hiding the
+                  reason would leave the disabled Go to Research button below
+                  with nothing on the page explaining it. The one transient
+                  failure is a toast instead. */}
               {paError && paError.type !== 'free_limit' && (
-                <div className="border border-red-200 rounded-lg p-4 bg-red-50">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                   <div className="flex items-start gap-2">
                     <span className="text-base flex-shrink-0">⚠️</span>
                     <div className="flex-1">
-                      <p className="text-sm md:text-xs text-red-800 leading-snug mb-3">{paError.message}</p>
+                      <p className="text-sm text-purple-900 leading-snug mb-3">{paError.message}</p>
                       <div className="flex flex-wrap gap-2">
                         {paError.type === 'mismatch' && (
-                          <button onClick={() => router.push('/resume-coach')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Go to Resume Writer →</button>
+                          <button onClick={() => router.push('/resume-coach')} className="text-sm text-purple-600 hover:text-purple-700 font-semibold">Go to Resume Writer →</button>
                         )}
                         {paError.type === 'no_resume' && (
-                          <button onClick={() => router.push('/resume-coach')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Build a Resume →</button>
+                          <button onClick={() => router.push('/resume-coach')} className="text-sm text-purple-600 hover:text-purple-700 font-semibold">Build a Resume →</button>
+                        )}
+                        {paError.type === 'resume_empty' && (
+                          <button onClick={() => router.push('/resume-coach')} className="text-sm text-purple-600 hover:text-purple-700 font-semibold">Complete your resume →</button>
                         )}
                         {paError.type === 'incomplete' && (
-                          <button onClick={() => router.push('/job-tracker')} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Edit in Job Tracker →</button>
+                          <button onClick={() => router.push('/job-tracker')} className="text-sm text-purple-600 hover:text-purple-700 font-semibold">Edit in Job Tracker →</button>
                         )}
-                        {paError.type === 'generic' && (
-                          <button onClick={() => { setPaError(null); handleGeneratePA(); }} className="text-sm md:text-xs text-purple-600 hover:text-purple-700 font-semibold">Try Again</button>
-                        )}
-                        <button onClick={() => setPaError(null)} className="text-sm md:text-xs text-gray-500 hover:text-gray-700">Dismiss</button>
                       </div>
                     </div>
                   </div>
@@ -918,6 +935,7 @@ export default function InterviewDetailPage() {
               {currentStep === 'analyze' && (
                 <AnalyzeStepContent
                   stepHeader="📊 Your Power Analysis"
+                  canAdvance={hasPA}
                   onGoToResearch={() => goToStep('research')}
                 />
               )}
@@ -1008,7 +1026,7 @@ function BucketColumn({
     <div className={`border ${c.border} rounded-lg p-3 ${c.bg}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-base">{icon}</span>
-        <h4 className={`text-sm md:text-xs font-bold ${c.titleText}`}>{title}</h4>
+        <h4 className={`text-sm font-bold ${c.titleText}`}>{title}</h4>
         <div className="ml-auto flex items-center gap-2">
           <span className={`text-xs md:text-[10px] ${c.countText} font-semibold`}>{items.length}</span>
         </div>
@@ -1024,7 +1042,7 @@ function BucketColumn({
                 style={{ borderColor: '#e5e7eb', cursor: 'default' }}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <p className="text-sm md:text-xs font-bold text-gray-900 flex-1">#{i + 1}: {getNameField(item)}</p>
+                  <p className="text-sm font-bold text-gray-900 flex-1">#{i + 1}: {getNameField(item)}</p>
                 </div>
                 {getTextField(item) && (
                   <p className="text-sm text-gray-700 leading-snug">{getTextField(item)}</p>
@@ -1055,21 +1073,26 @@ function BucketColumn({
 // Auto width, sized by their label, the way buttons read everywhere else in
 // the app. Standalone ones add mx-auto; the coach pair sits in a centered row.
 const STEP_BUTTON_BASE =
-  'flex items-center justify-center gap-2 rounded-lg py-2 px-6 font-semibold text-sm md:text-xs whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
+  'flex items-center justify-center gap-2 rounded-lg py-2 px-6 font-semibold text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
 const STEP_PRIMARY_CLASS = `${STEP_BUTTON_BASE} text-white transition-opacity hover:opacity-90`;
 const STEP_PRIMARY_STYLE = { background: 'linear-gradient(to right, #667eea, #764ba2)' };
 
 function BackLink({ onClick, label = '← Back' }) {
   return (
     <div className="text-center">
-      <button onClick={onClick} className="text-sm md:text-xs text-gray-400 hover:text-gray-600">
+      <button onClick={onClick} className="text-sm text-gray-400 hover:text-gray-600">
         {label}
       </button>
     </div>
   );
 }
 
-function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
+// canAdvance is whether the analysis this step is about actually exists. The
+// steps past this one are built out of it - research reads the job card, prepare
+// reads the buckets, practice will not start a session without the row - so
+// walking forward without one only defers the refusal to somewhere it reads as
+// a malfunction. The callout above says why the button is out.
+function AnalyzeStepContent({ onGoToResearch, stepHeader, canAdvance = true }) {
   return (
     <div className="px-5 py-4 space-y-3 flex-1 flex flex-col">
       <h3 className="font-semibold text-lg -mt-3">{stepHeader}</h3>
@@ -1104,7 +1127,8 @@ function AnalyzeStepContent({ onGoToResearch, stepHeader }) {
           it. */}
       <button
         onClick={onGoToResearch}
-        className={`mx-auto ${STEP_PRIMARY_CLASS}`}
+        disabled={!canAdvance}
+        className={`mx-auto ${STEP_PRIMARY_CLASS} ${canAdvance ? '' : 'opacity-50 cursor-not-allowed'}`}
         style={STEP_PRIMARY_STYLE}
       >
         Go to Research
@@ -1122,7 +1146,7 @@ const HEADING_DARK = '#111827';
 
 // Culture values and question types read as the same kind of thing, so they
 // share one definition rather than two that can drift apart.
-const TAG_SOFT = 'text-sm md:text-xs bg-purple-50 text-gray-600 border border-purple-100';
+const TAG_SOFT = 'text-sm bg-purple-50 text-gray-600 border border-purple-100';
 
 const TAG_VARIANTS = {
   culture: TAG_SOFT,

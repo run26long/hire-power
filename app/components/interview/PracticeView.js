@@ -783,7 +783,9 @@ export default function PracticeView({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        if (data.error === 'FREE_LIMIT_REACHED') {
+        if (data.error === 'POWER_ANALYSIS_REQUIRED') {
+          onError('This job needs to be analyzed before you can practice. Go back to the Analyze step.');
+        } else if (data.error === 'FREE_LIMIT_REACHED') {
           // The panel says it rather than a toast that scrolls away: this is
           // the end of the free tier, not a hiccup to dismiss. Reached when
           // the profile the parent read has fallen behind the server's count.

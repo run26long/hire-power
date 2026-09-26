@@ -327,9 +327,18 @@ export async function POST(request) {
     // ---- INPUT ----
     const { job_card_id, power_analysis_id, session_type, voice_mode } = await request.json();
 
-    if (!job_card_id || !power_analysis_id || !session_type || !voice_mode) {
+    // Split out of the catch-all below because it is the one of the four a
+    // reader can actually arrive at: the practice step renders whether or not
+    // an analysis exists, so the id is simply absent. As part of a prose string
+    // about required fields it reached the browser as "try again in a moment",
+    // which is advice that could never work.
+    if (!power_analysis_id) {
+      return Response.json({ error: 'POWER_ANALYSIS_REQUIRED' }, { status: 400 });
+    }
+
+    if (!job_card_id || !session_type || !voice_mode) {
       return Response.json(
-        { error: 'job_card_id, power_analysis_id, session_type and voice_mode are required' },
+        { error: 'job_card_id, session_type and voice_mode are required' },
         { status: 400 }
       );
     }
