@@ -1751,9 +1751,10 @@ if (data.ai_analysis) {
                   onClick={save}
                   className={`py-1.5 rounded text-[12px] font-semibold ${
                     saveSuccess ? 'bg-green-600 text-white' :
-                    hasUnsavedChanges ? `bg-purple-600 text-white ${saveToastCount >= 3 ? 'animate-pulse' : ''}` :
+                    hasUnsavedChanges ? `text-white transition-opacity hover:opacity-90 ${saveToastCount >= 3 ? 'animate-pulse' : ''}` :
                     'bg-gray-200 text-gray-500'
                   }`}
+                  style={!saveSuccess && hasUnsavedChanges ? { background: 'linear-gradient(to right, #667eea, #764ba2)' } : undefined}
                 >
                   {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : 'No changes'}
                 </button>
@@ -2028,13 +2029,17 @@ if (data.ai_analysis) {
             {/* Save */}
             <button
               onClick={save}
-              className={`col-start-3 row-start-2 px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap ${
+              className={`col-start-3 row-start-2 px-3 py-1 rounded text-xs font-medium whitespace-nowrap ${
                 saveSuccess
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-green-600 text-white transition-all'
                   : hasUnsavedChanges
-                  ? `bg-purple-600 text-white hover:bg-purple-700 ${saveToastCount >= 3 ? 'animate-pulse' : ''}`
-                  : 'bg-gray-300 text-gray-600'
+                  ? `text-white transition-opacity hover:opacity-90 ${saveToastCount >= 3 ? 'animate-pulse' : ''}`
+                  : 'bg-gray-300 text-gray-600 transition-all'
               }`}
+              // The brand gradient, as the Download button beside it already
+              // carries. Only the state that is asking to be pressed: saved and
+              // no-changes are status colours and stay as they are.
+              style={!saveSuccess && hasUnsavedChanges ? { background: 'linear-gradient(to right, #667eea, #764ba2)' } : undefined}
             >
               {saveSuccess ? '✓ Saved!' : hasUnsavedChanges ? '💾 Save' : '✓ No Changes'}
             </button>
@@ -2087,6 +2092,7 @@ if (data.ai_analysis) {
                           dateFormat,
                           spacing: selectedSpacing,
                           action: 'preview-url',
+                          resumeId: resume.id,
                           userId: user.id
                         })
                       })
@@ -2094,9 +2100,19 @@ if (data.ai_analysis) {
                         const data = await response.json()
                         setPreviewUrl(data.previewUrl)
                         setShowPreview(true)
+                      } else {
+                        // A refusal is not an exception, so the catch below
+                        // never saw one: the button simply stopped spinning and
+                        // nothing opened. The route answers with a sentence and
+                        // a code, so a tier refusal reaches the reader in its
+                        // own words rather than as a generic failure.
+                        const refusal = await response.json().catch(() => ({}))
+                        console.error('Preview failed:', refusal)
+                        setErrorToast(refusal.error || "We couldn't build your preview. Please try again.")
                       }
                     } catch (e) {
                       console.error('Preview error:', e)
+                      setErrorToast("We couldn't build your preview. Please try again.")
                     } finally {
                       setIsLoadingPreview(false)
                     }
