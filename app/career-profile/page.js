@@ -13,7 +13,7 @@ import SuccessToast from '../components/SuccessToast'
 import ProfileDocument from '../p/[slug]/_components/ProfileDocument'
 import SettingsDrawer from './_components/SettingsDrawer'
 import EditorGuide from './_components/EditorGuide'
-import ProfileTour, { profileTourAlreadySeen } from './_components/ProfileTour'
+import Tour, { tourSeen, TourReplayButton } from '@/app/components/Tour'
 
 import './_styles/editor.css'
 
@@ -55,6 +55,46 @@ import './_styles/editor.css'
 // ============================================================================
 
 const MODES = { EDIT: 'edit', PREVIEW: 'preview' }
+
+const PROFILE_TOUR_KEY = 'hp_profile_tour_complete'
+
+const PROFILE_TOUR_STEPS = [
+  {
+    id: 'profile-identity',
+    targets: ['profile-identity'],
+    placement: 'right',
+    title: 'Meet the résumé’s much more interesting sibling.',
+    body: 'Your Career Profile brings the fuller story together: your work, results, proof, recommendations, and the parts of you that never fit on one page.'
+  },
+  {
+    id: 'profile-directions',
+    targets: ['profile-directions'],
+    placement: 'bottom',
+    title: 'One career can tell more than one story.',
+    body: 'Career directions reshape your profile around the opportunities you want. Choose one to show employers the experience that matters most for that path.'
+  },
+  {
+    id: 'profile-mode',
+    targets: ['profile-mode'],
+    placement: 'bottom',
+    title: 'Edit here. Preview like an employer.',
+    body: 'Edit shows your controls. Preview hides them, so you can see exactly what someone opening your link will see.'
+  },
+  {
+    id: 'profile-about',
+    targets: ['profile-about'],
+    placement: 'right',
+    title: 'We gave you a head start.',
+    body: 'Hire Power has already built the foundation from what it knows about you. Use the pencils to refine the story and add evidence, portfolio work, testimonials, or your own words. No blank-page staring contest required.'
+  },
+  {
+    id: 'profile-settings',
+    targets: ['profile-settings'],
+    placement: 'bottom',
+    title: 'Nothing goes public until you say so.',
+    body: 'Use Settings to choose what appears. Then preview, publish, and share your link when you’re ready. Your career story, your call.'
+  }
+]
 
 export default function CareerProfileEditorPage() {
   const router = useRouter()
@@ -155,7 +195,7 @@ export default function CareerProfileEditorPage() {
       // Desktop only, like the other two tours: the stops are placed for the
       // wide layout, and below 768 the spread the tour walks along is stacked
       // into one column.
-      if (window.innerWidth >= 768 && !profileTourAlreadySeen()) {
+      if (window.innerWidth >= 768 && !tourSeen(PROFILE_TOUR_KEY)) {
         setTimeout(() => {
           setShowTour(true)
         }, 300) // 300ms delay
@@ -961,6 +1001,12 @@ export default function CareerProfileEditorPage() {
             >
               Settings
             </button>
+
+            <TourReplayButton
+              storageKey={PROFILE_TOUR_KEY}
+              onReplay={() => setShowTour(true)}
+              style={{ color: 'var(--ed-muted)' }}
+            />
           </div>
         </div>
       </div>
@@ -1057,7 +1103,13 @@ export default function CareerProfileEditorPage() {
           card reads them through the DOM, so being fixed-position does not
           matter but being a descendant does. */}
       {showTour && (
-        <ProfileTour onStepChange={setTourStepId} onClose={closeTour} />
+        <Tour
+          steps={PROFILE_TOUR_STEPS}
+          storageKey={PROFILE_TOUR_KEY}
+          theme="dark"
+          onStepChange={setTourStepId}
+          onClose={closeTour}
+        />
       )}
 
       {/* Last in the tree and fixed to the viewport, so nothing above has to

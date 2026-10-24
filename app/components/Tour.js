@@ -3,94 +3,121 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 // ============================================================================
-// CAREER PROFILE FIRST-VISIT TOUR
+// THE FIRST-VISIT TOUR
 //
-// Desktop only. Runs once, the first time an owner opens the workspace with a
-// profile already built. Each stop dims the page, cuts a hole around a real
-// element, and parks a tooltip beside it.
+// One engine for all three of them. Each stop dims the page, cuts a hole around
+// a real element and parks a tooltip beside it. Desktop only - the callers test
+// the width before they mount this, because the spotlight geometry assumes room
+// beside the target that a phone does not have.
 //
-// WHY THIS IS A COPY
-// The Resume Writer and Interview Practice hubs each carry their own copy of
-// this engine, identical below the step list. This is a third, and it is a copy
-// on purpose: those two are working and shipped, and folding three pages into
-// one shared component would mean editing both of them to find out whether the
-// third was right. The refactor is worth doing and is not this change.
+// WHERE IT CAME FROM
+// Three copies: ProfileTour, and an identical pair inlined in the Resume Writer
+// and Interview Practice hubs. The two hubs' copies were the same file twice,
+// to the byte. ProfileTour differed in four things and only four: it had no
+// tier-dependent copy, its arrow helper took its colours as arguments, it read
+// a dark palette out of custom properties, and it carried no isPro prop.
+// Everything else - the geometry, the fallback order, the measuring, the
+// filtering, the escape key, the dots - was the same text three times.
 //
-// What is genuinely different here is the theme. The other two sit on white
-// pages and are painted in fixed hex; this one sits on the profile's dark
-// ground, so every surface, rule and text colour reads from the same tokens the
-// rest of the workspace uses. The component must therefore render inside
-// `.hp-ed`, which is where those tokens are defined - a fixed-position element
-// still inherits custom properties down the DOM, so position does not matter
-// but ancestry does.
+// So the two variation points are named rather than forked:
 //
-// There are no hex fallbacks on those reads any more, and no rgb triple held
-// in this file. A fallback that spells out the dark value is a second copy of
-// the palette living where nobody looks for it, and it is the copy that would
-// still be lavender on the day the page is not.
+//   theme   which palette the card and veil are painted in. 'light' is the
+//           hubs' own values, 'dark' reads the Career Profile workspace's
+//           tokens. A dark tour must therefore render inside .hp-ed, where
+//           those properties are defined: a fixed-position element still
+//           inherits custom properties down the DOM, so position does not
+//           matter but ancestry does.
 //
-// Geometry, navigation, filtering, persistence and the 300ms entry are the
-// other two engines' behaviour unchanged.
+//   steps   resolved by the caller, not here. The hubs rewrite their own copy
+//           for a free account; that is a question about tiers, and a tour
+//           engine that knows what a tier is would be carrying vocabulary from
+//           a part of the product it has no other business with. What stays
+//           here is the one filter that is about this component: a stop whose
+//           target is not on the page cannot be pointed at.
+//
+// Persistence is the caller's too. It owns the key, decides when a tour has
+// been seen, and the helpers below are the only thing this module says about
+// it - both wrapped, because storage throws in private mode and a tour is
+// never worth a crash.
 // ============================================================================
 
-const TOUR_KEY = 'hp_profile_tour_complete'
 const TIP_WIDTH = 320
 const SPOT_PAD = 8
 const TIP_GAP = 16
 const VIEWPORT_MARGIN = 16
 
-const TOUR_STEPS = [
-  {
-    id: 'profile-identity',
-    targets: ['profile-identity'],
-    placement: 'right',
-    title: 'Meet the résumé’s much more interesting sibling.',
-    body: 'Your Career Profile brings the fuller story together: your work, results, proof, recommendations, and the parts of you that never fit on one page.'
-  },
-  {
-    id: 'profile-directions',
-    targets: ['profile-directions'],
-    placement: 'bottom',
-    title: 'One career can tell more than one story.',
-    body: 'Career directions reshape your profile around the opportunities you want. Choose one to show employers the experience that matters most for that path.'
-  },
-  {
-    id: 'profile-mode',
-    targets: ['profile-mode'],
-    placement: 'bottom',
-    title: 'Edit here. Preview like an employer.',
-    body: 'Edit shows your controls. Preview hides them, so you can see exactly what someone opening your link will see.'
-  },
-  {
-    id: 'profile-about',
-    targets: ['profile-about'],
-    placement: 'right',
-    title: 'We gave you a head start.',
-    body: 'Hire Power has already built the foundation from what it knows about you. Use the pencils to refine the story and add evidence, portfolio work, testimonials, or your own words. No blank-page staring contest required.'
-  },
-  {
-    id: 'profile-settings',
-    targets: ['profile-settings'],
-    placement: 'bottom',
-    title: 'Nothing goes public until you say so.',
-    body: 'Use Settings to choose what appears. Then preview, publish, and share your link when you’re ready. Your career story, your call.'
-  }
-]
-
-export function profileTourAlreadySeen() {
+export function tourSeen(key) {
   try {
-    return !!window.localStorage.getItem(TOUR_KEY)
+    return !!window.localStorage.getItem(key)
   } catch (e) {
     // Storage blocked (private mode) — treat it as unseen rather than crashing.
     return false
   }
 }
 
-function markProfileTourComplete() {
+export function markTourSeen(key) {
   try {
-    window.localStorage.setItem(TOUR_KEY, 'true')
+    window.localStorage.setItem(key, 'true')
   } catch (e) {
-    console.error('Could not persist profile tour completion (non-blocking):', e)
+    console.error('Could not persist tour completion (non-blocking):', e)
+  }
+}
+
+export function resetTour(key) {
+  try {
+    window.localStorage.removeItem(key)
+  } catch (e) {
+    console.error('Could not reset tour (non-blocking):', e)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// THE TWO PALETTES
+//
+// Every colour either expression used, and nothing else. The light one is the
+// hubs' literals; the dark one reads the workspace's own properties, with no
+// hex fallbacks - a fallback spelling out the dark value is a second copy of
+// the palette living where nobody looks for it, and it is the copy that would
+// still be lavender on the day the page is not.
+// ---------------------------------------------------------------------------
+const THEMES = {
+  light: {
+    ring: 'rgba(102, 126, 234, 0.4)',
+    ringShadow: '0 0 0 4px rgba(102, 126, 234, 0.1), 0 0 30px rgba(102, 126, 234, 0.15), 0 0 0 9999px rgba(0, 0, 0, 0.5)',
+    veil: 'rgba(0, 0, 0, 0.5)',
+    cardBg: '#ffffff',
+    cardEdge: '#e5e7eb',
+    cardShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.08)',
+    accentEdge: 'linear-gradient(to bottom, #667eea, #764ba2)',
+    eyebrow: '#667eea',
+    title: '#1a1a1a',
+    body: '#6b7280',
+    footRule: '#f3f4f6',
+    dotNow: 'linear-gradient(to bottom right, #667eea, #764ba2)',
+    dotPast: '#667eea',
+    dotAhead: '#e5e7eb',
+    skip: '#9ca3af',
+    nextFill: 'linear-gradient(to right, #667eea, #764ba2)',
+    nextInk: '#ffffff'
+  },
+  dark: {
+    ring: 'var(--profile-tour-ring)',
+    ringShadow: '0 0 0 4px var(--profile-tour-ring-inner), 0 0 30px var(--profile-tour-ring-glow), 0 0 0 9999px var(--profile-tour-veil)',
+    veil: 'var(--profile-tour-veil)',
+    cardBg: 'var(--ed-raised)',
+    cardEdge: 'var(--ed-accent-edge)',
+    cardShadow: 'var(--profile-tour-card-shadow)',
+    accentEdge: 'var(--ed-accent)',
+    eyebrow: 'var(--ed-accent)',
+    title: 'var(--ed-ink)',
+    body: 'var(--ed-muted)',
+    footRule: 'var(--ed-line)',
+    dotNow: 'var(--ed-accent)',
+    dotPast: 'var(--profile-tour-dot-past)',
+    dotAhead: 'var(--ed-line-strong)',
+    skip: 'var(--ed-muted)',
+    nextFill: 'var(--profile-primary-fill)',
+    nextInk: 'var(--profile-on-action)'
   }
 }
 
@@ -145,10 +172,7 @@ function computeTipPosition(rect, tipW, tipH, preferred) {
   return { top: t, left: l, placement: 'bottom', arrow: clamp(cx - l, 18, tipW - 18) }
 }
 
-// CSS-triangle arrow, drawn twice so it picks up the card's 1px edge. On the
-// light pages that edge is grey and the fill is white; here both come from the
-// card's own palette, so the arrow reads as part of the card rather than a
-// white notch on a dark one.
+// CSS-triangle arrow, drawn twice so it picks up the card's own 1px edge.
 function arrowStyles(placement, offset, edge, fill) {
   const S = 8
   const O = S + 1
@@ -179,13 +203,15 @@ function arrowStyles(placement, offset, edge, fill) {
   return null
 }
 
-export default function ProfileTour({ onStepChange, onClose }) {
+export default function Tour({ steps: given, storageKey, theme = 'light', onStepChange, onClose }) {
+  const t = THEMES[theme] || THEMES.light
+
   // Lock the stop list at mount so the dots match what is actually on screen.
-  // Preview mode has no edit pencils, so the About stop simply is not offered
-  // to somebody who opened the workspace in Preview - the same way the hub
-  // drops the Job Tracker stop for a tier that has no Job Tracker link.
+  // A stop whose target is not rendered - Preview mode has no edit pencils, a
+  // Vault tier has no Job Tracker link - is not offered rather than pointed at
+  // nothing.
   const [steps] = useState(() =>
-    TOUR_STEPS.filter(s => document.querySelector(`[data-tour="${s.targets[0]}"]`))
+    (given || []).filter(s => document.querySelector(`[data-tour="${s.targets[0]}"]`))
   )
   const [index, setIndex] = useState(0)
   const [rect, setRect] = useState(null)
@@ -196,14 +222,14 @@ export default function ProfileTour({ onStepChange, onClose }) {
   const isLast = index === steps.length - 1
 
   const finish = useCallback(() => {
-    markProfileTourComplete()
+    if (storageKey) markTourSeen(storageKey)
     onClose()
-  }, [onClose])
+  }, [storageKey, onClose])
 
   const measure = useCallback(() => {
     if (!step) return
     const rects = step.targets
-      .map(t => document.querySelector(`[data-tour="${t}"]`))
+      .map(target => document.querySelector(`[data-tour="${target}"]`))
       .filter(Boolean)
       .map(el => el.getBoundingClientRect())
       .filter(r => r.width > 0 && r.height > 0)
@@ -262,9 +288,7 @@ export default function ProfileTour({ onStepChange, onClose }) {
 
   if (!step) return null
 
-  const CARD_BG = 'var(--ed-raised)'
-  const CARD_EDGE = 'var(--ed-accent-edge)'
-  const arrow = tip ? arrowStyles(tip.placement, tip.arrow, CARD_EDGE, CARD_BG) : null
+  const arrow = tip ? arrowStyles(tip.placement, tip.arrow, t.cardEdge, t.cardBg) : null
 
   return (
     <>
@@ -281,19 +305,15 @@ export default function ProfileTour({ onStepChange, onClose }) {
             width: rect.width + SPOT_PAD * 2,
             height: rect.height + SPOT_PAD * 2,
             borderRadius: 12,
-            border: '2px solid var(--profile-tour-ring)',
-            // The veil's own strength lives with the rest of the palette now:
-            // the page underneath is already dark, so it is heavier than the
-            // light pages' 0.5, and that is a fact about this mode rather than
-            // about this component.
-            boxShadow: '0 0 0 4px var(--profile-tour-ring-inner), 0 0 30px var(--profile-tour-ring-glow), 0 0 0 9999px var(--profile-tour-veil)',
+            border: `2px solid ${t.ring}`,
+            boxShadow: t.ringShadow,
             pointerEvents: 'none',
             zIndex: 9999,
             transition: 'top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease'
           }}
         />
       ) : (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--profile-tour-veil)', pointerEvents: 'none', zIndex: 9999 }} />
+        <div style={{ position: 'fixed', inset: 0, background: t.veil, pointerEvents: 'none', zIndex: 9999 }} />
       )}
 
       <div
@@ -306,21 +326,21 @@ export default function ProfileTour({ onStepChange, onClose }) {
           left: tip ? tip.left : -9999,
           width: TIP_WIDTH,
           zIndex: 10000,
-          background: CARD_BG,
-          border: `1px solid ${CARD_EDGE}`,
+          background: t.cardBg,
+          border: `1px solid ${t.cardEdge}`,
           borderRadius: 12,
-          boxShadow: 'var(--profile-tour-card-shadow)',
+          boxShadow: t.cardShadow,
           opacity: tip ? 1 : 0,
           transition: 'top 0.3s ease, left 0.3s ease, opacity 0.2s ease'
         }}
       >
-        {/* Accent edge. The light pages run the brand gradient down it; here it
-            is the profile's own lavender, which is the colour every other
-            highlight in this workspace is drawn in. */}
+        {/* Accent edge. The light pages run the brand gradient down it; the
+            dark one is the profile's own lavender, which is the colour every
+            other highlight in that workspace is drawn in. */}
         <div
           style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
-            background: 'var(--ed-accent)',
+            background: t.accentEdge,
             borderTopLeftRadius: 12, borderBottomLeftRadius: 12
           }}
         />
@@ -333,20 +353,20 @@ export default function ProfileTour({ onStepChange, onClose }) {
         )}
 
         <div style={{ padding: '16px 18px 14px 20px' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--ed-accent)', marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1.5px', color: t.eyebrow, marginBottom: 6 }}>
             Step {index + 1} of {steps.length}
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ed-ink)', marginBottom: 6 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: t.title, marginBottom: 6 }}>
             {step.title}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--ed-muted)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: t.body, lineHeight: 1.6 }}>
             {step.body}
           </div>
         </div>
 
         <div
           style={{
-            borderTop: '1px solid var(--ed-line)',
+            borderTop: `1px solid ${t.footRule}`,
             padding: '10px 18px 12px 20px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
           }}
@@ -357,9 +377,7 @@ export default function ProfileTour({ onStepChange, onClose }) {
                 key={s.id}
                 style={{
                   width: 7, height: 7, borderRadius: '50%', display: 'block',
-                  background: i === index
-                    ? 'var(--ed-accent)'
-                    : i < index ? 'var(--profile-tour-dot-past)' : 'var(--ed-line-strong)'
+                  background: i === index ? t.dotNow : i < index ? t.dotPast : t.dotAhead
                 }}
               />
             ))}
@@ -368,20 +386,15 @@ export default function ProfileTour({ onStepChange, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={finish}
-              style={{ fontSize: 12, color: 'var(--ed-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ fontSize: 12, color: t.skip, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               Skip tour
             </button>
             <button
               onClick={() => { if (isLast) finish(); else setIndex(index + 1) }}
               style={{
-                fontSize: 13, fontWeight: 600, color: 'var(--profile-on-action)',
-                // The app's own indigo-to-purple brand gradient until now, which
-                // is the one thing on this card that belonged to Hire Power
-                // rather than to the profile underneath it. It is the Profile's
-                // primary action now, the same sweep every other button on this
-                // page is painted in.
-                background: 'var(--profile-primary-fill)',
+                fontSize: 13, fontWeight: 600, color: t.nextInk,
+                background: t.nextFill,
                 border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >
@@ -391,5 +404,32 @@ export default function ProfileTour({ onStepChange, onClose }) {
         </div>
       </div>
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// THE WAY BACK IN
+//
+// A tour that runs once and can never be run again is a tour nobody can check
+// a detail against. This is the second door: it forgets that the tour was seen
+// and starts it, which is the same path a first visit takes rather than a
+// second one beside it.
+//
+// Desktop only, like the tour it opens. It takes its colour from whatever it
+// sits in rather than naming one, so the same component reads correctly on the
+// hubs' white cards and on the Career Profile's dark bar.
+// ---------------------------------------------------------------------------
+export function TourReplayButton({ storageKey, onReplay, label = 'Replay the tour', className = '', style }) {
+  return (
+    <button
+      type="button"
+      onClick={() => { resetTour(storageKey); onReplay() }}
+      aria-label={label}
+      title={label}
+      className={`hidden md:inline-flex items-center justify-center flex-shrink-0 rounded-full border border-current opacity-40 hover:opacity-80 transition-opacity ${className}`}
+      style={{ width: 18, height: 18, fontSize: 11, fontWeight: 700, lineHeight: 1, background: 'none', cursor: 'pointer', padding: 0, ...style }}
+    >
+      ?
+    </button>
   )
 }
