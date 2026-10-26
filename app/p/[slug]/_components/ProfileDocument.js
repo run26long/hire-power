@@ -171,11 +171,43 @@ export default function ProfileDocument({ data, slug, onLensUpdated, edit = null
     deepLinkDone.current = true
     const wanted = readDeepLink()
     if (!wanted) return
-    const index = lenses.findIndex(l => l?.slug === wanted)
+
+    // Current addresses first, and only then the ones a direction used to
+    // answer to. The order is the rule: a slug that is somebody's current
+    // address always means that direction, even if another direction used to
+    // have it. Reusing a name you abandoned must not hijack links to it.
+    let index = lenses.findIndex(l => l?.slug === wanted)
+    const viaOldSlug = index === -1
+    if (viaOldSlug) {
+      index = lenses.findIndex(l =>
+        Array.isArray(l?.previous_slugs) && l.previous_slugs.includes(wanted)
+      )
+    }
+
     // -1 is a slug that is not on this profile, or is on it but not among the
-    // directions it shows. 0 is already where the page opens. Either way the
-    // primary stands, which is what an absent parameter does too.
-    if (index <= 0) return
+    // directions it shows. Either way the primary stands, which is what an
+    // absent parameter does too.
+    if (index === -1) return
+
+    // An old address that resolved: put the current one in the bar, so the
+    // next link copied from this page is one that will still work after the
+    // next rename. Done even for the primary, where the parameter comes off
+    // entirely - the same thing selectLens does when you land back on it.
+    if (viaOldSlug && typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href)
+        const current = lenses[index]?.slug
+        if (index === 0 || !current) url.searchParams.delete(LENS_PARAM)
+        else url.searchParams.set(LENS_PARAM, current)
+        window.history.replaceState(null, '', url)
+      } catch {
+        // A browser that will not take the rewrite still gets the direction
+        // it was asked for; only the address stays behind.
+      }
+    }
+
+    // 0 is already where the page opens, so there is nothing to move.
+    if (index === 0) return
     setActiveIndex(index)
     setContentIndex(index)
   }, [lenses, readDeepLink])

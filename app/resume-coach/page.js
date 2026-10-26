@@ -7,6 +7,7 @@ import MainNav from '../components/MainNav';
 import AppShell from '../components/AppShell';
 import UpgradeModal from '../components/UpgradeModal';
 import Tour, { tourSeen, TourReplayButton } from '../components/Tour';
+import { lensRefusalNote, rewriteOfferNote, REWRITE_OFFER } from '@/lib/lensRefusal';
 import VaultUpgradeModal from '../components/VaultUpgradeModal';
 import ErrorToast from '../components/ErrorToast';
 import { getJobSources } from '../utils/getJobSources';
@@ -541,6 +542,81 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
   const [customName, setCustomName] = useState('');
   const [customBusy, setCustomBusy] = useState(false);
   const [customNote, setCustomNote] = useState(null);
+  const [customRenaming, setCustomRenaming] = useState(false);
+  const [customRewriting, setCustomRewriting] = useState(false);
+
+  // The same offer the Career Profile settings drawer makes, against the same
+  // generate route, so the tier gate is the one that already applies.
+  async function acceptCustomRewrite(offer) {
+    if (!offer?.lensId || customRewriting) return;
+    setCustomRewriting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/career-profile/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ lensId: offer.lensId })
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          payload?.error === 'PRO_REQUIRED'
+            ? 'Rewriting a career direction is a Pro feature.'
+            : "We couldn't rewrite that direction just now. Please try again."
+        );
+      }
+      setCustomNote(null);
+      await loadData();
+    } catch (err) {
+      // The note stays: the rename stands, and only the offer failed.
+      console.error('Lens rewrite failed:', err);
+      setErrorToast(err?.message || "We couldn't rewrite that direction. Please try again.");
+    } finally {
+      setCustomRewriting(false);
+    }
+  }
+
+  // The same offer the Career Profile settings drawer makes, against the same
+  // route: call the direction they already have by the name they just typed.
+  async function acceptCustomRename(offer) {
+    const wanted = customName.trim();
+    if (!offer?.lensId || !wanted || customRenaming) return;
+    setCustomRenaming(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/profile-lenses/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ lensId: offer.lensId, newName: wanted, intent: 'resolve-duplicate' })
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.error || "We couldn't rename that direction. Please try again.");
+      // Refused again: the name is taken by a third direction.
+      if (payload?.ok === false) {
+        setCustomNote(lensRefusalNote(payload, wanted));
+        return;
+      }
+      setCustomName('');
+      // Renamed, and the prose underneath still describes the old name.
+      setCustomNote(
+        payload?.hasContent && payload?.previousName
+          ? rewriteOfferNote({
+              newName: payload.lens?.name || wanted,
+              oldName: payload.previousName,
+              lensId: offer.lensId
+            })
+          : null
+      );
+      // The tile, the menu and the core resume label all read the name from
+      // this load.
+      await loadData();
+    } catch (err) {
+      console.error('Lens rename failed:', err);
+      setErrorToast(err?.message || "We couldn't rename that direction. Please try again.");
+    } finally {
+      setCustomRenaming(false);
+    }
+  }
 
   async function createCustomLens() {
     const name = customName.trim();
@@ -560,21 +636,14 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
         return;
       }
       // An answer of "no" is an ordinary result, not a failure: the request
-      // worked, the career data did not reach. Two of them, and the drawer
-      // says the same two things in the same words - this is one feature on
-      // two pages and it should not read as two.
+      // worked, the career data did not reach. The words come from
+      // lib/lensRefusal, which is also what the Career Profile settings
+      // drawer says: this is one feature on two pages and it should not read
+      // as two. It did, until now - this surface rendered the route's own
+      // sentence, which still listed the account's strongest directions in
+      // prose above a menu that was already listing them.
       if (payload?.ok === false) {
-        setCustomNote(
-          payload.code === 'DUPLICATE'
-            ? {
-                title: 'You already have this direction',
-                body: `This overlaps with ${payload.overlapsWith}.`
-              }
-            : {
-                title: 'Not enough career data yet',
-                body: payload.message || "There isn't enough career data to support that direction yet."
-              }
-        );
+        setCustomNote(lensRefusalNote(payload, name));
         return;
       }
       setCustomName('');
@@ -2207,6 +2276,39 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                             <span className="block font-semibold text-gray-900">{customNote.title}</span>
                                           ) : null}
                                           <span className="block">{customNote.body}</span>
+                                          {customNote.rename ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => acceptCustomRename(customNote.rename)}
+                                              disabled={customRenaming}
+                                              className="mt-1.5 inline-block text-[11px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                                            >
+                                              {customRenaming ? 'Renaming…' : customNote.rename.label}
+                                            </button>
+                                          ) : null}
+                                          {customNote.rewrite ? (
+                                            <span className="mt-1.5 flex items-center gap-3">
+                                              <button
+                                                type="button"
+                                                onClick={() => acceptCustomRewrite(customNote.rewrite)}
+                                                disabled={customRewriting}
+                                                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                                              >
+                                                {customRewriting && (
+                                                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                                                )}
+                                                {customRewriting ? 'Rewriting…' : REWRITE_OFFER.confirmLabel}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => setCustomNote(null)}
+                                                disabled={customRewriting}
+                                                className="text-[11px] font-semibold text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                              >
+                                                {REWRITE_OFFER.dismissLabel}
+                                              </button>
+                                            </span>
+                                          ) : null}
                                         </span>
                                         <button
                                           type="button"

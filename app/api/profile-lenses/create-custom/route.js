@@ -5,7 +5,6 @@ import { requireCustomise } from '../../career-profile/_lib/requireCustomise'
 import {
   slugify,
   ensureCareerProfile,
-  detectLensesFromKnowledge,
   MIN_KNOWLEDGE_FOR_LENSES
 } from '../../career-profile/_lib/detectLenses'
 import { generateLensContent, WRITABLE_FIELDS } from '../../career-profile/_lib/generateLens'
@@ -31,9 +30,13 @@ import { generateLensContent, WRITABLE_FIELDS } from '../../career-profile/_lib/
 // "Machine Learning" is the same career and a different string - and it would
 // accept anything the list happened to contain however loosely the typed name
 // related to it. So the model is asked the narrow question directly, against
-// the same entries, and the detected list is used for the one thing it is
-// genuinely good for: telling somebody what their data does support when the
-// answer is no.
+// the same entries.
+//
+// This route no longer runs that detection at all. It used to, on a refusal,
+// to name the account's strongest directions in the message - but both
+// surfaces list those directions above the box already, so it was a second
+// model call spent restating something on screen, from a source that could
+// disagree with the one that drew it.
 //
 // WHAT A REFUSAL IS
 // Not enough material is an ordinary outcome, not an error. It comes back 200
@@ -115,9 +118,12 @@ RULES:
 - Count only entries that are real evidence for this direction: work actually done in it, skills genuinely used for it, results that belong to it. A passing mention is not evidence. An adjacent skill is not evidence.
 - A direction is a career path someone applies for jobs under, not a skill or a task. "Business Development" is a direction. "Proposal Writing" is a skill used within one. If the name they typed is a skill, a tool or a task rather than a direction, say so.
 - Judge the career, not the words. If their EVIDENCE is in the same career under a different name, that counts: someone asking for "AI Engineering" whose evidence is machine learning work has the evidence.
-- The opposite test, on the other side. If the direction they typed is the same career direction as one they ALREADY HAVE, listed above, under a different name, it is a duplicate and must be rejected. "Technical Writer" when they already have "Technical Writing" is the same direction. "Sales Leadership" when they already have "Sales Management" is the same direction. Set overlaps_with to the existing name, copied exactly as it is written above.
-- These two rules do not conflict. The first is about their evidence matching the request under another name, which is support. The second is about an existing direction matching the request under another name, which is a repeat. A direction can be fully supported and still be a duplicate, and when it is, overlaps_with is the answer that matters.
-- A narrower or broader specialism within a direction they already have is still the same direction. A genuinely separate job search is not: "Technical Writing" and "Software Engineering" are different directions even for the same person. If you are not sure, set overlaps_with to null.
+- The opposite test, on the other side. If the direction they typed is THE SAME JOB as one they ALREADY HAVE, listed above, written differently, it is a duplicate and must be rejected. Set overlaps_with to the existing name, copied exactly as it is written above.
+- Same job written differently means exactly these: a different word form of the same thing ("Technical Writer" and "Technical Writing" are duplicates), a synonym ("Software Engineering" and "Software Development"), an abbreviation or its expansion ("QA" and "Quality Assurance"), or a seniority or title variant of the same function ("Marketing Lead", "Marketing Manager" and "Marketing Specialist" are all the same direction).
+- Two different specialties in the same field are NOT duplicates, however close they sound. "AI Engineering" and "AI Systems Design" are distinct directions. "Product Management" and "Product Marketing" are distinct directions. Sharing a field, a vocabulary, or most of a skill set does not make two jobs one job. Ask whether somebody would apply for both with the same resume and the same title in mind; if they would not, set overlaps_with to null.
+- A narrower or broader version of something they already have is NOT a duplicate either, and this holds in both directions: typing the specialism when they hold the wider field, or the wider field when they hold the specialism, is two directions in both cases. "AI Systems Design" when they already have "AI Engineering" is not a duplicate, and neither is the reverse. Only identical wording of the same job counts, never containment.
+- These two rules do not conflict. The first is about their evidence matching the request under another name, which is support. The second is about an existing direction being the request under another name, which is a repeat. A direction can be fully supported and still be a duplicate, and when it is, overlaps_with is the answer that matters.
+- When in doubt, set overlaps_with to null. Refusing a direction that is genuinely new costs more than letting a near neighbour through.
 - supporting_count is how many entries you actually counted, by their numbers.
 - reason is one plain sentence for the person themselves, naming what is missing. No jargon, no apology.
 
@@ -151,31 +157,6 @@ async function assessSupport({ name, knowledge, existingNames }) {
     reason: typeof parsed?.reason === 'string' ? parsed.reason.trim() : '',
     overlapsWith
   }
-}
-
-// What the knowledge base is strongest in, for a refusal to point at. Best
-// effort: if detection fails the refusal still stands, it just cannot offer
-// anywhere else to go.
-async function strongestDirections({ userId, supabase }) {
-  try {
-    const { ok, lenses } = await detectLensesFromKnowledge({ userId, supabase })
-    if (!ok || !Array.isArray(lenses)) return []
-    return lenses.map(l => l?.name).filter(Boolean).slice(0, 3)
-  } catch (e) {
-    console.error('[create-custom] Strongest-direction lookup failed (non-fatal):', e)
-    return []
-  }
-}
-
-function refusalMessage({ name, alternatives, reason }) {
-  const head = `We don't have enough career data to support ${name}.`
-  if (alternatives.length) {
-    const list = alternatives.length === 1
-      ? alternatives[0]
-      : `${alternatives.slice(0, -1).join(', ')} and ${alternatives[alternatives.length - 1]}`
-    return `${head} Your knowledge base is strongest in ${list}.`
-  }
-  return reason ? `${head} ${reason}` : head
 }
 
 export async function POST(request) {
@@ -257,7 +238,7 @@ export async function POST(request) {
         ok: false,
         code: 'DUPLICATE',
         overlapsWith: clash.name,
-        message: `You already have a direction called ${clash.name}.`
+        overlapsLensId: clash.id
       })
     }
 
@@ -288,11 +269,7 @@ export async function POST(request) {
 
     const entries = knowledge || []
     if (entries.length < MIN_KNOWLEDGE_FOR_LENSES) {
-      return Response.json({
-        ok: false,
-        code: 'NOT_ENOUGH_DATA',
-        message: `We don't have enough career data to support ${name} yet. Keep using Hire Power - every conversation, résumé and practice session adds to what it knows about you.`
-      })
+      return Response.json({ ok: false, code: 'NOT_ENOUGH_DATA' })
     }
 
     let support
@@ -318,27 +295,31 @@ export async function POST(request) {
     // well supported - it describes a career they are already presenting -
     // so the support test would pass it, and the one that caught it is the
     // one worth reporting.
-    //
-    // strongestDirections is deliberately not called. It is a second model
-    // call whose whole job is to suggest somewhere else to go, and the answer
-    // here already names somewhere: the direction they have.
     if (support.overlapsWith) {
+      // assessSupport only ever returns a name it was shown, so this finds the
+      // row it came from. Matched the same way it was matched there.
+      const held = (existing || []).find(
+        l => String(l.name || '').toLowerCase() === support.overlapsWith.toLowerCase()
+      )
       return Response.json({
         ok: false,
         code: 'DUPLICATE',
         overlapsWith: support.overlapsWith,
-        message: `You already have a direction called ${support.overlapsWith}.`
+        overlapsLensId: held?.id || null
       })
     }
 
+    // ---- THE CODE IS THE WHOLE ANSWER ----
+    //
+    // No prose and no alternatives. This used to name the account's strongest
+    // directions in a sentence, from a second model call made only to compose
+    // it - but both surfaces already list those directions above the box, so
+    // the sentence repeated a list the reader could see, from a source that
+    // could disagree with the one that drew it. The words now come from
+    // lib/lensRefusal, which both surfaces share, and they point at that list
+    // rather than restating it.
     if (!support.isDirection || support.count < MIN_SUPPORTING_ENTRIES) {
-      const alternatives = await strongestDirections({ userId, supabase })
-      return Response.json({
-        ok: false,
-        code: 'NOT_SUPPORTED',
-        message: refusalMessage({ name, alternatives, reason: support.reason }),
-        alternatives
-      })
+      return Response.json({ ok: false, code: 'NOT_SUPPORTED' })
     }
 
     // ---- CREATE IT ----
@@ -382,16 +363,15 @@ export async function POST(request) {
       if (insertError.code === '23505') {
         const { data: taken } = await supabase
           .from('profile_lenses')
-          .select('name')
+          .select('id, name')
           .eq('user_id', userId)
           .eq('slug', slug)
           .maybeSingle()
-        const held = taken?.name || name
         return Response.json({
           ok: false,
           code: 'DUPLICATE',
-          overlapsWith: held,
-          message: `You already have a direction called ${held}.`
+          overlapsWith: taken?.name || name,
+          overlapsLensId: taken?.id || null
         })
       }
       console.error('[create-custom] Lens insert failed:', insertError)

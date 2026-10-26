@@ -530,6 +530,17 @@ html:has(.hp-ed) {
 
 /* ---- The settings drawer ------------------------------------------------ */
 
+/* A dialog asked for from inside the drawer, held above both the drawer and
+   the scrim. Positioned with a z-index of its own, which is what makes it a
+   stacking context: whatever it contains is painted and hit-tested inside
+   this layer, so a dialog carrying its own z-index does not have to know
+   anything about the numbers out here. */
+.hp-ed-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
 .hp-ed-scrim {
   position: fixed;
   inset: 0;
@@ -4251,6 +4262,71 @@ html:has(.hp-ed) {
 
 /* Only when there is a heading above it; a body on its own starts flush. */
 .hp-ed-lens-make-note-title + .hp-ed-lens-make-note-body { margin-top: 8px; }
+
+/* The way out of a duplicate, offered inside the message that caused it.
+   A button rather than a link because it writes something, and sized as a
+   touch target because this drawer is full width on a phone. */
+.hp-ed-lens-make-note-action {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin-top: 10px;
+  padding: 0 11px;
+  border: 1px solid var(--ed-accent);
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  color: var(--ed-accent);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.hp-ed-lens-make-note-action:hover:not(:disabled),
+.hp-ed-lens-make-note-action:focus-visible {
+  background: rgb(var(--profile-accent-rgb) / 0.12);
+}
+
+.hp-ed-lens-make-note-action:disabled { opacity: 0.55; cursor: progress; }
+
+/* Two answers side by side, which is what makes it a question rather than an
+   announcement with a button under it. */
+.hp-ed-lens-make-note-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Declining. Quieter than the action beside it, because doing nothing is
+   already the state and this only says so. */
+.hp-ed-lens-make-note-quiet {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin-top: 10px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ed-muted);
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.hp-ed-lens-make-note-quiet:hover:not(:disabled),
+.hp-ed-lens-make-note-quiet:focus-visible { color: var(--ed-ink); }
+
+.hp-ed-lens-make-note-quiet:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* Quiet, because dismissing is not the point of the message - it is the way
    out once the message has been read. */

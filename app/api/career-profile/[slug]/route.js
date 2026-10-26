@@ -33,7 +33,11 @@ const PROFILE_BASE = 'id, user_id, slug, is_published'
 const PROFILE_FULL = `${PROFILE_BASE}, template, color_mode, accent, imow_text, imow_type, imow_video_path, contact_email`
 
 const LENS_BASE = 'id, name, slug, sort_order, status, evidence_summary, core_resume_id, created_at'
-const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis`
+// previous_slugs rides with LENS_FULL rather than LENS_BASE on purpose.
+// LENS_BASE is the retry for a database that has not caught up, and putting a
+// newer column in it would make the fallback fail for the same reason the
+// first attempt did.
+const LENS_FULL = `${LENS_BASE}, headline, bio, proof_points, ready_for_next, ready_tags, skill_emphasis, previous_slugs`
 
 // The only schemes that may reach a browser from this route. The column is
 // constrained to the same thing, so this is the second lock rather than the

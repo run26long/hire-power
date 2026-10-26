@@ -908,6 +908,53 @@ export default function CareerProfileEditorPage() {
     return payload
   }, [getAuthHeaders, reloadDocument, reloadManage])
 
+  // Renaming the direction a duplicate refusal pointed at. intent is what
+  // widens the route past its usual "a suggestion the extraction wrote":
+  // the direction that matched is whichever one matched, and its status and
+  // source are not this question's business.
+  //
+  // A refusal comes back as an ordinary result the way creation's does, so
+  // the surface can show the same note again rather than a thrown error.
+  const renameLens = useCallback(async (lensId, newName) => {
+    const res = await fetch('/api/profile-lenses/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ lensId, newName, intent: 'resolve-duplicate' })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(payload?.error || "We couldn't rename that career direction. Please try again.")
+    if (payload?.ok === false) return payload
+    // Both halves: the rail is drawn from the document and the list from the
+    // management record, and the name is on both.
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
+  // Rewriting a renamed direction for its new name. The existing generate
+  // route, unchanged, so its tier gate is the one that applies - nothing
+  // about renaming grants generation that was not already allowed.
+  //
+  // Not preview. The editor's Regenerate uses preview because its result
+  // lands in an open field somebody has to accept; this one is the owner
+  // answering "rewrite it", and the answer is the stored row.
+  const rewriteLens = useCallback(async (lensId) => {
+    const res = await fetch('/api/career-profile/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ lensId })
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        payload?.error === 'PRO_REQUIRED'
+          ? 'Rewriting a career direction is a Pro feature.'
+          : "We couldn't rewrite that direction just now. Please try again."
+      )
+    }
+    await Promise.all([reloadDocument(), reloadManage()])
+    return payload
+  }, [getAuthHeaders, reloadDocument, reloadManage])
+
   const createLens = useCallback(async (name) => {
     const res = await fetch('/api/profile-lenses/create-custom', {
       method: 'POST',
@@ -1192,6 +1239,8 @@ export default function CareerProfileEditorPage() {
         onLensVisibility={setLensVisibility}
         onLensReorder={reorderLenses}
         onLensCreate={createLens}
+        onLensRename={renameLens}
+        onLensRewrite={rewriteLens}
         onLensDelete={deleteLens}
         onLensDeletePreview={previewLensDelete}
       />

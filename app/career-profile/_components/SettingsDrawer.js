@@ -1,6 +1,7 @@
 'use client'
 
 import { UPGRADE_HREF, UPGRADE_LABEL, upgradeCopyFor } from '@/lib/profileTier'
+import { lensRefusalNote, rewriteOfferNote, REWRITE_OFFER } from '@/lib/lensRefusal'
 import { COLOR_MODES, normalizeColorMode } from '@/lib/profileColorMode'
 import { ACCENTS, DEFAULT_ACCENT, OFFERED_ACCENTS, accentFor } from '@/lib/profileAccent'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -132,6 +133,8 @@ export default function SettingsDrawer({
   onLensVisibility,
   onLensReorder,
   onLensCreate,
+  onLensRename,
+  onLensRewrite,
   onLensDelete,
   onLensDeletePreview
 }) {
@@ -193,6 +196,68 @@ export default function SettingsDrawer({
   const [customName, setCustomName] = useState('')
   const [creating, setCreating] = useState(false)
   const [createNote, setCreateNote] = useState(null)
+  const [renaming, setRenaming] = useState(false)
+  const [rewriting, setRewriting] = useState(false)
+
+  // The offer made after a rename lands, where the direction already had
+  // prose written for the name it used to have. Running it replaces the
+  // headline, bio and proof points, which is why it is a question rather
+  // than something that happened.
+  async function acceptRewrite(offer) {
+    if (!offer?.lensId || rewriting || !onLensRewrite) return
+    setRewriting(true)
+    try {
+      await onLensRewrite(offer.lensId)
+      setCreateNote(null)
+    } catch (err) {
+      // The note stays. The rename already succeeded and is not in question;
+      // what failed is the offer, and the offer should still be there.
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't rewrite that direction. Please try again."
+      })
+    } finally {
+      setRewriting(false)
+    }
+  }
+
+  // The offer under a duplicate refusal: call the direction they already have
+  // by the name they just typed. The typed name is still in the box - the
+  // refusal path deliberately does not clear it - so this is what they asked
+  // for twice rather than a guess.
+  async function acceptRename(offer) {
+    const wanted = customName.trim()
+    if (!offer?.lensId || !wanted || renaming || !onLensRename) return
+    setRenaming(true)
+    try {
+      const result = await onLensRename(offer.lensId, wanted)
+      // Refused again, for the same reason in a different place: the name is
+      // taken by a third direction. Same note, same shape.
+      if (result?.ok === false) {
+        setCreateNote(lensRefusalNote(result, wanted))
+        return
+      }
+      setCustomName('')
+      // Renamed, and the prose underneath still describes the old name. The
+      // offer takes the place of the refusal that was here, in the same spot.
+      setCreateNote(
+        result?.hasContent && result?.previousName
+          ? rewriteOfferNote({
+              newName: result.lens?.name || wanted,
+              oldName: result.previousName,
+              lensId: offer.lensId
+            })
+          : null
+      )
+    } catch (err) {
+      notify?.({
+        type: 'error',
+        message: err?.message || "We couldn't rename that career direction. Please try again."
+      })
+    } finally {
+      setRenaming(false)
+    }
+  }
 
   async function createCustomLens() {
     const name = customName.trim()
@@ -208,17 +273,10 @@ export default function SettingsDrawer({
         // career does not reach a direction yet; "you already have it" tells
         // them it does and they are looking at it. Showing the first for the
         // second would send them off to build evidence they already have.
-        setCreateNote(
-          result.code === 'DUPLICATE'
-            ? {
-                title: 'You already have this direction',
-                body: `This overlaps with ${result.overlapsWith}.`
-              }
-            : {
-                title: 'Not enough career data yet',
-                body: `We don’t have enough evidence in your career data to support “${name}.” Your strongest supported directions are suggested above.`
-              }
-        )
+        //
+        // The words are in lib/lensRefusal because the Resume Writer hub asks
+        // this same route and has to give this same answer.
+        setCreateNote(lensRefusalNote(result, name))
         return
       }
       setCustomName('')
@@ -403,6 +461,19 @@ export default function SettingsDrawer({
   const [emailError, setEmailError] = useState(null)
   const [emailSaved, setEmailSaved] = useState(false)
 
+  // The drawer is mounted for the life of the page and renders null when
+  // closed, so nothing here is torn down on the way out: state set while it
+  // was open is still set when it opens again. Every other field is restored
+  // from the record below, but a half-finished confirmation has no record to
+  // restore from - it simply has to go, or closing the drawer and opening it
+  // again brings back a dialog about a decision nobody is making any more.
+  useEffect(() => {
+    if (open) return
+    setDeleteTarget(null)
+    setDeleteCost(null)
+    setDeleteBusy(false)
+  }, [open])
+
   // Reopening shows what is actually stored, not what was half-typed and
   // abandoned last time.
   useEffect(() => {
@@ -418,15 +489,23 @@ export default function SettingsDrawer({
 
   // Escape closes, and focus moves into the drawer so a keyboard is not left
   // behind the scrim with nothing to act on.
+  //
+  // Not while the delete confirmation is up. This listener is on the window,
+  // so it hears every Escape in the document including the ones meant for a
+  // dialog in front of the drawer - and the dialog has a listener of its own.
+  // Both firing closed both, which is one more thing than anybody asked for.
+  // The innermost thing open owns the key.
   useEffect(() => {
     if (!open) return
     closeRef.current?.focus()
     function onKey(event) {
-      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Escape') return
+      if (deleteTarget) return
+      onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, deleteTarget])
 
   // Availability, asked of the route that will do the saving, so the answer
   // here and the answer there cannot disagree.
@@ -841,27 +920,15 @@ export default function SettingsDrawer({
                       <span className="hp-ed-lens-label">
                         <span className="hp-ed-lens-name">{lens.name}</span>
                       </span>
-                      <button
-                        type="button"
-                        className="hp-ed-switch"
-                        role="switch"
-                        aria-checked="false"
-                        aria-label={`Show ${lens.name} on your Career Profile`}
-                        onClick={() => setLensVisible(lens, true)}
-                        disabled={busy || reordering || !canCustomise || blocked}
-                        data-blocked={blocked && !busy ? 'true' : undefined}
-                        title={blocked
-                          ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
-                          : undefined}
-                        data-on="false"
-                      >
-                        <span className="hp-ed-switch-knob" aria-hidden="true" />
-                      </button>
-
                       {/* ---- Only a direction they named, and only off the
                           profile, and only with no resume behind it. The route
                           enforces all three again; this is about not offering
                           something that would be refused.
+
+                          Before the switch, so that the switch is the last
+                          thing in every row and the toggles read down one
+                          column. After it, this row's switch sat a trash
+                          button's width left of all the others.
 
                           Deliberately always visible rather than appearing on
                           hover: on a phone there is no hover, and this drawer
@@ -879,6 +946,23 @@ export default function SettingsDrawer({
                           </svg>
                         </button>
                       ) : null}
+
+                      <button
+                        type="button"
+                        className="hp-ed-switch"
+                        role="switch"
+                        aria-checked="false"
+                        aria-label={`Show ${lens.name} on your Career Profile`}
+                        onClick={() => setLensVisible(lens, true)}
+                        disabled={busy || reordering || !canCustomise || blocked}
+                        data-blocked={blocked && !busy ? 'true' : undefined}
+                        title={blocked
+                          ? `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add this one.`
+                          : undefined}
+                        data-on="false"
+                      >
+                        <span className="hp-ed-switch-knob" aria-hidden="true" />
+                      </button>
                     </div>
                   )
                 })}
@@ -989,24 +1073,58 @@ export default function SettingsDrawer({
                       <p className="hp-ed-lens-make-note-title">{createNote.title}</p>
                     ) : null}
                     <p className="hp-ed-lens-make-note-body">{createNote.body}</p>
+                    {createNote.rename ? (
+                      <button
+                        type="button"
+                        className="hp-ed-lens-make-note-action"
+                        onClick={() => acceptRename(createNote.rename)}
+                        disabled={renaming}
+                      >
+                        {renaming ? 'Renaming…' : createNote.rename.label}
+                      </button>
+                    ) : null}
+                    {createNote.rewrite ? (
+                      <span className="hp-ed-lens-make-note-actions">
+                        <button
+                          type="button"
+                          className="hp-ed-lens-make-note-action"
+                          onClick={() => acceptRewrite(createNote.rewrite)}
+                          disabled={rewriting}
+                        >
+                          {rewriting ? (
+                            <span className="hp-ed-spin" aria-hidden="true" />
+                          ) : null}
+                          {rewriting ? 'Rewriting…' : REWRITE_OFFER.confirmLabel}
+                        </button>
+                        <button
+                          type="button"
+                          className="hp-ed-lens-make-note-quiet"
+                          onClick={() => setCreateNote(null)}
+                          disabled={rewriting}
+                        >
+                          {REWRITE_OFFER.dismissLabel}
+                        </button>
+                      </span>
+                    ) : null}
                   </div>
                 )}
               </div>
 
-              {/* Three answers, because there are three situations the copy
-                  beside the rows cannot cover. A free account is told what the
-                  section is and what adds to it; a Vault account is told that
-                  what it built stays and that adding is Pro, which is what the
-                  visibility route enforces; a full profile is told what the
-                  three slots cost. An account with room is told nothing here,
-                  because the reorder copy above has already said it. */}
-              {(!canCustomise || !isPro || slotsFull) ? (
+              {/* Two answers, because there are two situations the copy beside
+                  the rows cannot cover. A free account is told what the section
+                  is and what adds to it; a Vault account is told that what it
+                  built stays and that adding is Pro, which is what the
+                  visibility route enforces.
+
+                  A Pro account is told nothing here, full or not. The help text
+                  under the direction list already explains what the slots cost
+                  and that turning one off keeps everything written for it, and
+                  saying it twice on one screen read as two different rules. */}
+              {(!canCustomise || !isPro) ? (
                 <p className="hp-ed-soon">
                   {!canCustomise
                     ? upgradeCopyFor('lenses')
-                    : !isPro
-                      ? upgradeCopyFor('lenses_vault')
-                      : `Your Career Profile shows ${MAX_ACTIVE_WORD} career directions at a time. Turn one off to add another. Everything written for it stays ready to restore.`}
+                    : upgradeCopyFor('lenses_vault')}
                 </p>
               ) : null}
             </Group>
@@ -1104,14 +1222,22 @@ export default function SettingsDrawer({
         </div>
       </aside>
 
-      {/* ---- The confirmation, above the drawer ----
-          Through a portal to document.body, because the drawer is fixed at
-          z-index 55 and this dialog is one of the app's own at z-50: rendered
-          inside the drawer it would sit behind the panel it was asked from.
-          A portal moves it out from under that stacking context without
-          changing the dialog, which Interview Practice is still using. */}
+      {/* ---- The confirmation, above the drawer and its scrim ----
+          A portal alone was not enough. It moved the dialog out of the
+          drawer, but into the same stacking context the drawer and its scrim
+          are in - and at z-index 50 it landed under both of them. The scrim
+          is a full-viewport button at 54 with a half-opaque background, so it
+          painted over the dialog, which is what made it look dimmed, and it
+          took every click aimed at it, which is why Cancel closed the drawer.
+          The dialog was never reached at all.
+
+          The layer below is a stacking context of its own, above both. The
+          dialog keeps its own z-index, which is now measured inside this
+          layer rather than against the drawer, so nothing about
+          DeleteSessionModal changes and Interview Practice is untouched. */}
       {deleteTarget && typeof document !== 'undefined'
         ? createPortal(
+            <div className="hp-ed-modal-layer">
             <DeleteSessionModal
               deleting={deleteBusy}
               onCancel={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteCost(null) } }}
@@ -1120,7 +1246,8 @@ export default function SettingsDrawer({
               body={`Everything written for ${deleteTarget.name} will be removed from your Career Profile. This can't be undone.`}
               secondary={orphanSentence(deleteCost)}
               confirmLabel="Delete"
-            />,
+            />
+            </div>,
             document.body
           )
         : null}
