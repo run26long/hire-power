@@ -2193,7 +2193,7 @@ const careerCoachComplete = careerContext && careerContext.completed_at !== null
                                         <span>{customNote}</span>
                                         <button
                                           type="button"
-                                          onClick={() => setCustomNote(null)}
+                                          onClick={() => { setCustomNote(null); setCustomName(''); }}
                                           aria-label="Dismiss message"
                                           className="ml-auto shrink-0 px-0.5 text-sm leading-none text-gray-400 hover:text-gray-700"
                                         >

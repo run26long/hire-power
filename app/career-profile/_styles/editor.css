@@ -990,6 +990,10 @@ html:has(.hp-ed) {
 
 .hp-ed-lens-add {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex-shrink: 0;
   padding: 5px 11px;
   border-radius: 8px;
@@ -1016,7 +1020,7 @@ html:has(.hp-ed) {
 .hp-ed-lens-add[data-working="true"],
 .hp-ed-lens-add[data-working="true"]:disabled {
   opacity: 1;
-  cursor: progress;
+  cursor: default;
 }
 
 @media (hover: hover) and (pointer: fine) {

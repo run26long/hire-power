@@ -808,7 +808,7 @@ export default function SettingsDrawer({
               {offeredRows.length > 0 && (
                 <>
                   <hr className="hp-ed-lens-split" />
-                  <p className="hp-ed-lens-make-label">Add a suggested career direction</p>
+                  <p className="hp-ed-lens-make-label">Add a career direction identified from coaching</p>
                   <div className="hp-ed-lenses">
                     {offeredRows.map(({ lens }) => {
                       const busy = lensBusy === lens.id
@@ -878,6 +878,7 @@ export default function SettingsDrawer({
                       onClick={createCustomLens}
                       disabled={creating || slotsFull || !customName.trim()}
                     >
+                      {creating ? <span className="hp-ed-spin" aria-hidden="true" /> : null}
                       {creating ? 'Building…' : 'Create'}
                     </button>
                   ) : (
@@ -895,7 +896,7 @@ export default function SettingsDrawer({
                     <button
                       type="button"
                       className="hp-ed-lens-make-note-x"
-                      onClick={() => setCreateNote(null)}
+                      onClick={() => { setCreateNote(null); setCustomName('') }}
                       aria-label="Dismiss message"
                     >
                       ×
